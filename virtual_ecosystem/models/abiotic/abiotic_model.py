@@ -8,27 +8,27 @@ from __future__ import annotations
 
 from typing import Any
 
-from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.abiotic.energy_balance import (
     initialise_canopy_and_soil_fluxes,
 )
 from virtual_ecosystem.models.abiotic.microclimate import run_microclimate
-from virtual_ecosystem.models.abiotic_simple.constants import (
-    AbioticSimpleBounds,
-    AbioticSimpleConsts,
+from virtual_ecosystem.models.abiotic.model_config import (
+    AbioticConfiguration,
+    AbioticConstants,
 )
 from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
     calculate_vapour_pressure_deficit,
     run_simple_microclimate,
 )
+from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
 
 class AbioticModel(
@@ -115,14 +115,20 @@ class AbioticModel(
 
         super().__init__(data, core_components, static, **kwargs)
 
-        self.model_constants: AbioticConsts
+        self.model_constants: AbioticConstants
         """Set of constants for the abiotic model."""
-        self.simple_constants: AbioticSimpleConsts
-        """Set of constants for simple abiotic model."""
+        self.bounds: AbioticSimpleBounds
+        """A set of bounds on microclimates variables, used with both the simple model
+        of the initial state and the full energy balance calculations."""
+        self.pyrealm_core_constants: PyrealmCoreConst
+        """Pyrealm core constants."""
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
     ) -> AbioticModel:
         """Factory function to initialise the abiotic model from configuration.
 
@@ -132,27 +138,39 @@ class AbioticModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
-            config: A validated Virtual Ecosystem model configuration object.
         """
 
-        # Load in the relevant constants
-        model_constants = load_constants(config, "abiotic", "AbioticConsts")
-        static = config["abiotic"]["static"]
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: AbioticConfiguration = configuration.get_subconfiguration(
+            "abiotic", AbioticConfiguration
+        )
+
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
 
         LOGGER.info(
             "Information required to initialise the abiotic model successfully "
             "extracted."
         )
         return cls(
-            data,
+            data=data,
             core_components=core_components,
-            static=static,
-            model_constants=model_constants,
+            static=model_configuration.static,
+            model_constants=model_configuration.constants,
+            pyrealm_core_constants=core_configuration.pyrealm.core,
+            bounds=model_configuration.bounds,
         )
 
     def _setup(
-        self, model_constants: AbioticConsts = AbioticConsts(), **kwargs
+        self,
+        model_constants: AbioticConstants = AbioticConstants(),
+        pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
+        bounds: AbioticSimpleBounds = AbioticSimpleBounds(),
+        **kwargs,
     ) -> None:
         """Function to set up the abiotic model.
 
@@ -163,11 +181,15 @@ class AbioticModel(
 
         Args:
             model_constants: Set of constants for the abiotic model.
+            pyrealm_core_constants: Additional configuration options to the pyrealm
+                package.
+            bounds: A set of bounds to be applied to abiotic variables.
             **kwargs: Further arguments to the setup method.
         """
 
         self.model_constants = model_constants
-        self.simple_constants = AbioticSimpleConsts()
+        self.pyrealm_core_constants = pyrealm_core_constants
+        self.bounds = bounds
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
@@ -176,7 +198,7 @@ class AbioticModel(
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            pyrealm_const=PyrealmConst(),
+            pyrealm_core_constants=self.pyrealm_core_constants,
         )
         self.data["vapour_pressure_deficit_ref"] = (
             vapour_pressure_and_deficit["vapour_pressure_deficit"]
@@ -193,10 +215,9 @@ class AbioticModel(
             data=self.data,
             layer_structure=self.layer_structure,
             time_index=0,
-            simple_constants=self.simple_constants,
-            abiotic_constants=self.model_constants,
+            constants=self.model_constants,
             core_constants=self.core_constants,
-            bounds=AbioticSimpleBounds(),
+            bounds=self.bounds,
         )
 
         # Generate initial profiles of canopy temperature and heat fluxes from soil and
@@ -233,8 +254,8 @@ class AbioticModel(
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
             core_constants=self.core_constants,
-            pyrealm_const=PyrealmConst,
-            abiotic_bounds=AbioticSimpleBounds(),
+            pyrealm_core_constants=self.pyrealm_core_constants,
+            abiotic_bounds=self.bounds,
         )
 
         self.data.add_from_dict(output_dict=update_dict)

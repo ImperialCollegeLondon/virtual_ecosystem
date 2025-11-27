@@ -18,7 +18,8 @@ def test_ve_run_install_example(capsys):
         assert captured.out.startswith(expected)
 
 
-def test_ve_run(capsys, mocker):
+@pytest.mark.slow
+def test_ve_run(capsys):
     """Test that the CLI can successfully run with example data.
 
     Note that this does not currently test the various CLI options independently. We
@@ -39,6 +40,7 @@ def test_ve_run(capsys, mocker):
             example_dir = Path(tempdir) / "ve_example"
             configs = example_dir / "config"
             outdir = example_dir / "out"
+            outdir.mkdir(exist_ok=True)
             logfile = outdir / "ve_example.log"
             ve_run_cli(
                 args_list=[
@@ -107,6 +109,8 @@ save_initial_state = false
 save_continuous_data = false
 save_final_state = false
 save_merged_config = false
+[core.data]
+variable = []
 [testing]
 """
         )

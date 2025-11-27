@@ -5,21 +5,21 @@ from numpy.typing import NDArray
 from pyrealm.core.hygro import calc_specific_heat
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import abiotic_tools
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.hydrology import above_ground
-from virtual_ecosystem.models.hydrology.constants import HydroConsts
+from virtual_ecosystem.models.hydrology.model_config import HydrologyConstants
 
 
 def initialise_atmosphere_for_hydrology(
     data: Data,
-    model_constants: HydroConsts,
-    abiotic_constants: AbioticConsts,
-    core_constants: CoreConsts,
+    model_constants: HydrologyConstants,
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
     layer_structure: LayerStructure,
 ):
     """Initialise atmospheric variables required for hydrology model.
@@ -135,8 +135,6 @@ def setup_hydrology_input_current_timestep(
     * current_soil_moisture
     * top_soil_moisture_saturation
     * top_soil_moisture_residual
-    * previous_accumulated_runoff
-    * previous_subsurface_flow_accumulated
     * groundwater_storage
 
     Args:
@@ -193,13 +191,7 @@ def setup_hydrology_input_current_timestep(
         data["soil_moisture"][layer_structure.index_all_soil]
     ).to_numpy()
 
-    # Get accumulated runoff/flow and ground water level from previous time step
-    output["previous_accumulated_runoff"] = data[
-        "surface_runoff_accumulated"
-    ].to_numpy()
-    output["previous_subsurface_flow_accumulated"] = data[
-        "subsurface_flow_accumulated"
-    ].to_numpy()
+    # Get ground water level
     output["groundwater_storage"] = data["groundwater_storage"].to_numpy()
 
     return output
@@ -305,3 +297,68 @@ def calculate_effective_saturation(
     return (soil_moisture - soil_moisture_residual) / (
         soil_moisture_saturation - soil_moisture_residual
     )
+
+
+def check_monthly_mass_balance(
+    drainage_map: dict[int, list[int]],
+    surface_channel_inflow_mm: NDArray[np.floating],
+    monthly_precipitation_mm: NDArray[np.floating],
+    monthly_evaporation_mm: NDArray[np.floating],
+) -> None:
+    """Check that total monthly streamflow at outlet(s) does not exceed total precip.
+
+    The function identifies the outlet cells (cells with no downstream connections) from
+    the drainage map. It then sums the surface channel inflow at these outlet cells and
+    compares it to the total catchment precipitation minus total evaporation. If the
+    streamflow exceeds the available water, an AssertionError is raised.
+
+    If no true outlet cells exist, the flow from the lowest cells (cells with fewest
+    upstream connections) is used for the check.
+
+    Args:
+        drainage_map: Dict mapping each cell ID -> list of upstream cell IDs
+        surface_channel_inflow_mm: Monthly total surface channel inflow per cell, [mm]
+        monthly_precipitation_mm: Monthly total precipitation per cell, [mm]
+        monthly_evaporation_mm: Monthly total evaporation per cell, [mm]
+
+    Raises:
+        AssertionError: if monthly streamflow exceeds total catchment precipitation.
+    """
+    n_cells = len(drainage_map)
+    all_cells = set(range(n_cells))
+
+    # Cells that are upstream to others
+    cells_with_downstream = set()
+    for upstream_ids in drainage_map.values():
+        cells_with_downstream.update(upstream_ids)
+
+    # Outlet cells = cells with no downstream
+    outlet_cells = list(all_cells - cells_with_downstream)
+
+    # If no outlet, pick the "lowest" cells (fewest upstream neighbors)
+    if not outlet_cells:
+        upstream_counts = {
+            cell: len(upstream_ids) for cell, upstream_ids in drainage_map.items()
+        }
+        min_upstream = min(upstream_counts.values())
+        outlet_cells = [
+            cell for cell, count in upstream_counts.items() if count == min_upstream
+        ]
+
+    # Total streamflow at outlet(s)
+    monthly_outlet_flow_mm = surface_channel_inflow_mm[outlet_cells].sum()
+
+    # Total catchment precipitation and soil evaporation
+    total_catchment_precip_mm = np.sum(monthly_precipitation_mm)
+    total_catchment_evaporation_mm = np.sum(monthly_evaporation_mm)
+
+    # Mass balance check
+    if (
+        monthly_outlet_flow_mm
+        > total_catchment_precip_mm - total_catchment_evaporation_mm
+    ):
+        raise AssertionError(
+            f"Mass balance violated: total streamflow ({monthly_outlet_flow_mm:.2f} mm)"
+            f" exceeds total catchment precip ({total_catchment_precip_mm:.2f} mm). "
+            f"Outlet cells: {outlet_cells}"
+        )

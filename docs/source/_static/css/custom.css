@@ -3,3 +3,29 @@ img.team-photo {
     width: 60px;
     padding-right: 10px
 }
+
+/* CSS for configuration settings tables.
+CSS from mystnb text align and colour and gets priority, I think solely due to load
+order so need to force.
+*/
+tr.config-section {
+    background-color: #c9c9c9 !important;
+}
+
+tr.config-element {
+    background-color: #e3e3e3 !important;
+}
+
+tr.config-desc {
+    background-color: white !important;
+}
+
+td.element-name {
+    text-align: left !important;
+    font-weight: bold;
+    font-family: monospace;
+}
+
+td.config-desc {
+    text-align: left !important;
+}

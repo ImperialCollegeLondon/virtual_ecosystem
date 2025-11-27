@@ -13,7 +13,7 @@ jobs:
   qa:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -29,7 +29,7 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - uses: actions/setup-python@v6
       with:
@@ -65,7 +65,7 @@ jobs:
     needs: qa
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -81,11 +81,11 @@ jobs:
       - name: Build docs using sphinx
         run: |
           cd docs
-          poetry run sphinx-build --jobs auto -W --keep-going source build
+          poetry run sphinx-build -W --keep-going source build
       
       - name: Archive built docs for error checking on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: built-docs
           path: docs/build

@@ -1,7 +1,7 @@
 """Test module for abiotic.abiotic_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO
+from logging import DEBUG, ERROR, INFO
 from unittest.mock import patch
 
 import numpy as np
@@ -45,12 +45,14 @@ SETUP_MANIPULATIONS = (
 
 
 def test_abiotic_model_initialization(
-    caplog, dummy_climate_data_varying_canopy, fixture_core_components
+    caplog,
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_abiotic_constants,
 ):
     """Test `AbioticModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
-    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
     # Initialize model
     with (
@@ -61,7 +63,7 @@ def test_abiotic_model_initialization(
         model = AbioticModel(
             dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
-            model_constants=AbioticConsts(),
+            model_constants=fixture_abiotic_constants,
         )
         mock_update.assert_called_once()
         mock_bypass_setup.assert_called_once()
@@ -79,13 +81,14 @@ def test_abiotic_model_initialization(
     )
 
 
-def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
+def test_abiotic_model_initialization_no_data(
+    caplog, fixture_core_components, fixture_abiotic_constants
+):
     """Test `AbioticModel` initialization with no data."""
 
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
-    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
     with pytest.raises(ValueError):
         # Make four cell grid
@@ -96,7 +99,7 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
         _ = AbioticModel(
             empty_data,
             core_components=fixture_core_components,
-            model_constants=AbioticConsts(),
+            model_constants=fixture_abiotic_constants,
         )
 
     # Final check that expected logging entries are produced
@@ -129,14 +132,12 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
 
 
 @pytest.mark.parametrize(
-    "cfg_string, drag_coeff, raises, expected_log_entries",
+    "cfg_string, raises, expected_log_entries",
     [
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '12 hours'\n[abiotic]\n",
-            0.2,
             does_not_raise(),
             (
-                (INFO, "Initialised abiotic.AbioticConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the abiotic model successfully "
@@ -148,11 +149,9 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
         ),
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
-            "[abiotic.constants.AbioticConsts]\ndrag_coefficient = 0.05\n",
-            0.05,
+            "[abiotic.constants]\ndrag_coefficient = 0.05\n",
             does_not_raise(),
             (
-                (INFO, "Initialised abiotic.AbioticConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the abiotic model successfully "
@@ -162,42 +161,30 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
             ),
             id="modified_config_correct",
         ),
-        pytest.param(
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
-            "[abiotic.constants.AbioticConsts]\ndrag_coefficients = 0.05\n",
-            None,
-            pytest.raises(ConfigurationError),
-            (
-                (ERROR, "Unknown names supplied for AbioticConsts: drag_coefficients"),
-                (INFO, "Valid names are: "),
-                (CRITICAL, "Could not initialise abiotic.AbioticConsts from config"),
-            ),
-            id="modified_config_incorrect",
-        ),
     ],
 )
 def test_generate_abiotic_model(
     caplog,
     dummy_climate_data_varying_canopy,
     cfg_string,
-    drag_coeff,
     raises,
     expected_log_entries,
 ):
     """Test that the function to initialise the abiotic model behaves as expected."""
 
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
-    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
-    # Build the config object and core components
-    config = Config(cfg_strings=cfg_string)
-    core_components = CoreComponents(config)
+    config_data = ConfigurationLoader(cfg_strings=cfg_string)
+    configuration = generate_configuration(config_data.data)
+    core_components = CoreComponents(configuration.core)
     caplog.clear()
 
     # We patch the _setup step as it is tested separately
-    expected_constants = AbioticConsts(drag_coefficient=drag_coeff)
     object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
     with (
         patch_run_update(AbioticModel) as mock_update,
@@ -209,10 +196,10 @@ def test_generate_abiotic_model(
         with raises:
             AbioticModel.from_config(
                 data=dummy_climate_data_varying_canopy,
+                configuration=configuration,
                 core_components=core_components,
-                config=config,
             )
-            mock_setup.assert_called_once_with(model_constants=expected_constants)
+            mock_setup.assert_called_once()
             mock_bypass_setup.assert_called_once()
             mock_update.assert_called_once()
 
@@ -227,7 +214,6 @@ def test_generate_abiotic_model(
             "[core]\n[core.timing]\nupdate_interval = '1 year'\n[abiotic]\n",
             pytest.raises(ConfigurationError),
             (
-                (INFO, "Initialised abiotic.AbioticConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the abiotic model "
@@ -253,13 +239,17 @@ def test_generate_abiotic_model_bounds_error(
 ):
     """Test that the initialisation of the abiotic model from config."""
 
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
     # Build the config object and core components
-    config = Config(cfg_strings=cfg_string)
-    core_components = CoreComponents(config)
+    config_data = ConfigurationLoader(cfg_strings=cfg_string)
+    configuration = generate_configuration(config_data.data)
+    core_components = CoreComponents(configuration.core)
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
@@ -271,8 +261,8 @@ def test_generate_abiotic_model_bounds_error(
         with raises:
             _ = AbioticModel.from_config(
                 data=dummy_climate_data_varying_canopy,
+                configuration=configuration,
                 core_components=core_components,
-                config=config,
             )
 
     # Final check that expected logging entries are produced

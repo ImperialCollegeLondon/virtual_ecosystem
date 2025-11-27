@@ -1,6 +1,4 @@
 ---
-execution:
-  timeout: 210
 jupytext:
   formats: md:myst
   main_language: python
@@ -8,21 +6,11 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0.dev0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
-language_info:
-  codemirror_mode:
-    name: ipython
-    version: 3
-  file_extension: .py
-  mimetype: text/x-python
-  name: python
-  nbconvert_exporter: python
-  pygments_lexer: ipython3
-  version: 3.11.14
 ---
 
 # Running the Virtual Ecosystem in Static Mode
@@ -101,7 +89,7 @@ For the code run at the command line, we currently only show the syntax for usin
 
 Before setting up static experiments, make sure you can run the model successfully.
 If you haven’t yet installed and executed the example, follow the
-[example instructions](./virtual_ecosystem_in_use.md) to familiarise yourself with the
+[example instructions](./virtual_ecosystem_in_use) to familiarise yourself with the
 setup.
 
 ```{code-cell} ipython3

@@ -8,12 +8,12 @@ import numpy as np
 from numpy.typing import NDArray
 
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
     calculate_carbon_use_efficiency,
     calculate_temperature_effect_on_microbes,
 )
 from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroupConstants
+from virtual_ecosystem.models.soil.model_config import SoilConstants
 
 
 @dataclass
@@ -86,7 +86,7 @@ def calculate_nutrient_uptake_rates(
     water_factor: NDArray[np.floating],
     pH_factor: NDArray[np.floating],
     soil_temp: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
     functional_group: MicrobialGroupConstants,
 ) -> tuple[NDArray[np.floating], NetNutrientConsumption]:
     """Calculate the rate at which microbes uptake each nutrient.
@@ -279,14 +279,13 @@ def find_net_nutrient_consumptions_free_living(
     """
 
     # Determine how limiting carbon is (as a proportion). The zero carbon uptake case is
-    # handled by assuming that carbon limitation is total in this case. Divide by zero
-    # warnings are turned off because this is explicitly handled.
-    with np.errstate(divide="ignore", invalid="ignore"):
-        carbon_limitation = np.where(
-            max_uptake_rates.carbon > 0,
-            actual_carbon_gain / (max_uptake_rates.carbon * carbon_use_efficiency),
-            1,
-        )
+    # handled by assuming that carbon limitation is total in this case.
+    carbon_limitation = np.divide(
+        actual_carbon_gain,
+        max_uptake_rates.carbon * carbon_use_efficiency,
+        out=np.ones_like(max_uptake_rates.carbon, dtype=float),
+        where=(max_uptake_rates.carbon > 0),
+    )
 
     # Calculate biomass demands for nitrogen and phosphorus
     nitrogen_demand = (
@@ -328,11 +327,11 @@ def find_net_nutrient_consumptions_free_living(
 
     # For immobilisation of nitrogen, the proportion of ammonium and nitrate taken up
     # follows the proportion of the maximum uptake rates (if either is above zero)
-    ammonium_uptake_proportion = np.where(
-        (max_uptake_rates.ammonium > 0) | (max_uptake_rates.nitrate > 0),
-        max_uptake_rates.ammonium
-        / (max_uptake_rates.ammonium + max_uptake_rates.nitrate),
-        0.0,
+    ammonium_uptake_proportion = np.divide(
+        max_uptake_rates.ammonium,
+        max_uptake_rates.ammonium + max_uptake_rates.nitrate,
+        out=np.zeros_like(max_uptake_rates.ammonium, dtype=float),
+        where=(max_uptake_rates.ammonium > 0) | (max_uptake_rates.nitrate > 0),
     )
 
     # Whether the uptake proportion or the mineralisation proportion is relevant depends
@@ -455,15 +454,12 @@ def find_net_nutrient_consumptions_symbiotic(
 
     # For inorganic nitrogen uptake, the proportion of ammonium and nitrate taken up
     # follows the proportion of the maximum uptake rates (if either is above zero)
-    # I explicitly handle the divide by zero case here, so that error state is ignored
-    # to prevent runtime warnings related to something that I have actually handled.
-    with np.errstate(divide="ignore", invalid="ignore"):
-        ammonium_uptake_proportion = np.where(
-            (max_uptake_rates.ammonium > 0) | (max_uptake_rates.nitrate > 0),
-            max_uptake_rates.ammonium
-            / (max_uptake_rates.ammonium + max_uptake_rates.nitrate),
-            0.0,
-        )
+    ammonium_uptake_proportion = np.divide(
+        max_uptake_rates.ammonium,
+        max_uptake_rates.ammonium + max_uptake_rates.nitrate,
+        out=np.zeros_like(max_uptake_rates.ammonium, dtype=float),
+        where=(max_uptake_rates.ammonium > 0) | (max_uptake_rates.nitrate > 0),
+    )
 
     ammonium_uptake = inorganic_nitrogen_uptake * ammonium_uptake_proportion
     nitrate_uptake = inorganic_nitrogen_uptake * (1 - ammonium_uptake_proportion)

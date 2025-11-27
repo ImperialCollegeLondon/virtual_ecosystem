@@ -6,21 +6,11 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0.dev0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
-language_info:
-  codemirror_mode:
-    name: ipython
-    version: 3
-  file_extension: .py
-  mimetype: text/x-python
-  name: python
-  nbconvert_exporter: python
-  pygments_lexer: ipython3
-  version: 3.10.14
 ---
 
 # Adding and using data with the Virtual Ecosystem
@@ -83,8 +73,12 @@ from pathlib import Path
 import numpy as np
 from xarray import DataArray
 
+
+from virtual_ecosystem.core.config_builder import (
+    ConfigurationLoader,
+    generate_configuration,
+)
 from virtual_ecosystem.core.grid import Grid
-from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.axes import *
 from virtual_ecosystem.core.readers import load_to_dataarray
@@ -224,7 +218,7 @@ configuration files to be swapped in a more modular fashion.
 
 To load configuration data , you will typically use the `cfg_paths` argument
 to pass one or more TOML formatted configuration files to create a
-{class}`~virtual_ecosystem.core.config.Config` object. You can also use a string
+ object. You can also use a string
 containing TOML formatted text or a list of TOML strings to create a configuration
 object:
 
@@ -234,13 +228,14 @@ file_path = "../../data/xy_dim.nc"
 var_name = "temp"
 """
 
-config = Config(cfg_strings=data_toml)
+config_data = ConfigurationLoader(cfg_strings=data_toml)
+config = generate_configuration(config_data.data)
 ```
 
 The `Config` object can then be passed to the `load_data_config` method:
 
 ```{code-cell} ipython3
-data.load_data_config(config)
+data.load_data_config(config.core)
 ```
 
 ```{code-cell} ipython3
@@ -265,4 +260,8 @@ data.save_to_netcdf(
     output_file_path=output_file_path,
     variables_to_save=variables_to_save
 )
+```
+
+```{code-cell} ipython3
+
 ```

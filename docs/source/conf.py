@@ -85,6 +85,13 @@ extensions = [
 autodoc_default_flags = ["members"]
 autosummary_generate = True
 
+# autodoc_typehints = "description"
+autodoc_typehints_format = "short"
+python_use_unqualified_type_names = True
+# autodoc_type_aliases = {
+#   "FILEPATH_PLACEHOLDER": "virtual_ecosystem.core.configuration.FILEPATH_PLACEHOLDER",
+# }
+
 
 # Set up the external table of contents file path and configure
 external_toc_path = "_toc.yaml"
@@ -166,7 +173,49 @@ nitpick_ignore = [
     ("py:class", "CoreConst"),
     ("py:class", "StemAllocation"),
     ("py:class", "StemStoichiometry"),
+    ("py:class", "pydantic.types.PathType"),
+    # Something about the pydantic annotated pattern generates a ton of peculiar
+    # intersphinx noise.
+    ("py:class", "pathlib.Annotated"),
+    ("py:class", "path_type=file"),
+    ("py:class", "file"),
+    ("py:class", "FieldInfo"),
+    ("py:class", "NoneType"),
+    ("py:class", "PosixPath"),
+    ("py:class", "virtual_ecosystem.core.configuration.placeholder_validator"),
+    ("py:class", "PydanticUndefined"),
+    # Actually just generally intersphinx is janky when it comes to pydantic
+    ("py:class", "annotated_types.Gt"),
+    ("py:class", "PositiveFloat"),
+    ("py:class", "PositiveInt"),
+    ("py:class", "annotated_types.Lt"),
+    ("py:class", "annotated_types.MinLen"),
+    ("py:class", "annotated_types.Gt"),
+    ("py:class", "annotated_types.Ge"),
+    ("py:class", "annotated_types.Le"),
+    ("py:class", "annotated_types.Ge"),
+    ("py:class", "annotated_types.Le"),
+    ("py:class", "NegativeFloat"),
+    ("py:class", "date"),
+    ("py:class", "_PydanticGeneralMetadata"),
+    # Sphinx seems to insist that pydantic model types are classes, when they can be
+    # global Literals
+    ("py:class", "SUBSTRATES"),
+    ("py:class", "REQUIRED_MICROBIAL_GROUPS"),
+    ("py:class", "HIGHER_TAXONOMIC_GROUPS"),
+    ("py:class", "dir"),
+    # FOR PITY'S SAKE, SPHINX - why can you not find DIRPATH_PLACEHOLDER when you _can_
+    # find FILEPATH_PLACEHOLDER, which is defined in the same way, in the same file and
+    # when both do actually appear in the API docs? It's right there.
+    ("py:class", "DIRPATH_PLACEHOLDER"),
+    ("py:class", "PyrealmCoreConst"),
+    # Typing on animal.model_config
+    ("py:class", "virtual_ecosystem.models.animal.animal_traits.Annotated"),
+    ("py:class", "virtual_ecosystem.models.animal.model_config.serialise_diet_type"),
+    ("py:class", "virtual_ecosystem.models.animal.model_config.deserialise_diet_type"),
+    ("py:class", "always"),
 ]
+
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
@@ -174,7 +223,9 @@ intersphinx_mapping = {
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
-    "pyrealm": ("https://pyrealm.readthedocs.io/en/latest/", None),
+    "pyrealm": ("https://pyrealm.readthedocs.io/en/stable/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
 
 # Turn on figure numbering - this slows down build time a surprising amount!

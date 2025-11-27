@@ -52,7 +52,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
 
     # Configure the mock to return a specific list of files
     if out_path == "./complete_config.toml":
-        mock_content = mocker.patch("virtual_ecosystem.core.config.Path.exists")
+        mock_content = mocker.patch("virtual_ecosystem.core.utils.Path.exists")
         mock_content.return_value = True
 
     # Check that check_outfile fails as expected

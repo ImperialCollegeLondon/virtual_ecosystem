@@ -14,18 +14,18 @@ TODO change temperatures to Kelvin
 """  # noqa: D205
 
 import numpy as np
-from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import energy_balance
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple.constants import (
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
+from virtual_ecosystem.models.abiotic_simple.model_config import (
     AbioticSimpleBounds,
-    AbioticSimpleConsts,
+    AbioticSimpleConstants,
 )
 
 
@@ -33,9 +33,8 @@ def run_simple_microclimate(
     data: Data,
     layer_structure: LayerStructure,
     time_index: int,  # could be datetime?
-    simple_constants: AbioticSimpleConsts,
-    abiotic_constants: AbioticConsts,
-    core_constants: CoreConsts,
+    constants: AbioticSimpleConstants | AbioticConstants,
+    core_constants: CoreConstants,
     bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
@@ -51,7 +50,7 @@ def run_simple_microclimate(
     :math:`y = m * LAI + c`
 
     where :math:`y` is the variable of interest, :math:`m` is the gradient
-    (:data:`~virtual_ecosystem.models.abiotic_simple.constants.AbioticSimpleConsts`)
+    (:data:`~virtual_ecosystem.models.abiotic_simple.model_config.AbioticSimpleConstants`)
     and :math:`c` is the intersect which we set to the external data values. We assume
     that the gradient remains constant.
 
@@ -88,8 +87,7 @@ def run_simple_microclimate(
         data: Data object
         layer_structure: The LayerStructure instance for the simulation.
         time_index: Time index, integer
-        simple_constants: Set of constants for the abiotic simple model
-        abiotic_constants: Set of constants for the abiotic model
+        constants: Set of constants for the abiotic simple model
         core_constants: Set of constants shared across all models
         bounds: Upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
@@ -124,19 +122,26 @@ def run_simple_microclimate(
             gradient=gradient,
         ).rename(var)
 
+    # Create atmospheric mask for filling constant values
+    atm_mask = ~np.isnan(
+        output["air_temperature"].isel(layers=layer_structure.index_filled_atmosphere)
+    )
+
     # Mean atmospheric pressure profile, [kPa]
-    # TODO: this should only be filled for filled/true above ground layers
     output["atmospheric_pressure"] = layer_structure.from_template()
-    output["atmospheric_pressure"][layer_structure.index_atmosphere] = data[
-        "atmospheric_pressure_ref"
-    ].isel(time_index=time_index)
+    atmospheric_pressure = data["atmospheric_pressure_ref"].isel(time_index=time_index)
+    valid_values_atmospheric_pressure = atmospheric_pressure.where(atm_mask)
+    output["atmospheric_pressure"][layer_structure.index_filled_atmosphere] = (
+        valid_values_atmospheric_pressure
+    )
 
     # Mean atmospheric C02 profile, [ppm]
-    # TODO: this should only be filled for filled/true above ground layers
     output["atmospheric_co2"] = layer_structure.from_template()
-    output["atmospheric_co2"][layer_structure.index_atmosphere] = data[
-        "atmospheric_co2_ref"
-    ].isel(time_index=time_index)
+    atmospheric_co2 = data["atmospheric_co2_ref"].isel(time_index=time_index)
+    valid_values_atmospheric_co2 = atmospheric_co2.where(atm_mask)
+    output["atmospheric_co2"][layer_structure.index_filled_atmosphere] = (
+        valid_values_atmospheric_co2
+    )
 
     # Calculate soil temperatures, [C]
     lower, upper = getattr(bounds, "soil_temperature")
@@ -160,14 +165,14 @@ def run_simple_microclimate(
     # Calculate net radiation, [W m-2].
     canopy_longwave_emission = energy_balance.calculate_longwave_emission(
         temperature=canopy_temperature.to_numpy(),
-        emissivity=abiotic_constants.leaf_emissivity,
+        emissivity=constants.leaf_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
     soil_longwave_emission = energy_balance.calculate_longwave_emission(
         temperature=output["soil_temperature"][
             layer_structure.index_topsoil_scalar
         ].to_numpy(),
-        emissivity=abiotic_constants.soil_emissivity,
+        emissivity=constants.soil_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
@@ -240,7 +245,7 @@ def log_interpolation(
 def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
-    pyrealm_const: PyrealmConst,
+    pyrealm_core_constants: PyrealmCoreConst,
 ) -> dict[str, DataArray]:
     """Calculate vapour pressure and vapour pressure deficit, kPa.
 
@@ -250,8 +255,8 @@ def calculate_vapour_pressure_deficit(
     Args:
         temperature: temperature, [C]
         relative_humidity: relative humidity, []
-        pyrealm_const: Set of constants from pyrealm which include factors for
-            saturation vapour pressure calculation
+        pyrealm_core_constants: Set of core constants from pyrealm which include factors
+            for saturation vapour pressure calculation
 
     Return:
         vapour pressure, [kPa], vapour pressure deficit, [kPa]
@@ -260,7 +265,7 @@ def calculate_vapour_pressure_deficit(
     output = {}
     saturation_vapour_pressure_numpy = calc_vp_sat(
         ta=temperature.to_numpy(),
-        core_const=pyrealm_const,
+        core_const=pyrealm_core_constants,
     )
     saturation_vapour_pressure = saturation_vapour_pressure_numpy
     actual_vapour_pressure = saturation_vapour_pressure * (relative_humidity / 100)

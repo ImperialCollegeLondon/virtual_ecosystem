@@ -13,9 +13,9 @@ from numpy import timedelta64
 import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
 from virtual_ecosystem.models.animal.cnp import CNP
-from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
@@ -25,6 +25,7 @@ from virtual_ecosystem.models.animal.decay import (
     find_decay_consumed_split,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.model_config import AnimalConstants
 from virtual_ecosystem.models.animal.protocols import Resource
 
 _T = TypeVar("_T")
@@ -41,7 +42,8 @@ class AnimalCohort:
         individuals: int,
         centroid_key: int,
         grid: Grid,
-        constants: AnimalConsts = AnimalConsts(),
+        constants: AnimalConstants = AnimalConstants(),
+        core_constants: CoreConstants = CoreConstants(),
     ) -> None:
         if age < 0:
             raise ValueError("Age must be a positive number.")
@@ -63,6 +65,8 @@ class AnimalCohort:
         """The the grid structure of the simulation."""
         self.constants = constants
         """Animal constants."""
+        self.core_constants = core_constants
+        """Core constants."""
         self.location_status: Literal["active", "migrated", "aquatic"] = "active"
         """Location status of the cohort, active means present and participating."""
         self.remaining_time_away: float = 0.0
@@ -255,10 +259,12 @@ class AnimalCohort:
 
         # Calculate potential carbon metabolized (kg/day * number of days)
         potential_carbon_metabolized = sf.metabolic_rate(
-            self.mass_current,
-            temperature,
-            self.functional_group.metabolic_rate_terms,
-            self.functional_group.metabolic_type,
+            mass=self.mass_current,
+            temperature=temperature,
+            terms=self.functional_group.metabolic_rate_terms,
+            metabolic_type=self.functional_group.metabolic_type,
+            metabolic_scaling_coefficients=self.constants.metabolic_scaling_coefficients,
+            boltzmann_constant=self.core_constants.boltzmann_constant,
         ) * float(dt / timedelta64(1, "D"))
 
         # Ensure metabolized carbon does not exceed available carbon

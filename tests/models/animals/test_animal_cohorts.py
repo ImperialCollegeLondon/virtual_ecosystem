@@ -990,7 +990,7 @@ class TestAnimalCohort:
         """Testing for calculate alpha."""
         # Assuming necessary imports and setup based on previous examples
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animal.constants import AnimalConsts
+        from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
         # Mock the scaling function to control its return value
         mocker.patch(
@@ -999,7 +999,7 @@ class TestAnimalCohort:
         )
 
         # Setup constants and functional group mock
-        constants = AnimalConsts()
+        constants = AnimalConstants()
         functional_group_mock = herbivore_functional_group_instance
 
         # Initialize the AnimalCohort instance with test parameters
@@ -2989,8 +2989,8 @@ class TestAnimalCohort:
 
         # Build singleton-per-cell dict of "fungal fruiting pools".
         # We use simple objects to avoid needing real Data; only identity matters.
-        fungal_fruiting_bodies: dict[int, object] = {}
-        all_fruits: list[tuple[object, bool]] = []
+        fungal_fruiting_bodies = {}  # dict[int, object]
+        all_fruits = []  # list[tuple[object, bool]]
 
         for cell_id, label in cell_fruit_map.items():
             fruit = SimpleNamespace(cell_id=cell_id)
@@ -3061,8 +3061,8 @@ class TestAnimalCohort:
         cohort.territory = territory
 
         # Build soil_pools: dict[int, dict[str, SoilPool-like]]
-        soil_pools: dict[int, dict[str, object]] = {}
-        all_fungi: list[tuple[object, bool]] = []
+        soil_pools = {}  # dict[int, dict[str, object]]
+        all_fungi = []  # list[tuple[object, bool]]
 
         for cell_id, label in cell_soil_map.items():
             pool = SimpleNamespace(cell_id=cell_id)
@@ -3132,8 +3132,8 @@ class TestAnimalCohort:
         cohort.territory = territory
 
         # Build soil_pools: dict[int, dict[str, SoilPool-like]]
-        soil_pools: dict[int, dict[str, object]] = {}
-        all_pom: list[tuple[object, bool]] = []
+        soil_pools = {}  # dict[int, dict[str, object]]
+        all_pom = []  # list[tuple[object, bool]]
 
         for cell_id, label in cell_soil_map.items():
             pool = SimpleNamespace(cell_id=cell_id)
@@ -3203,8 +3203,8 @@ class TestAnimalCohort:
         cohort.territory = territory
 
         # Build soil_pools: dict[int, dict[str, SoilPool-like]]
-        soil_pools: dict[int, dict[str, object]] = {}
-        all_bacteria: list[tuple[object, bool]] = []
+        soil_pools = {}  # dict[int, dict[str, object]]
+        all_bacteria = []  # list[tuple[object, bool]]
 
         for cell_id, label in cell_soil_map.items():
             pool = SimpleNamespace(cell_id=cell_id)

@@ -7,7 +7,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0.dev0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -59,10 +59,18 @@ This page documents submodules of the `plants` module used to support the centra
     :members:
 ```
 
-## The plants {mod}`~virtual_ecosystem.models.plants.constants` module
+## The plants {mod}`~virtual_ecosystem.models.plants.stoichiometry` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.plants.constants
+.. automodule:: virtual_ecosystem.models.plants.stoichiometry
+    :autosummary:
+    :members:
+```
+
+## The plants {mod}`~virtual_ecosystem.models.plants.subcanopy` module
+
+```{eval-rst}
+.. automodule:: virtual_ecosystem.models.plants.subcanopy
     :autosummary:
     :members:
 ```
@@ -73,4 +81,13 @@ This page documents submodules of the `plants` module used to support the centra
 .. automodule:: virtual_ecosystem.models.plants.exporter
     :autosummary:
     :members:
+```
+
+## The plants {mod}`~virtual_ecosystem.models.plants.model_config` module
+
+```{eval-rst}
+.. automodule:: virtual_ecosystem.models.plants.model_config
+    :autosummary:
+    :members:
+    :exclude-members: model_config
 ```

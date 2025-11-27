@@ -8,7 +8,7 @@ TODO change temperatures to Kelvin
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
@@ -151,14 +151,14 @@ def calculate_slope_of_saturated_pressure_curve(
 def calculate_actual_vapour_pressure(
     air_temperature: DataArray,
     relative_humidity: DataArray,
-    pyrealm_const: PyrealmConst,
+    pyrealm_core_constants: PyrealmCoreConst,
 ) -> DataArray:
     """Calculate actual vapour pressure, [kPa].
 
     Args:
         air_temperature: Air temperature, [C]
         relative_humidity: Relative humidity, [-]
-        pyrealm_const: Set of constants from pyrealm
+        pyrealm_core_constants: Set of constants from pyrealm
 
     Returns:
         actual vapour pressure, [kPa]
@@ -166,7 +166,7 @@ def calculate_actual_vapour_pressure(
 
     saturation_vapour_pressure_air = calc_vp_sat(
         ta=air_temperature.to_numpy(),
-        core_const=pyrealm_const(),
+        core_const=pyrealm_core_constants,
     )
     return saturation_vapour_pressure_air * relative_humidity / 100.0
 
@@ -234,7 +234,7 @@ def calculate_specific_humidity(
     relative_humidity: NDArray[np.floating],
     atmospheric_pressure: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
-    pyrealm_const: PyrealmConst,
+    pyrealm_core_constants: PyrealmCoreConst,
 ) -> NDArray[np.floating]:
     """Calculate specific humidity.
 
@@ -244,7 +244,7 @@ def calculate_specific_humidity(
         atmospheric_pressure: Atmospheric pressure, [kPa]
         molecular_weight_ratio_water_to_dry_air: The ratio of the molar mass of water
             vapour to the molar mass of dry air
-        pyrealm_const: Pyrealm constants
+        pyrealm_core_constants: Pyrealm core constants
 
     Returns:
         Specific humidity, [kg kg-1]
@@ -252,7 +252,7 @@ def calculate_specific_humidity(
     # Saturation vapor pressure
     saturation_vapour_pressure = calc_vp_sat(
         ta=air_temperature,
-        core_const=pyrealm_const,
+        core_const=pyrealm_core_constants,
     )
 
     # Actual vapor pressure (hPa)

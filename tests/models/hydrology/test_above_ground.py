@@ -5,11 +5,8 @@ from logging import ERROR
 
 import numpy as np
 import pytest
-from pyrealm.constants import CoreConst as PyrealmConst
 
 from tests.conftest import log_check
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
 def test_potential_evaporation_leaf():
@@ -102,7 +99,13 @@ def test_calculate_canopy_evaporation():
         ),
     ],
 )
-def test_calculate_soil_evaporation(dens_air, latvap):
+def test_calculate_soil_evaporation(
+    dens_air,
+    latvap,
+    fixture_hydrology_constants,
+    fixture_core_constants,
+    fixture_pyrealm_config,
+):
     """Test soil evaporation with float and DataArray."""
 
     from virtual_ecosystem.models.hydrology.above_ground import (
@@ -120,13 +123,14 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         leaf_area_index=np.array([3.0, 4.0, 5.0]),
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
-        gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour / 1000.0,
-        drag_coefficient_evaporation=HydroConsts.drag_coefficient_evaporation,
+        gas_constant_water_vapour=fixture_core_constants.gas_constant_water_vapour
+        / 1000.0,
+        drag_coefficient_evaporation=fixture_hydrology_constants.drag_coefficient_evaporation,
         extinction_coefficient_global_radiation=(
-            HydroConsts.extinction_coefficient_global_radiation
+            fixture_hydrology_constants.extinction_coefficient_global_radiation
         ),
         time_interval=86400,
-        pyrealm_const=PyrealmConst,
+        pyrealm_core_constants=fixture_pyrealm_config.core,
     )
 
     exp_evap = np.array([2.18791, 0.521941, 0.090352])
@@ -170,34 +174,12 @@ def test_find_upstream_cells():
     assert result == exp_result
 
 
-@pytest.mark.parametrize(
-    "acc_runoff,raises,expected_log_entries",
-    [
-        (
-            np.array([100, 100, 100, 100, 100, 100, 100, 100]),
-            does_not_raise(),
-            {},
-        ),
-        (
-            np.array([-100, 100, 100, 100, 100, 100, 100, 100]),
-            pytest.raises(ValueError),
-            (
-                (
-                    ERROR,
-                    "The accumulated flow should not be negative!",
-                ),
-            ),
-        ),
-    ],
-)
-def accumulate_horizontal_flow(caplog, acc_runoff, raises, expected_log_entries):
-    """Test."""
+def test_route_horizontal_flow_basic():
+    """Test horizontal flow routing."""
 
-    from virtual_ecosystem.models.hydrology.above_ground import (
-        accumulate_horizontal_flow,
-    )
+    from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
 
-    upstream_ids = {
+    drainage_map = {
         0: [],
         1: [0],
         2: [1, 2],
@@ -205,17 +187,43 @@ def accumulate_horizontal_flow(caplog, acc_runoff, raises, expected_log_entries)
         4: [],
         5: [3],
         6: [],
-        7: [4, 5, 6, 7],
+        7: [4, 5, 6],
     }
-    surface_runoff = np.array([100, 100, 100, 100, 100, 100, 100, 100])
-    exp_result = np.array([100, 200, 300, 100, 100, 200, 100, 500])
 
-    with raises:
-        result = accumulate_horizontal_flow(upstream_ids, surface_runoff, acc_runoff)
-        np.testing.assert_array_equal(result, exp_result)
+    surface_runoff = np.array([1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 2.0, 1.0])
+    subsurface_runoff = np.array([0.5, 0.0, 1.0, 0.5, 0.0, 1.0, 0.5, 1.0])
 
-    # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    result = route_horizontal_flow(drainage_map, surface_runoff, subsurface_runoff)
+
+    expected_channel_inflow = np.array([1.5, 3.5, 10.0, 1.5, 2.0, 5.5, 2.5, 10.5])
+
+    np.testing.assert_array_almost_equal(result, expected_channel_inflow)
+
+
+def test_route_horizontal_flow_no_upstream():
+    """Test horizontal flow routing with no upstream cells."""
+    from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
+
+    # Single cell with no upstream
+    drainage_map = {0: []}
+    surface_runoff = np.array([5.0])
+    subsurface_runoff = np.array([2.0])
+
+    result = route_horizontal_flow(drainage_map, surface_runoff, subsurface_runoff)
+    expected = np.array([7.0])  # 5 + 2
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_route_horizontal_flow_raises_on_negative():
+    """Test horizontal flow routing raises on negative input."""
+    from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
+
+    drainage_map = {0: [], 1: [0]}
+    surface_runoff = np.array([-1.0, 0.0])
+    subsurface_runoff = np.array([0.0, 0.0])
+
+    with pytest.raises(ValueError, match="The river discharge should not be negative"):
+        route_horizontal_flow(drainage_map, surface_runoff, subsurface_runoff)
 
 
 @pytest.mark.parametrize(
@@ -274,21 +282,22 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
         ]
     )
 
+    caplog.clear()
+
     with raises:
         grid = Grid(grid_type, cell_nx=5, cell_ny=5)
         result = calculate_drainage_map(grid, elevation)
 
         assert len(result) == grid.n_cells
-        assert result[1] == [2, 6]
+        assert result[1] == [2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14]
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
 
 
-def test_calculate_interception():
+def test_calculate_interception(fixture_hydrology_constants):
     """Test."""
     from virtual_ecosystem.models.hydrology.above_ground import calculate_interception
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
     precip = np.array([0, 20, 100, 100])
     lai = np.array([0, 2, 10, np.nan])
@@ -296,8 +305,8 @@ def test_calculate_interception():
     result = calculate_interception(
         leaf_area_index=lai,
         precipitation=precip,
-        intercept_parameters=HydroConsts.intercept_parameters,
-        veg_density_param=HydroConsts.veg_density_param,
+        intercept_parameters=fixture_hydrology_constants.intercept_parameters,
+        veg_density_param=fixture_hydrology_constants.veg_density_param,
     )
 
     exp_result = np.array([0.0, 1.180619, 5.339031, 0.0])
@@ -335,7 +344,7 @@ def test_calculate_bypass_flow():
     np.testing.assert_allclose(result, exp_result)
 
 
-def test_convert_mm_flow_to_m3_per_second():
+def test_convert_mm_flow_to_m3_per_second(fixture_core_constants):
     """Test channel flow conversion."""
 
     from virtual_ecosystem.models.hydrology.above_ground import (
@@ -348,7 +357,7 @@ def test_convert_mm_flow_to_m3_per_second():
         river_discharge_mm=channel_flow,
         area=np.array([10000, 10000, 10000]),
         days=30,
-        seconds_to_day=CoreConsts.seconds_to_day,
+        seconds_to_day=fixture_core_constants.seconds_to_day,
         meters_to_millimeters=1000,
     )
 

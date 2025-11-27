@@ -144,3 +144,19 @@ class TestCNP:
         assert proportions["carbon"] == 0.0
         assert proportions["nitrogen"] == 0.0
         assert proportions["phosphorus"] == 0.0
+
+
+def test_find_microbial_stoichiometries(fixture_configuration):
+    """Check that extraction of stoichiometries from microbial groups works."""
+    from virtual_ecosystem.models.animal.cnp import find_microbial_stoichiometries
+
+    expected_ratios = {
+        "bacteria": {"nitrogen": 5.2, "phosphorus": 16.0},
+        "saprotrophic_fungi": {"nitrogen": 6.5, "phosphorus": 40.0},
+        "arbuscular_mycorrhiza": {"nitrogen": 18.0, "phosphorus": 120.0},
+        "ectomycorrhiza": {"nitrogen": 18.0, "phosphorus": 120.0},
+    }
+
+    actual_ratios = find_microbial_stoichiometries(config=fixture_configuration)
+
+    assert expected_ratios == actual_ratios

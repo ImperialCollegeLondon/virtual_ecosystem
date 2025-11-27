@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0.dev0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -511,7 +511,7 @@ with
 
 $$R = \sqrt{C_s + \frac{C_r LAI}{2}}$$
 
-where $C_{s}$ is the substrate surface drag coefficient, $C_{r}$ is the roughness
+where $C_{s}$ is the substrate surface roughness length, $C_{r}$ is the roughness
 element (vegetation) drag coefficient, $C_{d}$ is the roughness sublayer depth parameter,
 $\kappa$ is the von Karman constant, and $LAI$ is the leaf area index
 ($\mathrm{m\,m^{-1}}$).

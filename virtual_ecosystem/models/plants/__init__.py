@@ -8,8 +8,8 @@ class as the main API to initialise and update the plants model.
 
 The other submodules include:
 
-* The :mod:`~virtual_ecosystem.models.plants.constants` submodule provides definitions
-  of the main constants used in the model.
+* The :mod:`~virtual_ecosystem.models.plants.model_config` submodule provides
+  configuration options for the model along with constants used in the model.
 
 * The :mod:`~virtual_ecosystem.models.plants.functional_types` submodule implements the
   handling of individual plant functional types and the overall flora definition to be
@@ -27,5 +27,3 @@ The other submodules include:
   calculate the complete canopy structure across all cohorts for the plant community
   present in a particular grid cell.
 """  # noqa: D205
-
-from virtual_ecosystem.models.plants.plants_model import PlantsModel  # noqa: F401

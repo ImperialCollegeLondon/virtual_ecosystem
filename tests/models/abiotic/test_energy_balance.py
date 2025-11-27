@@ -3,11 +3,10 @@
 import numpy as np
 import pytest
 
-from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_layer_thickness_for_varying_canopy,
 )
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def test_initialise_canopy_and_soil_fluxes(
@@ -53,7 +52,10 @@ def test_initialise_canopy_and_soil_fluxes(
 
 
 def test_calculate_longwave_emission(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_abiotic_constants,
+    fixture_core_constants,
 ):
     """Test that longwave radiation is calculated correctly."""
 
@@ -67,9 +69,9 @@ def test_calculate_longwave_emission(
 
     result = calculate_longwave_emission(
         temperature=data["air_temperature"][canopy_index].to_numpy()
-        + CoreConsts.zero_Celsius,
-        emissivity=AbioticConsts.soil_emissivity,
-        stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
+        + fixture_core_constants.zero_Celsius,
+        emissivity=fixture_abiotic_constants.soil_emissivity,
+        stefan_boltzmann=fixture_core_constants.stefan_boltzmann_constant,
     )
 
     exp_result = np.array(
@@ -107,7 +109,7 @@ def test_calculate_sensible_heat_flux(
         specific_heat_air=data["specific_heat_air"][index].to_numpy(),
         air_temperature=data["air_temperature"][index].to_numpy(),
         surface_temperature=data["canopy_temperature"][index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
     )
 
     # Assert all elements are close
@@ -185,7 +187,10 @@ def test_update_soil_temperature(g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_te
 
 
 def test_energy_balance_residual_only(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_abiotic_constants,
+    fixture_core_constants,
 ):
     """Test energy balance residual without flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -203,17 +208,15 @@ def test_energy_balance_residual_only(
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        density_water=np.full_like(data["density_air"][canopy_index], 1000),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
-            canopy_index
-        ].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
         latent_heat_vapourisation=data["latent_heat_vapourisation"][
             canopy_index
-        ].to_numpy(),
-        leaf_emissivity=AbioticConsts.leaf_emissivity,
-        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
-        zero_Celsius=CoreConsts.zero_Celsius,
-        seconds_to_hour=CoreConsts.seconds_to_hour,
+        ].to_numpy()
+        * 1000,
+        leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
+        stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
+        zero_Celsius=fixture_core_constants.zero_Celsius,
+        seconds_to_hour=fixture_core_constants.seconds_to_hour,
         return_fluxes=False,
     )
 
@@ -223,7 +226,10 @@ def test_energy_balance_residual_only(
 
 
 def test_energy_balance_return_fluxes(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_abiotic_constants,
+    fixture_core_constants,
 ):
     """Test energy balance residual with flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -241,17 +247,15 @@ def test_energy_balance_return_fluxes(
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        density_water=np.full_like(data["density_air"][canopy_index], 1000),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
-            canopy_index
-        ].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
         latent_heat_vapourisation=data["latent_heat_vapourisation"][
             canopy_index
-        ].to_numpy(),
-        leaf_emissivity=AbioticConsts.leaf_emissivity,
-        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
-        zero_Celsius=CoreConsts.zero_Celsius,
-        seconds_to_hour=CoreConsts.seconds_to_hour,
+        ].to_numpy()
+        * 1000,
+        leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
+        stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
+        zero_Celsius=fixture_core_constants.zero_Celsius,
+        seconds_to_hour=fixture_core_constants.seconds_to_hour,
         return_fluxes=True,
     )
 
@@ -269,7 +273,10 @@ def test_energy_balance_return_fluxes(
 
 
 def test_solve_canopy_temperature(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_core_constants,
+    caplog,
 ):
     """Test solving canopy temperature with Newton method."""
 
@@ -281,27 +288,33 @@ def test_solve_canopy_temperature(
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
-    result = solve_canopy_temperature(
-        canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
-        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-        evapotranspiration=evapotranspiration[canopy_index].to_numpy() / 730,
-        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
-        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
-        density_air=data["density_air"][canopy_index].to_numpy(),
-        density_water=1000.0,
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
-            canopy_index
-        ].to_numpy(),
-        latent_heat_vapourisation=data["latent_heat_vapourisation"][
-            canopy_index
-        ].to_numpy(),
-        emissivity_leaf=0.96,
-        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
-        zero_Celsius=CoreConsts.zero_Celsius,
-        seconds_to_hour=CoreConsts.seconds_to_hour,
-        return_fluxes=False,
-        maxiter=100,
-    )
+    with caplog.at_level(LOGGER.level):
+        result = solve_canopy_temperature(
+            canopy_temperature_initial=data["canopy_temperature"][
+                canopy_index
+            ].to_numpy(),
+            air_temperature=data["air_temperature"][canopy_index].to_numpy(),
+            evapotranspiration=evapotranspiration[canopy_index].to_numpy() / 730,
+            absorbed_radiation_canopy=data["shortwave_absorption"][
+                canopy_index
+            ].to_numpy(),
+            specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
+            density_air=data["density_air"][canopy_index].to_numpy(),
+            aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
+            latent_heat_vapourisation=data["latent_heat_vapourisation"][
+                canopy_index
+            ].to_numpy()
+            * 1000,
+            emissivity_leaf=0.96,
+            stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
+            zero_Celsius=fixture_core_constants.zero_Celsius,
+            seconds_to_hour=fixture_core_constants.seconds_to_hour,
+            return_fluxes=False,
+            maxiter=100,
+        )
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("converge" in msg for msg in messages)
 
     assert isinstance(result, np.ndarray)
     assert result.shape == data["canopy_temperature"][canopy_index].shape
@@ -337,24 +350,22 @@ def test_update_air_temperature(
         surface_temperature=data["canopy_temperature"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
-            canopy_index
-        ].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
         mixing_layer_thickness=above_ground_layer_thickness[1:-1],
     )
 
     exp_result = np.array(
         [
-            [29.883755, 29.883755, 29.857958, np.nan],
-            [28.902139, 28.886732, np.nan, np.nan],
-            [27.224235, np.nan, np.nan, np.nan],
+            [29.806235, 29.806235, 29.832032, np.nan],
+            [28.840201, 28.855608, np.nan, np.nan],
+            [27.188575, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(updated_air_temperature, exp_result, rtol=1e-4)
 
 
 def test_update_humidity_vpd(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_core_components, fixture_core_constants
 ):
     """Test update atmospheric humidity."""
 
@@ -416,9 +427,10 @@ def test_update_humidity_vpd(
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
         molecular_weight_ratio_water_to_dry_air=(
-            CoreConsts.molecular_weight_ratio_water_to_dry_air
+            fixture_core_constants.molecular_weight_ratio_water_to_dry_air
         ),
-        dry_air_factor=1 - CoreConsts.molecular_weight_ratio_water_to_dry_air,
+        dry_air_factor=1
+        - fixture_core_constants.molecular_weight_ratio_water_to_dry_air,
         cell_area=fixture_core_components.grid.cell_area,
         limits=(0, 60),
         time_interval=time_interval,

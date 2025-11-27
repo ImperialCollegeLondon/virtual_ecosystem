@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0.dev0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -75,7 +75,7 @@ The linear regression for below canopy values (1.5 m) is based on
 $$y = m * LAI + c$$
 
 where $y$ is the variable of interest, $m$ is the gradient
-(see {py:class}`~virtual_ecosystem.models.abiotic_simple.constants.AbioticSimpleBounds`)
+(see {py:class}`~virtual_ecosystem.models.abiotic_simple.model_config.AbioticSimpleBounds`)
 and $c$ is the intersect which we set to the external data values,
 see {numref}`abiotic_simple_step1`.
 We assume that the gradient remains constant throughout the simulation.

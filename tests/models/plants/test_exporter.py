@@ -6,13 +6,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from xarray import DataArray
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.fixture
-def fixture_exporter_components(flora):
+def fixture_exporter_components(flora, plants_cohort_data, fixture_core_components):
     """Plant models components for testing exporter.
 
     Provides a set of PlantCommunities, their Canopy instances and a matching
@@ -22,25 +21,11 @@ def fixture_exporter_components(flora):
     from pyrealm.demography.canopy import Canopy
     from pyrealm.demography.tmodel import StemAllocation
 
-    from virtual_ecosystem.core.data import Data
-    from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.models.plants.communities import PlantCommunities
 
-    data = Data(grid=Grid(cell_ny=2, cell_nx=2, cell_area=625))
-    cohort_data = (
-        (
-            "plant_cohorts_cell_id",
-            DataArray(np.repeat(np.arange(4), np.arange(1, 5))),
-        ),
-        ("plant_cohorts_n", DataArray(np.array([5] * 10))),
-        ("plant_cohorts_pft", DataArray(np.array(["shrub", "broadleaf"] * 5))),
-        ("plant_cohorts_dbh", DataArray(np.array([1] * 10))),
+    communities = PlantCommunities(
+        cohort_data=plants_cohort_data, flora=flora, grid=fixture_core_components.grid
     )
-
-    for var, value in cohort_data:
-        data[var] = value
-
-    communities = PlantCommunities(data, flora=flora, grid=data.grid)
     canopies = {
         cell_id: Canopy(cmty, fit_ppa=True) for cell_id, cmty in communities.items()
     }
@@ -206,30 +191,6 @@ def test_CommunityDataExporter_check_attribute_subsets(
         ),
         pytest.param(
             dict(
-                path="bad/path/",
-                required=["cohorts", "community_canopy", "stem_canopy"],
-                cohort_attrs=[],
-                ccan_attrs=[],
-                scan_attrs=[],
-            ),
-            pytest.raises(ConfigurationError),
-            "The plant community data output directory does not exist or",
-            id="bad_path",
-        ),
-        pytest.param(
-            dict(
-                path="",
-                required=["cohorts", "community_canopies", "stem_canopy"],
-                cohort_attrs=[],
-                ccan_attrs=[],
-                scan_attrs=[],
-            ),
-            pytest.raises(ConfigurationError),
-            "The required_data setting contains unknown data output options",
-            id="bad required",
-        ),
-        pytest.param(
-            dict(
                 path="",
                 required=["cohorts", "community_canopy", "stem_canopy"],
                 cohort_attrs=["dbh", "crown_area"],
@@ -257,28 +218,24 @@ def test_CommunityDataExporter_check_attribute_subsets(
 def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
     """Test the from_config factory method."""
 
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+    from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
     # Note that the single quotes around the out_path are _required_ here: TOML uses
     # single quotes to indicate raw strings and hence protect the backslashes in Windows
     # path names from being interpreted as escape sequences.
 
-    toml = f"""[core.data_output_options]
-    out_path = '{tmp_path / inputs["path"]}'
-    [plants]
-    pft_definitions_path = "does/not/need/to/exist"
-    [plants.community_data_export]
-    required_data = {inputs["required"]}
-    cohort_attributes = {inputs["cohort_attrs"]}
-    community_canopy_attributes = {inputs["ccan_attrs"]}
-    stem_canopy_attributes ={inputs["scan_attrs"]}
-    """
+    cfg_data = dict(
+        required_data=inputs["required"],
+        cohort_attributes=inputs["cohort_attrs"],
+        community_canopy_attributes=inputs["ccan_attrs"],
+        stem_canopy_attributes=inputs["scan_attrs"],
+    )
 
-    config = Config(cfg_strings=toml)
+    config = PlantsExportConfig().model_validate(cfg_data)
 
     with outcome as excep:
-        CommunityDataExporter.from_config(config=config)
+        CommunityDataExporter.from_config(output_directory=tmp_path, config=config)
 
     if excep:
         assert str(excep.value).startswith(msg)
@@ -557,6 +514,7 @@ class TestExporterDump:
         tmp_path,
         plants_data,
         flora,
+        plants_cohort_data,
         extra_pft_traits,
         fixture_core_components,
         fixture_canopy_layer_data,
@@ -583,6 +541,7 @@ class TestExporterDump:
             data=plants_data,
             core_components=fixture_core_components,
             flora=flora,
+            cohort_data=plants_cohort_data,
             extra_pft_traits=extra_pft_traits,
             exporter=exporter,
         )
@@ -613,24 +572,18 @@ class TestExporterDump:
     ):
         """Test the from_config factory method."""
 
-        from virtual_ecosystem.core.config import Config
         from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+        from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
         # Note that the single quotes around the out_path are _required_ here: TOML uses
         # single quotes to indicate raw strings and hence protect the backslashes in
         # Windows path names from being interpreted as escape sequences.
 
-        toml = f"""
-        [core.data_output_options]
-        out_path = '{tmp_path!s}'
-        [plants]
-        pft_definitions_path = "does/not/need/to/exist"
-        [plants.community_data_export]
-        required_data = {list(required)}
-        """
+        config = PlantsExportConfig(required_data=required)
 
-        config = Config(cfg_strings=toml)
-        exporter = CommunityDataExporter.from_config(config=config)
+        exporter = CommunityDataExporter.from_config(
+            output_directory=tmp_path, config=config
+        )
 
         if required:
             assert exporter._active

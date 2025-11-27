@@ -2,14 +2,10 @@
 
 import numpy as np
 import pytest
-from pyrealm.constants import CoreConst as PyrealmConst
-
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def test_calculate_molar_density_air(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_core_components, fixture_core_constants
 ):
     """Test calculate temperature-dependent molar desity of air."""
 
@@ -23,9 +19,9 @@ def test_calculate_molar_density_air(
     result = calculate_molar_density_air(
         temperature=data["air_temperature"][atm_index].to_numpy(),
         atmospheric_pressure=data["atmospheric_pressure"][atm_index].to_numpy(),
-        standard_mole=CoreConsts.standard_mole,
-        standard_pressure=CoreConsts.standard_pressure,
-        celsius_to_kelvin=CoreConsts.zero_Celsius,
+        standard_mole=fixture_core_constants.standard_mole,
+        standard_pressure=fixture_core_constants.standard_pressure,
+        celsius_to_kelvin=fixture_core_constants.zero_Celsius,
     )
 
     exp_result = np.array(
@@ -41,21 +37,20 @@ def test_calculate_molar_density_air(
 
 
 def test_calculate_air_density(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_core_components, fixture_core_constants
 ):
     """Test calculate the density of air."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import calculate_air_density
 
-    consts = CoreConsts()
     data = dummy_climate_data_varying_canopy
     atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
 
     result = calculate_air_density(
         air_temperature=data["air_temperature"][atm_index].to_numpy(),
         atmospheric_pressure=data["atmospheric_pressure"][atm_index].to_numpy(),
-        specific_gas_constant_dry_air=consts.specific_gas_constant_dry_air,
-        celsius_to_kelvin=consts.zero_Celsius,
+        specific_gas_constant_dry_air=fixture_core_constants.specific_gas_constant_dry_air,
+        celsius_to_kelvin=fixture_core_constants.zero_Celsius,
     )
 
     exp_result = np.array(
@@ -71,7 +66,10 @@ def test_calculate_air_density(
 
 
 def test_calculate_latent_heat_vapourisation(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_abiotic_constants,
+    fixture_core_constants,
 ):
     """Test calculation of latent heat of vapourization."""
 
@@ -81,11 +79,11 @@ def test_calculate_latent_heat_vapourisation(
 
     data = dummy_climate_data_varying_canopy
     atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
-    constants = AbioticConsts()
+    constants = fixture_abiotic_constants
 
     result = calculate_latent_heat_vapourisation(
         temperature=data["air_temperature"][atm_index].to_numpy(),
-        celsius_to_kelvin=CoreConsts.zero_Celsius,
+        celsius_to_kelvin=fixture_core_constants.zero_Celsius,
         latent_heat_vap_equ_factors=constants.latent_heat_vap_equ_factors,
     )
     exp_result = np.array(
@@ -130,7 +128,9 @@ def test_find_last_valid_row(input_array, expected):
 
 
 def test_calculate_slope_of_saturated_pressure_curve(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_abiotic_constants,
 ):
     """Test calculation of slope of saturated pressure curve."""
 
@@ -140,11 +140,10 @@ def test_calculate_slope_of_saturated_pressure_curve(
 
     data = dummy_climate_data_varying_canopy
     atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
-    const = AbioticConsts()
 
     result = calculate_slope_of_saturated_pressure_curve(
         temperature=data["air_temperature"][atm_index].to_numpy(),
-        saturated_pressure_slope_parameters=const.saturated_pressure_slope_parameters,
+        saturated_pressure_slope_parameters=fixture_abiotic_constants.saturated_pressure_slope_parameters,
     )
 
     exp_result = np.array(
@@ -160,7 +159,7 @@ def test_calculate_slope_of_saturated_pressure_curve(
 
 
 def test_calculate_actual_vapour_pressure(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_core_components, fixture_pyrealm_config
 ):
     """Test calculate effective vapour pressure."""
 
@@ -174,7 +173,7 @@ def test_calculate_actual_vapour_pressure(
     result = calculate_actual_vapour_pressure(
         air_temperature=data["air_temperature"][atm_index],
         relative_humidity=data["relative_humidity"][atm_index],
-        pyrealm_const=PyrealmConst,
+        pyrealm_core_constants=fixture_pyrealm_config.core,
     )
 
     exp_result = np.array(
@@ -258,7 +257,7 @@ def test_compute_layer_thickness_for_varying_canopy(
 
 
 def test_calculate_specific_humidity(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_core_components, fixture_pyrealm_config
 ):
     """Test specific humidity."""
 
@@ -274,7 +273,7 @@ def test_calculate_specific_humidity(
         relative_humidity=data["relative_humidity"][atm_index].to_numpy(),
         atmospheric_pressure=data["atmospheric_pressure"][atm_index].to_numpy(),
         molecular_weight_ratio_water_to_dry_air=0.622,
-        pyrealm_const=PyrealmConst(),
+        pyrealm_core_constants=fixture_pyrealm_config.core,
     )
 
     exp_result = np.array(

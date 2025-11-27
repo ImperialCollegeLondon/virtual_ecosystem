@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0.dev0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -35,6 +35,27 @@ However, the simulation is designed to be modular:
 This page sets out the steps needed to add a new model to the Virtual Ecosystem and
 ensure that it can be accessed by the `core` processes in the simulation.
 
+```{important}
+When a model is used in the Virtual Ecosystem, the code relies on naming conventions to
+access the different model components used in the model. You need to choose a unique
+model name that will be used to name the root model directory, submodules within the
+model and then two critical model components.
+
+There are two naming conventions:
+
+* Model directory and file names use **snake case** (lower case with underscores): e.g.
+  `abiotic` or `abiotic_simple`.
+* Class names use **camel case** (capitalised words with no spaces): e.g. `Abiotic` and
+  `AbioticSimple`.
+
+The critical names are the model subclass and configuration subclasses.
+
+* `abiotic_simple.abiotic_simple_model.AbioticSimpleModel`
+* `abiotic_simple.model_config.AbioticSimpleConfiguration`
+```
+
+The rest of this page assumes a new `freshwater` model.
+
 ## Create a new submodule folder
 
 Start by creating  a new folder for your model, within the `virtual_ecosystem/models/`
@@ -49,8 +70,8 @@ to add other python modules containing different parts of the module functionali
 
 * An `__init__.py` file, which tells Python that the folder is a submodule within the
   `virtual_ecosystem` package.
-* A python module  `{model_name}_model.py` that will contain the main model
-  object.
+* A python module  `freshwater_model.py` that will contain the main model
+  object, which must be called `FreshwaterModel`.
 * A JSON Schema file defining the model configuration, called `schema.json`.
 * A python module  `constants.py` that will contain the constants relevant to the model.
 
@@ -87,10 +108,10 @@ downstream code messier, so constants should only be split across multiple class
 there's a strong reason to do so.
 
 Because dataclasses are widely used structures in Python, the Virtual Ecosystem defines
-a specific {class}`~virtual_ecosystem.core.constants_class.ConstantsDataclass` base
+a specific base
 class to uniquely identify _constants dataclasses_ from other dataclasses. This base
 class also provides the
-{meth}`~virtual_ecosystem.core.constants_class.ConstantsDataclass.from_config` methods,
+methods,
 which validates a configuration dictionary against the dataclass definition and returns
 a configured dataclass instance.
 
@@ -106,8 +127,6 @@ look like the following code:
 ```{code-block} python
 from dataclasses import dataclass
 from typing import ClassVar
-
-from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 # Dataclasses are frozen to prevent constants from changing during a simulation
 @dataclass(frozen=True)
@@ -170,8 +189,10 @@ from virtual_ecosystem.models.freshwater.streamflow import calculate_streamflow
 
 ### Defining the new class and class attributes
 
-Now create a new class, that derives from the
-{mod}`~virtual_ecosystem.core.base_model.BaseModel`. To begin with, choose a class name
+Now create a new class that derives from the
+{mod}`~virtual_ecosystem.core.base_model.BaseModel`.
+
+To begin with, choose a class name
 for the model and define the following class attributes.
 
 The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute
@@ -417,9 +438,8 @@ be provided informing on the specific issue.
 
 ### The `from_config` factory method
 
-Configuration files are used to create a configuration object (see
-{class}`~virtual_ecosystem.core.config.Config`), which contains details of the
-configuration process but also provides a dictionary interface to the configuration
+Configuration files are used to create a configuration object  which contains details of
+the configuration process but also provides a dictionary interface to the configuration
 data. So, the example above might result in a `Config` object with the following model
 specific data.
 
@@ -439,7 +459,7 @@ method should raise an `InitialisationError` if the configuration fails.
 The `from_config` method should also generate the required constants classes from the
 config. At least one constants class should be created, but it's fine to split constants
 across more classes if that makes for clearer code. For each constants class the
-{func}`~virtual_ecosystem.core.constants_loader.load_constants` utility function can be
+utility function can be
 used to construct the class with the default values replaced if they are overwritten in
 the config.
 
@@ -514,12 +534,13 @@ Lastly, you will need to set up the `__init__.py` file in the submodule director
 file is used to tell Python that the directory contains a package submodule, but can
 also be used to supply code that is automatically run when a module is imported.
 
-In the Virtual Ecosystem, we use the `__init__.py` file in model submodules to:
+In the Virtual Ecosystem, we just use the `__init__.py` file in model submodules to
+provide a brief overview of the module. It can be used to provide a short description
+of any submodules and how they are used within the model. The submodule files should
+then have their own docstring progviding more detail. These docstrings are automatically
+included in the HTML documentation of the package.
 
-* provide a brief overview of the module, and
-* import the model object into the module root to make it easier to import.
-
-The file will look something like:
+A docstring should be formatted using block quotes, as below:
 
 ```{code-block} python
 """This is the freshwater model module. The module level docstring should contain a
@@ -527,16 +548,4 @@ short description of the overall model design and purpose, and link to key compo
 and how they interact.
 """  # noqa: D204, D415
 
-from virtual_ecosystem.models.freshwater.freshwater_model import (  # noqa: F401
-    FreshwaterModel,
-)
 ```
-
-Under the hood, when a given model is used in a simulation, then the configuration
-process automatically loads all of the model components for that model using the
-{func}`~virtual_ecosystem.core.registry.register_module` function. This automatically
-loads and validates the model schema, discovers any
-{class}`~virtual_ecosystem.core.constants_class.ConstantsDataclass` in the `constants`
-submodule and then adds those, along with the BaseModel subclass to a central
-{data}`~virtual_ecosystem.core.registry.MODULE_REGISTRY` object, which is used to allow
-the simulation code to easily access model components.

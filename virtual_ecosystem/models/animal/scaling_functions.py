@@ -12,9 +12,10 @@ from math import exp, log
 
 import numpy as np
 
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import DietType, MetabolicType
-from virtual_ecosystem.models.animal.constants import BOLTZMANN_CONSTANT
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
 
 def damuths_law(mass: float, terms: tuple) -> float:
@@ -74,29 +75,34 @@ def metabolic_rate(
     temperature: float,
     terms: dict,
     metabolic_type: MetabolicType,
+    metabolic_scaling_coefficients: tuple[
+        float, float, float
+    ] = AnimalConstants().metabolic_scaling_coefficients,
+    boltzmann_constant: float = CoreConstants().boltzmann_constant,
 ) -> float:
-    """Calculates metabolic rate in grams of body mass per day.
+    r"""Calculates metabolic rate in grams of body mass per day.
 
     This follows the Madingley implementation, assuming a power-law relationship with
     mass and an exponential relationship with temperature.
 
     TODO: Implement activity windows to properly parameterize sigma.
-    TODO: Move constants to constants file.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
         temperature: The temperature [Celsius] of the environment.
         terms: The tuple of metabolic rate terms used.
         metabolic_type: The metabolic type of the animal [ENDOTHERMIC or ECTOTHERMIC].
+        metabolic_scaling_coefficients: A tuple providing the $E_s, \sigma, E_a$
+            coefficients of the Madingley metabolic rate model (see
+            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants.metabolic_scaling_coefficients`)
+        boltzmann_constant: The Boltzmann constant ($k_B$)
 
     Returns:
         The metabolic rate of an individual of the given cohort in [g/d].
     """
 
-    Es = 3.7 * 10 ** (-2)  # energy to mass conversion constant (g/kJ)
-    sig = 0.5  # proportion of time-step with temp in active range (toy)
-    Ea = 0.69  # aggregate activation energy of metabolic reactions
-    kB = BOLTZMANN_CONSTANT
+    Es, sig, Ea = metabolic_scaling_coefficients
+    kB = boltzmann_constant
     mass_g = mass * 1000  # convert mass to grams
 
     if metabolic_type == MetabolicType.ENDOTHERMIC:
