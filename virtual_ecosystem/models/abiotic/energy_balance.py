@@ -737,14 +737,101 @@ def calculate_understorey_effective_heat_capacity(
     vegetation_density = (leaf_area_index * leaf_mass_per_area) / layer_thickness
 
     # Volumetric heat capacity of vegetation (dominant term)
-    vegetation_vol_heat_capacity = vegetation_density * leaf_specific_heat
+    vegetation_volumetric_heat_capacity = vegetation_density * leaf_specific_heat
 
     # Add air (optional)
     total_volumetric_heat_capacity = (
-        vegetation_vol_heat_capacity + air_volumetric_heat_capacity
+        vegetation_volumetric_heat_capacity + air_volumetric_heat_capacity
     )
 
     # Convert to per-ground-area
     heat_capacity_per_area = total_volumetric_heat_capacity * layer_thickness
 
     return heat_capacity_per_area
+
+
+def update_understorey_temperature(
+    current_temperature: NDArray[np.floating],
+    net_radiation: NDArray[np.floating],
+    sensible_heat_flux: NDArray[np.floating],
+    conductive_flux: NDArray[np.floating],
+    effective_heat_capacity: NDArray[np.floating],
+    time_step_seconds: float,
+    latent_heat_flux: NDArray[np.floating] | None,
+    max_delta_temperature: float,
+) -> NDArray[np.floating]:
+    """Updates the understorey temperature using a simple energy balance.
+
+    Note: This function warns if the computed temperature change exceeds
+    `max_delta_temperature`, which often indicates that the effective heat capacity is
+    underestimated.
+
+    Implementation based on :cite:t:`ogee_a_forest_2002`.
+
+    Args:
+        current_temperature: Current understorey temperature, [C or K].
+        net_radiation: Net radiation flux into the understorey layer, [W m-2].
+        sensible_heat_flux: Sensible heat flux from/to the understorey, [W m-2].
+        conductive_flux: Conductive flux from/to the soil, [W m-2].
+        effective_heat_capacity: Effective heat capacity per ground area, [J m-2 K-1].
+        time_step_seconds: Time step for the update [s], default is 3600 (1 hour).
+        latent_heat_flux: Latent heat flux from/to the understorey [W m-2], optional
+        max_delta_temperature: Maximum allowed temperature change per time step [K]
+            before warning, default 10 K.
+
+    Returns:
+        Updated understorey temperature [C or K].
+
+    """
+    # Start with net energy flux
+    total_flux = net_radiation + sensible_heat_flux - conductive_flux
+
+    # Include latent heat flux if provided
+    if latent_heat_flux is not None:
+        total_flux += latent_heat_flux
+
+    # Temperature change [K]
+    delta_temperature = total_flux * time_step_seconds / effective_heat_capacity
+
+    # Sanity check for unrealistic temperature jumps
+    if np.any(np.abs(delta_temperature) > max_delta_temperature):
+        LOGGER.warning(
+            "Warning: Large temperature change detected! "
+            "Check effective heat capacity or flux magnitudes."
+        )
+
+    # Update temperature
+    return current_temperature + delta_temperature
+
+
+def calculate_conductive_flux_understorey(
+    soil_temperature: NDArray[np.floating],
+    understorey_temperature: NDArray[np.floating],
+    understorey_layer_thickness: NDArray[np.floating],
+    soil_thermal_conductivity: float,
+    understorey_thermal_conductivity: float,
+) -> np.ndarray:
+    """Calculates the conductive heat flux from understorey vegetation to the soil.
+
+    Positive flux means heat flows into the soil.
+
+    Args:
+        soil_temperature : Soil temperatures at the interface, [°C or K]
+        understorey_temperature : Temperatures of the understorey vegetation, [°C or K]
+        understorey_layer_thickness : Thickness of the understorey layer, [m]
+        soil_thermal_conductivity : Soil thermal conductivity, [W m-1 K-1]
+        understorey_thermal_conductivity : Thermal conductivity of understorey
+            vegetation layer, [W m-1 K-1]
+
+    Returns:
+        Conductive flux from understorey to soil, [W m-2]
+    """
+    effective_conductivity = np.sqrt(
+        soil_thermal_conductivity * understorey_thermal_conductivity
+    )
+    flux = (
+        -effective_conductivity
+        * (soil_temperature - understorey_temperature)
+        / understorey_layer_thickness
+    )
+    return flux

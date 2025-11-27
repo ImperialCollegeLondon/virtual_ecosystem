@@ -573,6 +573,7 @@ def dummy_climate_data(fixture_core_components):
     # Structural variables - assign values to vertical layer indices across grid id
     data["leaf_area_index"] = from_template()
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
+    data["leaf_area_index"][lyr_str.index_surface_scalar] = 1.0
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
@@ -650,9 +651,11 @@ def dummy_climate_data(fixture_core_components):
 
     data["canopy_temperature"] = from_template()
     data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0
+    data["canopy_temperature"][lyr_str.index_surface_scalar] = 25.0
 
     data["canopy_evaporation"] = from_template()
     data["canopy_evaporation"][lyr_str.index_filled_canopy] = 10.0
+    data["canopy_evaporation"][lyr_str.index_surface_scalar] = 10.0
 
     data["leaf_air_heat_conductivity"] = from_template()
     data["leaf_air_heat_conductivity"][lyr_str.index_filled_canopy] = 0.13
@@ -667,6 +670,7 @@ def dummy_climate_data(fixture_core_components):
 
     data["stomatal_conductance"] = from_template()
     data["stomatal_conductance"][lyr_str.index_filled_canopy] = 15.0
+    data["stomatal_conductance"][lyr_str.index_surface_scalar] = 15.0
 
     # Hydrology
     data["transpiration"] = from_template()

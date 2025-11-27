@@ -301,14 +301,12 @@ def run_microclimate(
 
     # Conductive flux from understorey vegetation to soil, [W m-2]
     # A positive flux is directed towards the soil
-    conductive_flux_understorey = -(
-        (
-            abiotic_constants.soil_thermal_conductivity
-            * abiotic_constants.thermal_conductivity_understorey
-        )
-        ** 0.5
-        * (soil_temperature[0] - understorey_temperature)
-        / (above_ground_layer_thickness[-1])
+    conductive_flux_understorey = energy_balance.calculate_conductive_flux_understorey(
+        soil_temperature=soil_temperature[0],
+        understorey_temperature=understorey_temperature,
+        understorey_layer_thickness=above_ground_layer_heights[-1],
+        soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
+        understorey_thermal_conductivity=abiotic_constants.understorey_thermal_conductivity,
     )
 
     # Update understory vegetation temperatures, [C], integration interval 1 hour
@@ -321,16 +319,15 @@ def run_microclimate(
             air_volumetric_heat_capacity=core_constants.air_volumetric_heat_capacity,
         )
     )
-
-    understorey_temperature = understorey_temperature + (
-        core_constants.seconds_to_hour
-        * (
-            net_radiation_understorey
-            + sensible_heat_flux_understorey
-            # + latent_heat_flux_understorey
-            - conductive_flux_understorey
-        )
-        / effective_heat_capacity_understorey
+    understorey_temperature = energy_balance.update_understorey_temperature(
+        current_temperature=understorey_temperature,
+        net_radiation=net_radiation_understorey,
+        sensible_heat_flux=sensible_heat_flux_understorey,
+        conductive_flux=conductive_flux_understorey,
+        effective_heat_capacity=effective_heat_capacity_understorey,
+        time_step_seconds=core_constants.seconds_to_hour,
+        latent_heat_flux=None,
+        max_delta_temperature=10.0,
     )
 
     # -------------------------------------------------------------------------

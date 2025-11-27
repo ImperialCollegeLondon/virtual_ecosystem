@@ -219,26 +219,26 @@ def test_setup(
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = [
         [30.0, 30.0, 30.0, 30.0],
-        [29.91965, 29.946434, 29.973217, np.nan],
-        [29.414851, 29.609901, np.nan, np.nan],
-        [28.551891, np.nan, np.nan, np.nan],
-        [22.81851, 25.21234, 27.60617, 30.0],
+        [29.892867, 29.91965, 29.946434, np.nan],
+        [29.219802, 29.414851, np.nan, np.nan],
+        [28.069188, np.nan, np.nan, np.nan],
+        [20.42468, 22.81851, 25.21234, 27.60617],
     ]
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
     exp_wind = lyr_strct.from_template()
     exp_wind[lyr_strct.index_filled_atmosphere] = [
         [1, 1, 1, 1],
-        [0.993673, 0.995782, 0.997891, np.nan],
-        [0.953925, 0.969284, np.nan, np.nan],
-        [0.885976, np.nan, np.nan, np.nan],
-        [0.434528, 0.623019, 0.811509, 1.0],
+        [0.991564, 0.993673, 0.995782, np.nan],
+        [0.938567, 0.953925, np.nan, np.nan],
+        [0.847968, np.nan, np.nan, np.nan],
+        [0.246038, 0.434528, 0.623019, 0.811509],
     ]
     xr.testing.assert_allclose(model.data["wind_speed"], exp_wind)
 
     exp_soil_temp = lyr_strct.from_template()
     exp_soil_temp[lyr_strct.index_all_soil] = [
-        [20.712458, 21.317566, 21.922674, 22.527783],
+        [20.10735, 20.712458, 21.317566, 21.922674],
         [20.0, 20.0, 20.0, 20.0],
     ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
