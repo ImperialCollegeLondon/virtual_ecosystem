@@ -31,6 +31,10 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration, CoreConstants
+from virtual_ecosystem.models.hydrology.below_ground import (
+    calculate_effective_saturation,
+    calculate_matric_potential,
+)
 from virtual_ecosystem.models.hydrology.model_config import (
     HydrologyConfiguration,
 )
@@ -94,6 +98,8 @@ class SoilModel(
         "soil_p_pool_labile",
         "pH",
         "clay_fraction",
+        "soil_moisture",
+        "mean_annual_temperature",
     ),
     vars_populated_by_init=(
         "dissolved_nitrate",
@@ -296,6 +302,9 @@ class SoilModel(
             enzyme_classes=enzyme_classes,
             soil_moisture_saturation=hydrology_configuration.constants.soil_moisture_saturation,
             soil_moisture_residual=hydrology_configuration.constants.soil_moisture_residual,
+            air_entry_potential_inverse=hydrology_configuration.constants.air_entry_potential_inverse,
+            van_genuchten_nonlinearily_parameter=hydrology_configuration.constants.van_genuchten_nonlinearily_parameter,
+            m_to_kpa=hydrology_configuration.constants.m_to_kpa,
         )
 
     def _setup(
@@ -305,6 +314,9 @@ class SoilModel(
         enzyme_classes: dict[str, SoilEnzymeClass],
         soil_moisture_saturation: float,
         soil_moisture_residual: float,
+        air_entry_potential_inverse: float,
+        van_genuchten_nonlinearily_parameter: float,
+        m_to_kpa: float,
         **kwargs: Any,
     ) -> None:
         """Function to setup up the soil model."""
@@ -315,9 +327,12 @@ class SoilModel(
         self.microbial_groups = microbial_groups
         self.enzyme_classes = enzyme_classes
 
-        # Store the two required hydrology constants
+        # Store the four required hydrology constants
         self.soil_moisture_saturation = soil_moisture_saturation
         self.soil_moisture_residual = soil_moisture_residual
+        self.air_entry_potential_inverse = air_entry_potential_inverse
+        self.van_genuchten_nonlinearily_parameter = van_genuchten_nonlinearily_parameter
+        self.m_to_kpa = m_to_kpa
 
         # Calculate dissolved amounts of each inorganic nutrient
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
@@ -626,13 +641,15 @@ class SoilModel(
         converted from the per volume units used in the soil model, to the per area
         units used in the plant model.
 
-        TODO - These supply limits can only be properly calculated once the soil
-        temperature and matric potential are known. At present these are only found once
-        the abiotic and hydrology models (respectively), are updated. Instead a
-        temperature of 25C and optimal water potential (set in the constants) are used.
-        Down the line we need to decide whether this inaccuracy is acceptable, or
-        whether the stage at which basic abiotic information gets calculated needs to
-        change.
+        TODO - This function currently calculates matric potential based on soil
+        moisture when being used within model initialisation. At some point this should
+        be migrated to the hydrology model init/setup as that is a more natural home for
+        this calculation
+
+        TODO - In model initialisation, the annual mean temperature is used as an
+        estimate of the soil temperature as soil temperatures are not yet known. This
+        issue won't be resolved until we have decided what we are doing about model spin
+        up
 
         Args:
             init: A boolean specifying whether this function is being called as part of
@@ -661,13 +678,29 @@ class SoilModel(
                 layer_structure=self.layer_structure,
             )
         else:
-            # Want to establish the maximum for optimal conditions, so use the water
-            # potential optimum from the constants, and arbitrarily select a soil
-            # temperature of 25C as "optimal"
-            soil_temperature = np.full_like(self.data["pH"].to_numpy(), 25.0)
-            soil_water_potential = np.full_like(
-                self.data["pH"].to_numpy(),
-                self.model_constants.soil_microbe_water_potential_optimum,
+            # As soil temperature hasn't be calculated yet we assume that it matches the
+            # mean annual temperature (a common assumption for deeper soil layers)
+            soil_temperature = self.data["mean_annual_temperature"].to_numpy()
+
+            # Matric potential hasn't been found yet, so we calculate it based on soil
+            # effective saturation (and then average across layers)
+            effective_saturation = calculate_effective_saturation(
+                soil_moisture=self.data["soil_moisture"].to_numpy(),
+                soil_moisture_saturation=self.soil_moisture_saturation,
+                soil_moisture_residual=self.soil_moisture_residual,
+            )
+            matric_potential = calculate_matric_potential(
+                effective_saturation=effective_saturation,
+                air_entry_potential_inverse=self.air_entry_potential_inverse,
+                van_genuchten_nonlinearily_parameter=self.van_genuchten_nonlinearily_parameter,
+            )
+            soil_water_potential = (
+                average_water_potential_over_microbially_active_layers(
+                    water_potentials=DataArray(
+                        matric_potential * self.m_to_kpa, dims=["cell_id", "layers"]
+                    ),
+                    layer_structure=self.layer_structure,
+                )
             )
 
         env_factors = calculate_environmental_effect_factors(
