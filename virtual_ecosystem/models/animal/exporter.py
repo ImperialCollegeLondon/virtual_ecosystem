@@ -6,311 +6,205 @@ to export data continuously during the model run.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
 from typing import ClassVar
 
 import numpy as np
 import pandas as pd
 
-from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+from virtual_ecosystem.models.animal.model_config import AnimalExportConfig
 
 
 class AnimalCohortDataExporter:
-    """The AnimalCohortDataExporter class.
+    """Exporter for detailed animal cohort data.
 
-    The class is used to export detailed animal cohort data from inside an AnimalModel
-    instance to CSV files. The  data is currently just cohort data:
+    This class writes one CSV file containing a row for every cohort at every
+    time step. The file is opened in write mode on the first call to ``dump``
+    (including the header) and subsequently appended to.
 
-    * cohort data: comprehensive data on the animal cohorts including location, status,
-      number of individuals, and stoichiometric masses.
-
-    The data are written to standard file names in the provided output directory, which
-    will typically be the output directory used by the Virtual Ecosystem model run. The
-    ``required_data`` attribute is used to set which data to export by providing a set
-    of values from: ``cohorts``.
-
-    In addition, the attribute arguments can be used to specify a subset of data
-    attributes to be exported. If an empty attribute set is provided (which is the
-    default) then the exporter will write all attributes, otherwise the exported data
-    will be reduced to just the named attributes.
+    The exporter mirrors the design of
+    :class:`virtual_ecosystem.models.plants.exporter.CommunityDataExporter`
+    but is simplified to a single ``cohorts`` output stream.
 
     Args:
-        output_directory: The output directory for the files
-        required_data: A set of the required data outputs.
-        cohort_attributes: An optional subset of cohort attributes to export
-        float_format: A float format string used when writing data.
+        output_directory: Directory where the CSV file will be created.
+        cohort_attributes: Optional subset of cohort attributes to export. If an
+            empty set is provided, all available attributes are written.
+        float_format: Float format string used when writing numeric data.
     """
 
-    # Map logical table names to (filename, private path attribute)
-    _outputs: ClassVar[dict[str, tuple[str, str]]] = dict(
-        cohorts=("animals_cohort_data.csv", "_cohort_path"),
-    )
+    _outputs: ClassVar[dict[str, tuple[str, str]]] = {
+        "cohorts": ("animal_cohort_data.csv", "_cohort_path"),
+    }
+    """Mapping from output key to (filename, path-attribute-name)."""
 
     def __init__(
         self,
         output_directory: Path,
-        required_data: set[str] = set(),
-        cohort_attributes: set[str] = set(),
+        cohort_attributes: set[str] | None = None,
         float_format: str = "%0.5f",
     ) -> None:
-        # Store arguments
-        self.output_directory = Path(output_directory)
-        """The directory in which to save animal cohort data."""
-        self.required_data: set[str] = required_data
-        """The set of animal data types to be exported."""
-        self.cohort_attributes: set[str] = set(cohort_attributes or set())
-        """A subset of cohort attribute names to export."""
-        self.float_format = float_format
-        """The float format for data export."""
+        # Public configuration
+        self.output_directory: Path = output_directory
+        self.cohort_attributes: set[str] = cohort_attributes or set()
+        self.float_format: str = float_format
 
-        # Internal state for write/append control
+        # Internal state
         self._output_mode: str = "w"
-        """Switches the exporter between write and append mode."""
         self._write_header: bool = True
-        """Stops headers being duplicated in append mode."""
-        self._active: bool = bool(self.required_data)
-        """Has any data export has been requested."""
-
-        # Private path attributes (set during path validation)
+        self._active: bool = True
         self._cohort_path: Path | None = None
-
-        # Validate the required data argument
-        unknown_options = required_data.difference(self._outputs.keys())
-        if unknown_options:
-            msg = (
-                f"The required_data setting contains unknown data "
-                f"output options: {', '.join(unknown_options)}"
-            )
-            LOGGER.error(msg)
-            raise ConfigurationError(msg)
-
-        # If no output files are required then set the exporter in the inactive state
-        # and return the instance.
-        if not self.required_data:
-            self._active = False
-            LOGGER.info("Animal cohort data exporter not active.")
-            return
 
         self._check_and_set_paths()
         self._check_attribute_subsets()
-        LOGGER.info("Animal cohort data exporter active.")
+
+    @classmethod
+    def from_config(
+        cls,
+        output_directory: Path,
+        config: AnimalExportConfig,
+    ) -> AnimalCohortDataExporter:
+        """Create an exporter from an :class:`AnimalExportConfig` instance.
+
+        Args:
+            output_directory: Directory where the CSV file will be created.
+            config: Configuration section controlling animal cohort export.
+
+        Returns:
+            Initialised :class:`AnimalCohortDataExporter` instance.
+        """
+        if not config.enabled:
+            LOGGER.info("Animal cohort data exporter not active.")
+            exporter = cls.__new__(cls)
+            exporter.output_directory = output_directory
+            exporter.cohort_attributes = set()
+            exporter.float_format = config.float_format
+            exporter._output_mode = "w"
+            exporter._write_header = True
+            exporter._active = False
+            exporter._cohort_path = None
+            return exporter
+
+        cohort_attributes = set(config.cohort_attributes)
+
+        return cls(
+            output_directory=output_directory,
+            cohort_attributes=cohort_attributes,
+            float_format=config.float_format,
+        )
 
     def _check_and_set_paths(self) -> None:
-        """Check and set the output paths to be used by the exporter.
+        """Validate the output directory and initialise file paths.
 
-        This method assumes that the output directory has already been checked. It sets
-        the internal path attributes for each output data type as either None (to signal
-        it should not be written) or to a validated output path.
+        Raises:
+            ConfigurationError: If the directory does not exist or the file
+                already exists.
         """
-
-        # Otherwise check no data will be overwritten and export.
-
         if not (self.output_directory.exists() and self.output_directory.is_dir()):
             msg = (
-                f"The animal cohort data output directory does not exist or is not "
+                "The animal cohort data output directory does not exist or is not "
                 f"a directory: {self.output_directory}"
             )
             LOGGER.error(msg)
             raise ConfigurationError(msg)
 
-        for out_option, (fname, attr) in self._outputs.items():
-            # Leave the path attribute at initial None value
-            if out_option not in self.required_data:
-                continue
+        fname, attr_name = self._outputs["cohorts"]
+        data_path = self.output_directory / fname
 
-            # Otherwise check no data will be overwritten and export.
-            data_path = self.output_directory / fname
-            if data_path.exists():
-                msg = f"An output file for {out_option} data already exists: {fname}"
-                LOGGER.error(msg)
-                raise ConfigurationError(msg)
+        if data_path.exists():
+            msg = f"An output file for animal cohort data already exists: {fname}"
+            LOGGER.error(msg)
+            raise ConfigurationError(msg)
 
-            # Set the path attribute to the output path.
-            setattr(self, attr, data_path)
+        setattr(self, attr_name, data_path)
 
     def _check_attribute_subsets(self) -> None:
-        """Check attribute subsets contain available fields."""
+        """Validate that requested attribute subset is available.
 
-        available_attributes = {
-            "cohort_attributes": set(
-                [
-                    "cell_id",
-                    "time",
-                    "cohort_name",
-                    "individuals",
-                    "age_days",
-                    "is_alive",
-                    "is_mature",
-                    "time_to_maturity_days",
-                    "largest_mass_achieved_kg",
-                    "centroid_key",
-                    "territory_size",
-                    "territory_n_cells",
-                    "mass_total_kg",
-                    "mass_c_kg",
-                    "mass_n_kg",
-                    "mass_p_kg",
-                    "repro_c_kg",
-                    "repro_n_kg",
-                    "repro_p_kg",
-                ]
-            ),
-        }
-
-        for subset_name, available in available_attributes.items():
-            subset = getattr(self, subset_name)
-            # If subset is provided, check the values are all valid
-            if not subset:
-                continue
-
-            not_found = subset.difference(available)
-            if not_found:
-                msg = (
-                    f"The {subset_name} exporter configuration contains "
-                    f"unknown attributes: {', '.join(not_found)}"
-                )
-                LOGGER.error(msg)
-                raise ConfigurationError(msg)
-
-    @classmethod
-    def from_config(cls, config: Config) -> AnimalCohortDataExporter:
-        """Factory class to create a AnimalCohortDataExporter from a configuration.
-
-        The configuration requires that the following details are present in the animal
-        model section of the configuration;
-
-        .. code-block:: toml
-
-            [animals.animal_cohort_data_export]
-            required_data = ["cohorts"]
-            cohort_attributes = []
-
-        The ``required_data`` section specifies which community data files are to be
-        exported. If the "attributes" sections are empty arrays, then all attributes are
-        written to file, but specific fields may be named here to reduce the amount of
-        data exported.
+        Raises:
+            ConfigurationError: If any requested attribute is unknown.
         """
+        available = self.available_attributes
 
-        # Try and build the arguments as a dictionary from the config, substituting
-        # explicit None values for empty strings
-        try:
-            out_path = config["core"]["data_output_options"]["out_path"]
-            xcfg = config["animals"]["animal_cohort_data_export"]
+        if not self.cohort_attributes:
+            return
 
-            # Get arguments and convert inputs
-            output_directory = Path(out_path)
-            required_data = set(xcfg["required_data"])
-            cohort_attributes = set(xcfg["cohort_attributes"])
+        not_found = self.cohort_attributes.difference(available)
+        if not_found:
+            msg = (
+                "The cohort exporter configuration contains unknown attributes: "
+                f"{', '.join(sorted(not_found))}"
+            )
+            LOGGER.error(msg)
+            raise ConfigurationError(msg)
 
-        except KeyError as excep:
-            LOGGER.error(excep)
-            raise
-
-        # Return the instance
-        return cls(
-            output_directory=output_directory,
-            required_data=required_data,
-            cohort_attributes=cohort_attributes,
-        )
+    @property
+    def available_attributes(self) -> set[str]:
+        """Return the set of valid attribute names for cohort export."""
+        return {
+            "cell_id",
+            "time",
+            "cohort_id",
+            "functional_group",
+            "development_type",
+            "diet_type",
+            "reproductive_environment",
+            "age",
+            "individuals",
+            "is_alive",
+            "is_mature",
+            "time_to_maturity",
+            "time_since_maturity",
+            "location_status",
+            "centroid_key",
+            "territory_size",
+            "occupancy_proportion",
+            "largest_mass_achieved",
+            "mass_carbon",
+            "mass_nitrogen",
+            "mass_phosphorus",
+            "reproductive_mass_carbon",
+            "reproductive_mass_nitrogen",
+            "reproductive_mass_phosphorus",
+        }
 
     def dump(
         self,
-        communities: dict[int, list[AnimalCohort]],
+        communities: dict[int, Iterable[AnimalCohort]],
         time: np.datetime64,
     ) -> None:
-        """Export animal community data to file.
-
-        The method accepts the main animal community component of the AnimalModel as
-        arguments and compiles and writes the output data requested in the instance
-        setup to file.
+        """Write animal cohort data to CSV.
 
         Args:
-            communities: A dictionary of grid location and animal cohort objects.
-            time: A datetime to be used as a timestamp in the output files.
+            communities: Mapping from cell id to iterable of
+                :class:`AnimalCohort` instances in that cell.
+            time: Timestamp to associate with this snapshot.
         """
-
         if not self._active:
             return
 
-        # Run the dump methods for each output option.
-        self._dump_cohort_data(
-            communities=communities,
-            time=time,
-        )
-
-        # Update the output mode and header: all subsequent dump calls use append
-        self._output_mode = "a"
-        self._write_header = False
-
-    def _dump_cohort_data(
-        self,
-        communities: dict[int, list[AnimalCohort]],
-        time: np.datetime64,
-    ) -> None:
-        """Dump animal cohort rows to CSV.
-
-        Flattens cohort scalars into one row per cohort, adds ``cell_id`` and ``time``,
-        optionally subsets columns, and writes/appends to CSV.
-        """
-        # Not requested
         if self._cohort_path is None:
+            LOGGER.debug("Animal cohort exporter called with no output path.")
             return
 
-        rows: list[dict] = []
+        rows: list[dict[str, object]] = []
 
         for cell_id, cohorts in communities.items():
             for cohort in cohorts:
-                # Core identity / status
-                row = {
-                    "cell_id": cell_id,
-                    "time": time,
-                    "cohort_name": getattr(cohort, "name", None),
-                    "individuals": getattr(cohort, "individuals", None),
-                    "age_days": getattr(cohort, "age", None),
-                    "is_alive": getattr(cohort, "is_alive", None),
-                    "is_mature": getattr(cohort, "is_mature", None),
-                    "time_to_maturity_days": getattr(cohort, "time_to_maturity", None),
-                    "largest_mass_achieved_kg": getattr(
-                        cohort, "largest_mass_achieved", None
-                    ),
-                    "centroid_key": getattr(cohort, "centroid_key", None),
-                    "territory_size": getattr(cohort, "territory_size", None),
-                    "territory_n_cells": len(getattr(cohort, "territory", []) or []),
-                    "mass_total_kg": getattr(cohort, "mass_current", None),
-                }
-
-                # Stoichiometry: cohort.mass_cnp and reproductive_mass_cnp (if present)
-                mass_cnp = getattr(cohort, "mass_cnp", None)
-                if mass_cnp is not None:
-                    row["mass_c_kg"] = getattr(mass_cnp, "carbon", None)
-                    row["mass_n_kg"] = getattr(mass_cnp, "nitrogen", None)
-                    row["mass_p_kg"] = getattr(mass_cnp, "phosphorus", None)
-
-                repro_cnp = getattr(cohort, "reproductive_mass_cnp", None)
-                if repro_cnp is not None:
-                    row["repro_c_kg"] = getattr(repro_cnp, "carbon", None)
-                    row["repro_n_kg"] = getattr(repro_cnp, "nitrogen", None)
-                    row["repro_p_kg"] = getattr(repro_cnp, "phosphorus", None)
-
-                rows.append(row)
+                rows.append(self._build_row(cell_id=cell_id, cohort=cohort, time=time))
 
         if not rows:
+            LOGGER.info("Animal cohort exporter called with no cohorts present.")
             return
 
-        df = pd.DataFrame.from_records(rows)
+        df = pd.DataFrame(rows)
 
-        # Optional whitelist
         if self.cohort_attributes:
-            keep = [c for c in self.cohort_attributes if c in df.columns]
-            # Always keep join keys
-            for k in ("cell_id", "time"):
-                if k not in keep and k in df.columns:
-                    keep.append(k)
-            if keep:
-                df = df[keep]
+            df = df[list(self.cohort_attributes)]
 
         df.to_csv(
             self._cohort_path,
@@ -319,4 +213,55 @@ class AnimalCohortDataExporter:
             index=False,
             float_format=self.float_format,
         )
-        LOGGER.info(f"Animal cohort data dumped at time: {time}")
+
+        LOGGER.info("Animal model cohort data dumped at time: %s", time)
+
+        self._output_mode = "a"
+        self._write_header = False
+
+    def _build_row(
+        self,
+        cell_id: int,
+        cohort: AnimalCohort,
+        time: np.datetime64,
+    ) -> dict[str, object]:
+        """Build a single output row for a cohort.
+
+        Args:
+            cell_id: Grid cell identifier.
+            cohort: Cohort to serialise.
+            time: Timestamp for this snapshot.
+
+        Returns:
+            Dictionary mapping column name to value.
+        """
+        fg = cohort.functional_group
+        mass_cnp = cohort.mass_cnp
+        repro_cnp = cohort.reproductive_mass_cnp
+
+        return {
+            "cell_id": cell_id,
+            "time": time,
+            "cohort_id": str(cohort.id),
+            "functional_group": fg.name,
+            "development_type": str(fg.development_type),
+            "diet_type": str(fg.diet),
+            "reproductive_environment": str(fg.reproductive_environment),
+            "age": cohort.age,
+            "individuals": cohort.individuals,
+            "is_alive": cohort.is_alive,
+            "is_mature": cohort.is_mature,
+            "time_to_maturity": cohort.time_to_maturity,
+            "time_since_maturity": cohort.time_since_maturity,
+            "location_status": cohort.location_status,
+            "centroid_key": cohort.centroid_key,
+            "territory_size": cohort.territory_size,
+            "occupancy_proportion": cohort.occupancy_proportion,
+            "largest_mass_achieved": cohort.largest_mass_achieved,
+            "mass_carbon": mass_cnp.carbon,
+            "mass_nitrogen": mass_cnp.nitrogen,
+            "mass_phosphorus": mass_cnp.phosphorus,
+            "reproductive_mass_carbon": repro_cnp.carbon,
+            "reproductive_mass_nitrogen": repro_cnp.nitrogen,
+            "reproductive_mass_phosphorus": repro_cnp.phosphorus,
+        }
