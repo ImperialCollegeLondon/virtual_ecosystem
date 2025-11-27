@@ -707,3 +707,44 @@ def update_humidity_vpd(
     }
 
     return cleaned_outputs
+
+
+def calculate_understorey_effective_heat_capacity(
+    layer_thickness: NDArray[np.floating],
+    leaf_area_index: NDArray[np.floating],
+    leaf_mass_per_area: float,
+    leaf_specific_heat: float,
+    air_volumetric_heat_capacity: float,
+) -> NDArray[np.floating]:
+    """Calculates the effective heat capacity of the understorey layer.
+
+    This function calculates the effective heat capacity of the understorey layer
+    combining volumetric heat capacity of the air/vegetation mixture and
+    the thermal mass of leaves scaled by LAI.
+
+    Args:
+        layer_thickness: Thickness of the understorey layer, [m]
+        leaf_area_index: Leaf area index, [m2 m-2].
+        leaf_mass_per_area: Leaf mass per leaf area, [kg m-2]
+        leaf_specific_heat: Specific heat capacity of leaf tissue, [J kg-1 K-1].
+        air_volumetric_heat_capacity: Volumetric heat capacity of air, [J m-3 K-1].
+
+    Returns:
+        Effective heat capacity per ground area, [J m-2 K-1].
+    """
+
+    # Compute vegetation bulk density from LAI
+    vegetation_density = (leaf_area_index * leaf_mass_per_area) / layer_thickness
+
+    # Volumetric heat capacity of vegetation (dominant term)
+    vegetation_vol_heat_capacity = vegetation_density * leaf_specific_heat
+
+    # Add air (optional)
+    total_volumetric_heat_capacity = (
+        vegetation_vol_heat_capacity + air_volumetric_heat_capacity
+    )
+
+    # Convert to per-ground-area
+    heat_capacity_per_area = total_volumetric_heat_capacity * layer_thickness
+
+    return heat_capacity_per_area

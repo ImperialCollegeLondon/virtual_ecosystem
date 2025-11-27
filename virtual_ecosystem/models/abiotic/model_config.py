@@ -170,16 +170,19 @@ class AbioticConstants(AbioticSharedConstants):
     Represents heat transfer through litter or herbaceous material to the soil.
     Value taken from :cite:t:`dimitrakopoulos_measuring_1988`."""
 
-    heat_capacity_understorey: float = 1500.0
-    """Specific heat capacity of the understorey surface layer, [J m-2 K-1].
+    specific_heat_capacity_understorey: float = 3500.0
+    """Specific heat capacity of the understorey vegetation, [J kg-1 K-1].
 
-    This constant represents the effective thermal inertia of a thin
-    vegetation/organic layer (e.g., litter, herbaceous understorey) that
-    covers the soil surface.
-    Value estimated at around 25 C from :cite:t:`Boardman_specific_2021`
+    This represents the amount of heat energy required to raise the temperature
+    of one kilogram of understorey vegetation (leaves, stems, small herbaceous plants)
+    by 1 Kelvin. Value estimated from :cite:t:`zhang_a_simple_2025`.
+"""
 
-    Adjust this constant if the understorey is unusually thick/thin or if
-    you use a dynamic formulation that depends on water content."""
+    leaf_mass_per_area_understorey: float = 0.070
+    """Leaf mass per area of understorey vegetation, [kg m-2]
+    
+    Values roughly estimated based on :cite:t:`poorter_causes_2009`.
+    """
 
 
 class AbioticConfiguration(ModelConfigurationRoot):

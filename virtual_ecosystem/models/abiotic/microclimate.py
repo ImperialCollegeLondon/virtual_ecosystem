@@ -64,10 +64,13 @@ def run_microclimate(
 
     # NOTE Canopy height will likely become a separate variable, update as required
     canopy_height = data["layer_heights"][1].to_numpy()
-    # NOTE LAI sum over all canopy layers only, NOT understorey layer
+    # NOTE LAI sum over all canopy layers only for wind profile, NOT understorey layer
     leaf_area_index_sum = np.nansum(
         data["leaf_area_index"][layer_structure.index_filled_canopy].to_numpy(), axis=0
     )
+    leaf_area_index_understorey = data["leaf_area_index"][
+        layer_structure.index_surface_scalar
+    ].to_numpy()
 
     # Atmospheric pressure profile set to reference value, [kPa]
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
@@ -110,6 +113,7 @@ def run_microclimate(
     # -------------------------------------------------------------------------
     # Wind profiles and resistances
     # -------------------------------------------------------------------------
+
     #   Zero plane displacement height, [m]
     zero_plane_displacement = wind.calculate_zero_plane_displacement(
         canopy_height=canopy_height,
@@ -214,7 +218,6 @@ def run_microclimate(
     all_air_temperature = data["air_temperature"][
         layer_structure.index_filled_atmosphere
     ].to_numpy()
-
     air_temperature_canopy = data["air_temperature"][
         layer_structure.index_filled_canopy
     ].to_numpy()
@@ -235,12 +238,13 @@ def run_microclimate(
     ].to_numpy()
 
     # Evapotranspiration from plant and hydrology model, per time interval
-    # TODO current assumption: no canopy evaporation from understory vegetation!!
+    # TODO currently no transpiration from understory vegetation!!
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     # -------------------------------------------------------------------------
     #  Calculate atmospheric background variables
     # -------------------------------------------------------------------------
+
     # Density of air, [kg m-3]
     density_air = abiotic_tools.calculate_air_density(
         air_temperature=all_air_temperature,
@@ -295,7 +299,8 @@ def run_microclimate(
     #     * latent_heat_vapourisation[-1]
     # )
 
-    # Conductive flux to soil from understorey vegetation = ground heat flux [W m-2]
+    # Conductive flux from understorey vegetation to soil, [W m-2]
+    # A positive flux is directed towards the soil
     conductive_flux_understorey = -(
         (
             abiotic_constants.soil_thermal_conductivity
@@ -307,19 +312,25 @@ def run_microclimate(
     )
 
     # Update understory vegetation temperatures, [C], integration interval 1 hour
+    effective_heat_capacity_understorey = (
+        energy_balance.calculate_understorey_effective_heat_capacity(
+            layer_thickness=above_ground_layer_thickness[-1],
+            leaf_area_index=leaf_area_index_understorey,
+            leaf_mass_per_area=abiotic_constants.leaf_mass_per_area_understorey,
+            leaf_specific_heat=abiotic_constants.specific_heat_capacity_understorey,
+            air_volumetric_heat_capacity=core_constants.air_volumetric_heat_capacity,
+        )
+    )
+
     understorey_temperature = understorey_temperature + (
         core_constants.seconds_to_hour
         * (
             net_radiation_understorey
             + sensible_heat_flux_understorey
             # + latent_heat_flux_understorey
-            + conductive_flux_understorey
+            - conductive_flux_understorey
         )
-        / (
-            abiotic_constants.heat_capacity_understorey
-            * above_ground_layer_thickness[-1]
-            * 1000.00  # TODO vegetation density parameter
-        )
+        / effective_heat_capacity_understorey
     )
 
     # -------------------------------------------------------------------------

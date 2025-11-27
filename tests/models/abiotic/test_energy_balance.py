@@ -467,3 +467,29 @@ def test_update_humidity_vpd(
         (result["relative_humidity"][~mask] >= 0)
         & (result["relative_humidity"][~mask] <= 100)
     )
+
+
+def test_effective_heat_capacity():
+    """Test calculation of effective heat capacity."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_understorey_effective_heat_capacity,
+    )
+
+    layer_thickness = np.array([0.1, 0.1, 0.1])
+    leaf_area_index = np.array([0.0, 2.0, 20.0])
+    leaf_mass_per_area = 0.05
+    leaf_specific_heat = 3500.0
+    air_volumetric_heat_capacity = 1200.0
+
+    result = calculate_understorey_effective_heat_capacity(
+        layer_thickness=layer_thickness,
+        leaf_area_index=leaf_area_index,
+        leaf_mass_per_area=leaf_mass_per_area,
+        leaf_specific_heat=leaf_specific_heat,
+        air_volumetric_heat_capacity=air_volumetric_heat_capacity,
+    )
+
+    expected_ceff = np.array([120.0, 470.0, 3620.0])
+
+    np.testing.assert_allclose(result, expected_ceff)
