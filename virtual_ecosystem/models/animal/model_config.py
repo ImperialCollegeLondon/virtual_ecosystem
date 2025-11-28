@@ -387,17 +387,7 @@ class AnimalConstants(Configuration):
     """The probability a seasonal migration event occurs per time step (month)."""
 
 
-class AnimalConfiguration(ModelConfigurationRoot):
-    """Root configuration class for the animal model."""
-
-    functional_group_definitions_path: FILEPATH_PLACEHOLDER
-    "A file path to a data file of animal functional group definitions"
-
-    constants: AnimalConstants = AnimalConstants()
-    """The constants class for the animal model."""
-
-
-class AnimalExportConfig:
+class AnimalExportConfig(Configuration):
     """Configuration for animal cohort data export.
 
     This lightweight configuration is intended to be embedded inside
@@ -414,3 +404,18 @@ class AnimalExportConfig:
     enabled: bool = False
     cohort_attributes: tuple[str, ...] = ()
     float_format: str = "%0.5f"
+
+
+class AnimalConfiguration(ModelConfigurationRoot):
+    """Root configuration class for the animal model."""
+
+    functional_group_definitions_path: FILEPATH_PLACEHOLDER
+    "A file path to a data file of animal functional group definitions"
+
+    constants: AnimalConstants = AnimalConstants()
+    """The constants class for the animal model."""
+
+    cohort_data_export: AnimalExportConfig = Field(
+        default_factory=AnimalExportConfig,
+        description="Export settings for animal cohort CSV output.",
+    )

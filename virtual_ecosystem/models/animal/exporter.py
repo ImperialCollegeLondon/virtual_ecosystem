@@ -6,7 +6,7 @@ to export data continuously during the model run.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import ClassVar
 
@@ -50,13 +50,19 @@ class AnimalCohortDataExporter:
     ) -> None:
         # Public configuration
         self.output_directory: Path = output_directory
+        """The directory in which to save animal cohort data."""
         self.cohort_attributes: set[str] = cohort_attributes or set()
+        """The set of animal cohort attributes to be exported."""
         self.float_format: str = float_format
+        """The float format for data export."""
 
         # Internal state
         self._output_mode: str = "w"
+        """Switches the exporter between write and append mode."""
         self._write_header: bool = True
+        """Stops headers being duplicated in append mode."""
         self._active: bool = True
+        """Has any data export has been requested."""
         self._cohort_path: Path | None = None
 
         self._check_and_set_paths()
@@ -75,7 +81,7 @@ class AnimalCohortDataExporter:
             config: Configuration section controlling animal cohort export.
 
         Returns:
-            Initialised :class:`AnimalCohortDataExporter` instance.
+            Initialised AnimalCohortDataExporter instance.
         """
         if not config.enabled:
             LOGGER.info("Animal cohort data exporter not active.")
@@ -98,7 +104,7 @@ class AnimalCohortDataExporter:
         )
 
     def _check_and_set_paths(self) -> None:
-        """Validate the output directory and initialise file paths.
+        """Check and set the output paths to be used by the exporter.
 
         Raises:
             ConfigurationError: If the directory does not exist or the file
@@ -174,7 +180,7 @@ class AnimalCohortDataExporter:
 
     def dump(
         self,
-        communities: dict[int, Iterable[AnimalCohort]],
+        communities: Mapping[int, Iterable[AnimalCohort]],
         time: np.datetime64,
     ) -> None:
         """Write animal cohort data to CSV.
