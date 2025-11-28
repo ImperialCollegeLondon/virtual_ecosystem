@@ -41,7 +41,7 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_p_pool_labile' checked"),
     (DEBUG, "soil model: required var 'pH' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
-    (DEBUG, "soil model: required var 'soil_moisture' checked"),
+    (DEBUG, "soil model: required var 'matric_potential' checked"),
     (DEBUG, "soil model: required var 'mean_annual_temperature' checked"),
 )
 POST_SETUP_LOG = (
@@ -761,9 +761,9 @@ def test_calculate_dissolved_nutrient_concentrations_negative(fixture_soil_model
         ),
         pytest.param(
             {
-                "ecto_supply_limit_n": [0.0, 0.0, 0.0, 0.0],
+                "ecto_supply_limit_n": [0.0, 0.00033416, 0.0, 0.0],
                 "ecto_supply_limit_p": [0.0, 0.0, 0.0, 0.0],
-                "arbuscular_supply_limit_n": [0.0, 0.0, 0.0, 0.0],
+                "arbuscular_supply_limit_n": [0.0, 0.00037213, 0.0, 0.0],
                 "arbuscular_supply_limit_p": [0.0, 0.0, 0.0, 0.0],
             },
             True,

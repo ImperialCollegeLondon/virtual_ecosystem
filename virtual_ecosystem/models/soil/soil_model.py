@@ -31,10 +31,6 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration, CoreConstants
-from virtual_ecosystem.models.hydrology.below_ground import (
-    calculate_effective_saturation,
-    calculate_matric_potential,
-)
 from virtual_ecosystem.models.hydrology.model_config import (
     HydrologyConfiguration,
 )
@@ -98,7 +94,7 @@ class SoilModel(
         "soil_p_pool_labile",
         "pH",
         "clay_fraction",
-        "soil_moisture",
+        "matric_potential",
         "mean_annual_temperature",
     ),
     vars_populated_by_init=(
@@ -302,9 +298,6 @@ class SoilModel(
             enzyme_classes=enzyme_classes,
             soil_moisture_saturation=hydrology_configuration.constants.soil_moisture_saturation,
             soil_moisture_residual=hydrology_configuration.constants.soil_moisture_residual,
-            air_entry_potential_inverse=hydrology_configuration.constants.air_entry_potential_inverse,
-            van_genuchten_nonlinearily_parameter=hydrology_configuration.constants.van_genuchten_nonlinearily_parameter,
-            m_to_kpa=hydrology_configuration.constants.m_to_kpa,
         )
 
     def _setup(
@@ -314,9 +307,6 @@ class SoilModel(
         enzyme_classes: dict[str, SoilEnzymeClass],
         soil_moisture_saturation: float,
         soil_moisture_residual: float,
-        air_entry_potential_inverse: float,
-        van_genuchten_nonlinearily_parameter: float,
-        m_to_kpa: float,
         **kwargs: Any,
     ) -> None:
         """Function to setup up the soil model."""
@@ -327,12 +317,9 @@ class SoilModel(
         self.microbial_groups = microbial_groups
         self.enzyme_classes = enzyme_classes
 
-        # Store the four required hydrology constants
+        # Store the required hydrology constants
         self.soil_moisture_saturation = soil_moisture_saturation
         self.soil_moisture_residual = soil_moisture_residual
-        self.air_entry_potential_inverse = air_entry_potential_inverse
-        self.van_genuchten_nonlinearily_parameter = van_genuchten_nonlinearily_parameter
-        self.m_to_kpa = m_to_kpa
 
         # Calculate dissolved amounts of each inorganic nutrient
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
@@ -641,11 +628,6 @@ class SoilModel(
         converted from the per volume units used in the soil model, to the per area
         units used in the plant model.
 
-        TODO - This function currently calculates matric potential based on soil
-        moisture when being used within model initialisation. At some point this should
-        be migrated to the hydrology model init/setup as that is a more natural home for
-        this calculation
-
         TODO - In model initialisation, the annual mean temperature is used as an
         estimate of the soil temperature as soil temperatures are not yet known. This
         issue won't be resolved until we have decided what we are doing about model spin
@@ -662,46 +644,26 @@ class SoilModel(
         """
 
         if not init:
-            # Average soil temperature and water potential over the microbially active
-            # layers, and then use to calculate the environmental factors
-            soil_water_potential = (
-                average_water_potential_over_microbially_active_layers(
-                    water_potentials=self.data["matric_potential"],
+            averaged_soil_temperature = (
+                average_temperature_over_microbially_active_layers(
+                    soil_temperatures=self.data["soil_temperature"],
+                    surface_temperature=self.data["air_temperature"][
+                        self.layer_structure.index_surface_scalar
+                    ].to_numpy(),
                     layer_structure=self.layer_structure,
                 )
-            )
-            soil_temperature = average_temperature_over_microbially_active_layers(
-                soil_temperatures=self.data["soil_temperature"],
-                surface_temperature=self.data["air_temperature"][
-                    self.layer_structure.index_surface_scalar
-                ].to_numpy(),
-                layer_structure=self.layer_structure,
             )
         else:
             # As soil temperature hasn't be calculated yet we assume that it matches the
             # mean annual temperature (a common assumption for deeper soil layers)
-            soil_temperature = self.data["mean_annual_temperature"].to_numpy()
+            averaged_soil_temperature = self.data["mean_annual_temperature"].to_numpy()
 
-            # Matric potential hasn't been found yet, so we calculate it based on soil
-            # effective saturation (and then average across layers)
-            effective_saturation = calculate_effective_saturation(
-                soil_moisture=self.data["soil_moisture"].to_numpy(),
-                soil_moisture_saturation=self.soil_moisture_saturation,
-                soil_moisture_residual=self.soil_moisture_residual,
-            )
-            matric_potential = calculate_matric_potential(
-                effective_saturation=effective_saturation,
-                air_entry_potential_inverse=self.air_entry_potential_inverse,
-                van_genuchten_nonlinearily_parameter=self.van_genuchten_nonlinearily_parameter,
-            )
-            soil_water_potential = (
-                average_water_potential_over_microbially_active_layers(
-                    water_potentials=DataArray(
-                        matric_potential * self.m_to_kpa, dims=["cell_id", "layers"]
-                    ),
-                    layer_structure=self.layer_structure,
-                )
-            )
+        # Average soil temperature and water potential over the microbially active
+        # layers, and then use to calculate the environmental factors
+        soil_water_potential = average_water_potential_over_microbially_active_layers(
+            water_potentials=self.data["matric_potential"],
+            layer_structure=self.layer_structure,
+        )
 
         env_factors = calculate_environmental_effect_factors(
             soil_water_potential=soil_water_potential,
@@ -718,7 +680,7 @@ class SoilModel(
             soil_p_pool_dop=self.data["soil_p_pool_dop"].to_numpy(),
             soil_p_pool_labile=self.data["soil_p_pool_labile"].to_numpy(),
             microbe_pool_size=self.data["soil_c_pool_ectomycorrhiza"].to_numpy(),
-            soil_temp=soil_temperature,
+            soil_temp=averaged_soil_temperature,
             microbial_group=self.microbial_groups["ectomycorrhiza"],
             env_factors=env_factors,
         )
@@ -730,7 +692,7 @@ class SoilModel(
             soil_p_pool_dop=self.data["soil_p_pool_dop"].to_numpy(),
             soil_p_pool_labile=self.data["soil_p_pool_labile"].to_numpy(),
             microbe_pool_size=self.data["soil_c_pool_arbuscular_mycorrhiza"].to_numpy(),
-            soil_temp=soil_temperature,
+            soil_temp=averaged_soil_temperature,
             microbial_group=self.microbial_groups["arbuscular_mycorrhiza"],
             env_factors=env_factors,
         )
