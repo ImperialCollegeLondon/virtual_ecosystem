@@ -160,6 +160,10 @@ class AbioticSimpleModel(
         the reference vapour pressure deficit for all time steps. Both variables are
         added directly to the self.data object.
 
+        TODO - Unlike the abiotic model this init does not populate initial values for
+        the air temperatures. This is something that might need to be reconsidered in
+        future.
+
         Args:
             model_configuration: Configuration object from the abiotic_simple model.
             abiotic_constants: Provides required abiotic constants.

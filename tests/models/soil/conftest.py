@@ -71,6 +71,7 @@ def dummy_carbon_data(fixture_core_components):
         "animal_arbuscular_mycorrhiza_consumption": [3.43e-4, 4.29e-4, 6.0e-4, 2.30e-4],
         "decay_of_fungal_fruiting_bodies": [2.2499e-4, 5.8168e-4, 3.2185e-4, 2.5871e-3],
         "new_fungal_fruiting_body_production": [0.0, 0.0, 0.0, 0.0],
+        "mean_annual_temperature": [20.0, 20.0, 20.0, 20.0],
     }
 
     for var_name, var_values in data_values.items():
