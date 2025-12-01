@@ -536,11 +536,10 @@ def solve_canopy_temperature(
 
 
 def update_air_temperature(
-    surface_temperature: NDArray[np.floating],
     air_temperature: NDArray[np.floating],
+    sensible_heat_flux: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
-    aerodynamic_resistance: float | NDArray[np.floating],
     mixing_layer_thickness: NDArray[np.floating],
 ) -> NDArray[np.floating]:
     r"""Update air temperature in steady state.
@@ -562,22 +561,15 @@ def update_air_temperature(
     temperature, and :math:`z` is the thickness of the air layer we are updating.
 
     Args:
-        surface_temperature: Soil or canopy temperatures for all true canopy layers, [C]
-        air_temperature: Air temperature for all layers around true canopy or surface
-            layer, [C]
+        air_temperature: Air temperature, [C]
+        sensible_heat_flux: Sensible heat flux, [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
-        aerodynamic_resistance: Aerodynamic resistance of air or soil, [s m-1]
         mixing_layer_thickness: thickness of the air layer we are updating, [m]
 
     Returns:
         updated air temperatures, [C]
     """
-
-    # Update temperatures
-    sensible_heat_flux = (
-        density_air * specific_heat_air * (surface_temperature - air_temperature)
-    ) / aerodynamic_resistance
 
     # Update air temperature over a layer of height z (e.g., canopy height)
     new_air_temperature = air_temperature + (

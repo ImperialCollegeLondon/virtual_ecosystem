@@ -355,18 +355,17 @@ def test_update_air_temperature(
 
     updated_air_temperature = update_air_temperature(
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-        surface_temperature=data["canopy_temperature"][canopy_index].to_numpy(),
+        sensible_heat_flux=data["sensible_heat_flux"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
         mixing_layer_thickness=above_ground_layer_thickness[1:-1],
     )
 
     exp_result = np.array(
         [
-            [29.806235, 29.806235, 29.832032, np.nan],
-            [28.840201, 28.855608, np.nan, np.nan],
-            [27.188575, np.nan, np.nan, np.nan],
+            [29.844995, 29.844995, 29.844995, np.nan],
+            [28.87117, 28.87117, np.nan, np.nan],
+            [27.206405, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(updated_air_temperature, exp_result, rtol=1e-4)
