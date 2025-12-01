@@ -99,6 +99,7 @@ class HydrologyModel(
     ),
     vars_populated_by_init=(
         "soil_moisture",
+        "matric_potential",
         "groundwater_storage",
         "aerodynamic_resistance_surface",
         "aerodynamic_resistance_canopy",
@@ -113,7 +114,6 @@ class HydrologyModel(
         "bypass_flow",
         "soil_evaporation",
         "vertical_flow",
-        "matric_potential",
         "subsurface_flow",
         "baseflow",
         "surface_runoff_routed_plus_local",
@@ -292,6 +292,25 @@ class HydrologyModel(
             soil_layer_thickness=self.soil_layer_thickness_mm,
             layer_structure=self.layer_structure,
             initial_soil_moisture=self.initial_soil_moisture,
+        )
+
+        # Make initial guess of the matric potential based on the soil moisture
+        effective_saturation = hydrology_tools.calculate_effective_saturation(
+            soil_moisture=self.data["soil_moisture"][
+                self.layer_structure.index_all_soil
+            ].to_numpy()
+            / self.soil_layer_thickness_mm,
+            soil_moisture_saturation=self.model_constants.soil_moisture_saturation,
+            soil_moisture_residual=self.model_constants.soil_moisture_residual,
+        )
+        matric_potential = below_ground.calculate_matric_potential(
+            effective_saturation=effective_saturation,
+            air_entry_potential_inverse=self.model_constants.air_entry_potential_inverse,
+            van_genuchten_nonlinearily_parameter=self.model_constants.van_genuchten_nonlinearily_parameter,
+        )
+        self.data["matric_potential"] = self.layer_structure.from_template()
+        self.data["matric_potential"][self.layer_structure.index_all_soil] = DataArray(
+            matric_potential * self.model_constants.m_to_kpa, dims=["layers", "cell_id"]
         )
 
         # Create initial groundwater storage variable with two layers, [mm]
