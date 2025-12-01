@@ -13,6 +13,7 @@ from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.data import Data
 
 
 def calculate_molar_density_air(
@@ -307,3 +308,38 @@ def update_profile_from_reference(
     profile_out[layer_structure.index_filled_atmosphere] = valid_values
 
     return profile_out
+
+
+def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStructure):
+    """Calculate heights, thickness, layer tops, and midpoints for atmospheric layers.
+
+    Args:
+        data: Data object
+        layer_structure: LayerStructure object
+
+    Returns:
+    dict containing:
+        - heights
+        - thickness
+        - layer_top
+        - layer_midpoints
+    """
+
+    # Extract above-ground layer heights
+    heights = data["layer_heights"][layer_structure.index_filled_atmosphere].to_numpy()
+
+    # Compute thickness
+    thickness = compute_layer_thickness_for_varying_canopy(heights=heights)
+
+    # Compute cumulative thickness excluding current layer
+    layer_top = np.cumsum(thickness, axis=1) - thickness
+
+    # Compute midpoints
+    midpoints = layer_top + thickness / 2
+
+    return {
+        "heights": heights,
+        "thickness": thickness,
+        "layer_top": layer_top,
+        "layer_midpoints": midpoints,
+    }

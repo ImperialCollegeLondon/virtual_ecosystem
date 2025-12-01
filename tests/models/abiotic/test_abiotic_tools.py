@@ -319,3 +319,37 @@ def test_update_atmospheric_pressure(
     np.testing.assert_allclose(
         result[lyr_str.index_filled_atmosphere], exp_result, rtol=1e-04, atol=1e-04
     )
+
+
+def test_calculate_atmospheric_layer_geometry(
+    fixture_core_components, dummy_climate_data_varying_canopy
+):
+    """Test update atmospheric pressure for varying canopy."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        calculate_atmospheric_layer_geometry,
+    )
+
+    lyr_str = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
+
+    result = calculate_atmospheric_layer_geometry(
+        data=data,
+        layer_structure=lyr_str,
+    )
+
+    for var in ["heights", "thickness", "layer_top", "layer_midpoints"]:
+        assert var in result
+
+    exp_thickness = np.array(
+        [
+            [2.0, 2.0, 2.0, 31.9],
+            [10.0, 10.0, 29.9, np.nan],
+            [10.0, 19.9, np.nan, np.nan],
+            [9.9, np.nan, np.nan, np.nan],
+            [0.1, 0.1, 0.1, 0.1],
+        ]
+    )
+    np.testing.assert_allclose(
+        result["thickness"], exp_thickness, rtol=1e-04, atol=1e-04
+    )
