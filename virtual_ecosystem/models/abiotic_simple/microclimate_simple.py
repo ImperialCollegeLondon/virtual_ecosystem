@@ -101,7 +101,9 @@ def run_simple_microclimate(
     output = {}
 
     # Sum leaf area index over all canopy layers, [m m-1]
-    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
+    leaf_area_index_sum = data["leaf_area_index"][
+        layer_structure.index_filled_canopy
+    ].sum(dim="layers")
 
     # Interpolate atmospheric profiles
     for var in [
