@@ -156,11 +156,14 @@ def run_simple_microclimate(
         lower_bound=lower,
     )
 
-    # Initialise canopy temperature, [C]
+    # Initialise canopy and understorey temperature, [C]
     canopy_temperature = layer_structure.from_template()
     canopy_temperature[layer_structure.index_filled_canopy] = output["air_temperature"][
         layer_structure.index_filled_canopy
     ]
+    canopy_temperature[layer_structure.index_surface_scalar] = output[
+        "air_temperature"
+    ][layer_structure.index_surface_scalar]
 
     # Calculate net radiation, [W m-2].
     canopy_longwave_emission = energy_balance.calculate_longwave_emission(
@@ -168,6 +171,7 @@ def run_simple_microclimate(
         emissivity=constants.leaf_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
+
     soil_longwave_emission = energy_balance.calculate_longwave_emission(
         temperature=output["soil_temperature"][
             layer_structure.index_topsoil_scalar
@@ -180,6 +184,10 @@ def run_simple_microclimate(
         data["shortwave_absorption"][layer_structure.index_filled_canopy].to_numpy()
         - canopy_longwave_emission[layer_structure.index_filled_canopy]
     )
+    net_radiation_understorey = (
+        data["shortwave_absorption"][layer_structure.index_surface_scalar].to_numpy()
+        - canopy_longwave_emission[layer_structure.index_surface_scalar]
+    )
     net_radiation_soil = (
         data["shortwave_absorption"][layer_structure.index_topsoil_scalar].to_numpy()
         - soil_longwave_emission
@@ -187,6 +195,7 @@ def run_simple_microclimate(
 
     net_radiation = layer_structure.from_template()
     net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy
+    net_radiation[layer_structure.index_surface_scalar] = net_radiation_understorey
     net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
     output["net_radiation"] = net_radiation
 
