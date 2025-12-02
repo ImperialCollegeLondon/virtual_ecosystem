@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from typing import TypeAlias
 
 import numpy as np
+import xarray as xr
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst
 from xarray import DataArray, full_like
@@ -437,6 +438,11 @@ class Subcanopy:
         # variables are created in the first update, so easier to just write afresh.
         coords = {"cell_id": self.data["cell_id"].data}
 
+        cnp_template = xr.DataArray(
+            data=np.zeros((len(self.data["cell_id"].data), 3)),
+            coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
+        )
+
         # Write biomasses to Data
         biomasses: dict[str, SubcanopyBiomass] = {
             "subcanopy_vegetation": self.seedbank_biomass,
@@ -446,12 +452,20 @@ class Subcanopy:
         }
 
         for var, biomass in biomasses.items():
+            self.data[f"{var}_cnp"] = cnp_template.copy()
+
+            # Deprecate in #1131:
             self.data[f"{var}_biomass"] = DataArray(biomass.carbon_mass, coords=coords)
+            self.data[f"{var}_cnp"].loc[:, "C"] = biomass.carbon_mass
 
             for elem in self.elements:
+                # Deprecate in #1131:
                 self.data[f"{var}_c_{elem}_ratio"] = DataArray(
                     biomass.c_x_ratio(elem), coords=coords
                 )
+                self.data[f"{var}_cnp"].loc[:, elem.upper()] = biomass.nutrients[
+                    elem
+                ].masses
 
         # Write lignin concentrations for litter components
         self.data["subcanopy_vegetation_litter_lignin"] = full_like(
