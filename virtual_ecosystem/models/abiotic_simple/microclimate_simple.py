@@ -101,7 +101,12 @@ def run_simple_microclimate(
     output = {}
 
     # Sum leaf area index over all canopy layers, [m m-1]
-    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
+    # This step excludes the understorey vegetation, assuming that the relationship
+    # between LAI and the variables is purely based on the vegetation above the
+    # measurement height of 1m :cite:p:`hardwick_relationship_2015`.
+    leaf_area_index_sum = data["leaf_area_index"][
+        layer_structure.index_filled_canopy
+    ].sum(dim="layers")
 
     # Interpolate atmospheric profiles
     for var in [
