@@ -50,6 +50,7 @@ from scipy.optimize import newton
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import wind
 from virtual_ecosystem.models.abiotic.abiotic_tools import set_unintended_nan_to_zero
 
@@ -256,7 +257,6 @@ def calculate_energy_balance_residual(
     absorbed_radiation_canopy: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
-    density_water: float | NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
     leaf_emissivity: float,
@@ -288,9 +288,8 @@ def calculate_energy_balance_residual(
             [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
-        density_water: Density of water, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistamce of canopy, [s m-1]
-        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
         leaf_emissivity: Leaf emissivity, dimensionless
         stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
         zero_Celsius: Factor to convert between Celsius and Kelvin
@@ -322,9 +321,8 @@ def calculate_energy_balance_residual(
     # Latent heat flux canopy, [W m-2]
     # The current implementation converts outputs from plant and hydrology model to
     # ensure energy conservation between modules for now.
-    # TODO cross-check units with plant model, time step currently hour to second
     latent_heat_flux_canopy = (
-        evapotranspiration * density_water * latent_heat_vapourisation
+        evapotranspiration * latent_heat_vapourisation
     ) / seconds_to_hour
 
     # Energy balance residual, [W m-2]
@@ -355,7 +353,6 @@ def solve_canopy_temperature(
     absorbed_radiation_canopy: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
-    density_water: float | NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
     emissivity_leaf: float,
@@ -416,10 +413,9 @@ def solve_canopy_temperature(
             [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
-        density_water: Density of water, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistamce of canopy, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
-        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
         emissivity_leaf: Leaf emissivity, dimensionless
         stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
         zero_Celsius: Factor to convert between Celsius and Kelvin
@@ -437,11 +433,7 @@ def solve_canopy_temperature(
 
     nrows, ncols = canopy_temperature_initial.shape
     solved_temperature = np.empty_like(canopy_temperature_initial, dtype=np.float64)
-
-    if isinstance(density_water, float):
-        density_water_array = np.full(solved_temperature.shape, density_water)
-    else:
-        density_water_array = density_water
+    convergence_info = []
 
     # TODO this loop might be a potential performance bottleneck.
     # The function only takes scalar values
@@ -467,11 +459,8 @@ def solve_canopy_temperature(
                         [[specific_heat_air[i, j]]], dtype=np.float64
                     ),
                     density_air=np.array([[density_air[i, j]]], dtype=np.float64),
-                    density_water=np.array(
-                        [[density_water_array[i, j]]], dtype=np.float64
-                    ),
                     aerodynamic_resistance=np.array(
-                        [[aerodynamic_resistance[i, j]]], dtype=np.float64
+                        [[aerodynamic_resistance[i]]], dtype=np.float64
                     ),
                     latent_heat_vapourisation=np.array(
                         [[latent_heat_vapourisation[i, j]]], dtype=np.float64
@@ -495,9 +484,11 @@ def solve_canopy_temperature(
             x0 = canopy_temperature_initial[i, j]
 
             best_estimate = [x0]  # use a mutable object to track updates
+            iteration_history = []
 
             # Wrapper to extract best estimate if function does not converge
             def tracked_func(x):
+                iteration_history.append(x)
                 best_estimate[0] = x  # update best estimate
                 return residual_func(x)
 
@@ -508,9 +499,34 @@ def solve_canopy_temperature(
                     maxiter=maxiter,
                     tol=0.01,
                 )
+                converged = True
 
             except RuntimeError:
                 solved_temperature[i, j] = best_estimate[0]  # use last known good value
+                converged = False
+
+    convergence_info.append(
+        {
+            "row": i,
+            "col": j,
+            "converged": converged,
+            "final_value": solved_temperature[i, j],
+            "best_estimate": best_estimate[0],
+            "history": iteration_history,
+        }
+    )
+
+    # Log a message based on whether all cells converged or not
+    num_not_converged = sum(not c["converged"] for c in convergence_info)
+    total_cells = nrows * ncols
+
+    if num_not_converged == 0:
+        LOGGER.info(f"Solver finished successfully: all {total_cells} cells converged.")
+    else:
+        LOGGER.warning(
+            f"Solver finished with issues: {num_not_converged} / {total_cells} cells"
+            " did not converge. Best estimates were used for those cells."
+        )
 
     return solved_temperature
 
@@ -561,7 +577,7 @@ def update_air_temperature(
 
     # Update air temperature over a layer of height z (e.g., canopy height)
     new_air_temperature = air_temperature + (
-        -sensible_heat_flux / (density_air * specific_heat_air * mixing_layer_thickness)
+        sensible_heat_flux / (density_air * specific_heat_air * mixing_layer_thickness)
     )
     return new_air_temperature
 

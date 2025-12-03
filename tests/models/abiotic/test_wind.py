@@ -31,7 +31,7 @@ def test_calculate_roughness_length_momentum(dummy_climate_data_varying_canopy):
         canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
         leaf_area_index=np.array([np.nan, 0.0, 7, 0.0]),
         zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 0.0]),
-        substrate_surface_drag_coefficient=0.003,
+        substrate_surface_roughness_length=0.003,
         roughness_element_drag_coefficient=0.3,
         roughness_sublayer_depth_parameter=0.193,
         max_ratio_wind_to_friction_velocity=0.3,
