@@ -23,6 +23,7 @@ cohort_attributes = [
   "location_status",
   "centroid_key",
   "territory_size",
+  "territory",
   "occupancy_proportion",
   "largest_mass_achieved",
   "mass_carbon",

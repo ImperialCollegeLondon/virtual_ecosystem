@@ -63,6 +63,7 @@ def dummy_cohort_factory():
             self.location_status = "resident"
             self.centroid_key = 0
             self.territory_size = 1.0
+            self.territory = ([1],)
             self.occupancy_proportion = 1.0
             self.largest_mass_achieved = 2.0
             self.mass_cnp = DummyCNP(1.0, 0.1, 0.01)
