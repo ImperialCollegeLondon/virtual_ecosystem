@@ -47,6 +47,21 @@ For some models, the configuration may only consist of a set of model-specific c
 values. In other cases, the science model may require additional configuration details,
 such as paths to data files providing configuration data or initialisation values.
 
+```{important} Data configuration
+
+This page specifically describes the model specific configuration settings. In addition,
+you will need to configure the sources of the gridded array data providing the data
+variables required by each model:
+
+* The variables required for each model are described in the [model implementation
+  pages](../virtual_ecosystem/implementation/implementation.md#science-models).
+* A complete list of variables can be found in the [variables description
+  page](../virtual_ecosystem/implementation/variables.md).
+* The model inputs page describes the [configuration of gridded data file
+  inputs](./model_data_inputs.md#configuring-gridded-data-inputs)
+
+```
+
 In all cases, your TOML configuration files only need to specify values that do not have
 a default value (typically file paths) or where you want to change a default. To include
 a model using only the default values, it is enough just to include the model name as a
@@ -59,13 +74,22 @@ header section. So for example:
 
 ## Validation of science model configurations
 
-As with the core configuration, each science model configuration option has specific
-validation settings that are enforced when a configuration is loaded. These constraints
-should be described in the documentation of each setting. If configuration data contains
-invalid values, then the simulation will exit and the log will contain a detailed
-breakdown of any configuration validation issues.
+As with the core configuration, each science model in the Virtual Ecosystem has a
+defined set of configuration options that are built into the definition of the model.
+Those options will also have specific validation settings that are used to check that
+the setting values that you provide are appropriate for the model: these constraints are
+automatically enforced when your configuration files are loaded. If configuration data
+contains invalid values, then the simulation will exit and the log will contain a
+detailed breakdown of any configuration validation issues.
+
+The details of the validation constraints for a particular model configuration are
+described in the documentation of the model configuration. These are linked in each
+section below - these pages are part of the API (application programming interface) so
+are a bit more technical but provide the a complete description of the model settings.
 
 ## Simple abiotic model
+
+[See also the [configuration details](../api/models/abiotic_simple/model_config.md)]
 
 Configuration for the `abiotic_simple` model includes two sections:
 
@@ -127,6 +151,8 @@ model_config_to_deflist("abiotic.constants", AbioticConstants)
 
 ## Litter model
 
+[See also the [configuration details](../api/models/litter/model_config.md)]
+
 ```{eval-rst}
 ..
     This is needed to allow sphinx to resolve the :attr: links for litter constants
@@ -150,6 +176,8 @@ model_config_to_deflist("litter.constants", LitterConstants)
 
 ## Hydrology model
 
+[See also the [configuration details](../api/models/hydrology/model_config.md)]
+
 The hydrology model requires two simple initialisation values and then a set of
 hydrology constants one configuration section:
 
@@ -167,6 +195,8 @@ model_config_to_deflist("hydrology", HydrologyConfiguration)
 ```
 
 ## Soil model
+
+[See also the [configuration details](../api/models/soil/model_config.md)]
 
 ```{eval-rst}
 ..
@@ -249,6 +279,8 @@ model_config_to_deflist("soil.constants", SoilConstants)
 
 ## Plants model
 
+[See also the [configuration details](../api/models/plants/model_config.md)]
+
 Configuration for the `plants` model includes four sections:
 
 * A path to a CSV file defining the plant functional types to be used in the model
@@ -257,7 +289,8 @@ Configuration for the `plants` model includes four sections:
   functional types found in each cell (`[plants.cohort_data_path]`).
 * Configuration details for the export of plant community data at each time step
   (`[plants.community_data_export]`).
-* A set of constants values used within the model (`[plants.constants]`)
+* A set of constants values used within the model (`[plants.constants]`) that need to be
+  specified in the configuration if you want to change them from the default values.
 
 ### Plant functional types
 
@@ -268,7 +301,13 @@ from myst_nb import glue
 from pyrealm.demography.flora import Flora
 from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
 
-glue("pft_traits", ", ".join([*Flora.array_attrs, *ExtraTraitsPFT.array_attrs]))
+# This is clunky but ok for now.
+traits = [*Flora.array_attrs, *ExtraTraitsPFT.array_attrs]
+
+for calc_trait in ["q_m", "z_max_prop"]:
+    traits.remove(calc_trait)
+
+glue("pft_traits", ", ".join(traits))
 ```
 
 The `plants.pft_definitions_path` configuration setting must point to a CSV defining
@@ -362,3 +401,5 @@ model_config_to_deflist("plants.constants", PlantsConstants)
 ```
 
 ## Animal model
+
+[See also the [configuration details](../api/models/animal/model_config.md)]

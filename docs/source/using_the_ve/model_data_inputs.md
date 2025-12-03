@@ -50,8 +50,10 @@ described in the [core configuration](./core_configuration.md) page, but in summ
   interest and define a set of grid cells to cover the area at a resolution appropriate
   for your data.
 
+  ```{important}
   Do not use a geographic coordinate system - you cannot use degree coordinates with the
   Virtual Ecosystem.
+  ```
 
 * The Virtual Ecosystem updates the simulation state at discrete intervals. You need to
   decide how long an interval to use and how many time steps to run.
@@ -74,7 +76,9 @@ configuration files in the [example data](./example_data.md) page.
 
 The configuration is validated automatically when it is loaded and the simulation will
 exit if there are validation issues with configuration data. The details of any issues
-are written to the simulation log file.
+are written to the simulation log file. The validation will vary by setting but is used
+to check, as examples, that configured input files actually exist or that numeric inputs
+are within a range of accepted values.
 
 ## Gridded model data inputs
 
@@ -100,7 +104,7 @@ moment have we the following critical dimensions within the VE:
 * `pft`: Some data requires values per plant functional type. An example is the initial
   number of propagules per PFT in grid cells.
 
-### Preparing model input files
+### Preparing gridded data input files
 
 You will first need to look at the required variables for each science model that you
 want to include in the simulation and make a list of those variables. Details of the
@@ -119,7 +123,14 @@ match input data to the axes and coordinates of your model configuration . See t
 object](./data/data.md) page for more information on loading data and the [example
 data](./example_data.md) page for examples of NetCDF input files.
 
-### Configuring model inputs
+### Configuring gridded data inputs
+
+```{tip}
+This section only covers the configuration of gridded data files. You will also need to
+configure the [model core settings](./core_configuration.md), the [science model
+settings](./science_model_configuration.md) for your simulation and the location of
+[other data input files](#other-data-inputs).
+```
 
 Once you have your input data files, you will then need to add the data to your model
 configuration. This is done using the `core.data.variable` configuration section: for
@@ -128,7 +139,7 @@ then the data file in which the variable is found. Note that you can have multip
 variables in a single NetCDF file.
 
 As an example, the following TOML gives the configuration for loading two climatic data
-variables:
+variables stored in the same file:
 
 ```toml
 [[core.data.variable]]

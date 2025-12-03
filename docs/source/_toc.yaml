@@ -216,10 +216,12 @@ subtrees:
           - file: api/models/plants
             title: The plants model
             entries:
-              - file: api/models/plants/plant_structures
-                title: The plant_structures submodule
               - file: api/models/plants/plants_model
                 title: The plants_model submodule
+              - file: api/models/plants/model_config
+                title: The model_config submodule
+              - file: api/models/plants/plant_structures
+                title: The plant_structures submodule
       - file: api/example_data
         title: The example_data submodule
 
