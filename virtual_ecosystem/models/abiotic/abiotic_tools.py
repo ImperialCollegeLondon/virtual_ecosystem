@@ -318,11 +318,7 @@ def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStruc
         layer_structure: LayerStructure object
 
     Returns:
-    dict containing:
-        - heights
-        - thickness
-        - layer_top
-        - layer_midpoints
+        dict containing heights, thickness, layer_top, layer_midpoints
     """
 
     # Extract above-ground layer heights

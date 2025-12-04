@@ -288,7 +288,7 @@ def test_calculate_specific_humidity(
     np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)
 
 
-def test_update_atmospheric_pressure(
+def test_update_profile_from_reference(
     fixture_core_components, dummy_climate_data_varying_canopy
 ):
     """Test update atmospheric pressure for varying canopy."""
