@@ -164,11 +164,11 @@ class AbioticConstants(AbioticSharedConstants):
     
     Value from :cite:t:`ogee_a_forest_2002`"""
 
-    understorey_thermal_conductivity: float = 0.02
+    understorey_thermal_conductivity: float = 10.0
     """Thermal conductivity of the understorey layer, [W m-1 K-1].
     
     Represents heat transfer through litter or herbaceous material to the soil.
-    Value taken from :cite:t:`dimitrakopoulos_measuring_1988`."""
+    TODO find value from literature."""
 
     specific_heat_capacity_understorey: float = 3500.0
     """Specific heat capacity of the understorey vegetation, [J kg-1 K-1].

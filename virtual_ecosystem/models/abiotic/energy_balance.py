@@ -645,11 +645,9 @@ def update_humidity_vpd(
     specific_humidity = water_mass_in_air / air_mass_per_layer
     specific_humidity_updated = wind.mix_and_ventilate(
         input_variable=specific_humidity,
-        layer_thickness=layer_thickness,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
         limits=limits,
-        time_interval=time_interval,
     )
 
     # NOTE Advection not implemented as everything is removed with time interval > 1h

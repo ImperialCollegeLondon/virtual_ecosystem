@@ -326,11 +326,9 @@ def clamp_variable_within_limits(
 
 def mix_and_ventilate(
     input_variable: NDArray[np.floating],
-    layer_thickness: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
     ventilation_rate: NDArray[np.floating],
     limits: tuple[float, float],
-    time_interval: float,
 ) -> NDArray[np.floating]:
     """Apply vertical mixing and top-layer ventilation across multiple vertical layers.
 
@@ -352,69 +350,69 @@ def mix_and_ventilate(
 
     Args:
         input_variable: Input variable for all true atmospheric layers
-        layer_thickness: Layer thickness, [m]
         mixing_coefficient: Turbulent mixing coefficients for canopy, [m2 s-1]
         ventilation_rate: Ventilation rate, [s-1]
         limits: Upper and lower limit for input variable, avoid overshoot when mixing
-        time_interval: Time interval, [s]
 
     Returns:
         Vertically mixed input variable
     """
 
-    # Copy the input to update with mixing
-    input_variable_mixed = input_variable.copy()
+    # 1. Vertical mixing for layers [1:-1]
 
-    # Extract the layer thickness and current value for the canopy layers, excluding the
-    # surface layer and above canopy values
-    value_canopy = input_variable[1:-1]
-    canopy_layer_thickness = layer_thickness[1:-1]
+    # Extract neighbors
+    above = input_variable[:-2]
+    current = input_variable[1:-1]
+    below = input_variable[2:]
 
-    # Get the value and mixing coefficients from the layer above.
-    value_above = input_variable[0:-2]
-    mix_above = mixing_coefficient[0:-2]
-
-    # Get the value and mixing coefficients from the layer above.
-    value_below = input_variable[2:]
+    # Slice matching mixing coefficients
+    mix_above = mixing_coefficient[:-2]
     mix_below = mixing_coefficient[2:]
 
-    # In-fill missing below values from the surface layer
-    value_below = np.where(np.isnan(value_below), input_variable[-1], value_below)
-    mix_below = np.where(np.isnan(mix_below), mix_below[-1], mix_below)
+    # Mask valid (non-NaN) values
+    valid_above = ~np.isnan(above)
+    valid_curr = ~np.isnan(current)
+    valid_below = ~np.isnan(below)
 
-    # Calculate fluxes (positive upward, negative downward) and update variable
-    flux_up = mix_above * (value_above - value_canopy) / canopy_layer_thickness
-    flux_down = mix_below * (value_below - value_canopy) / canopy_layer_thickness
-
-    value_change = (flux_up + flux_down) * time_interval / canopy_layer_thickness
-    input_variable_mixed[1:-1] += value_change
-
-    # Calculate ventilation using the value from the highest layer, which is either the
-    # top canopy layer or the surface layer if no canopy is present
-    vent_below = np.where(
-        np.isnan(input_variable_mixed[1]),
-        input_variable_mixed[-1],
-        input_variable_mixed[1],
+    # Mixing from above: current += k * (above - current)
+    mix_from_above = np.where(
+        valid_above & valid_curr,
+        mix_above * (above - current),
+        0.0,
     )
 
-    # Get the ventilation delta and change over time
-    delta_vent = input_variable_mixed[0] - vent_below
-    vent_change = ventilation_rate * delta_vent * time_interval
+    # Mixing from below
+    mix_from_below = np.where(
+        valid_below & valid_curr,
+        mix_below * (below - current),
+        0.0,
+    )
 
-    # Clip the maximum ventilation rate to 10%
-    vent_max_change = 0.1 * abs(input_variable[0])
-    vent_change = np.clip(vent_change, -vent_max_change, vent_max_change)
+    # Apply both fluxes
+    input_variable[1:-1] = current + mix_from_above + mix_from_below
 
-    # Update the current values
-    input_variable_mixed[0] += vent_change
-    input_variable_mixed[1] -= vent_change
+    # 2. Ventilation: above layer - top canopy layer
+
+    top = input_variable[0]
+    below = input_variable[1]
+
+    valid_top = ~np.isnan(top)
+    valid_below = ~np.isnan(below)
+    valid = valid_top & valid_below
+
+    delta = top - below
+    change = ventilation_rate * delta
+
+    # Only apply to valid columns
+    input_variable[0, valid] -= change[valid]
+    input_variable[1, valid] += change[valid]
 
     # Redistribute overshoot/undershoot
-    input_variable_mixed = clamp_variable_within_limits(
-        variable=input_variable_mixed, limits=limits
+    input_variable = clamp_variable_within_limits(
+        variable=input_variable, limits=limits
     )
 
-    return input_variable_mixed
+    return input_variable
 
 
 def advect_water_from_toplayer(

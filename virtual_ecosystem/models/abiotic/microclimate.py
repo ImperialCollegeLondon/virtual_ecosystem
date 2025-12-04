@@ -424,17 +424,15 @@ def run_microclimate(
         density_air=density_air[-1],
         mixing_layer_thickness=atmospheric_layer_geometry["thickness"][-1],
     )
-
+    all_air_temperature[0] = data["air_temperature_ref"].isel(time_index=time_index)
     all_air_temperature[1 : len(canopy_temperature) + 1] = canopy_air_temperature
     all_air_temperature[-1] = surface_air_temperature
 
     all_air_temperature = wind.mix_and_ventilate(
         input_variable=all_air_temperature,
-        layer_thickness=atmospheric_layer_geometry["thickness"],
         ventilation_rate=ventilation_rate,
         mixing_coefficient=mixing_coefficient,
         limits=abiotic_bounds.air_temperature[:2],
-        time_interval=core_constants.seconds_to_hour,
     )
 
     # NOTE Advection not implemented as everything is removed with time interval>=1h
@@ -519,7 +517,7 @@ def run_microclimate(
         seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=True,
     )
-
+    print(all_air_temperature)
     # Net radiation canopy, [W m-2]
     if not isinstance(new_energy_balance_canopy, dict):
         to_raise = ValueError("The energy balance has not returned any fluxes!")
