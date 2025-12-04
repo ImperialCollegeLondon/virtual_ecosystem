@@ -1,7 +1,10 @@
-"""The exporter module provides the CohortDataExporter, which is used to control the
-output of animal cohort data at each time step. An instance of the class is required
-by the AnimalModel, which calls the ``dump()`` method within the setup and update steps
-to export data continuously during the model run.
+"""The exporter module provides the
+:class:`~virtual_ecosystem.models.animal.model_config.AnimalExportConfig`,
+which is used to control the output of animal cohort data at each time step. An instance
+of the class is required by the
+:class:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort`, which calls the
+``dump()`` method within the setup and update steps to export data continuously during
+the model run.
 """  # noqa: D205
 
 from __future__ import annotations
@@ -74,7 +77,7 @@ class AnimalCohortDataExporter:
         output_directory: Path,
         config: AnimalExportConfig,
     ) -> AnimalCohortDataExporter:
-        """Create an exporter from an :class:`AnimalExportConfig` instance.
+        """Create an exporter from an AnimalExportConfig instance.
 
         Args:
             output_directory: Directory where the CSV file will be created.
@@ -187,8 +190,8 @@ class AnimalCohortDataExporter:
         """Write animal cohort data to CSV.
 
         Args:
-            communities: Mapping from cell id to iterable of
-                :class:`AnimalCohort` instances in that cell.
+            communities: Mapping from cell id to iterable of AnimalCohort instances in
+                the cell.
             time: Timestamp to associate with this snapshot.
         """
         if not self._active:

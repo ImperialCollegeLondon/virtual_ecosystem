@@ -129,8 +129,8 @@ complete configuration for the example data. The example configuration files are
 * The **`data_config.toml`** file configures the initial variables to be loaded and sets
   the paths to the source files providing those variables.
 
-* The **`animal_functional_groups.toml`** file provides basic configuration for the
-  `animal` model to set functional group definitions.
+* The **`animal_config.toml`** file provides basic configuration for the
+  `animal` model to set functional group definitions and cohort data export.
 
 * The **`plant_config.toml`** file provides basic configuration for the
   `plants` model to set functional group definitions.
@@ -151,8 +151,8 @@ configuration format and example settings look like in practice.
 ```
 ````
 
-````{dropdown} config/animal_functional_groups.toml
-```{literalinclude} ../../../virtual_ecosystem/example_data/config/animal_functional_groups.toml
+````{dropdown} config/animal_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/animal_config.toml
 ```
 ````
 

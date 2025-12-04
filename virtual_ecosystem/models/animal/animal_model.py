@@ -155,6 +155,7 @@ class AnimalModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
+        exporter: The export system for animal cohort data.
         static: If True, runs in static mode.
         density_scaling_method: Which density scaling equation to use in initialization.
         **kwargs: Additional arguments for the base model.
