@@ -47,7 +47,8 @@ For some models, the configuration may only consist of a set of model-specific c
 values. In other cases, the science model may require additional configuration details,
 such as paths to data files providing configuration data or initialisation values.
 
-```{important} Data configuration
+```{admonition} Data configuration
+:class: important
 
 This page specifically describes the model specific configuration settings. In addition,
 you will need to configure the sources of the gridded array data providing the data
@@ -307,7 +308,7 @@ traits = [*Flora.array_attrs, *ExtraTraitsPFT.array_attrs]
 for calc_trait in ["q_m", "z_max_prop"]:
     traits.remove(calc_trait)
 
-glue("pft_traits", ", ".join(traits))
+glue("pft_traits", ", ".join([f'"{t}"' for t in traits]))
 ```
 
 The `plants.pft_definitions_path` configuration setting must point to a CSV defining
@@ -346,19 +347,36 @@ from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
 glue(
     "cohort_attributes",
-    ", ".join(CommunityDataExporter.available_attributes["cohort_attributes"]),
+    ", ".join(
+        [
+            f'"{t}"'
+            for t in CommunityDataExporter.available_attributes["cohort_attributes"]
+        ]
+    ),
 )
 
 glue(
     "community_canopy_attributes",
     ", ".join(
-        CommunityDataExporter.available_attributes["community_canopy_attributes"]
+        [
+            f'"{t}"'
+            for t in CommunityDataExporter.available_attributes[
+                "community_canopy_attributes"
+            ]
+        ]
     ),
 )
 
 glue(
     "stem_canopy_attributes",
-    ", ".join(CommunityDataExporter.available_attributes["stem_canopy_attributes"]),
+    ", ".join(
+        [
+            f'"{t}"'
+            for t in CommunityDataExporter.available_attributes[
+                "stem_canopy_attributes"
+            ]
+        ]
+    ),
 )
 ```
 
