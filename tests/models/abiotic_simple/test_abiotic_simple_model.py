@@ -213,6 +213,7 @@ def test_setup(
         "atmospheric_pressure",
         "atmospheric_co2",
         "wind_speed",
+        "net_radiation",
     ]:
         assert var in model.data
 

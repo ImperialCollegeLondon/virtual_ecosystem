@@ -613,9 +613,7 @@ def dummy_climate_data(fixture_core_components):
         [0.14, 0.2, 0.2, 0.2, 0.14]
     )[:, None]
 
-    flux_index = np.logical_or(
-        lyr_str.index_above, lyr_str.index_surface_scalar, lyr_str.index_flux_layers
-    )
+    flux_index = np.logical_or(lyr_str.index_surface_scalar, lyr_str.index_flux_layers)
 
     data["shortwave_absorption"] = from_template()
     data["shortwave_absorption"][flux_index] = 450.0

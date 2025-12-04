@@ -64,7 +64,8 @@ def run_microclimate(
 
     # NOTE Canopy height will likely become a separate variable, update as required
     canopy_height = data["layer_heights"][1].to_numpy()
-    # NOTE LAI sum over all canopy layers only for wind profile, NOT understorey layer
+
+    # LAI sum over all canopy layers only for wind profile, NOT understorey layer
     leaf_area_index_sum = np.nansum(
         data["leaf_area_index"][layer_structure.index_filled_canopy].to_numpy(), axis=0
     )
@@ -225,7 +226,7 @@ def run_microclimate(
     ].to_numpy()
 
     # Evapotranspiration from plant and hydrology model, per time interval
-    # TODO currently no transpiration from understory vegetation!!
+    # TODO currently no transpiration from understory vegetation in data !!
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     # -------------------------------------------------------------------------
@@ -359,7 +360,7 @@ def run_microclimate(
     )
 
     # Update soil temperatures, [C], integration interval 1 hour
-    # TODO Revisit implementation of soil temperature update, consider Newton
+    # TODO Revisit implementation of soil temperature update, Newton or force-store
     # TODO Soil parameter currently constants, replace with soil maps
     # TODO include effect of soil moisture
     soil_temperature = energy_balance.update_soil_temperature(
@@ -436,7 +437,7 @@ def run_microclimate(
         time_interval=core_constants.seconds_to_hour,
     )
 
-    # NOTE Advection not implemented as everything is removed with time interval>1h
+    # NOTE Advection not implemented as everything is removed with time interval>=1h
     # and horizontal transfer is not implemented
     # advection_rate = (
     #   data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
@@ -590,8 +591,16 @@ def run_microclimate(
     # Combine latent heat flux in one variable
     latent_heat_flux = layer_structure.from_template()
     latent_heat_flux[layer_structure.index_filled_canopy] = latent_heat_flux_canopy
+    # latent_heat_flux[layer_structure.index_surface_scalar] = (
+    #     latent_heat_flux_understorey
+    # )
     latent_heat_flux[layer_structure.index_topsoil_scalar] = latent_heat_flux_soil
     output["latent_heat_flux"] = latent_heat_flux
+
+    output["ground_heat_flux"] = DataArray(ground_heat_flux, dims="cell_id")
+    output["conductive_flux_understorey"] = DataArray(
+        conductive_flux_understorey, dims="cell_id"
+    )
 
     soil_temperature_out = layer_structure.from_template()
     soil_temperature_out[layer_structure.index_all_soil] = soil_temperature

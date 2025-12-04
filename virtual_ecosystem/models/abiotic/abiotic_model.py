@@ -58,6 +58,7 @@ class AbioticModel(
         "aerodynamic_resistance_canopy",
         "aerodynamic_resistance_understorey",
         "net_radiation",
+        "conductive_flux_understorey",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -94,6 +95,7 @@ class AbioticModel(
     vars_populated_by_first_update=(
         "longwave_emission",
         "aerodynamic_resistance_understorey",
+        "conductive_flux_understorey",
     ),
 ):
     """A class describing the abiotic model.

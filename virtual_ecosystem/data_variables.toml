@@ -175,6 +175,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Conductive flux between soil and understorey"
+name = "conductive_flux_understorey"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Groundwater Storage"
 name = "groundwater_storage"
 unit = "mm"
