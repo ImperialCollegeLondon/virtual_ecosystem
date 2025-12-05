@@ -109,8 +109,9 @@ study system.
 
 from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleConstants
 
-dump_config_toml("abiotic_simple.constants", AbioticSimpleConstants)
-model_config_to_deflist("abiotic_simple.constants", AbioticSimpleConstants)
+config_object = AbioticSimpleConstants()
+dump_config_toml("abiotic_simple.constants", config_object)
+model_config_to_deflist("abiotic_simple.constants", config_object)
 ```
 
 ### Abiotic simple bounds
@@ -120,8 +121,9 @@ model_config_to_deflist("abiotic_simple.constants", AbioticSimpleConstants)
 
 from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
-dump_config_toml("abiotic_simple.constants", AbioticSimpleBounds)
-model_config_to_deflist("abiotic_simple.constants", AbioticSimpleBounds)
+config_object = AbioticSimpleBounds()
+dump_config_toml("abiotic_simple.constants", config_object)
+model_config_to_deflist("abiotic_simple.constants", config_object)
 ```
 
 ## Abiotic model
@@ -146,8 +148,9 @@ should use the section names for the abiotic model.
 
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 
-dump_config_toml("abiotic.constants", AbioticConstants)
-model_config_to_deflist("abiotic.constants", AbioticConstants)
+config_object = AbioticConstants()
+dump_config_toml("abiotic.constants", config_object)
+model_config_to_deflist("abiotic.constants", config_object)
 ```
 
 ## Litter model
@@ -171,8 +174,9 @@ The litter model only requires one configuration section:
 
 from virtual_ecosystem.models.litter.model_config import LitterConstants
 
-dump_config_toml("litter.constants", LitterConstants)
-model_config_to_deflist("litter.constants", LitterConstants)
+config_object = LitterConstants()
+dump_config_toml("litter.constants", config_object)
+model_config_to_deflist("litter.constants", config_object)
 ```
 
 ## Hydrology model
@@ -191,8 +195,9 @@ hydrology constants one configuration section:
 
 from virtual_ecosystem.models.hydrology.model_config import HydrologyConfiguration
 
-dump_config_toml("hydrology", HydrologyConfiguration)
-model_config_to_deflist("hydrology", HydrologyConfiguration)
+config_object = HydrologyConfiguration()
+dump_config_toml("hydrology", config_object)
+model_config_to_deflist("hydrology", config_object)
 ```
 
 ## Soil model
@@ -249,8 +254,9 @@ required groups.
 
 from virtual_ecosystem.models.soil.model_config import SoilMicrobialGroup
 
-dump_config_toml("soil.microbial_group_definition", SoilMicrobialGroup)
-model_config_to_deflist("soil.microbial_group_definition", SoilMicrobialGroup)
+config_object = SoilMicrobialGroup()
+dump_config_toml("soil.microbial_group_definition", config_object)
+model_config_to_deflist("soil.microbial_group_definition", config_object)
 ```
 
 ### Soil enzyme classes
@@ -263,8 +269,9 @@ higher taxon and substrate
 
 from virtual_ecosystem.models.soil.model_config import SoilEnzymeClass
 
-dump_config_toml("soil.enzyme_class_definition", SoilEnzymeClass)
-model_config_to_deflist("soil.enzyme_class_definition", SoilEnzymeClass)
+config_object = SoilEnzymeClass()
+dump_config_toml("soil.enzyme_class_definition", config_object)
+model_config_to_deflist("soil.enzyme_class_definition", config_object)
 ```
 
 ### Soil constants
@@ -274,8 +281,9 @@ model_config_to_deflist("soil.enzyme_class_definition", SoilEnzymeClass)
 
 from virtual_ecosystem.models.soil.model_config import SoilConstants
 
-dump_config_toml("soil.constants", SoilConstants)
-model_config_to_deflist("soil.constants", SoilConstants)
+config_object = SoilConstants()
+dump_config_toml("soil.constants", config_object)
+model_config_to_deflist("soil.constants", config_object)
 ```
 
 ## Plants model
@@ -385,8 +393,9 @@ glue(
 
 from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
-dump_config_toml("plants.community_data_export", PlantsExportConfig)
-model_config_to_deflist("plants.community_data_export", PlantsExportConfig)
+config_object = PlantsExportConfig()
+dump_config_toml("plants.community_data_export", config_object)
+model_config_to_deflist("plants.community_data_export", config_object)
 ```
 
 There are three possible data files that can be exported - you select one or more by
@@ -395,17 +404,32 @@ attributes you want exported using the appropriate attributes configuration opti
 
 The choices are:
 
-* If `cohorts` is included in `required` then the file `plants_cohorts_data.csv`
+* If `cohorts` is included in `required_data` then the file `plants_cohorts_data.csv`
   will be exported for each time step. The available attributes for plant cohort data
   are: {glue:text}`cohort_attributes`.
 
-* If `community_canopy` is included in `required` then the file
+* If `community_canopy` is included in `required_data` then the file
   `plants_community_canopy_data.csv` will be exported for each time step. The available
   attributes for plant cohort data are: {glue:text}`community_canopy_attributes`.
 
-* If `stem_canopy` is included in `required` then the file `plants_stem_canopy_data.csv`
-  will be exported for each time step. The available attributes for plant cohort data
-  are: {glue:text}`stem_canopy_attributes`.
+* If `stem_canopy` is included in `required_data` then the file
+  `plants_stem_canopy_data.csv` will be exported for each time step. The available
+  attributes for plant cohort data are: {glue:text}`stem_canopy_attributes`.
+
+To show the configuration of the exporter in use, the TOML data below configures the
+exporter to write out trait data in all three data files:
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+config_object = PlantsExportConfig(
+    required_data=["cohorts", "community_canopy", "stem_canopy"],
+    cohort_attributes=["cell_id", "cohort_id", "dbh", "delta_dbh", "stem_height"],
+    community_canopy_attributes=["cell_id", "canopy_layer_index", "heights"],
+    stem_canopy_attributes=["cell_id", "cohort_id", "canopy_layer_index", "fapar"],
+)
+dump_config_toml("plants.community_data_export", config_object)
+```
 
 ### Plants constants
 
@@ -414,10 +438,42 @@ The choices are:
 
 from virtual_ecosystem.models.plants.model_config import PlantsConstants
 
-dump_config_toml("plants.constants", PlantsConstants)
-model_config_to_deflist("plants.constants", PlantsConstants)
+config_object = PlantsConstants()
+dump_config_toml("plants.constants", config_object)
+model_config_to_deflist("plants.constants", config_object)
 ```
 
 ## Animal model
 
 [See also the [configuration details](../api/models/animal/model_config.md)]
+
+### Animal functional groups
+
+The `animals.functional_group_definitions_path` configuration setting must point to a
+CSV defining the animal functional groups to be used in a simulation. Each row in the
+CSV must provide a unique group name and then a set of functional trait values for
+that group. The file in the example data is a good template to use for preparing this
+file. The required trait fields are:
+
+"name", "taxa", "diet", "metabolic_type", "reproductive_environment",
+"reproductive_type", "development_type", "development_status",
+"offspring_functional_group", "excretion_type", "migration_type",
+"vertical_occupancy", "birth_mass", "adult_mass"
+
+### Animal Constants
+
+```{eval-rst}
+..
+    This is needed to allow sphinx to resolve the :attr: links for animal constants
+.. currentmodule:: virtual_ecosystem.models.animal.model_config
+```
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+from virtual_ecosystem.models.animal.model_config import AnimalConstants
+
+config_object = AnimalConstants()
+dump_config_toml("animal.constants", config_object)
+model_config_to_deflist("animal.constants", config_object)
+```

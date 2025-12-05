@@ -17,7 +17,7 @@ RST_TO_MD = [
 """Tags to replace when converting RST descriptions of fields to Markdown."""
 
 
-def dump_config_toml(path: str, config_class: type[Configuration]) -> None:
+def dump_config_toml(path: str, config_object: Configuration) -> None:
     """Render a configuration class as TOML.
 
     This function returns markdown providing a styled TOML representation of a
@@ -25,10 +25,10 @@ def dump_config_toml(path: str, config_class: type[Configuration]) -> None:
 
     Args:
         path: The configuration path to the specified configuration class.
-        config_class: The configuration class to express as TOML.
+        config_object: A configuration class instance to render as TOML.
     """
 
-    conf_dict = config_class().model_dump(mode="json")
+    conf_dict = config_object.model_dump(mode="json")
 
     for p in reversed(path.split(".")):
         conf_dict = {p: conf_dict}
@@ -38,7 +38,7 @@ def dump_config_toml(path: str, config_class: type[Configuration]) -> None:
 
 def model_config_to_deflist(
     model_name: str,
-    config_object: type[Configuration],
+    config_object: Configuration,
     display: bool = True,
     recurse: bool = True,
 ):
