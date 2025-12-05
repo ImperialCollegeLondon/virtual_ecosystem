@@ -147,8 +147,9 @@ provided as string descriptions.
 
 from virtual_ecosystem.core.model_config import TimingConfiguration
 
-dump_config_toml("core.timing", TimingConfiguration)
-model_config_to_deflist("core.timing", TimingConfiguration)
+model_object = TimingConfiguration()
+dump_config_toml("core.timing", model_object)
+model_config_to_deflist("core.timing", model_object)
 ```
 
 ```{important}
@@ -171,8 +172,9 @@ page for more details.
 
 from virtual_ecosystem.core.model_config import LayersConfiguration
 
-dump_config_toml("core.layers", LayersConfiguration)
-model_config_to_deflist("core.layers", LayersConfiguration)
+model_object = LayersConfiguration()
+dump_config_toml("core.layers", model_object)
+model_config_to_deflist("core.layers", model_object)
 ```
 
 ## Data output settings
@@ -185,8 +187,9 @@ the simulation.
 
 from virtual_ecosystem.core.model_config import DataOutputConfiguration
 
-dump_config_toml("core.data_output_options", DataOutputConfiguration)
-model_config_to_deflist("core.data_output_options", DataOutputConfiguration)
+model_object = DataOutputConfiguration()
+dump_config_toml("core.data_output_options", model_object)
+model_config_to_deflist("core.data_output_options", model_object)
 ```
 
 ## Core constants
@@ -200,6 +203,7 @@ that are required across multiple models.
 
 from virtual_ecosystem.core.model_config import CoreConstants
 
-dump_config_toml("core.constants", CoreConstants)
-model_config_to_deflist("core.constants", CoreConstants)
+model_object = CoreConstants()
+dump_config_toml("core.constants", model_object)
+model_config_to_deflist("core.constants", model_object)
 ```
