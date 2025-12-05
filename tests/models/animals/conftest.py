@@ -415,11 +415,36 @@ def microbial_c_n_p_ratios(fixture_configuration):
 
 
 @pytest.fixture
+def dummy_animal_exporter():
+    """Provide a no-op exporter for AnimalModel tests.
+
+    Returns:
+        An object with a dump method matching the AnimalCohortDataExporter
+        interface but performing no output.
+    """
+
+    class DummyAnimalExporter:
+        """No-op stand-in for AnimalCohortDataExporter."""
+
+        def dump(self, communities, time):
+            """Ignore export calls in tests that do not check CSV output.
+
+            Args:
+                communities: Mapping of cell IDs to cohorts.
+                time: Export time stamp.
+            """
+            return None
+
+    return DummyAnimalExporter()
+
+
+@pytest.fixture
 def animal_model_instance(
     dummy_animal_data,
     fixture_core_components,
     functional_group_list_instance,
     microbial_c_n_p_ratios,
+    dummy_animal_exporter,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
@@ -433,6 +458,7 @@ def animal_model_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
+        exporter=dummy_animal_exporter,
         model_constants=AnimalConstants(density_scaling_method="madingley"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -445,6 +471,7 @@ def animal_model_damuth_instance(
     fixture_core_components,
     functional_group_list_instance,
     microbial_c_n_p_ratios,
+    dummy_animal_exporter,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
@@ -458,6 +485,7 @@ def animal_model_damuth_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
+        exporter=dummy_animal_exporter,
         model_constants=AnimalConstants(density_scaling_method="damuth"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,

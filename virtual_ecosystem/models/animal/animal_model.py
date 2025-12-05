@@ -35,6 +35,7 @@ from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import (
     DevelopmentType,
@@ -50,6 +51,7 @@ from virtual_ecosystem.models.animal.decay import (
     LitterPool,
     SoilPool,
 )
+from virtual_ecosystem.models.animal.exporter import AnimalCohortDataExporter
 from virtual_ecosystem.models.animal.functional_group import (
     FunctionalGroup,
     get_functional_group_by_name,
@@ -153,6 +155,7 @@ class AnimalModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
+        exporter: The export system for animal cohort data.
         static: If True, runs in static mode.
         density_scaling_method: Which density scaling equation to use in initialization.
         **kwargs: Additional arguments for the base model.
@@ -162,6 +165,7 @@ class AnimalModel(
         self,
         data: Data,
         core_components: CoreComponents,
+        exporter: AnimalCohortDataExporter,
         static: bool = False,
         **kwargs: Any,
     ):
@@ -171,10 +175,11 @@ class AnimalModel(
         handled in :fun:`~virtual_ecosystem.animal.animal_model._setup`.
         """
 
+        self.exporter: AnimalCohortDataExporter = exporter
+        """Exporter for animal cohort data."""
+
         super().__init__(data, core_components, static, **kwargs)  # runs _setup
 
-        self.density_scaling_method
-        """Which density scaling equations are used."""
         self.model_constants: AnimalConstants
         """Animal constants."""
         self.communities: dict[int, list[AnimalCohort]]
@@ -354,6 +359,10 @@ class AnimalModel(
             "animal", AnimalConfiguration
         )
 
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+
         functional_groups = import_functional_groups(
             fg_csv_file=model_configuration.functional_group_definitions_path,
             constants=model_configuration.constants,
@@ -361,6 +370,11 @@ class AnimalModel(
 
         # Find microbial stoichiometries based on the config
         microbial_c_n_p_ratios = find_microbial_stoichiometries(config=configuration)
+
+        exporter = AnimalCohortDataExporter.from_config(
+            output_directory=core_configuration.data_output_options.out_path,
+            config=model_configuration.cohort_data_export,
+        )
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "
@@ -374,6 +388,7 @@ class AnimalModel(
             functional_groups=functional_groups,
             model_constants=model_configuration.constants,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+            exporter=exporter,
         )
 
     def _setup(
@@ -471,6 +486,11 @@ class AnimalModel(
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
         animal cohorts."""
+
+        self.exporter.dump(
+            communities=self.communities,
+            time=self.model_timing.start_time,
+        )
 
         # animal respiration data variable
         # the array should have one value for each animal community
@@ -573,6 +593,15 @@ class AnimalModel(
 
         # Update population densities
         self.update_population_densities()
+
+        # Dump the cohort data to CSV
+        self.exporter.dump(
+            communities=self.communities,
+            time=(
+                self.model_timing.start_time
+                + time_index * self.model_timing.update_interval
+            ),
+        )
 
     def update_community_bookkeeping(self, dt: timedelta64) -> None:
         """Perform status updates and cleanup at the community level.

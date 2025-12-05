@@ -166,6 +166,8 @@ subtrees:
                 title: The protocols submodule
               - file: api/models/animal/scaling_functions
                 title: The scaling_functions submodule
+              - file: api/models/animal/exporter
+                title: The animal data exporter submodule
           - file: api/models/hydrology
             title: The hydrology model
             entries:

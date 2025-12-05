@@ -1,0 +1,37 @@
+# animal_functional_groups.toml
+
+[animal]
+functional_group_definitions_path = '../data/animal_functional_groups.csv'
+
+[animal.cohort_data_export]
+enabled = false
+
+# select whichever subset of attributes is of interest
+cohort_attributes = [
+"cell_id",
+  "time",
+  "cohort_id",
+  "functional_group",
+  "diet_type",
+  "development_type",
+  "age",
+  "individuals",
+  "is_alive",
+  "is_mature",
+  "time_to_maturity",
+  "time_since_maturity",
+  "location_status",
+  "centroid_key",
+  "territory_size",
+  "territory",
+  "occupancy_proportion",
+  "largest_mass_achieved",
+  "mass_carbon",
+  "mass_nitrogen",
+  "mass_phosphorus",
+  "reproductive_mass_carbon",
+  "reproductive_mass_nitrogen",
+  "reproductive_mass_phosphorus",
+]
+
+float_format = "%0.5f"
