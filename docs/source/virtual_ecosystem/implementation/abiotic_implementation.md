@@ -345,7 +345,7 @@ modifies water and energy exchange between the soil and the air above. It interc
 fraction of throughfall, blocks most of the incoming radiation and reduces soil
 evaporation. The energy balance of this layer differs from that of the
 canopy because the understorey is structurally different and has therefore a
-different structural and functional trains (e.g., aerodynamic resistance,
+different structural and functional traits (e.g., aerodynamic resistance,
 density).
 
 Importantly, due to The understorey's density and proximity to the soil surface, we need
