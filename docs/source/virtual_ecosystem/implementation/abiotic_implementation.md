@@ -74,7 +74,10 @@ written as:
 
 $$\frac{dQ}{dt} = R_n - G - H - \lambda E (- PP)$$
 
-where:
+where each term is later expanded for the [canopy](#canopy-energy-balance),
+[understorey](#understorey-energy-balance), and [soil surface](#soil-energy-balance).
+
+**Variable definitions:**
 
 $Q$:
 Total heat energy stored in the surface layer.
@@ -311,9 +314,11 @@ After updating the canopy temperature, we update the air temperature in the
 adjacent canopy layer to reflect its coupling with the leaf temperature following
 {cite:t}`bonan_climate_2019`:
 
+The sensible heat flux between canopy and air is
+
 $$H = \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})$$
 
-and
+and the air temperature evolves as
 
 $$T_{a}^{\text{new}} = T_{a}^{\text{old}} + \frac{H \Delta t}{\rho_a c_p z}$$
 
@@ -325,8 +330,8 @@ Air temperature, (°C)
 $z$:
 Thickness of the air layer we are updating, (m)
 
-Finally, we consider vertical mixing between layers and heat is transferred to the
-air above the canopy.
+Finally, we consider vertical mixing between layers (including the understorey layer
+described in the following section) and heat is transferred to the air above the canopy.
 
 ```{note}
 Advection of heat above the canopy is currently not implemented as everything is
@@ -335,26 +340,42 @@ removed with time interval >= 1h and horizontal transfer is not considered.
 
 ### Understorey energy balance
 
-The presence of an understorey layer as currently implemented in the Virtual Ecosystem
-modifies water and energy exchange between the soil and the air above: it intercepts a
-fraction of throughfall, stops most of the incoming radiation and reduce soil
-evaporation. The energy balance of this layer is slightly different to the
-canopy because this layer is structurally different and has therefore a
-different behaviour and different trait values, for example for aerodynamic resistance,
-density, etc. Importantly, due to its density and proximity to the soil surface, we need
-to account for heat conductance towards the soil. This convective heat flux $G_{u}$ is
+The understorey vegetation layer as currently implemented in the Virtual Ecosystem
+modifies water and energy exchange between the soil and the air above. It intercepts a
+fraction of throughfall, blocks most of the incoming radiation and reduces soil
+evaporation. The energy balance of this layer differs from that of the
+canopy because the understorey is structurally different and has therefore a
+different structural and functional trains (e.g., aerodynamic resistance,
+density).
+
+Importantly, due to The understorey's density and proximity to the soil surface, we need
+to account for heat conductance into the soil. This convective heat flux, $G_{u}$, is
 later added to the soil energy balance.
+
+```{note}
+Moisture dynamics within the understorey layer are not currently represented.
+```
 
 #### Understorey temperature update
 
-We base our understorey energy balance loosely on the heat and moisture model for litter
-by {cite:t}`ogee_a_forest_2002` using the following equations:
+The understorey energy balance follows the heat and moisture framework of
+{cite:t}`ogee_a_forest_2002`, extended to represent understorey vegetation as a mixture
+of leaves and air rather than a compact litter layer.
 
-$$\frac{\delta T_{u}}{\delta t} = R_{n,0} - H_{0} - \lambda E_{0} - G_{u}$$
+The understorey temperature evolves according to
 
-with
+```{math}
+\frac{\delta T_{u}}{\delta t}
+= \frac{R_{n,0} - H_{0} - \lambda E_{0} - G_{u}}{c_{u} z_{u}}
+```
 
-$$G_{u} = -(\lambda_{g} \lambda_{u})^{0.5} T_{s} - T_{u} z_{u}$$
+where the conductive heat flux into the soil is
+
+$$G_{u} = -(\lambda_{g} \lambda_{u})^{0.5} \frac{T_{s} - T_{u}}{z_{u}}$$
+
+and the effective volumetric heat capacity of the understorey is
+
+$$c_{u} = (\frac{LAI \cdot LMA}{z_{u}} c_{l} + c_{pv}) z_{u}$$
 
 where:
 
@@ -362,10 +383,10 @@ $T_{u}$:
 Understorey temperature (°C)
 
 $T_{s}$:
-Soil temperature (°C)
+Topsoil temperature (°C)
 
 $R_{n,0}$:
-Net radiation at the top of the understorey ($\mathrm{W\,m^{-2}}$)
+Net radiation above the understorey ($\mathrm{W\,m^{-2}}$)
 
 $H_{0}$:
 Sensible heat flux above understorey ($\mathrm{W\,m^{-2}}$)
@@ -374,51 +395,50 @@ $\lambda E_{0}$:
 Latent heat flux above understorey ($\mathrm{W\,m^{-2}}$)
 
 $G_{u}$:
-Convective heat flux between understorey and soil ($\mathrm{W\,m^{-2}}$)
+Conductive heat flux between understorey and soil ($\mathrm{W\,m^{-2}}$)
 
 $\lambda_{u}$:
-understorey thermal conductivity ($\mathrm{W\,m^{-2}},K^{-1}$)
+Understorey thermal conductivity ($\mathrm{W\,m^{-1}},K^{-1}$)
 
 $\lambda_{s}$:
-soil surface thermal conductivity ($\mathrm{W\,m^{-2}},K^{-1}$)
+Soil surface thermal conductivity ($\mathrm{W\,m^{-1}},K^{-1}$)
+
+$LAI$:
+Leaf area index $\mathrm{m\,m^{-1}}$
+
+$LMA$:
+Leaf mass per area $\mathrm{kg\,m^{-2}}$
+
+$c_{l}$:
+Leaf specific heat capacity ($\mathrm{J\,kg^{-1}},K^{-1}$)
+
+$c_{u}$:
+Understorey specific heat capacity ($\mathrm{J\,kg^{-1}},K^{-1}$)
+
+$c_{pv}$:
+Volumetric heat capacity of air ($\mathrm{J\, m^{-3}\,K^{-1}}$)
 
 $z_{u}$:
 Thickness of understorey layer (m)
 
 #### Understorey air temperature coupling
 
-The air temperature around the understorey is updated with an extended expression of
-the model by {cite:t}`ogee_a_forest_2002` to account for understorey vegetation as a
-mix of leaf and air rather than a compact medium like litter:
+After updating the understorey temperature, we update the temperature of the
+near-surface air using the same method as described for the canopy air temperature
+{cite:p}`bonan_climate_2019`:
 
-$$\frac{\delta T_{a,u}}{\delta t} = R_{n,0} - H_{0} - \lambda E_{0} - G_{u} / c_{eff}$$
+The sensible heat flux between understorey and air is
 
-with
+$$H_{u} = \frac{\rho_{a} c_{p}}{r_{a}}(T_{u} - T_{a,u})$$
 
-```{math}
-\begin{aligned}
-c_{\text{eff}} &= \left[ \frac{\text{LAI} \cdot \text{LMA}}{z_{u}} c_{u} \\
-                &\quad + c_{\text{pv}} \right] z
-\end{aligned}
-```
+and the air temperature evolves as
+
+$$T_{a,u}^{\text{new}} = T_{a,u}^{\text{old}} + \frac{H_{u} \Delta t}{\rho_{a} c_{p} z_{u}}$$
 
 where:
 
-$LAI$:
-Leaf area index, $\mathrm{m\,m^{-1}}$
-
-$LMA$:
-Leaf mass per area, $\mathrm{kg\,m^{-2}}$
-
-$c_{u}$:
-Understorey specific heat capacity, ($\mathrm{J\, kg^{-1}\,K^{-1}}$)
-
-$c_{pv}$:
-Volumetric heat capacity of air, ($\mathrm{J\, m^{-3}\,K^{-1}}$)
-
-```{note}
-We currently don't account for the moisture in the understorey layer.
-```
+$T_{a,u}$:
+Air temperature (°C)
 
 ### Soil energy balance
 
