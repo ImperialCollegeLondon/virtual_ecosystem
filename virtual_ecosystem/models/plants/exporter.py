@@ -78,6 +78,38 @@ class CommunityDataExporter:
     """Connects the export data options to a tuple of standard output file and 
     internal path attribute names."""
 
+    available_attributes: ClassVar[dict[str, set[str]]] = {
+        "cohort_attributes": set(
+            [
+                "cell_id",
+                "time",
+                *StemAllometry.array_attrs,
+                *Cohorts.array_attrs,
+                *StemAllocation.array_attrs,
+            ]
+        ),
+        "community_canopy_attributes": set(
+            [
+                "canopy_layer_index",
+                "heights",
+                "cell_id",
+                "time",
+                *CommunityCanopyData.array_attrs,
+            ]
+        ),
+        "stem_canopy_attributes": set(
+            [
+                "canopy_layer_index",
+                "cohort_id",
+                "cell_id",
+                "time",
+                *CohortCanopyData.array_attrs,
+            ]
+        ),
+    }
+    """Class variable of the available attributes that can be exported for each export
+    option."""
+
     def __init__(
         self,
         output_directory: Path,
@@ -172,37 +204,7 @@ class CommunityDataExporter:
     def _check_attribute_subsets(self) -> None:
         """Check attribute subsets contain available fields."""
 
-        available_attributes = {
-            "cohort_attributes": set(
-                [
-                    "cell_id",
-                    "time",
-                    *StemAllometry.array_attrs,
-                    *Cohorts.array_attrs,
-                    StemAllocation.array_attrs,
-                ]
-            ),
-            "community_canopy_attributes": set(
-                [
-                    "canopy_layer_index",
-                    "heights",
-                    "cell_id",
-                    "time",
-                    *CommunityCanopyData.array_attrs,
-                ]
-            ),
-            "stem_canopy_attributes": set(
-                [
-                    "canopy_layer_index",
-                    "cohort_id",
-                    "cell_id",
-                    "time",
-                    *CohortCanopyData.array_attrs,
-                ]
-            ),
-        }
-
-        for subset_name, available in available_attributes.items():
+        for subset_name, available in self.available_attributes.items():
             subset = getattr(self, subset_name)
             # If subset is provided, check the values are all valid
             if not subset:

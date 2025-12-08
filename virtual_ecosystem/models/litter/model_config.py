@@ -87,21 +87,21 @@ class LitterConstants(Configuration):
     """Carbon use efficiency of aboveground structural litter decay [unitless].
 
     The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
-    documentation for :attr:`cue_metabolic` for details.
+    documentation for :attr:`LitterConstants.cue_metabolic` for details.
     """
 
     cue_woody: float = 0.55
     """Carbon use efficiency of woody litter decay [unitless].
 
     The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
-    documentation for :attr:`cue_metabolic` for details.
+    documentation for :attr:`LitterConstants.cue_metabolic` for details.
     """
 
     cue_structural_below_ground: float = 0.45
     """Carbon use efficiency of belowground structural litter decay [unitless].
 
     The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
-    documentation for :attr:`cue_metabolic` for details.
+    documentation for :attr:`LitterConstants.cue_metabolic` for details.
     """
 
     lignin_inhibition_factor: float = -5.0
@@ -156,8 +156,8 @@ class LitterConstants(Configuration):
     """Ratio of the carbon to phosphorus ratios of structural vs metabolic litter pools.
     
     This follows the same logic as for nitrogen (see
-    :attr:`structural_to_metabolic_n_ratio`). The default value used is the same as for
-    the nitrogen case as we saw no sense treating them differently.
+    :attr:`LitterConstants.structural_to_metabolic_n_ratio`). The default value used is
+    the same as for the nitrogen case as we saw no sense treating them differently.
     """
 
 
