@@ -45,8 +45,10 @@ subtrees:
         entries:
           - file: using_the_ve/installing_ve
           - file: using_the_ve/example_data
+          - file: using_the_ve/core_configuration
+          - file: using_the_ve/science_model_configuration
           - file: using_the_ve/virtual_ecosystem_in_use
-          - file: using_the_ve/model_inputs
+          - file: using_the_ve/model_data_inputs
           - file: using_the_ve/virtual_ecosystem_in_static_mode
       - file: using_the_ve/configuration/config
         title: Configuring your model
@@ -216,10 +218,12 @@ subtrees:
           - file: api/models/plants
             title: The plants model
             entries:
-              - file: api/models/plants/plant_structures
-                title: The plant_structures submodule
               - file: api/models/plants/plants_model
                 title: The plants_model submodule
+              - file: api/models/plants/model_config
+                title: The model_config submodule
+              - file: api/models/plants/plant_structures
+                title: The plant_structures submodule
       - file: api/example_data
         title: The example_data submodule
 
