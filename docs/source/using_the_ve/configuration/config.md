@@ -274,10 +274,31 @@ the [`Data` object](../data/data.md) from the configuration. In addition, note t
 
 In summary,
 
-| Static | Setup data provided | First update data provided | Behaviour                |
-| ------ | ------ | ------- | ---------------------------------------------------------|
-| No     | ---    | ---     | Default model behaviour.                                 |
-| Yes    | No     | No      | Model sets up and runs first update from initial data    |
-| Yes    | Yes    | No      | Model skips setup and runs first update                  |
-| Yes    | Yes    | Yes     | Model skips setup and first update                       |
-| Yes    | No     | Yes     | Improper configuration, will not run.                    |
+```{list-table}
+:header-rows: 1
+
+* - Static
+  - Setup data provided
+  - First update data provided
+  - Behaviour
+* - No
+  - —
+  - —
+  - Default model behaviour
+* - Yes
+  - No
+  - No
+  - Model sets up and runs first update from initial data
+* - Yes
+  - Yes
+  - No
+  - Model skips setup and runs first update
+* - Yes
+  - Yes
+  - Yes
+  - Model skips setup and first update
+* - Yes
+  - No
+  - Yes
+  - Improper configuration, will not run
+```
