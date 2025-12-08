@@ -17,6 +17,7 @@
 [INFO] - registry - register_module(143) - Registering model class for virtual_ecosystem.models.hydrology: HydrologyModel
 [INFO] - registry - register_module(159) - Schema registered for virtual_ecosystem.models.hydrology: /Users/dorme/Research/Virtual_Rainforest/virtual_ecosystem/virtual_ecosystem/models/hydrology/module_schema.json 
 [INFO] - registry - register_module(181) - Constants class registered for virtual_ecosystem.models.hydrology: HydroConsts 
+# @ David does that need changing manually?
 [INFO] - registry - register_module(109) - Registering module: virtual_ecosystem.models.abiotic_simple
 --- many lines omitted ---
 [INFO] - data - __setitem__(226) - Replacing data array for 'soil_n_pool_necromass'
