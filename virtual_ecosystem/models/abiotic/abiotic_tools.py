@@ -280,20 +280,21 @@ def update_profile_from_reference(
 ) -> DataArray:
     """Update a layer-based profile for a given time index using a reference variable.
 
-    This function:
+    This function
+
       - extracts a mask from air temperature to determine valid atmosphere layers
       - reads the reference variable at the given time index
       - applies the mask to keep only valid layers
       - fills the profile template for those layers
 
     Args:
-        layer_structure: LayerStructure object defining the layer setup.
-        mask_variable: DataArray used to create the atmospheric mask.
-        variable_name: Reference variable (e.g. data["atmospheric_pressure_ref"]).
-        time_index: Index of the current time step.
+        layer_structure: LayerStructure object defining the layer setup
+        mask_variable: DataArray used to create the atmospheric mask
+        variable_name: Reference variable (e.g. data["atmospheric_pressure_ref"])
+        time_index: Index of the current time step
 
     Returns:
-        Updated layer profile as a DataArray.
+        Updated layer profile as a DataArray
     """
 
     # Create atmospheric mask for filling constant values

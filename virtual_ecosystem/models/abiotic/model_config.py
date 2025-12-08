@@ -176,7 +176,7 @@ class AbioticConstants(AbioticSharedConstants):
     This represents the amount of heat energy required to raise the temperature
     of one kilogram of understorey vegetation (leaves, stems, small herbaceous plants)
     by 1 Kelvin. Value estimated from :cite:t:`zhang_a_simple_2025`.
-"""
+    """
 
     leaf_mass_per_area_understorey: float = 0.070
     """Leaf mass per area of understorey vegetation, [kg m-2]
