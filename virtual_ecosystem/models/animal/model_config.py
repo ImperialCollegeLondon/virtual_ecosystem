@@ -387,6 +387,25 @@ class AnimalConstants(Configuration):
     """The probability a seasonal migration event occurs per time step (month)."""
 
 
+class AnimalExportConfig(Configuration):
+    """Configuration for animal cohort data export.
+
+    This lightweight configuration is intended to be embedded inside
+    :class:`AnimalConfiguration` and mirrors the pattern used for the plants
+    exporter configuration.
+
+    Attributes:
+        enabled: Whether animal cohort export is active.
+        cohort_attributes: Optional subset of cohort attributes to export. If
+            empty, all available attributes are written.
+        float_format: Float format string used when writing numeric data.
+    """
+
+    enabled: bool = False
+    cohort_attributes: tuple[str, ...] = ()
+    float_format: str = "%0.5f"
+
+
 class AnimalConfiguration(ModelConfigurationRoot):
     """Root configuration class for the animal model."""
 
@@ -395,3 +414,8 @@ class AnimalConfiguration(ModelConfigurationRoot):
 
     constants: AnimalConstants = AnimalConstants()
     """The constants class for the animal model."""
+
+    cohort_data_export: AnimalExportConfig = Field(
+        default_factory=AnimalExportConfig,
+        description="Export settings for animal cohort CSV output.",
+    )
