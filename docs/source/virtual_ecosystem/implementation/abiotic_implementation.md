@@ -348,7 +348,7 @@ canopy because the understorey is structurally different and has therefore a
 different structural and functional traits (e.g., aerodynamic resistance,
 density).
 
-Importantly, due to The understorey's density and proximity to the soil surface, we need
+Importantly, due to the understorey's density and proximity to the soil surface, we need
 to account for heat conductance into the soil. This convective heat flux, $G_{u}$, is
 later added to the soil energy balance.
 
