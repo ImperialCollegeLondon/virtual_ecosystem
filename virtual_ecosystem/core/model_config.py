@@ -146,6 +146,12 @@ class CoreConstants(Configuration):
     half-life of 50 days. This estimate should be improved based on empirical data.
     """
 
+    air_volumetric_heat_capacity: float = 1200.0
+    """Volumetric heat capacity of air at constant pressure, [J m-3 K-1].
+    
+    This represents the amount of heat energy required to raise the temperature 
+    of one cubic meter of air by 1 Kelvin."""
+
 
 class GridConfiguration(Configuration):
     """Grid configuration.

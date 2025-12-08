@@ -346,7 +346,9 @@ def test_setup_abiotic_model(
 
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         expected_vals = lyr_strct.from_template()
-        expected_vals[lyr_strct.index_flux_layers] = 0.001
+        expected_vals[lyr_strct.index_filled_canopy] = 0.001
+        expected_vals[lyr_strct.index_surface_scalar] = 0.001
+        expected_vals[lyr_strct.index_topsoil_scalar] = 0.001
         xr.testing.assert_allclose(model.data[var], expected_vals)
 
     # initialise model

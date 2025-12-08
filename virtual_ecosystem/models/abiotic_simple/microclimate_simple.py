@@ -21,7 +21,7 @@ from xarray import DataArray
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.model_config import CoreConstants
-from virtual_ecosystem.models.abiotic import energy_balance
+from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.model_config import (
     AbioticSimpleBounds,
@@ -127,25 +127,20 @@ def run_simple_microclimate(
             gradient=gradient,
         ).rename(var)
 
-    # Create atmospheric mask for filling constant values
-    atm_mask = ~np.isnan(
-        output["air_temperature"].isel(layers=layer_structure.index_filled_atmosphere)
-    )
-
     # Mean atmospheric pressure profile, [kPa]
-    output["atmospheric_pressure"] = layer_structure.from_template()
-    atmospheric_pressure = data["atmospheric_pressure_ref"].isel(time_index=time_index)
-    valid_values_atmospheric_pressure = atmospheric_pressure.where(atm_mask)
-    output["atmospheric_pressure"][layer_structure.index_filled_atmosphere] = (
-        valid_values_atmospheric_pressure
+    output["atmospheric_pressure"] = abiotic_tools.update_profile_from_reference(
+        layer_structure=layer_structure,
+        mask_variable=output["air_temperature"],
+        variable_name=data["atmospheric_pressure_ref"],
+        time_index=time_index,
     )
 
     # Mean atmospheric C02 profile, [ppm]
-    output["atmospheric_co2"] = layer_structure.from_template()
-    atmospheric_co2 = data["atmospheric_co2_ref"].isel(time_index=time_index)
-    valid_values_atmospheric_co2 = atmospheric_co2.where(atm_mask)
-    output["atmospheric_co2"][layer_structure.index_filled_atmosphere] = (
-        valid_values_atmospheric_co2
+    output["atmospheric_co2"] = abiotic_tools.update_profile_from_reference(
+        layer_structure=layer_structure,
+        mask_variable=output["air_temperature"],
+        variable_name=data["atmospheric_co2_ref"],
+        time_index=time_index,
     )
 
     # Calculate soil temperatures, [C]
@@ -161,11 +156,14 @@ def run_simple_microclimate(
         lower_bound=lower,
     )
 
-    # Initialise canopy temperature, [C]
+    # Initialise canopy and understorey temperature, [C]
     canopy_temperature = layer_structure.from_template()
     canopy_temperature[layer_structure.index_filled_canopy] = output["air_temperature"][
         layer_structure.index_filled_canopy
     ]
+    canopy_temperature[layer_structure.index_surface_scalar] = output[
+        "air_temperature"
+    ][layer_structure.index_surface_scalar]
 
     # Calculate net radiation, [W m-2].
     canopy_longwave_emission = energy_balance.calculate_longwave_emission(
@@ -173,6 +171,7 @@ def run_simple_microclimate(
         emissivity=constants.leaf_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
+
     soil_longwave_emission = energy_balance.calculate_longwave_emission(
         temperature=output["soil_temperature"][
             layer_structure.index_topsoil_scalar
@@ -185,6 +184,10 @@ def run_simple_microclimate(
         data["shortwave_absorption"][layer_structure.index_filled_canopy].to_numpy()
         - canopy_longwave_emission[layer_structure.index_filled_canopy]
     )
+    net_radiation_understorey = (
+        data["shortwave_absorption"][layer_structure.index_surface_scalar].to_numpy()
+        - canopy_longwave_emission[layer_structure.index_surface_scalar]
+    )
     net_radiation_soil = (
         data["shortwave_absorption"][layer_structure.index_topsoil_scalar].to_numpy()
         - soil_longwave_emission
@@ -192,6 +195,7 @@ def run_simple_microclimate(
 
     net_radiation = layer_structure.from_template()
     net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy
+    net_radiation[layer_structure.index_surface_scalar] = net_radiation_understorey
     net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
     output["net_radiation"] = net_radiation
 

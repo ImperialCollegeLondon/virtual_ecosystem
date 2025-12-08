@@ -32,10 +32,10 @@ def test_varying_canopy_log_interpolation(
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = [
         [30.0, 30.0, 30.0, 30.0],
-        [29.844995, 29.896663, 29.948332, np.nan],
-        [28.87117, 29.247446, np.nan, np.nan],
-        [27.206405, np.nan, np.nan, np.nan],
-        [16.145945, 20.763963, 25.381982, 30.0],
+        [29.793326, 29.844995, 29.896663, np.nan],
+        [28.494893, 28.87117, np.nan, np.nan],
+        [26.275206, np.nan, np.nan, np.nan],
+        [11.527927, 16.145945, 20.763963, 25.381982],
     ]
     xr.testing.assert_allclose(result, exp_air_temp)
 

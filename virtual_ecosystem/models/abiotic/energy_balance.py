@@ -84,11 +84,15 @@ def initialise_canopy_and_soil_fluxes(
     canopy_temperature[layer_structure.index_filled_canopy] = air_temperature[
         layer_structure.index_filled_canopy
     ]
+    canopy_temperature[layer_structure.index_surface_scalar] = air_temperature[
+        layer_structure.index_surface_scalar
+    ]
     output["canopy_temperature"] = canopy_temperature
 
     # Initialise sensible heat flux with non-zero minimum values
     sensible_heat_flux = layer_structure.from_template()
     sensible_heat_flux[layer_structure.index_filled_canopy] = initial_flux_value
+    sensible_heat_flux[layer_structure.index_surface_scalar] = initial_flux_value
     sensible_heat_flux[layer_structure.index_topsoil] = initial_flux_value
     output["sensible_heat_flux"] = sensible_heat_flux
 
@@ -532,11 +536,10 @@ def solve_canopy_temperature(
 
 
 def update_air_temperature(
-    surface_temperature: NDArray[np.floating],
     air_temperature: NDArray[np.floating],
+    sensible_heat_flux: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
-    aerodynamic_resistance: float | NDArray[np.floating],
     mixing_layer_thickness: NDArray[np.floating],
 ) -> NDArray[np.floating]:
     r"""Update air temperature in steady state.
@@ -558,22 +561,15 @@ def update_air_temperature(
     temperature, and :math:`z` is the thickness of the air layer we are updating.
 
     Args:
-        surface_temperature: Soil or canopy temperatures for all true canopy layers, [C]
-        air_temperature: Air temperature for all layers around true canopy or surface
-            layer, [C]
+        air_temperature: Air temperature, [C]
+        sensible_heat_flux: Sensible heat flux, [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
-        aerodynamic_resistance: Aerodynamic resistance of air or soil, [s m-1]
         mixing_layer_thickness: thickness of the air layer we are updating, [m]
 
     Returns:
         updated air temperatures, [C]
     """
-
-    # Update temperatures
-    sensible_heat_flux = (
-        density_air * specific_heat_air * (surface_temperature - air_temperature)
-    ) / aerodynamic_resistance
 
     # Update air temperature over a layer of height z (e.g., canopy height)
     new_air_temperature = air_temperature + (
@@ -649,11 +645,9 @@ def update_humidity_vpd(
     specific_humidity = water_mass_in_air / air_mass_per_layer
     specific_humidity_updated = wind.mix_and_ventilate(
         input_variable=specific_humidity,
-        layer_thickness=layer_thickness,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
         limits=limits,
-        time_interval=time_interval,
     )
 
     # NOTE Advection not implemented as everything is removed with time interval > 1h
@@ -703,3 +697,131 @@ def update_humidity_vpd(
     }
 
     return cleaned_outputs
+
+
+def calculate_understorey_effective_heat_capacity(
+    layer_thickness: NDArray[np.floating],
+    leaf_area_index: NDArray[np.floating],
+    leaf_mass_per_area: float,
+    leaf_specific_heat: float,
+    air_volumetric_heat_capacity: float,
+) -> NDArray[np.floating]:
+    """Calculates the effective heat capacity of the understorey layer.
+
+    This function calculates the effective heat capacity of the understorey layer
+    combining volumetric heat capacity of the air/vegetation mixture and
+    the thermal mass of leaves scaled by LAI.
+
+    Args:
+        layer_thickness: Thickness of the understorey layer, [m]
+        leaf_area_index: Leaf area index, [m2 m-2].
+        leaf_mass_per_area: Leaf mass per leaf area, [kg m-2]
+        leaf_specific_heat: Specific heat capacity of leaf tissue, [J kg-1 K-1].
+        air_volumetric_heat_capacity: Volumetric heat capacity of air, [J m-3 K-1].
+
+    Returns:
+        Effective heat capacity per ground area, [J m-2 K-1].
+    """
+
+    # Compute vegetation bulk density from LAI
+    vegetation_density = (leaf_area_index * leaf_mass_per_area) / layer_thickness
+
+    # Volumetric heat capacity of vegetation (dominant term)
+    vegetation_volumetric_heat_capacity = vegetation_density * leaf_specific_heat
+
+    # Add air (optional)
+    total_volumetric_heat_capacity = (
+        vegetation_volumetric_heat_capacity + air_volumetric_heat_capacity
+    )
+
+    # Convert to per-ground-area
+    heat_capacity_per_area = total_volumetric_heat_capacity * layer_thickness
+
+    return heat_capacity_per_area
+
+
+def update_understorey_temperature(
+    current_temperature: NDArray[np.floating],
+    net_radiation: NDArray[np.floating],
+    sensible_heat_flux: NDArray[np.floating],
+    conductive_flux: NDArray[np.floating],
+    effective_heat_capacity: NDArray[np.floating],
+    time_step_seconds: float,
+    latent_heat_flux: NDArray[np.floating] | None,
+    max_delta_temperature: float,
+) -> NDArray[np.floating]:
+    """Updates the understorey temperature using a simple energy balance.
+
+    Note: This function warns if the computed temperature change exceeds
+    `max_delta_temperature`, which often indicates that the effective heat capacity is
+    underestimated.
+
+    Implementation based on :cite:t:`ogee_a_forest_2002`.
+
+    Args:
+        current_temperature: Current understorey temperature, [C or K].
+        net_radiation: Net radiation flux into the understorey layer, [W m-2].
+        sensible_heat_flux: Sensible heat flux from/to the understorey, [W m-2].
+        conductive_flux: Conductive flux from/to the soil, [W m-2].
+        effective_heat_capacity: Effective heat capacity per ground area, [J m-2 K-1].
+        time_step_seconds: Time step for the update [s], default is 3600 (1 hour).
+        latent_heat_flux: Latent heat flux from/to the understorey [W m-2], optional
+        max_delta_temperature: Maximum allowed temperature change per time step [K]
+            before warning, default 10 K.
+
+    Returns:
+        Updated understorey temperature [C or K].
+
+    """
+    # Start with net energy flux
+    total_flux = net_radiation + sensible_heat_flux - conductive_flux
+
+    # Include latent heat flux if provided
+    if latent_heat_flux is not None:
+        total_flux += latent_heat_flux
+
+    # Temperature change [K]
+    delta_temperature = total_flux * time_step_seconds / effective_heat_capacity
+
+    # Sanity check for unrealistic temperature jumps
+    if np.any(np.abs(delta_temperature) > max_delta_temperature):
+        LOGGER.warning(
+            "Warning: Large temperature change detected! "
+            "Check effective heat capacity or flux magnitudes."
+        )
+
+    # Update temperature
+    return current_temperature + delta_temperature
+
+
+def calculate_conductive_flux_understorey(
+    soil_temperature: NDArray[np.floating],
+    understorey_temperature: NDArray[np.floating],
+    understorey_layer_thickness: NDArray[np.floating],
+    soil_thermal_conductivity: float,
+    understorey_thermal_conductivity: float,
+) -> np.ndarray:
+    """Calculates the conductive heat flux from understorey vegetation to the soil.
+
+    Positive flux means heat flows into the soil.
+
+    Args:
+        soil_temperature : Soil temperatures at the interface, [°C or K]
+        understorey_temperature : Temperatures of the understorey vegetation, [°C or K]
+        understorey_layer_thickness : Thickness of the understorey layer, [m]
+        soil_thermal_conductivity : Soil thermal conductivity, [W m-1 K-1]
+        understorey_thermal_conductivity : Thermal conductivity of understorey
+            vegetation layer, [W m-1 K-1]
+
+    Returns:
+        Conductive flux from understorey to soil, [W m-2]
+    """
+    effective_conductivity = np.sqrt(
+        soil_thermal_conductivity * understorey_thermal_conductivity
+    )
+    flux = (
+        -effective_conductivity
+        * (soil_temperature - understorey_temperature)
+        / understorey_layer_thickness
+    )
+    return flux
