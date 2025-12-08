@@ -83,8 +83,9 @@ from virtual_ecosystem.core.grid import Grid
 import matplotlib.pyplot as plt
 import numpy as np
 
-dump_config_toml("core.grid", GridConfiguration)
-model_config_to_deflist("core.grid", GridConfiguration)
+config_object = GridConfiguration()
+dump_config_toml("core.grid", config_object)
+model_config_to_deflist("core.grid", config_object)
 ```
 
 When running a simulation, the Virtual Ecosystem assigns a unique numeric cell id to
