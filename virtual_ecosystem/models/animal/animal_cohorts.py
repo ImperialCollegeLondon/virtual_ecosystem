@@ -575,9 +575,6 @@ class AnimalCohort:
         max_individuals_killed = ceil(potential_consumed_mass / individual_mass)
         actual_individuals_killed = min(max_individuals_killed, self.individuals)
 
-        print("Max Individuals That Could Be Killed:", max_individuals_killed)
-        print("Actual Individuals Removed:", actual_individuals_killed)
-
         # Compute total mass killed
         actual_mass_killed = actual_individuals_killed * individual_mass
 

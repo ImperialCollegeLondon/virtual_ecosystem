@@ -73,7 +73,7 @@ class AnimalConstants(Configuration):
 
     """
 
-    density_scaling_method: DENSITY_SCALING_METHODS = "damuth"
+    density_scaling_method: DENSITY_SCALING_METHODS = "madingley"
     """The density scaling method to use within a simulation."""
 
     def get_population_density_terms(

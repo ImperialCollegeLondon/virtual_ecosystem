@@ -569,7 +569,7 @@ class AnimalModel(
         self.metamorphose_community()
         self.migrate_external_community()
         self.metabolize_community(self.update_interval_timedelta)
-        # self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
+        self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
         self.update_community_bookkeeping(self.update_interval_timedelta)
         self.update_cohort_bookkeeping(self.update_interval_timedelta)
 
