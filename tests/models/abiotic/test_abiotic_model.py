@@ -27,6 +27,7 @@ REQUIRED_INIT_VAR_CHECKS = (
 
 SETUP_MANIPULATIONS = (
     (INFO, "Replacing data array for 'soil_temperature'"),
+    (INFO, "Replacing data array for 'aerodynamic_resistance_understorey'"),
     (INFO, "Replacing data array for 'vapour_pressure_deficit_ref'"),
     (INFO, "Replacing data array for 'vapour_pressure_ref'"),
     (INFO, "Replacing data array for 'air_temperature'"),
@@ -299,6 +300,7 @@ def test_setup_abiotic_model(
         "atmospheric_co2",
         "wind_speed",
         "net_radiation",
+        "aerodynamic_resistance_understorey",
     ]:
         assert var in model.data
 

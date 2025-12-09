@@ -91,10 +91,10 @@ class AbioticModel(
         "latent_heat_flux",
         "ground_heat_flux",
         "net_radiation",
+        "aerodynamic_resistance_understorey",
     ),
     vars_populated_by_first_update=(
         "longwave_emission",
-        "aerodynamic_resistance_understorey",
         "conductive_flux_understorey",
     ),
 ):
@@ -199,6 +199,14 @@ class AbioticModel(
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
+
+        # create aerodynamic resistance understorey
+        self.data["aerodynamic_resistance_understorey"] = (
+            self.layer_structure.from_template()
+        )
+        self.data["aerodynamic_resistance_understorey"][
+            self.layer_structure.index_surface_scalar
+        ] = self.model_constants.aerodynamic_resistance_canopy_default
 
         # Calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
