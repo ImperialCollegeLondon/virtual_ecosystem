@@ -401,7 +401,7 @@ class AnimalExportConfig(Configuration):
         float_format: Float format string used when writing numeric data.
     """
 
-    enabled: bool = True
+    enabled: bool = False
     cohort_attributes: tuple[str, ...] = ()
     float_format: str = "%0.5f"
 
