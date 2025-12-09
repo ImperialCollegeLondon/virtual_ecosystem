@@ -26,8 +26,7 @@ language_info:
 
 This section walks through the steps in generating and updating the
 [abiotic_simple](virtual_ecosystem.models.abiotic_simple.abiotic_simple_model)
-model which is currently the default abiotic model version in the Virtual Ecosystem
-configuration.
+model.
 
 ## Required variables
 

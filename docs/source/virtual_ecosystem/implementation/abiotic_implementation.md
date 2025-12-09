@@ -25,10 +25,10 @@ language_info:
 # The abiotic model implementation
 
 ```{warning}
-The process-based abiotic model is still under development and currently not available
-for Virtual Ecosystem simulations with `ve_run`. This page provides a brief summary of
-the current status and the directions in which we aim to take the model development
-forward.
+The process-based abiotic model is currently the default abiotic model version in the
+Virtual Ecosystem configuration; however, the model is still under development.
+This page provides a summary of the current status and the directions in which we aim to
+take the model development forward.
 ```
 
 ## Required variables
