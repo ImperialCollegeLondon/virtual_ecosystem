@@ -337,6 +337,8 @@ class PlantsModel(
         """The downwelling radiation at the canopy top for the current time step."""
         self.subcanopy: Subcanopy
         """Representation of the subcanopy vegetation."""
+        self.data_object_templates: dict[str, xr.DataArray]
+        """DataArray templates for the data object."""
 
         # Run the base model __init__
         super().__init__(data, core_components, static, **kwargs)
@@ -507,9 +509,8 @@ class PlantsModel(
                 element="P",
             )
 
-        # Initialize the fruit and seed DataArrays for the data object. These values
-        # accumulate across the model run, so are not reset at each update.
-        array_template = xr.DataArray(
+        # Initialize the DataArray templates used throughout the run
+        cnp_pft_cell_template = xr.DataArray(
             data=np.zeros((self.grid.n_cells, self.flora.n_pfts, 3)),
             coords={
                 "cell_id": self.data["cell_id"],
@@ -517,6 +518,18 @@ class PlantsModel(
                 "element": ["C", "N", "P"],
             },
         )
+        cnp_template = xr.DataArray(
+            data=np.zeros((self.grid.n_cells, 3)),
+            coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
+        )
+        self.data_object_templates = {
+            "cnp_pft": cnp_pft_cell_template,
+            "cnp": cnp_template,
+            "cell": xr.full_like(self.data["elevation"], 0),
+        }
+
+        # Initialize the fruit and seed DataArrays for the data object. These values
+        # accumulate across the model run, so are not reset at each update.
         vars_to_initialize = [
             "canopy_fruit_n",
             "canopy_fruit_cnp",
@@ -528,7 +541,7 @@ class PlantsModel(
             "fallen_seeds_cnp",
         ]
         for var_name in vars_to_initialize:
-            self.data[var_name] = array_template.copy()
+            self.data[var_name] = self.data_object_templates["cnp_pft"].copy()
 
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
@@ -617,19 +630,14 @@ class PlantsModel(
         self.old_stoichiometry_ratios_to_depricate()
 
         # Initialize variables that hold one value per cell
-        cell_template = xr.full_like(self.data["elevation"], 0)
         reset_vars = [
             "root_carbohydrate_exudation",
             "plant_symbiote_carbon_supply",
         ]
         for var in reset_vars:
-            self.data[var] = cell_template.copy()
+            self.data[var] = self.data_object_templates["cell"].copy()
 
         # Initialize variables that are stored per cell and per element
-        cnp_template = xr.DataArray(
-            data=np.zeros((self.grid.n_cells, 3)),
-            coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
-        )
         cnp_vars = [
             "stem_turnover_cnp",
             "foliage_turnover_cnp",
@@ -639,23 +647,15 @@ class PlantsModel(
             "subcanopy_vegetation_cnp",
         ]
         for var in cnp_vars:
-            self.data[var] = cnp_template.copy()
+            self.data[var] = self.data_object_templates["cnp"].copy()
 
         # Initialize variables that are stored by cell x PFT x CNP
-        pft_cell_template = xr.DataArray(
-            data=np.zeros((self.grid.n_cells, self.flora.n_pfts, 3)),
-            coords={
-                "cell_id": self.data["cell_id"],
-                "pft": self.flora.name,
-                "element": ["C", "N", "P"],
-            },
-        )
         pft_cnp_vars = [
             "subcanopy_seedbank_litter_cnp",
             "subcanopy_seedbank_cnp",
         ]
         for var in pft_cnp_vars:
-            self.data[var] = pft_cell_template.copy()
+            self.data[var] = self.data_object_templates["cnp_pft"].copy()
 
     def _update(self, time_index: int, **kwargs: Any) -> None:
         """Update the plants model.
@@ -712,6 +712,7 @@ class PlantsModel(
             lue=self.pmodel.lue[self.layer_structure.index_surface_scalar, :],
             iwue=self.pmodel.iwue[self.layer_structure.index_surface_scalar, :],
             swd=self.canopy_top_radiation,
+            data_object_template=self.data_object_templates["cnp"],
         )
 
         # Use new data variables to update the old ones for cross compatibility with
