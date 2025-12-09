@@ -232,6 +232,18 @@ class AnimalCohort:
         resource_intake["nitrogen"] -= used_nitrogen
         resource_intake["phosphorus"] -= used_phosphorus
 
+        # Numerical safety: clamp tiny negatives to zero, but catch real bugs.
+        eps = 1e-12
+        for element in ("carbon", "nitrogen", "phosphorus"):
+            value = resource_intake[element]
+            if value < 0.0:
+                if value > -eps:
+                    resource_intake[element] = 0.0
+                else:
+                    raise ValueError(
+                        f"grow produced negative waste for {element}: {value}"
+                    )
+
         return resource_intake
 
     def metabolize(self, temperature: float, dt: timedelta64) -> dict[str, float]:
@@ -449,12 +461,22 @@ class AnimalCohort:
         Raises:
             ValueError: If `number_of_deaths` is invalid or exceeds the cohort size.
         """
-        if number_of_deaths <= 0:
-            raise ValueError("Number of deaths must be a positive integer.")
+
+        # Zero deaths: nothing to do
+        if number_of_deaths == 0:
+            return
+
+        # Negative deaths are invalid
+        if number_of_deaths < 0:
+            raise ValueError(
+                f"Number of deaths must be non-negative, got {number_of_deaths}."
+            )
+
+        # Can't kill more individuals than exist
         if number_of_deaths > self.individuals:
             raise ValueError(
-                f"Number of deaths ({number_of_deaths}) exceeds the number of "
-                f"individuals in the cohort ({self.individuals})."
+                f"Number of deaths ({number_of_deaths}) exceeds cohort size "
+                f"({self.individuals})."
             )
 
         # Calculate total mass lost per element
@@ -876,7 +898,7 @@ class AnimalCohort:
         consumed_mass = (
             target_cohort.mass_current
             * target_cohort.individuals
-            * (1 - exp(-(F * adjusted_dt)))
+            * (1 - exp(-(F * float(adjusted_dt / timedelta64(1, "D")))))
         )
 
         return consumed_mass
@@ -962,7 +984,10 @@ class AnimalCohort:
             Mass (kg) to consume from target.
         """
         F = self.F_i_k(resource_list, target)
-        return target.mass_current * (1.0 - exp(-F * adjusted_dt))
+
+        return target.mass_current * (
+            1.0 - exp(-F * float(adjusted_dt / timedelta64(1, "D")))
+        )
 
     def forage_resource_list(
         self,
