@@ -537,11 +537,15 @@ def calculate_interception(
 
     canopy_density_factor = veg_density_param * leaf_area_index
 
-    return np.nan_to_num(
-        max_capacity
-        * (1 - np.exp(-canopy_density_factor * precipitation / max_capacity)),
-        nan=0.0,
+    interception = max_capacity * (
+        1 - np.exp(-canopy_density_factor * precipitation / max_capacity)
     )
+
+    nan_mask = (
+        np.isnan(leaf_area_index) | np.isnan(precipitation) | np.isnan(max_capacity)
+    )
+
+    return np.where(nan_mask, np.nan, interception)
 
 
 def distribute_monthly_rainfall(

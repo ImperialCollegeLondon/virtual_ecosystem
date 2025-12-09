@@ -299,8 +299,8 @@ def test_calculate_interception(fixture_hydrology_constants):
     """Test."""
     from virtual_ecosystem.models.hydrology.above_ground import calculate_interception
 
-    precip = np.array([0, 20, 100, 100])
-    lai = np.array([0, 2, 10, np.nan])
+    precip = np.array([0.0, 20.0, 100.0, 100.0])
+    lai = np.array([[0.0, 2.0, 10.0, np.nan], [0.0, 2.0, np.nan, np.nan]])
 
     result = calculate_interception(
         leaf_area_index=lai,
@@ -309,7 +309,9 @@ def test_calculate_interception(fixture_hydrology_constants):
         veg_density_param=fixture_hydrology_constants.veg_density_param,
     )
 
-    exp_result = np.array([0.0, 1.180619, 5.339031, 0.0])
+    exp_result = np.array(
+        [[0.0, 1.180619, 5.339031, np.nan], [0.0, 1.180619, np.nan, np.nan]]
+    )
 
     np.testing.assert_allclose(result, exp_result)
 
