@@ -565,6 +565,7 @@ def dummy_climate_data(fixture_core_components):
         "mean_mixing_length": 1.3,
         "aerodynamic_resistance_surface": 12.5,
         "aerodynamic_resistance_canopy": 12.5,
+        "aerodynamic_resistance_understorey": 12.5,
         "mean_annual_temperature": 20.0,
     }
     for var, val in spatially_constant.items():
