@@ -4,7 +4,7 @@
 functional_group_definitions_path = '../data/animal_functional_groups.csv'
 
 [animal.cohort_data_export]
-enabled = false
+enabled = true
 
 # select whichever subset of attributes is of interest
 cohort_attributes = [

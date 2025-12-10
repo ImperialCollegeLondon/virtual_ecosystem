@@ -913,6 +913,13 @@ class TestAnimalModel:
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
+        # Reset any cohorts created during __init__ so we test initialization in
+        # isolation.
+        model.active_cohorts = {}
+        model.communities = {
+            cell_id: [] for cell_id in animal_data_for_model_instance.grid.cell_id
+        }
+
         # Call the new initialization method
         model._initialize_communities(functional_group_list_instance)
 
@@ -2838,7 +2845,7 @@ class TestAnimalModel:
 
         # Call the method
         prepared_animal_model_instance.update_cohort_bookkeeping(
-            dt=np.timedelta64(1, "M")
+            dt=np.timedelta64(30, "D")
         )
 
         # Assert both were called once
