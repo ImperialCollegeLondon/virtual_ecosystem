@@ -21,6 +21,7 @@ def test_initialise_canopy_and_soil_fluxes(
     data = dummy_climate_data_varying_canopy
     lyr_str = fixture_core_components.layer_structure
     canopy_index = lyr_str.index_filled_canopy
+    subcanopy_index = lyr_str.index_surface_scalar
     topsoil_index = lyr_str.index_topsoil_scalar
 
     result = initialise_canopy_and_soil_fluxes(
@@ -42,12 +43,19 @@ def test_initialise_canopy_and_soil_fluxes(
             result[var][canopy_index].to_numpy(), np.full((3, 4), 0.001)
         )
         np.testing.assert_allclose(
+            result[var][subcanopy_index].to_numpy(), np.repeat(0.001, 4)
+        )
+        np.testing.assert_allclose(
             result[var][topsoil_index].to_numpy(), np.repeat(0.001, 4)
         )
 
     np.testing.assert_allclose(
         result["canopy_temperature"][canopy_index],
         data["air_temperature"][canopy_index],
+    )
+    np.testing.assert_allclose(
+        result["canopy_temperature"][subcanopy_index],
+        data["air_temperature"][subcanopy_index],
     )
 
 
@@ -347,18 +355,17 @@ def test_update_air_temperature(
 
     updated_air_temperature = update_air_temperature(
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-        surface_temperature=data["canopy_temperature"][canopy_index].to_numpy(),
+        sensible_heat_flux=data["sensible_heat_flux"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
         mixing_layer_thickness=above_ground_layer_thickness[1:-1],
     )
 
     exp_result = np.array(
         [
-            [29.806235, 29.806235, 29.832032, np.nan],
-            [28.840201, 28.855608, np.nan, np.nan],
-            [27.188575, np.nan, np.nan, np.nan],
+            [29.844995, 29.844995, 29.844995, np.nan],
+            [28.87117, 28.87117, np.nan, np.nan],
+            [27.206405, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(updated_air_temperature, exp_result, rtol=1e-4)
@@ -459,3 +466,127 @@ def test_update_humidity_vpd(
         (result["relative_humidity"][~mask] >= 0)
         & (result["relative_humidity"][~mask] <= 100)
     )
+
+
+def test_effective_heat_capacity():
+    """Test calculation of effective heat capacity."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_understorey_effective_heat_capacity,
+    )
+
+    layer_thickness = np.array([0.1, 0.1, 0.1])
+    leaf_area_index = np.array([0.0, 2.0, 20.0])
+    leaf_mass_per_area = 0.05
+    leaf_specific_heat = 3500.0
+    air_volumetric_heat_capacity = 1200.0
+
+    result = calculate_understorey_effective_heat_capacity(
+        layer_thickness=layer_thickness,
+        leaf_area_index=leaf_area_index,
+        leaf_mass_per_area=leaf_mass_per_area,
+        leaf_specific_heat=leaf_specific_heat,
+        air_volumetric_heat_capacity=air_volumetric_heat_capacity,
+    )
+
+    expected_ceff = np.array([120.0, 470.0, 3620.0])
+
+    np.testing.assert_allclose(result, expected_ceff)
+
+
+def test_update_understorey_temperature_warning(caplog):
+    """Test update understorey temperature warning for large temperature changes."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        update_understorey_temperature,
+    )
+
+    current_temperature = np.array([20.0, 15.0, 18.0])
+    net_radiation = np.array([5000.0, 4000.0, 4500.0])
+    sensible_heat_flux = np.array([0.0, 0.0, 0.0])
+    conductive_flux = np.array([0.0, 0.0, 0.0])
+    effective_heat_capacity = np.array([100.0, 150.0, 120.0])
+
+    # Use caplog to capture the warning
+    with caplog.at_level("WARNING"):
+        updated_temperature = update_understorey_temperature(
+            current_temperature=current_temperature,
+            net_radiation=net_radiation,
+            sensible_heat_flux=sensible_heat_flux,
+            conductive_flux=conductive_flux,
+            effective_heat_capacity=effective_heat_capacity,
+            time_step_seconds=3600.0,
+            latent_heat_flux=None,
+            max_delta_temperature=10.0,
+        )
+
+    # Check that the warning was triggered
+    assert "Large temperature change detected" in caplog.text
+
+    # Check that temperatures increased
+    assert np.all(updated_temperature > current_temperature)
+
+
+def test_update_understorey_temperature():
+    """Test compute understorey temperatures."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        update_understorey_temperature,
+    )
+
+    current_temperature = np.array([20.0, 18.0, 15.0])
+    net_radiation = np.array([20.0, 18.0, 10.0])
+    sensible_heat_flux = np.array([1.0, 0.5, 0.8])
+    latent_heat_flux = np.array([0.1, 0.1, 0.1])
+    conductive_flux = np.array([0.5, 0.5, 0.5])
+    effective_heat_capacity = np.array([10000.0, 12000.0, 11000.0])
+    time_step_seconds = 3600.0
+
+    # Update temperature
+    result = update_understorey_temperature(
+        current_temperature=current_temperature,
+        net_radiation=net_radiation,
+        sensible_heat_flux=sensible_heat_flux,
+        conductive_flux=conductive_flux,
+        latent_heat_flux=latent_heat_flux,
+        effective_heat_capacity=effective_heat_capacity,
+        time_step_seconds=time_step_seconds,
+        max_delta_temperature=10.0,
+    )
+
+    expected_temperature = np.array([27.416, 23.43, 18.403636])
+
+    # Assert the temperatures match expected values
+    np.testing.assert_allclose(result, expected_temperature)
+
+    # Assert that no ΔT is unreasonably large
+    assert np.all(np.abs(result - current_temperature) < 10.0)
+
+
+def test_calculate_conductive_flux_understorey():
+    """Test calculate conductive flux between soil and understorey."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_conductive_flux_understorey,
+    )
+
+    soil_temperature = np.array([15.0, 18.0, 20.0])
+    understorey_temperature = np.array([20.0, 16.0, 22.0])
+    understorey_layer_thickness = np.array([0.1, 0.15, 0.2])
+    soil_thermal_conductivity = 1.2
+    understorey_thermal_conductivity = 0.02
+
+    result = calculate_conductive_flux_understorey(
+        soil_temperature=soil_temperature,
+        understorey_temperature=understorey_temperature,
+        understorey_layer_thickness=understorey_layer_thickness,
+        soil_thermal_conductivity=soil_thermal_conductivity,
+        understorey_thermal_conductivity=understorey_thermal_conductivity,
+    )
+
+    # Expected: flux should be positive where understorey is warmer than soil
+    exp_flux = np.array([7.745967, -2.065591, 1.549193])
+    expected_flux_signs = np.sign(understorey_temperature - soil_temperature)
+    actual_flux_signs = np.sign(result)
+    assert np.all(actual_flux_signs == expected_flux_signs)
+    np.testing.assert_allclose(result, exp_flux, rtol=1e-6)

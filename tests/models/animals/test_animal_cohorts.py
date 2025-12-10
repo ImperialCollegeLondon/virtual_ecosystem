@@ -451,44 +451,46 @@ class TestAnimalCohort:
         expected_final_individuals,
         mocker,
     ):
-        """Testing `die_individual` for population reduction and mass calculation."""
+        """Test `die_individual` for zero and positive deaths.
+
+        Ensures that:
+        * Zero deaths leave the cohort unchanged and do not touch carcass pools.
+        * Positive deaths reduce individuals and transfer the correct mass to carcasses.
+        """
 
         # Set the initial number of individuals
         herbivore_cohort_instance.individuals = initial_individuals
 
-        # Mock update_carcass_pool to prevent it from running
+        # Mock update_carcass_pool to prevent it from running real logic
         mock_update_carcass_pool = mocker.patch.object(
             herbivore_cohort_instance, "update_carcass_pool"
         )
 
-        # Handle zero-death cases separately
-        if number_of_deaths == 0:
-            with pytest.raises(
-                ValueError, match=r"Number of deaths must be a positive integer."
-            ):
-                herbivore_cohort_instance.die_individual(number_of_deaths, [])
-            return
-
-        # Call the method
+        # Call the method under test
         herbivore_cohort_instance.die_individual(number_of_deaths, [])
 
         # Check the number of individuals after death
         assert herbivore_cohort_instance.individuals == expected_final_individuals
 
-        expected_mass_lost = {
-            "carbon": herbivore_cohort_instance.mass_cnp.carbon * number_of_deaths,
-            "nitrogen": herbivore_cohort_instance.mass_cnp.nitrogen * number_of_deaths,
-            "phosphorus": herbivore_cohort_instance.mass_cnp.phosphorus
-            * number_of_deaths,
-        }
+        if number_of_deaths == 0:
+            # No deaths -> no carcass mass transfer
+            mock_update_carcass_pool.assert_not_called()
+        else:
+            # Positive deaths -> carcass pool should receive total mass lost
+            expected_mass_lost = {
+                "carbon": herbivore_cohort_instance.mass_cnp.carbon * number_of_deaths,
+                "nitrogen": herbivore_cohort_instance.mass_cnp.nitrogen
+                * number_of_deaths,
+                "phosphorus": herbivore_cohort_instance.mass_cnp.phosphorus
+                * number_of_deaths,
+            }
 
-        # Ensure update_carcass_pool was called with the correct total mass lost
-        mock_update_carcass_pool.assert_called_once_with(
-            expected_mass_lost["carbon"],
-            expected_mass_lost["nitrogen"],
-            expected_mass_lost["phosphorus"],
-            [],
-        )
+            mock_update_carcass_pool.assert_called_once_with(
+                expected_mass_lost["carbon"],
+                expected_mass_lost["nitrogen"],
+                expected_mass_lost["phosphorus"],
+                [],
+            )
 
     @pytest.mark.parametrize(
         "carcass_mass, num_pools, decay_fraction, should_raise",
@@ -1412,23 +1414,30 @@ class TestAnimalCohort:
         assert theta == expected_theta
 
     def test_calculate_consumed_mass_predation_not_in_list(
-        self, predator_cohort_instance, mocker
+        self,
+        predator_cohort_instance,
+        mocker,
     ):
         """Test behavior when target cohort is not present in the prey list."""
-        from unittest.mock import Mock
+        from numpy import timedelta64
 
         predator = predator_cohort_instance
-        prey = Mock()
+
+        prey = mocker.Mock()
         prey.mass_current = 10.0
         prey.individuals = 5
-        adjusted_dt = 10
+
+        # Use a day-based timedelta64, matching model usage
+        adjusted_dt = timedelta64(10, "D")
 
         prey_list = []  # Empty list, so target is not present
 
         mocker.patch.object(predator, "F_i_j_individual", return_value=0.05)
 
         result = predator.calculate_consumed_mass_predation(
-            prey_list, prey, adjusted_dt
+            prey_list,
+            prey,
+            adjusted_dt,
         )
 
         # No error expected — default formula still works, prey list isn't validated
@@ -1457,25 +1466,33 @@ class TestAnimalCohort:
         """Parametrized test for consumed mass predation with mocked prey."""
         from math import exp, isclose
 
+        from numpy import timedelta64
+
         predator = predator_cohort_instance
 
-        # Use mocker to create a fake prey cohort
+        # Mock prey cohort
         prey = mocker.Mock()
         prey.mass_current = mass_current
         prey.individuals = individuals
-        adjusted_dt = 7.5 / predator_cohort_instance.diet_category_count
         prey_list = [prey]
+
+        # Use an integer-day timedelta64 and derive dt_days the same way the
+        # model does internally.
+        adjusted_dt = timedelta64(8, "D")
+        dt_days = float(adjusted_dt / timedelta64(1, "D"))
 
         # Patch predation rate method to return fixed value
         mocker.patch.object(predator, "F_i_j_individual", return_value=F_value)
 
         # Run method under test
         result = predator.calculate_consumed_mass_predation(
-            prey_list, prey, adjusted_dt
+            prey_list,
+            prey,
+            adjusted_dt,
         )
 
         if expected_behavior == "formula":
-            expected = mass_current * individuals * (1 - exp(-F_value * adjusted_dt))
+            expected = mass_current * individuals * (1.0 - exp(-F_value * dt_days))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
@@ -1483,6 +1500,7 @@ class TestAnimalCohort:
             assert isclose(result, expected, rel_tol=1e-3)
 
         else:
+            # Zero F, zero individuals, or zero mass → zero consumption
             assert result == expected_behavior
 
     @pytest.mark.parametrize(
@@ -1647,21 +1665,33 @@ class TestAnimalCohort:
         """Test mass calculation with different F_i_k and mass_current cases."""
         from math import exp, isclose
 
+        from numpy import timedelta64
+
         herbivore = herbivore_cohort_instance
-        adjusted_dt = 7.5
+
+        # Use a day-based timedelta64, matching model usage
+        adjusted_dt = timedelta64(8, "D")
+        dt_days = float(adjusted_dt / timedelta64(1, "D"))
 
         plant = mocker.Mock()
         plant.mass_current = mass_current
         mocker.patch.object(herbivore, "F_i_k", return_value=F_value)
 
-        result = herbivore._consumed_resource_mass([plant], plant, adjusted_dt)
+        result = herbivore._consumed_resource_mass(
+            [plant],
+            plant,
+            adjusted_dt,
+        )
 
         if expected == "formula":
-            expected_val = mass_current * (1 - exp(-F_value * adjusted_dt))
+            # Normal case: compare against the same formula used in the method
+            expected_val = mass_current * (1.0 - exp(-F_value * dt_days))
             assert isclose(result, expected_val, rel_tol=1e-9)
         elif expected == "max":
+            # Extremely high F: should effectively consume all available mass
             assert isclose(result, mass_current, rel_tol=1e-3)
         else:
+            # Zero F or zero mass: expect zero consumption
             assert result == expected
 
     @pytest.mark.parametrize(

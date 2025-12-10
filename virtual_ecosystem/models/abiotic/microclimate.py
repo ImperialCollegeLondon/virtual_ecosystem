@@ -34,6 +34,11 @@ def run_microclimate(
     time interval of one month, different compartments are in equilibrium. For numerical
     stability, the integration interval is 1 hour.
 
+    The understorey layer is treated as a separate vegetation layer with its own
+    temperature, aerodynamic resistance, and energy balance. The implementation is based
+    on a forest floor model for heat and moisture including a litter layer by
+    :cite:t:`ogee_a_forest_2002`.
+
     ..TODO: Temperatures change between Kelvin and Celsius due to a mix of references,
     needs to be revisited and converted properly.
 
@@ -59,40 +64,44 @@ def run_microclimate(
 
     # NOTE Canopy height will likely become a separate variable, update as required
     canopy_height = data["layer_heights"][1].to_numpy()
-    # NOTE currently sums LAI over all canopy layers, not surface grass layer
+
+    # LAI sum over all canopy layers only for wind profile, NOT understorey layer
     leaf_area_index_sum = np.nansum(
         data["leaf_area_index"][layer_structure.index_filled_canopy].to_numpy(), axis=0
     )
+    leaf_area_index_understorey = data["leaf_area_index"][
+        layer_structure.index_surface_scalar
+    ].to_numpy()
 
-    atmospheric_pressure_out = layer_structure.from_template()
-    atmospheric_pressure_out[layer_structure.index_filled_atmosphere] = data[
-        "atmospheric_pressure_ref"
-    ].isel(time_index=time_index)
-    atmospheric_pressure = atmospheric_pressure_out[
+    # Atmospheric pressure profile set to reference value, [kPa]
+    atmospheric_pressure = abiotic_tools.update_profile_from_reference(
+        layer_structure=layer_structure,
+        mask_variable=data["air_temperature"],
+        variable_name=data["atmospheric_pressure_ref"],
+        time_index=time_index,
+    )
+    atmospheric_pressure_true = atmospheric_pressure[
         layer_structure.index_filled_atmosphere
     ].to_numpy()
 
-    wind_reference_height = canopy_height + abiotic_constants.wind_reference_height
-    wind_heights = data["layer_heights"][
-        layer_structure.index_filled_atmosphere
-    ].to_numpy()
-
-    # Calculate thickness of above ground layers and midpoints
-    above_ground_layer_thickness = (
-        abiotic_tools.compute_layer_thickness_for_varying_canopy(heights=wind_heights)
+    # Atmospheric CO2 profile set to reference value, [kPa]
+    atmospheric_co2 = abiotic_tools.update_profile_from_reference(
+        layer_structure=layer_structure,
+        mask_variable=data["air_temperature"],
+        variable_name=data["atmospheric_co2_ref"],
+        time_index=time_index,
     )
 
-    # Compute cumulative thickness excluding the current layer (layer tops)
-    layer_top = (
-        np.cumsum(above_ground_layer_thickness, axis=1) - above_ground_layer_thickness
+    # Calculate atmospheric layer geometry
+    atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
+        data=data,
+        layer_structure=layer_structure,
     )
-
-    # Compute midpoints
-    layer_midpoints = layer_top + above_ground_layer_thickness / 2
 
     # -------------------------------------------------------------------------
     # Wind profiles and resistances
     # -------------------------------------------------------------------------
+
     #   Zero plane displacement height, [m]
     zero_plane_displacement = wind.calculate_zero_plane_displacement(
         canopy_height=canopy_height,
@@ -122,12 +131,13 @@ def run_microclimate(
     )
 
     #   Wind speed, [m s-1]
+    wind_reference_height = canopy_height + abiotic_constants.wind_reference_height
+    reference_wind_speed = data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+
     wind_profile = wind.calculate_wind_profile(
-        reference_wind_speed=data["wind_speed_ref"]
-        .isel(time_index=time_index)
-        .to_numpy(),
+        reference_wind_speed=reference_wind_speed,
         reference_height=wind_reference_height,
-        wind_heights=wind_heights,
+        wind_heights=atmospheric_layer_geometry["heights"],
         roughness_length=roughness_length,
         zero_plane_displacement=zero_plane_displacement,
         min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
@@ -135,13 +145,8 @@ def run_microclimate(
 
     #   Friction velocity, [m s-1]
     friction_velocity = wind.calculate_friction_velocity(
-        reference_wind_speed=data["wind_speed_ref"]
-        .isel(time_index=time_index)
-        .to_numpy(),
-        reference_height=(
-            data["layer_heights"][0].to_numpy()
-            + abiotic_constants.wind_reference_height
-        ),
+        reference_wind_speed=reference_wind_speed,
+        reference_height=wind_reference_height,
         roughness_length=roughness_length,
         zero_plane_displacement=zero_plane_displacement,
         von_karman_constant=core_constants.von_karmans_constant,
@@ -166,8 +171,15 @@ def run_microclimate(
         abiotic_constants.aerodynamic_resistance_canopy_default, data.grid.n_cells
     )
 
-    output["aerodynamic_resistance_canopy"] = DataArray(
-        aerodynamic_resistance_canopy, dims="cell_id"
+    # Aerodynamic resistance understorey, [s m-1]
+    aerodynamic_resistance_understorey = (
+        wind.calculate_aerodynamic_resistance_understorey(
+            wind_speed_understorey=wind_profile[-1],
+            coefficient_aerodynamic_resistance_understorey=(
+                abiotic_constants.coefficient_aerodynamic_resistance_understorey
+            ),
+            min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
+        )
     )
 
     # Aerodynamic resistance soil, [s m-1]
@@ -175,7 +187,7 @@ def run_microclimate(
 
     # Turbulent mixing coefficient above canopy, [m2 s-1]
     mixing_coefficient = wind.calculate_mixing_coefficients_canopy(
-        layer_midpoints=layer_midpoints,
+        layer_midpoints=atmospheric_layer_geometry["layer_midpoints"],
         canopy_height=canopy_height,
         friction_velocity=friction_velocity,
         von_karman_constant=core_constants.von_karmans_constant,
@@ -194,7 +206,7 @@ def run_microclimate(
     all_air_temperature = data["air_temperature"][
         layer_structure.index_filled_atmosphere
     ].to_numpy()
-    air_temperature_canopy = data["air_temperature"][
+    canopy_air_temperature = data["air_temperature"][
         layer_structure.index_filled_canopy
     ].to_numpy()
     surface_air_temperature = data["air_temperature"][
@@ -202,6 +214,9 @@ def run_microclimate(
     ].to_numpy()
     canopy_temperature = data["canopy_temperature"][
         layer_structure.index_filled_canopy
+    ].to_numpy()
+    understorey_temperature = data["canopy_temperature"][
+        layer_structure.index_surface_scalar
     ].to_numpy()
     soil_temperature = data["soil_temperature"][
         layer_structure.index_all_soil
@@ -211,15 +226,17 @@ def run_microclimate(
     ].to_numpy()
 
     # Evapotranspiration from plant and hydrology model, per time interval
+    # TODO currently no transpiration from understory vegetation in data !!
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     # -------------------------------------------------------------------------
     #  Calculate atmospheric background variables
     # -------------------------------------------------------------------------
+
     # Density of air, [kg m-3]
     density_air = abiotic_tools.calculate_air_density(
         air_temperature=all_air_temperature,
-        atmospheric_pressure=atmospheric_pressure,
+        atmospheric_pressure=atmospheric_pressure_true,
         specific_gas_constant_dry_air=core_constants.specific_gas_constant_dry_air,
         celsius_to_kelvin=core_constants.zero_Celsius,
     )
@@ -237,8 +254,75 @@ def run_microclimate(
     )
 
     # -------------------------------------------------------------------------
+    # Understorey vegetation energy balance
+    # -------------------------------------------------------------------------
+
+    # Longwave emission from understorey vegetation, [W m-2]
+    longwave_emission_understorey = energy_balance.calculate_longwave_emission(
+        temperature=understorey_temperature + core_constants.zero_Celsius,
+        emissivity=abiotic_constants.leaf_emissivity,
+        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+    )
+
+    # Net radiation understorey vegetation, shortwave in - longwave out, [W m-2]
+    net_radiation_understorey = (
+        data["shortwave_absorption"][layer_structure.index_surface_scalar].to_numpy()
+        - longwave_emission_understorey
+    )
+
+    #  Sensible heat flux from understorey vegetation, [W m-2]
+    sensible_heat_flux_understorey = energy_balance.calculate_sensible_heat_flux(
+        density_air=density_air[-1],
+        specific_heat_air=specific_heat_air[-1],
+        air_temperature=surface_air_temperature,
+        surface_temperature=understorey_temperature,
+        aerodynamic_resistance=aerodynamic_resistance_understorey,
+    )
+
+    # Latent heat flux understorey vegetation, [W m-2]
+    # TODO currently not returned from plant model
+    # latent_heat_flux_understorey = (
+    #     evapotranspiration[layer_structure.index_surface_scalar].to_numpy()
+    #     / core_constants.seconds_to_hour
+    #     * latent_heat_vapourisation[-1]
+    # )
+
+    # Conductive flux from understorey vegetation to soil, [W m-2]
+    # A positive flux is directed towards the soil
+    conductive_flux_understorey = energy_balance.calculate_conductive_flux_understorey(
+        soil_temperature=soil_temperature[0],
+        understorey_temperature=understorey_temperature,
+        understorey_layer_thickness=atmospheric_layer_geometry["heights"][-1],
+        soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
+        understorey_thermal_conductivity=abiotic_constants.understorey_thermal_conductivity,
+    )
+
+    # Update understory vegetation temperatures, [C], TODO integration interval 1 hour
+    effective_heat_capacity_understorey = (
+        energy_balance.calculate_understorey_effective_heat_capacity(
+            layer_thickness=atmospheric_layer_geometry["thickness"][-1],
+            leaf_area_index=leaf_area_index_understorey,
+            leaf_mass_per_area=abiotic_constants.leaf_mass_per_area_understorey,
+            leaf_specific_heat=abiotic_constants.specific_heat_capacity_understorey,
+            air_volumetric_heat_capacity=core_constants.air_volumetric_heat_capacity,
+        )
+    )
+
+    understorey_temperature = energy_balance.update_understorey_temperature(
+        current_temperature=understorey_temperature,
+        net_radiation=net_radiation_understorey,
+        sensible_heat_flux=sensible_heat_flux_understorey,
+        conductive_flux=conductive_flux_understorey,
+        effective_heat_capacity=effective_heat_capacity_understorey,
+        time_step_seconds=1.0,  # TODO core_constants.seconds_to_hour,
+        latent_heat_flux=None,  # TODO add when returned from plant model
+        max_delta_temperature=10.0,
+    )
+
+    # -------------------------------------------------------------------------
     # Soil energy balance
     # -------------------------------------------------------------------------
+
     # Longwave emission from soil, [W m-2]
     longwave_emission_soil = energy_balance.calculate_longwave_emission(
         temperature=soil_temperature[0] + core_constants.zero_Celsius,
@@ -246,9 +330,11 @@ def run_microclimate(
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
-    # Net radiation topsoil, shortwave in - longwave out, [W m-2]
+    # Net radiation topsoil =
+    # shortwave in + conductive flux from understorey - longwave out, [W m-2]
     net_radiation_soil = (
         data["shortwave_absorption"][layer_structure.index_topsoil_scalar].to_numpy()
+        + conductive_flux_understorey
         - longwave_emission_soil
     )
 
@@ -274,7 +360,7 @@ def run_microclimate(
     )
 
     # Update soil temperatures, [C], integration interval 1 hour
-    # TODO Revisit implementation of soil temperature update, consider Newton
+    # TODO Revisit implementation of soil temperature update, Newton or force-store
     # TODO Soil parameter currently constants, replace with soil maps
     # TODO include effect of soil moisture
     soil_temperature = energy_balance.update_soil_temperature(
@@ -294,7 +380,7 @@ def run_microclimate(
     # Solve energy balance for canopy temperature, [C], integration interval 1 hour
     canopy_temperature = energy_balance.solve_canopy_temperature(
         canopy_temperature_initial=canopy_temperature,
-        air_temperature=air_temperature_canopy,
+        air_temperature=canopy_air_temperature,
         evapotranspiration=evapotranspiration[
             layer_structure.index_filled_canopy
         ].to_numpy()
@@ -314,38 +400,42 @@ def run_microclimate(
         maxiter=10000,
     )
 
-    # Update air temperature based on new canopy and soil temperatures, [C]
-    air_temperature_canopy = energy_balance.update_air_temperature(
-        air_temperature=air_temperature_canopy,
-        surface_temperature=canopy_temperature,
+    # Update air temperature based on new canopy, understorey, soil temperatures, [C]
+    sensible_heat_flux_canopy = energy_balance.calculate_sensible_heat_flux(
+        density_air=density_air[1:-1],
+        specific_heat_air=specific_heat_air[1:-1],
+        air_temperature=canopy_air_temperature,
+        surface_temperature=canopy_air_temperature,
+        aerodynamic_resistance=aerodynamic_resistance_canopy,
+    )
+
+    canopy_air_temperature = energy_balance.update_air_temperature(
+        air_temperature=canopy_air_temperature,
+        sensible_heat_flux=sensible_heat_flux_canopy,
         specific_heat_air=specific_heat_air[1:-1],
         density_air=density_air[1:-1],
-        aerodynamic_resistance=aerodynamic_resistance_canopy,
-        mixing_layer_thickness=above_ground_layer_thickness[1:-1],
+        mixing_layer_thickness=atmospheric_layer_geometry["thickness"][1:-1],
     )
 
     surface_air_temperature = energy_balance.update_air_temperature(
         air_temperature=surface_air_temperature,
-        surface_temperature=soil_temperature[0],
+        sensible_heat_flux=sensible_heat_flux_understorey + sensible_heat_flux_soil,
         specific_heat_air=specific_heat_air[-1],
         density_air=density_air[-1],
-        aerodynamic_resistance=aerodynamic_resistance_soil,
-        mixing_layer_thickness=above_ground_layer_thickness[-1],
+        mixing_layer_thickness=atmospheric_layer_geometry["thickness"][-1],
     )
-
-    all_air_temperature[1 : len(canopy_temperature) + 1] = air_temperature_canopy
+    all_air_temperature[0] = data["air_temperature_ref"].isel(time_index=time_index)
+    all_air_temperature[1 : len(canopy_temperature) + 1] = canopy_air_temperature
     all_air_temperature[-1] = surface_air_temperature
 
     all_air_temperature = wind.mix_and_ventilate(
         input_variable=all_air_temperature,
-        layer_thickness=above_ground_layer_thickness,
         ventilation_rate=ventilation_rate,
         mixing_coefficient=mixing_coefficient,
         limits=abiotic_bounds.air_temperature[:2],
-        time_interval=core_constants.seconds_to_hour,
     )
 
-    # NOTE Advection not implemented as everything is removed with time interval>1h
+    # NOTE Advection not implemented as everything is removed with time interval>=1h
     # and horizontal transfer is not implemented
     # advection_rate = (
     #   data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
@@ -365,7 +455,7 @@ def run_microclimate(
     specific_humidity_air = abiotic_tools.calculate_specific_humidity(
         air_temperature=all_air_temperature,
         relative_humidity=relative_humidity,
-        atmospheric_pressure=atmospheric_pressure,
+        atmospheric_pressure=atmospheric_pressure_true,
         molecular_weight_ratio_water_to_dry_air=(
             core_constants.molecular_weight_ratio_water_to_dry_air
         ),
@@ -376,7 +466,7 @@ def run_microclimate(
     mixing_ratio_saturation = (
         core_constants.molecular_weight_ratio_water_to_dry_air
         * saturated_vapour_pressure_air
-        / (atmospheric_pressure - saturated_vapour_pressure_air)
+        / (atmospheric_pressure_true - saturated_vapour_pressure_air)
     )
     max_specific_humidity = mixing_ratio_saturation / (1 + mixing_ratio_saturation)
 
@@ -385,13 +475,13 @@ def run_microclimate(
         evapotranspiration=evapotranspiration[
             layer_structure.index_filled_canopy
         ].to_numpy()
-        / (time_interval * core_constants.seconds_to_hour),
+        / (time_interval * core_constants.seconds_to_hour),  # TODO add understorey flux
         soil_evaporation=data["soil_evaporation"].to_numpy()
         / (time_interval * core_constants.seconds_to_hour),
         saturated_vapour_pressure=saturated_vapour_pressure_air,
         specific_humidity=specific_humidity_air,
-        layer_thickness=above_ground_layer_thickness,
-        atmospheric_pressure=atmospheric_pressure,
+        layer_thickness=atmospheric_layer_geometry["thickness"],
+        atmospheric_pressure=atmospheric_pressure_true,
         density_air=density_air,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
@@ -409,7 +499,7 @@ def run_microclimate(
     # Calculate new energy balance and return all fluxes, [W m-2]
     new_energy_balance_canopy = energy_balance.calculate_energy_balance_residual(
         canopy_temperature_initial=canopy_temperature,
-        air_temperature=air_temperature_canopy,
+        air_temperature=canopy_air_temperature,
         evapotranspiration=evapotranspiration[
             layer_structure.index_filled_canopy
         ].to_numpy()
@@ -444,16 +534,8 @@ def run_microclimate(
     )
 
     # Write in output dictionary
-    # Mean atmospheric pressure profile, [kPa]
-    # TODO: #484 this should only be filled for filled/true above ground layers
-    output["atmospheric_pressure"] = atmospheric_pressure_out
-
-    # Mean atmospheric C02 profile, [ppm]
-    # TODO: #484 this should only be filled for filled/true above ground layers
-    output["atmospheric_co2"] = layer_structure.from_template()
-    output["atmospheric_co2"][layer_structure.index_atmosphere] = data[
-        "atmospheric_co2_ref"
-    ].isel(time_index=time_index)
+    output["atmospheric_pressure"] = atmospheric_pressure
+    output["atmospheric_co2"] = atmospheric_co2
 
     wind_speed = layer_structure.from_template()
     wind_speed[layer_structure.index_filled_atmosphere] = wind_profile
@@ -467,14 +549,25 @@ def run_microclimate(
     density_air_out[layer_structure.index_filled_atmosphere] = density_air
     output["density_air"] = density_air_out
 
+    output["aerodynamic_resistance_canopy"] = DataArray(
+        aerodynamic_resistance_canopy, dims="cell_id"
+    )
+    output["aerodynamic_resistance_understorey"] = DataArray(
+        aerodynamic_resistance_understorey, dims="cell_id"
+    )
+
     # Combine longwave emission in one variable
     longwave_emission = layer_structure.from_template()
     longwave_emission[layer_structure.index_filled_canopy] = longwave_emission_canopy
+    longwave_emission[layer_structure.index_surface_scalar] = (
+        longwave_emission_understorey
+    )
     longwave_emission[layer_structure.index_topsoil_scalar] = longwave_emission_soil
     output["longwave_emission"] = longwave_emission
 
     net_radiation = layer_structure.from_template()
     net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy
+    net_radiation[layer_structure.index_surface_scalar] = net_radiation_understorey
     net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
     output["net_radiation"] = net_radiation
 
@@ -487,14 +580,25 @@ def run_microclimate(
     # Combine sensible heat flux in one variable
     sensible_heat_flux = layer_structure.from_template()
     sensible_heat_flux[layer_structure.index_filled_canopy] = sensible_heat_flux_canopy
+    sensible_heat_flux[layer_structure.index_surface_scalar] = (
+        sensible_heat_flux_understorey
+    )
     sensible_heat_flux[layer_structure.index_topsoil_scalar] = sensible_heat_flux_soil
     output["sensible_heat_flux"] = sensible_heat_flux
 
     # Combine latent heat flux in one variable
     latent_heat_flux = layer_structure.from_template()
     latent_heat_flux[layer_structure.index_filled_canopy] = latent_heat_flux_canopy
+    # latent_heat_flux[layer_structure.index_surface_scalar] = (
+    #     latent_heat_flux_understorey
+    # )
     latent_heat_flux[layer_structure.index_topsoil_scalar] = latent_heat_flux_soil
     output["latent_heat_flux"] = latent_heat_flux
+
+    output["ground_heat_flux"] = DataArray(ground_heat_flux, dims="cell_id")
+    output["conductive_flux_understorey"] = DataArray(
+        conductive_flux_understorey, dims="cell_id"
+    )
 
     soil_temperature_out = layer_structure.from_template()
     soil_temperature_out[layer_structure.index_all_soil] = soil_temperature
@@ -502,12 +606,15 @@ def run_microclimate(
 
     air_temperature_out = layer_structure.from_template()
     air_temperature_out[layer_structure.index_above] = all_air_temperature[0]
-    air_temperature_out[layer_structure.index_filled_canopy] = air_temperature_canopy
+    air_temperature_out[layer_structure.index_filled_canopy] = canopy_air_temperature
     air_temperature_out[layer_structure.index_surface_scalar] = surface_air_temperature
     output["air_temperature"] = air_temperature_out
 
     canopy_temperature_out = layer_structure.from_template()
     canopy_temperature_out[layer_structure.index_filled_canopy] = canopy_temperature
+    canopy_temperature_out[layer_structure.index_surface_scalar] = (
+        understorey_temperature
+    )
     output["canopy_temperature"] = canopy_temperature_out
 
     # Write humidity/VPD

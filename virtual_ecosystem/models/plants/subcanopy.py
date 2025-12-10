@@ -276,6 +276,7 @@ class Subcanopy:
         lue: NDArray[np.floating],
         iwue: NDArray[np.floating],
         swd: NDArray[np.floating],
+        data_object_template: DataArray,
     ) -> None:
         r"""Estimate the dynamics of subcanopy vegetation.
 
@@ -446,12 +447,20 @@ class Subcanopy:
         }
 
         for var, biomass in biomasses.items():
+            self.data[f"{var}_cnp"] = data_object_template.copy()
+
+            # Deprecate in #1131:
             self.data[f"{var}_biomass"] = DataArray(biomass.carbon_mass, coords=coords)
+            self.data[f"{var}_cnp"].loc[:, "C"] = biomass.carbon_mass
 
             for elem in self.elements:
+                # Deprecate in #1131:
                 self.data[f"{var}_c_{elem}_ratio"] = DataArray(
                     biomass.c_x_ratio(elem), coords=coords
                 )
+                self.data[f"{var}_cnp"].loc[:, elem.upper()] = biomass.nutrients[
+                    elem
+                ].masses
 
         # Write lignin concentrations for litter components
         self.data["subcanopy_vegetation_litter_lignin"] = full_like(

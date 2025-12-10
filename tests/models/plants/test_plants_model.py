@@ -513,7 +513,10 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
             original_population[cell_id]
             >= fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
-        assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass
+        assert (
+            fxt_plants_model.data["stem_turnover_cnp"].loc[cell_id, "C"]
+            == deadwood_mass
+        )
 
 
 def test_PlantsModel_apply_recruitment(fxt_plants_model):
