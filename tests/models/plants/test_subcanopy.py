@@ -162,6 +162,7 @@ def test_subcanopy_vegetation_dynamics(
     plants_data["shortwave_absorption"] = template.copy()
     plants_data["leaf_area_index"] = template.copy()
     plants_data["layer_fapar"] = template.copy()
+    plants_data["transpiration"] = template.copy()
 
     subcanopy = Subcanopy(
         data=plants_data,
@@ -177,6 +178,7 @@ def test_subcanopy_vegetation_dynamics(
 
     # Set the subcanopy shortwave absorption - don't need finesse here - either
     # vegetation present or not
+
     subcanopy.set_light_capture(below_canopy_light_fraction=np.ones(4))
 
     subcanopy.calculate_dynamics(lue=np.ones(4), iwue=np.ones(4), swd=np.ones(4))

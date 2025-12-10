@@ -134,7 +134,6 @@ class PlantsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
-        "subcanopy_transpiration",
     ),
     vars_populated_by_first_update=(
         "deadwood_c_n_ratio",
@@ -187,7 +186,6 @@ class PlantsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
-        "subcanopy_transpiration",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -606,6 +604,9 @@ class PlantsModel(
         for var in by_pft_vars:
             self.data[var] = pft_cell_template.copy()
 
+        # Initialise transpiration array to collect per grid cell values
+        self.data["transpiration"] = self.layer_structure.from_template("transpiration")
+
     def _update(self, time_index: int, **kwargs: Any) -> None:
         """Update the plants model.
 
@@ -952,8 +953,10 @@ class PlantsModel(
                 community.cohorts.n_individuals * per_layer_transpiration_mm
             ).sum(axis=1)
 
-        # Pass values to data object
-        self.data["transpiration"] = transpiration
+        # Write canopy layers to transpiration data array
+        self.data["transpiration"][self.layer_structure.index_filled_canopy] = (
+            transpiration[self.layer_structure.index_filled_canopy]
+        )
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.

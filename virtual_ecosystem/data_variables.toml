@@ -154,7 +154,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Transpiration from canopy"
+description = "Transpiration from the canopy and subcanopy"
 name = "transpiration"
 unit = "mm"
 variable_type = "float"
@@ -1501,11 +1501,4 @@ axis = ["spatial"]
 description = "Uptake of phosphorous by subcanopy transpiration"
 name = "subcanopy_phosphorus_uptake"
 unit = "kg"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Transpiration from subcanopy vegetation"
-name = "subcanopy_transpiration"
-unit = "mm"
 variable_type = "float"
