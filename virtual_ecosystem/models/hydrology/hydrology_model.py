@@ -93,6 +93,7 @@ class HydrologyModel(
         "transpiration",
         "density_air",
         "aerodynamic_resistance_canopy",
+        # "aerodynamic_resistance_understorey",
         "specific_heat_air",
         "stomatal_conductance",
         "net_radiation",
@@ -472,7 +473,7 @@ class HydrologyModel(
         for day in np.arange(days):
             # Interception of water in canopy, [mm]
             interception = above_ground.calculate_interception(
-                leaf_area_index=hydro_input["leaf_area_index_sum"],
+                leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 precipitation=hydro_input["current_precipitation"][:, day],
                 intercept_parameters=self.model_constants.intercept_parameters,
                 veg_density_param=self.model_constants.veg_density_param,
@@ -510,13 +511,14 @@ class HydrologyModel(
             daily_lists["canopy_evaporation"].append(
                 canopy_water_balance["canopy_evaporation"]
             )
+
             # Precipitation that reaches the surface per day, [mm]
             precipitation_surface = (
                 hydro_input["current_precipitation"][:, day]
-                - interception
-                + canopy_water_balance["leaf_drainage"]
+                - np.nansum(interception)
+                + np.nansum(canopy_water_balance["leaf_drainage"])
             )
-
+            print(precipitation_surface)
             hydrology_tools.check_precipitation_surface(
                 precipitation_surface=precipitation_surface
             )
@@ -752,8 +754,12 @@ class HydrologyModel(
             )
 
         soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
-        soil_hydrology["canopy_evaporation"][:,] = np.nansum(
-            daily_lists["canopy_evaporation"], axis=0
+        soil_hydrology["canopy_evaporation"][:,] = (
+            np.where(  # TODO might be unnecessary
+                np.isnan(daily_lists["canopy_evaporation"][0]),
+                np.nan,
+                np.nansum(daily_lists["canopy_evaporation"], axis=0),
+            )
         )
 
         for var in ["river_discharge_rate", "aerodynamic_resistance_surface"]:

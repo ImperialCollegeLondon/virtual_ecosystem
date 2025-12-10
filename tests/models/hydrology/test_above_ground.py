@@ -295,25 +295,38 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
     log_check(caplog, expected_log_entries)
 
 
-def test_calculate_interception(fixture_hydrology_constants):
+def test_calculate_interception(
+    fixture_hydrology_constants,
+    fixture_core_components,
+    dummy_climate_data_varying_canopy,
+):
     """Test."""
     from virtual_ecosystem.models.hydrology.above_ground import calculate_interception
 
-    precip = np.array([0.0, 20.0, 100.0, 100.0])
-    lai = np.array([[0.0, 2.0, 10.0, np.nan], [0.0, 2.0, np.nan, np.nan]])
+    data = dummy_climate_data_varying_canopy
+    lyr_str = fixture_core_components.layer_structure
 
     result = calculate_interception(
-        leaf_area_index=lai,
-        precipitation=precip,
+        leaf_area_index=data["leaf_area_index"].to_numpy(),
+        precipitation=data["precipitation"].isel(time_index=1).to_numpy(),
         intercept_parameters=fixture_hydrology_constants.intercept_parameters,
         veg_density_param=fixture_hydrology_constants.veg_density_param,
     )
 
-    exp_result = np.array(
-        [[0.0, 1.180619, 5.339031, np.nan], [0.0, 1.180619, np.nan, np.nan]]
+    exp_canopy = np.array(
+        [
+            [1.424985, 1.424985, 1.424985, np.nan],
+            [1.424879, 1.424879, np.nan, np.nan],
+            [1.424767, np.nan, np.nan, np.nan],
+        ]
     )
-
-    np.testing.assert_allclose(result, exp_result)
+    exp_understorey = np.array([1.424651, 1.424767, 1.424879, 1.424985])
+    np.testing.assert_allclose(
+        result[lyr_str.index_filled_canopy], exp_canopy, rtol=1e-4, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        result[lyr_str.index_surface_scalar], exp_understorey, rtol=1e-4, atol=1e-4
+    )
 
 
 def test_distribute_monthly_rainfall():

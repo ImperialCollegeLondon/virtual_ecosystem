@@ -512,12 +512,12 @@ def calculate_interception(
                 \end{cases}
         \]
 
-    where LAI is the average Leaf Area Index [m2 m-2]. :math:`k` is estimated as:
+    where LAI is the average Leaf area index [m1 m-1]. :math:`k` is estimated as:
 
     :math:`k=0.046 \cdot LAI`
 
     Args:
-        leaf_area_index: Leaf area index summed over all canopy layers, [m m-1]
+        leaf_area_index: Leaf area index for all canopy layers, [m m-1]
         precipitation: Precipitation, [mm]
         intercept_parameters: Parameters for equation estimating maximum canopy
             interception capacity.
@@ -537,15 +537,23 @@ def calculate_interception(
 
     canopy_density_factor = veg_density_param * leaf_area_index
 
-    interception = max_capacity * (
-        1 - np.exp(-canopy_density_factor * precipitation / max_capacity)
+    interception = np.full_like(leaf_area_index, np.nan)
+
+    interception[1] = max_capacity[1] * (
+        1 - np.exp(-canopy_density_factor[1] * precipitation / max_capacity[1])
     )
 
-    nan_mask = (
-        np.isnan(leaf_area_index) | np.isnan(precipitation) | np.isnan(max_capacity)
-    )
+    for layer in np.arange(2, len(leaf_area_index)):
+        interception[layer] = max_capacity[layer] * (
+            1
+            - np.exp(
+                -canopy_density_factor[layer]
+                * (precipitation - np.nansum(interception[:layer], axis=0))
+                / max_capacity[layer]
+            )
+        )
 
-    return np.where(nan_mask, np.nan, interception)
+    return interception
 
 
 def distribute_monthly_rainfall(

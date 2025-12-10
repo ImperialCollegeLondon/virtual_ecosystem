@@ -306,7 +306,7 @@ def test_setup(
                 atol=1e-3,
             )
 
-            exp_aero_resist_canopy = np.full((14, 4), np.nan)
+            exp_aero_resist_canopy = lyr_strct.from_template()
             np.testing.assert_allclose(
                 model.data["aerodynamic_resistance_canopy"],
                 exp_aero_resist_canopy,
@@ -326,6 +326,15 @@ def test_setup(
                     rtol=1e-4,
                     atol=1e-4,
                 )
+
+            # exp_canopy_evap = lyr_strct.from_template()
+            # exp_canopy_evap[lyr_strct.index_filled_canopy] = np.array(
+            #  [[0, 0, 0, np.nan], [0, 0, np.nan, np.nan], [0, np.nan, np.nan, np.nan]]
+            # )
+            # exp_canopy_evap[lyr_strct.index_surface_scalar] = np.array([0, 0, 0, 0])
+            # np.testing.assert_allclose(
+            #     model.data["canopy_evaporation"], exp_canopy_evap
+            # )
 
             # Test one dimensional variables
 
