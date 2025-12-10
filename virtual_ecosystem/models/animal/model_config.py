@@ -238,7 +238,7 @@ class AnimalConstants(Configuration):
     """Herbivore exponent of the power-law function relating the handling time of
       autotroph matter to herbivore mass."""
 
-    b_pred: float = 0.05  # Toy Values
+    b_pred: float = 0.7  # Toy Values
     """Carnivore exponent of the power-law relationship between the handling time of
       prey and the ratio of prey to predator body mass."""
 
