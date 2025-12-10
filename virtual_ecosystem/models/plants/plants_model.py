@@ -509,23 +509,20 @@ class PlantsModel(
                 element="P",
             )
 
-        # Initialize the DataArray templates used throughout the run
-        cnp_pft_cell_template = xr.DataArray(
-            data=np.zeros((self.grid.n_cells, self.flora.n_pfts, 3)),
-            coords={
-                "cell_id": self.data["cell_id"],
-                "pft": self.flora.name,
-                "element": ["C", "N", "P"],
-            },
-        )
-        cnp_template = xr.DataArray(
-            data=np.zeros((self.grid.n_cells, 3)),
-            coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
-        )
         self.data_object_templates = {
-            "cnp_pft": cnp_pft_cell_template,
-            "cnp": cnp_template,
-            "cell": xr.full_like(self.data["elevation"], 0),
+            "cnp_pft": xr.DataArray(
+                data=np.zeros((self.grid.n_cells, self.flora.n_pfts, 3)),
+                coords={
+                    "cell_id": self.data["cell_id"],
+                    "pft": self.flora.name,
+                    "element": ["C", "N", "P"],
+                },
+            ),
+            "cnp": xr.DataArray(
+                data=np.zeros((self.grid.n_cells, 3)),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
+            ),
+            "cell": xr.zeros_like(self.data["elevation"]),
         }
 
         # Initialize the fruit and seed DataArrays for the data object. These values
