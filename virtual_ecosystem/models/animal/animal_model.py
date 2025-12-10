@@ -184,11 +184,11 @@ class AnimalModel(
         """Animal constants."""
         self.communities: dict[int, list[AnimalCohort]]
         """Animal communities with grid cell IDs and lists of AnimalCohorts."""
-        self.active_cohorts: dict[uuid.UUID, AnimalCohort] = {}
+        self.active_cohorts: dict[uuid.UUID, AnimalCohort]
         """A dictionary of all active animal cohorts and their unique ids."""
-        self.migrated_cohorts: dict[uuid.UUID, AnimalCohort] = {}
+        self.migrated_cohorts: dict[uuid.UUID, AnimalCohort]
         """A dictionary of all migrated animal cohorts and their unique ids."""
-        self.aquatic_cohorts: dict[uuid.UUID, AnimalCohort] = {}
+        self.aquatic_cohorts: dict[uuid.UUID, AnimalCohort]
         """A dictionary of all aquatic animal cohorts and their unique ids."""
         self.update_interval_timedelta: timedelta64
         """Convert pint update_interval to timedelta64 once during initialization."""
@@ -404,6 +404,10 @@ class AnimalModel(
         Microbial stoichiometries have to be supplied so that the availability of
         nutrients to soil consuming taxa can be found.
 
+        TODO: There are concerns about the sequence of method calls that fixed the
+            active_cohorts bug. Dig in an see what is going on with when setup is called
+            in relation to the rest of init.
+
         Args:
             functional_groups: The list of animal functional groups present in the
                 simulation.
@@ -470,6 +474,8 @@ class AnimalModel(
 
         self.active_cohorts = {}
         self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
+        self.migrated_cohorts = {}
+        self.aquatic_cohorts = {}
 
         self.target_cohorts_per_fg = len(self.data.grid.cell_id)
         """The target number of cohorts per functional group in each grid cell."""
