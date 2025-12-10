@@ -404,6 +404,10 @@ class AnimalModel(
         Microbial stoichiometries have to be supplied so that the availability of
         nutrients to soil consuming taxa can be found.
 
+        TODO: There are concerns about the sequence of method calls that fixed the
+            active_cohorts bug. Dig in an see what is going on with when setup is called
+            in relation to the rest of init.
+
         Args:
             functional_groups: The list of animal functional groups present in the
                 simulation.

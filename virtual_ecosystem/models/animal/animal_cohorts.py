@@ -846,6 +846,9 @@ class AnimalCohort:
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
+        TODO: check to see if there is a way to remove 0 indiv prey cohorts before this
+            step.
+
         Args:
             animal_list: A list of animal cohorts that can be consumed by the
                 predator.
@@ -863,6 +866,10 @@ class AnimalCohort:
         total_handling_t = self.calculate_total_handling_time_for_predation()
         N_i = self.individuals
         N_target = target_cohort.individuals
+
+        # If the prey cohort is empty, there is nothing to eat.
+        if N_target <= 0:
+            return 0.0
 
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
