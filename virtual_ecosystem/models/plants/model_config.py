@@ -145,8 +145,8 @@ class PlantsExportConfig(Configuration):
     required_data: tuple[
         Literal["cohorts", "community_canopy", "stem_canopy"], ...
     ] = ()
-    """A list of the required data files to be exported, using `cohorts`,
-    `community_canopy` and `stem_canopy`."""
+    """A list of the strings giving the required plant data types to be exported. The 
+    accepted values are "cohorts", "community_canopy" and "stem_canopy"."""
     cohort_attributes: tuple[str, ...] = ()
     """A list of the cohort attributes that should be exported."""
     community_canopy_attributes: tuple[str, ...] = ()

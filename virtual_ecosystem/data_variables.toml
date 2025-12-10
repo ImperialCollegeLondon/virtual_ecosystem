@@ -175,6 +175,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Conductive flux between soil and understorey"
+name = "conductive_flux_understorey"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Groundwater Storage"
 name = "groundwater_storage"
 unit = "mm"
@@ -352,6 +359,13 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Aerodynamic resistance canopy"
 name = "aerodynamic_resistance_canopy"
+unit = "s m-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Aerodynamic resistance understorey"
+name = "aerodynamic_resistance_understorey"
 unit = "s m-1"
 variable_type = "float"
 

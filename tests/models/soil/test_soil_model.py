@@ -41,6 +41,8 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_p_pool_labile' checked"),
     (DEBUG, "soil model: required var 'pH' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
+    (DEBUG, "soil model: required var 'matric_potential' checked"),
+    (DEBUG, "soil model: required var 'mean_annual_temperature' checked"),
 )
 POST_SETUP_LOG = (
     *REQUIRED_INIT_VAR_LOG,
@@ -76,6 +78,9 @@ def test_soil_model_initialization(
         enzyme_classes=enzyme_classes,
         soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
         soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
+        air_entry_potential_inverse=fixture_hydrology_constants.air_entry_potential_inverse,
+        van_genuchten_nonlinearily_parameter=fixture_hydrology_constants.van_genuchten_nonlinearily_parameter,
+        m_to_kpa=fixture_hydrology_constants.m_to_kpa,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -162,6 +167,9 @@ def test_soil_model_initialization_bounds_error(
             enzyme_classes=enzyme_classes,
             soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
             soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
+            air_entry_potential_inverse=fixture_hydrology_constants.air_entry_potential_inverse,
+            van_genuchten_nonlinearily_parameter=fixture_hydrology_constants.van_genuchten_nonlinearily_parameter,
+            m_to_kpa=fixture_hydrology_constants.m_to_kpa,
         )
 
     # Final check that expected logging entries are produced
@@ -195,6 +203,9 @@ def test_soil_model_all_pools_positive(
         enzyme_classes=enzyme_classes,
         soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
         soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
+        air_entry_potential_inverse=fixture_hydrology_constants.air_entry_potential_inverse,
+        van_genuchten_nonlinearily_parameter=fixture_hydrology_constants.van_genuchten_nonlinearily_parameter,
+        m_to_kpa=fixture_hydrology_constants.m_to_kpa,
     )
 
     assert soil_model._all_pools_positive()
@@ -306,7 +317,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
 
     # And fungal fruiting body production to test that step
     fruiting_body_production = [2.0235824e-6, 2.6018971e-4, 4.7134783e-4, 3.9772191e-4]
-    production_rate = [1.618865952e-5, 0.00208151768, 0.00377078264, 0.003181775276]
+    production_rate = [1.01179122e-6, 0.000130094855, 0.000235673915, 0.00019886095475]
 
     mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
@@ -564,6 +575,7 @@ def test_order_independance(
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
         "decay_of_fungal_fruiting_bodies",
+        "mean_annual_temperature",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
@@ -684,7 +696,7 @@ def test_convert_fruiting_body_production_to_rate(fixture_soil_model):
         [2.02358244e-6, 0.00026018971, 0.00047134783, 0.0003977219095]
     )
 
-    expected_rate = [1.618865952e-5, 0.00208151768, 0.00377078264, 0.003181775276]
+    expected_rate = [1.01179122e-6, 0.000130094855, 0.000235673915, 0.00019886095475]
 
     actual_rate = fixture_soil_model.convert_fruiting_body_production_to_rate(
         total_production=total_production
@@ -749,9 +761,9 @@ def test_calculate_dissolved_nutrient_concentrations_negative(fixture_soil_model
         ),
         pytest.param(
             {
-                "ecto_supply_limit_n": [0.0, 0.0004152, 0.0, 0.00160258],
+                "ecto_supply_limit_n": [0.0, 0.00033416, 0.0, 0.0],
                 "ecto_supply_limit_p": [0.0, 0.0, 0.0, 0.0],
-                "arbuscular_supply_limit_n": [0.0, 0.00046239, 0.0, 0.00384278],
+                "arbuscular_supply_limit_n": [0.0, 0.00037213, 0.0, 0.0],
                 "arbuscular_supply_limit_p": [0.0, 0.0, 0.0, 0.0],
             },
             True,

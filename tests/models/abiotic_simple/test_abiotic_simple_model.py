@@ -213,6 +213,7 @@ def test_setup(
         "atmospheric_pressure",
         "atmospheric_co2",
         "wind_speed",
+        "net_radiation",
     ]:
         assert var in model.data
 
@@ -244,10 +245,22 @@ def test_setup(
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 
     exp_netrad = lyr_strct.from_template()
-    exp_netrad[lyr_strct.index_flux_layers] = [
+    exp_netrad[lyr_strct.index_filled_canopy] = [
         [449.955469, 449.955309, 449.955149, np.nan],
         [449.958399, 449.957284, np.nan, np.nan],
         [449.96307, np.nan, np.nan, np.nan],
-        [449.990086, 449.988875, 449.987557, 449.987557],
     ]
+    exp_netrad[lyr_strct.index_surface_scalar] = [
+        449.984934,
+        449.977546,
+        449.967725,
+        449.954989,
+    ]
+    exp_netrad[lyr_strct.index_topsoil_scalar] = [
+        449.990086,
+        449.988875,
+        449.987557,
+        449.986126,
+    ]
+
     xr.testing.assert_allclose(model.data["net_radiation"], exp_netrad)

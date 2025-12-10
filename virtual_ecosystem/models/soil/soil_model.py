@@ -94,6 +94,8 @@ class SoilModel(
         "soil_p_pool_labile",
         "pH",
         "clay_fraction",
+        "matric_potential",
+        "mean_annual_temperature",
     ),
     vars_populated_by_init=(
         "dissolved_nitrate",
@@ -315,7 +317,7 @@ class SoilModel(
         self.microbial_groups = microbial_groups
         self.enzyme_classes = enzyme_classes
 
-        # Store the two required hydrology constants
+        # Store the required hydrology constants
         self.soil_moisture_saturation = soil_moisture_saturation
         self.soil_moisture_residual = soil_moisture_residual
 
@@ -557,10 +559,8 @@ class SoilModel(
 
         return {
             "production_of_fungal_fruiting_bodies": total_production
-            / (
-                self.core_constants.max_depth_of_microbial_activity
-                * self.model_timing.update_interval_quantity.to("days").magnitude
-            )
+            * self.core_constants.max_depth_of_microbial_activity
+            / self.model_timing.update_interval_quantity.to("days").magnitude
         }
 
     def calculate_dissolved_nutrient_concentrations(self) -> dict[str, DataArray]:
@@ -628,13 +628,10 @@ class SoilModel(
         converted from the per volume units used in the soil model, to the per area
         units used in the plant model.
 
-        TODO - These supply limits can only be properly calculated once the soil
-        temperature and matric potential are known. At present these are only found once
-        the abiotic and hydrology models (respectively), are updated. Instead a
-        temperature of 25C and optimal water potential (set in the constants) are used.
-        Down the line we need to decide whether this inaccuracy is acceptable, or
-        whether the stage at which basic abiotic information gets calculated needs to
-        change.
+        TODO - In model initialisation, the annual mean temperature is used as an
+        estimate of the soil temperature as soil temperatures are not yet known. This
+        issue won't be resolved until we have decided what we are doing about model spin
+        up
 
         Args:
             init: A boolean specifying whether this function is being called as part of
@@ -647,30 +644,26 @@ class SoilModel(
         """
 
         if not init:
-            # Average soil temperature and water potential over the microbially active
-            # layers, and then use to calculate the environmental factors
-            soil_water_potential = (
-                average_water_potential_over_microbially_active_layers(
-                    water_potentials=self.data["matric_potential"],
+            averaged_soil_temperature = (
+                average_temperature_over_microbially_active_layers(
+                    soil_temperatures=self.data["soil_temperature"],
+                    surface_temperature=self.data["air_temperature"][
+                        self.layer_structure.index_surface_scalar
+                    ].to_numpy(),
                     layer_structure=self.layer_structure,
                 )
             )
-            soil_temperature = average_temperature_over_microbially_active_layers(
-                soil_temperatures=self.data["soil_temperature"],
-                surface_temperature=self.data["air_temperature"][
-                    self.layer_structure.index_surface_scalar
-                ].to_numpy(),
-                layer_structure=self.layer_structure,
-            )
         else:
-            # Want to establish the maximum for optimal conditions, so use the water
-            # potential optimum from the constants, and arbitrarily select a soil
-            # temperature of 25C as "optimal"
-            soil_temperature = np.full_like(self.data["pH"].to_numpy(), 25.0)
-            soil_water_potential = np.full_like(
-                self.data["pH"].to_numpy(),
-                self.model_constants.soil_microbe_water_potential_optimum,
-            )
+            # As soil temperature hasn't be calculated yet we assume that it matches the
+            # mean annual temperature (a common assumption for deeper soil layers)
+            averaged_soil_temperature = self.data["mean_annual_temperature"].to_numpy()
+
+        # Average soil temperature and water potential over the microbially active
+        # layers, and then use to calculate the environmental factors
+        soil_water_potential = average_water_potential_over_microbially_active_layers(
+            water_potentials=self.data["matric_potential"],
+            layer_structure=self.layer_structure,
+        )
 
         env_factors = calculate_environmental_effect_factors(
             soil_water_potential=soil_water_potential,
@@ -687,7 +680,7 @@ class SoilModel(
             soil_p_pool_dop=self.data["soil_p_pool_dop"].to_numpy(),
             soil_p_pool_labile=self.data["soil_p_pool_labile"].to_numpy(),
             microbe_pool_size=self.data["soil_c_pool_ectomycorrhiza"].to_numpy(),
-            soil_temp=soil_temperature,
+            soil_temp=averaged_soil_temperature,
             microbial_group=self.microbial_groups["ectomycorrhiza"],
             env_factors=env_factors,
         )
@@ -699,7 +692,7 @@ class SoilModel(
             soil_p_pool_dop=self.data["soil_p_pool_dop"].to_numpy(),
             soil_p_pool_labile=self.data["soil_p_pool_labile"].to_numpy(),
             microbe_pool_size=self.data["soil_c_pool_arbuscular_mycorrhiza"].to_numpy(),
-            soil_temp=soil_temperature,
+            soil_temp=averaged_soil_temperature,
             microbial_group=self.microbial_groups["arbuscular_mycorrhiza"],
             env_factors=env_factors,
         )

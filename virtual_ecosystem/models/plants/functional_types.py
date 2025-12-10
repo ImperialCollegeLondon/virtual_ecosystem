@@ -5,6 +5,8 @@ generate a :class:`~pyrealm.demography.flora.Flora` object for use in simulation
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 import pandas as pd
 from pyrealm.demography.flora import Flora
 
@@ -21,6 +23,20 @@ class ExtraTraitsPFT:
     {'pft_name': {'trait_name': trait_value, ...},
      'pft_name_2': {'trait_name': trait_value, ...}, ...}
     """
+
+    array_attrs: ClassVar[tuple[str, ...]] = (
+        "deadwood_c_n_ratio",
+        "deadwood_c_p_ratio",
+        "leaf_turnover_c_n_ratio",
+        "leaf_turnover_c_p_ratio",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "root_turnover_c_p_ratio",
+        "root_turnover_c_n_ratio",
+        "foliage_c_n_ratio",
+        "foliage_c_p_ratio",
+    )
+    """Additional array attributes accepted by the ExtraTraitsPFT class."""
 
     traits: dict[str, dict[str, float]]
 
@@ -69,19 +85,6 @@ def get_flora_from_config(config: PlantsConfiguration) -> tuple[Flora, ExtraTrai
         and an :class:`ExtraTraitsPFT` instance.
     """
 
-    extra_traits = [
-        "deadwood_c_n_ratio",
-        "deadwood_c_p_ratio",
-        "leaf_turnover_c_n_ratio",
-        "leaf_turnover_c_p_ratio",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
-        "root_turnover_c_p_ratio",
-        "root_turnover_c_n_ratio",
-        "foliage_c_n_ratio",
-        "foliage_c_p_ratio",
-    ]
-
     # Read the file, handling file IO and parsing errors.
     try:
         df = pd.read_csv(config.pft_definitions_path)
@@ -89,10 +92,10 @@ def get_flora_from_config(config: PlantsConfiguration) -> tuple[Flora, ExtraTrai
         raise excep
 
     # Split into pyrealm PFT traits and VE extra traits
-    extra_traits_columns = [*extra_traits, "name"]
+    extra_traits_columns = [*ExtraTraitsPFT.array_attrs, "name"]
     extra_traits_data = df[extra_traits_columns]
     extra_traits_model = ExtraTraitsPFT.from_df(df=extra_traits_data)
-    pft_traits = df.drop(columns=extra_traits)
+    pft_traits = df.drop(columns=list(ExtraTraitsPFT.array_attrs))
     pft_data = {"pft": pft_traits.to_dict(orient="records")}
 
     return Flora._from_file_data(pft_data), extra_traits_model

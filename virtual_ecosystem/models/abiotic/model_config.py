@@ -53,13 +53,12 @@ class AbioticConstants(AbioticSharedConstants):
     Implementation after :cite:t:`maclean_microclimc_2021`, value is taken from
     :cite:t:`raupach_simplified_1994`."""
 
-    substrate_surface_drag_coefficient: float = 0.003
-    """Substrate-surface drag coefficient, dimensionless.
+    substrate_surface_roughness_length: float = 0.003
+    """Substrate-surface roughness length, m.
 
-    The substrate-surface drag coefficient represents the resistance encountered by an
-    object moving on or through a surface and varies based on the nature of the
-    surface and the object's properties. Here, it affects how wind speed is altered by a
-    surface. Implementation and value from :cite:t:`maclean_microclimc_2021`."""
+    The substrate-surface roughness length is the "baseline roughness" of the ground
+    itself before adding vegetation on top. Implementation and value from
+    :cite:t:`maclean_microclimc_2021`."""
 
     roughness_element_drag_coefficient: float = 0.3
     """Roughness-element drag coefficient, dimensionless.
@@ -156,6 +155,34 @@ class AbioticConstants(AbioticSharedConstants):
 
     initial_flux_value: float = 0.001
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
+
+    aerodynamic_resistance_canopy_default: float = 12.5
+    """Default aerodynamic resistance of the canopy, [s m-1]."""
+
+    coefficient_aerodynamic_resistance_understorey: float = 33.0
+    """Coefficient for aerodynamic resistance of the understorey, [s m-1].
+    
+    Value from :cite:t:`ogee_a_forest_2002`"""
+
+    understorey_thermal_conductivity: float = 10.0
+    """Thermal conductivity of the understorey layer, [W m-1 K-1].
+    
+    Represents heat transfer through litter or herbaceous material to the soil.
+    TODO find value from literature."""
+
+    specific_heat_capacity_understorey: float = 3500.0
+    """Specific heat capacity of the understorey vegetation, [J kg-1 K-1].
+
+    This represents the amount of heat energy required to raise the temperature
+    of one kilogram of understorey vegetation (leaves, stems, small herbaceous plants)
+    by 1 Kelvin. Value estimated from :cite:t:`zhang_a_simple_2025`.
+    """
+
+    leaf_mass_per_area_understorey: float = 0.070
+    """Leaf mass per area of understorey vegetation, [kg m-2]
+    
+    Values roughly estimated based on :cite:t:`poorter_causes_2009`.
+    """
 
 
 class AbioticConfiguration(ModelConfigurationRoot):
