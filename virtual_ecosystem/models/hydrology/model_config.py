@@ -216,3 +216,4 @@ class HydrologyConfiguration(ModelConfigurationRoot):
     initial_groundwater_saturation: float = Field(ge=0, le=1, default=0.9)
     """Initial ground water saturation for all layers, unitless"""
     constants: HydrologyConstants = HydrologyConstants()
+    """Constants values for hydrology model."""

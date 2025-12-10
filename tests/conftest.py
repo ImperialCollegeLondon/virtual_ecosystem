@@ -573,6 +573,7 @@ def dummy_climate_data(fixture_core_components):
     # Structural variables - assign values to vertical layer indices across grid id
     data["leaf_area_index"] = from_template()
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
+    data["leaf_area_index"][lyr_str.index_surface_scalar] = 1.0
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
@@ -612,7 +613,7 @@ def dummy_climate_data(fixture_core_components):
         [0.14, 0.2, 0.2, 0.2, 0.14]
     )[:, None]
 
-    flux_index = np.logical_or(lyr_str.index_above, lyr_str.index_flux_layers)
+    flux_index = np.logical_or(lyr_str.index_surface_scalar, lyr_str.index_flux_layers)
 
     data["shortwave_absorption"] = from_template()
     data["shortwave_absorption"][flux_index] = 450.0
@@ -624,7 +625,7 @@ def dummy_climate_data(fixture_core_components):
     data["latent_heat_flux"][flux_index] = 0.0
 
     data["net_radiation"] = from_template()
-    data["net_radiation"][lyr_str.index_flux_layers] = 20.0
+    data["net_radiation"][flux_index] = 20.0
 
     data["molar_density_air"] = from_template()
     data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0
@@ -650,27 +651,32 @@ def dummy_climate_data(fixture_core_components):
 
     data["canopy_temperature"] = from_template()
     data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0
+    data["canopy_temperature"][lyr_str.index_surface_scalar] = 25.0
 
     data["canopy_evaporation"] = from_template()
     data["canopy_evaporation"][lyr_str.index_filled_canopy] = 10.0
+    data["canopy_evaporation"][lyr_str.index_surface_scalar] = 10.0
 
     data["leaf_air_heat_conductivity"] = from_template()
     data["leaf_air_heat_conductivity"][lyr_str.index_filled_canopy] = 0.13
+    data["leaf_air_heat_conductivity"][lyr_str.index_surface_scalar] = 0.13
 
     data["leaf_vapour_conductivity"] = from_template()
     data["leaf_vapour_conductivity"][lyr_str.index_filled_canopy] = 0.2
+    data["leaf_vapour_conductivity"][lyr_str.index_surface_scalar] = 0.2
 
     data["conductivity_from_ref_height"] = from_template()
     data["conductivity_from_ref_height"][
-        np.logical_or(lyr_str.index_filled_canopy, lyr_str.index_surface)
+        np.logical_or(lyr_str.index_filled_canopy, lyr_str.index_surface_scalar)
     ] = 3.0
 
     data["stomatal_conductance"] = from_template()
     data["stomatal_conductance"][lyr_str.index_filled_canopy] = 15.0
+    data["stomatal_conductance"][lyr_str.index_surface_scalar] = 15.0
 
     # Hydrology
     data["transpiration"] = from_template()
-    data["transpiration"][lyr_str.index_filled_canopy] = 20.0
+    data["transpiration"][lyr_str.index_filled_canopy] = 20.0  # TODO add understorey
 
     data["soil_moisture"] = from_template()
     data["soil_moisture"][lyr_str.index_all_soil] = np.array([5.0, 500.0])[:, None]
@@ -729,14 +735,11 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [96.157312, np.nan, np.nan, np.nan],
     ]
 
-    sw_indexes = [1, 2, 3, 13]
-    dummy_climate_data["shortwave_absorption"][sw_indexes] = [
+    dummy_climate_data["shortwave_absorption"][index_filled_canopy] = [
         [450.0, 450.0, 450.0, np.nan],
         [450.0, 450.0, np.nan, np.nan],
         [450.0, np.nan, np.nan, np.nan],
-        [450.0, 450.0, 450.0, 450],
     ]
-    # dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
 
     dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
         [0.14, 0.14, 0.14, 0.14],
@@ -757,11 +760,10 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [0.0, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["net_radiation"][lyr_str.index_flux_layers] = [
+    dummy_climate_data["net_radiation"][lyr_str.index_filled_canopy] = [
         [20.0, 20.0, 20.0, np.nan],
         [20.0, 20.0, np.nan, np.nan],
         [20.0, np.nan, np.nan, np.nan],
-        [20.0, 20.0, 20.0, 20.0],
     ]
 
     dummy_climate_data["attenuation_coefficient"][index_filled_canopy] = [

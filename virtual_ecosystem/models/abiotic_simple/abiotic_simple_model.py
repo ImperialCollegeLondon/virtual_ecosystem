@@ -183,6 +183,9 @@ class AbioticSimpleModel(
         self.data["net_radiation"][self.layer_structure.index_flux_layers] = (
             self.model_constants.initial_net_radiation
         )
+        self.data["net_radiation"][self.layer_structure.index_surface_scalar] = (
+            self.model_constants.initial_net_radiation
+        )
 
         # calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
