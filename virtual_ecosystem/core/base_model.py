@@ -256,7 +256,7 @@ class BaseModel(ABC):
         self.check_init_data()
         # Check the configured update interval is within model bounds
         self._check_update_speed()
-        # Check static configuration
+        # Set the static configuration settings
         self._set_static_config()
 
     def _set_static_config(self):

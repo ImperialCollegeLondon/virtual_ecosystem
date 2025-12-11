@@ -87,7 +87,8 @@ class AbioticSimpleModel(
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
-        **kwargs: Any,
+        model_configuration: AbioticSimpleConfiguration = AbioticSimpleConfiguration(),
+        pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
     ):
         """Abiotic simple init.
 
@@ -95,7 +96,7 @@ class AbioticSimpleModel(
         handled in :fun:`~virtual_ecosystem.abiotic_simple.abiotic_simple_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
 
         self.model_constants: AbioticSimpleConstants
         """Set of constants for the abiotic simple model"""
@@ -104,55 +105,17 @@ class AbioticSimpleModel(
         self.pyrealm_core_constants: PyrealmCoreConst
         """Core constants for the pyrealm package."""
 
-    @classmethod
-    def from_config(
-        cls,
-        data: Data,
-        configuration: CompiledConfiguration,
-        core_components: CoreComponents,
-    ) -> AbioticSimpleModel:
-        """Factory function to initialise the abiotic simple model from configuration.
-
-        This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance an error is raised.
-
-        Args:
-            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-            configuration: A validated Virtual Ecosystem model configuration object.
-            core_components: The core components used across models.
-        """
-
-        # Extract the validated model configuration from the complete compiled
-        # configuration
-        model_configuration: AbioticSimpleConfiguration = (
-            configuration.get_subconfiguration(
-                "abiotic_simple", AbioticSimpleConfiguration
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
+                model_configuration=model_configuration,
+                pyrealm_core_constants=pyrealm_core_constants,
             )
-        )
-
-        # Core configuration
-        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
-            "core", CoreConfiguration
-        )
-
-        LOGGER.info(
-            "Information required to initialise the abiotic simple model successfully "
-            "extracted."
-        )
-        return cls(
-            data=data,
-            core_components=core_components,
-            static=model_configuration.static,
-            model_configuration=model_configuration,
-            pyrealm_core_constants=core_configuration.pyrealm.core,
-        )
 
     def _setup(
         self,
         model_configuration: AbioticSimpleConfiguration,
         pyrealm_core_constants: PyrealmCoreConst,
-        **kwargs,
     ) -> None:
         """Function to set up the abiotic simple model.
 
@@ -199,6 +162,50 @@ class AbioticSimpleModel(
         self.data["vapour_pressure_ref"] = vapour_pressure_and_deficit[
             "vapour_pressure"
         ]
+
+    @classmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+    ) -> AbioticSimpleModel:
+        """Factory function to initialise the abiotic simple model from configuration.
+
+        This function unpacks the relevant information from the configuration file, and
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance an error is raised.
+
+        Args:
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
+            core_components: The core components used across models.
+        """
+
+        # Extract the validated model configuration from the complete compiled
+        # configuration
+        model_configuration: AbioticSimpleConfiguration = (
+            configuration.get_subconfiguration(
+                "abiotic_simple", AbioticSimpleConfiguration
+            )
+        )
+
+        # Core configuration
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+
+        LOGGER.info(
+            "Information required to initialise the abiotic simple model successfully "
+            "extracted."
+        )
+        return cls(
+            data=data,
+            core_components=core_components,
+            static=model_configuration.static,
+            model_configuration=model_configuration,
+            pyrealm_core_constants=core_configuration.pyrealm.core,
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""

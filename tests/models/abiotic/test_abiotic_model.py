@@ -11,7 +11,7 @@ from xarray import DataArray
 
 from tests.conftest import (
     log_check,
-    patch_bypass_setup,
+    patch_run_setup,
     patch_run_update,
     patch_static_config,
 )
@@ -57,16 +57,16 @@ def test_abiotic_model_initialization(
     # Initialize model
     with (
         patch_run_update(AbioticModel) as mock_update,
-        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
+        patch_run_setup(AbioticModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         model = AbioticModel(
             dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
             model_constants=fixture_abiotic_constants,
         )
         mock_update.assert_called_once()
-        mock_bypass_setup.assert_called_once()
+        mock_run_setup.assert_called_once()
 
     # In cases where it passes then checks that the object has the right properties
     assert isinstance(model, BaseModel)
@@ -188,10 +188,10 @@ def test_generate_abiotic_model(
     object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
     with (
         patch_run_update(AbioticModel) as mock_update,
-        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
+        patch_run_setup(AbioticModel) as mock_run_setup,
         patch(f"{object_to_patch}._setup") as mock_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         # Check whether model is initialised (or not) as expected
         with raises:
             AbioticModel.from_config(
@@ -200,7 +200,7 @@ def test_generate_abiotic_model(
                 core_components=core_components,
             )
             mock_setup.assert_called_once()
-            mock_bypass_setup.assert_called_once()
+            mock_run_setup.assert_called_once()
             mock_update.assert_called_once()
 
     # Final check that expected logging entries are produced
@@ -255,9 +255,9 @@ def test_generate_abiotic_model_bounds_error(
     # Check whether model is initialised (or not) as expected
     with (
         patch_run_update(AbioticModel),
-        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
+        patch_run_setup(AbioticModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         with raises:
             _ = AbioticModel.from_config(
                 data=dummy_climate_data_varying_canopy,
@@ -281,9 +281,9 @@ def test_setup_abiotic_model(
     # initialise model
     with (
         patch_run_update(AbioticModel),
-        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
+        patch_run_setup(AbioticModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         model = AbioticModel(
             data=dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,

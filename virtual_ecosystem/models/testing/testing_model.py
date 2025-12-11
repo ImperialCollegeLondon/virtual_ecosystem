@@ -36,7 +36,6 @@ class TestingModel(
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
-        **kwargs: Any,
     ):
         """Plants init function.
 
@@ -44,7 +43,7 @@ class TestingModel(
         handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
 
     @classmethod
     def from_config(
@@ -80,7 +79,7 @@ class TestingModel(
         LOGGER.info("Testing model instance generated from configuration.")
         return inst
 
-    def _setup(self, **kwargs: Any) -> None:
+    def _setup(self) -> None:
         """Placeholder function to setup the testing model."""
 
     def spinup(self) -> None:

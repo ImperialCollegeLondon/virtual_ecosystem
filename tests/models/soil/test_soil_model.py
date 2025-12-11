@@ -78,9 +78,6 @@ def test_soil_model_initialization(
         enzyme_classes=enzyme_classes,
         soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
         soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
-        air_entry_potential_inverse=fixture_hydrology_constants.air_entry_potential_inverse,
-        van_genuchten_nonlinearily_parameter=fixture_hydrology_constants.van_genuchten_nonlinearily_parameter,
-        m_to_kpa=fixture_hydrology_constants.m_to_kpa,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -98,7 +95,12 @@ def test_soil_model_initialization(
 
 
 def test_soil_model_initialization_no_data(
-    caplog, fixture_soil_constants, fixture_hydrology_constants, fixture_core_components
+    caplog,
+    fixture_soil_constants,
+    fixture_hydrology_constants,
+    fixture_core_components,
+    functional_groups,
+    enzyme_classes,
 ):
     """Test `SoilModel` initialization with no data."""
     from virtual_ecosystem.core.data import Data
@@ -115,6 +117,8 @@ def test_soil_model_initialization_no_data(
             data=empty_data,
             core_components=fixture_core_components,
             model_constants=fixture_soil_constants,
+            microbial_groups=functional_groups,
+            enzyme_classes=enzyme_classes,
             soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
             soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
         )
@@ -167,9 +171,6 @@ def test_soil_model_initialization_bounds_error(
             enzyme_classes=enzyme_classes,
             soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
             soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
-            air_entry_potential_inverse=fixture_hydrology_constants.air_entry_potential_inverse,
-            van_genuchten_nonlinearily_parameter=fixture_hydrology_constants.van_genuchten_nonlinearily_parameter,
-            m_to_kpa=fixture_hydrology_constants.m_to_kpa,
         )
 
     # Final check that expected logging entries are produced
@@ -203,9 +204,6 @@ def test_soil_model_all_pools_positive(
         enzyme_classes=enzyme_classes,
         soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
         soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
-        air_entry_potential_inverse=fixture_hydrology_constants.air_entry_potential_inverse,
-        van_genuchten_nonlinearily_parameter=fixture_hydrology_constants.van_genuchten_nonlinearily_parameter,
-        m_to_kpa=fixture_hydrology_constants.m_to_kpa,
     )
 
     assert soil_model._all_pools_positive()
