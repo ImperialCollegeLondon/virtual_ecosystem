@@ -37,9 +37,13 @@ class AbioticModel(
     model_update_bounds=("1 hour", "1 month"),
     vars_required_for_init=(
         "air_temperature_ref",
-        "relative_humidity_ref",
-        "leaf_area_index",
+        "atmospheric_co2_ref",
+        "atmospheric_pressure_ref",
         "layer_heights",
+        "leaf_area_index",
+        "mean_annual_temperature",
+        "relative_humidity_ref",
+        "shortwave_absorption",
         "wind_speed_ref",
     ),
     vars_updated=(
@@ -74,6 +78,8 @@ class AbioticModel(
         "shortwave_absorption",
         "aerodynamic_resistance_surface",
         "soil_evaporation",
+        "canopy_evaporation",
+        "transpiration",
     ),
     vars_populated_by_init=(
         "soil_temperature",

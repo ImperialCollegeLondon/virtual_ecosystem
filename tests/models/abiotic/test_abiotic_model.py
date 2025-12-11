@@ -13,15 +13,18 @@ from tests.conftest import (
     log_check,
     patch_run_setup,
     patch_run_update,
-    patch_static_config,
 )
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 REQUIRED_INIT_VAR_CHECKS = (
     (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
-    (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
-    (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
+    (DEBUG, "abiotic model: required var 'atmospheric_co2_ref' checked"),
+    (DEBUG, "abiotic model: required var 'atmospheric_pressure_ref' checked"),
     (DEBUG, "abiotic model: required var 'layer_heights' checked"),
+    (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
+    (DEBUG, "abiotic model: required var 'mean_annual_temperature' checked"),
+    (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
+    (DEBUG, "abiotic model: required var 'shortwave_absorption' checked"),
     (DEBUG, "abiotic model: required var 'wind_speed_ref' checked"),
 )
 
@@ -103,29 +106,16 @@ def test_abiotic_model_initialization_no_data(
         )
 
     # Final check that expected logging entries are produced
+
+    expected_var_warnings = (
+        (ERROR, f"abiotic model: init data missing required var '{var}'")
+        for var in AbioticModel.vars_required_for_init
+    )
+
     log_check(
         caplog,
         expected_log=(
-            (
-                ERROR,
-                "abiotic model: init data missing required var 'air_temperature_ref'",
-            ),
-            (
-                ERROR,
-                "abiotic model: init data missing required var 'relative_humidity_ref'",
-            ),
-            (
-                ERROR,
-                "abiotic model: init data missing required var 'leaf_area_index'",
-            ),
-            (
-                ERROR,
-                "abiotic model: init data missing required var 'layer_heights'",
-            ),
-            (
-                ERROR,
-                "abiotic model: init data missing required var 'wind_speed_ref'",
-            ),
+            *expected_var_warnings,
             (ERROR, "abiotic model: error checking vars_required_for_init, see log."),
         ),
     )
@@ -274,20 +264,20 @@ def test_setup_abiotic_model(
 ):
     """Test that setup() returns expected output in data object."""
 
+    from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
     lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
-    with (
-        patch_run_update(AbioticModel),
-        patch_run_setup(AbioticModel) as mock_run_setup,
-    ):
-        mock_run_setup.return_value = True
-        model = AbioticModel(
-            data=dummy_climate_data_varying_canopy,
-            core_components=fixture_core_components,
-        )
+    init_data = Data(grid=dummy_climate_data_varying_canopy.grid)
+    for var in AbioticModel.vars_required_for_init:
+        init_data[var] = dummy_climate_data_varying_canopy[var]
+
+    model = AbioticModel(
+        data=init_data,
+        core_components=fixture_core_components,
+    )
 
     # check all variables are in data object
     for var in [
@@ -351,17 +341,13 @@ def test_setup_abiotic_model(
         expected_vals[lyr_strct.index_topsoil_scalar] = 0.001
         xr.testing.assert_allclose(model.data[var], expected_vals)
 
-    # initialise model
-    with patch_static_config(AbioticModel) as mock_static_config:
-        mock_static_config.return_value = False, False
-        model = AbioticModel(
-            data=dummy_climate_data_varying_canopy,
-            core_components=fixture_core_components,
-        )
+    # add update data
+    for var in AbioticModel.vars_required_for_update:
+        model.data[var] = dummy_climate_data_varying_canopy[var]
 
-        model.update(time_index=0)
+    model.update(time_index=0)
 
-        # Check that values fall within a reasonable expected range
+    # Check that values fall within a reasonable expected range
     soil_temps = model.data["soil_temperature"].isel(layers=lyr_strct.index_all_soil)
 
     # To test with varying canopy layers, need to mask
