@@ -121,17 +121,29 @@ installations. These tools allow you to manage multiple different python version
 parallel and to switch between them. However, these extra steps are not necessary to get
 started.
 
+```sh
+# pyenv and poetry use sqlite3. You _may_ need to install these requirements first.
+sudo apt install sqlite3 sqlite3-doc libsqlite3-dev
+
+# Install pyenv to manage parallel python environments
+curl https://pyenv.run | bash
+
+# Install python
+pyenv install 3.11
+```
+
 ### Package management
 
 We use [`poetry`](https://python-poetry.org/docs/#installation) for dependency
 management and for managing development environments and you will need to install it.
-The `virtual_ecosystem` package currently uses `poetry` version 1.8.2 and you should
+The `virtual_ecosystem` package currently requires `poetry` version 2.0 or newer so you should
 specify this when installing to avoid conflicts with the package management process.
 
-For the typical installation process, this would be as simple as:
+For the typical installation process for the latest poetry version,
+this would be as simple as:
 
 ```sh
-curl -SSL https://install.python-poetry.org | python3 - --version 1.8.2
+curl -SSL https://install.python-poetry.org | python3
 ```
 
 ### Installing `virtual_ecosystem`
@@ -141,6 +153,15 @@ and then clone the `virtual_ecosystem` GitHub repository.
 
 ```sh
 git clone https://github.com/ImperialCollegeLondon/virtual_ecosystem.git
+
+# Move to your project directory
+cd virtual_ecosystem
+
+# Activate Python 3.11 for the current project
+pyenv local 3.11
+
+# Configure Python 3.11 as python interpreter for the virtual environment
+poetry env use 3.11
 ```
 
 You can now use `poetry` to install the package dependencies. This is not just the
@@ -525,18 +546,24 @@ and different developers. However, when you are working on the command line, you
 use the `virtual_ecosystem` environment - and that is pretty much everything described
 in this document. There are two options to do this:
 
-1. You can add `poetry run` before a command to make sure that single command is run
-   using the `poetry` environment. This approach is used in the example commands below.
-1. You can use `poetry shell` to start a new shell that uses this environment: you can
-   then run commands without needing `poetry run` and they should use the correct
-   environment. This is usually more convenient.
-
-You should now be able to run the following command to see that `virtual_ecosystem` is
-installed and is showing the current version.
+You can add `poetry run` before a command to make sure that single command is run
+using the `poetry` environment. This approach is used in the example commands below.
 
 ```sh
 poetry run python -c "import virtual_ecosystem; print(virtual_ecosystem.__version__)"
 ```
+
+Alternatively, you can use `poetry env activate` to start a new shell that
+uses this environment: you can then run commands without needing `poetry run` and they
+should use the correct  environment. This is usually more convenient.
+
+```sh
+eval $(poetry env activate)
+pip show virtual-ecosystem
+```
+
+You should now be able to run the following command to see that `virtual_ecosystem` is
+installed and is showing the current version.
 
 You can have parallel virtual environments for different Python versions: the command
 `poetry env list` can be used to show available environments and `poetry env use` can be
@@ -686,7 +713,7 @@ up everything you need, ready to start developing on the `virtual_ecosystem`.
 sudo apt install sqlite3 sqlite3-doc libsqlite3-dev
 
 # install pyenv to manage parallel python environments
-curl <https://pyenv.run> | bash
+curl https://pyenv.run | bash
 
 # Manually edit .bash_profile or .profile to setup pyenv:
 
@@ -698,7 +725,7 @@ curl <https://pyenv.run> | bash
 pyenv install 3.11
 
 # Install poetry
-curl -sSL https://install.python-poetry.org | python3 -
+curl -sSL https://install.python-poetry.org | python3
 
 # Manually add poetry to path in profile file:
 
@@ -707,10 +734,17 @@ curl -sSL https://install.python-poetry.org | python3 -
 # Clone the repository
 git clone https://github.com/ImperialCollegeLondon/virtual_ecosystem.git
 
-# Configure the virtual_ecosystem repo to use python 3.11
+# Move to your project directory
 cd virtual_ecosystem
+
+# Activate Python 3.11 for the current project
 pyenv local 3.11
+
+# Configure Python 3.11 as python interpreter for the virtual environment
 poetry env use 3.11
+
+# Activate the virtual environment for the project
+eval $(poetry env activate)
 
 # Install the package with poetry
 poetry install
