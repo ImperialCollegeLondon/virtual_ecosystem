@@ -61,6 +61,8 @@ class HydrologyModel(
     vars_required_for_init=(
         "layer_heights",
         "elevation",
+        "air_temperature_ref",
+        "atmospheric_pressure_ref",
     ),
     vars_updated=(
         "canopy_evaporation",

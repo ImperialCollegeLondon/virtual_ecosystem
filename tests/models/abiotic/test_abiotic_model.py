@@ -293,7 +293,7 @@ def test_setup_and_update_abiotic_model(
         xr.testing.assert_allclose(model.data[var], expected_vals)
 
     # Add update data to the model data
-    for var in AbioticModel.vars_required_for_update:
+    for var in model.vars_required_for_update:
         model.data[var] = dummy_climate_data_varying_canopy[var]
 
     model.update(time_index=0)
