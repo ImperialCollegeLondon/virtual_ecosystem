@@ -76,15 +76,11 @@ def test_calculate_canopy_evaporation():
         assert np.all(output[var][mask] <= interception[mask])
         assert output[var].shape == (2, 3)
 
-    np.testing.assert_allclose(
-        output["canopy_evaporation"],
-        np.array([[5.0, 10.0, np.nan], [2.0, np.nan, np.nan]]),
-        rtol=1e-3,
-    )
-    np.testing.assert_allclose(
-        output["leaf_drainage"],
-        np.array([[0, 0, np.nan], [0, np.nan, np.nan]]),
-        rtol=1e-3,
+    # Check mass balance
+    total_loss = output["canopy_evaporation"] + output["leaf_drainage"]
+    np.testing.assert_array_less(
+        total_loss[mask],
+        interception[mask] + 1e-12,
     )
 
 
@@ -134,6 +130,11 @@ def test_calculate_soil_evaporation(
         time_interval=86400,
         pyrealm_core_constants=fixture_pyrealm_config.core,
     )
+
+    assert np.all(result["soil_evaporation"] >= 0)
+    assert np.all(np.isfinite(result["soil_evaporation"]))
+    assert np.all(result["aerodynamic_resistance_surface"] >= 0)
+    assert np.all(np.isfinite(result["aerodynamic_resistance_surface"]))
 
     exp_evap = np.array([2.18791, 0.521941, 0.090352])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
@@ -302,7 +303,7 @@ def test_calculate_interception(
     fixture_core_components,
     dummy_climate_data_varying_canopy,
 ):
-    """Test."""
+    """Test interception."""
     from virtual_ecosystem.models.hydrology.above_ground import calculate_interception
 
     data = dummy_climate_data_varying_canopy

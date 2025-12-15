@@ -319,6 +319,8 @@ def calculate_soil_evaporation(
     evaporative_flux = (density_air / aerodynamic_resistance) * (
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
+    # Prevent negative evaporation
+    evaporative_flux = np.maximum(evaporative_flux, 0.0)
 
     output["soil_evaporation"] = (
         (  # Return surface evaporation, [mm]
