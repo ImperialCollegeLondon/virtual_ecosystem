@@ -110,16 +110,20 @@ class AbioticModel(
         data: The data object to be used in the model.
         core_components: The core components used across models.
         model_constants: Set of constants for the abiotic model.
+        pyrealm_core_constants: Additional configuration options to the pyrealm
+                package.
+        bounds: A set of bounds to be applied to abiotic variables.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
-        static: bool = False,
         model_constants: AbioticConstants = AbioticConstants(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
         bounds: AbioticSimpleBounds = AbioticSimpleBounds(),
+        static: bool = False,
     ):
         """Abiotic init function.
 
@@ -158,12 +162,7 @@ class AbioticModel(
         all time steps of the simulation. All variables are added directly to the
         self.data object.
 
-        Args:
-            model_constants: Set of constants for the abiotic model.
-            pyrealm_core_constants: Additional configuration options to the pyrealm
-                package.
-            bounds: A set of bounds to be applied to abiotic variables.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         self.model_constants = model_constants
