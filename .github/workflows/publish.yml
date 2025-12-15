@@ -60,7 +60,7 @@ jobs:
     steps:
       # Download the built package files from the job artifacts
       - name: Download sdist artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: artifact
           path: dist
@@ -90,7 +90,7 @@ jobs:
     steps:
       # Download the built package files from the job artifacts
       - name: Download sdist artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: artifact
           path: dist
