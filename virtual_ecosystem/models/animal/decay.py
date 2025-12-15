@@ -565,7 +565,13 @@ class SoilPool:
                 for bacterial biomass [unitless]
         """
 
-        carbon_stock = data["soil_c_pool_bacteria"].sel(cell_id=self.cell_id).item()
+        carbon_stock = (
+            data["soil_c_pool_bacteria"]
+            .sel(cell_id=self.cell_id)
+            .where(lambda x: x >= 0)
+            .fillna(0)
+            .item()
+        )
 
         # Convert stock (kg m^-3) into mass by multiplying by grid square area and by
         # soil active depth
@@ -602,7 +608,11 @@ class SoilPool:
         """
 
         saprotrophic_stock = (
-            data["soil_c_pool_saprotrophic_fungi"].sel(cell_id=self.cell_id).item()
+            data["soil_c_pool_saprotrophic_fungi"]
+            .sel(cell_id=self.cell_id)
+            .where(lambda x: x >= 0)
+            .fillna(0)
+            .item()
         )
         arbuscular_mycorrhizal_stock = (
             data["soil_c_pool_arbuscular_mycorrhiza"]
