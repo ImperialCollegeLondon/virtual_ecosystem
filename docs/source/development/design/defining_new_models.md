@@ -435,10 +435,10 @@ things, **in this order**:
 
 1. It _must_ call the {meth}`~virtual_ecosystem.core.base_model.BaseModel.__init__`
    method of the {meth}`~virtual_ecosystem.core.base_model.BaseModel` parent class,
-   also known as the superclass
+   also known as the superclass:
 
    ```{code-block} ipython3
-   super().__init__(data, update_interval, **kwargs)
+   super().__init__(data, core_components, static)
    ```
 
    Calling this method runs all of the shared core functionality across models, such as
@@ -475,13 +475,15 @@ You should end up with something like this:
 def __init__(
     self,
     data: Data,
+    core_components: CoreComponents,
     update_interval: pint.Quantity,
     pond_data_path: Path,
     constants: FreshwaterConstants,
+    static: bool = False,
 ):
 
     # Call the __init__() method of the base class
-    super().__init__(data, update_interval)
+    super().__init__(data, core_components, static)
 
     # Type and document attributes
     self.pond_data_path: Path
