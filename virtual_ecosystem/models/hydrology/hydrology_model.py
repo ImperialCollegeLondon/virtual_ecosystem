@@ -63,6 +63,8 @@ class HydrologyModel(
         "elevation",
     ),
     vars_updated=(
+        "interception",
+        "leaf_drainage",
         "canopy_evaporation",
         "precipitation_surface",
         "soil_moisture",
@@ -93,7 +95,6 @@ class HydrologyModel(
         "transpiration",
         "density_air",
         "aerodynamic_resistance_canopy",
-        # "aerodynamic_resistance_understorey",
         "specific_heat_air",
         "stomatal_conductance",
         "net_radiation",
@@ -110,6 +111,8 @@ class HydrologyModel(
         "density_air",
     ),
     vars_populated_by_first_update=(
+        "interception",
+        "leaf_drainage",
         "precipitation_surface",
         "surface_runoff",
         "bypass_flow",
@@ -346,6 +349,8 @@ class HydrologyModel(
         This function calculates the main hydrological components of the Virtual
         Ecosystem and updates the following variables in the `data` object:
 
+        * interception, [mm]
+        * leaf drainage, [mm]
         * canopy_evaporation, [mm]
         * precipitation_surface, [mm]
         * soil_moisture, [mm]
@@ -425,7 +430,10 @@ class HydrologyModel(
         * layer heights, [m]
         * Soil moisture (previous time step), [mm]
         * transpiration (current time step), [mm]
-        * aerodynamic_resistance_canopy, [s m-1]
+        * density of air, [kg m-3]
+        * specific heat of air, [kJ kg-1 K-1]
+        * stomatal conductance, [mol m-2 s-1]
+        * aerodynamic resistance canopy, [s m-1]
         * net radiation, [W m-2]
 
         and a number of parameters that as described in detail in
@@ -478,6 +486,7 @@ class HydrologyModel(
                 intercept_parameters=self.model_constants.intercept_parameters,
                 veg_density_param=self.model_constants.veg_density_param,
             )
+            daily_lists["interception"].append(interception)
 
             # Calculate canopy evaporation and leaf drainage, [mm day-1]
             canopy_water_balance = above_ground.calculate_canopy_evaporation(
@@ -511,6 +520,7 @@ class HydrologyModel(
             daily_lists["canopy_evaporation"].append(
                 canopy_water_balance["canopy_evaporation"]
             )
+            daily_lists["leaf_drainage"].append(canopy_water_balance["leaf_drainage"])
 
             # Precipitation that reaches the surface per day, [mm]
             precipitation_surface = (
@@ -518,7 +528,7 @@ class HydrologyModel(
                 - np.nansum(interception)
                 + np.nansum(canopy_water_balance["leaf_drainage"])
             )
-            print(precipitation_surface)
+
             hydrology_tools.check_precipitation_surface(
                 precipitation_surface=precipitation_surface
             )
@@ -753,15 +763,16 @@ class HydrologyModel(
                 coords={"cell_id": self.grid.cell_id},
             )
 
-        soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
-        soil_hydrology["canopy_evaporation"][:,] = (
-            np.where(  # TODO might be unnecessary
-                np.isnan(daily_lists["canopy_evaporation"][0]),
+        # Canopy evaporation/intercept/drainage is accumulated over days, [mm]
+        for var in ["canopy_evaporation", "interception", "leaf_drainage"]:
+            soil_hydrology[var] = self.layer_structure.from_template()
+            soil_hydrology[var][:,] = np.where(  # TODO might be unnecessary
+                np.isnan(daily_lists[var][0]),
                 np.nan,
-                np.nansum(daily_lists["canopy_evaporation"], axis=0),
+                np.nansum(daily_lists[var], axis=0),
             )
-        )
 
+        # Calculate monthly mean values for river discharge rate and surface resistance
         for var in ["river_discharge_rate", "aerodynamic_resistance_surface"]:
             soil_hydrology[var] = DataArray(
                 np.mean(np.stack(daily_lists[var], axis=1), axis=1),
