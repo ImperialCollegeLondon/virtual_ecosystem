@@ -324,15 +324,27 @@ def add_datatable_to_variables_page(app, page_name, template_name, context, doct
     if page_name == "virtual_ecosystem/implementation/variables":
         # Add Datatables JS links and local custom table setup
         app.add_js_file("https://cdn.datatables.net/2.3.5/js/dataTables.min.js")
+        # app.add_js_file(
+        #     "https://cdn.datatables.net/2.3.5/js/dataTables.bootstrap5.js"
+        # )
         app.add_js_file(
             "https://cdn.datatables.net/responsive/3.0.7/js/dataTables.responsive.min.js"
         )
+        # app.add_js_file(
+        #     "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
+        # )
         app.add_js_file("js/variable_table.js")
 
         # Add Datatables CSS links and inject simple child row styling
+        # app.add_css_file(
+        #     "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+        # )
         app.add_css_file(
             "https://cdn.datatables.net/2.3.5/css/dataTables.dataTables.css"
         )
+        # app.add_css_file(
+        #     "https://cdn.datatables.net/2.3.5/css/dataTables.bootstrap5.css"
+        # )
         app.add_css_file(
             "https://cdn.datatables.net/responsive/3.0.7/css/responsive.dataTables.min.css"
         )

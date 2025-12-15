@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
         }).get().join('|');
 
         // Apply the model name regex filter to Used By (column 11).
-        table.column(11).search(positions, true, false, false).draw(false);
+        table.column(11).search(models, true, false, false).draw(false);
 
         // TODO Need to apply other filters
 
