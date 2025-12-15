@@ -142,7 +142,7 @@ Once the baseline run is complete, you can set up the experiment with default
   **except hydrology and core**, e.g.:
 
   ```toml
-  [abiotic_simple]
+  [abiotic]
   static=true
   ```
 
@@ -172,7 +172,7 @@ with open("/tmp/ve_example/out/ve_full_model_configuration.toml", "rb") as cfg:
     config = tomllib.load(cfg)
 
 # Update the static settings
-config["abiotic_simple"]["static"] = True
+config["abiotic"]["static"] = True
 config["plants"]["static"] = True
 config["animal"]["static"] = True
 config["soil"]["static"] = True

@@ -103,7 +103,7 @@ settings:
 [soil]
 [hydrology]
 [plants]
-[abiotic_simple]
+[abiotic]
 ```
 
 The `[core]` element is optional as the Virtual Ecosystem core module is always
