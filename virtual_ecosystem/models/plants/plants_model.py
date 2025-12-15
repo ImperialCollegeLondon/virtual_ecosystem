@@ -263,8 +263,16 @@ class PlantsModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        flora: A Flora instance of the plant functional types to be used in the model.
+        exporter: An instance of the ``CommunityDataExporter`` class used to export
+            plant community data for each time step.
+        flora: A flora containing the plant functional types used in the plants
+            model.
+        cohort_data: A data frame containing the initial cohort data.
+        extra_pft_traits: Additional traits for each plant functional type, keyed by
+            PFT name.
         model_constants: Set of constants for the plants model.
+        pyrealm_config: Configuration options to the pyrealm package.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
@@ -275,9 +283,9 @@ class PlantsModel(
         flora: Flora,
         cohort_data: pandas.DataFrame,
         extra_pft_traits: ExtraTraitsPFT,
-        static: bool = False,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
+        static: bool = False,
     ):
         """Plants init function.
 
@@ -367,15 +375,7 @@ class PlantsModel(
     ) -> None:
         """Setup implementation for the Plants Model.
 
-        Args:
-            flora: A flora containing the plant functional types used in the plants
-                model.
-            cohort_data: A data frame containing the initial cohort data.
-            extra_pft_traits: Additional traits for each plant functional type, keyed by
-                PFT name.
-            model_constants: Set of constants for the plants model.
-            pyrealm_config: Configuration options to the pyrealm package.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         # Set the instance attributes from the __init__ arguments

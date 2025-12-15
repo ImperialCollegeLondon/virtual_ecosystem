@@ -209,6 +209,16 @@ class SoilModel(
     can be updated by numerical integration. At present the underlying model this class
     wraps is quite simple (i.e. four soil carbon pools), but this will get more complex
     as the Virtual Ecosystem develops.
+
+    Args:
+        data: The data object to be used in the model.
+        core_components: The core components used across models.
+        microbial_groups: A dictionary of soil microbial group constant classes.
+        enzyme_classes: A dictionary of soil enzyme classes.
+        soil_moisture_saturation: An initial value for soil moisture saturation
+        soil_moisture_residual: An initial value for soil moisture residual
+        model_constants: Set of constants for the soil model.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
@@ -258,7 +268,10 @@ class SoilModel(
         soil_moisture_saturation: float,
         soil_moisture_residual: float,
     ) -> None:
-        """Function to setup up the soil model."""
+        """Function to setup up the soil model.
+
+        See __init__ for argument descriptions.
+        """
 
         self.model_constants = model_constants
 

@@ -27,8 +27,7 @@ class TestingModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        flora: A Flora instance of the plant functional types to be used in the model.
-        model_constants: Set of constants for the plants model.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
@@ -44,6 +43,10 @@ class TestingModel(
         """
 
         super().__init__(data, core_components, static)
+
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup()
 
     @classmethod
     def from_config(

@@ -79,16 +79,18 @@ class AbioticSimpleModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        model_constants: Set of constants for the abiotic_simple model.
+        model_configuration: Configuration object from the abiotic_simple model.
+        pyrealm_core_constants: Core constants for the pyrealm package.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
-        static: bool = False,
         model_configuration: AbioticSimpleConfiguration = AbioticSimpleConfiguration(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
+        static: bool = False,
     ):
         """Abiotic simple init.
 
@@ -127,11 +129,7 @@ class AbioticSimpleModel(
         the air temperatures. This is something that might need to be reconsidered in
         future.
 
-        Args:
-            model_configuration: Configuration object from the abiotic_simple model.
-            abiotic_constants: Provides required abiotic constants.
-            pyrealm_core_constants: Core constants for the pyrealm package.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
         # Populate model attributes
         self.model_constants = model_configuration.constants

@@ -156,9 +156,16 @@ class AnimalModel(
         data: The data object to be used in the model.
         core_components: The core components used across models.
         exporter: The export system for animal cohort data.
-        static: If True, runs in static mode.
         density_scaling_method: Which density scaling equation to use in initialization.
-        **kwargs: Additional arguments for the base model.
+        functional_groups: The list of animal functional groups present in the
+            simulation.
+        microbial_c_n_p_ratios: Biomass stoichiometry of each microbial functional
+            group.
+        model_constants: An
+            :class:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
+            instance, providing constants for the model and setting the density
+            scaling method to be used in simulation.
+        static: If True, runs in static mode.
     """
 
     def __init__(
@@ -168,8 +175,8 @@ class AnimalModel(
         exporter: AnimalCohortDataExporter,
         functional_groups: list[FunctionalGroup],
         microbial_c_n_p_ratios: dict[str, dict[str, float]],
-        static: bool = False,
         model_constants: AnimalConstants = AnimalConstants(),
+        static: bool = False,
     ):
         """Animal init function.
 
@@ -243,16 +250,7 @@ class AnimalModel(
             active_cohorts bug. Dig in an see what is going on with when setup is called
             in relation to the rest of init.
 
-        Args:
-            functional_groups: The list of animal functional groups present in the
-                simulation.
-            microbial_c_n_p_ratios: Biomass stoichiometry of each microbial functional
-                group.
-            model_constants: An
-                :class:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
-                instance, providing constants for the model and setting the density
-                scaling method to be used in simulation.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         self.model_constants = model_constants

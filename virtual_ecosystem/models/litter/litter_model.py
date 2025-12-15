@@ -166,14 +166,15 @@ class LitterModel(
         data: The data object to be used in the model.
         core_components: The core components used across models.
         model_constants: Set of constants for the litter model.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
-        static: bool = False,
         model_constants: LitterConstants = LitterConstants(),
+        static: bool = False,
     ):
         """Litter init function.
 
@@ -200,9 +201,7 @@ class LitterModel(
     ) -> None:
         """Method to setup the litter model specific data variables.
 
-        Args:
-            model_constants: Set of constants for the litter model.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         # Check that no litter pool is negative

@@ -134,10 +134,10 @@ class HydrologyModel(
             0 and 1) for all layers and grid cells identical. This will be converted to
             groundwater storage in mm.
         model_constants: Set of constants for the hydrology model.
-
-    Raises:
-        InitialisationError: when soil moisture or saturation parameters are not numeric
-            or out of [0, 1] bounds.
+        abiotic_constants: Some abiotic constants are required in the hydrology
+            model.
+        pyrealm_core_constants: Core constants for the pyrealm package.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
@@ -205,18 +205,7 @@ class HydrologyModel(
         atmospheric variables are initialised to ensure they are available for update
         when the Virtual Ecosystem is run with the `abiotic_simple` model.
 
-        Args:
-            initial_soil_moisture: The initial volumetric relative water content
-                [unitless] for all layers. This will be converted to soil moisture in
-                mm.
-            initial_groundwater_saturation: Initial level of groundwater saturation
-                (between 0 and 1) for all layers and grid cells identical. This will be
-                converted to groundwater storage in mm.
-            model_constants: Set of constants for the hydrology model.
-            abiotic_constants: Some abiotic constants are required in the hydrology
-                model.
-            pyrealm_core_constants: Core constants for the pyrealm package.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         self.initial_soil_moisture = initial_soil_moisture
