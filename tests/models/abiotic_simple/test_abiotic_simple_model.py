@@ -9,7 +9,7 @@ import pytest
 import xarray as xr
 from xarray import DataArray
 
-from tests.conftest import log_check, patch_bypass_setup, patch_run_update
+from tests.conftest import log_check, patch_run_setup, patch_run_update
 
 # Global set of messages from model required var checks
 MODEL_VAR_CHECK_LOG = [
@@ -34,7 +34,6 @@ def test_abiotic_simple_model_initialization(
     fixture_core_components,
     raises,
     expected_log_entries,
-    fixture_abiotic_constants,
     fixture_pyrealm_config,
 ):
     """Test `AbioticSimpleModel` initialization."""
@@ -50,16 +49,15 @@ def test_abiotic_simple_model_initialization(
 
     with (
         patch_run_update(AbioticSimpleModel),
-        patch_bypass_setup(AbioticSimpleModel) as mock_bypass_setup,
+        patch_run_setup(AbioticSimpleModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         with raises:
             # Initialize model
             model = AbioticSimpleModel(
                 data=dummy_climate_data_varying_canopy,
                 core_components=fixture_core_components,
                 model_configuration=default_config,
-                abiotic_constants=fixture_abiotic_constants,
                 pyrealm_core_constants=fixture_pyrealm_config.core,
             )
 
@@ -141,10 +139,10 @@ def test_generate_abiotic_simple_model(
     )
     with (
         patch_run_update(AbioticSimpleModel),
-        patch_bypass_setup(AbioticSimpleModel) as mock_bypass_setup,
+        patch_run_setup(AbioticSimpleModel) as mock_run_setup,
         patch(f"{object_to_patch}._setup") as mock_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         # Check whether model is initialised (or not) as expected
         with raises:
             AbioticSimpleModel.from_config(
@@ -162,7 +160,6 @@ def test_generate_abiotic_simple_model(
 def test_setup(
     dummy_climate_data_varying_canopy,
     fixture_core_components,
-    fixture_abiotic_constants,
     fixture_pyrealm_config,
 ):
     """Test set up and update."""
@@ -179,14 +176,13 @@ def test_setup(
     # initialise model
     with (
         patch_run_update(AbioticSimpleModel),
-        patch_bypass_setup(AbioticSimpleModel) as mock_bypass_setup,
+        patch_run_setup(AbioticSimpleModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         model = AbioticSimpleModel(
             data=dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
             model_configuration=AbioticSimpleConfiguration(),
-            abiotic_constants=fixture_abiotic_constants,
             pyrealm_core_constants=fixture_pyrealm_config.core,
         )
 

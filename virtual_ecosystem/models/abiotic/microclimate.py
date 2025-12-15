@@ -183,7 +183,8 @@ def run_microclimate(
     )
 
     # Aerodynamic resistance soil, [s m-1]
-    aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
+    # VIVI - this was ... = data["aerodynamic_resistance_surface"].to_numpy()
+    aerodynamic_resistance_soil = aerodynamic_resistance_understorey
 
     # Turbulent mixing coefficient above canopy, [m2 s-1]
     mixing_coefficient = wind.calculate_mixing_coefficients_canopy(
