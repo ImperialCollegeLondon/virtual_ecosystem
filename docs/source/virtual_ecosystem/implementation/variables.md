@@ -36,26 +36,30 @@ showing which models use each variable and at what stage during the model initia
 or update process. For instructions on how to add new variables visit the [API
 documentation](../../api/core/variables.md) section.
 
+<!-- Page build notes:
+
+The variables page build is a bit complex:
+
+* The code cell below calls a function that loads the data_variables.TOML file to get
+  a complete list of variables and then _also_ checks each of the models to extend that
+  data to include which variables are used at which stage for each model. That data is
+  wrapped into a table for display using the DataTables framework. The
+  Responsive extension to that framework allows column classes to set whether a column
+  is always shown, always wrapped into a dropdown row child or never shown (but still
+  searchable). The function also adds some checkboxes that are used to filter the
+  variables by model and usage and returns a chunk of HTML that is then included in the
+  notebook _as_ HTML.
+
+* When the page is built, the `sphinx` app is used to add the required JS and CSS files
+  for DataTables, and also some custom JS (`_static/js/variables_table.js`) to hook the
+  table up to the DataTables framework and to power the checkboxes.
+-->
+
 ```{code-cell} ipython3
----
-mystnb:
-  markdown_format: myst
-tags: [remove-input]
----
-from IPython.display import display_markdown
-from var_generator import generate_all_variable_markdown
+:tags: [remove-input]
 
-display_markdown(
-    generate_all_variable_markdown(
-        fields_to_display=["name", "description", "unit", "axis"],
-        widths=[30, 40, 15, 15],
-    ),
-    raw=True,
-)
-```
+from IPython.display import display_html
+from variable_table import variable_table
 
-## Detailed variable listing
-
-```{eval-rst}
-.. include:: ../../variables.rst
+display_html(variable_table(), raw=True)
 ```

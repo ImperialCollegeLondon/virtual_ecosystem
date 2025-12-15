@@ -25,3 +25,8 @@ dl.myst>dd {
 span.pasted-text {
     font-weight: normal;
 }
+
+/* Left align text in datatables child rows (variables page) */
+dt.child {
+    text-align: left;
+}
