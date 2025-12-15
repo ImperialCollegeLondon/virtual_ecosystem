@@ -58,6 +58,8 @@ class AbioticSimpleModel(
         "wind_speed_ref",
         "leaf_area_index",
         "layer_heights",
+        "mean_annual_temperature",
+        "shortwave_absorption",
     ),
     vars_populated_by_init=(  # TODO move functionality from setup() to __init__
         "soil_temperature",
