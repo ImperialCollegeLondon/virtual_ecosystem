@@ -30,7 +30,7 @@ repos:
             ^docs/source/conf.py|
             ^docs/source/genindex.md|
             ^docs/source/modindex.md|
-            ^docs/source/using_the_ve/[a-z_]+.py
+            ^docs/source/using_the_ve/[a-z_]+.py|
             ^docs/source/using_the_ve/implementation/[a-z_]+.py
         )
       additional_dependencies:
