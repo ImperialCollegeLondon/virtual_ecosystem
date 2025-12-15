@@ -169,9 +169,6 @@ class AbioticModel(
         self.pyrealm_core_constants = pyrealm_core_constants
         self.bounds = bounds
 
-        # create soil temperature array
-        self.data["soil_temperature"] = self.layer_structure.from_template()
-
         # Calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],

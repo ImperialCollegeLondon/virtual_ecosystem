@@ -299,23 +299,6 @@ def generate_config_strings(
 
 
 @pytest.fixture
-def fixture_config():
-    """Default configuration object with 2x2 grid."""
-
-    from virtual_ecosystem.core.config import Config
-
-    return Config(cfg_strings=generate_config_strings())
-
-
-@pytest.fixture
-def animal_fixture_config():
-    """Default configuration object with 3x3 grid."""
-    from virtual_ecosystem.core.config import Config
-
-    return Config(cfg_strings=generate_config_strings(nx=3, ny=3))
-
-
-@pytest.fixture
 def fixture_configuration():
     """Default configuration with 2x2 grid."""
     from virtual_ecosystem.core.config_builder import (
