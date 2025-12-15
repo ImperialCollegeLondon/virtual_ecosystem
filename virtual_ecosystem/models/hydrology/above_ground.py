@@ -191,14 +191,11 @@ def calculate_canopy_evaporation(
         * time_interval
     )
 
-    # Total max evaporation across layers for each grid cell
-    total_max_evaporation = np.nansum(maximum_evaporation, axis=0)
-
     # Avoid division by zero by replacing 0s with np.nan temporarily
     with np.errstate(divide="ignore", invalid="ignore"):
         scale_factor = np.where(
-            total_max_evaporation > 0,
-            np.minimum(interception / total_max_evaporation, 1.0),
+            maximum_evaporation > 0,
+            np.minimum(interception / maximum_evaporation, 1.0),
             0.0,
         )
 
@@ -211,9 +208,7 @@ def calculate_canopy_evaporation(
 
     # Update interception pool after evaporation
     # Ensure no negative interception
-    remaining_interception = np.maximum(
-        interception - np.nansum(actual_evaporation, axis=0), 0.0
-    )
+    remaining_interception = np.maximum(interception - actual_evaporation, 0.0)
 
     # Total drainage per cell
     leaf_drainage = np.minimum(
