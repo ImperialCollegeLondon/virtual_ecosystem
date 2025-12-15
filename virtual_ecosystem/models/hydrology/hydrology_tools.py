@@ -43,24 +43,28 @@ def initialise_atmosphere_for_hydrology(
     initial_values = [
         (
             "aerodynamic_resistance_surface",
+            {},
             layer_structure.index_surface_scalar,
             model_constants.initial_aerodynamic_resistance_surface,
         ),
         (
             "aerodynamic_resistance_canopy",
             layer_structure.index_filled_canopy,
+            layer_structure.index_surface_scalar,
             model_constants.initial_aerodynamic_resistance_canopy,
         ),
         (
             "stomatal_conductance",
             layer_structure.index_filled_canopy,
+            layer_structure.index_surface_scalar,
             model_constants.initial_stomatal_conductance,
         ),
     ]
 
-    for key, index, value in initial_values:
+    for key, index, index_surface, value in initial_values:
         layer = layer_structure.from_template()
         layer[index] = value
+        layer[index_surface] = value
         output[key] = layer
 
     # Extract air temperature and pressure

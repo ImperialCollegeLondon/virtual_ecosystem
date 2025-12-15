@@ -40,6 +40,15 @@ def test_initialise_atmosphere_for_hydrology(
     for key in expected_keys:
         assert key in output
 
+    expected_ra = layer_structure.from_template()
+    expected_ra[layer_structure.index_filled_canopy] = 12.1
+    expected_ra[layer_structure.index_surface_scalar] = 12.1
+
+    np.testing.assert_allclose(
+        output["aerodynamic_resistance_canopy"],
+        expected_ra,
+    )
+
 
 def test_setup_hydrology_input_current_timestep(
     dummy_climate_data_varying_canopy, fixture_core_components
