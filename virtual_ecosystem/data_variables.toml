@@ -217,6 +217,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Interception"
+name = "interception"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Leaf air heat conductivity"
 name = "leaf_air_heat_conductivity"
 unit = "mol m-2 s-1"
@@ -227,6 +234,13 @@ axis = ["spatial"]
 description = "Leaf area index"
 name = "leaf_area_index"
 unit = "m m-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Leaf drainage"
+name = "leaf_drainage"
+unit = "mm"
 variable_type = "float"
 
 [[variable]]
