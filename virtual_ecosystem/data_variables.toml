@@ -217,7 +217,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Interception"
+description = "Intercepted rainfall in canopy"
 name = "interception"
 unit = "mm"
 variable_type = "float"
