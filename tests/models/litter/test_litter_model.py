@@ -228,4 +228,4 @@ def test_update(fixture_litter_model, dummy_litter_data):
 
     # Check that data fixture has been updated correctly
     for output in expected_output.keys():
-        assert np.allclose(dummy_litter_data[output], expected_output[output])
+        assert np.allclose(fixture_litter_model.data[output], expected_output[output])
