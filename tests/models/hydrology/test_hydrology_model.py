@@ -9,7 +9,7 @@ import pint
 import pytest
 from xarray import DataArray
 
-from tests.conftest import log_check, patch_bypass_setup, patch_run_update
+from tests.conftest import log_check, patch_run_setup, patch_run_update
 
 # Global set of messages from model required var checks
 MODEL_VAR_CHECK_LOG = [
@@ -45,9 +45,9 @@ def test_hydrology_model_initialization(
     # We patch the _setup step as it is tested separately
     with (
         patch_run_update(HydrologyModel),
-        patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
+        patch_run_setup(HydrologyModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
 
         # Initialize model
         model = HydrologyModel(
@@ -135,9 +135,9 @@ def test_generate_hydrology_model(
 
     with (
         patch_run_update(HydrologyModel),
-        patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
+        patch_run_setup(HydrologyModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         with patch(
             "virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel._setup"
         ) as mock_setup:
@@ -298,9 +298,9 @@ def test_setup(
 
     with (
         patch_run_update(HydrologyModel),
-        patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
+        patch_run_setup(HydrologyModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         with raises:
             # Initialise model. The setup is run as part of the initialisation
             model = HydrologyModel.from_config(

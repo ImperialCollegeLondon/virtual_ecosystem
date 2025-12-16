@@ -6,7 +6,7 @@ import pytest
 @pytest.fixture
 def fixture_litter_model(dummy_litter_data):
     """Create a litter model fixture based on the dummy litter data."""
-    from tests.conftest import patch_bypass_setup, patch_run_update
+    from tests.conftest import patch_run_setup, patch_run_update
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
@@ -24,9 +24,9 @@ def fixture_litter_model(dummy_litter_data):
 
     with (
         patch_run_update(LitterModel),
-        patch_bypass_setup(LitterModel) as mock_bypass_setup,
+        patch_run_setup(LitterModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         return LitterModel.from_config(
             data=dummy_litter_data,
             configuration=configuration,

@@ -136,18 +136,22 @@ class HydrologyModel(
             0 and 1) for all layers and grid cells identical. This will be converted to
             groundwater storage in mm.
         model_constants: Set of constants for the hydrology model.
-
-    Raises:
-        InitialisationError: when soil moisture or saturation parameters are not numeric
-            or out of [0, 1] bounds.
+        abiotic_constants: Some abiotic constants are required in the hydrology
+            model.
+        pyrealm_core_constants: Core constants for the pyrealm package.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
+        initial_soil_moisture: float,
+        initial_groundwater_saturation: float,
+        model_constants: HydrologyConstants = HydrologyConstants(),
+        abiotic_constants: AbioticConstants = AbioticConstants(),
+        pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
         static: bool = False,
-        **kwargs: Any,
     ):
         """Hydrology init function.
 
@@ -155,7 +159,7 @@ class HydrologyModel(
         handled in :fun:`~virtual_ecosystem.hydrology.hydrology_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
 
         self.initial_soil_moisture: float
         """Initial volumetric relative water content [unitless] for all layers and grid
@@ -173,59 +177,15 @@ class HydrologyModel(
         self.surface_layer_index: int
         """Surface layer index."""
 
-    @classmethod
-    def from_config(
-        cls,
-        data: Data,
-        configuration: CompiledConfiguration,
-        core_components: CoreComponents,
-    ) -> HydrologyModel:
-        """Factory function to initialise the hydrology model from configuration.
-
-        This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance an error is raised.
-
-        Args:
-            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-            configuration: A validated Virtual Ecosystem model configuration object.
-            core_components: The core components used across models.
-        """
-
-        # Extract the validated hydrology and abiotic configuration from the complete
-        # compiled configuration.
-        hydrology_configuration: HydrologyConfiguration = (
-            configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
-        )
-
-        # Extract the pyrealm configuration from the core constants
-        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
-            "core", CoreConfiguration
-        )
-
-        # The abiotic constants are currently hardcoded here - the issue is that the
-        # model relies on two abiotic constants:
-        #         abiotic_constants.latent_heat_vap_equ_factors
-        #         abiotic_constants.saturated_pressure_slope_parameters
-        # These need to be inherited properly from the configuration but at the moment
-        # we're using abiotic_simple in testing and it isn't a simple swap. So, leaving
-        # this hardcoded for now.
-        abiotic_constants: AbioticConstants = AbioticConstants()
-
-        LOGGER.info(
-            "Information required to initialise the hydrology model successfully "
-            "extracted."
-        )
-        return cls(
-            data=data,
-            core_components=core_components,
-            static=hydrology_configuration.static,
-            initial_soil_moisture=hydrology_configuration.initial_soil_moisture,
-            initial_groundwater_saturation=hydrology_configuration.initial_groundwater_saturation,
-            model_constants=hydrology_configuration.constants,
-            abiotic_constants=abiotic_constants,
-            pyrealm_core_constants=core_configuration.pyrealm.core,
-        )
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
+                initial_soil_moisture=initial_soil_moisture,
+                initial_groundwater_saturation=initial_groundwater_saturation,
+                model_constants=model_constants,
+                abiotic_constants=abiotic_constants,
+                pyrealm_core_constants=pyrealm_core_constants,
+            )
 
     def _setup(
         self,
@@ -234,7 +194,6 @@ class HydrologyModel(
         model_constants: HydrologyConstants = HydrologyConstants(),
         abiotic_constants: AbioticConstants = AbioticConstants(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
-        **kwargs: Any,
     ) -> None:
         """Function to set up the hydrology model.
 
@@ -248,18 +207,7 @@ class HydrologyModel(
         atmospheric variables are initialised to ensure they are available for update
         when the Virtual Ecosystem is run with the `abiotic_simple` model.
 
-        Args:
-            initial_soil_moisture: The initial volumetric relative water content
-                [unitless] for all layers. This will be converted to soil moisture in
-                mm.
-            initial_groundwater_saturation: Initial level of groundwater saturation
-                (between 0 and 1) for all layers and grid cells identical. This will be
-                converted to groundwater storage in mm.
-            model_constants: Set of constants for the hydrology model.
-            abiotic_constants: Some abiotic constants are required in the hydrology
-                model.
-            pyrealm_core_constants: Core constants for the pyrealm package.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         self.initial_soil_moisture = initial_soil_moisture
@@ -337,6 +285,60 @@ class HydrologyModel(
             layer_structure=self.layer_structure,
         )
         self.data.add_from_dict(output_dict=atmosphere_setup)
+
+    @classmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+    ) -> HydrologyModel:
+        """Factory function to initialise the hydrology model from configuration.
+
+        This function unpacks the relevant information from the configuration file, and
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance an error is raised.
+
+        Args:
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
+            core_components: The core components used across models.
+        """
+
+        # Extract the validated hydrology and abiotic configuration from the complete
+        # compiled configuration.
+        hydrology_configuration: HydrologyConfiguration = (
+            configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
+        )
+
+        # Extract the pyrealm configuration from the core constants
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+
+        # The abiotic constants are currently hardcoded here - the issue is that the
+        # model relies on two abiotic constants:
+        #         abiotic_constants.latent_heat_vap_equ_factors
+        #         abiotic_constants.saturated_pressure_slope_parameters
+        # These need to be inherited properly from the configuration but at the moment
+        # we're using abiotic_simple in testing and it isn't a simple swap. So, leaving
+        # this hardcoded for now.
+        abiotic_constants: AbioticConstants = AbioticConstants()
+
+        LOGGER.info(
+            "Information required to initialise the hydrology model successfully "
+            "extracted."
+        )
+        return cls(
+            data=data,
+            core_components=core_components,
+            static=hydrology_configuration.static,
+            initial_soil_moisture=hydrology_configuration.initial_soil_moisture,
+            initial_groundwater_saturation=hydrology_configuration.initial_groundwater_saturation,
+            model_constants=hydrology_configuration.constants,
+            abiotic_constants=abiotic_constants,
+            pyrealm_core_constants=core_configuration.pyrealm.core,
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""

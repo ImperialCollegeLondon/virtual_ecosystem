@@ -37,9 +37,13 @@ class AbioticModel(
     model_update_bounds=("1 hour", "1 month"),
     vars_required_for_init=(
         "air_temperature_ref",
-        "relative_humidity_ref",
-        "leaf_area_index",
+        "atmospheric_co2_ref",
+        "atmospheric_pressure_ref",
         "layer_heights",
+        "leaf_area_index",
+        "mean_annual_temperature",
+        "relative_humidity_ref",
+        "shortwave_absorption",
         "wind_speed_ref",
     ),
     vars_updated=(
@@ -73,6 +77,8 @@ class AbioticModel(
         "shortwave_absorption",
         "aerodynamic_resistance_soil",
         "soil_evaporation",
+        "canopy_evaporation",
+        "transpiration",
     ),
     vars_populated_by_init=(
         "soil_temperature",
@@ -102,14 +108,20 @@ class AbioticModel(
         data: The data object to be used in the model.
         core_components: The core components used across models.
         model_constants: Set of constants for the abiotic model.
+        pyrealm_core_constants: Additional configuration options to the pyrealm
+                package.
+        bounds: A set of bounds to be applied to abiotic variables.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
+        model_constants: AbioticConstants = AbioticConstants(),
+        pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
+        bounds: AbioticSimpleBounds = AbioticSimpleBounds(),
         static: bool = False,
-        **kwargs: Any,
     ):
         """Abiotic init function.
 
@@ -117,7 +129,7 @@ class AbioticModel(
         handled in :fun:`~virtual_ecosystem.abiotic.abiotic_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
 
         self.model_constants: AbioticConstants
         """Set of constants for the abiotic model."""
@@ -127,54 +139,19 @@ class AbioticModel(
         self.pyrealm_core_constants: PyrealmCoreConst
         """Pyrealm core constants."""
 
-    @classmethod
-    def from_config(
-        cls,
-        data: Data,
-        configuration: CompiledConfiguration,
-        core_components: CoreComponents,
-    ) -> AbioticModel:
-        """Factory function to initialise the abiotic model from configuration.
-
-        This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance an error is raised.
-
-        Args:
-            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-            configuration: A validated Virtual Ecosystem model configuration object.
-            core_components: The core components used across models.
-        """
-
-        # Extract the validated model configuration from the complete compiled
-        # configuration. This syntax is odd but required to support static typing
-        model_configuration: AbioticConfiguration = configuration.get_subconfiguration(
-            "abiotic", AbioticConfiguration
-        )
-
-        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
-            "core", CoreConfiguration
-        )
-
-        LOGGER.info(
-            "Information required to initialise the abiotic model successfully "
-            "extracted."
-        )
-        return cls(
-            data=data,
-            core_components=core_components,
-            static=model_configuration.static,
-            model_constants=model_configuration.constants,
-            pyrealm_core_constants=core_configuration.pyrealm.core,
-            bounds=model_configuration.bounds,
-        )
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
+                model_constants=model_constants,
+                pyrealm_core_constants=pyrealm_core_constants,
+                bounds=bounds,
+            )
 
     def _setup(
         self,
         model_constants: AbioticConstants = AbioticConstants(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
         bounds: AbioticSimpleBounds = AbioticSimpleBounds(),
-        **kwargs,
     ) -> None:
         """Function to set up the abiotic model.
 
@@ -183,12 +160,7 @@ class AbioticModel(
         all time steps of the simulation. All variables are added directly to the
         self.data object.
 
-        Args:
-            model_constants: Set of constants for the abiotic model.
-            pyrealm_core_constants: Additional configuration options to the pyrealm
-                package.
-            bounds: A set of bounds to be applied to abiotic variables.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         self.model_constants = model_constants
@@ -238,6 +210,48 @@ class AbioticModel(
             initial_canopy_and_soil,
         ):
             self.data.add_from_dict(output_dict=output_dict)
+
+    @classmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+    ) -> AbioticModel:
+        """Factory function to initialise the abiotic model from configuration.
+
+        This function unpacks the relevant information from the configuration file, and
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance an error is raised.
+
+        Args:
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
+            core_components: The core components used across models.
+        """
+
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: AbioticConfiguration = configuration.get_subconfiguration(
+            "abiotic", AbioticConfiguration
+        )
+
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+
+        LOGGER.info(
+            "Information required to initialise the abiotic model successfully "
+            "extracted."
+        )
+        return cls(
+            data=data,
+            core_components=core_components,
+            static=model_configuration.static,
+            model_constants=model_configuration.constants,
+            pyrealm_core_constants=core_configuration.pyrealm.core,
+            bounds=model_configuration.bounds,
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""

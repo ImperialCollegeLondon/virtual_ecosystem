@@ -149,14 +149,14 @@ def fixture_soil_model(
     fixture_soil_core_components,
 ):
     """Create a soil model fixture based on the dummy carbon data."""
-    from tests.conftest import patch_bypass_setup, patch_run_update
+    from tests.conftest import patch_run_setup, patch_run_update
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     with (
         patch_run_update(SoilModel),
-        patch_bypass_setup(SoilModel) as mock_bypass_setup,
+        patch_run_setup(SoilModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         return SoilModel.from_config(
             data=dummy_carbon_data,
             configuration=fixture_soil_configuration,

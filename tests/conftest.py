@@ -831,13 +831,13 @@ def patch_run_update(model: type):
     )
 
 
-def patch_bypass_setup(model: type):
+def patch_run_setup(model: type):
     """Patch the bypass setup check during the init of the model."""
     return patch(
-        f"{model.__module__}.{model.__name__}._bypass_setup_due_to_static_configuration"
+        f"{model.__module__}.{model.__name__}._run_setup_due_to_static_configuration"
     )
 
 
 def patch_static_config(model: type):
     """Patch the check static config during the init of the model."""
-    return patch(f"{model.__module__}.{model.__name__}._check_static_config")
+    return patch(f"{model.__module__}.{model.__name__}._set_static_config")
