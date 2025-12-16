@@ -47,12 +47,12 @@ movement of water both on and below the Earth's surface as well as through organ
 Water is crucial in an ecosystem for several reasons. It is essential for the survival
 of all living organisms, providing the medium for biochemical reactions and cellular
 processes. Further, water plays a key role in many ecosystem processes such as
-photosynthesis, nutrient cycling, and the decomposition of organic matter. Water facilitates
-the movement of nutrients and minerals within the soil which enables plant growth and
-maintains soil health. Aquatic environments, such as rivers, lakes, and wetlands, provide
-habitats for a wide range of species which supports biodiversity. Additionally, water
-bodies influence microclimates by regulating temperatures through heat
-absorption and release.
+photosynthesis, nutrient cycling, and the decomposition of organic matter. Water
+facilitates the movement of nutrients and minerals within the soil which enables plant
+growth and maintains soil health. Aquatic environments, such as rivers, lakes, and
+wetlands, provide habitats for a wide range of species which supports biodiversity.
+Additionally, water bodies influence microclimates by regulating temperatures through
+heat absorption and release.
 
 ## Factors affecting hydrology
 
@@ -72,40 +72,40 @@ water loss from the surface to the atmosphere.
 ### Topography
 
 * **Slope**: The steepness of the terrain affects how quickly water runs off the surface
-and infiltrates the soil.
+  and infiltrates the soil.
 * **Elevation**: Higher elevations tend to receive more precipitation, which impacts
-water flow and distribution.
+  water flow and distribution.
 * **Landforms**: Natural features such as mountains, valleys, and plains influence the
-direction and speed of water movement.
+  direction and speed of water movement.
 
 ### Soil and Geology
 
-* **Soil type**: Different soil types (sand, clay, loam) have varying capacities to retain
-and filter water.
+* **Soil type**: Different soil types (sand, clay, loam) have varying capacities to
+  retain and filter water.
 * **Permeability**: The ability of soil and rock to absorb and transmit water affects
-groundwater recharge and surface runoff.
-* **Rock formations**: The composition and structure of underlying rock formations influence
-groundwater storage and flow.
+  groundwater recharge and surface runoff.
+* **Rock formations**: The composition and structure of underlying rock formations
+  influence groundwater storage and flow.
 
 ### Vegetation
 
 * **Plant types**: Different species of plants have varying water needs and capacities
-to absorb and transpire water.
+  to absorb and transpire water.
 * **Density**: Dense vegetation can slow down surface runoff, enhance infiltration, and
-reduce soil erosion.
+  reduce soil erosion.
 * **Root systems**: Deep and extensive root systems can increase soil stability and
-improve water infiltration and retention.
+  improve water infiltration and retention.
 
 ### Human activities
 
-* **Deforestation**: Removing trees and vegetation decreases transpiration, increases runoff,
-and contributes to soil erosion.
+* **Deforestation**: Removing trees and vegetation decreases transpiration, increases
+  runoff, and contributes to soil erosion.
 * **Agriculture**: Irrigation, crop type, and farming practices influence water usage,
-runoff, and infiltration.
-* **Water management practices**: Dams, reservoirs, and water diversion projects impact the
-natural distribution and availability of water.
-* **Urbanization**: Development and construction alter natural water flow, increase surface
-runoff, and reduce infiltration.
+  runoff, and infiltration.
+* **Water management practices**: Dams, reservoirs, and water diversion projects impact
+  the natural distribution and availability of water.
+* **Urbanization**: Development and construction alter natural water flow, increase
+  surface runoff, and reduce infiltration.
 
 ## Key hydrological variables and processes
 
