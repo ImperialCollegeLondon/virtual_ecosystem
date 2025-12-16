@@ -23,7 +23,7 @@ def test_potential_evaporation_leaf():
         air_temperature=np.array([[25.0, 26.0], [24.5, np.nan]]),
         density_air_kg=np.array([[1.2, 1.2], [1.2, np.nan]]),
         specific_heat_air=np.array([[1.005, 1.005], [1.005, np.nan]]),
-        aerodynamic_resistance=np.array([[50.0, 55.0], [52.0, np.nan]]),
+        aerodynamic_resistance_canopy=np.array([[50.0, 55.0], [52.0, np.nan]]),
         stomatal_resistance=np.array([[200.0, 220.0], [210.0, np.nan]]),
         latent_heat_vapourisation=np.array([[2268.0, 2268.0], [2268.0, np.nan]]),
         psychrometric_constant=np.array([[66.0, 66.0], [66.0, np.nan]]),
@@ -55,7 +55,9 @@ def test_calculate_canopy_evaporation():
         air_temperature=np.array([[21.0, 22.0, np.nan], [18.0, np.nan, np.nan]]),
         density_air_kg=np.array([[1.2, 1.2, np.nan], [1.2, np.nan, np.nan]]),
         specific_heat_air=np.array([[1.005, 1.005, np.nan], [1.005, np.nan, np.nan]]),
-        aerodynamic_resistance=np.array([[50.0, 60.0, np.nan], [50.0, np.nan, np.nan]]),
+        aerodynamic_resistance_canopy=np.array(
+            [[50.0, 60.0, np.nan], [50.0, np.nan, np.nan]]
+        ),
         stomatal_resistance=np.array([[150.0, 160.0, np.nan], [150.0, np.nan, np.nan]]),
         latent_heat_vapourisation=np.array(
             [[2268.0, 2268.0, np.nan], [2268.0, np.nan, np.nan]]
@@ -133,15 +135,13 @@ def test_calculate_soil_evaporation(
 
     assert np.all(result["soil_evaporation"] >= 0)
     assert np.all(np.isfinite(result["soil_evaporation"]))
-    assert np.all(result["aerodynamic_resistance_surface"] >= 0)
-    assert np.all(np.isfinite(result["aerodynamic_resistance_surface"]))
+    assert np.all(result["aerodynamic_resistance_soil"] >= 0)
+    assert np.all(np.isfinite(result["aerodynamic_resistance_soil"]))
 
     exp_evap = np.array([2.18791, 0.521941, 0.090352])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
     exp_ra = np.array([5.0, 10.0, 50.0])
-    np.testing.assert_allclose(
-        result["aerodynamic_resistance_surface"], exp_ra, rtol=0.01
-    )
+    np.testing.assert_allclose(result["aerodynamic_resistance_soil"], exp_ra, rtol=0.01)
 
 
 def test_find_lowest_neighbour(fixture_core_components, dummy_climate_data):

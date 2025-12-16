@@ -292,7 +292,7 @@ def calculate_energy_balance_residual(
             [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
-        aerodynamic_resistance: Aerodynamic resistamce of canopy, [s m-1]
+        aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
         leaf_emissivity: Leaf emissivity, dimensionless
         stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
@@ -417,7 +417,7 @@ def solve_canopy_temperature(
             [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
-        aerodynamic_resistance: Aerodynamic resistamce of canopy, [s m-1]
+        aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
         emissivity_leaf: Leaf emissivity, dimensionless

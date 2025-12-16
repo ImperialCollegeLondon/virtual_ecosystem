@@ -80,7 +80,7 @@ class HydrologyModel(
         "subsurface_flow",
         "baseflow",
         "bypass_flow",
-        "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_soil",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -103,7 +103,7 @@ class HydrologyModel(
         "soil_moisture",
         "matric_potential",
         "groundwater_storage",
-        "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_soil",
         "aerodynamic_resistance_canopy",
         "specific_heat_air",
         "stomatal_conductance",
@@ -367,7 +367,7 @@ class HydrologyModel(
         * total_runoff, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
-        * aerodynamic_resistance_surface, [s m-1]
+        * aerodynamic_resistance_soil, [s m-1]
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the
@@ -492,12 +492,12 @@ class HydrologyModel(
             canopy_water_balance = above_ground.calculate_canopy_evaporation(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 interception=interception,
-                net_radiation=self.data["net_radiation"].to_numpy() / days,
+                net_radiation=self.data["net_radiation"].to_numpy(),
                 vapour_pressure_deficit=self.data["vapour_pressure_deficit"].to_numpy(),
                 air_temperature=self.data["air_temperature"].to_numpy(),
                 density_air_kg=self.data["density_air"].to_numpy(),
                 specific_heat_air=self.data["specific_heat_air"].to_numpy(),
-                aerodynamic_resistance=self.data[
+                aerodynamic_resistance_canopy=self.data[
                     "aerodynamic_resistance_canopy"
                 ].to_numpy(),
                 stomatal_resistance=(
@@ -599,8 +599,8 @@ class HydrologyModel(
                 pyrealm_core_constants=self.pyrealm_core_constants,
             )
             daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
-            daily_lists["aerodynamic_resistance_surface"].append(
-                soil_evaporation["aerodynamic_resistance_surface"]
+            daily_lists["aerodynamic_resistance_soil"].append(
+                soil_evaporation["aerodynamic_resistance_soil"]
             )
 
             # Calculate top soil moisture after evap and combine with lower layers, [mm]
@@ -772,8 +772,8 @@ class HydrologyModel(
                 np.nansum(daily_lists[var], axis=0),
             )
 
-        # Calculate monthly mean values for river discharge rate and surface resistance
-        for var in ["river_discharge_rate", "aerodynamic_resistance_surface"]:
+        # Calculate monthly mean values for river discharge rate and soil resistance
+        for var in ["river_discharge_rate", "aerodynamic_resistance_soil"]:
             soil_hydrology[var] = DataArray(
                 np.mean(np.stack(daily_lists[var], axis=1), axis=1),
                 dims="cell_id",

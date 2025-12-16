@@ -32,7 +32,7 @@ def initialise_atmosphere_for_hydrology(
         layer_structure: The LayerStructure instance for a simulation
 
     Returns:
-        aerodynamic_resistance_surface, aerodynamic_resistance_canopy,
+        aerodynamic_resistance_soil, aerodynamic_resistance_canopy,
             stomatal_conductance, density_air, specific_heat_air,
             latent_heat_vapourisation
     """
@@ -42,10 +42,10 @@ def initialise_atmosphere_for_hydrology(
     # Initialise scalar layers
     initial_values = [
         (
-            "aerodynamic_resistance_surface",
+            "aerodynamic_resistance_soil",
             {},
             layer_structure.index_surface_scalar,
-            model_constants.initial_aerodynamic_resistance_surface,
+            model_constants.initial_aerodynamic_resistance_soil,
         ),
         (
             "aerodynamic_resistance_canopy",

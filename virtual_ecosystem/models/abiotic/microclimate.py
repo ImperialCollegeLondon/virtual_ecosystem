@@ -171,19 +171,8 @@ def run_microclimate(
         abiotic_constants.aerodynamic_resistance_canopy_default, data.grid.n_cells
     )
 
-    # Aerodynamic resistance understorey, [s m-1]
-    aerodynamic_resistance_understorey = (
-        wind.calculate_aerodynamic_resistance_understorey(
-            wind_speed_understorey=wind_profile[-1],
-            coefficient_aerodynamic_resistance_understorey=(
-                abiotic_constants.coefficient_aerodynamic_resistance_understorey
-            ),
-            min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
-        )
-    )
-
     # Aerodynamic resistance soil, [s m-1]
-    aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
+    aerodynamic_resistance_soil = data["aerodynamic_resistance_soil"].to_numpy()
 
     # Turbulent mixing coefficient above canopy, [m2 s-1]
     mixing_coefficient = wind.calculate_mixing_coefficients_canopy(
@@ -276,7 +265,7 @@ def run_microclimate(
         specific_heat_air=specific_heat_air[-1],
         air_temperature=surface_air_temperature,
         surface_temperature=understorey_temperature,
-        aerodynamic_resistance=aerodynamic_resistance_understorey,
+        aerodynamic_resistance=aerodynamic_resistance_canopy,
     )
 
     # Latent heat flux understorey vegetation, [W m-2]
@@ -551,9 +540,6 @@ def run_microclimate(
 
     output["aerodynamic_resistance_canopy"] = DataArray(
         aerodynamic_resistance_canopy, dims="cell_id"
-    )
-    output["aerodynamic_resistance_understorey"] = DataArray(
-        aerodynamic_resistance_understorey, dims="cell_id"
     )
 
     # Combine longwave emission in one variable

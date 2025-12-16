@@ -27,7 +27,7 @@ def potential_evaporation_leaf(
     air_temperature: NDArray[np.floating],
     density_air_kg: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
-    aerodynamic_resistance: NDArray[np.floating],
+    aerodynamic_resistance_canopy: NDArray[np.floating],
     stomatal_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
     psychrometric_constant: NDArray[np.floating],
@@ -47,7 +47,7 @@ def potential_evaporation_leaf(
     :math:`\rho_a` is the density of air,
     :math:`c_p` is the specific heat of air,
     :math:`D` is the vapour pressure deficit,
-    :math:`r_a` is the aerodynamic resistance,
+    :math:`r_a` is the aerodynamic resistance of canopy,
     :math:`\lambda_v` is the latent heat of vapourization,
     :math:`\gamma` is the psychrometric constant, and
     :math:`r_s` is the stomatal resistance.
@@ -61,7 +61,7 @@ def potential_evaporation_leaf(
         air_temperature: Air temperature, [C]
         density_air_kg: Air density, [kg m-3]
         specific_heat_air: Specific heat of air, [kJ kg-1 K-1]
-        aerodynamic_resistance: Aerodynamic resistance in canopy, [s m-1]
+        aerodynamic_resistance_canopy: Aerodynamic resistance in canopy, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         psychrometric_constant: Psychrometric constant, [kPa K-1]
@@ -83,13 +83,13 @@ def potential_evaporation_leaf(
         delta * net_radiation
         + density_air_kg
         * specific_heat_air
-        * (vapour_pressure_deficit / aerodynamic_resistance)
+        * (vapour_pressure_deficit / aerodynamic_resistance_canopy)
     ) / (
         latent_heat_vapourisation
         * (
             delta
             + psychrometric_constant
-            * (1 + stomatal_resistance / aerodynamic_resistance)
+            * (1 + stomatal_resistance / aerodynamic_resistance_canopy)
         )
     )
 
@@ -104,7 +104,7 @@ def calculate_canopy_evaporation(
     air_temperature: NDArray[np.floating],
     density_air_kg: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
-    aerodynamic_resistance: NDArray[np.floating],
+    aerodynamic_resistance_canopy: NDArray[np.floating],
     stomatal_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
     psychrometric_constant: NDArray[np.floating],
@@ -153,7 +153,7 @@ def calculate_canopy_evaporation(
         air_temperature: Air temperature in canopy, [C]
         density_air_kg: Density of air, [kg m-3]
         specific_heat_air: Specific heat of air, [kJ kg-1 K-1]
-        aerodynamic_resistance: Aerodynamic resistance of air in the canopy, [s m-1]
+        aerodynamic_resistance_canopy: Aerodynamic resistance in canopy, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         psychrometric_constant: Psychrometric constant, [kPa K-1]
@@ -177,7 +177,7 @@ def calculate_canopy_evaporation(
         air_temperature=air_temperature,
         density_air_kg=density_air_kg,
         specific_heat_air=specific_heat_air,
-        aerodynamic_resistance=aerodynamic_resistance,
+        aerodynamic_resistance_canopy=aerodynamic_resistance_canopy,
         stomatal_resistance=stomatal_resistance,
         latent_heat_vapourisation=latent_heat_vapourisation,
         psychrometric_constant=psychrometric_constant,
@@ -282,7 +282,7 @@ def calculate_soil_evaporation(
         pyrealm_core_constants: Core constants from pyrealm package
 
     Returns:
-        soil evaporation, [mm per time interval], aerodynamic resistance surface [s m-1]
+        soil evaporation, [mm per time interval], aerodynamic resistance soil [s m-1]
     """
 
     output: dict[str, NDArray[np.floating]] = {}
@@ -313,10 +313,12 @@ def calculate_soil_evaporation(
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
-    aerodynamic_resistance = 1 / (wind_speed_surface * drag_coefficient_evaporation)
-    output["aerodynamic_resistance_surface"] = aerodynamic_resistance
+    aerodynamic_resistance_soil = 1 / (
+        wind_speed_surface * drag_coefficient_evaporation
+    )
+    output["aerodynamic_resistance_soil"] = aerodynamic_resistance_soil
 
-    evaporative_flux = (density_air / aerodynamic_resistance) * (
+    evaporative_flux = (density_air / aerodynamic_resistance_soil) * (
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
     # Prevent negative evaporation

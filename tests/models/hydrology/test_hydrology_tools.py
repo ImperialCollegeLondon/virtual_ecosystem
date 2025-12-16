@@ -30,7 +30,7 @@ def test_initialise_atmosphere_for_hydrology(
 
     # Check keys exist
     expected_keys = [
-        "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_soil",
         "aerodynamic_resistance_canopy",
         "stomatal_conductance",
         "density_air",
