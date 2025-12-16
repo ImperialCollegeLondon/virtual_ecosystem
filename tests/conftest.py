@@ -2,7 +2,6 @@
 
 from logging import DEBUG
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -805,22 +804,3 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     return dummy_climate_data
-
-
-def patch_run_update(model: type):
-    """Patch the run update check during the init of the model."""
-    return patch(
-        f"{model.__module__}.{model.__name__}._run_update_due_to_static_configuration"
-    )
-
-
-def patch_run_setup(model: type):
-    """Patch the bypass setup check during the init of the model."""
-    return patch(
-        f"{model.__module__}.{model.__name__}._run_setup_due_to_static_configuration"
-    )
-
-
-def patch_static_config(model: type):
-    """Patch the check static config during the init of the model."""
-    return patch(f"{model.__module__}.{model.__name__}._set_static_config")
