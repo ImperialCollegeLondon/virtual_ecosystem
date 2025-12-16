@@ -23,7 +23,7 @@ def test_potential_evaporation_leaf():
         air_temperature=np.array([[25.0, 26.0], [24.5, np.nan]]),
         density_air_kg=np.array([[1.2, 1.2], [1.2, np.nan]]),
         specific_heat_air=np.array([[1.005, 1.005], [1.005, np.nan]]),
-        aerodynamic_resistance_canopy=np.array([[50.0, 55.0], [52.0, np.nan]]),
+        aerodynamic_resistance_canopy=np.array([[50.0, 55.0]]),
         stomatal_resistance=np.array([[200.0, 220.0], [210.0, np.nan]]),
         latent_heat_vapourisation=np.array([[2268.0, 2268.0], [2268.0, np.nan]]),
         psychrometric_constant=np.array([[66.0, 66.0], [66.0, np.nan]]),
@@ -34,7 +34,7 @@ def test_potential_evaporation_leaf():
     mask = ~np.isnan(result)
     assert np.all(result[mask] >= 0)
     assert np.all(np.isfinite(result[mask]))
-    exp_evap = np.array([[2.522137e-05, 3.186381e-05], [2.682281e-05, np.nan]])
+    exp_evap = np.array([[2.522137e-05, 3.186381e-05], [2.599098e-05, np.nan]])
     np.testing.assert_allclose(result, exp_evap, rtol=1e-3)
 
 
@@ -55,9 +55,7 @@ def test_calculate_canopy_evaporation():
         air_temperature=np.array([[21.0, 22.0, np.nan], [18.0, np.nan, np.nan]]),
         density_air_kg=np.array([[1.2, 1.2, np.nan], [1.2, np.nan, np.nan]]),
         specific_heat_air=np.array([[1.005, 1.005, np.nan], [1.005, np.nan, np.nan]]),
-        aerodynamic_resistance_canopy=np.array(
-            [[50.0, 60.0, np.nan], [50.0, np.nan, np.nan]]
-        ),
+        aerodynamic_resistance_canopy=np.array([50.0, 60.0, np.nan]),
         stomatal_resistance=np.array([[150.0, 160.0, np.nan], [150.0, np.nan, np.nan]]),
         latent_heat_vapourisation=np.array(
             [[2268.0, 2268.0, np.nan], [2268.0, np.nan, np.nan]]
