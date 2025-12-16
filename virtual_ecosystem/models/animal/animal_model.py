@@ -1071,11 +1071,11 @@ class AnimalModel(
         """Method to convert a change caused by the animal model into a per day rate.
 
         Args:
-            change: Change in pool caused by the animal model [kg m^-3].
+            change: Change in pool caused by the animal model [kg m^-2] or [kg m^-3].
 
         Returns:
             Change converted to a per day rate (which are the units the soil model needs
-            it in) units [kg m^-3 day^-1].
+            it in) units [kg m^-2 day^-1] or [kg m^-3 day^-1].
         """
 
         return change / self.update_interval_in_days
