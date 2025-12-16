@@ -56,7 +56,6 @@ class AbioticModel(
         "specific_heat_air",
         "latent_heat_vapourisation",
         "aerodynamic_resistance_canopy",
-        "aerodynamic_resistance_understorey",
         "net_radiation",
         "conductive_flux_understorey",
     ),
@@ -72,7 +71,7 @@ class AbioticModel(
         "downward_shortwave_radiation",
         "stomatal_conductance",
         "shortwave_absorption",
-        "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_soil",
         "soil_evaporation",
     ),
     vars_populated_by_init=(
@@ -94,7 +93,6 @@ class AbioticModel(
     ),
     vars_populated_by_first_update=(
         "longwave_emission",
-        "aerodynamic_resistance_understorey",
         "conductive_flux_understorey",
     ),
 ):

@@ -217,6 +217,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Intercepted rainfall in canopy"
+name = "interception"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Leaf air heat conductivity"
 name = "leaf_air_heat_conductivity"
 unit = "mol m-2 s-1"
@@ -350,8 +357,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Aerodynamic resistance surface"
-name = "aerodynamic_resistance_surface"
+description = "Aerodynamic resistance soil"
+name = "aerodynamic_resistance_soil"
 unit = "s m-1"
 variable_type = "float"
 
@@ -359,13 +366,6 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Aerodynamic resistance canopy"
 name = "aerodynamic_resistance_canopy"
-unit = "s m-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Aerodynamic resistance understorey"
-name = "aerodynamic_resistance_understorey"
 unit = "s m-1"
 variable_type = "float"
 
