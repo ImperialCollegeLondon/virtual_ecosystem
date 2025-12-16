@@ -360,73 +360,124 @@ from virtual_ecosystem.models.freshwater.streamflow import calculate_streamflow
 ### Defining the new class and class attributes
 
 Now create a new class that derives from the
-{mod}`~virtual_ecosystem.core.base_model.BaseModel`.
+{mod}`~virtual_ecosystem.core.base_model.BaseModel`. This base class requires that you
+also set a number of class attributes: these are bits of information about the model
+that will be the same for every time the model is used. These values are set as class
+attributes by providing them as arguments to the class signature. You will end up with
+something like the following:
 
-To begin with, choose a class name
-for the model and define the following class attributes.
+```{code-block} ipython
+class FreshWaterModel(
+    BaseModel,
+    model_name="freshwater",
+    model_update_bounds=("1 day", "1 month"),
+    vars_required_for_init=("temperature",),
+    vars_populated_by_init=(),
+    vars_required_for_update=(
+        "air_temperature",
+        "relative_humidity",
+        "atmospheric_pressure",
+        "vapour_pressure_deficit",
+        "precipitation",
+    ),
+    vars_populated_by_first_update=("average_P_concentration",),
+    vars_updated=("average_P_concentration",),
+):
+    """Docstring describing model.
 
-The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute
-: This is a string providing the name that is used to refer to this model class in
-configuration files. This **must** match the chosen submodule name for the model, so the
-module `virtual_ecosystem.models.freshwater` must use `freshwater` as the model name.
-
-The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init` attribute
-: This is a tuple that sets which variables must be present in the data used to create a
-new instance of the model. Each entry should provide a variable name and then another
-tuple that sets any required axes for the variable. For example:
-
-```{code-block} ipython3
-()  # no required variables
-(("temperature", ()),)  # temperature must be present, no core axes
-(("temperature", ("spatial",)),)  # temperature must be present and on the spatial axis
+    Args:
+        Describe the __init__ arguments here (see below)
+    """
 ```
 
-The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_updated` attribute : This
-is a tuple that provides information about which data object variables are updated by
-this model. Entries should simply be variable names. The information contained here is
-used to determine which variables to include in the continuous output. So, it is
-important to ensure that this information is up to date.
+The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute provides a
+short lower case name that is used throughout the simulation: for example, it is used to
+identify the parts of the configuration data that apply to the model. The name **must**
+match the chosen submodule name for the model, so the module
+`virtual_ecosystem.models.freshwater` must use `freshwater` as the model name.
 
 The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_update_bounds`
-attribute :
-
-This class attribute defines two time intervals that define a lower and upper bound
+attribute sets two time intervals that define a lower and upper bound
 on the update frequency that can reasonably be used with a model. Models updated
 more often than the lower bound may fail to capture transient dynamics and models
 updated more slowly than the upper bound may fail to capture important temporal
 patterns. Each attribute is a string that can be parsed by {class}`pint.Quantity`
 into a time period
 
-These values are set as class attributes by providing them as arguments to the class
-signature. You will end up with something like the following:
+#### Data requirements
 
-```{code-block} ipython3
+The remaining class attributes all start with `vars_` and are used to define sets of
+variables that will be shared across models in a central data store (a `Data` object)
+for the simulation. The variables in this central data store are all arrays of data and
+are structured across the [core data axes](../../using_the_ve/configuration/axes.md) in
+the simulation.
 
-class FreshWaterModel(
-    BaseModel,
-    model_name="freshwater",
-    model_update_bounds=("1 day", "1 month"),
-    vars_required_for_init=(("temperature", ("spatial",)),),
-    vars_updated=("average_P_concentration",),
-):
-    """Docstring describing model.
+:::{admonition} New variables
+:class: important
 
-    Args:
-        Describe arguments here
-    """
-```
+If your model requires new variables - either to be loaded from initial data or that
+your model writes to the `Data` object - you **must** add the variable details to the
+`data_variables.toml` file.
+:::
 
-```{admonition} Model dependencies
-:class: tip
+These attributes define which variables the model reads from and writes to the central
+data store and when that happens during the model run. There are two main phases to
+running models within the simulation:
 
-Your model may depend on a particular execution order for other models. This order is
-found automatically by Virtual Ecosystem based on the variables that the models require
-to be initialised and updated. Eg. if a model requires variable `A` to be initialised
-and that variable is provided by another model, this second model will run first.
+1. model **initialisation**, which sets up any core model structures and data once
+   at the start of the simulation.
+1. model **updates**, which run at every time step and modify the model structure and
+   data throughout the simulation.
+
+The `var_` attributes define which variables are needed at both of these stages, and are
+critical to defining the model data dependencies and the sequence in which models can
+run.
+
+The first two variables set data requirements during model initialisation:
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init`
+  attribute sets which variables must be loaded into the `Data` object before your model
+  can be initialised. These must either be:
+
+  * included in the [configured initial data](../../using_the_ve/model_data_inputs.md)
+    that is loaded when the simulation starts, or
+  * be populated by a model that initialises earlier in the model sequence.
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_init`
+  attribute sets which variables are written to the `Data` object when your model is
+  initialised. These variables are then available for models later in the sequence.
+
+The remaining three variables set data requirements during each update:
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_update`
+  attribute defines the data that must be in the `Data` object for the model to be able
+  to update. These variables can be:
+  * provided in the initial data, often as time series of data that provides different
+    values for each time step
+  * populated during the initialisation of any of the models, or
+  * populated during the first update of another model that _updates_ before your model.
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_first_update`
+  attribute defines the variables that your model writes to the `Data` object when the
+  model updates for the first time.
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_updated` attribute
+  records which variables in the `Data` object are altered when your model updates. This
+  will typically include all variables in ``vars_populated_by_first_update`` but your
+  model may also alter the state of other variables in the simulation.
+
+:::{admonition} Model dependencies
+:class: important
+
+The `var_` attributes defined for your model are used to automatically detect model
+dependencies and resolve the sequence in which the set of models included in a
+simulation can run. For example, if your model requires variable `A` to be initialised
+and that variable is provided during the initialisation of another model, this second
+model must run first.
 
 If a suitable order cannot be found, the simulation will stop and an error message will
 be provided informing on the specific issue.
-```
+:::
 
 ### Defining the model `__init__` method
 
@@ -526,9 +577,24 @@ def _setup(self, pond_data_path: Path, constants: FreshwaterConstants) -> None:
     )
 ```
 
+:::{admonition} Additional data inputs to a model
+:class: tip
+
+Most of the data in a Virtual Ecosystem simulation is loaded into the central `Data`
+object and shared between the models. However, you may need to load additional data to
+initialise your model that is only used within the model and not shared through the
+`Data` object.
+
+It is absolutely fine to configure and load data like this within the model `_setup`
+method. For example, both the animal and plants models do this to load the initial
+cohort data to define the starting communities within each cell. You can then share
+summary data with other models through the `Data` object - these are variables that will
+be included in `vars_populated_by_init`.
+:::
+
 ### The `_update` method
 
-The `_update` method must then be define to calculate the changes in the model state
+The `_update` method must then be defined to calculate the changes in the model state
 that occur at each time step. The function _must_ have a `time_index` argument, which is
 used by some models to iterate over data that follows a time series through a
 simulation, such as climatic variables.
