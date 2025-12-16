@@ -82,9 +82,6 @@ class PlantsModel(
     ),
     vars_updated=(
         "stem_turnover_cnp",  # i.e. deadwood
-        "deadwood_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "deadwood_c_p_ratio",  # NOTE - will be deprecated in #1131
-        "deadwood_production",  # NOTE - will be deprecated in #1131
         "foliage_turnover_cnp",
         "leaf_turnover",  # NOTE - will be deprecated in #1131
         "leaf_turnover_c_n_ratio",  # NOTE - will be deprecated in #1131
@@ -153,9 +150,6 @@ class PlantsModel(
         "subcanopy_vegetation_litter_cnp",
         "subcanopy_vegetation_cnp",
         "subcanopy_seedbank_cnp",
-        "deadwood_c_n_ratio",
-        "deadwood_c_p_ratio",
-        "deadwood_production",
         "fallen_non_propagule_c_mass",
         "leaf_turnover",
         "leaf_turnover_c_n_ratio",
@@ -1467,9 +1461,6 @@ class PlantsModel(
             "plant_rt_turnover_n_mass",
             "plant_rt_turnover_p_mass",
             "fallen_non_propagule_c_mass",
-            "deadwood_production",
-            "deadwood_c_n_ratio",
-            "deadwood_c_p_ratio",
         ]
         cell_template = xr.full_like(self.data["elevation"], 0)
         for var_name in vars_to_update:
@@ -1532,12 +1523,8 @@ class PlantsModel(
 
         self.data["leaf_turnover"] = self.data["foliage_turnover_cnp"].loc[:, "C"]
         self.data["root_turnover"] = self.data["root_turnover_cnp"].loc[:, "C"]
-        self.data["deadwood_production"] = self.data["stem_turnover_cnp"].loc[:, "C"]
 
         # Convert turnover pools to litter units
-        self.data["deadwood_production"] = self.convert_to_litter_units(
-            input_mass=self.data["deadwood_production"]
-        )
         self.data["leaf_turnover"] = self.convert_to_litter_units(
             input_mass=self.data["leaf_turnover"]
         )
@@ -1550,14 +1537,6 @@ class PlantsModel(
 
         for element in ["N", "P"]:
             # Update carbon to nutrient ratios for turnover pools
-            self.data[f"deadwood_c_{element.lower()}_ratio"] = np.divide(
-                self.data["stem_turnover_cnp"].loc[:, "C"],
-                self.data["stem_turnover_cnp"].loc[:, element],
-                out=np.full_like(
-                    self.data["stem_turnover_cnp"].loc[:, "C"], np.inf, dtype=float
-                ),
-                where=self.data["stem_turnover_cnp"].loc[:, element] != 0,
-            )
 
             self.data[f"leaf_turnover_c_{element.lower()}_ratio"] = np.divide(
                 self.data["foliage_turnover_cnp"].loc[:, "C"],

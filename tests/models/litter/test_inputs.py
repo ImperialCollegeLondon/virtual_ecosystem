@@ -59,6 +59,26 @@ def test_determine_all_plant_to_litter_flows(
         assert np.allclose(litter_inputs[key], expected_inputs[key])
 
 
+def test_convert_to_input_masses_to_rates_per_area(fixture_litter_model):
+    """Test function to convert input masses to rates per area."""
+    from virtual_ecosystem.models.litter.inputs import (
+        convert_to_input_masses_to_rates_per_area,
+    )
+
+    expected_input_rate = [0.0375, 0.0495, 0.0315, 0.0165]
+
+    print(fixture_litter_model.data["stem_turnover_cnp"].loc[:, "C"])
+    print(fixture_litter_model.grid.cell_area)
+
+    actual_input_rate = convert_to_input_masses_to_rates_per_area(
+        input_mass=fixture_litter_model.data["stem_turnover_cnp"].loc[:, "C"],
+        cell_area=fixture_litter_model.grid.cell_area,
+        update_interval=2.0,
+    )
+
+    assert np.allclose(actual_input_rate, expected_input_rate)
+
+
 def test_combine_input_sources(dummy_litter_data):
     """Test that function to combine input sources works as expected."""
     from virtual_ecosystem.models.litter.inputs import combine_input_sources

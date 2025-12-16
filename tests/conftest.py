@@ -458,7 +458,6 @@ def dummy_litter_data(fixture_core_components):
         "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
         "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
         "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
-        "deadwood_production": [0.075, 0.099, 0.063, 0.033],
         "leaf_turnover": [0.027, 0.0003, 0.021, 0.0285],
         "fallen_non_propagule_c_mass": [0.003, 0.0075, 0.00255, 0.00375],
         "root_turnover": [0.027, 0.021, 0.0003, 0.0249],
@@ -466,11 +465,9 @@ def dummy_litter_data(fixture_core_components):
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "plant_reproductive_tissue_lignin": [0.01, 0.03, 0.04, 0.02],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
-        "deadwood_c_n_ratio": [60.7, 57.9, 73.1, 55.1],
         "leaf_turnover_c_n_ratio": [15.0, 25.5, 43.1, 57.4],
         "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
         "root_turnover_c_n_ratio": [30.3, 45.6, 43.3, 37.1],
-        "deadwood_c_p_ratio": [856.5, 675.4, 933.2, 888.8],
         "leaf_turnover_c_p_ratio": [415.0, 327.4, 554.5, 380.9],
         "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
         "root_turnover_c_p_ratio": [656.7, 450.6, 437.3, 371.9],
@@ -503,6 +500,19 @@ def dummy_litter_data(fixture_core_components):
     data["air_temperature"][lyr_strct.index_filled_atmosphere] = np.array(
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
+
+    data["stem_turnover_cnp"] = DataArray(
+        data=np.zeros((fixture_core_components.grid.n_cells, 3)),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["stem_turnover_cnp"].loc[:, "C"] = np.array([607.5, 801.9, 510.3, 267.3])
+    data["stem_turnover_cnp"].loc[:, "N"] = np.array(
+        [10.00823, 13.84974, 6.98085, 4.85118]
+    )
+    data["stem_turnover_cnp"].loc[:, "P"] = np.array(
+        [0.70928196, 1.187296, 0.546828, 0.3007426]
+    )
 
     return data
 

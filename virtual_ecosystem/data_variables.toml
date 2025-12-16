@@ -1057,13 +1057,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of dead wood produced since last update"
-name = "deadwood_production"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Leaf turnover since last update"
 name = "leaf_turnover"
 unit = "kg C m^-2"
@@ -1120,13 +1113,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Carbon:nitrogen ratio of deadwood"
-name = "deadwood_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Carbon:nitrogen ratio of leaf turnover"
 name = "leaf_turnover_c_n_ratio"
 unit = "-"
@@ -1143,13 +1129,6 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Carbon:nitrogen ratio of root turnover"
 name = "root_turnover_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon:phosphorus ratio of deadwood"
-name = "deadwood_c_p_ratio"
 unit = "-"
 variable_type = "float"
 

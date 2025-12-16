@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
+from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
@@ -114,6 +115,26 @@ class LitterInputs:
         return LitterInputs(**metabolic_splits, **plant_inputs, **total_input)
 
 
+def convert_to_input_masses_to_rates_per_area(
+    input_mass: DataArray, cell_area: float, update_interval: float
+) -> DataArray:
+    """Helper function to convert input masses to rates per area.
+
+    The plant model stores plant biomass in units of mass (kg) per grid square,
+    whereas in the litter model we need everything as input rates per area.
+
+    Args:
+        input_mass: The mass of the input [kg]
+        cell_area: The size of the grid cell [m^2]
+        update_interval: The length of time over which the input is being added over
+            [days]
+
+    Returns:
+        The input as a per area input rate [kg m^-2 day^-1]
+    """
+    return input_mass / (cell_area * update_interval)
+
+
 def combine_input_sources(
     data: Data, update_interval: float
 ) -> dict[str, NDArray[np.floating]]:
@@ -124,7 +145,7 @@ def combine_input_sources(
     new pools is also calculated.
 
     This function also converts the plant inputs from total inputs (over the model time
-    step), to the input rates needed by the litter model.
+    step), to the (per area) input rates needed by the litter model.
 
     TODO - At the moment there is only leaf input defined so this function doesn't
     really do anything for the other types of plant matter. Once input is defined
@@ -147,7 +168,11 @@ def combine_input_sources(
         data["leaf_turnover"] + data["herbivory_waste_leaf_carbon"]
     ).to_numpy()
     root_total = data["root_turnover"]
-    deadwood_total = data["deadwood_production"]
+    deadwood_total = convert_to_input_masses_to_rates_per_area(
+        data["stem_turnover_cnp"].loc[:, "C"],
+        cell_area=data.grid.cell_area,
+        update_interval=update_interval,
+    )
     reprod_total = data["fallen_non_propagule_c_mass"]
 
     # Calculate lignin concentrations for each combined pool
@@ -172,7 +197,12 @@ def combine_input_sources(
         nutrient_ratio_2=data["herbivory_waste_leaf_nitrogen"].to_numpy(),
     )
     root_nitrogen = data["root_turnover_c_n_ratio"]
-    deadwood_nitrogen = data["deadwood_c_n_ratio"]
+    deadwood_nitrogen = np.divide(
+        data["stem_turnover_cnp"].loc[:, "C"],
+        data["stem_turnover_cnp"].loc[:, "N"],
+        out=np.full_like(data["stem_turnover_cnp"].loc[:, "C"], np.inf, dtype=float),
+        where=data["stem_turnover_cnp"].loc[:, "N"] != 0,
+    )
     reprod_nitrogen = data["plant_reproductive_tissue_turnover_c_n_ratio"]
 
     # Calculate leaf phosphorus concentrations for each combined pool
@@ -183,13 +213,18 @@ def combine_input_sources(
         nutrient_ratio_2=data["herbivory_waste_leaf_phosphorus"].to_numpy(),
     )
     root_phosphorus = data["root_turnover_c_p_ratio"]
-    deadwood_phosphorus = data["deadwood_c_p_ratio"]
+    deadwood_phosphorus = np.divide(
+        data["stem_turnover_cnp"].loc[:, "C"],
+        data["stem_turnover_cnp"].loc[:, "P"],
+        out=np.full_like(data["stem_turnover_cnp"].loc[:, "C"], np.inf, dtype=float),
+        where=data["stem_turnover_cnp"].loc[:, "P"] != 0,
+    )
     reprod_phosphorus = data["plant_reproductive_tissue_turnover_c_p_ratio"]
 
     return {
         "leaf_mass": leaf_total / update_interval,
         "root_mass": root_total.to_numpy() / update_interval,
-        "deadwood_mass": deadwood_total.to_numpy() / update_interval,
+        "deadwood_mass": deadwood_total.to_numpy(),
         "reprod_mass": reprod_total.to_numpy() / update_interval,
         "leaf_lignin": leaf_lignin,
         "root_lignin": root_lignin.to_numpy(),
