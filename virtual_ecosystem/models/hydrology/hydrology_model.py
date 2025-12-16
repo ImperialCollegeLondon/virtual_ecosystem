@@ -757,7 +757,7 @@ class HydrologyModel(
         for var in ["canopy_evaporation", "interception"]:
             soil_hydrology[var] = self.layer_structure.from_template()
             soil_hydrology[var][:,] = np.where(
-                np.isnan(daily_lists[var][0]),
+                np.isnan(self.data["leaf_area_index"]),
                 np.nan,
                 np.nansum(daily_lists[var], axis=0),
             )
