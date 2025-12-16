@@ -372,7 +372,7 @@ class FreshWaterModel(
     model_name="freshwater",
     model_update_bounds=("1 day", "1 month"),
     vars_required_for_init=("temperature",),
-    vars_populated_by_init=(),
+    vars_populated_by_init=("pond_temperature"),
     vars_required_for_update=(
         "air_temperature",
         "relative_humidity",
@@ -528,7 +528,7 @@ def __init__(
     data: Data,
     core_components: CoreComponents,
     update_interval: pint.Quantity,
-    pond_data_path: Path,
+    community_data: pandas.DataFrame,
     constants: FreshwaterConstants,
     static: bool = False,
 ):
@@ -537,14 +537,14 @@ def __init__(
     super().__init__(data, core_components, static)
 
     # Type and document attributes
-    self.pond_data_path: Path
-    """Path to the pond data file."""
+    self.community_data: pandas.DataFrame
+    """A data frame containing pond community cohort data for each cell."""
     self.constants: FreshwaterConstants
     """Constants for the model."""
 
     # Conditionally run setup steps.
     if self._run_setup:
-        self._setup(pond_data_path=pond_data_path, constants=constants)
+        self._setup(community_data=community_data, constants=constants)
 
     # Save attribute names to be used by the __repr__
     self._repr.append("pond_data_path")
@@ -562,35 +562,19 @@ additional methods that you define on the class or functions from additional sub
 Following the example above:
 
 ```{code-block} ipython3
-def _setup(self, pond_data_path: Path, constants: FreshwaterConstants) -> None:
+def _setup(
+  self, community_data: pandas.DataFrame, constants: FreshwaterConstants
+) -> None:
     """Set up the freshwater model."""
 
-    self.pond_data_path = pond_data_path
+    self.community_data = community_data
     self.constants = constants
 
-    # Load the data using an extra method on the class
-    self.load_pond_data(self.pond_data_path)
-
-    # Populate a variable using a user defined method
+    # Populate a variable in the Data object using a user defined method
     self.data["pond_temperature"] = calculate_pond_temperature(
-      data=self.data, constants=self.constants, time_index=0
+        data=self.data, constants=self.constants, time_index=0
     )
 ```
-
-:::{admonition} Additional data inputs to a model
-:class: tip
-
-Most of the data in a Virtual Ecosystem simulation is loaded into the central `Data`
-object and shared between the models. However, you may need to load additional data to
-initialise your model that is only used within the model and not shared through the
-`Data` object.
-
-It is absolutely fine to configure and load data like this within the model `_setup`
-method. For example, both the animal and plants models do this to load the initial
-cohort data to define the starting communities within each cell. You can then share
-summary data with other models through the `Data` object - these are variables that will
-be included in `vars_populated_by_init`.
-:::
 
 ### The `_update` method
 
@@ -621,7 +605,8 @@ then do any processing and validating to convert the configuration into the argu
 required by the `__init__` method. The configuration object will contain sections for
 all of the models being used in a simulation, so you should extract the configuration
 for your model and then do any processing - this might simply be passing sections of the
-configuration to the `__init__` method or might need to do some pre-processing.
+configuration to the `__init__` method or might need to do some pre-processing, such as
+loading additional model specific data.
 
 The method then uses those parsed arguments to actually call the `__init__` method and
 return an initialised instance of the model using the settings. The `from_config`
@@ -651,9 +636,13 @@ def from_config(
         "freshwater", FreshwaterConfiguration
     )
 
-    pond_data_path = model_config.pond_data_path
+    # Load the community data into a data frame
+    community_data = pandas.read_csv(model_config.pond_data_path)
     constants = model_config.constants
 
+    # Run a model specific function to validate the community data
+    if not check_community_data(self.community_data):
+        raise ConfigurationError("Pond community data is not valid")
 
     LOGGER.info(
         "Information required to initialise the soil model successfully extracted."
@@ -661,10 +650,28 @@ def from_config(
     return cls(
         data=data,
         update_interval=update_interval,
-        pond_data_path=pond_data_path,
+        community_data=community_data,
         constants=constants
     )
 ```
+
+:::{admonition} Additional data inputs to a model
+:class: tip
+
+Most of the data in a Virtual Ecosystem simulation is loaded into the central `Data`
+object and shared between the models. However, you may need to load additional data to
+initialise your model that is only used within the model and not shared through the
+`Data` object. You might share summary data with other models through the `Data`
+object - these are variables that will be included in `vars_populated_by_init` or
+`vars_populated_by_first_update`.
+
+The preferred way to do this is to add a configuration option that points to a file
+containing data to load - such as the `pond_data_path` in the example above. The
+`from_config` method should handle loading the data and converting it into a Python
+object that is one of the arguments to the model `__init__` method. This approach
+separates data loading from the model processing and makes it easier to test and run the
+model class.
+:::
 
 ### Other model steps
 

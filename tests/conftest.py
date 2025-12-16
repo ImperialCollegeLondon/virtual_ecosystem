@@ -545,7 +545,7 @@ def dummy_climate_data(fixture_core_components):
         "diabatic_correction_momentum_above": 0.1,
         "diabatic_correction_momentum_canopy": 1.0,
         "mean_mixing_length": 1.3,
-        "aerodynamic_resistance_surface": 12.5,
+        "aerodynamic_resistance_soil": 12.5,
         "aerodynamic_resistance_canopy": 12.5,
         "mean_annual_temperature": 20.0,
     }

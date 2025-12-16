@@ -154,7 +154,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Transpiration from canopy"
+description = "Transpiration from the canopy and subcanopy"
 name = "transpiration"
 unit = "mm"
 variable_type = "float"
@@ -213,6 +213,13 @@ axis = ["spatial"]
 description = "Heights of model layers"
 name = "layer_heights"
 unit = "m"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Intercepted rainfall in canopy"
+name = "interception"
+unit = "mm"
 variable_type = "float"
 
 [[variable]]
@@ -350,8 +357,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Aerodynamic resistance surface"
-name = "aerodynamic_resistance_surface"
+description = "Aerodynamic resistance soil"
+name = "aerodynamic_resistance_soil"
 unit = "s m-1"
 variable_type = "float"
 
@@ -359,13 +366,6 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Aerodynamic resistance canopy"
 name = "aerodynamic_resistance_canopy"
-unit = "s m-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Aerodynamic resistance understorey"
-name = "aerodynamic_resistance_understorey"
 unit = "s m-1"
 variable_type = "float"
 
@@ -1276,28 +1276,28 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Limit on rate at which ectomycorrhizal fungi will supply nitrogen to their plant partners"
 name = "ecto_supply_limit_n"
-unit = "kg N m^-2"
+unit = "kg N m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Limit on rate at which ectomycorrhizal fungi will supply phosphorus to their plant partners"
 name = "ecto_supply_limit_p"
-unit = "kg P m^-2"
+unit = "kg P m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Limit on rate at which arbuscular mycorrhizal fungi will supply nitrogen to their plant partners"
 name = "arbuscular_supply_limit_n"
-unit = "kg N m^-2"
+unit = "kg N m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Limit on rate at which arbuscular mycorrhizal fungi will supply phosphorus to their plant partners"
 name = "arbuscular_supply_limit_p"
-unit = "kg P m^-2"
+unit = "kg P m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
@@ -1515,13 +1515,6 @@ axis = ["spatial"]
 description = "Uptake of phosphorous by subcanopy transpiration"
 name = "subcanopy_phosphorus_uptake"
 unit = "kg"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Transpiration from subcanopy vegetation"
-name = "subcanopy_transpiration"
-unit = "mm"
 variable_type = "float"
 
 [[variable]]
