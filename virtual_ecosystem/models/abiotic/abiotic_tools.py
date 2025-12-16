@@ -8,9 +8,12 @@ TODO change temperatures to Kelvin
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
+
+from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.data import Data
 
 
 def calculate_molar_density_air(
@@ -151,14 +154,14 @@ def calculate_slope_of_saturated_pressure_curve(
 def calculate_actual_vapour_pressure(
     air_temperature: DataArray,
     relative_humidity: DataArray,
-    pyrealm_const: PyrealmConst,
+    pyrealm_core_constants: PyrealmCoreConst,
 ) -> DataArray:
     """Calculate actual vapour pressure, [kPa].
 
     Args:
         air_temperature: Air temperature, [C]
         relative_humidity: Relative humidity, [-]
-        pyrealm_const: Set of constants from pyrealm
+        pyrealm_core_constants: Set of constants from pyrealm
 
     Returns:
         actual vapour pressure, [kPa]
@@ -166,7 +169,7 @@ def calculate_actual_vapour_pressure(
 
     saturation_vapour_pressure_air = calc_vp_sat(
         ta=air_temperature.to_numpy(),
-        core_const=pyrealm_const(),
+        core_const=pyrealm_core_constants,
     )
     return saturation_vapour_pressure_air * relative_humidity / 100.0
 
@@ -234,7 +237,7 @@ def calculate_specific_humidity(
     relative_humidity: NDArray[np.floating],
     atmospheric_pressure: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
-    pyrealm_const: PyrealmConst,
+    pyrealm_core_constants: PyrealmCoreConst,
 ) -> NDArray[np.floating]:
     """Calculate specific humidity.
 
@@ -244,7 +247,7 @@ def calculate_specific_humidity(
         atmospheric_pressure: Atmospheric pressure, [kPa]
         molecular_weight_ratio_water_to_dry_air: The ratio of the molar mass of water
             vapour to the molar mass of dry air
-        pyrealm_const: Pyrealm constants
+        pyrealm_core_constants: Pyrealm core constants
 
     Returns:
         Specific humidity, [kg kg-1]
@@ -252,7 +255,7 @@ def calculate_specific_humidity(
     # Saturation vapor pressure
     saturation_vapour_pressure = calc_vp_sat(
         ta=air_temperature,
-        core_const=pyrealm_const,
+        core_const=pyrealm_core_constants,
     )
 
     # Actual vapor pressure (hPa)
@@ -267,3 +270,73 @@ def calculate_specific_humidity(
     )
 
     return specific_humidity
+
+
+def update_profile_from_reference(
+    layer_structure: LayerStructure,
+    mask_variable: DataArray,
+    variable_name: DataArray,
+    time_index: int,
+) -> DataArray:
+    """Update a layer-based profile for a given time index using a reference variable.
+
+    This function
+
+      - extracts a mask from air temperature to determine valid atmosphere layers
+      - reads the reference variable at the given time index
+      - applies the mask to keep only valid layers
+      - fills the profile template for those layers
+
+    Args:
+        layer_structure: LayerStructure object defining the layer setup
+        mask_variable: DataArray used to create the atmospheric mask
+        variable_name: Reference variable (e.g. data["atmospheric_pressure_ref"])
+        time_index: Index of the current time step
+
+    Returns:
+        Updated layer profile as a DataArray
+    """
+
+    # Create atmospheric mask for filling constant values
+    atm_mask = ~np.isnan(
+        mask_variable.isel(layers=layer_structure.index_filled_atmosphere)
+    )
+
+    # Mean atmospheric pressure profile, [kPa]
+    profile_out = layer_structure.from_template()
+    reference_values = variable_name.isel(time_index=time_index)
+    valid_values = reference_values.where(atm_mask)
+    profile_out[layer_structure.index_filled_atmosphere] = valid_values
+
+    return profile_out
+
+
+def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStructure):
+    """Calculate heights, thickness, layer tops, and midpoints for atmospheric layers.
+
+    Args:
+        data: Data object
+        layer_structure: LayerStructure object
+
+    Returns:
+        dict containing heights, thickness, layer_top, layer_midpoints
+    """
+
+    # Extract above-ground layer heights
+    heights = data["layer_heights"][layer_structure.index_filled_atmosphere].to_numpy()
+
+    # Compute thickness
+    thickness = compute_layer_thickness_for_varying_canopy(heights=heights)
+
+    # Compute cumulative thickness excluding current layer
+    layer_top = np.cumsum(thickness, axis=1) - thickness
+
+    # Compute midpoints
+    midpoints = layer_top + thickness / 2
+
+    return {
+        "heights": heights,
+        "thickness": thickness,
+        "layer_top": layer_top,
+        "layer_midpoints": midpoints,
+    }

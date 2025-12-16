@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0.dev0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -40,17 +40,21 @@ drive the dynamics of plants, animals, and microbes at different vertical levels
 
 - above canopy (canopy height + reference measurement height, typically 2 m)
 - canopy (dynamic heights provided by plant model)
-- surface (10 cm above ground)
+- surface (10 cm above ground, including understorey vegetation)
 - topsoil (25 cm below ground)
 - subsoil (minimum of one layer at 1 m depth)
 
-At the moment, the default option is the
-[abiotic_simple](../../api/models/abiotic_simple.md) model, a simple regression
+The [abiotic_simple](../../api/models/abiotic_simple.md) model is a simple regression
 model that estimates microclimatic variables based on empirical data for a monthly
-model timestep.
-In parallel, we are working on a process-based
-[abiotic](../../api/models/abiotic.md) model, which will provide microclimate on
-a (sub-)daily resolution. Both versions of the abiotic model provide the following key
+model timestep. It can be used for quick simulations and it is used to initialise the
+process-based abiotic model.
+
+The process-based [abiotic](../../api/models/abiotic.md) model is the default model in
+`ve_run`. At the moment, the model solves energy balance equantions assuming steady
+state; in the future we plan to run this model with a (sub-)daily resolution to capture
+diurnal cycles and weather extremes.
+
+Both versions of the abiotic model provide the following key
 variables at relevant vertical levels:
 
 - Air temperature (°C), relative humidity (-), and vapour pressure deficit (VPD, kPa)
@@ -76,30 +80,27 @@ atmospheric $\ce{CO_{2}}$ based on external inputs.
 
 ### Process-based Abiotic Model
 
-The process-based [abiotic](../../api/models/abiotic.md) model will contain a sub-daily
+The process-based [abiotic](../../api/models/abiotic.md) model contains a
 mechanistic representation of the radiation balance, the energy
-balance, and wind profiles. Submodules will be closely coupled to the hydrology and
-plants models through the exchange of energy and water. The model will also provides a
+balance, and wind profiles. Submodules are closely coupled to the hydrology and
+plants models through the exchange of energy and water. The model also provides a
 constant vertical profile of atmospheric pressure and atmospheric $\ce{CO_{2}}$ based on
-external inputs. Most processes will be calculated on a per grid cell basis; horizontal
+external inputs. Most processes are calculated on a per grid cell basis; horizontal
 exchange of properties will be considered at a later stage.
 
 ```{note}
 Some of the features described here are not yet implemented.
 ```
 
-#### Radiation balance
+#### Radiation and Energy balance
 
-The radiation balance will calculate location-specific solar irradiance
-(shortwave), reflection and scattering of shortwave radiation from canopy and surface, a
-vertical profile of net shortwave radiation, and outgoing longwave radiation from canopy
-and surface. A basic version of the surface and canopy radiation balance is currently
-included in the energy balance submodule.
-
-#### Energy balance
-
-The [microclimate](../../api/models/abiotic/microclimate.md) submodule will
-derive sensible and latent heat fluxes from canopy layers and surface to the atmosphere.
+The [microclimate](../../api/models/abiotic/microclimate.md) submodule contains the
+equations to solve the radiation and energy balance in the Virtual Ecosystem.
+This includes the radiation balance with reflection and scattering of shortwave
+radiation from canopy and surface, a vertical profile of net shortwave radiation, and
+outgoing longwave radiation from canopy and surface.
+The net radiation is then partitioned in sensible and latent heat fluxes from canopy
+layers and surface to the atmosphere.
 Part of the net radiation will be converted into soil heat flux. Based on these
 turbulent fluxes, air temperature, canopy temperature, relative humidity, and soil
 temperature will be updated at each level. The vertical mixing between

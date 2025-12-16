@@ -5,6 +5,7 @@ authors = [
   {name = "Jacob Cook", email = "j.cook17@imperial.ac.uk"},
   {name = "Vivienne Groner", email = "v.groner@imperial.ac.uk"},
   {name = "Taran Rallings", email = "t.rallings@imperial.ac.uk"},
+  {name = "Sally Matson", email = "sally.matson21@imperial.ac.uk"},
   {name = "Olivia Daniel", email = "olivia.daniel08@imperial.ac.uk"},
   {name = "Jaideep Joshi", email = "joshi@iiasa.ac.at"},
   {name = "Anna Rallings", email = "a.rallings@imperial.ac.uk"},
@@ -23,7 +24,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 name = "virtual_ecosystem"
 readme = "README.md"
-version = "0.1.1a12"
+version = "0.1.1a14"
 
 requires-python = ">=3.11"
 
@@ -31,7 +32,6 @@ dependencies = [
   "Shapely (>2.0)",
   "dask (>2023.6)",
   "dpath (>2.0)",
-  "jsonschema (>4.14)",
   "netcdf4 (>1.6)",
   "numpy  (>2.0)",
   "openpyxl (>3.1)",
@@ -42,6 +42,7 @@ dependencies = [
   "tqdm (>4.66)",
   "xarray (>2024.6)",
   "types-tabulate (>0.9)",
+  "pydantic (>=2.12.0,<3.0.0)",
 ]
 
 [project.scripts]
@@ -60,28 +61,28 @@ types-jsonschema = "^4.25.1"
 types-tqdm = "^4.67.0.20250809"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.138.16"
-pytest = ">=7.1.2,<9.0.0"
+hypothesis = "^6.148.7"
+pytest = ">=7.1.2,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
-pytest-mock = "^3.15.0"
+pytest-mock = "^3.15.1"
 pytest-xdist = {extras = ["psutil"], version = "^3.8.0"}
 
 [tool.poetry.group.devenv.dependencies]
 codespell = "^2.4.1"
-ipykernel = "^6.15.0"
-ipython = "^9.5.0"
-isort = ">=5.12,<7.0"
-jupyterlab = "^4.4.6"
+ipykernel = "^7.1.0"
+ipython = "^9.8.0"
+isort = ">=5.12,<8.0"
+jupyterlab = "^4.5.0"
 jupyterlab-myst = "^2.4.2"
-jupytext = "^1.17.3"
-matplotlib = "^3.10.6"
+jupytext = "^1.18.1"
+matplotlib = "^3.10.8"
 mdformat = "^0.7.14"
 mdformat_frontmatter = ">=0.4.1,<2.1.0"
 mdformat_tables = ">=0.4.1,<1.1.0"
-mypy = "^1.18.1"
+mypy = "^1.19.0"
 pre-commit = ">=3,<5"
-ruff = ">=0.9.1,<0.14.0"
+ruff = ">=0.9.1,<0.15.0"
 
 [tool.poetry.group.docs.dependencies]
 autodocsumm = "^0.2.8"
@@ -93,7 +94,7 @@ sphinx-external-toc = "^1.0.0"
 sphinx-hoverxref = "^1.4.1"
 sphinx-rtd-theme = ">=2,<4"
 sphinxcontrib-bibtex = "^2.6.1"
-sphinxcontrib-mermaid = ">=0.9.2,<1.1.0"
+sphinxcontrib-mermaid = ">=0.9.2,<1.3.0"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
@@ -133,7 +134,7 @@ select = [
 # On top of the Google convention, disable:
 ignore = [
   "D202", # Blank line after docstring is ok
-  "D107", # Location of __init__ docstring in class not __init__"  # "F401", # module imported but unused
+  "D107", # Location of __init__ docstring in class not __init__"
 ]
 
 [tool.ruff.lint.pydocstyle]

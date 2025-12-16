@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0.dev0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -106,7 +106,7 @@ where $m_{i,c}$ is the maximum uptake rate of carbon for microbial group $i$ and
 $\epsilon_i$ is the carbon use efficiency for microbial group $i$. There isn't anything
 mechanistic to base the split between ammonium and nitrate on, so instead we introduce a
 (configurable) [ammonium mineralisation
-proportion](virtual_ecosystem.models.soil.constants.SoilConsts.ammonium_mineralisation_proportion)
+proportion](virtual_ecosystem.models.soil.model_config.SoilConstants.ammonium_mineralisation_proportion)
 constant to determine how nitrogen mineralisation is split between the two.
 
 ### Enzyme production

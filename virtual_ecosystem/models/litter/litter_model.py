@@ -31,8 +31,7 @@ import numpy as np
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
@@ -44,12 +43,15 @@ from virtual_ecosystem.models.litter.carbon import (
     calculate_updated_pools,
 )
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
-from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.inputs import (
     LitterInputs,
     calculate_input_chemistries,
 )
 from virtual_ecosystem.models.litter.losses import calculate_litter_losses
+from virtual_ecosystem.models.litter.model_config import (
+    LitterConfiguration,
+    LitterConstants,
+)
 
 
 class LitterModel(
@@ -183,12 +185,15 @@ class LitterModel(
 
         self.litter_chemistry: LitterChemistry
         """Litter chemistry object for tracking of litter pool chemistries."""
-        self.model_constants: LitterConsts
+        self.model_constants: LitterConstants
         """Set of constants for the litter model."""
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
     ) -> LitterModel:
         """Factory function to initialise the litter model from configuration.
 
@@ -198,13 +203,15 @@ class LitterModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
-            config: A validated Virtual Ecosystem model configuration object.
         """
 
-        # Load in the relevant constants
-        model_constants = load_constants(config, "litter", "LitterConsts")
-        static = config["litter"]["static"]
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: LitterConfiguration = configuration.get_subconfiguration(
+            "litter", LitterConfiguration
+        )
 
         LOGGER.info(
             "Information required to initialise the litter model successfully "
@@ -213,13 +220,13 @@ class LitterModel(
         return cls(
             data=data,
             core_components=core_components,
-            static=static,
-            model_constants=model_constants,
+            static=model_configuration.static,
+            model_constants=model_configuration.constants,
         )
 
     def _setup(
         self,
-        model_constants: LitterConsts = LitterConsts(),
+        model_constants: LitterConstants = LitterConstants(),
         **kwargs: Any,
     ) -> None:
         """Method to setup the litter model specific data variables.

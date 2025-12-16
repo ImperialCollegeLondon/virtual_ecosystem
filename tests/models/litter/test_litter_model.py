@@ -2,28 +2,27 @@
 
 from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
-from logging import CRITICAL, DEBUG, ERROR, INFO
+from logging import DEBUG, ERROR, INFO
 
 import numpy as np
 import pytest
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.exceptions import InitialisationError
 
 
 def test_litter_model_initialization(
-    caplog, dummy_litter_data, fixture_core_components
+    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
 ):
     """Test `LitterModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     model = LitterModel(
         data=dummy_litter_data,
         core_components=fixture_core_components,
-        model_constants=LitterConsts(),
+        model_constants=fixture_litter_constants,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -64,11 +63,12 @@ def test_litter_model_initialization(
     )
 
 
-def test_litter_model_initialization_no_data(caplog, fixture_core_components):
+def test_litter_model_initialization_no_data(
+    caplog, fixture_core_components, fixture_litter_constants
+):
     """Test `LitterModel` initialization fails when all data is missing."""
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
-    from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     caplog.clear()
@@ -81,7 +81,7 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
         LitterModel(
             data=litter_data,
             core_components=fixture_core_components,
-            model_constants=LitterConsts(),
+            model_constants=fixture_litter_constants,
         )
 
     # Final check that expected logging entries are produced
@@ -174,10 +174,9 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
 
 
 def test_litter_model_initialization_bad_pool_bounds(
-    caplog, dummy_litter_data, fixture_core_components
+    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
 ):
     """Test `LitterModel` initialization fails when litter pools are out of bounds."""
-    from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
@@ -189,7 +188,7 @@ def test_litter_model_initialization_bad_pool_bounds(
         LitterModel(
             data=dummy_litter_data,
             core_components=fixture_core_components,
-            model_constants=LitterConsts,
+            model_constants=fixture_litter_constants,
         )
 
     # Final check that the last log entry is as expected
@@ -201,10 +200,10 @@ def test_litter_model_initialization_bad_pool_bounds(
 
 
 def test_litter_model_initialization_bad_lignin_bounds(
-    caplog, dummy_litter_data, fixture_core_components
+    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
 ):
     """Test `LitterModel` initialization fails for lignin proportions not in bounds."""
-    from virtual_ecosystem.models.litter.constants import LitterConsts
+
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
@@ -216,7 +215,7 @@ def test_litter_model_initialization_bad_lignin_bounds(
         LitterModel(
             data=litter_data,
             core_components=fixture_core_components,
-            model_constants=LitterConsts,
+            model_constants=fixture_litter_constants,
         )
 
     # Final check that expected logging entries are produced
@@ -228,10 +227,9 @@ def test_litter_model_initialization_bad_lignin_bounds(
 
 
 def test_litter_model_initialization_bad_nutrient_ratio_bounds(
-    caplog, dummy_litter_data, fixture_core_components
+    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
 ):
     """Test `LitterModel` initialization fails for nutrient ratios not in bounds."""
-    from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
@@ -245,7 +243,7 @@ def test_litter_model_initialization_bad_nutrient_ratio_bounds(
         LitterModel(
             data=litter_data,
             core_components=fixture_core_components,
-            model_constants=LitterConsts,
+            model_constants=fixture_litter_constants,
         )
 
     # Final check that expected logging entries are produced
@@ -264,7 +262,6 @@ def test_litter_model_initialization_bad_nutrient_ratio_bounds(
             3.36,
             does_not_raise(),
             (
-                (INFO, "Initialised litter.LitterConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the litter model successfully "
@@ -341,11 +338,10 @@ def test_litter_model_initialization_bad_nutrient_ratio_bounds(
         ),
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '24 hours'\n"
-            "[litter.constants.LitterConsts]\nlitter_decomp_temp_response = 4.44\n",
+            "[litter.constants]\nlitter_decomp_temp_response = 4.44\n",
             4.44,
             does_not_raise(),
             (
-                (INFO, "Initialised litter.LitterConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the litter model successfully "
@@ -408,18 +404,6 @@ def test_litter_model_initialization_bad_nutrient_ratio_bounds(
             ),
             id="modified_config_correct",
         ),
-        pytest.param(
-            "[core.timing]\nupdate_interval = '24 hours'\n"
-            "[litter.constants.LitterConsts]\ndecomp_rate = 4.44\n",
-            None,
-            pytest.raises(ConfigurationError),
-            (
-                (ERROR, "Unknown names supplied for LitterConsts: decomp_rate"),
-                (INFO, "Valid names are: "),
-                (CRITICAL, "Could not initialise litter.LitterConsts from config"),
-            ),
-            id="modified_config_incorrect",
-        ),
     ],
 )
 def test_generate_litter_model(
@@ -432,21 +416,25 @@ def test_generate_litter_model(
 ):
     """Test that the function to initialise the litter model behaves as expected."""
 
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
-    # Build the config object and core components
-    config = Config(cfg_strings=cfg_string)
-    core_components = CoreComponents(config=config)
+    config_data = ConfigurationLoader(cfg_strings=cfg_string)
+    configuration = generate_configuration(config_data.data)
+    core_components = CoreComponents(configuration.core)
+
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
     with raises:
         model = LitterModel.from_config(
             data=dummy_litter_data,
+            configuration=configuration,
             core_components=core_components,
-            config=config,
         )
         assert model.model_constants.litter_decomp_temp_response == temp_response
 

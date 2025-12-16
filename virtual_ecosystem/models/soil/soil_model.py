@@ -25,27 +25,31 @@ from scipy.integrate import solve_ivp
 from xarray import DataArray, where
 
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents, LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConfiguration, CoreConstants
+from virtual_ecosystem.models.hydrology.model_config import (
+    HydrologyConfiguration,
+)
 from virtual_ecosystem.models.litter.env_factors import (
     average_temperature_over_microbially_active_layers,
     average_water_potential_over_microbially_active_layers,
 )
-from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
     calculate_environmental_effect_factors,
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
-    EnzymeConstants,
     MicrobialGroupConstants,
-    make_full_set_of_enzymes,
     make_full_set_of_microbial_groups,
+)
+from virtual_ecosystem.models.soil.model_config import (
+    SoilConfiguration,
+    SoilConstants,
+    SoilEnzymeClass,
 )
 from virtual_ecosystem.models.soil.pools import (
     SoilPools,
@@ -90,6 +94,8 @@ class SoilModel(
         "soil_p_pool_labile",
         "pH",
         "clay_fraction",
+        "matric_potential",
+        "mean_annual_temperature",
     ),
     vars_populated_by_init=(
         "dissolved_nitrate",
@@ -146,6 +152,9 @@ class SoilModel(
         "plant_n_uptake_ecto",
         "plant_p_uptake_arbuscular",
         "plant_p_uptake_ecto",
+        "subcanopy_ammonium_uptake",
+        "subcanopy_nitrate_uptake",
+        "subcanopy_phosphorus_uptake",
         "animal_pom_consumption_carbon",
         "animal_pom_consumption_nitrogen",
         "animal_pom_consumption_phosphorus",
@@ -215,9 +224,14 @@ class SoilModel(
         handled in :fun:`~virtual_ecosystem.soil.soil_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(
+            data=data,
+            core_components=core_components,
+            static=static,
+            **kwargs,
+        )
 
-        self.model_constants: SoilConsts
+        self.model_constants: SoilConstants
         """Set of constants for the soil model."""
 
         self.refreshed_variables = ["new_fungal_fruiting_body_production"]
@@ -229,7 +243,10 @@ class SoilModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
     ) -> SoilModel:
         """Factory function to initialise the soil model from configuration.
 
@@ -239,45 +256,55 @@ class SoilModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """
 
-        # Load in the relevant constants
-        model_constants = load_constants(config, "soil", "SoilConsts")
-        core_constants = load_constants(config, "core", "CoreConsts")
-        static = config["soil"]["static"]
+        # Extract the required subconfigurations from the compiled configuration.
+        soil_configuration: SoilConfiguration = configuration.get_subconfiguration(
+            "soil", SoilConfiguration
+        )
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+        hydrology_configuration: HydrologyConfiguration = (
+            configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
+        )
 
         LOGGER.info(
             "Information required to initialise the soil model successfully extracted."
         )
 
-        enzyme_classes = make_full_set_of_enzymes(config)
-        microbial_groups = make_full_set_of_microbial_groups(
-            config, enzyme_classes=enzyme_classes, core_constants=core_constants
-        )
+        # Extract enzyme classes to a dictionary
+        enzyme_classes: dict[str, SoilEnzymeClass] = {
+            f"{enzyme.source}_{enzyme.substrate}": enzyme
+            for enzyme in soil_configuration.enzyme_class_definition
+        }
 
-        # Load hydrology constants
-        hydro_constants = load_constants(config, "hydrology", "HydroConsts")
+        microbial_groups = make_full_set_of_microbial_groups(
+            config=soil_configuration,
+            enzyme_classes=enzyme_classes,
+            core_constants=core_configuration.constants,
+        )
 
         return cls(
             data=data,
+            configuration=configuration,
             core_components=core_components,
-            static=static,
-            model_constants=model_constants,
-            core_constants=core_constants,
+            static=soil_configuration.static,
+            model_constants=soil_configuration.constants,
             microbial_groups=microbial_groups,
             enzyme_classes=enzyme_classes,
-            soil_moisture_saturation=hydro_constants.soil_moisture_saturation,
-            soil_moisture_residual=hydro_constants.soil_moisture_residual,
+            soil_moisture_saturation=hydrology_configuration.constants.soil_moisture_saturation,
+            soil_moisture_residual=hydrology_configuration.constants.soil_moisture_residual,
         )
 
     def _setup(
         self,
-        model_constants: SoilConsts,
-        core_constants: CoreConsts,
+        model_constants: SoilConstants,
         microbial_groups: dict[str, MicrobialGroupConstants],
-        enzyme_classes: dict[str, EnzymeConstants],
+        enzyme_classes: dict[str, SoilEnzymeClass],
         soil_moisture_saturation: float,
         soil_moisture_residual: float,
         **kwargs: Any,
@@ -285,13 +312,12 @@ class SoilModel(
         """Function to setup up the soil model."""
 
         self.model_constants = model_constants
-        self.core_constants = core_constants
 
         # Store microbial functional groups and enzyme classes needed by the model
         self.microbial_groups = microbial_groups
         self.enzyme_classes = enzyme_classes
 
-        # Store the two required hydrology constants
+        # Store the required hydrology constants
         self.soil_moisture_saturation = soil_moisture_saturation
         self.soil_moisture_residual = soil_moisture_residual
 
@@ -533,10 +559,8 @@ class SoilModel(
 
         return {
             "production_of_fungal_fruiting_bodies": total_production
-            / (
-                self.core_constants.max_depth_of_microbial_activity
-                * self.model_timing.update_interval_quantity.to("days").magnitude
-            )
+            * self.core_constants.max_depth_of_microbial_activity
+            / self.model_timing.update_interval_quantity.to("days").magnitude
         }
 
     def calculate_dissolved_nutrient_concentrations(self) -> dict[str, DataArray]:
@@ -604,13 +628,10 @@ class SoilModel(
         converted from the per volume units used in the soil model, to the per area
         units used in the plant model.
 
-        TODO - These supply limits can only be properly calculated once the soil
-        temperature and matric potential are known. At present these are only found once
-        the abiotic and hydrology models (respectively), are updated. Instead a
-        temperature of 25C and optimal water potential (set in the constants) are used.
-        Down the line we need to decide whether this inaccuracy is acceptable, or
-        whether the stage at which basic abiotic information gets calculated needs to
-        change.
+        TODO - In model initialisation, the annual mean temperature is used as an
+        estimate of the soil temperature as soil temperatures are not yet known. This
+        issue won't be resolved until we have decided what we are doing about model spin
+        up
 
         Args:
             init: A boolean specifying whether this function is being called as part of
@@ -623,30 +644,26 @@ class SoilModel(
         """
 
         if not init:
-            # Average soil temperature and water potential over the microbially active
-            # layers, and then use to calculate the environmental factors
-            soil_water_potential = (
-                average_water_potential_over_microbially_active_layers(
-                    water_potentials=self.data["matric_potential"],
+            averaged_soil_temperature = (
+                average_temperature_over_microbially_active_layers(
+                    soil_temperatures=self.data["soil_temperature"],
+                    surface_temperature=self.data["air_temperature"][
+                        self.layer_structure.index_surface_scalar
+                    ].to_numpy(),
                     layer_structure=self.layer_structure,
                 )
             )
-            soil_temperature = average_temperature_over_microbially_active_layers(
-                soil_temperatures=self.data["soil_temperature"],
-                surface_temperature=self.data["air_temperature"][
-                    self.layer_structure.index_surface_scalar
-                ].to_numpy(),
-                layer_structure=self.layer_structure,
-            )
         else:
-            # Want to establish the maximum for optimal conditions, so use the water
-            # potential optimum from the constants, and arbitrarily select a soil
-            # temperature of 25C as "optimal"
-            soil_temperature = np.full_like(self.data["pH"].to_numpy(), 25.0)
-            soil_water_potential = np.full_like(
-                self.data["pH"].to_numpy(),
-                self.model_constants.soil_microbe_water_potential_optimum,
-            )
+            # As soil temperature hasn't be calculated yet we assume that it matches the
+            # mean annual temperature (a common assumption for deeper soil layers)
+            averaged_soil_temperature = self.data["mean_annual_temperature"].to_numpy()
+
+        # Average soil temperature and water potential over the microbially active
+        # layers, and then use to calculate the environmental factors
+        soil_water_potential = average_water_potential_over_microbially_active_layers(
+            water_potentials=self.data["matric_potential"],
+            layer_structure=self.layer_structure,
+        )
 
         env_factors = calculate_environmental_effect_factors(
             soil_water_potential=soil_water_potential,
@@ -663,7 +680,7 @@ class SoilModel(
             soil_p_pool_dop=self.data["soil_p_pool_dop"].to_numpy(),
             soil_p_pool_labile=self.data["soil_p_pool_labile"].to_numpy(),
             microbe_pool_size=self.data["soil_c_pool_ectomycorrhiza"].to_numpy(),
-            soil_temp=soil_temperature,
+            soil_temp=averaged_soil_temperature,
             microbial_group=self.microbial_groups["ectomycorrhiza"],
             env_factors=env_factors,
         )
@@ -675,7 +692,7 @@ class SoilModel(
             soil_p_pool_dop=self.data["soil_p_pool_dop"].to_numpy(),
             soil_p_pool_labile=self.data["soil_p_pool_labile"].to_numpy(),
             microbe_pool_size=self.data["soil_c_pool_arbuscular_mycorrhiza"].to_numpy(),
-            soil_temp=soil_temperature,
+            soil_temp=averaged_soil_temperature,
             microbial_group=self.microbial_groups["arbuscular_mycorrhiza"],
             env_factors=env_factors,
         )
@@ -793,10 +810,10 @@ def construct_full_soil_model(
     no_cells: int,
     layer_structure: LayerStructure,
     delta_pools_ordered: dict[str, NDArray[np.floating]],
-    model_constants: SoilConsts,
+    model_constants: SoilConstants,
     functional_groups: dict[str, MicrobialGroupConstants],
-    enzyme_classes: dict[str, EnzymeConstants],
-    core_constants: CoreConsts,
+    enzyme_classes: dict[str, SoilEnzymeClass],
+    core_constants: CoreConstants,
     soil_moisture_saturation: float,
     soil_moisture_residual: float,
     top_soil_layer_thickness: float,

@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0.dev0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -25,10 +25,10 @@ language_info:
 # The abiotic model implementation
 
 ```{warning}
-The process-based abiotic model is still under development and currently not available
-for Virtual Ecosystem simulations with `ve_run`. This page provides a brief summary of
-the current status and the directions in which we aim to take the model development
-forward.
+The process-based abiotic model is currently the default abiotic model version in the
+Virtual Ecosystem configuration; however, the model is still under development.
+This page provides a summary of the current status and the directions in which we aim to
+take the model development forward.
 ```
 
 ## Required variables
@@ -74,7 +74,10 @@ written as:
 
 $$\frac{dQ}{dt} = R_n - G - H - \lambda E (- PP)$$
 
-where:
+where each term is later expanded for the [canopy](#canopy-energy-balance),
+[understorey](#understorey-energy-balance), and [soil surface](#soil-energy-balance).
+
+**Variable definitions:**
 
 $Q$:
 Total heat energy stored in the surface layer.
@@ -105,11 +108,9 @@ $PP$:
 Primary productivity, represents the energy that plants use to photosynthesize.
 
 ```{note}
-Calculating abiotic processes at coarse time scales can lead to inaccuracies, so the
-abiotic model uses an internal hourly time step. If the Virtual Ecosystem is run with a
-coarser update interval, the abiotic model first partitions the input data into hourly
-values where required, then simulates a single representative hour for the entire
-interval.
+Calculating abiotic processes at coarse time scales can lead to numerical instability,
+so the abiotic model uses an equilibrium assumption and where required, the integration
+interval is 1 hour.
 
 The outputs returned by the abiotic model are therefore equilibrium values for that
 representative hour. A planned future improvement is to allow true hourly input, so the
@@ -151,121 +152,6 @@ absorb a portion of the incoming radiation.
 In the future, we aim to implement a full diurnal cycle of incoming radiation, including:
 - the effects of topography on sun angle, and
 - the contribution of diffuse radiation.
-```
-
-### Soil energy balance
-
-The `models.abiotic.soil_energy_balance` submodule determines the energy balance at the
-soil surface by partitioning net radiation $R_N$ into different fluxes.
-
-The **sensible heat flux** from the soil surface is given by:
-
-$$H_{s} = \frac {\rho_{a} c_{p} (T_{s} - T_{a})}{r_{a}}$$
-
-where:
-
-$T_s$:
-Soil surface temperature (°C)
-
-$T_a$:
-Air temperature in the bottom atmospheric layer (°C)
-
-$r_a$:
-Aerodynamic resistance of the soil surface ($\mathrm{s\,m^{-1}}$)
-
-$\rho_{a}$:
-Air density ($\mathrm{kg\,m^{-3}}$)
-
-$c_{p}$:
-Specific heat capacity of air at constant pressure ($\mathrm{J\,kg^{-1}\,K^{-1}}$)
-
-The aerodynamic resistance of the soil surface is given by
-{cite:p}`barton_parameterization_1979`:
-
-$$r_{a} = \frac{1}{C_{E} u}$$
-
-where:
-
-$u$:
-Horizontal wind speed at the bottom air layer ($\mathrm{m\,s^{-1}}$)
-
-$C_E$:
-Drag coefficient for evaporation (–)
-
-The **latent heat flux** is derived by conversion of surface evaporation as
-calculated by the hydrology model.
-
-The **ground heat flux** is calculated as the residual of the energy balance at the
-soil surface:
-
-$$G = R_n - H_s - \lambda E_s$$
-
-### Soil temperature update
-
-After the energy fluxes at the land surface have been partitioned, we simulate how heat
-is transported vertically through the soil profile by updating the temperature of each
-soil layer over time. This is done using an explicit finite-difference approach, which
-numerically solves the one-dimensional heat diffusion equation. The method accounts for
-thermal diffusivity and the net ground heat flux to calculate temperature changes at
-each soil depth.
-
-The **soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2}\,s^{-1}}$) determines the rate
-at which heat is conducted through the soil. It is defined as:
-
-$$\alpha = \frac{k}{\rho_s c_s}$$
-
-where:
-
-$k$:
-Soil thermal conductivity ($\mathrm{W\,m^{-1}\,K^{-1}}$), indicating how
-  easily heat moves through soil
-
-$\rho_s$:
-Soil bulk density ($\mathrm{kg\,m^{-3}}$), including solids and pore spaces, currently
-constant across all grid cells and layers
-
-$c_s$:
-Soil specific heat capacity ($\mathrm{J\,kg^{-1}\,K^{-1}}$), the energy required to
-raise the temperature of 1 kg of soil by 1 K.
-
-#### Temperature Update Scheme
-
-Let $T_i^t$ represent the temperature (°C) of the $i^{\text{th}}$ soil layer at time
-$t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z$ (m),
-and time advances in steps of $\Delta t$ (s).
-
-**Top layer update** (surface boundary condition):
-
-The topmost layer ($i = 0$) is updated using the net ground heat flux $G$
-($\mathrm{W\,m^{-2}}$):
-
-$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{\rho c \Delta z}\right) G$$
-
-**Interior layers update**:
-
-Each interior layer ($i = 1, \dots, n-2$) exchanges heat with adjacent layers following
-the diffusion equation:
-
-```{math}
-\begin{aligned}
-T_i^{t+\Delta t} =
-& T_i^t + (\frac{\Delta t}{\Delta z^2}) \alpha (T_{i+1}^t - 2T_i^t + T_{i-1}^t)
-\end{aligned}
-```
-
-This term approximates vertical conduction using the second spatial derivative of
-temperature.
-
-**Bottom layer update** (no-flux boundary condition):
-
-A zero heat flux is assumed at the bottom boundary ($i = n-1$), so the bottom layer only
-exchanges heat with the layer above:
-
-```{math}
-\begin{aligned}
-T_{n-1}^{t+\Delta t} =
-& T_{n-1}^t + (\frac{\Delta t}{\Delta z^2}) \alpha (T_{n-2}^t - T_{n-1}^t)
-\end{aligned}
 ```
 
 ### Canopy energy balance
@@ -428,9 +314,11 @@ After updating the canopy temperature, we update the air temperature in the
 adjacent canopy layer to reflect its coupling with the leaf temperature following
 {cite:t}`bonan_climate_2019`:
 
+The sensible heat flux between canopy and air is
+
 $$H = \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})$$
 
-and
+and the air temperature evolves as
 
 $$T_{a}^{\text{new}} = T_{a}^{\text{old}} + \frac{H \Delta t}{\rho_a c_p z}$$
 
@@ -442,12 +330,229 @@ Air temperature, (°C)
 $z$:
 Thickness of the air layer we are updating, (m)
 
-Finally, we consider vertical mixing between layers and heat is transferred to the
-air above the canopy.
+Finally, we consider vertical mixing between layers (including the understorey layer
+described in the following section) and heat is transferred to the air above the canopy.
 
 ```{note}
 Advection of heat above the canopy is currently not implemented as everything is
 removed with time interval >= 1h and horizontal transfer is not considered.
+```
+
+### Understorey energy balance
+
+The understorey vegetation layer as currently implemented in the Virtual Ecosystem
+modifies water and energy exchange between the soil and the air above. It intercepts a
+fraction of throughfall, blocks most of the incoming radiation and reduces soil
+evaporation. The energy balance of this layer differs from that of the
+canopy because the understorey is structurally different and has therefore a
+different structural and functional traits (e.g., aerodynamic resistance,
+density).
+
+Importantly, due to the understorey's density and proximity to the soil surface, we need
+to account for heat conductance into the soil. This convective heat flux, $G_{u}$, is
+later added to the soil energy balance.
+
+```{note}
+Moisture dynamics within the understorey layer are not currently represented.
+```
+
+#### Understorey temperature update
+
+The understorey energy balance follows the heat and moisture framework of
+{cite:t}`ogee_a_forest_2002`, extended to represent understorey vegetation as a mixture
+of leaves and air rather than a compact litter layer.
+
+The understorey temperature evolves according to
+
+```{math}
+\frac{\delta T_{u}}{\delta t}
+= \frac{R_{n,0} - H_{0} - \lambda E_{0} - G_{u}}{c_{u} z_{u}}
+```
+
+where the conductive heat flux into the soil is
+
+$$G_{u} = -(\lambda_{g} \lambda_{u})^{0.5} \frac{T_{s} - T_{u}}{z_{u}}$$
+
+and the effective volumetric heat capacity of the understorey is
+
+$$c_{u} = (\frac{LAI \cdot LMA}{z_{u}} c_{l} + c_{pv}) z_{u}$$
+
+where:
+
+$T_{u}$:
+Understorey temperature (°C)
+
+$T_{s}$:
+Topsoil temperature (°C)
+
+$R_{n,0}$:
+Net radiation above the understorey ($\mathrm{W\,m^{-2}}$)
+
+$H_{0}$:
+Sensible heat flux above understorey ($\mathrm{W\,m^{-2}}$)
+
+$\lambda E_{0}$:
+Latent heat flux above understorey ($\mathrm{W\,m^{-2}}$)
+
+$G_{u}$:
+Conductive heat flux between understorey and soil ($\mathrm{W\,m^{-2}}$)
+
+$\lambda_{u}$:
+Understorey thermal conductivity ($\mathrm{W\,m^{-1}},K^{-1}$)
+
+$\lambda_{s}$:
+Soil surface thermal conductivity ($\mathrm{W\,m^{-1}},K^{-1}$)
+
+$LAI$:
+Leaf area index $\mathrm{m\,m^{-1}}$
+
+$LMA$:
+Leaf mass per area $\mathrm{kg\,m^{-2}}$
+
+$c_{l}$:
+Leaf specific heat capacity ($\mathrm{J\,kg^{-1}},K^{-1}$)
+
+$c_{u}$:
+Understorey specific heat capacity ($\mathrm{J\,kg^{-1}},K^{-1}$)
+
+$c_{pv}$:
+Volumetric heat capacity of air ($\mathrm{J\, m^{-3}\,K^{-1}}$)
+
+$z_{u}$:
+Thickness of understorey layer (m)
+
+#### Understorey air temperature coupling
+
+After updating the understorey temperature, we update the temperature of the
+near-surface air using the same method as described for the canopy air temperature
+{cite:p}`bonan_climate_2019`:
+
+The sensible heat flux between understorey and air is
+
+$$H_{u} = \frac{\rho_{a} c_{p}}{r_{a}}(T_{u} - T_{a,u})$$
+
+and the air temperature evolves as
+
+$$T_{a,u}^{\text{new}} = T_{a,u}^{\text{old}} + \frac{H_{u} \Delta t}{\rho_{a} c_{p} z_{u}}$$
+
+where:
+
+$T_{a,u}$:
+Air temperature (°C)
+
+### Soil energy balance
+
+The `models.abiotic.energy_balance` submodule determines the energy balance at the
+soil surface by partitioning net radiation $R_N$ into different fluxes.
+
+The **sensible heat flux** from the soil surface is given by:
+
+$$H_{s} = \frac {\rho_{a} c_{p} (T_{s} - T_{a})}{r_{a}}$$
+
+where:
+
+$T_s$:
+Soil surface temperature (°C)
+
+$T_a$:
+Air temperature in the bottom atmospheric layer (°C)
+
+$r_a$:
+Aerodynamic resistance of the soil surface ($\mathrm{s\,m^{-1}}$)
+
+$\rho_{a}$:
+Air density ($\mathrm{kg\,m^{-3}}$)
+
+$c_{p}$:
+Specific heat capacity of air at constant pressure ($\mathrm{J\,kg^{-1}\,K^{-1}}$)
+
+The aerodynamic resistance of the soil surface is given by
+{cite:p}`barton_parameterization_1979`:
+
+$$r_{a} = \frac{1}{C_{E} u}$$
+
+where:
+
+$u$:
+Horizontal wind speed at the bottom air layer ($\mathrm{m\,s^{-1}}$)
+
+$C_E$:
+Drag coefficient for evaporation (–)
+
+The **latent heat flux** is derived by conversion of surface evaporation as
+calculated by the hydrology model.
+
+The **ground heat flux** is calculated as the residual of the energy balance at the
+soil surface plus the conductive heat from the understorey layer:
+
+$$G = R_n - H_s - \lambda E_s + G_{u}$$
+
+### Soil temperature update
+
+After the energy fluxes at the land surface have been partitioned, we simulate how heat
+is transported vertically through the soil profile by updating the temperature of each
+soil layer over time. This is done using an explicit finite-difference approach, which
+numerically solves the one-dimensional heat diffusion equation. The method accounts for
+thermal diffusivity and the net ground heat flux to calculate temperature changes at
+each soil depth.
+
+The **soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2}\,s^{-1}}$) determines the rate
+at which heat is conducted through the soil. It is defined as:
+
+$$\alpha = \frac{k}{\rho_s c_s}$$
+
+where:
+
+$k$:
+Soil thermal conductivity ($\mathrm{W\,m^{-1}\,K^{-1}}$), indicating how
+  easily heat moves through soil
+
+$\rho_s$:
+Soil bulk density ($\mathrm{kg\,m^{-3}}$), including solids and pore spaces, currently
+constant across all grid cells and layers
+
+$c_s$:
+Soil specific heat capacity ($\mathrm{J\,kg^{-1}\,K^{-1}}$), the energy required to
+raise the temperature of 1 kg of soil by 1 K.
+
+#### Temperature Update Scheme
+
+Let $T_i^t$ represent the temperature (°C) of the $i^{\text{th}}$ soil layer at time
+$t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z$ (m),
+and time advances in steps of $\Delta t$ (s).
+
+**Top layer update** (surface boundary condition):
+
+The topmost layer ($i = 0$) is updated using the net ground heat flux $G$
+($\mathrm{W\,m^{-2}}$):
+
+$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{\rho c \Delta z}\right) G$$
+
+**Interior layers update**:
+
+Each interior layer ($i = 1, \dots, n-2$) exchanges heat with adjacent layers following
+the diffusion equation:
+
+```{math}
+\begin{aligned}
+T_i^{t+\Delta t} =
+& T_i^t + (\frac{\Delta t}{\Delta z^2}) \alpha (T_{i+1}^t - 2T_i^t + T_{i-1}^t)
+\end{aligned}
+```
+
+This term approximates vertical conduction using the second spatial derivative of
+temperature.
+
+**Bottom layer update** (no-flux boundary condition):
+
+A zero heat flux is assumed at the bottom boundary ($i = n-1$), so the bottom layer only
+exchanges heat with the layer above:
+
+```{math}
+\begin{aligned}
+T_{n-1}^{t+\Delta t} =
+& T_{n-1}^t + (\frac{\Delta t}{\Delta z^2}) \alpha (T_{n-2}^t - T_{n-1}^t)
+\end{aligned}
 ```
 
 #### Update of atmospheric moisture
@@ -511,7 +616,7 @@ with
 
 $$R = \sqrt{C_s + \frac{C_r LAI}{2}}$$
 
-where $C_{s}$ is the substrate surface drag coefficient, $C_{r}$ is the roughness
+where $C_{s}$ is the substrate surface roughness length, $C_{r}$ is the roughness
 element (vegetation) drag coefficient, $C_{d}$ is the roughness sublayer depth parameter,
 $\kappa$ is the von Karman constant, and $LAI$ is the leaf area index
 ($\mathrm{m\,m^{-1}}$).

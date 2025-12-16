@@ -59,6 +59,9 @@ def dummy_carbon_data(fixture_core_components):
         "plant_n_uptake_ecto": [3.07e-5, 4.20e-5, 4.02e-6, 2.98e-5],
         "plant_p_uptake_arbuscular": [1.57e-6, 5.07e-5, 2.13e-6, 1.81e-6],
         "plant_p_uptake_ecto": [1.78e-6, 5.64e-5, 1.07e-6, 9.90e-7],
+        "subcanopy_ammonium_uptake": [4.35e-6, 1.64e-5, 9.48e-6, 2.75e-5],
+        "subcanopy_nitrate_uptake": [6.51e-4, 4.74e-4, 2.35e-4, 4.51e-5],
+        "subcanopy_phosphorus_uptake": [7.58e-7, 4.83e-5, 1.96e-6, 4.91e-7],
         "animal_pom_consumption_carbon": [8.26e-3, 8.61e-3, 4.94e-3, 7.20e-3],
         "animal_pom_consumption_nitrogen": [4.86e-8, 2.86e-8, 6.95e-8, 4.95e-8],
         "animal_pom_consumption_phosphorus": [1.65e-8, 7.37e-8, 3.34e-8, 5.11e-8],
@@ -68,6 +71,7 @@ def dummy_carbon_data(fixture_core_components):
         "animal_arbuscular_mycorrhiza_consumption": [3.43e-4, 4.29e-4, 6.0e-4, 2.30e-4],
         "decay_of_fungal_fruiting_bodies": [2.2499e-4, 5.8168e-4, 3.2185e-4, 2.5871e-3],
         "new_fungal_fruiting_body_production": [0.0, 0.0, 0.0, 0.0],
+        "mean_annual_temperature": [20.0, 20.0, 20.0, 20.0],
     }
 
     for var_name, var_values in data_values.items():
@@ -109,30 +113,40 @@ def dummy_carbon_data(fixture_core_components):
 
 
 @pytest.fixture
-def fixture_soil_config(microbial_groups_cfg):
+def fixture_soil_configuration(microbial_groups_cfg):
     """Create a soil config with faster update interval."""
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
 
-    return Config(
+    config_data = ConfigurationLoader(
         cfg_strings=[
             "[core]\n[core.timing]\nupdate_interval = '12 hours'",
             "[hydrology]",
             microbial_groups_cfg,
         ]
     )
+    return generate_configuration(config_data.data)
 
 
 @pytest.fixture
-def fixture_soil_core_components(fixture_soil_config):
+def fixture_soil_core_components(fixture_soil_configuration):
     """Create a core components from the fixture_soil_config."""
     from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.model_config import CoreConfiguration
 
-    return CoreComponents(fixture_soil_config)
+    core_cfg = fixture_soil_configuration.get_subconfiguration(
+        "core", CoreConfiguration
+    )
+    return CoreComponents(config=core_cfg)
 
 
 @pytest.fixture
 def fixture_soil_model(
-    dummy_carbon_data, fixture_soil_config, fixture_soil_core_components
+    dummy_carbon_data,
+    fixture_soil_configuration,
+    fixture_soil_core_components,
 ):
     """Create a soil model fixture based on the dummy carbon data."""
     from tests.conftest import patch_bypass_setup, patch_run_update
@@ -145,18 +159,19 @@ def fixture_soil_model(
         mock_bypass_setup.return_value = False
         return SoilModel.from_config(
             data=dummy_carbon_data,
+            configuration=fixture_soil_configuration,
             core_components=fixture_soil_core_components,
-            config=fixture_soil_config,
         )
 
 
 @pytest.fixture
-def environmental_factors(dummy_carbon_data, fixture_core_components):
+def environmental_factors(
+    dummy_carbon_data, fixture_soil_constants, fixture_core_components
+):
     """Environmental factors based on dummy carbon data."""
     from virtual_ecosystem.models.litter.env_factors import (
         average_water_potential_over_microbially_active_layers,
     )
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_environmental_effect_factors,
     )
@@ -168,24 +183,24 @@ def environmental_factors(dummy_carbon_data, fixture_core_components):
         ),
         pH=dummy_carbon_data["pH"].to_numpy(),
         clay_fraction=dummy_carbon_data["clay_fraction"].to_numpy(),
-        constants=SoilConsts,
+        constants=fixture_soil_constants,
     )
 
 
 @pytest.fixture
-def carbon_supply_from_plants(dummy_carbon_data):
+def carbon_supply_from_plants(
+    dummy_carbon_data, fixture_core_constants, fixture_soil_constants
+):
     """Carbon supply from plants split between the different symbiotic groups."""
-    from virtual_ecosystem.core.constants import CoreConsts
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.microbial_groups import (
         calculate_symbiotic_carbon_supply,
     )
 
     return calculate_symbiotic_carbon_supply(
         total_plant_supply=dummy_carbon_data["plant_symbiote_carbon_supply"]
-        / CoreConsts.max_depth_of_microbial_activity,
-        nitrogen_fixer_fraction=SoilConsts.nitrogen_fixer_supply_fraction,
-        ectomycorrhiza_fraction=SoilConsts.ectomycorrhiza_supply_fraction,
+        / fixture_core_constants.max_depth_of_microbial_activity,
+        nitrogen_fixer_fraction=fixture_soil_constants.nitrogen_fixer_supply_fraction,
+        ectomycorrhiza_fraction=fixture_soil_constants.ectomycorrhiza_supply_fraction,
     )
 
 
@@ -243,74 +258,71 @@ def enzyme_mediated_rates(
 
 
 @pytest.fixture
-def necromass_breakdown(dummy_carbon_data):
+def necromass_breakdown(dummy_carbon_data, fixture_soil_constants):
     """Necromass breakdown rate based on dummy carbon data."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_necromass_breakdown
 
     return calculate_necromass_breakdown(
         soil_c_pool_necromass=dummy_carbon_data["soil_c_pool_necromass"],
-        necromass_decay_rate=SoilConsts.necromass_decay_rate,
+        necromass_decay_rate=fixture_soil_constants.necromass_decay_rate,
     )
 
 
 @pytest.fixture
-def necromass_sorption(dummy_carbon_data):
+def necromass_sorption(dummy_carbon_data, fixture_soil_constants):
     """Necromass sorption rate based on dummy carbon data."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
 
     return calculate_sorption_to_maom(
         soil_c_pool=dummy_carbon_data["soil_c_pool_necromass"],
-        sorption_rate_constant=SoilConsts.necromass_sorption_rate,
+        sorption_rate_constant=fixture_soil_constants.necromass_sorption_rate,
     )
 
 
 @pytest.fixture
-def lmwc_sorption(dummy_carbon_data):
+def lmwc_sorption(dummy_carbon_data, fixture_soil_constants):
     """Low molecular weight carbon sorption rate based on dummy carbon data."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
 
     return calculate_sorption_to_maom(
         soil_c_pool=dummy_carbon_data["soil_c_pool_lmwc"],
-        sorption_rate_constant=SoilConsts.lmwc_sorption_rate,
+        sorption_rate_constant=fixture_soil_constants.lmwc_sorption_rate,
     )
 
 
 @pytest.fixture
-def maom_desorption(dummy_carbon_data):
+def maom_desorption(dummy_carbon_data, fixture_soil_constants):
     """MAOM desorption rate based on dummy carbon data."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_maom_desorption
 
     return calculate_maom_desorption(
         soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
-        desorption_rate_constant=SoilConsts.maom_desorption_rate,
+        desorption_rate_constant=fixture_soil_constants.maom_desorption_rate,
     )
 
 
 @pytest.fixture
-def functional_groups(fixture_config, enzyme_classes):
+def functional_groups(fixture_configuration, enzyme_classes, fixture_core_constants):
     """Set of functional groups based on the soil model constants."""
-    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.microbial_groups import (
         make_full_set_of_microbial_groups,
     )
 
     return make_full_set_of_microbial_groups(
-        config=fixture_config, enzyme_classes=enzyme_classes, core_constants=CoreConsts
+        config=fixture_configuration.soil,
+        enzyme_classes=enzyme_classes,
+        core_constants=fixture_core_constants,
     )
 
 
 @pytest.fixture
-def enzyme_classes(fixture_config):
+def enzyme_classes(fixture_configuration):
     """Set of functional groups based on the soil model constants."""
-    from virtual_ecosystem.models.soil.microbial_groups import (
-        make_full_set_of_enzymes,
-    )
 
-    return make_full_set_of_enzymes(config=fixture_config)
+    return {
+        f"{e.source}_{e.substrate}": e
+        for e in fixture_configuration.soil.enzyme_class_definition
+    }
 
 
 @pytest.fixture
@@ -344,6 +356,7 @@ def biomass_losses(soil_pool_data, functional_groups, averaged_soil_temp):
 @pytest.fixture
 def growth_rates(
     dummy_carbon_data,
+    fixture_soil_constants,
     environmental_factors,
     functional_groups,
     soil_pool_data,
@@ -351,7 +364,7 @@ def growth_rates(
     carbon_supply_from_plants,
 ):
     """Fixture to store growth rates of all the microbial groups."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
+
     from virtual_ecosystem.models.soil.pools import calculate_nutrient_uptake_rates
 
     bacterial_growth, _ = calculate_nutrient_uptake_rates(
@@ -368,7 +381,7 @@ def growth_rates(
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
-        constants=SoilConsts,
+        constants=fixture_soil_constants,
         functional_group=functional_groups["bacteria"],
     )
     saprotrophic_fungal_growth, _ = calculate_nutrient_uptake_rates(
@@ -385,7 +398,7 @@ def growth_rates(
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
-        constants=SoilConsts,
+        constants=fixture_soil_constants,
         functional_group=functional_groups["saprotrophic_fungi"],
     )
     arbuscular_mycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
@@ -402,7 +415,7 @@ def growth_rates(
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
-        constants=SoilConsts,
+        constants=fixture_soil_constants,
         functional_group=functional_groups["arbuscular_mycorrhiza"],
     )
     ectomycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
@@ -419,7 +432,7 @@ def growth_rates(
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
-        constants=SoilConsts,
+        constants=fixture_soil_constants,
         functional_group=functional_groups["ectomycorrhiza"],
     )
 
@@ -443,18 +456,17 @@ def enzyme_production(functional_groups, growth_rates):
 
 
 @pytest.fixture
-def carbon_use_efficiency(averaged_soil_temp):
+def carbon_use_efficiency(averaged_soil_temp, fixture_soil_constants):
     """Fixture to store the carbon use efficiency."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_carbon_use_efficiency,
     )
 
     return calculate_carbon_use_efficiency(
         soil_temp=averaged_soil_temp,
-        reference_cue_logit=SoilConsts.reference_cue_logit,
-        cue_reference_temp=SoilConsts.cue_reference_temp,
-        logit_cue_with_temp=SoilConsts.logit_cue_with_temperature,
+        reference_cue_logit=fixture_soil_constants.reference_cue_logit,
+        cue_reference_temp=fixture_soil_constants.cue_reference_temp,
+        logit_cue_with_temp=fixture_soil_constants.logit_cue_with_temperature,
     )
 
 

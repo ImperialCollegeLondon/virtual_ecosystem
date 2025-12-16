@@ -13,9 +13,9 @@ from numpy import timedelta64
 import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
 from virtual_ecosystem.models.animal.cnp import CNP
-from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
@@ -25,6 +25,7 @@ from virtual_ecosystem.models.animal.decay import (
     find_decay_consumed_split,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.model_config import AnimalConstants
 from virtual_ecosystem.models.animal.protocols import Resource
 
 _T = TypeVar("_T")
@@ -41,7 +42,8 @@ class AnimalCohort:
         individuals: int,
         centroid_key: int,
         grid: Grid,
-        constants: AnimalConsts = AnimalConsts(),
+        constants: AnimalConstants = AnimalConstants(),
+        core_constants: CoreConstants = CoreConstants(),
     ) -> None:
         if age < 0:
             raise ValueError("Age must be a positive number.")
@@ -63,6 +65,8 @@ class AnimalCohort:
         """The the grid structure of the simulation."""
         self.constants = constants
         """Animal constants."""
+        self.core_constants = core_constants
+        """Core constants."""
         self.location_status: Literal["active", "migrated", "aquatic"] = "active"
         """Location status of the cohort, active means present and participating."""
         self.remaining_time_away: float = 0.0
@@ -228,6 +232,18 @@ class AnimalCohort:
         resource_intake["nitrogen"] -= used_nitrogen
         resource_intake["phosphorus"] -= used_phosphorus
 
+        # Numerical safety: clamp tiny negatives to zero, but catch real bugs.
+        eps = 1e-12
+        for element in ("carbon", "nitrogen", "phosphorus"):
+            value = resource_intake[element]
+            if value < 0.0:
+                if value > -eps:
+                    resource_intake[element] = 0.0
+                else:
+                    raise ValueError(
+                        f"grow produced negative waste for {element}: {value}"
+                    )
+
         return resource_intake
 
     def metabolize(self, temperature: float, dt: timedelta64) -> dict[str, float]:
@@ -255,10 +271,12 @@ class AnimalCohort:
 
         # Calculate potential carbon metabolized (kg/day * number of days)
         potential_carbon_metabolized = sf.metabolic_rate(
-            self.mass_current,
-            temperature,
-            self.functional_group.metabolic_rate_terms,
-            self.functional_group.metabolic_type,
+            mass=self.mass_current,
+            temperature=temperature,
+            terms=self.functional_group.metabolic_rate_terms,
+            metabolic_type=self.functional_group.metabolic_type,
+            metabolic_scaling_coefficients=self.constants.metabolic_scaling_coefficients,
+            boltzmann_constant=self.core_constants.boltzmann_constant,
         ) * float(dt / timedelta64(1, "D"))
 
         # Ensure metabolized carbon does not exceed available carbon
@@ -443,12 +461,22 @@ class AnimalCohort:
         Raises:
             ValueError: If `number_of_deaths` is invalid or exceeds the cohort size.
         """
-        if number_of_deaths <= 0:
-            raise ValueError("Number of deaths must be a positive integer.")
+
+        # Zero deaths: nothing to do
+        if number_of_deaths == 0:
+            return
+
+        # Negative deaths are invalid
+        if number_of_deaths < 0:
+            raise ValueError(
+                f"Number of deaths must be non-negative, got {number_of_deaths}."
+            )
+
+        # Can't kill more individuals than exist
         if number_of_deaths > self.individuals:
             raise ValueError(
-                f"Number of deaths ({number_of_deaths}) exceeds the number of "
-                f"individuals in the cohort ({self.individuals})."
+                f"Number of deaths ({number_of_deaths}) exceeds cohort size "
+                f"({self.individuals})."
             )
 
         # Calculate total mass lost per element
@@ -546,9 +574,6 @@ class AnimalCohort:
         # Compute the maximum individuals that could be killed
         max_individuals_killed = ceil(potential_consumed_mass / individual_mass)
         actual_individuals_killed = min(max_individuals_killed, self.individuals)
-
-        print("Max Individuals That Could Be Killed:", max_individuals_killed)
-        print("Actual Individuals Removed:", actual_individuals_killed)
 
         # Compute total mass killed
         actual_mass_killed = actual_individuals_killed * individual_mass
@@ -821,6 +846,9 @@ class AnimalCohort:
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
+        TODO: check to see if there is a way to remove 0 indiv prey cohorts before this
+            step.
+
         Args:
             animal_list: A list of animal cohorts that can be consumed by the
                 predator.
@@ -838,6 +866,10 @@ class AnimalCohort:
         total_handling_t = self.calculate_total_handling_time_for_predation()
         N_i = self.individuals
         N_target = target_cohort.individuals
+
+        # If the prey cohort is empty, there is nothing to eat.
+        if N_target <= 0:
+            return 0.0
 
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
@@ -870,7 +902,7 @@ class AnimalCohort:
         consumed_mass = (
             target_cohort.mass_current
             * target_cohort.individuals
-            * (1 - exp(-(F * adjusted_dt)))
+            * (1 - exp(-(F * float(adjusted_dt / timedelta64(1, "D")))))
         )
 
         return consumed_mass
@@ -956,7 +988,10 @@ class AnimalCohort:
             Mass (kg) to consume from target.
         """
         F = self.F_i_k(resource_list, target)
-        return target.mass_current * (1.0 - exp(-F * adjusted_dt))
+
+        return target.mass_current * (
+            1.0 - exp(-F * float(adjusted_dt / timedelta64(1, "D")))
+        )
 
     def forage_resource_list(
         self,

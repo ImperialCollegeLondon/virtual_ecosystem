@@ -5,27 +5,33 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.0
+    rev: v0.14.9
     hooks:
       - id: ruff-check   #  Run the linter.
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format  #  Run the formatter.
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.18.1"
+    rev: "v1.19.1"
     hooks:
       - id: mypy
         additional_dependencies: [types-jsonschema, xarray, types-tabulate, numpy]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.45.0
+    rev: v0.47.0
     hooks:
     - id: markdownlint
   - repo: https://github.com/mwouts/jupytext
-    rev: v1.17.3
+    rev: v1.19.0.dev0
     hooks:
     - id: jupytext
       args: [--pipe, black]
       files: docs/source
-      exclude: docs/source/conf.py|docs/source/genindex.md|docs/source/modindex.md
+      exclude: |
+        (?x)(
+            ^docs/source/conf.py|
+            ^docs/source/genindex.md|
+            ^docs/source/modindex.md|
+            ^docs/source/using_the_ve/[a-z_]+.py
+        )
       additional_dependencies:
         - black==24.4.2 # Matches hook
   - repo: https://github.com/codespell-project/codespell

@@ -16,13 +16,30 @@ from tests.conftest import log_check
             does_not_raise(),
             (
                 (INFO, "Registering module: virtual_ecosystem.core"),
-                (INFO, "Schema registered for virtual_ecosystem.core:"),
                 (
                     INFO,
-                    "Constants class registered for virtual_ecosystem.core: CoreConsts",
+                    "Configuration class registered for virtual_ecosystem.core",
                 ),
             ),
             id="core_import_good",
+        ),
+        pytest.param(
+            "virtual_ecosystem.models.testing",
+            does_not_raise(),
+            (
+                (INFO, "Registering module: virtual_ecosystem.models.testing"),
+                (
+                    INFO,
+                    "Registering model class for "
+                    "virtual_ecosystem.models.testing: TestingModel",
+                ),
+                (
+                    INFO,
+                    "Configuration class registered for "
+                    "virtual_ecosystem.models.testing",
+                ),
+            ),
+            id="testing_import_good",
         ),
         pytest.param(
             "tests.core.test_modules.one_model",
@@ -32,13 +49,12 @@ from tests.conftest import log_check
                 (
                     INFO,
                     "Registering model class for "
-                    "tests.core.test_modules.one_model: ATestModel",
+                    "tests.core.test_modules.one_model: OneModelModel",
                 ),
-                (INFO, "Schema registered for tests.core.test_modules.one_model:"),
                 (
                     INFO,
-                    "Constants class registered for "
-                    "tests.core.test_modules.one_model: TestConsts",
+                    "Configuration class registered for "
+                    "tests.core.test_modules.one_model",
                 ),
             ),
             id="model_import_good",
@@ -95,12 +111,12 @@ from tests.conftest import log_check
 def test_registry(caplog, module_name, raises, exp_log):
     """Test the registry loading.
 
-    This uses a dummy model to impersonate the plant model, because importing any real
-    models triggers `register_module` calls from the module __init__.py files.
+    This runs tests on the actual core and testing modules and then uses some local
+    badly formatted models to check error handling.
     """
 
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.constants_class import ConstantsDataclass
+    from virtual_ecosystem.core.configuration import Configuration
     from virtual_ecosystem.core.registry import (
         MODULE_REGISTRY,
         ModuleInfo,
@@ -124,10 +140,7 @@ def test_registry(caplog, module_name, raises, exp_log):
             if not mod_info.is_core:
                 assert issubclass(mod_info.model, BaseModel)
 
-            assert isinstance(mod_info.schema, dict)
-            assert isinstance(mod_info.constants_classes, dict)
-            for c_class in mod_info.constants_classes.values():
-                assert issubclass(c_class, ConstantsDataclass)
+            assert issubclass(mod_info.config, Configuration)
 
         # Check the last N entries in the log match the expectation.
         log_check(

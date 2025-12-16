@@ -12,9 +12,9 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import convert_temperature
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.hydrology.hydrology_tools import (
     calculate_effective_saturation,
 )
@@ -22,7 +22,6 @@ from virtual_ecosystem.models.litter.env_factors import (
     average_temperature_over_microbially_active_layers,
     average_water_potential_over_microbially_active_layers,
 )
-from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
     calculate_denitrification_temperature_factor,
@@ -37,10 +36,10 @@ from virtual_ecosystem.models.soil.env_factors import (
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
     CarbonSupply,
-    EnzymeConstants,
     MicrobialGroupConstants,
     calculate_symbiotic_carbon_supply,
 )
+from virtual_ecosystem.models.soil.model_config import SoilConstants, SoilEnzymeClass
 from virtual_ecosystem.models.soil.uptake import calculate_nutrient_uptake_rates
 
 
@@ -376,10 +375,10 @@ class SoilPools:
         self,
         data: Data,
         pools: dict[str, NDArray[np.floating]],
-        model_constants: SoilConsts,
+        model_constants: SoilConstants,
         functional_groups: dict[str, MicrobialGroupConstants],
-        enzyme_classes: dict[str, EnzymeConstants],
-        core_constants: CoreConsts,
+        enzyme_classes: dict[str, SoilEnzymeClass],
+        core_constants: CoreConstants,
     ):
         self.data = data
         """The data object for the Virtual Ecosystem simulation."""
@@ -741,6 +740,7 @@ class SoilPools:
             + free_living_nitrogen_fixation
             - microbial_changes.ammonium_change
             - self.to_per_volume(self.data["plant_ammonium_uptake"].to_numpy())
+            - self.to_per_volume(self.data["subcanopy_ammonium_uptake"].to_numpy())
             - nutrient_removal_by_water.ammonium
             - ammonia_volatilisation_rate
             - nitrification_rate
@@ -750,6 +750,7 @@ class SoilPools:
             - denitrification_rate
             - microbial_changes.nitrate_change
             - self.to_per_volume(self.data["plant_nitrate_uptake"].to_numpy())
+            - self.to_per_volume(self.data["subcanopy_nitrate_uptake"].to_numpy())
             - nutrient_removal_by_water.nitrate
         )
         delta_pools_ordered["soil_p_pool_dop"] = (
@@ -786,6 +787,7 @@ class SoilPools:
             + primary_phosphorus_breakdown
             - microbial_changes.labile_p_change
             - self.to_per_volume(self.data["plant_phosphorus_uptake"].to_numpy())
+            - self.to_per_volume(self.data["subcanopy_phosphorus_uptake"].to_numpy())
             - net_formation_secondary_P
             - nutrient_removal_by_water.labile_P
         )
@@ -818,9 +820,9 @@ def calculate_microbial_changes(
     pools: PoolData,
     soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
-    constants: SoilConsts,
+    constants: SoilConstants,
     microbial_groups: dict[str, MicrobialGroupConstants],
-    enzyme_classes: dict[str, EnzymeConstants],
+    enzyme_classes: dict[str, SoilEnzymeClass],
     carbon_supply: CarbonSupply,
     plant_n_uptake_arbuscular: NDArray[np.floating],
     plant_p_uptake_arbuscular: NDArray[np.floating],
@@ -1059,7 +1061,7 @@ def calculate_enzyme_mediated_rates(
     pools: PoolData,
     soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
-    enzyme_classes: dict[str, EnzymeConstants],
+    enzyme_classes: dict[str, SoilEnzymeClass],
 ) -> EnzymeMediatedRates:
     """Calculate the rates of each enzyme mediated reaction.
 
@@ -1108,7 +1110,7 @@ def calculate_nutrient_removal_by_water(
     vertical_flow_rates: NDArray[np.floating],
     soil_moisture: NDArray[np.floating],
     layer_structure: LayerStructure,
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> WaterRemovalRates:
     """Calculate the rate a which each soluble nutrient pool is removed by water.
 
@@ -1188,7 +1190,7 @@ def calculate_nutrient_removal_by_water(
 def calculate_enzyme_changes(
     pools: PoolData,
     enzyme_production: dict[str, NDArray[np.floating]],
-    enzyme_classes: dict[str, EnzymeConstants],
+    enzyme_classes: dict[str, SoilEnzymeClass],
 ) -> EnzymePoolChanges:
     """Calculate the change in each of the soil enzyme pools.
 
@@ -1369,7 +1371,11 @@ def calculate_maintenance_biomass_synthesis(
         reference_temperature=microbial_group.reference_temperature,
     )
 
-    return microbial_group.turnover_rate * temp_factor * microbe_pool_size
+    return np.where(
+        microbe_pool_size >= 0.0,
+        microbial_group.turnover_rate * temp_factor * microbe_pool_size,
+        0.0,
+    )
 
 
 def calculate_enzyme_turnover(
@@ -1393,7 +1399,7 @@ def calculate_enzyme_mediated_decomposition(
     soil_enzyme: NDArray[np.floating],
     soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
-    enzyme_class: EnzymeConstants,
+    enzyme_class: SoilEnzymeClass,
 ) -> NDArray[np.floating]:
     """Calculate rate of a enzyme mediated decomposition process.
 
@@ -1516,7 +1522,7 @@ def calculate_litter_mineralisation_fluxes(
     litter_C_mineralisation_rate: NDArray[np.floating],
     litter_N_mineralisation_rate: NDArray[np.floating],
     litter_P_mineralisation_rate: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> LitterMineralisationFluxes:
     """Calculate the split of the litter mineralisation fluxes between soil pools.
 
@@ -1636,7 +1642,7 @@ def calculate_nutrient_flows_to_necromass(
     biomass_losses: BiomassLosses,
     enzyme_changes: EnzymePoolChanges,
     microbial_groups: dict[str, MicrobialGroupConstants],
-    enzyme_classes: dict[str, EnzymeConstants],
+    enzyme_classes: dict[str, SoilEnzymeClass],
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Calculate the rate at which nutrients flow into the necromass pool.
 
@@ -1792,7 +1798,7 @@ def calculate_rate_of_nitrification(
     soil_temp: NDArray[np.floating],
     effective_saturation: NDArray[np.floating],
     soil_n_pool_ammonium: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> NDArray[np.floating]:
     """Calculate the rate at which ammonium nitrifies to form nitrate.
 
@@ -1834,7 +1840,7 @@ def calculate_rate_of_denitrification(
     soil_temp: NDArray[np.floating],
     effective_saturation: NDArray[np.floating],
     soil_n_pool_nitrate: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> NDArray[np.floating]:
     """Calculate the rate at which nitrate denitrifies (and leaves the soil).
 
@@ -1873,7 +1879,7 @@ def calculate_rate_of_denitrification(
 def calculate_symbiotic_nitrogen_fixation(
     carbon_supply: NDArray[np.floating],
     soil_temp: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> NDArray[np.floating]:
     """Calculate rate of nitrogen fixation by plant symbionts.
 

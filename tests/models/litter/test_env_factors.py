@@ -3,11 +3,9 @@
 import numpy as np
 import pytest
 
-from virtual_ecosystem.models.litter.constants import LitterConsts
-
 
 def test_calculate_temperature_effect_on_litter_decomp(
-    dummy_litter_data, fixture_core_components
+    dummy_litter_data, fixture_core_components, fixture_litter_constants
 ):
     """Test that temperature effects on decomposition are calculated correctly."""
     from virtual_ecosystem.models.litter.env_factors import (
@@ -20,16 +18,16 @@ def test_calculate_temperature_effect_on_litter_decomp(
         dummy_litter_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        reference_temp=LitterConsts.litter_decomp_reference_temp,
-        offset_temp=LitterConsts.litter_decomp_offset_temp,
-        temp_response=LitterConsts.litter_decomp_temp_response,
+        reference_temp=fixture_litter_constants.litter_decomp_reference_temp,
+        offset_temp=fixture_litter_constants.litter_decomp_offset_temp,
+        temp_response=fixture_litter_constants.litter_decomp_temp_response,
     )
 
     assert np.allclose(actual_factor, expected_factor)
 
 
 def test_calculate_soil_water_effect_on_litter_decomp(
-    dummy_litter_data, fixture_core_components
+    dummy_litter_data, fixture_core_components, fixture_litter_constants
 ):
     """Test that soil moisture effects on decomposition are calculated correctly."""
     from virtual_ecosystem.models.litter.env_factors import (
@@ -42,9 +40,9 @@ def test_calculate_soil_water_effect_on_litter_decomp(
         water_potential=dummy_litter_data["matric_potential"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        water_potential_halt=LitterConsts.litter_decay_water_potential_halt,
-        water_potential_opt=LitterConsts.litter_decay_water_potential_optimum,
-        moisture_response_curvature=LitterConsts.moisture_response_curvature,
+        water_potential_halt=fixture_litter_constants.litter_decay_water_potential_halt,
+        water_potential_opt=fixture_litter_constants.litter_decay_water_potential_optimum,
+        moisture_response_curvature=fixture_litter_constants.moisture_response_curvature,
     )
 
     assert np.allclose(actual_factor, expected_factor)
@@ -151,7 +149,11 @@ def test_average_water_potential_over_microbially_active_layers(
     ],
 )
 def test_calculate_environmental_factors(
-    dummy_litter_data, fixture_core_components, increased_depth, expected_factors
+    dummy_litter_data,
+    fixture_core_components,
+    fixture_litter_constants,
+    increased_depth,
+    expected_factors,
 ):
     """Check that the calculation of the relevant environmental factors is correct."""
     from virtual_ecosystem.models.litter.env_factors import (
@@ -169,7 +171,7 @@ def test_calculate_environmental_factors(
         soil_temperatures=dummy_litter_data["soil_temperature"],
         water_potentials=dummy_litter_data["matric_potential"],
         layer_structure=fixture_core_components.layer_structure,
-        constants=LitterConsts,
+        constants=fixture_litter_constants,
     )
 
     assert set(expected_factors.keys()) == set(actual_factors.keys())

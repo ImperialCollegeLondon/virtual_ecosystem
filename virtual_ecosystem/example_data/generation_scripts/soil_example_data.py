@@ -133,7 +133,107 @@ example_soil_data = Dataset(
         x=(["x"], cell_displacements),
         y=(["y"], cell_displacements),
     ),
-    attrs=dict(description="Soil data for dummy Virtual Ecosystem model."),
+    attrs={
+        "dataset_description": """This dataset contains example values for the various
+        pools used in the {mod}`~virtual_ecosystem.models.soil.soil_model`."""
+    },
+)
+
+example_soil_data.pH.attrs = dict(units="pH", description="pH of the soil")
+example_soil_data.clay_fraction.attrs = dict(
+    units="NA", description="fraction of the soil which is clay"
+)
+example_soil_data.soil_c_pool_lmwc.attrs = dict(
+    units="kg C m^-3", description="Size of the low molecular weight carbon pool"
+)
+example_soil_data.soil_c_pool_maom.attrs = dict(
+    units="kg C m^-3", description="Size of the mineral associated organic matter pool"
+)
+example_soil_data.soil_c_pool_bacteria.attrs = dict(
+    units="kg C m^-3", description="Bacterial biomass in the soil"
+)
+example_soil_data.soil_c_pool_saprotrophic_fungi.attrs = dict(
+    units="kg C m^-3", description="Saprotrophic fungal biomass in the soil"
+)
+example_soil_data.soil_c_pool_arbuscular_mycorrhiza.attrs = dict(
+    units="kg C m^-3", description="Arbuscular mycorrhizal biomass in the soil"
+)
+example_soil_data.soil_c_pool_ectomycorrhiza.attrs = dict(
+    units="kg C m^-3", description="Ectomycorrhizal biomass in the soil"
+)
+example_soil_data.soil_c_pool_pom.attrs = dict(
+    units="kg C m^-3", description="Size of the particulate organic matter pool"
+)
+example_soil_data.soil_c_pool_necromass.attrs = dict(
+    units="kg C m^-3", description="Size of the microbial necromass pool"
+)
+example_soil_data.soil_enzyme_pom_bacteria.attrs = dict(
+    units="kg C m^-3", description="Amount of bacterial {term}`POM` degrading enzymes"
+)
+example_soil_data.soil_enzyme_maom_bacteria.attrs = dict(
+    units="kg C m^-3", description="Amount of bacterial {term}`MAOM` degrading enzymes"
+)
+example_soil_data.soil_enzyme_pom_fungi.attrs = dict(
+    units="kg C m^-3", description="Amount of fungal {term}`POM` degrading enzymes"
+)
+example_soil_data.soil_enzyme_maom_fungi.attrs = dict(
+    units="kg C m^-3", description="Amount of fungal {term}`MAOM` degrading enzymes"
+)
+example_soil_data.soil_n_pool_don.attrs = dict(
+    units="kg N m^-3",
+    description="Size of dissolved organic nitrogen pool, this corresponds to the "
+    "{term}`LMWC` pool",
+)
+example_soil_data.soil_n_pool_particulate.attrs = dict(
+    units="kg N m^-3",
+    description="Amount of nitrogen contained in the {term}`POM` pool",
+)
+example_soil_data.soil_n_pool_maom.attrs = dict(
+    units="kg N m^-3",
+    description="Amount of nitrogen contained in the {term}`MAOM` pool",
+)
+example_soil_data.soil_n_pool_necromass.attrs = dict(
+    units="kg N m^-3",
+    description="Amount of nitrogen contained microbial necromass pool",
+)
+example_soil_data.soil_n_pool_ammonium.attrs = dict(
+    units="kg N m^-3", description="Size of the soil ammonium pool"
+)
+example_soil_data.soil_n_pool_nitrate.attrs = dict(
+    units="kg N m^-3", description="Size of the soil nitrate pool"
+)
+example_soil_data.soil_p_pool_dop.attrs = dict(
+    units="kg P m^-3",
+    description="Size of dissolved organic phosphorus pool, this corresponds to the "
+    "{term}`LMWC` pool",
+)
+example_soil_data.soil_p_pool_particulate.attrs = dict(
+    units="kg P m^-3",
+    description="Amount of phosphorus contained in the {term}`POM` pool",
+)
+example_soil_data.soil_p_pool_maom.attrs = dict(
+    units="kg P m^-3",
+    description="Amount of phosphorus contained in the {term}`MAOM` pool",
+)
+example_soil_data.soil_p_pool_necromass.attrs = dict(
+    units="kg P m^-3",
+    description="Amount of phosphorus contained microbial necromass pool",
+)
+example_soil_data.soil_p_pool_primary.attrs = dict(
+    units="kg P m^-3",
+    description="Amount of inorganic phosphorus in a primary mineral form",
+)
+example_soil_data.soil_p_pool_secondary.attrs = dict(
+    units="kg P m^-3",
+    description="Amount of inorganic phosphorus in a secondary mineral form",
+)
+example_soil_data.soil_p_pool_labile.attrs = dict(
+    units="kg P m^-3",
+    description="Amount of inorganic phosphorus in a labile form",
+)
+example_soil_data.fungal_fruiting_bodies.attrs = dict(
+    units="kg C m^-2",
+    description="Abundance of fungal fruiting bodies on the ground.",
 )
 
 # Save the example soil data file as netcdf
