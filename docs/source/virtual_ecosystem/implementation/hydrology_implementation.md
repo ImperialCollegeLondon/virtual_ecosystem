@@ -162,8 +162,8 @@ water stored on the leaves $Int_{cum}$:
   EW_{int} = min(EW_{max} \Delta t, Int_{cum})
 ```
 
-Another amount of water falls to the soil because of leaf drainage which is modelled
-as a linear reservoir:
+Another amount of water falls to the soil because of leaf drainage which is typically
+modelled as a linear reservoir:
 
 ```{math}
   D_{int} = \frac{1}{T_{int}} Int_{cum} \Delta t
@@ -172,12 +172,13 @@ as a linear reservoir:
 where $D_{int}$ is the amount of leaf drainage per time step and $T_{int}$ is a time
 constant (or residence time) of the interception store. Setting $T_{int} = 1$ day is
 strongly recommended and means that all the water in the interception store
-evaporates or falls to the soil surface as leaf drainage within one day.
+evaporates or falls to the soil surface as leaf drainage within one day. Given the
+daily timestep of the model, this means that we don't account for this step explicitly.
 
 ### Water at the surface
 
 Precipitation that reaches the surface is defined as incoming precipitation minus canopy
-evaporation plus leaf drainage. The water at the
+evaporation (plus leaf drainage if modelled explicitly). The water at the
 surface can follow different trajectories: runoff at the surface,
 remain at the surface as searchable resource for animals, return to the atmosphere via
 evaporation, or infiltrate into the soil where it can be taken up by plants or percolate

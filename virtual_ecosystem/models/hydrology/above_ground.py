@@ -1,6 +1,6 @@
 """The ``models.hydrology.above_ground`` module simulates the above-ground hydrological
 processes for the Virtual Ecosystem. At the moment, this includes rain water
-interception by the canopy, canopy evaporation and leaf drainage, soil evaporation,
+interception by the canopy, canopy evaporation, soil evaporation,
 and functions related to surface runoff, bypass flow, and river discharge.
 
 TODO change temperatures to Kelvin
@@ -27,7 +27,7 @@ def potential_evaporation_leaf(
     air_temperature: NDArray[np.floating],
     density_air_kg: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
-    aerodynamic_resistance: NDArray[np.floating],
+    aerodynamic_resistance_canopy: NDArray[np.floating],
     stomatal_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
     psychrometric_constant: NDArray[np.floating],
@@ -47,7 +47,7 @@ def potential_evaporation_leaf(
     :math:`\rho_a` is the density of air,
     :math:`c_p` is the specific heat of air,
     :math:`D` is the vapour pressure deficit,
-    :math:`r_a` is the aerodynamic resistance,
+    :math:`r_a` is the aerodynamic resistance of canopy,
     :math:`\lambda_v` is the latent heat of vapourization,
     :math:`\gamma` is the psychrometric constant, and
     :math:`r_s` is the stomatal resistance.
@@ -61,7 +61,7 @@ def potential_evaporation_leaf(
         air_temperature: Air temperature, [C]
         density_air_kg: Air density, [kg m-3]
         specific_heat_air: Specific heat of air, [kJ kg-1 K-1]
-        aerodynamic_resistance: Aerodynamic resistance in canopy, [s m-1]
+        aerodynamic_resistance_canopy: Aerodynamic resistance in canopy, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         psychrometric_constant: Psychrometric constant, [kPa K-1]
@@ -83,13 +83,13 @@ def potential_evaporation_leaf(
         delta * net_radiation
         + density_air_kg
         * specific_heat_air
-        * (vapour_pressure_deficit / aerodynamic_resistance)
+        * (vapour_pressure_deficit / aerodynamic_resistance_canopy)
     ) / (
         latent_heat_vapourisation
         * (
             delta
             + psychrometric_constant
-            * (1 + stomatal_resistance / aerodynamic_resistance)
+            * (1 + stomatal_resistance / aerodynamic_resistance_canopy)
         )
     )
 
@@ -104,15 +104,14 @@ def calculate_canopy_evaporation(
     air_temperature: NDArray[np.floating],
     density_air_kg: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
-    aerodynamic_resistance: NDArray[np.floating],
+    aerodynamic_resistance_canopy: NDArray[np.floating],
     stomatal_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
     psychrometric_constant: NDArray[np.floating],
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
     time_interval: float,
-    intercept_residence_time: float,
     extinction_coefficient_global_radiation: float,
-) -> dict[str, NDArray[np.floating]]:
+) -> NDArray[np.floating]:
     r"""Calculate evaporation of intercepted water from the canopy, [mm].
 
     This function calculates evaporation of intercepted water from the canopy following
@@ -134,16 +133,8 @@ def calculate_canopy_evaporation(
 
     .. math :: EW_{int} = min(EW_{max} \Delta t, Int_{cum})
 
-    Another amount of water falls to the soil because of leaf drainage which is modelled
-    as a linear reservoir:
-
-    .. math :: D_{int} = \frac{1}{T_{int}} Int_{cum} \Delta t
-
-    where :math:`D_{int}` is the amount of leaf drainage per time step [mm] and
-    :math:`T_{int}` is a time constant (or residence time) of the interception store
-    [days]. Setting :math:`T_{int} = 1` [day] is strongly recommended and means that all
-    the water in the interception store Intcum evaporates or falls to the soil surface
-    as leaf drainage within one day.
+    Leaf drainage is not modelled explicitly given the short residence time of water on
+    the leaves compared to the model time step.
 
     Args:
         leaf_area_index: Leaf area index, [m m-1]
@@ -153,19 +144,18 @@ def calculate_canopy_evaporation(
         air_temperature: Air temperature in canopy, [C]
         density_air_kg: Density of air, [kg m-3]
         specific_heat_air: Specific heat of air, [kJ kg-1 K-1]
-        aerodynamic_resistance: Aerodynamic resistance of air in the canopy, [s m-1]
+        aerodynamic_resistance_canopy: Aerodynamic resistance in canopy, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         psychrometric_constant: Psychrometric constant, [kPa K-1]
         saturated_pressure_slope_parameters: List of parameters to calculate
             the slope of the saturated vapour pressure curve
         time_interval: Time interval, [s]
-        intercept_residence_time: Intercept residence time, [s]
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation
 
     Returns:
-        canopy evaporation [mm per time interval], leaf drainage [mm per time interval]
+        canopy evaporation [mm per time interval]
     """
 
     output = {}
@@ -177,7 +167,7 @@ def calculate_canopy_evaporation(
         air_temperature=air_temperature,
         density_air_kg=density_air_kg,
         specific_heat_air=specific_heat_air,
-        aerodynamic_resistance=aerodynamic_resistance,
+        aerodynamic_resistance_canopy=aerodynamic_resistance_canopy,
         stomatal_resistance=stomatal_resistance,
         latent_heat_vapourisation=latent_heat_vapourisation,
         psychrometric_constant=psychrometric_constant,
@@ -191,14 +181,11 @@ def calculate_canopy_evaporation(
         * time_interval
     )
 
-    # Total max evaporation across layers for each grid cell
-    total_max_evaporation = np.nansum(maximum_evaporation, axis=0)
-
     # Avoid division by zero by replacing 0s with np.nan temporarily
     with np.errstate(divide="ignore", invalid="ignore"):
         scale_factor = np.where(
-            total_max_evaporation > 0,
-            np.minimum(interception / total_max_evaporation, 1.0),
+            maximum_evaporation > 0,
+            np.minimum(interception / maximum_evaporation, 1.0),
             0.0,
         )
 
@@ -211,18 +198,7 @@ def calculate_canopy_evaporation(
 
     # Update interception pool after evaporation
     # Ensure no negative interception
-    remaining_interception = np.maximum(
-        interception - np.nansum(actual_evaporation, axis=0), 0.0
-    )
-
-    # Total drainage per cell
-    leaf_drainage = np.minimum(
-        (1.0 / intercept_residence_time) * remaining_interception * time_interval,
-        remaining_interception,
-    )
-    output["leaf_drainage"] = leaf_drainage
-
-    return output
+    return np.maximum(interception - actual_evaporation, 0.0)
 
 
 def calculate_soil_evaporation(
@@ -287,7 +263,7 @@ def calculate_soil_evaporation(
         pyrealm_core_constants: Core constants from pyrealm package
 
     Returns:
-        soil evaporation, [mm per time interval], aerodynamic resistance surface [s m-1]
+        soil evaporation, [mm per time interval], aerodynamic resistance soil [s m-1]
     """
 
     output: dict[str, NDArray[np.floating]] = {}
@@ -318,12 +294,16 @@ def calculate_soil_evaporation(
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
-    aerodynamic_resistance = 1 / (wind_speed_surface * drag_coefficient_evaporation)
-    output["aerodynamic_resistance_surface"] = aerodynamic_resistance
+    aerodynamic_resistance_soil = 1 / (
+        wind_speed_surface * drag_coefficient_evaporation
+    )
+    output["aerodynamic_resistance_soil"] = aerodynamic_resistance_soil
 
-    evaporative_flux = (density_air / aerodynamic_resistance) * (
+    evaporative_flux = (density_air / aerodynamic_resistance_soil) * (
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
+    # Prevent negative evaporation
+    evaporative_flux = np.maximum(evaporative_flux, 0.0)
 
     output["soil_evaporation"] = (
         (  # Return surface evaporation, [mm]
@@ -512,12 +492,12 @@ def calculate_interception(
                 \end{cases}
         \]
 
-    where LAI is the average Leaf Area Index [m2 m-2]. :math:`k` is estimated as:
+    where LAI is the average Leaf area index [m1 m-1]. :math:`k` is estimated as:
 
     :math:`k=0.046 \cdot LAI`
 
     Args:
-        leaf_area_index: Leaf area index summed over all canopy layers, [m m-1]
+        leaf_area_index: Leaf area index for all canopy layers, [m m-1]
         precipitation: Precipitation, [mm]
         intercept_parameters: Parameters for equation estimating maximum canopy
             interception capacity.
@@ -537,11 +517,23 @@ def calculate_interception(
 
     canopy_density_factor = veg_density_param * leaf_area_index
 
-    return np.nan_to_num(
-        max_capacity
-        * (1 - np.exp(-canopy_density_factor * precipitation / max_capacity)),
-        nan=0.0,
+    interception = np.full_like(leaf_area_index, np.nan)
+
+    interception[1] = max_capacity[1] * (
+        1 - np.exp(-canopy_density_factor[1] * precipitation / max_capacity[1])
     )
+
+    for layer in np.arange(2, len(leaf_area_index)):
+        interception[layer] = max_capacity[layer] * (
+            1
+            - np.exp(
+                -canopy_density_factor[layer]
+                * (precipitation - np.nansum(interception[:layer], axis=0))
+                / max_capacity[layer]
+            )
+        )
+
+    return interception
 
 
 def distribute_monthly_rainfall(
