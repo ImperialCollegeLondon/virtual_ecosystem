@@ -89,21 +89,17 @@ class PlantsModel(
         "leaf_turnover",  # NOTE - will be deprecated in #1131
         "leaf_turnover_c_n_ratio",  # NOTE - will be deprecated in #1131
         "leaf_turnover_c_p_ratio",  # NOTE - will be deprecated in #1131
-        "leaf_turnover_n_mass",  # NOTE - will be deprecated in #1131
-        "leaf_turnover_p_mass",  # NOTE - will be deprecated in #1131
         "root_turnover_cnp",
         "root_turnover",  # NOTE - will be deprecated in #1131
         "root_turnover_c_n_ratio",  # NOTE - will be deprecated in #1131
         "root_turnover_c_p_ratio",  # NOTE - will be deprecated in #1131
-        "root_turnover_n_mass",  # NOTE - will be deprecated in #1131
-        "root_turnover_p_mass",  # NOTE - will be deprecated in #1131
         "canopy_fruit_n",
         "canopy_fruit_cnp",
         "canopy_seeds_per_fruit",
         "canopy_seeds_cnp",
         "fallen_fruit_n",
         "fallen_fruit_cnp",
-        "fallen_seeeds_per_fruit",
+        "fallen_seeds_per_fruit",
         "fallen_seeds_cnp",
         "fallen_non_propagule_c_mass",  # NOTE - will be deprecated in #1131
         "plant_rt_turnover_n_mass",  # NOTE - will be deprecated in #1131
@@ -151,7 +147,7 @@ class PlantsModel(
         "canopy_seeds_cnp",
         "fallen_fruit_n",
         "fallen_fruit_cnp",
-        "fallen_seeeds_per_fruit",
+        "fallen_seeds_per_fruit",
         "fallen_seeds_cnp",
         "subcanopy_seedbank_litter_cnp",
         "subcanopy_vegetation_litter_cnp",
@@ -159,15 +155,11 @@ class PlantsModel(
         "subcanopy_seedbank_cnp",
         "deadwood_c_n_ratio",
         "deadwood_c_p_ratio",
-        "deadwood_n_mass",
-        "deadwood_p_mass",
         "deadwood_production",
         "fallen_non_propagule_c_mass",
         "leaf_turnover",
         "leaf_turnover_c_n_ratio",
         "leaf_turnover_c_p_ratio",
-        "leaf_turnover_n_mass",
-        "leaf_turnover_p_mass",
         "plant_ammonium_uptake",
         "plant_n_uptake_arbuscular",
         "plant_n_uptake_ecto",
@@ -187,8 +179,6 @@ class PlantsModel(
         "root_turnover",
         "root_turnover_c_n_ratio",
         "root_turnover_c_p_ratio",
-        "root_turnover_n_mass",
-        "root_turnover_p_mass",
         "senesced_leaf_lignin",
         "stem_lignin",
         "transpiration",
@@ -514,7 +504,7 @@ class PlantsModel(
             "canopy_seeds_cnp",
             "fallen_fruit_n",
             "fallen_fruit_cnp",
-            "fallen_seeeds_per_fruit",
+            "fallen_seeds_per_fruit",
             "fallen_seeds_cnp",
         ]
         for var_name in vars_to_initialize:
@@ -1468,13 +1458,9 @@ class PlantsModel(
             "leaf_turnover",
             "leaf_turnover_c_n_ratio",
             "leaf_turnover_c_p_ratio",
-            "leaf_turnover_n_mass",
-            "leaf_turnover_p_mass",
             "root_turnover",
             "root_turnover_c_n_ratio",
             "root_turnover_c_p_ratio",
-            "root_turnover_n_mass",
-            "root_turnover_p_mass",
             "plant_reproductive_tissue_turnover",
             "plant_reproductive_tissue_turnover_c_n_ratio",
             "plant_reproductive_tissue_turnover_c_p_ratio",
@@ -1484,8 +1470,6 @@ class PlantsModel(
             "deadwood_production",
             "deadwood_c_n_ratio",
             "deadwood_c_p_ratio",
-            "deadwood_n_mass",
-            "deadwood_p_mass",
         ]
         cell_template = xr.full_like(self.data["elevation"], 0)
         for var_name in vars_to_update:
@@ -1550,19 +1534,6 @@ class PlantsModel(
         self.data["root_turnover"] = self.data["root_turnover_cnp"].loc[:, "C"]
         self.data["deadwood_production"] = self.data["stem_turnover_cnp"].loc[:, "C"]
 
-        for element in ["N", "P"]:
-            self.data[f"leaf_turnover_{element.lower()}_mass"] = self.data[
-                "foliage_turnover_cnp"
-            ].loc[:, element]
-
-            self.data[f"root_turnover_{element.lower()}_mass"] = self.data[
-                "root_turnover_cnp"
-            ].loc[:, element]
-
-            self.data[f"stem_turnover_{element.lower()}_mass"] = self.data[
-                "stem_turnover_cnp"
-            ].loc[:, element]
-
         # Convert turnover pools to litter units
         self.data["deadwood_production"] = self.convert_to_litter_units(
             input_mass=self.data["deadwood_production"]
@@ -1577,44 +1548,44 @@ class PlantsModel(
             input_mass=self.data["plant_reproductive_tissue_turnover"]
         )
 
-        for element in ["n", "p"]:
-            # Update carbon to nitruent ratios for turnover pools
-            self.data[f"deadwood_c_{element}_ratio"] = np.divide(
+        for element in ["N", "P"]:
+            # Update carbon to nutrient ratios for turnover pools
+            self.data[f"deadwood_c_{element.lower()}_ratio"] = np.divide(
                 self.data["stem_turnover_cnp"].loc[:, "C"],
-                self.data[f"deadwood_{element}_mass"],
+                self.data["stem_turnover_cnp"].loc[:, element],
                 out=np.full_like(
                     self.data["stem_turnover_cnp"].loc[:, "C"], np.inf, dtype=float
                 ),
-                where=self.data[f"deadwood_{element}_mass"] != 0,
+                where=self.data["stem_turnover_cnp"].loc[:, element] != 0,
             )
 
-            self.data[f"leaf_turnover_c_{element}_ratio"] = np.divide(
+            self.data[f"leaf_turnover_c_{element.lower()}_ratio"] = np.divide(
                 self.data["foliage_turnover_cnp"].loc[:, "C"],
-                self.data[f"leaf_turnover_{element}_mass"],
+                self.data["foliage_turnover_cnp"].loc[:, element],
                 out=np.full_like(
                     self.data["foliage_turnover_cnp"].loc[:, "C"], np.inf, dtype=float
                 ),
-                where=self.data[f"leaf_turnover_{element}_mass"] != 0,
+                where=self.data["foliage_turnover_cnp"].loc[:, element] != 0,
             )
 
-            self.data[f"root_turnover_c_{element}_ratio"] = np.divide(
+            self.data[f"root_turnover_c_{element.lower()}_ratio"] = np.divide(
                 self.data["root_turnover_cnp"].loc[:, "C"],
-                self.data[f"root_turnover_{element}_mass"],
+                self.data["root_turnover_cnp"].loc[:, element],
                 out=np.full_like(
                     self.data["root_turnover_cnp"].loc[:, "C"], np.inf, dtype=float
                 ),
-                where=self.data[f"root_turnover_{element}_mass"] != 0,
+                where=self.data["root_turnover_cnp"].loc[:, element] != 0,
             )
 
-            self.data[f"plant_reproductive_tissue_turnover_c_{element}_ratio"] = (
-                np.divide(
+            self.data[
+                f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio"
+            ] = np.divide(
+                self.data["plant_reproductive_tissue_turnover"],
+                self.data[f"plant_rt_turnover_{element.lower()}_mass"],
+                out=np.full_like(
                     self.data["plant_reproductive_tissue_turnover"],
-                    self.data[f"plant_rt_turnover_{element}_mass"],
-                    out=np.full_like(
-                        self.data["plant_reproductive_tissue_turnover"],
-                        np.inf,
-                        dtype=float,
-                    ),
-                    where=self.data[f"plant_rt_turnover_{element}_mass"] != 0,
-                )
+                    np.inf,
+                    dtype=float,
+                ),
+                where=self.data[f"plant_rt_turnover_{element.lower()}_mass"] != 0,
             )

@@ -1176,34 +1176,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Mass of Nitrogen in foliage turnover"
-name = "leaf_turnover_n_mass"
-unit = "kg N"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Phosphorus in foliage turnover"
-name = "leaf_turnover_p_mass"
-unit = "kg P"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Nitrogen in root turnover"
-name = "root_turnover_n_mass"
-unit = "kg N"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Phosphorus in root turnover"
-name = "root_turnover_p_mass"
-unit = "kg P"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Mass of Nitrogen in plant reproductive and tissue turnover"
 name = "plant_rt_turnover_n_mass"
 unit = "kg N"
@@ -1213,20 +1185,6 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Mass of Phosphorus in plant reproductive and tissue turnover"
 name = "plant_rt_turnover_p_mass"
-unit = "kg P"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Nitrogen in deadwood"
-name = "deadwood_n_mass"
-unit = "kg N"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Phosphorus in deadwood"
-name = "deadwood_p_mass"
 unit = "kg P"
 variable_type = "float"
 
@@ -1548,7 +1506,7 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "Number of seeds per fruit per PFT"
-name = "fallen_seeeds_per_fruit"
+name = "fallen_seeds_per_fruit"
 unit = "kg"
 variable_type = "float"
 
