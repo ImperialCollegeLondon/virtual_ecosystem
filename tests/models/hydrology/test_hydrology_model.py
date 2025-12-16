@@ -280,18 +280,20 @@ def test_setup(
                 core_components=core_components,
             )
 
-            # Test soil moisture
-
+            # Test soil moisture and matric potential initial values
             soil_indices = lyr_strct.index_all_soil
             expected_values = {
-                "soil_moisture": (soil_indices, np.array([[250], [250]])),
-                "aerodynamic_resistance_canopy": (lyr_strct.index_filled_canopy, 12.5),
+                "soil_moisture": (soil_indices, np.full((2, 4), 250.0)),
+                "matric_potential": (soil_indices, np.full((2, 4), -49.673613)),
             }
             for var_name, (indices, values) in expected_values.items():
                 exp_var = lyr_strct.from_template()
                 exp_var[indices] = values
                 np.testing.assert_allclose(
-                    model.data[var_name], exp_var, rtol=1e-3, atol=1e-3
+                    model.data[var_name],
+                    exp_var,
+                    rtol=1e-3,
+                    atol=1e-3,
                 )
 
             # Test groundwater storage
@@ -304,12 +306,6 @@ def test_setup(
                 exp_groundwater,
                 rtol=1e-3,
                 atol=1e-3,
-            )
-
-            exp_aero_resist_canopy = np.full((14, 4), np.nan)
-            np.testing.assert_allclose(
-                model.data["aerodynamic_resistance_canopy"],
-                exp_aero_resist_canopy,
             )
 
             # Run the update step

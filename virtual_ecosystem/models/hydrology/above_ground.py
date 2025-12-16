@@ -1,6 +1,6 @@
 """The ``models.hydrology.above_ground`` module simulates the above-ground hydrological
 processes for the Virtual Ecosystem. At the moment, this includes rain water
-interception by the canopy, canopy evaporation and leaf drainage, soil evaporation,
+interception by the canopy, canopy evaporation, soil evaporation,
 and functions related to surface runoff, bypass flow, and river discharge.
 
 TODO change temperatures to Kelvin
@@ -110,9 +110,8 @@ def calculate_canopy_evaporation(
     psychrometric_constant: NDArray[np.floating],
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
     time_interval: float,
-    intercept_residence_time: float,
     extinction_coefficient_global_radiation: float,
-) -> dict[str, NDArray[np.floating]]:
+) -> NDArray[np.floating]:
     r"""Calculate evaporation of intercepted water from the canopy, [mm].
 
     This function calculates evaporation of intercepted water from the canopy following
@@ -134,16 +133,8 @@ def calculate_canopy_evaporation(
 
     .. math :: EW_{int} = min(EW_{max} \Delta t, Int_{cum})
 
-    Another amount of water falls to the soil because of leaf drainage which is modelled
-    as a linear reservoir:
-
-    .. math :: D_{int} = \frac{1}{T_{int}} Int_{cum} \Delta t
-
-    where :math:`D_{int}` is the amount of leaf drainage per time step [mm] and
-    :math:`T_{int}` is a time constant (or residence time) of the interception store
-    [days]. Setting :math:`T_{int} = 1` [day] is strongly recommended and means that all
-    the water in the interception store Intcum evaporates or falls to the soil surface
-    as leaf drainage within one day.
+    Leaf drainage is not modelled explicitly given the short residence time of water on
+    the leaves compared to the model time step.
 
     Args:
         leaf_area_index: Leaf area index, [m m-1]
@@ -160,12 +151,11 @@ def calculate_canopy_evaporation(
         saturated_pressure_slope_parameters: List of parameters to calculate
             the slope of the saturated vapour pressure curve
         time_interval: Time interval, [s]
-        intercept_residence_time: Intercept residence time, [s]
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation
 
     Returns:
-        canopy evaporation [mm per time interval], leaf drainage [mm per time interval]
+        canopy evaporation [mm per time interval]
     """
 
     output = {}
@@ -208,16 +198,7 @@ def calculate_canopy_evaporation(
 
     # Update interception pool after evaporation
     # Ensure no negative interception
-    remaining_interception = np.maximum(interception - actual_evaporation, 0.0)
-
-    # Total drainage per cell
-    leaf_drainage = np.minimum(
-        (1.0 / intercept_residence_time) * remaining_interception * time_interval,
-        remaining_interception,
-    )
-    output["leaf_drainage"] = leaf_drainage
-
-    return output
+    return np.maximum(interception - actual_evaporation, 0.0)
 
 
 def calculate_soil_evaporation(

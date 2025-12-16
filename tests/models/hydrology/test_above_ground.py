@@ -65,25 +65,16 @@ def test_calculate_canopy_evaporation():
         psychrometric_constant=np.array([0.066, 0.067, np.nan]),
         saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
         time_interval=86400.0,  # 1 day in seconds
-        intercept_residence_time=86400.0,  # 1 day in seconds
         extinction_coefficient_global_radiation=0.5,
     )
 
     # Check value constraints
     mask = ~np.isnan(interception)
 
-    for var in ["canopy_evaporation", "leaf_drainage"]:
-        assert np.all(output[var][mask] >= 0)
-        assert np.all(np.isfinite(output[var][mask]))
-        assert np.all(output[var][mask] <= interception[mask])
-        assert output[var].shape == (2, 3)
-
-    # Check mass balance
-    total_loss = output["canopy_evaporation"] + output["leaf_drainage"]
-    np.testing.assert_array_less(
-        total_loss[mask],
-        interception[mask] + 1e-12,
-    )
+    assert np.all(output[mask] >= 0)
+    assert np.all(np.isfinite(output[mask]))
+    assert np.all(output[mask] <= interception[mask])
+    assert output.shape == (2, 3)
 
 
 @pytest.mark.parametrize(

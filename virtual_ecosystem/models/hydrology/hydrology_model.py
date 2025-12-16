@@ -64,7 +64,6 @@ class HydrologyModel(
     ),
     vars_updated=(
         "interception",
-        "leaf_drainage",
         "canopy_evaporation",
         "precipitation_surface",
         "soil_moisture",
@@ -112,7 +111,6 @@ class HydrologyModel(
     ),
     vars_populated_by_first_update=(
         "interception",
-        "leaf_drainage",
         "precipitation_surface",
         "surface_runoff",
         "bypass_flow",
@@ -350,7 +348,6 @@ class HydrologyModel(
         Ecosystem and updates the following variables in the `data` object:
 
         * interception, [mm]
-        * leaf drainage, [mm]
         * canopy_evaporation, [mm]
         * precipitation_surface, [mm]
         * soil_moisture, [mm]
@@ -488,8 +485,8 @@ class HydrologyModel(
             )
             daily_lists["interception"].append(interception)
 
-            # Calculate canopy evaporation and leaf drainage, [mm day-1]
-            canopy_water_balance = above_ground.calculate_canopy_evaporation(
+            # Calculate canopy evaporation, [mm day-1]
+            canopy_evaporation = above_ground.calculate_canopy_evaporation(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 interception=interception,
                 net_radiation=self.data["net_radiation"].to_numpy(),
@@ -512,27 +509,20 @@ class HydrologyModel(
                     self.abiotic_constants.saturated_pressure_slope_parameters
                 ),
                 time_interval=self.core_constants.seconds_to_day,
-                intercept_residence_time=self.model_constants.intercept_residence_time,
                 extinction_coefficient_global_radiation=(
                     self.model_constants.extinction_coefficient_global_radiation
                 ),
             )
-            daily_lists["canopy_evaporation"].append(
-                canopy_water_balance["canopy_evaporation"]
-            )
-            daily_lists["leaf_drainage"].append(canopy_water_balance["leaf_drainage"])
+            daily_lists["canopy_evaporation"].append(canopy_evaporation)
 
             # Precipitation that reaches the surface per day, [mm]
-            precipitation_surface = (
-                hydro_input["current_precipitation"][:, day]
-                - np.nansum(interception, axis=0)
-                + np.nansum(canopy_water_balance["leaf_drainage"], axis=0)
-            )
+            precipitation_surface = hydro_input["current_precipitation"][
+                :, day
+            ] - np.nansum(canopy_evaporation, axis=0)
 
             hydrology_tools.check_precipitation_surface(
                 precipitation_surface=precipitation_surface
             )
-
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
             # Calculate daily surface runoff of each grid cell, [mm]
@@ -763,10 +753,10 @@ class HydrologyModel(
                 coords={"cell_id": self.grid.cell_id},
             )
 
-        # Canopy evaporation/intercept/drainage is accumulated over days, [mm]
-        for var in ["canopy_evaporation", "interception", "leaf_drainage"]:
+        # Canopy evaporation/intercept is accumulated over days, [mm]
+        for var in ["canopy_evaporation", "interception"]:
             soil_hydrology[var] = self.layer_structure.from_template()
-            soil_hydrology[var][:,] = np.where(  # TODO might be unnecessary
+            soil_hydrology[var][:,] = np.where(
                 np.isnan(daily_lists[var][0]),
                 np.nan,
                 np.nansum(daily_lists[var], axis=0),

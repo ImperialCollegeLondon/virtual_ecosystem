@@ -238,13 +238,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Leaf drainage"
-name = "leaf_drainage"
-unit = "mm"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Leaf vapour conductivity"
 name = "leaf_vapour_conductivity"
 unit = "mol m-2 s-1"
