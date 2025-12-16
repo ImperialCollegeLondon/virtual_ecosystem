@@ -110,19 +110,9 @@ class PlantsModel(
         "plant_rt_turnover_p_mass",  # NOTE - will be deprecated in #1131
         "plant_reproductive_tissue_turnover",  # NOTE - will be deprecated in #1131
         "subcanopy_seedbank_litter_cnp",
-        "subcanopy_seedbank_litter_biomass",  # NOTE - will be deprecated in #1131
-        "subcanopy_seedbank_litter_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "subcanopy_seedbank_litter_c_p_ratio",  # NOTE - will be deprecated in #1131
         "subcanopy_vegetation_litter_cnp",
-        "subcanopy_vegetation_litter_biomass",  # NOTE - will be deprecated in #1131
-        "subcanopy_vegetation_litter_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "subcanopy_vegetation_litter_c_p_ratio",  # NOTE - will be deprecated in #1131
         "subcanopy_vegetation_cnp",
-        "subcanopy_vegetation_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "subcanopy_vegetation_c_p_ratio",  # NOTE - will be deprecated in #1131
         "subcanopy_seedbank_cnp",
-        "subcanopy_seedbank_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "subcanopy_seedbank_c_p_ratio",  # NOTE - will be deprecated in #1131
         "layer_fapar",
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
@@ -202,18 +192,8 @@ class PlantsModel(
         "senesced_leaf_lignin",
         "stem_lignin",
         "transpiration",
-        "subcanopy_seedbank_litter_biomass",
-        "subcanopy_seedbank_litter_c_n_ratio",
-        "subcanopy_seedbank_litter_c_p_ratio",
         "subcanopy_seedbank_litter_lignin",
-        "subcanopy_vegetation_litter_biomass",
-        "subcanopy_vegetation_litter_c_n_ratio",
-        "subcanopy_vegetation_litter_c_p_ratio",
         "subcanopy_vegetation_litter_lignin",
-        "subcanopy_vegetation_c_n_ratio",
-        "subcanopy_vegetation_c_p_ratio",
-        "subcanopy_seedbank_c_n_ratio",
-        "subcanopy_seedbank_c_p_ratio",
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
