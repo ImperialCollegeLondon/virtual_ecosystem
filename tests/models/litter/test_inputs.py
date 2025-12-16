@@ -453,7 +453,8 @@ def test_calculate_nutrient_split_between_litter_pools(
     expected_struct_c_n = np.array([101.6134568, 114.83381915, 130.3236728, 97.9625518])
 
     actual_meta_c_n, actual_struct_c_n = calculate_nutrient_split_between_litter_pools(
-        input_c_nut_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
+        input_c_nut_ratio=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
+        / dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
         metabolic_split=litter_inputs.roots_meta_split,
         struct_to_meta_nutrient_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
     )
@@ -469,7 +470,8 @@ def test_calculate_nutrient_split_between_litter_pools(
     # Check that weighted sum of the two new C:N ratios is compatible with the original
     # C:N ratio
     assert np.allclose(
-        dummy_litter_data["root_turnover_c_n_ratio"],
+        dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
+        / dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
         1
         / (
             (litter_inputs.roots_meta_split / actual_meta_c_n)

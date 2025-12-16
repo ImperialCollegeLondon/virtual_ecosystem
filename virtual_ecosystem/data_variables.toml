@@ -1078,13 +1078,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Root turnover since last update"
-name = "root_turnover"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Lignin proportion of deadwood"
 name = "stem_lignin"
 unit = "kg lignin kg C^-1"
@@ -1127,13 +1120,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Carbon:nitrogen ratio of root turnover"
-name = "root_turnover_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Carbon:phosphorus ratio of leaf turnover"
 name = "leaf_turnover_c_p_ratio"
 unit = "-"
@@ -1143,13 +1129,6 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Carbon:phosphorus ratio of plant reproductive tissue turnover"
 name = "plant_reproductive_tissue_turnover_c_p_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon:phosphorus ratio of root turnover"
-name = "root_turnover_c_p_ratio"
 unit = "-"
 variable_type = "float"
 

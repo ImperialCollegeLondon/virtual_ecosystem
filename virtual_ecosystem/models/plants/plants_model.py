@@ -87,9 +87,6 @@ class PlantsModel(
         "leaf_turnover_c_n_ratio",  # NOTE - will be deprecated in #1131
         "leaf_turnover_c_p_ratio",  # NOTE - will be deprecated in #1131
         "root_turnover_cnp",
-        "root_turnover",  # NOTE - will be deprecated in #1131
-        "root_turnover_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "root_turnover_c_p_ratio",  # NOTE - will be deprecated in #1131
         "canopy_fruit_n",
         "canopy_fruit_cnp",
         "canopy_seeds_per_fruit",
@@ -170,9 +167,6 @@ class PlantsModel(
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "root_lignin",
-        "root_turnover",
-        "root_turnover_c_n_ratio",
-        "root_turnover_c_p_ratio",
         "senesced_leaf_lignin",
         "stem_lignin",
         "transpiration",
@@ -1452,9 +1446,6 @@ class PlantsModel(
             "leaf_turnover",
             "leaf_turnover_c_n_ratio",
             "leaf_turnover_c_p_ratio",
-            "root_turnover",
-            "root_turnover_c_n_ratio",
-            "root_turnover_c_p_ratio",
             "plant_reproductive_tissue_turnover",
             "plant_reproductive_tissue_turnover_c_n_ratio",
             "plant_reproductive_tissue_turnover_c_p_ratio",
@@ -1522,14 +1513,10 @@ class PlantsModel(
         """Ensure all vars are here and correct."""
 
         self.data["leaf_turnover"] = self.data["foliage_turnover_cnp"].loc[:, "C"]
-        self.data["root_turnover"] = self.data["root_turnover_cnp"].loc[:, "C"]
 
         # Convert turnover pools to litter units
         self.data["leaf_turnover"] = self.convert_to_litter_units(
             input_mass=self.data["leaf_turnover"]
-        )
-        self.data["root_turnover"] = self.convert_to_litter_units(
-            input_mass=self.data["root_turnover"]
         )
         self.data["plant_reproductive_tissue_turnover"] = self.convert_to_litter_units(
             input_mass=self.data["plant_reproductive_tissue_turnover"]
@@ -1545,15 +1532,6 @@ class PlantsModel(
                     self.data["foliage_turnover_cnp"].loc[:, "C"], np.inf, dtype=float
                 ),
                 where=self.data["foliage_turnover_cnp"].loc[:, element] != 0,
-            )
-
-            self.data[f"root_turnover_c_{element.lower()}_ratio"] = np.divide(
-                self.data["root_turnover_cnp"].loc[:, "C"],
-                self.data["root_turnover_cnp"].loc[:, element],
-                out=np.full_like(
-                    self.data["root_turnover_cnp"].loc[:, "C"], np.inf, dtype=float
-                ),
-                where=self.data["root_turnover_cnp"].loc[:, element] != 0,
             )
 
             self.data[

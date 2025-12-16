@@ -460,14 +460,12 @@ def dummy_litter_data(fixture_core_components):
         "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
         "leaf_turnover": [0.027, 0.0003, 0.021, 0.0285],
         "fallen_non_propagule_c_mass": [0.003, 0.0075, 0.00255, 0.00375],
-        "root_turnover": [0.027, 0.021, 0.0003, 0.0249],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "plant_reproductive_tissue_lignin": [0.01, 0.03, 0.04, 0.02],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "leaf_turnover_c_n_ratio": [15.0, 25.5, 43.1, 57.4],
         "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
-        "root_turnover_c_n_ratio": [30.3, 45.6, 43.3, 37.1],
         "leaf_turnover_c_p_ratio": [415.0, 327.4, 554.5, 380.9],
         "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
         "root_turnover_c_p_ratio": [656.7, 450.6, 437.3, 371.9],
@@ -512,6 +510,19 @@ def dummy_litter_data(fixture_core_components):
     )
     data["stem_turnover_cnp"].loc[:, "P"] = np.array(
         [0.70928196, 1.187296, 0.546828, 0.3007426]
+    )
+
+    data["root_turnover_cnp"] = DataArray(
+        data=np.zeros((fixture_core_components.grid.n_cells, 3)),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["root_turnover_cnp"].loc[:, "C"] = np.array([218.7, 170.1, 2.43, 201.69])
+    data["root_turnover_cnp"].loc[:, "N"] = np.array(
+        [7.2178, 3.73026, 0.05612, 5.43639]
+    )
+    data["root_turnover_cnp"].loc[:, "P"] = np.array(
+        [0.333029, 0.377497, 0.0055568, 0.5423232]
     )
 
     return data
