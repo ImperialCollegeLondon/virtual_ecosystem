@@ -525,8 +525,8 @@ class HydrologyModel(
             # Precipitation that reaches the surface per day, [mm]
             precipitation_surface = (
                 hydro_input["current_precipitation"][:, day]
-                - np.nansum(interception)
-                + np.nansum(canopy_water_balance["leaf_drainage"])
+                - np.nansum(interception, axis=0)
+                + np.nansum(canopy_water_balance["leaf_drainage"], axis=0)
             )
 
             hydrology_tools.check_precipitation_surface(
