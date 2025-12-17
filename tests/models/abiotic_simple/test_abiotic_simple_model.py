@@ -15,10 +15,16 @@ from tests.conftest import log_check, patch_run_setup, patch_run_update
 MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
-    (INFO, "Replacing data array for 'soil_temperature'"),
-    (INFO, "Replacing data array for 'net_radiation'"),
     (INFO, "Replacing data array for 'vapour_pressure_deficit_ref'"),
     (INFO, "Replacing data array for 'vapour_pressure_ref'"),
+    (INFO, "Replacing data array for 'air_temperature'"),
+    (INFO, "Replacing data array for 'relative_humidity'"),
+    (INFO, "Replacing data array for 'vapour_pressure_deficit'"),
+    (INFO, "Replacing data array for 'wind_speed'"),
+    (INFO, "Replacing data array for 'atmospheric_pressure'"),
+    (INFO, "Adding data array for 'atmospheric_co2'"),
+    (INFO, "Replacing data array for 'soil_temperature'"),
+    (INFO, "Replacing data array for 'net_radiation'"),
 ]
 
 
@@ -187,6 +193,10 @@ def test_setup(
         )
 
     exp_soil_temp = lyr_strct.from_template()
+    exp_soil_temp[lyr_strct.index_all_soil] = [
+        [20.712458, 21.317566, 21.922674, 22.527783],
+        [20.0, 20.0, 20.0, 20.0],
+    ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 
     xr.testing.assert_allclose(
