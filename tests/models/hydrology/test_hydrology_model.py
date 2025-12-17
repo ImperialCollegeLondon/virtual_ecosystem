@@ -309,8 +309,11 @@ def test_setup(
         atol=1e-3,
     )
 
-    # Add update data to the model data
-    for var in model.vars_required_for_update:
+    # Add additional data required to update the model
+    data_required_from_other_sources = set(model.vars_required_for_update) - set(
+        model.vars_populated_by_init
+    )
+    for var in data_required_from_other_sources:
         model.data[var] = dummy_climate_data_varying_canopy[var]
 
     # Run the update step
