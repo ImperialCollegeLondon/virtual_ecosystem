@@ -69,8 +69,9 @@ def initialise_models(
                 core_components=core_components,
             )
             models_cfd[model_name] = this_model
-        except (InitialisationError, ConfigurationError):
+        except (InitialisationError, ConfigurationError) as err:
             failed_models.append(model_name)
+            LOGGER.error(err)
 
     # If any models fail to configure inform the user about it
     if failed_models:
