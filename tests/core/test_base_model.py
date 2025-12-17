@@ -452,7 +452,7 @@ def test_check_update_speed(
             True,
             ("var1", "var2"),
             {"var1": 1, "var2": 2},
-            True,
+            False,
             does_not_raise(),
             None,
             id="static_all_vars_present",
@@ -462,7 +462,7 @@ def test_check_update_speed(
             True,
             ("var1", "var2"),
             {},
-            False,
+            True,
             does_not_raise(),
             None,
             id="static_no_vars_present",
@@ -484,7 +484,7 @@ def test_check_update_speed(
             False,
             ("var1", "var2"),
             {},
-            False,
+            True,
             does_not_raise(),
             None,
             id="non_static_no_vars_present",
@@ -503,7 +503,7 @@ def test_check_update_speed(
         ),
     ],
 )
-def test_bypass_setup_due_to_static_configuration(
+def test_run_setup_due_to_static_configuration(
     static,
     vars_populated_by_init,
     data_vars,
@@ -513,7 +513,7 @@ def test_bypass_setup_due_to_static_configuration(
     fixture_data,
     fixture_configuration,
 ):
-    """Test the _bypass_setup_due_to_static_configuration method."""
+    """Test the _run_setup_due_to_static_configuration method."""
     from virtual_ecosystem.core.base_model import BaseModel
     from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import (
@@ -565,7 +565,7 @@ def test_bypass_setup_due_to_static_configuration(
         model = TestModel(
             data=fixture_data, core_components=core_components, static=static
         )
-        result = model._bypass_setup_due_to_static_configuration()
+        result = model._run_setup_due_to_static_configuration()
         assert result == expected_result
 
     if expected_message:
@@ -752,7 +752,7 @@ def test_bypass_setup_but_run_update_fails(
     fixture_data,
     fixture_core_components,
 ):
-    """Test the _bypass_setup_due_to_static_configuration method."""
+    """Test the _run_setup_due_to_static_configuration method."""
     from virtual_ecosystem.core.base_model import BaseModel
     from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import (

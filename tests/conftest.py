@@ -563,7 +563,7 @@ def dummy_climate_data(fixture_core_components):
         "diabatic_correction_momentum_above": 0.1,
         "diabatic_correction_momentum_canopy": 1.0,
         "mean_mixing_length": 1.3,
-        "aerodynamic_resistance_surface": 12.5,
+        "aerodynamic_resistance_soil": 12.5,
         "aerodynamic_resistance_canopy": 12.5,
         "mean_annual_temperature": 20.0,
     }
@@ -831,13 +831,13 @@ def patch_run_update(model: type):
     )
 
 
-def patch_bypass_setup(model: type):
+def patch_run_setup(model: type):
     """Patch the bypass setup check during the init of the model."""
     return patch(
-        f"{model.__module__}.{model.__name__}._bypass_setup_due_to_static_configuration"
+        f"{model.__module__}.{model.__name__}._run_setup_due_to_static_configuration"
     )
 
 
 def patch_static_config(model: type):
     """Patch the check static config during the init of the model."""
-    return patch(f"{model.__module__}.{model.__name__}._check_static_config")
+    return patch(f"{model.__module__}.{model.__name__}._set_static_config")
