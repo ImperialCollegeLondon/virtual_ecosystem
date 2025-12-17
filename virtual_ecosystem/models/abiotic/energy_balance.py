@@ -579,7 +579,8 @@ def update_air_temperature(
 
 
 def update_humidity_vpd(
-    evapotranspiration: NDArray[np.floating],
+    canopy_evapotranspiration: NDArray[np.floating],
+    understorey_evapotranspiration: NDArray[np.floating],
     soil_evaporation: NDArray[np.floating],
     saturated_vapour_pressure: NDArray[np.floating],
     specific_humidity: NDArray[np.floating],
@@ -600,7 +601,8 @@ def update_humidity_vpd(
     each atmospheric layer, mixes between the layers and with the atmosphere above.
 
     Args:
-        evapotranspiration: Evapotranspiration, [mm]
+        canopy_evapotranspiration: Evapotranspiration from canopy layers, [mm]
+        understorey_evapotranspiration: Understorey evapotranspiration, [mm]
         soil_evaporation: Soil evaporation to surface layer, [mm]
         saturated_vapour_pressure: Saturated vapour pressure, [kPa]
         specific_humidity: Specific humidity, [kg kg-1]
@@ -625,7 +627,8 @@ def update_humidity_vpd(
     input_nan_mask = np.isnan(specific_humidity)
 
     # Convert evapotranspiration and soil evaporation [mm] to [kg m2 s-1] time interval
-    evap_kg_m2 = evapotranspiration * 1e-3 / time_interval
+    canopy_et_kg_m2 = canopy_evapotranspiration * 1e-3 / time_interval
+    understorey_et_kg_m2 = understorey_evapotranspiration * 1e-3 / time_interval
     soil_evap_kg_m2 = soil_evaporation * 1e-3 / time_interval
 
     # Calculate air layer volumes [m3]
@@ -634,8 +637,12 @@ def update_humidity_vpd(
 
     # Add ET and soil evaporation as mass flux [kg]
     added_mass = np.zeros_like(layer_thickness)
-    added_mass[1 : len(evap_kg_m2) + 1] += evap_kg_m2 * cell_area * time_interval
-    added_mass[-1] += soil_evap_kg_m2 * cell_area * time_interval
+    added_mass[1 : len(canopy_et_kg_m2) + 1] += (
+        canopy_et_kg_m2 * cell_area * time_interval
+    )
+    added_mass[-1] += (
+        (soil_evap_kg_m2 + understorey_et_kg_m2) * cell_area * time_interval
+    )
 
     # Update water mass in air
     water_mass_in_air = specific_humidity * air_mass_per_layer
