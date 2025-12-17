@@ -9,20 +9,42 @@ from xarray import DataArray
 
 from tests.conftest import log_check
 
-# Global set of messages from model required var checks
-MODEL_VAR_CHECK_LOG = (
-    (
-        INFO,
-        "Information required to initialise the abiotic simple model "
-        "successfully extracted.",
-    ),
-    (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
-    (INFO, "Adding data array for 'soil_temperature'"),
-    (INFO, "Adding data array for 'net_radiation'"),
-    (INFO, "Adding data array for 'vapour_pressure_deficit_ref'"),
-    (INFO, "Adding data array for 'vapour_pressure_ref'"),
-)
+
+@pytest.fixture
+def fixture_abiotic_simple_init_log():
+    """Helper function to generate expected log messages."""
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
+        AbioticSimpleModel,
+    )
+
+    return (
+        (
+            INFO,
+            "Information required to initialise the abiotic simple model "
+            "successfully extracted.",
+        ),
+        *(
+            (DEBUG, f"abiotic_simple model: required var '{v}' checked")
+            for v in AbioticSimpleModel.vars_required_for_init
+        ),
+        *(
+            (INFO, f"Adding data array for '{v}'")
+            for v in (
+                # vars_populated_by_init is not currently guaranteed to be in the order
+                # in which the variables are populated
+                "vapour_pressure_deficit_ref",
+                "vapour_pressure_ref",
+                "air_temperature",
+                "relative_humidity",
+                "vapour_pressure_deficit",
+                "wind_speed",
+                "atmospheric_pressure",
+                "atmospheric_co2",
+                "soil_temperature",
+                "net_radiation",
+            )
+        ),
+    )
 
 
 @pytest.fixture
@@ -46,6 +68,7 @@ def test_abiotic_simple_model_initialization(
     fixture_abiotic_simple_init_data,
     fixture_core_components,
     fixture_pyrealm_config,
+    fixture_abiotic_simple_init_log,
 ):
     """Test `AbioticSimpleModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
@@ -74,7 +97,7 @@ def test_abiotic_simple_model_initialization(
     assert model.bounds == default_config.bounds
 
     # Final check that expected logging entries are produced
-    log_check(caplog, MODEL_VAR_CHECK_LOG[1:])
+    log_check(caplog, fixture_abiotic_simple_init_log[1:])
 
 
 @pytest.mark.parametrize(
@@ -101,6 +124,7 @@ def test_generate_abiotic_simple_model(
     caplog,
     fixture_abiotic_simple_init_data,
     cfg_string,
+    fixture_abiotic_simple_init_log,
 ):
     """Test that the initialisation of the simple abiotic model works as expected."""
     from virtual_ecosystem.core.config_builder import (
@@ -126,7 +150,7 @@ def test_generate_abiotic_simple_model(
     )
 
     # Final check that expected logging entries are produced
-    log_check(caplog, MODEL_VAR_CHECK_LOG)
+    log_check(caplog, fixture_abiotic_simple_init_log)
 
 
 def test_setup_and_update_abiotic_simple_model(
@@ -155,6 +179,10 @@ def test_setup_and_update_abiotic_simple_model(
     )
 
     exp_soil_temp = lyr_strct.from_template()
+    exp_soil_temp[lyr_strct.index_all_soil] = [
+        [20.712458, 21.317566, 21.922674, 22.527783],
+        [20.0, 20.0, 20.0, 20.0],
+    ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 
     xr.testing.assert_allclose(

@@ -37,7 +37,14 @@ class AbioticSimpleModel(
     model_update_bounds=("1 day", "1 month"),
     vars_required_for_init=(
         "air_temperature_ref",
+        "atmospheric_co2_ref",
+        "atmospheric_pressure_ref",
+        "layer_heights",
+        "leaf_area_index",
+        "mean_annual_temperature",
         "relative_humidity_ref",
+        "shortwave_absorption",
+        "wind_speed_ref",
     ),
     vars_updated=(
         "air_temperature",
@@ -66,8 +73,6 @@ class AbioticSimpleModel(
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
         "net_radiation",
-    ),
-    vars_populated_by_first_update=(
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",
@@ -75,6 +80,7 @@ class AbioticSimpleModel(
         "atmospheric_co2",
         "wind_speed",
     ),
+    vars_populated_by_first_update=tuple(),
 ):
     """A class describing the abiotic simple model.
 
@@ -138,18 +144,6 @@ class AbioticSimpleModel(
         self.bounds = model_configuration.bounds
         self.pyrealm_core_constants = pyrealm_core_constants
 
-        # create soil temperature array
-        self.data["soil_temperature"] = self.layer_structure.from_template()
-
-        # create net radiation array
-        self.data["net_radiation"] = self.layer_structure.from_template()
-        self.data["net_radiation"][self.layer_structure.index_flux_layers] = (
-            self.model_constants.initial_net_radiation
-        )
-        self.data["net_radiation"][self.layer_structure.index_surface_scalar] = (
-            self.model_constants.initial_net_radiation
-        )
-
         # calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
@@ -162,6 +156,18 @@ class AbioticSimpleModel(
         self.data["vapour_pressure_ref"] = vapour_pressure_and_deficit[
             "vapour_pressure"
         ]
+
+        # This section performs a series of calculations to initialise atmospheric
+        # variables in the abiotic simple model which are then added to the data object.
+        output_variables = run_simple_microclimate(
+            data=self.data,
+            layer_structure=self.layer_structure,
+            time_index=0,
+            constants=self.model_constants,
+            core_constants=self.core_constants,
+            bounds=self.bounds,
+        )
+        self.data.add_from_dict(output_dict=output_variables)
 
     @classmethod
     def from_config(
