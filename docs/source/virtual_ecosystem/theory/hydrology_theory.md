@@ -63,11 +63,11 @@ as land use change.
 ### Climate
 
 * **Precipitation**: The amount, timing, and type of precipitation (rain, snow, etc.)
-directly influence water availability and flow patterns.
+  directly influence water availability and flow patterns.
 * **Temperature**: Temperature affects evaporation rates and the amount of water that
-plants and soil can retain.
+  plants and soil can retain.
 * **Evapotranspiration**: The combined process of evaporation and transpiration affects
-water loss from the surface to the atmosphere.
+  water loss from the surface to the atmosphere.
 
 ### Topography
 
@@ -115,7 +115,9 @@ The local water balance is, similar to the microclimate, driven by large scale
 hydrological patterns and affects the living conditions for organisms at the local
 scale. The local water balance can be represented by the equation:
 
-$$\Delta S = P − ET − R$$ (water_balance)
+$
+\Delta S = P − ET − R
+$ (water_balance)
 
 where $\Delta S$ represents the net change in water stored in the system, $P$ stands for
 precipitation, the total water input, $ET$ is the evapotranspiration with accounts for

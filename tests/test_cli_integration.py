@@ -47,8 +47,8 @@ def test_ve_run(capsys):
                     str(configs),
                     "--outpath",
                     str(outdir),
-                    "--logfile",
-                    str(logfile),
+                    # "--logfile",
+                    # str(logfile),
                 ]
             )
 
