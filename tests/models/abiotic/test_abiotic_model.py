@@ -21,6 +21,10 @@ REQUIRED_INIT_VAR_CHECKS = (
     (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
     (DEBUG, "abiotic model: required var 'shortwave_absorption' checked"),
     (DEBUG, "abiotic model: required var 'wind_speed_ref' checked"),
+    (DEBUG, "abiotic model: required var 'aerodynamic_resistance_canopy' checked"),
+    (DEBUG, "abiotic model: required var 'specific_heat_air' checked"),
+    (DEBUG, "abiotic model: required var 'latent_heat_vapourisation' checked"),
+    (DEBUG, "abiotic model: required var 'density_air' checked"),
 )
 
 SETUP_MANIPULATIONS = (
