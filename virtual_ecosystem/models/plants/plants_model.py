@@ -83,9 +83,6 @@ class PlantsModel(
     vars_updated=(
         "stem_turnover_cnp",  # i.e. deadwood
         "foliage_turnover_cnp",
-        "leaf_turnover",  # NOTE - will be deprecated in #1131
-        "leaf_turnover_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "leaf_turnover_c_p_ratio",  # NOTE - will be deprecated in #1131
         "root_turnover_cnp",
         "canopy_fruit_n",
         "canopy_fruit_cnp",
@@ -148,9 +145,6 @@ class PlantsModel(
         "subcanopy_vegetation_cnp",
         "subcanopy_seedbank_cnp",
         "fallen_non_propagule_c_mass",
-        "leaf_turnover",
-        "leaf_turnover_c_n_ratio",
-        "leaf_turnover_c_p_ratio",
         "plant_ammonium_uptake",
         "plant_n_uptake_arbuscular",
         "plant_n_uptake_ecto",
@@ -1443,9 +1437,6 @@ class PlantsModel(
         """
 
         vars_to_update = [
-            "leaf_turnover",
-            "leaf_turnover_c_n_ratio",
-            "leaf_turnover_c_p_ratio",
             "plant_reproductive_tissue_turnover",
             "plant_reproductive_tissue_turnover_c_n_ratio",
             "plant_reproductive_tissue_turnover_c_p_ratio",
@@ -1512,27 +1503,12 @@ class PlantsModel(
     def old_outputs_to_depricate(self):
         """Ensure all vars are here and correct."""
 
-        self.data["leaf_turnover"] = self.data["foliage_turnover_cnp"].loc[:, "C"]
-
-        # Convert turnover pools to litter units
-        self.data["leaf_turnover"] = self.convert_to_litter_units(
-            input_mass=self.data["leaf_turnover"]
-        )
         self.data["plant_reproductive_tissue_turnover"] = self.convert_to_litter_units(
             input_mass=self.data["plant_reproductive_tissue_turnover"]
         )
 
         for element in ["N", "P"]:
             # Update carbon to nutrient ratios for turnover pools
-
-            self.data[f"leaf_turnover_c_{element.lower()}_ratio"] = np.divide(
-                self.data["foliage_turnover_cnp"].loc[:, "C"],
-                self.data["foliage_turnover_cnp"].loc[:, element],
-                out=np.full_like(
-                    self.data["foliage_turnover_cnp"].loc[:, "C"], np.inf, dtype=float
-                ),
-                where=self.data["foliage_turnover_cnp"].loc[:, element] != 0,
-            )
 
             self.data[
                 f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio"
