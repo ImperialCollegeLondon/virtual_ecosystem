@@ -26,7 +26,7 @@ from math import ceil, sqrt
 from random import choice
 from typing import Any, cast
 
-from numpy import array, float32, inf, random, timedelta64, where, zeros
+from numpy import array, float32, random, stack, timedelta64, where, zeros
 from numpy.typing import NDArray
 from xarray import DataArray
 
@@ -101,9 +101,7 @@ class AnimalModel(
         "decomposed_carcasses_carbon",
         "decomposed_carcasses_nitrogen",
         "decomposed_carcasses_phosphorus",
-        "herbivory_waste_leaf_carbon",
-        "herbivory_waste_leaf_nitrogen",
-        "herbivory_waste_leaf_phosphorus",
+        "herbivory_waste_leaf_cnp",
         "herbivory_waste_leaf_lignin",
         "litter_consumption_above_metabolic",
         "litter_consumption_above_structural",
@@ -126,9 +124,7 @@ class AnimalModel(
         "decomposed_carcasses_carbon",
         "decomposed_carcasses_nitrogen",
         "decomposed_carcasses_phosphorus",
-        "herbivory_waste_leaf_carbon",
-        "herbivory_waste_leaf_nitrogen",
-        "herbivory_waste_leaf_phosphorus",
+        "herbivory_waste_leaf_cnp",
         "herbivory_waste_leaf_lignin",
         "total_animal_respiration",
         "litter_consumption_above_metabolic",
@@ -899,33 +895,24 @@ class AnimalModel(
 
         Returns:
             A dictionary containing details of the leaf litter addition due to herbivory
-            this comprises of the mass added in carbon terms [kg C m^-2], ratio of
-            carbon to nitrogen [unitless], ratio of carbon to phosphorus [unitless], and
-            the proportion of input carbon that is lignin [unitless].
+            this comprises of the masses of carbon, nitrogen and phosphorus added [kg],
+            and the proportion of input carbon that is lignin [unitless].
         """
 
-        # Find the size of the leaf waste pool (in carbon terms)
-        leaf_addition = [
-            self.leaf_waste_pools[cell_id].mass_cnp["carbon"] / self.data.grid.cell_area
-            for cell_id in self.data.grid.cell_id
-        ]
+        nutrients = ["carbon", "nitrogen", "phosphorus"]
 
-        # Find the chemistry of the pools, handling different cases properly
-        leaf_c_n = [
-            self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
-            / self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"]
-            if self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"] > 0
-            else inf
-            for cell_id in self.data.grid.cell_id
-        ]
-
-        leaf_c_p = [
-            self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
-            / self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"]
-            if self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"] > 0
-            else inf
-            for cell_id in self.data.grid.cell_id
-        ]
+        leaf_cnp = stack(
+            [
+                array(
+                    [
+                        self.leaf_waste_pools[cell_id].mass_cnp[nutrient]
+                        for cell_id in self.data.grid.cell_id
+                    ]
+                )
+                for nutrient in nutrients
+            ],
+            axis=1,
+        )
 
         leaf_lignin = [
             self.leaf_waste_pools[cell_id].lignin_proportion
@@ -939,12 +926,9 @@ class AnimalModel(
             waste.mass_cnp["phosphorus"] = 0.0
 
         return {
-            "herbivory_waste_leaf_carbon": DataArray(
-                array(leaf_addition), dims="cell_id"
-            ),
-            "herbivory_waste_leaf_nitrogen": DataArray(array(leaf_c_n), dims="cell_id"),
-            "herbivory_waste_leaf_phosphorus": DataArray(
-                array(leaf_c_p), dims="cell_id"
+            "herbivory_waste_leaf_cnp": DataArray(
+                data=leaf_cnp,
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
             "herbivory_waste_leaf_lignin": DataArray(
                 array(leaf_lignin), dims="cell_id"

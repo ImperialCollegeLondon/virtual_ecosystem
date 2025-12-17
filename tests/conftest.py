@@ -474,9 +474,6 @@ def dummy_litter_data(fixture_core_components):
         "litter_consumption_woody": [0.4773833, 0.385701, 0.373456, 0.162192],
         "litter_consumption_below_metabolic": [0.010373, 0.005794, 0.010181, 0.013494],
         "litter_consumption_below_structural": [0.013547, 0.011674, 0.012738, 0.009168],
-        "herbivory_waste_leaf_carbon": [3e-5, 2.1e-3, 2.85e-3, 2.7e-3],
-        "herbivory_waste_leaf_nitrogen": [23.1, 33.5, 23.1, 17.3],
-        "herbivory_waste_leaf_phosphorus": [212.5, 344.8, 334.8, 420.1],
         "herbivory_waste_leaf_lignin": [0.13, 0.08, 0.27, 0.22],
     }
 
@@ -523,6 +520,21 @@ def dummy_litter_data(fixture_core_components):
     )
     data["root_turnover_cnp"].loc[:, "P"] = np.array(
         [0.333029, 0.377497, 0.0055568, 0.5423232]
+    )
+
+    data["herbivory_waste_leaf_cnp"] = DataArray(
+        data=np.zeros((fixture_core_components.grid.n_cells, 3)),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["herbivory_waste_leaf_cnp"].loc[:, "C"] = np.array(
+        [0.243, 17.01, 23.085, 21.87]
+    )
+    data["herbivory_waste_leaf_cnp"].loc[:, "N"] = np.array(
+        [0.010519, 0.507761, 0.999351, 1.264162]
+    )
+    data["herbivory_waste_leaf_cnp"].loc[:, "P"] = np.array(
+        [0.00114353, 0.0493329, 0.0689516, 0.052059]
     )
 
     return data

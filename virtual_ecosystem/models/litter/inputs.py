@@ -157,16 +157,20 @@ def combine_input_sources(
             [days]
 
     Returns:
-        A dictionary containing the total pool size for each input pools [kg C m^-3], as
-        well as the carbon to nitrogen ratios [unitless], carbon to phosphorus ratios
-        [unitless] and lignin proportions [kg lignin C (kg C)^-1] of each of these
-        pools.
+        A dictionary containing the combined rate at which each input pools is added to
+        [kg C m^-2 day^-1], as well as the carbon to nitrogen ratios [unitless], carbon
+        to phosphorus ratios [unitless] and lignin proportions [kg lignin C (kg C)^-1]
+        of each of these pools.
     """
 
     # Calculate totals for each plant matter type
-    leaf_total = (
-        data["leaf_turnover"] + data["herbivory_waste_leaf_carbon"]
-    ).to_numpy()
+    leaf_total = data[
+        "leaf_turnover"
+    ] / update_interval + convert_to_input_masses_to_rates_per_area(
+        data["herbivory_waste_leaf_cnp"].loc[:, "C"],
+        cell_area=data.grid.cell_area,
+        update_interval=update_interval,
+    )
     root_total = convert_to_input_masses_to_rates_per_area(
         data["root_turnover_cnp"].loc[:, "C"],
         cell_area=data.grid.cell_area,
@@ -182,8 +186,15 @@ def combine_input_sources(
     # Calculate lignin concentrations for each combined pool
     leaf_lignin = merge_input_lignin_proportions(
         turnover_mass=data["leaf_turnover"].to_numpy(),
-        herbivory_waste_mass=data["herbivory_waste_leaf_carbon"].to_numpy(),
-        total_mass=leaf_total,
+        # TODO - THIS IS A TEMPORARY STEP AND CAN BE SKIPPED ONCE LEAF_TURNOVER USES THE
+        # SAME UNITS
+        herbivory_waste_mass=update_interval
+        * convert_to_input_masses_to_rates_per_area(
+            data["herbivory_waste_leaf_cnp"].loc[:, "C"],
+            cell_area=data.grid.cell_area,
+            update_interval=update_interval,
+        ).to_numpy(),
+        total_mass=(update_interval * leaf_total).to_numpy(),
         turnover_lignin_proportion=data["senesced_leaf_lignin"].to_numpy(),
         herbivory_waste_lignin_proportion=data[
             "herbivory_waste_leaf_lignin"
@@ -194,11 +205,26 @@ def combine_input_sources(
     reprod_lignin = data["plant_reproductive_tissue_lignin"]
 
     # Calculate leaf nitrogen concentrations for each combined pool
+    # TODO - ONCE BOTH ARE IN MASS TERMS THIS FUNCTION CAN BE REPLACED
     leaf_nitrogen = average_nutrient_ratios(
         mass_1=data["leaf_turnover"].to_numpy(),
-        mass_2=data["herbivory_waste_leaf_carbon"].to_numpy(),
+        # TODO - THIS IS A TEMPORARY STEP AND CAN BE SKIPPED ONCE LEAF_TURNOVER USES THE
+        # SAME UNITS
+        mass_2=update_interval
+        * convert_to_input_masses_to_rates_per_area(
+            data["herbivory_waste_leaf_cnp"].loc[:, "C"],
+            cell_area=data.grid.cell_area,
+            update_interval=update_interval,
+        ).to_numpy(),
         nutrient_ratio_1=data["leaf_turnover_c_n_ratio"].to_numpy(),
-        nutrient_ratio_2=data["herbivory_waste_leaf_nitrogen"].to_numpy(),
+        nutrient_ratio_2=np.divide(
+            data["herbivory_waste_leaf_cnp"].loc[:, "C"],
+            data["herbivory_waste_leaf_cnp"].loc[:, "N"],
+            out=np.full_like(
+                data["herbivory_waste_leaf_cnp"].loc[:, "C"], np.inf, dtype=float
+            ),
+            where=data["herbivory_waste_leaf_cnp"].loc[:, "N"] != 0,
+        ).to_numpy(),
     )
     root_nitrogen = np.divide(
         data["root_turnover_cnp"].loc[:, "C"],
@@ -215,11 +241,26 @@ def combine_input_sources(
     reprod_nitrogen = data["plant_reproductive_tissue_turnover_c_n_ratio"]
 
     # Calculate leaf phosphorus concentrations for each combined pool
+    # TODO - ONCE BOTH ARE IN MASS TERMS THIS FUNCTION CAN BE REPLACED
     leaf_phosphorus = average_nutrient_ratios(
         mass_1=data["leaf_turnover"].to_numpy(),
-        mass_2=data["herbivory_waste_leaf_carbon"].to_numpy(),
+        # TODO - THIS IS A TEMPORARY STEP AND CAN BE SKIPPED ONCE LEAF_TURNOVER USES THE
+        # SAME UNITS
+        mass_2=update_interval
+        * convert_to_input_masses_to_rates_per_area(
+            data["herbivory_waste_leaf_cnp"].loc[:, "C"],
+            cell_area=data.grid.cell_area,
+            update_interval=update_interval,
+        ).to_numpy(),
         nutrient_ratio_1=data["leaf_turnover_c_p_ratio"].to_numpy(),
-        nutrient_ratio_2=data["herbivory_waste_leaf_phosphorus"].to_numpy(),
+        nutrient_ratio_2=np.divide(
+            data["herbivory_waste_leaf_cnp"].loc[:, "C"],
+            data["herbivory_waste_leaf_cnp"].loc[:, "P"],
+            out=np.full_like(
+                data["herbivory_waste_leaf_cnp"].loc[:, "C"], np.inf, dtype=float
+            ),
+            where=data["herbivory_waste_leaf_cnp"].loc[:, "P"] != 0,
+        ).to_numpy(),
     )
     root_phosphorus = np.divide(
         data["root_turnover_cnp"].loc[:, "C"],
@@ -236,7 +277,7 @@ def combine_input_sources(
     reprod_phosphorus = data["plant_reproductive_tissue_turnover_c_p_ratio"]
 
     return {
-        "leaf_mass": leaf_total / update_interval,
+        "leaf_mass": leaf_total.to_numpy(),
         "root_mass": root_total.to_numpy(),
         "deadwood_mass": deadwood_total.to_numpy(),
         "reprod_mass": reprod_total.to_numpy() / update_interval,
