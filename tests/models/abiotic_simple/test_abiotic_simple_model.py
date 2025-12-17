@@ -76,7 +76,6 @@ def test_abiotic_simple_model_initialization(
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
-    print(caplog.text)
 
 
 @pytest.mark.parametrize(
