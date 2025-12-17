@@ -249,7 +249,7 @@ def test_generate_hydrology_model(
         ),
     ],
 )
-def test_setup(
+def test_setup_and_update_hydrology_model(
     fixture_core_components,
     fixture_hydrology_init_data,
     dummy_climate_data_varying_canopy,
