@@ -151,7 +151,7 @@ class HydrologyConstants(Configuration):
     characteristics. This parameter is currently set to an arbitrary value; we are
     working on getting a better estimate."""
 
-    initial_aerodynamic_resistance_surface: float = 12.5
+    initial_aerodynamic_resistance_soil: float = 12.5
     """Initial aerodynamic resistance at the soil surface, [s m-1].
     
     This parameter is an initial estimate of the resistance to the transfer of momentum,

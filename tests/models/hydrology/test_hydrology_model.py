@@ -9,7 +9,7 @@ import pint
 import pytest
 from xarray import DataArray
 
-from tests.conftest import log_check, patch_bypass_setup, patch_run_update
+from tests.conftest import log_check, patch_run_setup, patch_run_update
 
 # Global set of messages from model required var checks
 MODEL_VAR_CHECK_LOG = [
@@ -45,9 +45,9 @@ def test_hydrology_model_initialization(
     # We patch the _setup step as it is tested separately
     with (
         patch_run_update(HydrologyModel),
-        patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
+        patch_run_setup(HydrologyModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
 
         # Initialize model
         model = HydrologyModel(
@@ -135,9 +135,9 @@ def test_generate_hydrology_model(
 
     with (
         patch_run_update(HydrologyModel),
-        patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
+        patch_run_setup(HydrologyModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         with patch(
             "virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel._setup"
         ) as mock_setup:
@@ -169,11 +169,25 @@ def test_generate_hydrology_model(
 
 
 @pytest.mark.parametrize(
-    "update_interval, raises, expected_2d, expected_1d",
+    "update_interval, raises, expected_canopy, expected_2d, expected_1d",
     [
         pytest.param(
             pint.Quantity(1, "month"),
             does_not_raise(),
+            {
+                "canopy_evaporation": [
+                    [0.0, 0.0, 0.0, np.nan],
+                    [0.0, 0.0, np.nan, np.nan],
+                    [0.0, np.nan, np.nan, np.nan],
+                    [0.0, 0.0, 0.0, 1.110223e-16],
+                ],
+                "interception": [
+                    [8.277091, 8.277559, 8.277034, np.nan],
+                    [7.9687, 7.969121, np.nan, np.nan],
+                    [7.669195, np.nan, np.nan, np.nan],
+                    [7.378513, 7.669572, 7.968649, 8.277055],
+                ],
+            },
             {
                 "soil_moisture": [
                     [250.034438, 248.936962, 246.479433, 241.04013],
@@ -209,6 +223,20 @@ def test_generate_hydrology_model(
         pytest.param(
             pint.Quantity(1, "week"),
             does_not_raise(),
+            {
+                "canopy_evaporation": [
+                    [0.0, 0.0, 0.0, np.nan],
+                    [0.0, 0.0, np.nan, np.nan],
+                    [0.0, np.nan, np.nan, np.nan],
+                    [0.0, 0.0, 0.0, 1.110223e-16],
+                ],
+                "interception": [
+                    [6.012631, 6.012636, 6.012606, np.nan],
+                    [5.900963, 5.900968, np.nan, np.nan],
+                    [5.788322, np.nan, np.nan, np.nan],
+                    [5.674818, 5.788327, 5.90094, 6.012613],
+                ],
+            },
             {
                 "soil_moisture": [
                     [250.010976, 249.62808, 248.833448, 247.191647],
@@ -249,6 +277,7 @@ def test_setup(
     fixture_configuration,
     update_interval,
     raises,
+    expected_canopy,
     expected_2d,
     expected_1d,
 ):
@@ -269,29 +298,31 @@ def test_setup(
 
     with (
         patch_run_update(HydrologyModel),
-        patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
+        patch_run_setup(HydrologyModel) as mock_run_setup,
     ):
-        mock_bypass_setup.return_value = False
+        mock_run_setup.return_value = True
         with raises:
-            # initialise model. The setup is run as part of the initialisation
+            # Initialise model. The setup is run as part of the initialisation
             model = HydrologyModel.from_config(
                 data=dummy_climate_data_varying_canopy,
                 configuration=fixture_configuration,
                 core_components=core_components,
             )
 
-            # Test soil moisture
-
+            # Test soil moisture and matric potential initial values
             soil_indices = lyr_strct.index_all_soil
             expected_values = {
-                "soil_moisture": (soil_indices, np.array([[250], [250]])),
-                "aerodynamic_resistance_canopy": (lyr_strct.index_filled_canopy, 12.5),
+                "soil_moisture": (soil_indices, np.full((2, 4), 250.0)),
+                "matric_potential": (soil_indices, np.full((2, 4), -49.673613)),
             }
             for var_name, (indices, values) in expected_values.items():
                 exp_var = lyr_strct.from_template()
                 exp_var[indices] = values
                 np.testing.assert_allclose(
-                    model.data[var_name], exp_var, rtol=1e-3, atol=1e-3
+                    model.data[var_name],
+                    exp_var,
+                    rtol=1e-3,
+                    atol=1e-3,
                 )
 
             # Test groundwater storage
@@ -306,16 +337,23 @@ def test_setup(
                 atol=1e-3,
             )
 
-            exp_aero_resist_canopy = np.full((14, 4), np.nan)
-            np.testing.assert_allclose(
-                model.data["aerodynamic_resistance_canopy"],
-                exp_aero_resist_canopy,
-            )
-
             # Run the update step
             model.update(time_index=1, seed=42)
 
-            # Test 2d variables
+            # Test canopy variables
+            canopy_indices = [1, 2, 3, 11]
+            for var_name, expected_vals in expected_canopy.items():
+                exp_var = lyr_strct.from_template()
+                exp_var[canopy_indices] = expected_vals
+
+                np.testing.assert_allclose(
+                    model.data[var_name][canopy_indices],
+                    exp_var[canopy_indices],
+                    rtol=1e-4,
+                    atol=1e-4,
+                )
+
+            # Test 2d soil variables
             for var_name, expected_vals in expected_2d.items():
                 exp_var = lyr_strct.from_template()
                 exp_var[soil_indices] = expected_vals
@@ -328,7 +366,6 @@ def test_setup(
                 )
 
             # Test one dimensional variables
-
             for var_name, expected_vals in expected_1d.items():
                 np.testing.assert_allclose(
                     model.data[var_name],
@@ -336,6 +373,7 @@ def test_setup(
                     rtol=1e-2,
                     atol=1e-2,
                 )
+
             # Mass balance check for the month
             hydrology_tools.check_monthly_mass_balance(
                 drainage_map=model.drainage_map,

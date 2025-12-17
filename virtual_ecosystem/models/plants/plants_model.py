@@ -126,7 +126,6 @@ class PlantsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
-        "subcanopy_transpiration",
     ),
     vars_populated_by_first_update=(
         "stem_turnover_cnp",
@@ -169,7 +168,6 @@ class PlantsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
-        "subcanopy_transpiration",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -215,8 +213,16 @@ class PlantsModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        flora: A Flora instance of the plant functional types to be used in the model.
+        exporter: An instance of the ``CommunityDataExporter`` class used to export
+            plant community data for each time step.
+        flora: A flora containing the plant functional types used in the plants
+            model.
+        cohort_data: A data frame containing the initial cohort data.
+        extra_pft_traits: Additional traits for each plant functional type, keyed by
+            PFT name.
         model_constants: Set of constants for the plants model.
+        pyrealm_config: Configuration options to the pyrealm package.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
@@ -224,8 +230,12 @@ class PlantsModel(
         data: Data,
         core_components: CoreComponents,
         exporter: CommunityDataExporter,
+        flora: Flora,
+        cohort_data: pandas.DataFrame,
+        extra_pft_traits: ExtraTraitsPFT,
+        model_constants: PlantsConstants = PlantsConstants(),
+        pyrealm_config: PyrealmConfig = PyrealmConfig(),
         static: bool = False,
-        **kwargs: Any,
     ):
         """Plants init function.
 
@@ -233,18 +243,16 @@ class PlantsModel(
         handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
 
+        # Run the base model __init__
+        super().__init__(data, core_components, static)
+
         # Define and populate model specific attributes
-        self.exporter: CommunityDataExporter = exporter
-        """A CommunityDataExporter instance providing configuration and methods for
-        export of community data."""
         self.flora: Flora
         """A flora containing the plant functional types used in the plants model."""
         self.initial_cohort_data: pandas.DataFrame
         """A dataframe providing the initial cohort data."""
         self.extra_pft_traits: ExtraTraitsPFT
         """The extra traits for each plant functional type, keyed by PFT name."""
-
-        #
         self.model_constant: PlantsConstants
         """Set of constants for the plants model"""
         self.communities: PlantCommunities
@@ -292,75 +300,20 @@ class PlantsModel(
         self.data_object_templates: dict[str, xr.DataArray]
         """DataArray templates for the data object."""
 
-        # Run the base model __init__
-        super().__init__(data, core_components, static, **kwargs)
+        # Set the exporter - this is always set _regardless_ of the static mode.
+        self.exporter: CommunityDataExporter = exporter
+        """A CommunityDataExporter instance providing configuration and methods for
+        export of community data."""
 
-    @classmethod
-    def from_config(
-        cls,
-        data: Data,
-        configuration: CompiledConfiguration,
-        core_components: CoreComponents,
-    ) -> PlantsModel:
-        """Factory function to initialise a plants model from configuration.
-
-        This function returns a PlantsModel instance based on the provided configuration
-        and data, raising an exception if the configuration is invalid.
-
-        Args:
-            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-            configuration: A validated Virtual Ecosystem model configuration object.
-            core_components: The core components used across models.
-        """
-
-        # Extract subconfigurations from the complete compiled configuration.
-        model_configuration: PlantsConfiguration = configuration.get_subconfiguration(
-            "plants", PlantsConfiguration
-        )
-        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
-            "core", CoreConfiguration
-        )
-
-        # Generate the flora
-        flora, extra_traits = get_flora_from_config(config=model_configuration)
-
-        # Load the initial cohort data - use of FILEPATH_PLACEHOLDER guarantees that
-        # this path has been set and exists.
-        try:
-            with open(model_configuration.cohort_data_path) as csv_data:
-                cohort_data = pandas.read_csv(csv_data)
-        except pandas.errors.ParserError as excep:
-            msg = "Plant configuration error: cannot parse cohort data " + str(excep)
-            LOGGER.error(msg)
-            raise InitialisationError(msg)
-
-        # Create a CommunityDataExporter instance from config
-        exporter = CommunityDataExporter.from_config(
-            output_directory=core_configuration.data_output_options.out_path,
-            config=model_configuration.community_data_export,
-        )
-
-        # Try and create the instance - safeguard against exceptions from __init__
-        try:
-            inst = cls(
-                data=data,
-                core_components=core_components,
-                static=model_configuration.static,
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
                 flora=flora,
                 cohort_data=cohort_data,
-                extra_pft_traits=extra_traits,
-                model_constants=model_configuration.constants,
-                exporter=exporter,
-                pyrealm_config=core_configuration.pyrealm,
+                extra_pft_traits=extra_pft_traits,
+                model_constants=model_constants,
+                pyrealm_config=pyrealm_config,
             )
-        except Exception as excep:
-            LOGGER.critical(
-                f"Error creating plants model from configuration: {excep!s}"
-            )
-            raise excep
-
-        LOGGER.info("Plants model instance generated from configuration.")
-        return inst
 
     def _setup(
         self,
@@ -369,19 +322,10 @@ class PlantsModel(
         extra_pft_traits: ExtraTraitsPFT,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
-        **kwargs: Any,
     ) -> None:
         """Setup implementation for the Plants Model.
 
-        Args:
-            flora: A flora containing the plant functional types used in the plants
-                model.
-            cohort_data: A data frame containing the initial cohort data.
-            extra_pft_traits: Additional traits for each plant functional type, keyed by
-                PFT name.
-            model_constants: Set of constants for the plants model.
-            pyrealm_config: Configuration options to the pyrealm package.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         # Set the instance attributes from the __init__ arguments
@@ -568,6 +512,73 @@ class PlantsModel(
             time=self.model_timing.start_time,
         )
 
+    @classmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+    ) -> PlantsModel:
+        """Factory function to initialise a plants model from configuration.
+
+        This function returns a PlantsModel instance based on the provided configuration
+        and data, raising an exception if the configuration is invalid.
+
+        Args:
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
+            core_components: The core components used across models.
+        """
+
+        # Extract subconfigurations from the complete compiled configuration.
+        model_configuration: PlantsConfiguration = configuration.get_subconfiguration(
+            "plants", PlantsConfiguration
+        )
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+
+        # Generate the flora
+        flora, extra_traits = get_flora_from_config(config=model_configuration)
+
+        # Load the initial cohort data - use of FILEPATH_PLACEHOLDER guarantees that
+        # this path has been set and exists.
+        try:
+            with open(model_configuration.cohort_data_path) as csv_data:
+                cohort_data = pandas.read_csv(csv_data)
+        except pandas.errors.ParserError as excep:
+            msg = "Plant configuration error: cannot parse cohort data " + str(excep)
+            LOGGER.error(msg)
+            raise InitialisationError(msg)
+
+        # Create a CommunityDataExporter instance from config
+        exporter = CommunityDataExporter.from_config(
+            output_directory=core_configuration.data_output_options.out_path,
+            config=model_configuration.community_data_export,
+        )
+
+        # Try and create the instance - safeguard against exceptions from __init__
+        try:
+            inst = cls(
+                data=data,
+                core_components=core_components,
+                static=model_configuration.static,
+                flora=flora,
+                cohort_data=cohort_data,
+                extra_pft_traits=extra_traits,
+                model_constants=model_configuration.constants,
+                exporter=exporter,
+                pyrealm_config=core_configuration.pyrealm,
+            )
+        except Exception as excep:
+            LOGGER.critical(
+                f"Error creating plants model from configuration: {excep!s}"
+            )
+            raise excep
+
+        LOGGER.info("Plants model instance generated from configuration.")
+        return inst
+
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
 
@@ -605,6 +616,9 @@ class PlantsModel(
         ]
         for var in pft_cnp_vars:
             self.data[var] = self.data_object_templates["cnp_pft"].copy()
+
+        # Initialise transpiration array to collect per grid cell values
+        self.data["transpiration"] = self.layer_structure.from_template("transpiration")
 
     def _update(self, time_index: int, **kwargs: Any) -> None:
         """Update the plants model.
@@ -958,8 +972,10 @@ class PlantsModel(
                 community.cohorts.n_individuals * per_layer_transpiration_mm
             ).sum(axis=1)
 
-        # Pass values to data object
-        self.data["transpiration"] = transpiration
+        # Write canopy layers to transpiration data array
+        self.data["transpiration"][self.layer_structure.index_filled_canopy] = (
+            transpiration[self.layer_structure.index_filled_canopy]
+        )
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
