@@ -71,7 +71,7 @@ class AbioticSimpleModel(
         "atmospheric_co2",
         "wind_speed",
     ),
-    vars_populated_by_first_update=(),
+    vars_populated_by_first_update=tuple(),
 ):
     """A class describing the abiotic simple model.
 
