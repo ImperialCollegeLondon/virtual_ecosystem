@@ -28,10 +28,10 @@ def variable_table():
     # dictionary to record the stages at which each model interacts with the different
     # variables.
     model_var_attribute_fields = (
-        ("vars_required_for_init", "Req Init"),
-        ("vars_populated_by_init", "Pop Init"),
-        ("vars_required_for_update", "Req Update"),
-        ("vars_populated_by_first_update", "Pop Update 1"),
+        ("vars_required_for_init", "RI"),
+        ("vars_populated_by_init", "PI"),
+        ("vars_required_for_update", "RU"),
+        ("vars_populated_by_first_update", "PU"),
         ("vars_updated", "Updates"),
     )
 
@@ -46,7 +46,6 @@ def variable_table():
     for var in source_vars:
         new_var = {f: var[f] for f in field_order}
         new_var.update(deepcopy(variable_attributes))
-        new_var["Used By"] = set()
         known_vars[var["name"]] = new_var
 
     # Iterate over the models, getting the variables associated with each usage type and
@@ -57,7 +56,6 @@ def variable_table():
 
             for var_name in vars:
                 known_vars[var_name][field_name].append(this_model.model_name)
-                known_vars[var_name]["Used By"].add(this_model.model_name)
 
     # Get the row headers - this is hard coded because the individual columns use
     # DataTables responsive class logic to control which fields are visible, which are
@@ -70,18 +68,17 @@ def variable_table():
     thead = """
     <THEAD>
         <TR>
-            <TH class="dt-control"</TH>
+            <TH class="dt-control"></TH>
             <TH class="all">Name</TH>
             <TH class="all">Units</TH>
             <TH class="none">Axes</TH>
             <TH class="none">Description</TH>
             <TH class="none">Variable Type</TH>
-            <TH class="never">Req Init</TH>
-            <TH class="never">Pop Init</TH>
-            <TH class="never">Req Update</TH>
-            <TH class="never">Pop Update 1</TH>
+            <TH class="never">RI</TH>
+            <TH class="never">PI</TH>
+            <TH class="never">RU</TH>
+            <TH class="never">PU</TH>
             <TH class="never">Updated</TH>
-            <TH class="never">Used By</TH>
         </TR>
     </THEAD>
     """
@@ -102,9 +99,11 @@ def variable_table():
         table_rows.append(f"<TR>{''.join(td_elements)}</TR>")
 
     # Add checkbox sets to power subsetting variables by model usage
-    model_selector = _generate_checkbox_set("models", [m.model_name for m in models])
+    model_selector = _generate_checkbox_set(
+        "models", [m.model_name for m in models], [m.model_name for m in models]
+    )
     var_group_selector = _generate_checkbox_set(
-        "var_group", list(variable_attributes.keys())
+        "var_group", *zip(*model_var_attribute_fields)
     )
 
     # Return the HTML
@@ -124,18 +123,19 @@ def variable_table():
     """
 
 
-def _generate_checkbox_set(id: str, values: list[str]):
+def _generate_checkbox_set(name: str, ids: list[str], values: list[str]):
     input_list = [
         f"""
         <div style="display:flex;margin:2px;">
-            <input type="checkbox" name="{id}" id={id + "-" + v} value="{v}">
-            <label for="{id + "-" + v}">{v}</label>
+            <input type="checkbox" name="{name}" id="{id}" value="{val}">
+            <label for="{id}">{val}</label>
         </div>
         """
-        for v in values
+        for id, val in zip(ids, values)
     ]
     inputs = "\n".join(input_list)
+
     return f"""
-        <div style="display:flex;" id="{id}">\n{inputs}
+        <div style="display:flex;" id="{name}">\n{inputs}
         </div>
     """
