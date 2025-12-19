@@ -166,14 +166,15 @@ class LitterModel(
         data: The data object to be used in the model.
         core_components: The core components used across models.
         model_constants: Set of constants for the litter model.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
+        model_constants: LitterConstants = LitterConstants(),
         static: bool = False,
-        **kwargs: Any,
     ):
         """Litter init function.
 
@@ -181,59 +182,26 @@ class LitterModel(
         handled in :fun:`~virtual_ecosystem.litter.litter_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
 
         self.litter_chemistry: LitterChemistry
         """Litter chemistry object for tracking of litter pool chemistries."""
         self.model_constants: LitterConstants
         """Set of constants for the litter model."""
 
-    @classmethod
-    def from_config(
-        cls,
-        data: Data,
-        configuration: CompiledConfiguration,
-        core_components: CoreComponents,
-    ) -> LitterModel:
-        """Factory function to initialise the litter model from configuration.
-
-        This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance an error is raised.
-
-        Args:
-            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-            configuration: A validated Virtual Ecosystem model configuration object.
-            core_components: The core components used across models.
-        """
-
-        # Extract the validated model configuration from the complete compiled
-        # configuration. This syntax is odd but required to support static typing
-        model_configuration: LitterConfiguration = configuration.get_subconfiguration(
-            "litter", LitterConfiguration
-        )
-
-        LOGGER.info(
-            "Information required to initialise the litter model successfully "
-            "extracted."
-        )
-        return cls(
-            data=data,
-            core_components=core_components,
-            static=model_configuration.static,
-            model_constants=model_configuration.constants,
-        )
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
+                model_constants=model_constants,
+            )
 
     def _setup(
         self,
         model_constants: LitterConstants = LitterConstants(),
-        **kwargs: Any,
     ) -> None:
         """Method to setup the litter model specific data variables.
 
-        Args:
-            model_constants: Set of constants for the litter model.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         # Check that no litter pool is negative
@@ -302,6 +270,42 @@ class LitterModel(
 
         self.litter_chemistry = LitterChemistry(self.data)
         self.model_constants = model_constants
+
+    @classmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+    ) -> LitterModel:
+        """Factory function to initialise the litter model from configuration.
+
+        This function unpacks the relevant information from the configuration file, and
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance an error is raised.
+
+        Args:
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
+            core_components: The core components used across models.
+        """
+
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: LitterConfiguration = configuration.get_subconfiguration(
+            "litter", LitterConfiguration
+        )
+
+        LOGGER.info(
+            "Information required to initialise the litter model successfully "
+            "extracted."
+        )
+        return cls(
+            data=data,
+            core_components=core_components,
+            static=model_configuration.static,
+            model_constants=model_configuration.constants,
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""

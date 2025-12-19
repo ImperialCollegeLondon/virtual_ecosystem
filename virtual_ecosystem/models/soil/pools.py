@@ -1371,7 +1371,11 @@ def calculate_maintenance_biomass_synthesis(
         reference_temperature=microbial_group.reference_temperature,
     )
 
-    return microbial_group.turnover_rate * temp_factor * microbe_pool_size
+    return np.where(
+        microbe_pool_size >= 0.0,
+        microbial_group.turnover_rate * temp_factor * microbe_pool_size,
+        0.0,
+    )
 
 
 def calculate_enzyme_turnover(
