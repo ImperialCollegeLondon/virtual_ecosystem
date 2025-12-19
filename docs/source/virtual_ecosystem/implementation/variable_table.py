@@ -12,7 +12,17 @@ def variable_table():
 
     This function returns HTML with the following elements:
 
-    * A TABLE element containing the following data on the model variables:
+    * A DIV containing checkbox selectors for each registered model (apart from the toy
+      testing model).
+    * A DIV containing checkbox selectors for each role from the model variable class
+      attributes.
+    * A TABLE element containing the variable name, description, axes, units and then
+      which models include each variable in each role.
+
+    The sphinx configuration is then setup to add JavaScript to the page displaying this
+    table that adds DataTable functionality to the TABLE object and implements filtering
+    using the checkboxes. It also hides the columns containing the model by variable
+    role data - this is inferred from the selector checkbox settings.
     """
 
     # Get the full set of models
@@ -28,11 +38,11 @@ def variable_table():
     # dictionary to record the stages at which each model interacts with the different
     # variables.
     model_var_attribute_fields = (
-        ("vars_required_for_init", "RI"),
-        ("vars_populated_by_init", "PI"),
-        ("vars_required_for_update", "RU"),
-        ("vars_populated_by_first_update", "PU"),
-        ("vars_updated", "Updates"),
+        ("vars_required_for_init", "Req. Init"),
+        ("vars_populated_by_init", "Pop. Init"),
+        ("vars_required_for_update", "Req. Update"),
+        ("vars_populated_by_first_update", "Pop. Update"),
+        ("vars_updated", "Updated"),
     )
 
     variable_attributes = {v[1]: [] for v in model_var_attribute_fields}
@@ -108,12 +118,21 @@ def variable_table():
 
     # Return the HTML
     return f"""
+
     <DIV style="border:1px solid black;padding:4px;">
+    <P>These checkboxes filter the variables to only those used in any of the selected
+    models.</P>
     {model_selector}
     </DIV>
-    <DIV style="border:1px solid black;padding:4px;">
+
+    <DIV style="border:1px solid black;padding:4px;margin-top:10px">
+    <P>These checkboxes filter the variables by whether variables are used during model
+    initialisation or update and whether they are required for the model step or
+    populated by that model during the model step.
+    </P>
     {var_group_selector}
     </DIV>
+
     <TABLE id='variableTable'>
     {thead}
     <TBODY>

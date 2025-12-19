@@ -134,21 +134,21 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
     // Set model checkboxes from params if defined
     let url_models = params.get("models");
-    if (!url_models !== null) {
+    if (url_models !== null) {
         url_models_array = url_models.split(",")
         url_models_array.forEach(model => $("#" + model).prop('checked', true));
     }
 
     // Set role checkboxes from params if defined
     let url_roles = params.get("roles");
-    if (!url_roles !== null) {
+    if (url_roles !== null) {
         url_roles_array = url_roles.split(",")
         url_roles_array.forEach(role => $("#" + role).prop('checked', true));
     }
 
     // If either param has been set, trigger the checkboxes to set the search conditions
     // and redraw the table
-    if ((!url_roles !== null) || (!url_models !== null)) {
+    if ((url_roles !== null) || (url_models !== null)) {
         CheckBoxes();
     }
 
