@@ -229,8 +229,8 @@ subtrees:
           - file: api/example_data
             title: The example_data submodule
 
-      - file: Reference
-        title: reference
+      - file: reference
+        title: References
         entries:
           - file: glossary
           - file: bibliography
