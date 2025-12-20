@@ -1,3 +1,5 @@
+/* Style the photos in the team cards with wrap around text */
+
 img.team-photo {
     float: left;
     width: 60px;
@@ -24,4 +26,11 @@ dl.myst>dd {
 
 span.pasted-text {
     font-weight: normal;
+}
+
+/* Style the dropdown child details row in the variables DataTable */
+
+td.child {
+    text-align: left !important;
+    background-color: gainsboro;
 }

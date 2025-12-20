@@ -26,7 +26,6 @@ from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
 import virtual_ecosystem as ve
-from virtual_ecosystem.core import variables
 
 # Silence sphinx 9 warnings.
 warnings.filterwarnings("ignore", category=RemovedInSphinx90Warning)
@@ -39,14 +38,8 @@ warnings.filterwarnings("ignore", category=RemovedInSphinx90Warning)
 # adding an absolute path is more reliable.
 sys.path.append(str(Path(__file__).parent / "development/documentation"))
 
-
 version = ve.__version__
 release = version
-
-# Update the variables file
-varfile = Path(__file__).parent / "variables.rst"
-variables.output_known_variables(varfile)
-
 
 # -- Project information -----------------------------------------------------
 # Ideally the copyright would have a link to the team page, but neither an RST link, nor
@@ -308,6 +301,11 @@ html_css_files = [
 # "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
 # }
 
+# html_js_files = [
+#     "js/variable_table.js",
+# ]
+
+
 # Configure hoverxref
 hoverxref_roles = ["term"]
 
@@ -316,3 +314,49 @@ hoverxref_role_types = {"term": "tooltip"}
 # Allow for longer runtime
 nb_execution_mode = "force"
 nb_execution_timeout = 300
+
+
+def add_datatable_to_variables_page(app, page_name, template_name, context, doctree):
+    """Make the variables page use DataTables.
+
+    This function adds script and style links for the DataTables framework to the
+    variables page and then the JS to add DataTables functionality to the auto-generated
+    table of variable details.
+
+    See the variables page markdown for details.
+    """
+
+    if page_name == "virtual_ecosystem/implementation/variables":
+        # Add Datatables JS links and local custom table setup
+        app.add_js_file("https://cdn.datatables.net/2.3.5/js/dataTables.min.js")
+        # app.add_js_file(
+        #     "https://cdn.datatables.net/2.3.5/js/dataTables.bootstrap5.js"
+        # )
+        app.add_js_file(
+            "https://cdn.datatables.net/responsive/3.0.7/js/dataTables.responsive.min.js"
+        )
+        # app.add_js_file(
+        #     "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
+        # )
+        app.add_js_file("js/variable_table.js")
+
+        # Add Datatables CSS links and inject simple child row styling
+        # app.add_css_file(
+        #     "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+        # )
+        app.add_css_file(
+            "https://cdn.datatables.net/2.3.5/css/dataTables.dataTables.css"
+        )
+        # app.add_css_file(
+        #     "https://cdn.datatables.net/2.3.5/css/dataTables.bootstrap5.css"
+        # )
+        app.add_css_file(
+            "https://cdn.datatables.net/responsive/3.0.7/css/responsive.dataTables.min.css"
+        )
+
+
+def setup(app):
+    """Customise the sphinx build."""
+
+    # Add the datatables engine to the variables page.
+    app.connect("html-page-context", add_datatable_to_variables_page)
