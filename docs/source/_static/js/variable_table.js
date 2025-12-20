@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
                 '-1': 'Show all'
             }
         },
-        lengthMenu: [20, 50, 100, -1]
+        lengthMenu: [10, 20, 50, 100, -1]
     });
 
     // Initialize a fixed search function that selects rows based on the model and
