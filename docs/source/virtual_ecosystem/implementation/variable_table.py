@@ -128,7 +128,9 @@ def variable_table():
     # Generate toggle button groups to select model and variable timing subsets and then
     # insert those into a card
     model_buttons = dt.div(
-        dt.button("Model", type="button", _class="btn btn-danger", disabled=True),
+        dt.button(
+            dt.strong("Model:"), type="button", _class="btn btn-danger", disabled=True
+        ),
         *(
             (
                 dt.input_(
@@ -147,7 +149,9 @@ def variable_table():
     )
 
     init_buttons = dt.div(
-        dt.button("Setup", type="button", _class="btn btn-primary", disabled=True),
+        dt.button(
+            dt.strong("Setup:"), type="button", _class="btn btn-primary", disabled=True
+        ),
         (
             dt.input_(type="checkbox", _class="btn-check", id="vars_required_for_init"),
             dt.label(
@@ -164,13 +168,15 @@ def variable_table():
                 _class="btn btn-outline-primary",
             ),
         ),
-        style="margin-top: 16px;",
         _class="btn-group",
+        style="margin-top: 16px;",
         role="group",
     )
 
     update_buttons = dt.div(
-        dt.button("Update", type="button", _class="btn btn-success", disabled=True),
+        dt.button(
+            dt.strong("Update:"), type="button", _class="btn btn-success", disabled=True
+        ),
         (
             dt.input_(
                 type="checkbox", _class="btn-check", id="vars_required_for_update"

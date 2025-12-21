@@ -35,8 +35,15 @@ td.child {
     background-color: gainsboro;
 }
 
-/* Override the pydata-sphinx-theme top margin for H5 elements used as card headers */
+/* Variable table styling::
+* Override the pydata-sphinx-theme top margin for H5 elements used as card headers 
+* Change the opacity of the disabled buttons used as filter set labels back to 1.0.
+*/
 
 h5.card-header {
     margin-top: 0px;
+}
+
+div.btn-group>button.btn {
+    opacity: 1.0;
 }
