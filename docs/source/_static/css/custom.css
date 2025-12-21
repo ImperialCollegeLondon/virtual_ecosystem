@@ -34,3 +34,9 @@ td.child {
     text-align: left !important;
     background-color: gainsboro;
 }
+
+/* Override the pydata-sphinx-theme top margin for H5 elements used as card headers */
+
+h5.card-header {
+    margin-top: 0px;
+}

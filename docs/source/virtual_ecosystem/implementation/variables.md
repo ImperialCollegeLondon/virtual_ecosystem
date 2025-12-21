@@ -22,20 +22,6 @@ language_info:
   version: 3.11.9
 ---
 
-# Virtual Ecosystem variables
-
-All variables used by Virtual Ecosystem that represent a physical quantity and that are
-either provided as input or produced as part of the simulation need to be registered
-and documented.
-
-## Known variables
-
-The table below summarises the variables currently available in Virtual Ecosystem and
-used by one or another of the existing models. It is followed by a more complete listing
-showing which models use each variable and at what stage during the model initialisation
-or update process. For instructions on how to add new variables visit the [API
-documentation](../../api/core/variables.md) section.
-
 <!-- Page build notes:
 
 The variables page build is a bit complex:
@@ -53,7 +39,31 @@ The variables page build is a bit complex:
 * When the page is built, the `sphinx` app is used to add the required JS and CSS files
   for DataTables, and also some custom JS (`_static/js/variables_table.js`) to hook the
   table up to the DataTables framework and to power the checkboxes.
+
+* Note that the additional JS and sphinx targets the full path of the page, so if this
+  page is moved then conf.py will need to be updated.
 -->
+
+# Virtual Ecosystem array variables
+
+The table below list all of the variables that are stored centrally within Virtual
+Ecosystem simulations. These variables are arrays of data that are structured using the
+[core axes of the simulation](../../using_the_ve/configuration/axes.md).
+
+Each science model declares which of these variables are used when the model runs. There
+are five different usage cases, identifying sets of variables that are:
+
+* required when the model is set up: either provided as input data or
+  populated by another model.
+* populated when the model is set up, and then available for other
+  models.
+* required when the model updates,
+* populated when the model first updates, and
+* updated by the model at every time step.
+
+The buttons below can be used to filter the list of variables to particular models and
+usage cases. The dropdown buttons at the start of each row reveal more details for each
+variable.
 
 ```{code-cell} ipython3
 :tags: [remove-input]
