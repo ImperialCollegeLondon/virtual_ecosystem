@@ -139,6 +139,12 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     output: `-q` will remove the progress bar, `-qq` just prints the start and stop and
     `-qqq` mutes the report entirely.
 
+    The `--config` option can be used to override configuration settings provided in the
+    file or to add additional settings. This is typically used to run a set of parallel
+    simulations that vary configuration settings of interest around a central
+    configuration setup, without the need to write a specific configuration file for
+    each permutation.
+
     The resolved complete configuration will then be written to a single consolidated
     config file in the output path with a default name of
     `ve_full_model_configuration.toml`. This can be disabled by setting the
@@ -198,6 +204,7 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         action="append",
         help="Override configuration settings",
         dest="cli_config",
+        default=[],
     )
 
     parser.add_argument(
