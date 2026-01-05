@@ -239,6 +239,10 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
 
     # If the output path is provided on the command line, add it to the list of command
     # line modifications of the configuration.
+    # NOTE: The quoting style here is important. The text here needs to be parsable
+    #       TOML and needs to support literal strings for pathnames on Windows (rather
+    #       than trying to interpret backslashes as escape characters). In TOML, literal
+    #       strings are written using single quotes.
     if args.outpath:
         # Set the output path
         args.cli_config.append(f"core.data_output_options.out_path='{args.outpath}'")
@@ -246,6 +250,8 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     # Parse any extra parameters passed using the --param flag
     if args.cli_config:
         cli_config = _parse_command_line_config(args.cli_config)
+    else:
+        cli_config = {}
 
     # Figure out the progress reporting level - the defaults is FULL (3 - 0) and as
     # `-q` is repeatedly applied that decrease down to SILENT (3, 3) with `-qqq`
