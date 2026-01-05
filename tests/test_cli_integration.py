@@ -143,7 +143,17 @@ variable = []
         pytest.param(
             ["--config", "core.grid.cell_nx=6"],
             {"core": {"grid": {"cell_nx": 6}}},
-            id="cli config",
+            id="single cli config",
+        ),
+        pytest.param(
+            [
+                "--config",
+                "core.grid.cell_nx=6",
+                "--config",
+                "plants.constants.value=0.1",
+            ],
+            {"core": {"grid": {"cell_nx": 6}}, "plants": {"constants": {"value": 0.1}}},
+            id="multiple cli config",
         ),
     ),
 )
