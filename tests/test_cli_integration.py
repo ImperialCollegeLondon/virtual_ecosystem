@@ -49,6 +49,8 @@ def test_ve_run(capsys):
                     str(outdir),
                     "--logfile",
                     str(logfile),
+                    "--config",
+                    'core.timing.run_length="2 months"',
                 ]
             )
 

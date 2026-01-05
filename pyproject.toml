@@ -110,6 +110,9 @@ addopts = """
   --doctest-modules --ignore=virtual_ecosystem/__main__.py
   --import-mode importlib
   """
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 python_files = 'test_*.py'
 testpaths = ['tests']
 

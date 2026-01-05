@@ -22,40 +22,49 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.main import Progress, ve_run
 
 
-def _parse_param_str(s: str) -> dict[str, Any]:
-    """Parse a single parameter string into a dict.
+def _parse_config_string(config_string: str) -> dict[str, Any]:
+    """Parse a single configuration string into a dictionary.
 
-    For example: hydrology.initial_soil_moisture=0.3
+    Args:
+        config_string: A string containing a TOML formatted configuration setting, for
+            example: "hydrology.initial_soil_moisture=0.3"
 
     Raises:
         ConfigurationError: If the command-line parameters are not valid TOML
     """
     try:
-        return tomllib.loads(s)
+        return tomllib.loads(config_string)
     except TOMLDecodeError:
-        to_raise = ConfigurationError("Invalid format for command-line parameters")
+        to_raise = ConfigurationError(
+            f"Invalid format for command-line configuration setting: {config_string}"
+        )
         LOGGER.critical(to_raise)
         raise to_raise
 
 
-def _parse_command_line_params(
-    params_str: Sequence[str], override_params: dict[str, Any]
-) -> None:
-    """Parse extra parameters provided with command-line arguments.
+def _parse_command_line_config(config_strings: Sequence[str]) -> dict[str, Any]:
+    """Parse command-line configuration settings.
+
+    This function takes a list of strings containing configuration settings passed to
+    the ``ve_run_cli`` entry points using the ``--config`` option. Each string should be
+    parseable TOML (e.g. ``plants.constants.value=0.4``) and the function builds a
+    partial configuration dictionary from the input strings.
 
     Args:
-        params_str: Extra parameters in string format (e.g. my.parameter=0.2)
-        override_params: Dictionary to be appended to with additional parameters
+        config_strings: A list of strings containing configuration settings.
+
+    Returns:
+        A partial configuration dictionary containing parsed settings.
 
     Raises:
         ConfigurationError: Invalid format for parameters or conflicting values supplied
     """
 
-    for param_str in params_str:
-        param_dict = _parse_param_str(param_str)
-        override_params, conflicts = merge_configuration_dicts(
-            override_params, param_dict
-        )
+    config_dict: dict[str, Any] = {}
+
+    for param_str in config_strings:
+        param_dict = _parse_config_string(param_str)
+        config_dict, conflicts = merge_configuration_dicts(config_dict, param_dict)
 
     if conflicts:
         to_raise = ConfigurationError(
@@ -63,6 +72,8 @@ def _parse_command_line_params(
         )
         LOGGER.critical(to_raise)
         raise to_raise
+
+    return config_dict
 
 
 def install_example_directory(install_dir: Path) -> int:
@@ -181,12 +192,12 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         "-o", "--outpath", type=str, help="Path for output files", dest="outpath"
     )
     parser.add_argument(
-        "-p",
-        "--param",
+        "-c",
+        "--config",
         type=str,
         action="append",
-        help="Value for additional parameter (in the form parameter.name=something)",
-        dest="params",
+        help="Override configuration settings",
+        dest="cli_config",
     )
 
     parser.add_argument(
@@ -219,18 +230,15 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         installed = install_example_directory(args.install_example)
         return installed
 
-    # Otherwise run with the provided configuration paths, collecting any configuration
-    # setting passed in at the command line
-    override_params: dict[str, Any] = {}
-
-    # Set the output path if provide on the command line
+    # If the output path is provided on the command line, add it to the list of command
+    # line modifications of the configuration.
     if args.outpath:
         # Set the output path
-        override_params = {"core": {"data_output_options": {"out_path": args.outpath}}}
+        args.cli_config.append(f'core.data_output_options.out_path="{args.outpath}"')
 
     # Parse any extra parameters passed using the --param flag
-    if args.params:
-        _parse_command_line_params(args.params, override_params)
+    if args.cli_config:
+        cli_config = _parse_command_line_config(args.cli_config)
 
     # Figure out the progress reporting level - the defaults is FULL (3 - 0) and as
     # `-q` is repeatedly applied that decrease down to SILENT (3, 3) with `-qqq`
@@ -239,7 +247,7 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     # Run the virtual ecosystem run function
     ve_run(
         cfg_paths=args.cfg_paths,
-        override_params=override_params,
+        cli_config=cli_config,
         logfile=args.logfile,
         progress=progress,
     )
