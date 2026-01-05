@@ -241,7 +241,7 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     # line modifications of the configuration.
     if args.outpath:
         # Set the output path
-        args.cli_config.append(f'core.data_output_options.out_path="{args.outpath}"')
+        args.cli_config.append(f"core.data_output_options.out_path='{args.outpath}'")
 
     # Parse any extra parameters passed using the --param flag
     if args.cli_config:
