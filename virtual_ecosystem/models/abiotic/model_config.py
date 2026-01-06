@@ -139,9 +139,6 @@ class AbioticConstants(AbioticSharedConstants):
     initial_flux_value: float = 0.001
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
 
-    aerodynamic_resistance_canopy_default: float = 12.5
-    """Default aerodynamic resistance of the canopy, [s m-1]."""
-
     coefficient_aerodynamic_resistance_understorey: float = 33.0
     """Coefficient for aerodynamic resistance of the understorey, [s m-1].
     
