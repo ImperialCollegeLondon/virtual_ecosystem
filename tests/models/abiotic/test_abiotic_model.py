@@ -149,7 +149,7 @@ def test_abiotic_model_initialization_no_data(
             (
                 "[core]\n[core.grid]\ncell_nx = 2\ncell_ny = 2\n"
                 "[core.timing]\nupdate_interval = '12 hours'\n"
-                "[abiotic.constants]\ndrag_coefficient = 0.05\n"
+                "[abiotic.constants]\nzero_plane_scaling_parameter = 0.05\n"
             ),
             does_not_raise(),
             (
