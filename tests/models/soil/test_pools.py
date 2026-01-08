@@ -544,6 +544,30 @@ def test_calculate_maintenance_biomass_synthesis(
     assert np.allclose(actual_loss, expected_loss)
 
 
+def test_calculate_maintenance_biomass_synthesis_negative(
+    dummy_carbon_data, averaged_soil_temp, functional_groups
+):
+    """Check maintenance biomass synthesis handles negative populations correctly."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_maintenance_biomass_synthesis,
+    )
+
+    # Replace two values with negative biomasses to check that negatives are handled
+    microbe_pool_size = dummy_carbon_data["soil_c_pool_bacteria"]
+    microbe_pool_size[1] = -0.456
+    microbe_pool_size[3] = -1.33e-3
+
+    expected_loss = [0.04254605, 0.0, 0.08862048, 0.0]
+
+    actual_loss = calculate_maintenance_biomass_synthesis(
+        microbe_pool_size=microbe_pool_size,
+        soil_temp=averaged_soil_temp,
+        microbial_group=functional_groups["bacteria"],
+    )
+
+    assert np.allclose(actual_loss, expected_loss)
+
+
 @pytest.mark.parametrize(
     "turnover,expected_decay",
     [
