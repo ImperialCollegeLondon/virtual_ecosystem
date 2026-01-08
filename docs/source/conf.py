@@ -266,7 +266,7 @@ exclude_patterns = [
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-html_theme = "pydata_sphinx_theme"  # 'sphinx_material'
+html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
     "logo": {
@@ -292,18 +292,13 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-# These paths are relative to html_static_path
+# These can be used to add custom JS and CSS files to all pages in the docs. The paths
+# are relative to html_static_path. See the add_datatable_to_variables_page hook below
+# that is used to inject JS and CSS into a single page.
+html_js_files: list[str] = []
 html_css_files = [
     "css/custom.css",
 ]
-
-# html_sidebars = {
-# "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
-# }
-
-# html_js_files = [
-#     "js/variable_table.js",
-# ]
 
 
 # Configure hoverxref
@@ -319,37 +314,40 @@ nb_execution_timeout = 300
 def add_datatable_to_variables_page(app, page_name, template_name, context, doctree):
     """Make the variables page use DataTables.
 
-    This function adds script and style links for the DataTables framework to the
+    This function adds script and style links for the DataTables framework _only_ to the
     variables page and then the JS to add DataTables functionality to the auto-generated
     table of variable details.
 
+    These files can be added to _all_ pages by adding to them to the ``html_js_files``
+    and ``html_css_files`` lists above, but this hook attempts to keep page sizes
+    smaller by only adding them to the one page that needs them.
+
     See the variables page markdown for details.
+
+    .. note::
+
+        If the variable table page is moved, the page_name below must be updated to
+        match.
     """
 
     if page_name == "virtual_ecosystem/implementation/variables":
         # Add Datatables JS links and local custom table setup
+        # - dataTables.min.js is the main DataTables framework
+        # - dataTables.responsive.min.js adds responsive wrapping of row contents, which
+        #   we use to provide drop downs for further details.
+        # - js/variable_table.js is the configuration and logic that powers our specific
+        #   DataTable instance.
         app.add_js_file("https://cdn.datatables.net/2.3.5/js/dataTables.min.js")
-        # app.add_js_file(
-        #     "https://cdn.datatables.net/2.3.5/js/dataTables.bootstrap5.js"
-        # )
         app.add_js_file(
             "https://cdn.datatables.net/responsive/3.0.7/js/dataTables.responsive.min.js"
         )
-        # app.add_js_file(
-        #     "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
-        # )
         app.add_js_file("js/variable_table.js")
 
-        # Add Datatables CSS links and inject simple child row styling
-        # app.add_css_file(
-        #     "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
-        # )
+        # Add the CSS files that support the DataTables framework and its "responsive"
+        # extension.
         app.add_css_file(
             "https://cdn.datatables.net/2.3.5/css/dataTables.dataTables.css"
         )
-        # app.add_css_file(
-        #     "https://cdn.datatables.net/2.3.5/css/dataTables.bootstrap5.css"
-        # )
         app.add_css_file(
             "https://cdn.datatables.net/responsive/3.0.7/css/responsive.dataTables.min.css"
         )

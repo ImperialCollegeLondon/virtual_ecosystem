@@ -65,25 +65,6 @@ The buttons below can be used to filter the list of variables to particular mode
 usage cases. The dropdown buttons at the start of each row reveal more details for each
 variable.
 
-<!-- Page build notes:
-
-The variables page build is a bit complex:
-
-* The code cell below calls a function that loads the data_variables.TOML file to get
-  a complete list of variables and then _also_ checks each of the models to extend that
-  data to include which variables are used at which stage for each model. That data is
-  wrapped into a table for display using the DataTables framework. The
-  Responsive extension to that framework allows column classes to set whether a column
-  is always shown, always wrapped into a dropdown row child or never shown (but still
-  searchable). The function also adds some checkboxes that are used to filter the
-  variables by model and usage and returns a chunk of HTML that is then included in the
-  notebook _as_ HTML.
-
-* When the page is built, the `sphinx` app is used to add the required JS and CSS files
-  for DataTables, and also some custom JS (`_static/js/variables_table.js`) to hook the
-  table up to the DataTables framework and to power the checkboxes.
--->
-
 ```{code-cell} ipython3
 :tags: [remove-input]
 
