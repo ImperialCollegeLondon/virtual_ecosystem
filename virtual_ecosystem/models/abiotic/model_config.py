@@ -88,15 +88,6 @@ class AbioticConstants(AbioticSharedConstants):
     transfer from the atmosphere to the surface. Implementation and value from
     :cite:t:`maclean_microclimc_2021`."""
 
-    drag_coefficient: float = 0.2
-    """Drag coefficient, dimensionless.
-
-    The drag coefficient is a dimensionless quantity that characterizes the drag or
-    resistance experienced by an object moving through a fluid (here the atmosphere) and
-    is defined as the ratio of the drag force on the object to the dynamic pressure of
-    the fluid flow and the reference area of the object.
-    Implementation and value from :cite:t:`maclean_microclimc_2021`."""
-
     min_windspeed_below_canopy: float = 0.1
     """Minimum wind speed below the canopy or in absence of vegetation, [m s-1]."""
 
@@ -106,14 +97,6 @@ class AbioticConstants(AbioticSharedConstants):
     The minimum roughness length represents the lowest height at which the surface
     roughness significantly affects the wind flow over a particular terrain or
     surface. Implementation and value from :cite:t:`maclean_microclimc_2021`."""
-
-    light_extinction_coefficient: float = 0.01
-    """Light extinction coefficient for canopy, unitless.
-    
-    The light extinction coefficient for a canopy quantifies how quickly light
-    diminishes as it passes through vegetation, reflecting the canopy's ability to
-    absorb or scatter incoming radiation. This value is only used in the model setup and
-    later derived in the plant model."""
 
     soil_thermal_conductivity: float = 1.206
     """Soil thermal conductivity, [W m-1 K-1].
@@ -155,9 +138,6 @@ class AbioticConstants(AbioticSharedConstants):
 
     initial_flux_value: float = 0.001
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
-
-    aerodynamic_resistance_canopy_default: float = 12.5
-    """Default aerodynamic resistance of the canopy, [s m-1]."""
 
     coefficient_aerodynamic_resistance_understorey: float = 33.0
     """Coefficient for aerodynamic resistance of the understorey, [s m-1].

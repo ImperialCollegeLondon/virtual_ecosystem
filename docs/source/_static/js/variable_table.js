@@ -67,7 +67,9 @@ document.addEventListener("DOMContentLoaded", function (event) {
         var model_matches = [];
 
         // Return the row if no checkboxes are selected
-        if ((model_search_terms.length === 0) && (role_columns_selected.some(Boolean))) {
+        if (
+            (model_search_terms.length === 0) && !(role_columns_selected.some(Boolean))
+        ) {
             return true;
         }
 
