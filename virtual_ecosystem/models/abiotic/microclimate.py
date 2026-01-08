@@ -166,7 +166,7 @@ def run_microclimate(
     #     von_karman_constant=core_constants.von_karmans_constant,
     # )
     aerodynamic_resistance_canopy = np.repeat(
-        abiotic_constants.aerodynamic_resistance_canopy_default, data.grid.n_cells
+        core_constants.initial_aerodynamic_resistance_canopy, data.grid.n_cells
     )
 
     # Aerodynamic resistance soil, [s m-1]

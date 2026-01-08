@@ -152,6 +152,15 @@ class CoreConstants(Configuration):
     This represents the amount of heat energy required to raise the temperature 
     of one cubic meter of air by 1 Kelvin."""
 
+    initial_aerodynamic_resistance_canopy: float = 12.1
+    """Initial aerodynamic resistance of the canopy, [s m-1].
+    
+    This parameter is an initial estimate of the resistance to the transfer of momentum,
+    heat, and water vapour between the leaf surface and the atmosphere. The value is
+    based on Australian evergreen forest, taken from :cite:t:`su_aerodynamic_2021`;
+    note that this assumes a dense canopy.
+    """
+
 
 class GridConfiguration(Configuration):
     """Grid configuration.
