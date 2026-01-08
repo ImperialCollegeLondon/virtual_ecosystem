@@ -1,3 +1,5 @@
+/* Style the photos in the team cards with wrap around text */
+
 img.team-photo {
     float: left;
     width: 60px;
@@ -24,4 +26,24 @@ dl.myst>dd {
 
 span.pasted-text {
     font-weight: normal;
+}
+
+/* Style the dropdown child details row in the variables DataTable */
+
+td.child {
+    text-align: left !important;
+    background-color: gainsboro;
+}
+
+/* Variable table styling::
+* Override the pydata-sphinx-theme top margin for H5 elements used as card headers 
+* Change the opacity of the disabled buttons used as filter set labels back to 1.0.
+*/
+
+h5.card-header {
+    margin-top: 0px;
+}
+
+div.btn-group>button.btn {
+    opacity: 1.0;
 }
