@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
                 '-1': 'Show all'
             }
         },
-        lengthMenu: [20, 50, 100, -1]
+        lengthMenu: [10, 20, 50, 100, -1]
     });
 
     // Initialize a fixed search function that selects rows based on the model and
@@ -67,7 +67,9 @@ document.addEventListener("DOMContentLoaded", function (event) {
         var model_matches = [];
 
         // Return the row if no checkboxes are selected
-        if ((model_search_terms.length === 0) && (role_columns_selected.some(Boolean))) {
+        if (
+            (model_search_terms.length === 0) && !(role_columns_selected.some(Boolean))
+        ) {
             return true;
         }
 

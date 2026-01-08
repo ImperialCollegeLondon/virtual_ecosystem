@@ -70,7 +70,7 @@ extensions = [
     "sphinxcontrib.bibtex",
     "sphinxcontrib.mermaid",
     "myst_nb",
-    "sphinx_rtd_theme",
+    "pydata_sphinx_theme",
     "sphinx_external_toc",
     "sphinx_design",
     "hoverxref.extension",
@@ -266,20 +266,25 @@ exclude_patterns = [
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-html_theme = "sphinx_rtd_theme"  # 'sphinx_material'
+html_theme = "pydata_sphinx_theme"  # 'sphinx_material'
 
 html_theme_options = {
-    "logo_only": False,
-    "version_selector": True,
-    "prev_next_buttons_location": "top",
-    "style_external_links": False,
-    "style_nav_header_background": "grey",
-    # Toc options
-    "collapse_navigation": False,
-    "sticky_navigation": True,
-    "navigation_depth": 4,
-    "includehidden": True,
-    "titles_only": False,
+    "logo": {
+        "text": "The Virtual Ecosystem",
+        # "image_light": "_static/logo-light.png",
+        # "image_dark": "_static/logo-dark.png",
+    }
+    # "logo_only": False,
+    # "version_selector": True,
+    # "prev_next_buttons_location": "top",
+    # "style_external_links": False,
+    # "style_nav_header_background": "grey",
+    # # Toc options
+    # "collapse_navigation": False,
+    # "sticky_navigation": True,
+    # "navigation_depth": 4,
+    # "includehidden": True,
+    # "titles_only": False,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -292,14 +297,14 @@ html_css_files = [
     "css/custom.css",
 ]
 
+# html_sidebars = {
+# "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
+# }
+
 # html_js_files = [
 #     "js/variable_table.js",
 # ]
 
-
-html_sidebars = {
-    "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
-}
 
 # Configure hoverxref
 hoverxref_roles = ["term"]

@@ -4,6 +4,8 @@ import tomllib
 from copy import deepcopy
 from importlib import resources
 
+import dominate.tags as dt
+
 from virtual_ecosystem.core.variables import _discover_models
 
 
@@ -18,6 +20,18 @@ def variable_table():
       attributes.
     * A TABLE element containing the variable name, description, axes, units and then
       which models include each variable in each role.
+
+        *   0: Column used to hold DataTables dt-control to hide/show child cells
+        *   1: 'name', Name
+        *   2: 'unit', Units
+        *   3: 'axis', Axes
+        *   4: 'description', Description
+        *   5: 'variable_type', Variable Type
+        *   6: 'vars_required_for_init', RI
+        *   7: 'vars_populated_by_init', PI
+        *   8: 'vars_required_for_update' RU
+        *   9: 'vars_populated_by_first_update', PU
+        *  10: 'vars_updated', Updated
 
     The sphinx configuration is then setup to add JavaScript to the page displaying this
     table that adds DataTable functionality to the TABLE object and implements filtering
@@ -67,94 +81,141 @@ def variable_table():
             for var_name in vars:
                 known_vars[var_name][field_name].append(this_model.model_name)
 
-    # Get the row headers - this is hard coded because the individual columns use
-    # DataTables responsive class logic to control which fields are visible, which are
-    # responsively wrapped into details and which are hidden (but still searchable and
-    # filterable)
+    # Get a table head using DataTables classes that control the logic of how columns
+    # are handled by Responsive wrapping of columns
     # * all: always shown
     # * none: always wrapped in details
-    # * never: not shown at all
+    # * never: not shown at all  (but still searchable and filterable)
 
-    thead = """
-    <THEAD>
-        <TR>
-            <TH class="dt-control"></TH>
-            <TH class="all">Name</TH>
-            <TH class="all">Units</TH>
-            <TH class="none">Axes</TH>
-            <TH class="none">Description</TH>
-            <TH class="none">Variable Type</TH>
-            <TH class="never">RI</TH>
-            <TH class="never">PI</TH>
-            <TH class="never">RU</TH>
-            <TH class="never">PU</TH>
-            <TH class="never">Updated</TH>
-        </TR>
-    </THEAD>
-    """
+    table_column_data = {
+        "control": {"class": "dt-control", "field": "Name"},
+        "name": {"class": "all", "field": "Name"},
+        "units": {"class": "all", "field": "Units"},
+        "axes": {"class": "none", "field": "Axes"},
+        "description": {"class": "none", "field": "Description"},
+        "type": {"class": "none", "field": "Variable Type"},
+        "vars_required_for_init": {"class": "never", "field": "Req. Init"},
+        "vars_populated_by_init": {"class": "never", "field": "Pop. Init"},
+        "vars_required_for_update": {"class": "never", "field": "Req. Update"},
+        "vars_populated_by_first_update": {"class": "never", "field": "Pop. Update"},
+        "vars_updated": {"class": "never", "field": "Updated"},
+    }
+
+    thead = dt.thead(
+        dt.tr(
+            [dt.th(v["field"], _class=v["class"]) for v in table_column_data.values()]
+        )
+    )
 
     # Populate TR elements for each variable, adding an initial empty column with class
     # dt-control that will be used by DataTables to contain the responsive child row
     # holding the data from the rows marked with `class="none"` above.
-    table_rows = []
 
+    tbody = dt.tbody()
     for var in known_vars.values():
-        td_elements = [
-            "<TD></TD>",
-            *[
-                f"<TD>{v if isinstance(v, str) else ','.join(v)}</TD>"
-                for v in var.values()
-            ],
-        ]
-        table_rows.append(f"<TR>{''.join(td_elements)}</TR>")
+        tbody += dt.tr(
+            [
+                dt.td(),
+                *[
+                    dt.td(v if isinstance(v, str) else ",".join(v))
+                    for v in var.values()
+                ],
+            ]
+        )
 
-    # Add checkbox sets to power subsetting variables by model usage
-    model_selector = _generate_checkbox_set(
-        "models", [m.model_name for m in models], [m.model_name for m in models]
+    table = dt.table(thead, tbody, id="variableTable")
+
+    # Generate toggle button groups to select model and variable timing subsets and then
+    # insert those into a card
+    model_buttons = dt.div(
+        dt.button(
+            dt.strong("Model:"), type="button", _class="btn btn-danger", disabled=True
+        ),
+        *(
+            (
+                dt.input_(
+                    type="checkbox",  # checkbox toggle behaviour
+                    _class="btn-check",  # bootstrap button styling,
+                    id=mod,
+                    value=mod,
+                    name="models",  # Used to gather checked status of all model buttons
+                ),
+                dt.label(mod, _for=mod, _class="btn btn-outline-danger"),
+            )
+            for mod in [m.model_name for m in models]
+        ),
+        _class="btn-group",
+        role="group",
     )
-    var_group_selector = _generate_checkbox_set(
-        "var_group", *zip(*model_var_attribute_fields)
+
+    init_buttons = dt.div(
+        dt.button(
+            dt.strong("Setup:"), type="button", _class="btn btn-primary", disabled=True
+        ),
+        (
+            dt.input_(type="checkbox", _class="btn-check", id="vars_required_for_init"),
+            dt.label(
+                "Required",
+                _for="vars_required_for_init",
+                _class="btn btn-outline-primary",
+            ),
+        ),
+        (
+            dt.input_(type="checkbox", _class="btn-check", id="vars_populated_by_init"),
+            dt.label(
+                "Populated",
+                _for="vars_populated_by_init",
+                _class="btn btn-outline-primary",
+            ),
+        ),
+        _class="btn-group",
+        style="margin-top: 16px;",
+        role="group",
+    )
+
+    update_buttons = dt.div(
+        dt.button(
+            dt.strong("Update:"), type="button", _class="btn btn-success", disabled=True
+        ),
+        (
+            dt.input_(
+                type="checkbox", _class="btn-check", id="vars_required_for_update"
+            ),
+            dt.label(
+                "Required",
+                _for="vars_required_for_update",
+                _class="btn btn-outline-success",
+            ),
+        ),
+        (
+            dt.input_(
+                type="checkbox", _class="btn-check", id="vars_populated_by_first_update"
+            ),
+            dt.label(
+                "Populated",
+                _for="vars_populated_by_first_update",
+                _class="btn btn-outline-success",
+            ),
+        ),
+        (
+            dt.input_(type="checkbox", _class="btn-check", id="vars_updated"),
+            dt.label("Updated", _for="vars_updated", _class="btn btn-outline-success"),
+        ),
+        _class="btn-group",
+        style="margin-top: 16px;",
+        role="group",
+    )
+
+    filters_card = dt.div(
+        dt.h5("Filter variables", _class="card-header"),
+        dt.div(
+            model_buttons,
+            init_buttons,
+            update_buttons,
+            _class="card-body",
+        ),
+        _class="card",
     )
 
     # Return the HTML
-    return f"""
-
-    <DIV style="border:1px solid black;padding:4px;">
-    <P>These checkboxes filter the variables to only those used in any of the selected
-    models.</P>
-    {model_selector}
-    </DIV>
-
-    <DIV style="border:1px solid black;padding:4px;margin-top:10px">
-    <P>These checkboxes filter the variables by whether variables are used during model
-    initialisation or update and whether they are required for the model step or
-    populated by that model during the model step.
-    </P>
-    {var_group_selector}
-    </DIV>
-
-    <TABLE id='variableTable'>
-    {thead}
-    <TBODY>
-    {"".join(table_rows)}
-    </TBODY>
-    </TABLE>
-    """
-
-
-def _generate_checkbox_set(name: str, ids: list[str], values: list[str]):
-    input_list = [
-        f"""
-        <div style="display:flex;margin:2px;">
-            <input type="checkbox" name="{name}" id="{id}" value="{val}">
-            <label for="{id}">{val}</label>
-        </div>
-        """
-        for id, val in zip(ids, values)
-    ]
-    inputs = "\n".join(input_list)
-
-    return f"""
-        <div style="display:flex;" id="{name}">\n{inputs}
-        </div>
-    """
+    return filters_card.render() + table.render()

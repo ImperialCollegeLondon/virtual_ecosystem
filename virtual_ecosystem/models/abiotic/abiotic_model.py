@@ -45,6 +45,14 @@ class AbioticModel(
         "relative_humidity_ref",
         "shortwave_absorption",
         "wind_speed_ref",
+        # These four aren't actually required but they _are_ populated by
+        # HydrologyModel.__init__ and the current logic for static model update checking
+        # objects when the data provides _some_ of the variables that a model updates
+        # and that do not appear in this list.
+        "aerodynamic_resistance_canopy",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
+        "density_air",
     ),
     vars_updated=(
         "air_temperature",
@@ -166,9 +174,6 @@ class AbioticModel(
         self.model_constants = model_constants
         self.pyrealm_core_constants = pyrealm_core_constants
         self.bounds = bounds
-
-        # create soil temperature array
-        self.data["soil_temperature"] = self.layer_structure.from_template()
 
         # Calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
