@@ -51,7 +51,7 @@ def initialise_atmosphere_for_hydrology(
             "aerodynamic_resistance_canopy",
             layer_structure.index_filled_canopy,
             layer_structure.index_surface_scalar,
-            model_constants.initial_aerodynamic_resistance_canopy,
+            core_constants.initial_aerodynamic_resistance_canopy,
         ),
         (
             "stomatal_conductance",

@@ -244,7 +244,8 @@ class ConfigurationLoader:
             file or directory paths.
         cfg_strings: A string or list of strings containing TOML formatted configuration
             data.
-        override_params: Extra parameters provided by the user.
+        cli_config: Configuration settings provided by the user at the command line,
+            used to override configuration settings in files.
         autoload: A boolean flag that can be used to turn off automatic data loading and
             compilation.
     """
@@ -253,7 +254,7 @@ class ConfigurationLoader:
         self,
         cfg_paths: str | Path | Sequence[str | Path] = [],
         cfg_strings: str | list[str] = [],
-        override_params: dict[str, Any] | None = None,
+        cli_config: dict[str, Any] | None = None,
         autoload: bool = True,
     ) -> None:
         # Define attributes
@@ -277,9 +278,9 @@ class ConfigurationLoader:
         self.model_classes: dict[str, Any] = {}  # FIXME: -> dict[str, Type[BaseModel]]
         """A dictionary of the model classes specified in the configuration, keyed by
         model name."""
-        self.override_params: dict[str, Any] | None = override_params
-        """An optional set of parameters that can be used to override configuration data
-        loaded from file."""
+        self.cli_config: dict[str, Any] | None = cli_config
+        """An optional dictionary of configuration settings passed at the command line
+        that can be used to override configuration data loaded from file."""
         self.data: dict[str, Any]
         """A dictionary of the compiled configuration data from the provided data
         sources."""
@@ -350,11 +351,12 @@ class ConfigurationLoader:
             LOGGER.critical(to_raise)
             raise to_raise
 
-        # Override any existing parameters. Conflicts are allowed here - although this
-        # mechanism can also be used to set configuration options _not_ in the other
-        # sources - so do nothing about conflicting settings
-        if self.override_params is not None:
-            data, _ = merge_configuration_dicts(data, self.override_params)
+        # Enforce any configuration overrides passed in at the command line. Conflicts
+        # are allowed here - although this mechanism can also be used to set
+        # configuration options _not_ in the other sources - so do nothing about
+        # conflicting settings
+        if self.cli_config is not None:
+            data, _ = merge_configuration_dicts(data, self.cli_config)
 
         self.data = data
 
@@ -589,7 +591,6 @@ def generate_configuration(data: dict[str, Any] = {}) -> CompiledConfiguration:
         LOGGER.critical("Configuration validation failed. See errors above.")
         raise ConfigurationError("Validation errors in configuration data - check log.")
 
-    # self.override_config(override_params)
     LOGGER.info("Configuration validated.")
 
     return configuration

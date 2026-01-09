@@ -1,7 +1,5 @@
 """Test module for litter_model.py."""
 
-from contextlib import nullcontext as does_not_raise
-from copy import deepcopy
 from logging import DEBUG, ERROR, INFO
 
 import numpy as np
@@ -12,15 +10,39 @@ from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import InitialisationError
 
 
+def litter_required_for_init():
+    """Helper function to simplify expected log messages."""
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
+
+    return LitterModel.vars_required_for_init
+
+
+# Define expected init log messages for all data present and no data present
+LITTER_INIT_CHECKS = tuple(
+    (DEBUG, f"litter model: required var '{v}' checked")
+    for v in litter_required_for_init()
+)
+
+LITTER_ERROR_CHECKS = tuple(
+    (
+        *(
+            (ERROR, f"litter model: init data missing required var '{v}'")
+            for v in litter_required_for_init()
+        ),
+        (ERROR, "litter model: error checking vars_required_for_init, see log."),
+    )
+)
+
+
 def test_litter_model_initialization(
-    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
+    caplog, fixture_litter_init_data, fixture_core_components, fixture_litter_constants
 ):
     """Test `LitterModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     model = LitterModel(
-        data=dummy_litter_data,
+        data=fixture_litter_init_data,
         core_components=fixture_core_components,
         model_constants=fixture_litter_constants,
     )
@@ -34,32 +56,7 @@ def test_litter_model_initialization(
     # Final check that expected logging entries are produced
     log_check(
         caplog,
-        expected_log=(
-            (DEBUG, "litter model: required var 'litter_pool_above_metabolic' checked"),
-            (
-                DEBUG,
-                "litter model: required var 'litter_pool_above_structural' checked",
-            ),
-            (DEBUG, "litter model: required var 'litter_pool_woody' checked"),
-            (DEBUG, "litter model: required var 'litter_pool_below_metabolic' checked"),
-            (
-                DEBUG,
-                "litter model: required var 'litter_pool_below_structural' checked",
-            ),
-            (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
-            (DEBUG, "litter model: required var 'lignin_woody' checked"),
-            (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
-            (DEBUG, "litter model: required var 'c_n_ratio_above_metabolic' checked"),
-            (DEBUG, "litter model: required var 'c_n_ratio_above_structural' checked"),
-            (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
-            (DEBUG, "litter model: required var 'c_n_ratio_below_metabolic' checked"),
-            (DEBUG, "litter model: required var 'c_n_ratio_below_structural' checked"),
-            (DEBUG, "litter model: required var 'c_p_ratio_above_metabolic' checked"),
-            (DEBUG, "litter model: required var 'c_p_ratio_above_structural' checked"),
-            (DEBUG, "litter model: required var 'c_p_ratio_woody' checked"),
-            (DEBUG, "litter model: required var 'c_p_ratio_below_metabolic' checked"),
-            (DEBUG, "litter model: required var 'c_p_ratio_below_structural' checked"),
-        ),
+        expected_log=LITTER_INIT_CHECKS,
     )
 
 
@@ -85,334 +82,79 @@ def test_litter_model_initialization_no_data(
         )
 
     # Final check that expected logging entries are produced
-    log_check(
-        caplog,
-        expected_log=(
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'litter_pool_above_metabolic'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'litter_pool_above_structural'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var 'litter_pool_woody'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'litter_pool_below_metabolic'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'litter_pool_below_structural'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'lignin_above_structural'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var 'lignin_woody'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'lignin_below_structural'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'c_n_ratio_above_metabolic'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'c_n_ratio_above_structural'",
-            ),
-            (ERROR, "litter model: init data missing required var 'c_n_ratio_woody'"),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'c_n_ratio_below_metabolic'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'c_n_ratio_below_structural'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'c_p_ratio_above_metabolic'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'c_p_ratio_above_structural'",
-            ),
-            (ERROR, "litter model: init data missing required var 'c_p_ratio_woody'"),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'c_p_ratio_below_metabolic'",
-            ),
-            (
-                ERROR,
-                "litter model: init data missing required var "
-                "'c_p_ratio_below_structural'",
-            ),
-            (ERROR, "litter model: error checking vars_required_for_init, see log."),
+    log_check(caplog, expected_log=LITTER_ERROR_CHECKS)
+
+
+@pytest.mark.parametrize(
+    argnames="var,values,msg",
+    argvalues=(
+        pytest.param(
+            "litter_pool_above_metabolic",
+            [0.05, 0.02, -0.1, -0.1],
+            "Negative pool sizes found in: ",
+            id="bad pool bounds",
         ),
-    )
-
-
-def test_litter_model_initialization_bad_pool_bounds(
-    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
+        pytest.param(
+            "lignin_woody",
+            [0.5, 0.4, 1.1, 1.1],
+            "Lignin proportions not between 0 and 1 found in: ",
+            id="bad lignin bounds",
+        ),
+        pytest.param(
+            "c_n_ratio_woody",
+            [23.3, 45.6, -23.4, -11.1],
+            "Negative nutrient ratios found in: ",
+            id="bad nutrient ratio bounds",
+        ),
+    ),
+)
+def test_litter_model_initialization_errors(
+    caplog,
+    fixture_litter_init_data,
+    fixture_core_components,
+    fixture_litter_constants,
+    var,
+    values,
+    msg,
 ):
     """Test `LitterModel` initialization fails when litter pools are out of bounds."""
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
         # Put incorrect data in for lmwc
-        dummy_litter_data["litter_pool_above_metabolic"] = DataArray(
-            [0.05, 0.02, -0.1, -0.1], dims=["cell_id"]
-        )
+        fixture_litter_init_data[var] = DataArray(values, dims=["cell_id"])
 
         LitterModel(
-            data=dummy_litter_data,
+            data=fixture_litter_init_data,
             core_components=fixture_core_components,
             model_constants=fixture_litter_constants,
         )
 
     # Final check that the last log entry is as expected
-    log_check(
-        caplog,
-        expected_log=((ERROR, "Negative pool sizes found in: "),),
-        subset=slice(-1, None, None),
-    )
-
-
-def test_litter_model_initialization_bad_lignin_bounds(
-    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
-):
-    """Test `LitterModel` initialization fails for lignin proportions not in bounds."""
-
-    from virtual_ecosystem.models.litter.litter_model import LitterModel
-
-    with pytest.raises(InitialisationError):
-        # Make four cell grid
-        litter_data = deepcopy(dummy_litter_data)
-        # Put incorrect data in for woody lignin
-        litter_data["lignin_woody"] = DataArray([0.5, 0.4, 1.1, 1.1], dims=["cell_id"])
-
-        LitterModel(
-            data=litter_data,
-            core_components=fixture_core_components,
-            model_constants=fixture_litter_constants,
-        )
-
-    # Final check that expected logging entries are produced
-    log_check(
-        caplog,
-        expected_log=((ERROR, "Lignin proportions not between 0 and 1 found in: "),),
-        subset=slice(-1, None, None),
-    )
-
-
-def test_litter_model_initialization_bad_nutrient_ratio_bounds(
-    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
-):
-    """Test `LitterModel` initialization fails for nutrient ratios not in bounds."""
-    from virtual_ecosystem.models.litter.litter_model import LitterModel
-
-    with pytest.raises(InitialisationError):
-        # Make four cell grid
-        litter_data = deepcopy(dummy_litter_data)
-        # Put incorrect data in for woody lignin
-        litter_data["c_n_ratio_woody"] = DataArray(
-            [23.3, 45.6, -23.4, -11.1], dims=["cell_id"]
-        )
-
-        LitterModel(
-            data=litter_data,
-            core_components=fixture_core_components,
-            model_constants=fixture_litter_constants,
-        )
-
-    # Final check that expected logging entries are produced
-    log_check(
-        caplog,
-        expected_log=((ERROR, "Negative nutrient ratios found in: "),),
-        subset=slice(-1, None, None),
-    )
+    log_check(caplog, expected_log=((ERROR, msg),), subset=slice(-1, None, None))
 
 
 @pytest.mark.parametrize(
-    "cfg_string,temp_response,raises,expected_log_entries",
+    "cfg_string,temp_response",
     [
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '24 hours'\n[litter]\n",
             3.36,
-            does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Information required to initialise the litter model successfully "
-                    "extracted.",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_above_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_above_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_woody' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_below_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_below_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_above_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_woody' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_below_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_n_ratio_above_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_n_ratio_above_structural' checked",
-                ),
-                (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_n_ratio_below_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_n_ratio_below_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_p_ratio_above_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_p_ratio_above_structural' checked",
-                ),
-                (DEBUG, "litter model: required var 'c_p_ratio_woody' checked"),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_p_ratio_below_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_p_ratio_below_structural' checked",
-                ),
-            ),
             id="default_config",
         ),
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '24 hours'\n"
             "[litter.constants]\nlitter_decomp_temp_response = 4.44\n",
             4.44,
-            does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Information required to initialise the litter model successfully "
-                    "extracted.",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_above_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_above_structural' checked",
-                ),
-                (DEBUG, "litter model: required var 'litter_pool_woody' checked"),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_below_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_below_structural' checked",
-                ),
-                (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
-                (DEBUG, "litter model: required var 'lignin_woody' checked"),
-                (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_n_ratio_above_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_n_ratio_above_structural' checked",
-                ),
-                (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_n_ratio_below_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_n_ratio_below_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_p_ratio_above_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_p_ratio_above_structural' checked",
-                ),
-                (DEBUG, "litter model: required var 'c_p_ratio_woody' checked"),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_p_ratio_below_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'c_p_ratio_below_structural' checked",
-                ),
-            ),
             id="modified_config_correct",
         ),
     ],
 )
 def test_generate_litter_model(
     caplog,
-    dummy_litter_data,
+    fixture_litter_init_data,
     cfg_string,
     temp_response,
-    raises,
-    expected_log_entries,
 ):
     """Test that the function to initialise the litter model behaves as expected."""
 
@@ -430,16 +172,25 @@ def test_generate_litter_model(
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
-    with raises:
-        model = LitterModel.from_config(
-            data=dummy_litter_data,
-            configuration=configuration,
-            core_components=core_components,
-        )
-        assert model.model_constants.litter_decomp_temp_response == temp_response
+    model = LitterModel.from_config(
+        data=fixture_litter_init_data,
+        configuration=configuration,
+        core_components=core_components,
+    )
+    assert model.model_constants.litter_decomp_temp_response == temp_response
 
     # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    log_check(
+        caplog,
+        (
+            (
+                INFO,
+                "Information required to initialise the litter model successfully "
+                "extracted.",
+            ),
+            *LITTER_INIT_CHECKS,
+        ),
+    )
 
 
 def test_update(fixture_litter_model, dummy_litter_data):
@@ -474,8 +225,12 @@ def test_update(fixture_litter_model, dummy_litter_data):
         "litter_P_mineralisation_rate": [4.46372e-4, 2.12047e-4, 6.6561e-5, 6.70468e-5],
     }
 
+    # Add the data required for update
+    for var in fixture_litter_model.vars_required_for_update:
+        fixture_litter_model.data[var] = dummy_litter_data[var]
+
     fixture_litter_model.update(time_index=0)
 
     # Check that data fixture has been updated correctly
     for output in expected_output.keys():
-        assert np.allclose(dummy_litter_data[output], expected_output[output])
+        assert np.allclose(fixture_litter_model.data[output], expected_output[output])

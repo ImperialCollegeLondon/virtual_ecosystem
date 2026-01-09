@@ -2,7 +2,6 @@
 
 from logging import DEBUG
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -299,23 +298,6 @@ def generate_config_strings(
 
 
 @pytest.fixture
-def fixture_config():
-    """Default configuration object with 2x2 grid."""
-
-    from virtual_ecosystem.core.config import Config
-
-    return Config(cfg_strings=generate_config_strings())
-
-
-@pytest.fixture
-def animal_fixture_config():
-    """Default configuration object with 3x3 grid."""
-    from virtual_ecosystem.core.config import Config
-
-    return Config(cfg_strings=generate_config_strings(nx=3, ny=3))
-
-
-@pytest.fixture
 def fixture_configuration():
     """Default configuration with 2x2 grid."""
     from virtual_ecosystem.core.config_builder import (
@@ -494,57 +476,47 @@ def dummy_litter_data(fixture_core_components):
     )[:, None]
 
     data["stem_turnover_cnp"] = DataArray(
-        data=np.zeros((fixture_core_components.grid.n_cells, 3)),
+        data=[
+            [607.5, 10.00823, 0.70928196],
+            [801.9, 13.84974, 1.187296],
+            [510.3, 6.98085, 0.546828],
+            [267.3, 4.85118, 0.3007426],
+        ],
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
-    )
-
-    data["stem_turnover_cnp"].loc[:, "C"] = np.array([607.5, 801.9, 510.3, 267.3])
-    data["stem_turnover_cnp"].loc[:, "N"] = np.array(
-        [10.00823, 13.84974, 6.98085, 4.85118]
-    )
-    data["stem_turnover_cnp"].loc[:, "P"] = np.array(
-        [0.70928196, 1.187296, 0.546828, 0.3007426]
     )
 
     data["root_turnover_cnp"] = DataArray(
-        data=np.zeros((fixture_core_components.grid.n_cells, 3)),
+        data=[
+            [218.7, 7.2178, 0.333029],
+            [170.1, 3.73026, 0.377497],
+            [2.43, 0.05612, 0.0055568],
+            [201.69, 5.43639, 0.5423232],
+        ],
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
-    )
-
-    data["root_turnover_cnp"].loc[:, "C"] = np.array([218.7, 170.1, 2.43, 201.69])
-    data["root_turnover_cnp"].loc[:, "N"] = np.array(
-        [7.2178, 3.73026, 0.05612, 5.43639]
-    )
-    data["root_turnover_cnp"].loc[:, "P"] = np.array(
-        [0.333029, 0.377497, 0.0055568, 0.5423232]
     )
 
     data["foliage_turnover_cnp"] = DataArray(
-        data=np.zeros((fixture_core_components.grid.n_cells, 3)),
+        data=[
+            [218.7, 14.58, 0.52698795],
+            [2.43, 0.09529412, 0.00742211],
+            [170.1, 3.94663573, 0.3067628],
+            [230.85, 4.021777, 0.6060646],
+        ],
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
-    )
-
-    data["foliage_turnover_cnp"].loc[:, "C"] = np.array([218.7, 2.43, 170.1, 230.85])
-    data["foliage_turnover_cnp"].loc[:, "N"] = np.array(
-        [14.58, 0.09529412, 3.94663573, 4.021777]
-    )
-    data["foliage_turnover_cnp"].loc[:, "P"] = np.array(
-        [0.52698795, 0.00742211, 0.3067628, 0.6060646]
     )
 
     data["herbivory_waste_leaf_cnp"] = DataArray(
-        data=np.zeros((fixture_core_components.grid.n_cells, 3)),
+        data=[
+            [0.243, 0.010519, 0.00114353],
+            [17.01, 0.507761, 0.0493329],
+            [
+                23.085,
+                0.999351,
+                0.0689516,
+            ],
+            [21.87, 1.264162, 0.052059],
+        ],
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
-    )
-
-    data["herbivory_waste_leaf_cnp"].loc[:, "C"] = np.array(
-        [0.243, 17.01, 23.085, 21.87]
-    )
-    data["herbivory_waste_leaf_cnp"].loc[:, "N"] = np.array(
-        [0.010519, 0.507761, 0.999351, 1.264162]
-    )
-    data["herbivory_waste_leaf_cnp"].loc[:, "P"] = np.array(
-        [0.00114353, 0.0493329, 0.0689516, 0.052059]
     )
 
     return data
@@ -865,22 +837,3 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     return dummy_climate_data
-
-
-def patch_run_update(model: type):
-    """Patch the run update check during the init of the model."""
-    return patch(
-        f"{model.__module__}.{model.__name__}._run_update_due_to_static_configuration"
-    )
-
-
-def patch_run_setup(model: type):
-    """Patch the bypass setup check during the init of the model."""
-    return patch(
-        f"{model.__module__}.{model.__name__}._run_setup_due_to_static_configuration"
-    )
-
-
-def patch_static_config(model: type):
-    """Patch the check static config during the init of the model."""
-    return patch(f"{model.__module__}.{model.__name__}._set_static_config")
