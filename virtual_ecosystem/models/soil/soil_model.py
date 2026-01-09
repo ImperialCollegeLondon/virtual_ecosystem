@@ -163,6 +163,8 @@ class SoilModel(
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
         "decay_of_fungal_fruiting_bodies",
+        "decomposed_excrement_cnp",
+        "decomposed_carcasses_cnp",
     ),
     vars_updated=(
         "soil_c_pool_maom",
