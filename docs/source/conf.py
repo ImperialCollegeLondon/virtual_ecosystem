@@ -268,6 +268,7 @@ exclude_patterns = [
 
 html_theme = "pydata_sphinx_theme"
 
+html_sidebars = {"**": ["sidebar_funder", "sidebar-nav-bs", "sidebar-ethical-ads"]}
 
 html_theme_options = {
     "logo": {
