@@ -268,12 +268,19 @@ exclude_patterns = [
 
 html_theme = "pydata_sphinx_theme"
 
+
 html_theme_options = {
     "logo": {
         "text": "The Virtual Ecosystem",
         # "image_light": "_static/logo-light.png",
         # "image_dark": "_static/logo-dark.png",
-    }
+    },
+    # Add GH link icon
+    "github_url": "https://github.com/ImperialCollegeLondon/virtual_ecosystem",
+    # Don't centre top nav tabs.
+    "navbar_align": "left",
+    # Remove "Page source" link in page sidebar
+    "secondary_sidebar_items": ["page-toc"],
     # "logo_only": False,
     # "version_selector": True,
     # "prev_next_buttons_location": "top",
