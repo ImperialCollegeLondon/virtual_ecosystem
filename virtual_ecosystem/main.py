@@ -86,7 +86,7 @@ def initialise_models(
 def ve_run(
     cfg_paths: str | Path | Sequence[str | Path] = [],
     cfg_strings: str | list[str] = [],
-    override_params: dict[str, Any] = {},
+    cli_config: dict[str, Any] = {},
     logfile: Path | None = None,
     progress: Progress = Progress.FULL,
 ) -> None:
@@ -100,7 +100,8 @@ def ve_run(
     Args:
         cfg_paths: Set of paths to configuration files
         cfg_strings: An alternate string providing TOML formatted configuration data
-        override_params: Extra parameters provided by the user
+        cli_config: Configuration settings provided by the user at the command line,
+            used to override configuration settings in files.
         logfile: An optional path to a log file, otherwise logging will print to the
             console.
         progress: A Progress enum instance setting the level of output to be printed to
@@ -129,7 +130,7 @@ def ve_run(
     config_data: ConfigurationLoader = ConfigurationLoader(
         cfg_paths=cfg_paths,
         cfg_strings=cfg_strings,
-        override_params=override_params,
+        cli_config=cli_config,
     )
 
     # Generate the compiled configuration for the simulation. This step also registers

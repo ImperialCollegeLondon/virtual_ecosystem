@@ -33,7 +33,7 @@ class AbioticSimpleConstants(AbioticSharedConstants):
     initial_net_radiation: float = 10.0
     """Initial value for net radiation per layer, W m-2.
     
-    TODO This is currently set to an arbitrary value."""
+    This is currently set to an arbitrary value, only used in test."""
 
 
 class AbioticSimpleBounds(Configuration):

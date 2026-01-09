@@ -46,17 +46,6 @@ class HydrologyConstants(Configuration):
     :cite:t:`gupta_global_2022`.
     """
 
-    hydraulic_gradient: float = 1.31
-    """The hydraulic gradient, [m].
-
-    The hydraulic gradient is a measure of the change in hydraulic head
-    (pressure) per unit of distance in a particular direction within a fluid or porous
-    medium, such as soil or an aquifer. It represents the driving force behind the
-    movement of water and indicates the direction in which water will flow. Value for
-    subtropical regions, taken from :cite:t:`reichardt_hydraulic_1993`; depends on the
-    soil type, permeability, slope, and water table depth.
-    """
-
     van_genuchten_nonlinearily_parameter: float = 1.598
     """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model.
 
@@ -65,13 +54,6 @@ class HydrologyConstants(Configuration):
     across tropical regions 
     is taken from :cite:t:`hodnett_marked_2002`.
     """
-
-    stream_flow_capacity: float = 5000.0
-    """Stream flow capacity, [mm per day].
-
-    This parameter represents the maximum capacity of an average stream in the model.
-    At the moment, this is set as an arbitrary value; we are working on getting a best
-    estimate."""
 
     intercept_parameters: tuple[float, float, float] = (0.935, 0.498, 0.00575)
     """Interception parameters, unitless.
@@ -101,14 +83,6 @@ class HydrologyConstants(Configuration):
     directly to groundwater via preferential bypass flow. A value of
     0 means all surface water goes directly to groundwater, a value of 1 gives a linear
     relation between soil moisture and bypass flow."""
-
-    air_entry_water_potential: float = -3.648
-    """Water potential at which soil pores begin to aerate, [kPa].
-
-    The constant is used to estimate soil water potential from soil moisture. As this
-    estimation is a stopgap this constant probably shouldn't become a core constant. The
-    value is the average across soil types found in :cite:t:`tao_simplified_2021`.
-    """
 
     extinction_coefficient_global_radiation: float = 0.74
     """Extinction coefficient for global radiation, [unitless].
@@ -151,20 +125,11 @@ class HydrologyConstants(Configuration):
     characteristics. This parameter is currently set to an arbitrary value; we are
     working on getting a better estimate."""
 
-    initial_aerodynamic_resistance_surface: float = 12.5
+    initial_aerodynamic_resistance_soil: float = 12.5
     """Initial aerodynamic resistance at the soil surface, [s m-1].
     
     This parameter is an initial estimate of the resistance to the transfer of momentum,
     heat, and water vapour between the soil surface and the atmosphere. The value is
-    based on Australian evergreen forest, taken from :cite:t:`su_aerodynamic_2021`;
-    note that this assumes a dense canopy.
-    """
-
-    initial_aerodynamic_resistance_canopy: float = 12.1
-    """Initial aerodynamic resistance of the canopy, [s m-1].
-    
-    This parameter is an initial estimate of the resistance to the transfer of momentum,
-    heat, and water vapour between the leaf surface and the atmosphere. The value is
     based on Australian evergreen forest, taken from :cite:t:`su_aerodynamic_2021`;
     note that this assumes a dense canopy.
     """
@@ -174,13 +139,6 @@ class HydrologyConstants(Configuration):
     
     Represents the efficiency of turbulent transport of water vapour from a surface to
     the atmosphere."""
-
-    intercept_residence_time: float = 86400.0
-    """Intecept residence time, [s].
-    
-    The amount of time that water sits on the leaves before it evaporates or falls to
-    the ground. We currently assume that at the end of each day, all water has either
-    evaporated or fallen to the ground."""
 
     initial_stomatal_conductance: float = 1000.0
     """Initial stomatal conductance, [mmol m-2 s-1].

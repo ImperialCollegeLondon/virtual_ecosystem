@@ -143,12 +143,22 @@ def generate_variable_table(model_name: str, var_attributes: list[str]) -> str:
         if vattr not in vattr_headings:
             raise ValueError("Unknown variable attribute")
 
+        # Get the tuple of variables for this attribute and then check there are
+        # actually any variables to report for this attribute.
+        vars_for_table = getattr(model, vattr)
+        if len(vars_for_table) == 0:
+            return_value += (
+                f"\n**{vattr_headings[vattr]}**\n\nThe {model_name} model does "
+                f"not include any variables in the `{vattr}` attribute."
+            )
+            break
+
         # Get the variables formatted as list table rows
         listing = "\n".join(
             [
                 f"* - `{v.name}`\n  - {v.description}\n  - {v.unit}"
                 for k, v in variables.KNOWN_VARIABLES.items()
-                if k in getattr(model, vattr)
+                if k in vars_for_table
             ]
         )
 

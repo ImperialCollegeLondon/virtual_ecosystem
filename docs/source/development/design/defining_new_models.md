@@ -360,66 +360,141 @@ from virtual_ecosystem.models.freshwater.streamflow import calculate_streamflow
 ### Defining the new class and class attributes
 
 Now create a new class that derives from the
-{mod}`~virtual_ecosystem.core.base_model.BaseModel`.
+{mod}`~virtual_ecosystem.core.base_model.BaseModel`. This base class requires that you
+also set a number of class attributes: these are bits of information about the model
+that will be the same for every time the model is used. These values are set as class
+attributes by providing them as arguments to the class signature. You will end up with
+something like the following:
 
-To begin with, choose a class name
-for the model and define the following class attributes.
+```{code-block} ipython
+class FreshWaterModel(
+    BaseModel,
+    model_name="freshwater",
+    model_update_bounds=("1 day", "1 month"),
+    vars_required_for_init=("temperature",),
+    vars_populated_by_init=("pond_temperature"),
+    vars_required_for_update=(
+        "air_temperature",
+        "relative_humidity",
+        "atmospheric_pressure",
+        "vapour_pressure_deficit",
+        "precipitation",
+    ),
+    vars_populated_by_first_update=("average_P_concentration",),
+    vars_updated=("average_P_concentration",),
+):
+    """Docstring describing model.
 
-The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute
-: This is a string providing the name that is used to refer to this model class in
-configuration files. This **must** match the chosen submodule name for the model, so the
-module `virtual_ecosystem.models.freshwater` must use `freshwater` as the model name.
-
-The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init` attribute
-: This is a tuple that sets which variables must be present in the data used to create a
-new instance of the model. Each entry should provide a variable name and then another
-tuple that sets any required axes for the variable. For example:
-
-```{code-block} ipython3
-()  # no required variables
-(("temperature", ()),)  # temperature must be present, no core axes
-(("temperature", ("spatial",)),)  # temperature must be present and on the spatial axis
+    Args:
+        Describe the __init__ arguments here (see below)
+    """
 ```
 
-The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_updated` attribute : This
-is a tuple that provides information about which data object variables are updated by
-this model. Entries should simply be variable names. The information contained here is
-used to determine which variables to include in the continuous output. So, it is
-important to ensure that this information is up to date.
+The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute provides a
+short lower case name that is used throughout the simulation: for example, it is used to
+identify the parts of the configuration data that apply to the model. The name **must**
+match the chosen submodule name for the model, so the module
+`virtual_ecosystem.models.freshwater` must use `freshwater` as the model name.
 
 The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_update_bounds`
-attribute :
-
-This class attribute defines two time intervals that define a lower and upper bound
+attribute sets two time intervals that define a lower and upper bound
 on the update frequency that can reasonably be used with a model. Models updated
 more often than the lower bound may fail to capture transient dynamics and models
 updated more slowly than the upper bound may fail to capture important temporal
 patterns. Each attribute is a string that can be parsed by {class}`pint.Quantity`
 into a time period
 
-These values are set as class attributes by providing them as arguments to the class
-signature. You will end up with something like the following:
+#### Data requirements
 
-```{code-block} ipython3
+The remaining class attributes all start with `vars_` and are used to define sets of
+variables that will be shared across models in a central data store (a `Data` object)
+for the simulation. The variables in this central data store are all arrays of data and
+are structured across the [core data axes](../../using_the_ve/configuration/axes.md) in
+the simulation.
 
-class FreshWaterModel(
-    BaseModel,
-    model_name="freshwater",
-    model_update_bounds=("1 day", "1 month"),
-    vars_required_for_init=(("temperature", ("spatial",)),),
-    vars_updated=("average_P_concentration",),
-):
-    """Docstring describing model.
+:::{admonition} New variables
+:class: important
 
-    Args:
-        Describe arguments here
-    """
-```
+If your model requires new variables - either to be loaded from initial data or that
+your model writes to the `Data` object - you **must** add the variable details to the
+`data_variables.toml` file.
+:::
+
+These attributes define which variables the model reads from and writes to the central
+data store and when that happens during the model run. There are two main phases to
+running models within the simulation:
+
+1. model **initialisation**, which sets up any core model structures and data once
+   at the start of the simulation.
+1. model **updates**, which run at every time step and modify the model structure and
+   data throughout the simulation.
+
+The `var_` attributes define which variables are needed at both of these stages, and are
+critical to defining the model data dependencies and the sequence in which models can
+run.
+
+The first two variables set data requirements during model initialisation:
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init`
+  attribute sets which variables must be loaded into the `Data` object before your model
+  can be initialised. These must either be:
+
+  * included in the [configured initial data](../../using_the_ve/model_data_inputs.md)
+    that is loaded when the simulation starts, or
+  * be populated by a model that initialises earlier in the model sequence.
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_init`
+  attribute sets which variables are written to the `Data` object when your model is
+  initialised. These variables are then available for models later in the sequence.
+
+The remaining three variables set data requirements during each update:
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_update`
+  attribute defines the data that must be in the `Data` object for the model to be able
+  to update. These variables can be:
+  * provided in the initial data, often as time series of data that provides different
+    values for each time step
+  * populated during the initialisation of any of the models, or
+  * populated during the first update of another model that _updates_ before your model.
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_first_update`
+  attribute defines the variables that your model writes to the `Data` object when the
+  model updates for the first time.
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_updated` attribute
+  records which variables in the `Data` object are altered when your model updates. This
+  will typically include all variables in ``vars_populated_by_first_update`` but your
+  model may also alter the state of other variables in the simulation.
+
+:::{admonition} Model dependencies
+:class: important
+
+The `var_` attributes defined for your model are used to automatically detect model
+dependencies and resolve the sequence in which the set of models included in a
+simulation can run. For example, if your model requires variable `A` to be initialised
+and that variable is provided during the initialisation of another model, this second
+model must run first.
+
+If a suitable order cannot be found, the simulation will stop and an error message will
+be provided informing on the specific issue.
+:::
 
 ### Defining the model `__init__` method
 
 The next step is to define the `__init__` method for the class. This needs to do a few
-things.
+things, **in this order**:
+
+1. It _must_ call the {meth}`~virtual_ecosystem.core.base_model.BaseModel.__init__`
+   method of the {meth}`~virtual_ecosystem.core.base_model.BaseModel` parent class,
+   also known as the superclass:
+
+   ```{code-block} ipython3
+   super().__init__(data, core_components, static)
+   ```
+
+   Calling this method runs all of the shared core functionality across models, such as
+   setting the update intervals and validating that the input data provides the required
+   variables to run the model.
 
 1. It should define any specific attributes of the new model class. For
   example, the configuration above defines a path to a CSV file of pond data, which
@@ -427,19 +502,18 @@ things.
   added to the signature of the `__init__` method, alongside the required parameters of
   the base class, and then stored as attributes of the instance.
 
-1. It _must_ call the {meth}`~virtual_ecosystem.core.base_model.BaseModel.__init__`
-   method of the {meth}`~virtual_ecosystem.core.base_model.BaseModel` parent class,
-   also known as the superclass:
+1. The method should then _conditionally_ call the model `_setup` method. This method is
+   used to run any code that is used to populate the initial state of the model.
 
-```{code-block} ipython3
-super().__init__(data, update_interval, **kwargs)
-```
+   The call must be conditional because it is possible to configure a model so that all
+   of the model state, including the data generated by the `_setup` method, is fixed by
+   the initial inputs. In this case, the model should not run the setup step: this is
+   indicated if the model `_run_setup` attribute is `False`.
 
-   Calling this method runs all of the shared functionality across models, such as
-   setting the update intervals and validating the input data.
-
-1. The method should check that the provided initialisation values are sane, for example
-  that the number of ponds is not negative.
+1. The `__init__` method can also contain code that should be executed _regardless_ of
+   the static configuration. For example, some models have can configure additional data
+   export and so `__init__` would then need to set up the exporter process even when the
+   model is running in static mode.
 
 1. The {meth}`~virtual_ecosystem.core.base_model.BaseModel` provides a basic `__repr__`
    to provide a simple text representation of a class object. This just prints the class
@@ -452,34 +526,77 @@ You should end up with something like this:
 def __init__(
     self,
     data: Data,
+    core_components: CoreComponents,
     update_interval: pint.Quantity,
-    pond_data_path: Path,
+    community_data: pandas.DataFrame,
     constants: FreshwaterConstants,
-    **kwargs: Any,
+    static: bool = False,
 ):
 
     # Call the __init__() method of the base class
-    super().__init__(data, update_interval, **kwargs)
+    super().__init__(data, core_components, static)
 
-    # Store model specific details as attributes.
-    self.pond_data_path = pond_data_path
+    # Type and document attributes
+    self.community_data: pandas.DataFrame
+    """A data frame containing pond community cohort data for each cell."""
+    self.constants: FreshwaterConstants
+    """Constants for the model."""
 
-    # Store the constants relevant to the freshwater model
-    self.constants = constants
+    # Conditionally run setup steps.
+    if self._run_setup:
+        self._setup(community_data=community_data, constants=constants)
 
     # Save attribute names to be used by the __repr__
     self._repr.append("pond_data_path")
 ```
 
-#### Model dependencies
+### The `_setup` method
 
-Your model may depend on a particular execution order for other models. This order is
-found automatically by Virtual Ecosystem based on the variables that the models require
-to be initialised and updated. Eg. if a model requires variable `A` to be initialised
-and that variable is provided by another model, this second model will run first.
+The `_setup` method typically contains the bulk of the code that needs to run to setup
+the initial state of the model and populate the data variables listed in the
+`_vars_populated_by_init` attribute. The signature of the function typically takes the
+model specific arguments defined on the `__init__` method and uses those values to
+populate model attributes and calculate data values. It is typical for `_setup` to call
+additional methods that you define on the class or functions from additional submodules.
 
-If a suitable order cannot be found, the simulation will stop and an error message will
-be provided informing on the specific issue.
+Following the example above:
+
+```{code-block} ipython3
+def _setup(
+  self, community_data: pandas.DataFrame, constants: FreshwaterConstants
+) -> None:
+    """Set up the freshwater model."""
+
+    self.community_data = community_data
+    self.constants = constants
+
+    # Populate a variable in the Data object using a user defined method
+    self.data["pond_temperature"] = calculate_pond_temperature(
+        data=self.data, constants=self.constants, time_index=0
+    )
+```
+
+### The `_update` method
+
+The `_update` method must then be defined to calculate the changes in the model state
+that occur at each time step. The function _must_ have a `time_index` argument, which is
+used by some models to iterate over data that follows a time series through a
+simulation, such as climatic variables.
+
+```{code-block} ipython3
+def update(self, time_index: int) -> None:
+    """Function to update the freshwater model.
+
+    Args:
+        time_index: The index representing the current time step in the data object.
+    """
+
+    # Recalculate the pond temperature based on the current conditions
+    self.data["pond_temperature"] = calculate_pond_temperature(
+      data=self.data, constants=self.constants, time_index=time_index
+    )
+
+```
 
 ### The `from_config` factory method
 
@@ -488,7 +605,8 @@ then do any processing and validating to convert the configuration into the argu
 required by the `__init__` method. The configuration object will contain sections for
 all of the models being used in a simulation, so you should extract the configuration
 for your model and then do any processing - this might simply be passing sections of the
-configuration to the `__init__` method or might need to do some pre-processing.
+configuration to the `__init__` method or might need to do some pre-processing, such as
+loading additional model specific data.
 
 The method then uses those parsed arguments to actually call the `__init__` method and
 return an initialised instance of the model using the settings. The `from_config`
@@ -518,9 +636,13 @@ def from_config(
         "freshwater", FreshwaterConfiguration
     )
 
-    pond_data_path = model_config.pond_data_path
+    # Load the community data into a data frame
+    community_data = pandas.read_csv(model_config.pond_data_path)
     constants = model_config.constants
 
+    # Run a model specific function to validate the community data
+    if not check_community_data(self.community_data):
+        raise ConfigurationError("Pond community data is not valid")
 
     LOGGER.info(
         "Information required to initialise the soil model successfully extracted."
@@ -528,38 +650,38 @@ def from_config(
     return cls(
         data=data,
         update_interval=update_interval,
-        pond_data_path=pond_data_path,
+        community_data=community_data,
         constants=constants
     )
 ```
 
+:::{admonition} Additional data inputs to a model
+:class: tip
+
+Most of the data in a Virtual Ecosystem simulation is loaded into the central `Data`
+object and shared between the models. However, you may need to load additional data to
+initialise your model that is only used within the model and not shared through the
+`Data` object. You might share summary data with other models through the `Data`
+object - these are variables that will be included in `vars_populated_by_init` or
+`vars_populated_by_first_update`.
+
+The preferred way to do this is to add a configuration option that points to a file
+containing data to load - such as the `pond_data_path` in the example above. The
+`from_config` method should handle loading the data and converting it into a Python
+object that is one of the arguments to the model `__init__` method. This approach
+separates data loading from the model processing and makes it easier to test and run the
+model class.
+:::
+
 ### Other model steps
 
-There are four functions that must be included as part of the model class. Only the
-`update` function is used at present. The other functions need to be included, but
-there's no need to include any particular content within them (i.e. they can just be
-function definitions with docstrings).
+There are currently two other method that must be included as part of the model class.
+Neither of these are currently used, so can simply be included as function stubs with
+docstrings as shown below:
 
 ```{code-block} ipython3
-def _setup(self) -> None:
-    """Placeholder function to set up the freshwater model."""
-
-
 def spinup(self) -> None:
     """Placeholder function to spin up the freshwater model."""
-
-
-# While model updates have to take time_index as an argument, they do not necessarily
-# have to use it anywhere
-def update(self, time_index: int) -> None:
-    """Function to update the freshwater model.
-
-    Args:
-        time_index: The index representing the current time step in the data object.
-    """
-
-    # Model simulation + update steps go in here.
-
 
 def cleanup(self) -> None:
     """Placeholder function for freshwater model cleanup."""
