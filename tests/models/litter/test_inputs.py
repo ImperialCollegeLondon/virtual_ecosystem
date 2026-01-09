@@ -18,29 +18,24 @@ def test_determine_all_plant_to_litter_flows(
 
     expected_inputs = {
         "leaves_meta_split": [0.8123565, 0.75097557, 0.46460743, 0.14485736],
-        "reproduct_meta_split": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
         "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
         "woody": [0.0375, 0.0495, 0.0315, 0.0165],
-        "above_metabolic": [0.01224844, 0.00402676, 0.00660119, 0.00383300],
-        "above_structural": [0.00276656, 0.00092324, 0.00659881, 0.01364200],
+        "above_metabolic": [0.010979, 0.00090117, 0.00554044, 0.00225977],
+        "above_structural": [0.002536, 0.00029883, 0.00638456, 0.01334023],
         "below_metabolic": [0.00794333, 0.0039855, 7.5365e-5, 0.005106055],
         "below_structural": [0.00555667, 0.0065145, 7.4635e-5, 0.007343945],
         "leaf_mass": [0.013515, 0.0012, 0.011925, 0.0156],
         "root_mass": [0.0135, 0.0105, 0.00015, 0.01245],
         "deadwood_mass": [0.0375, 0.0495, 0.0315, 0.0165],
-        "reprod_mass": [0.0015, 0.00375, 0.001275, 0.001875],
         "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
-        "reprod_lignin": [0.01, 0.03, 0.04, 0.02],
         "leaf_nitrogen": [15.00583994, 32.23584906, 39.05894298, 47.80986065],
         "root_nitrogen": [30.3, 45.6, 43.3, 37.1],
         "deadwood_nitrogen": [60.7, 57.9, 73.1, 55.1],
-        "reprod_nitrogen": [12.5, 23.8, 15.7, 18.2],
         "leaf_phosphorus": [414.56154, 342.52452, 514.18037, 384.00081],
         "root_phosphorus": [656.7, 450.6, 437.3, 371.9],
         "deadwood_phosphorus": [856.5, 675.4, 933.2, 888.8],
-        "reprod_phosphorus": [125.5, 105.0, 145.0, 189.2],
     }
 
     litter_inputs = LitterInputs.create_from_data(
@@ -67,9 +62,6 @@ def test_convert_to_input_masses_to_rates_per_area(fixture_litter_model):
 
     expected_input_rate = [0.0375, 0.0495, 0.0315, 0.0165]
 
-    print(fixture_litter_model.data["stem_turnover_cnp"].loc[:, "C"])
-    print(fixture_litter_model.grid.cell_area)
-
     actual_input_rate = convert_to_input_masses_to_rates_per_area(
         input_mass=fixture_litter_model.data["stem_turnover_cnp"].loc[:, "C"],
         cell_area=fixture_litter_model.grid.cell_area,
@@ -87,19 +79,15 @@ def test_combine_input_sources(dummy_litter_data):
         "leaf_mass": [0.013515, 0.0012, 0.011925, 0.0156],
         "root_mass": [0.0135, 0.0105, 0.00015, 0.01245],
         "deadwood_mass": [0.0375, 0.0495, 0.0315, 0.0165],
-        "reprod_mass": [0.0015, 0.00375, 0.001275, 0.001875],
         "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
-        "reprod_lignin": [0.01, 0.03, 0.04, 0.02],
         "leaf_nitrogen": [15.00583994, 32.23584906, 39.05894298, 47.80986065],
         "root_nitrogen": [30.3, 45.6, 43.3, 37.1],
         "deadwood_nitrogen": [60.7, 57.9, 73.1, 55.1],
-        "reprod_nitrogen": [12.5, 23.8, 15.7, 18.2],
         "leaf_phosphorus": [414.56154, 342.52452, 514.18037, 384.00081],
         "root_phosphorus": [656.7, 450.6, 437.3, 371.9],
         "deadwood_phosphorus": [856.5, 675.4, 933.2, 888.8],
-        "reprod_phosphorus": [125.5, 105.0, 145.0, 189.2],
     }
 
     actual_combined = combine_input_sources(dummy_litter_data, update_interval=2.0)
@@ -120,7 +108,6 @@ def test_calculate_metabolic_proportions_of_input(
 
     expected_proportions = {
         "leaves_meta_split": [0.8123565, 0.75097557, 0.46460743, 0.14485736],
-        "reproduct_meta_split": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
         "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
     }
 
@@ -142,8 +129,8 @@ def test_partion_plant_inputs_between_pools(metabolic_splits, total_litter_input
 
     expected_inputs = {
         "woody": [0.0375, 0.0495, 0.0315, 0.0165],
-        "above_metabolic": [0.01224844, 0.00402676, 0.00660119, 0.00383300],
-        "above_structural": [0.00276656, 0.00092324, 0.00659881, 0.01364200],
+        "above_metabolic": [0.010979, 0.00090117, 0.00554044, 0.00225977],
+        "above_structural": [0.002536, 0.00029883, 0.00638456, 0.01334023],
         "below_metabolic": [0.00794333, 0.0039855, 7.5365e-5, 0.005106055],
         "below_structural": [0.00555667, 0.0065145, 7.4635e-5, 0.007343945],
     }
@@ -292,7 +279,7 @@ def test_calculate_input_chemistries(fixture_litter_constants, litter_inputs):
 
     expected_chemistries = {
         "woody_lignin": [0.233, 0.545, 0.612, 0.378],
-        "above_structural_lignin": [0.25011178, 0.25345463, 0.54339369, 0.61992378],
+        "above_structural_lignin": [0.26693592, 0.40658661, 0.55364065, 0.63113627],
         "below_structural_lignin": [0.48590258, 0.56412613, 0.54265483, 0.67810978],
         "woody_nitrogen": [60.7, 57.9, 73.1, 55.1],
         "below_metabolic_nitrogen": [
@@ -307,8 +294,8 @@ def test_calculate_input_chemistries(fixture_litter_constants, litter_inputs):
             130.32367278,
             97.96255178,
         ],
-        "above_metabolic_nitrogen": [12.540983, 21.600478, 20.237902, 15.403147],
-        "above_structural_nitrogen": [62.91002, 110.3194, 109.3635, 75.59183],
+        "above_metabolic_nitrogen": [12.75324, 25.8138379, 22.3294487, 15.1024603],
+        "above_structural_nitrogen": [63.766206, 129.06919, 111.64724, 75.512301],
         "woody_phosphorus": [856.5, 675.4, 933.2, 888.8],
         "below_metabolic_phosphorus": [
             440.4591226,
@@ -322,12 +309,12 @@ def test_calculate_input_chemistries(fixture_litter_constants, litter_inputs):
             1316.17880156,
             982.00196785,
         ],
-        "above_metabolic_phosphorus": [286.886303, 107.015923, 241.802298, 136.049497],
+        "above_metabolic_phosphorus": [352.329717, 274.28694, 293.94969, 121.30044],
         "above_structural_phosphorus": [
-            1488.595406,
-            580.6433876,
-            1408.378272,
-            610.0666667,
+            1761.648587,
+            1371.434707,
+            1469.748451,
+            606.5021843,
         ],
     }
 
@@ -354,7 +341,7 @@ def test_calculate_litter_input_lignin_concentrations(litter_inputs):
     )
 
     expected_woody = [0.233, 0.545, 0.612, 0.378]
-    expected_concs_above_struct = [0.25011178, 0.25345463, 0.54339369, 0.61992378]
+    expected_concs_above_struct = [0.26693592, 0.40658661, 0.55364065, 0.63113627]
     expected_concs_below_struct = [0.48590258, 0.56412613, 0.54265483, 0.67810978]
 
     actual_concs = calculate_litter_input_lignin_concentrations(
@@ -392,8 +379,8 @@ def test_calculate_litter_input_nitrogen_ratios(
             130.32367278,
             97.96255178,
         ],
-        "above_metabolic_nitrogen": [12.540983, 21.600478, 20.237902, 15.403147],
-        "above_structural_nitrogen": [62.91002, 110.3194, 109.3635, 75.59183],
+        "above_metabolic_nitrogen": [12.75324, 25.8138379, 22.3294487, 15.1024603],
+        "above_structural_nitrogen": [63.766206, 129.06919, 111.64724, 75.512301],
     }
 
     actual_c_n_ratios = calculate_litter_input_nitrogen_ratios(
@@ -429,12 +416,12 @@ def test_calculate_litter_input_phosphorus_ratios(
             1316.17880156,
             982.00196785,
         ],
-        "above_metabolic_phosphorus": [286.886303, 107.015923, 241.802298, 136.049497],
+        "above_metabolic_phosphorus": [352.329717, 274.28694, 293.94969, 121.30044],
         "above_structural_phosphorus": [
-            1488.595406,
-            580.6433876,
-            1408.378272,
-            610.0666667,
+            1761.648587,
+            1371.434707,
+            1469.748451,
+            606.5021843,
         ],
     }
 

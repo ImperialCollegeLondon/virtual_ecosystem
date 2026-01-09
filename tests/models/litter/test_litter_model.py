@@ -446,27 +446,32 @@ def test_update(fixture_litter_model, dummy_litter_data):
     """Test to check that the update step works and increments the update step."""
 
     expected_output = {
-        "litter_pool_above_metabolic": [0.31524887, 0.15349194, 0.08093312, 0.07547912],
-        "litter_pool_above_structural": [0.50519653, 0.25060783, 0.1031738, 0.11725847],
+        "litter_pool_above_metabolic": [0.31274778, 0.14733378, 0.07884319, 0.07237949],
+        "litter_pool_above_structural": [
+            0.50473556,
+            0.24936209,
+            0.10274537,
+            0.11665499,
+        ],
         "litter_pool_woody": [4.774026, 11.89845637, 7.35980938, 7.32981591],
         "litter_pool_below_metabolic": [0.39768414, 0.36316585, 0.06791351, 0.07781341],
         "litter_pool_below_structural": [0.6105005, 0.32204064, 0.02014513, 0.03468225],
-        "lignin_above_structural": [0.49726312, 0.10113065, 0.67996749, 0.68136766],
+        "lignin_above_structural": [0.49765798, 0.10073481, 0.68181057, 0.68425001],
         "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
         "lignin_below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
-        "c_n_ratio_above_metabolic": [7.5450184, 8.9814418, 10.998779, 10.175958],
-        "c_n_ratio_above_structural": [37.6666294, 43.3945275, 49.4785666, 54.4562879],
+        "c_n_ratio_above_metabolic": [7.52594014, 8.77113534, 10.94226006, 10.0196659],
+        "c_n_ratio_above_structural": [37.6558673, 43.2689945, 49.4225393, 54.3682015],
         "c_n_ratio_woody": [55.57479, 63.250918, 47.44333, 59.08069],
         "c_n_ratio_below_metabolic": [10.90629, 11.42741, 15.21408, 13.02765],
         "c_n_ratio_below_structural": [50.96669, 56.78504, 73.33861, 72.76419],
-        "c_p_ratio_above_metabolic": [61.099543, 70.015298, 110.68070, 98.767703],
-        "c_p_ratio_above_structural": [340.38278, 473.84604, 456.99901, 579.00396],
+        "c_p_ratio_above_metabolic": [60.879182, 69.335744, 110.32534, 97.074293],
+        "c_p_ratio_above_structural": [340.26419, 473.943986, 456.481612, 578.114146],
         "c_p_ratio_woody": [558.58393, 762.474347, 847.96815, 599.98045],
         "c_p_ratio_below_metabolic": [314.40006, 404.09534, 315.06196, 360.38398],
         "c_p_ratio_below_structural": [558.1202, 607.2732, 775.4709, 759.5603],
-        "litter_C_mineralisation_rate": [0.02669867, 0.02028009, 0.0075954, 0.0076627],
-        "litter_N_mineralisation_rate": [0.00601335, 0.0037791, 0.0008798, 0.00094215],
-        "litter_P_mineralisation_rate": [0.0004477, 0.00021477, 6.7192e-5, 6.80253e-5],
+        "litter_C_mineralisation_rate": [0.0266645, 0.02019299, 0.00756695, 0.00762047],
+        "litter_N_mineralisation_rate": [0.006003, 0.00375757, 0.00087354, 0.00093259],
+        "litter_P_mineralisation_rate": [4.46372e-4, 2.12047e-4, 6.6561e-5, 6.70468e-5],
     }
 
     fixture_litter_model.update(time_index=0)
