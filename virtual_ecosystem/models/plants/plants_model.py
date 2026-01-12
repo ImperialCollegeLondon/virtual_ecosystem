@@ -627,11 +627,11 @@ class PlantsModel(
         self.old_stoichiometry_ratios_to_depricate()
 
         # Initialize variables that hold one value per cell
-        reset_vars = [
+        by_cell_vars = [
             "root_carbohydrate_exudation",
             "plant_symbiote_carbon_supply",
         ]
-        for var in reset_vars:
+        for var in by_cell_vars:
             self.data[var] = self.data_object_templates["cell"].copy()
 
         # Initialize variables that are stored per cell and per element
@@ -650,6 +650,10 @@ class PlantsModel(
         pft_cnp_vars = [
             "subcanopy_seedbank_litter_cnp",
             "subcanopy_seedbank_cnp",
+            "canopy_seedbank_cnp",
+            "canopy_seedbank_turnover_cnp",
+            "canopy_fruit_flesh_cnp",
+            "canopy_fruit_flesh_turnover_cnp",
         ]
         for var in pft_cnp_vars:
             self.data[var] = self.data_object_templates["cnp_pft"].copy()
@@ -1032,7 +1036,6 @@ class PlantsModel(
             )
             self.stem_allocations[cell_id] = stem_allocation
 
-            # ALLOCATE TO TURNOVER:
             # Grow the plants by increasing the stem dbh
             # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
             # HACK: The current code prevents stems shrinking to zero and below. This is
@@ -1054,18 +1057,30 @@ class PlantsModel(
             self.data["root_turnover_cnp"].loc[cell_id, "C"] += np.sum(
                 stem_allocation.fine_root_turnover * cohorts.n_individuals
             )
-            self.data["plant_reproductive_tissue_turnover"][cell_id] += np.sum(
-                stem_allocation.reproductive_tissue_turnover * cohorts.n_individuals
+            # The amount of reproductive tissue available for turnover cannot exceed
+            # the amount of carbon in the canopy fruit.
+            rt_turnover_c = np.minimum(
+                stem_allocation.reproductive_tissue_respiration * cohorts.n_individuals,
+                (
+                    self.data["canopy_fruit_flesh_cnp"].loc[cell_id, "C"]
+                    + self.data["canopy_seedbank_cnp"].loc[cell_id, "C"]
+                ),
             )
 
             # Partition reproductive tissue into propagule and non-propagule masses and
-            # convert the propagule mass to number of propagules
+            # convert the propagule mass to number of propagules.
             # 1. Turnover reproductive tissue mass leaving the canopy to the ground
             stem_fallen_n_propagules, stem_fallen_non_propagule_c_mass = (
                 self.partition_reproductive_tissue(
                     # TODO: dimension issue in pyrealm, returns 2D array.
-                    stem_allocation.reproductive_tissue_turnover.squeeze()
+                    rt_turnover_c.squeeze()
                 )
+            )
+            self.data["canopy_fruit_flesh_turnover_cnp"].loc[cell_id, "C"] += np.sum(
+                stem_fallen_non_propagule_c_mass  # todo check if this is per individual
+            )
+            self.data["canopy_seedbank_turnover_cnp"].loc[cell_id, "C"] += np.sum(
+                stem_fallen_n_propagules
             )
 
             # 2. Canopy reproductive tissue mass: partition into propagules and
@@ -1078,6 +1093,7 @@ class PlantsModel(
                 )
             )
 
+            # To delete:
             # Add those partitions to pools
             #  - Merge fallen non-propagule mass into a single pool
             self.data["fallen_non_propagule_c_mass"][cell_id] = (
@@ -1251,7 +1267,7 @@ class PlantsModel(
                 * community.stem_traits.zeta
                 * community.stem_traits.sla
             )
-            self.data["plant_reproductive_tissue_turnover"][cell_id] += np.sum(
+            self.data["canopy_fruit_flesh_turnover_cnp"][cell_id] += np.sum(
                 mortality * community.stem_allometry.reproductive_tissue_mass
             )
 
