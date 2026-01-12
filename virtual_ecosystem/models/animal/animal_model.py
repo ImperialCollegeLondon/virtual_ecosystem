@@ -449,6 +449,7 @@ class AnimalModel(
         # and the rate of decay
         fruiting_bodies_decay = self.update_fungal_fruiting_bodies()
 
+        self.reset_trophic_records()
         self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
         self.birth_community()
@@ -1878,3 +1879,9 @@ class AnimalModel(
             self.update_community_occupancy(cohort, centroid_key)
 
         return cohort
+
+    def reset_trophic_records(self) -> None:
+        """Reset trophic interaction records for all cohorts."""
+        for cohorts in self.communities.values():
+            for cohort in cohorts:
+                cohort.reset_trophic_record()
