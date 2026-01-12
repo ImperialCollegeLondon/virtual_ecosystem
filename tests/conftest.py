@@ -440,20 +440,12 @@ def dummy_litter_data(fixture_core_components):
         "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
         "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
         "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
-        "deadwood_production": [0.075, 0.099, 0.063, 0.033],
-        "leaf_turnover": [0.027, 0.0003, 0.021, 0.0285],
         "fallen_non_propagule_c_mass": [0.003, 0.0075, 0.00255, 0.00375],
-        "root_turnover": [0.027, 0.021, 0.0003, 0.0249],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "plant_reproductive_tissue_lignin": [0.01, 0.03, 0.04, 0.02],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
-        "deadwood_c_n_ratio": [60.7, 57.9, 73.1, 55.1],
-        "leaf_turnover_c_n_ratio": [15.0, 25.5, 43.1, 57.4],
         "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
-        "root_turnover_c_n_ratio": [30.3, 45.6, 43.3, 37.1],
-        "deadwood_c_p_ratio": [856.5, 675.4, 933.2, 888.8],
-        "leaf_turnover_c_p_ratio": [415.0, 327.4, 554.5, 380.9],
         "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
         "root_turnover_c_p_ratio": [656.7, 450.6, 437.3, 371.9],
         "litter_consumption_above_metabolic": [0.019785, 0.011631, 0.016129, 0.023456],
@@ -461,9 +453,6 @@ def dummy_litter_data(fixture_core_components):
         "litter_consumption_woody": [0.4773833, 0.385701, 0.373456, 0.162192],
         "litter_consumption_below_metabolic": [0.010373, 0.005794, 0.010181, 0.013494],
         "litter_consumption_below_structural": [0.013547, 0.011674, 0.012738, 0.009168],
-        "herbivory_waste_leaf_carbon": [3e-5, 2.1e-3, 2.85e-3, 2.7e-3],
-        "herbivory_waste_leaf_nitrogen": [23.1, 33.5, 23.1, 17.3],
-        "herbivory_waste_leaf_phosphorus": [212.5, 344.8, 334.8, 420.1],
         "herbivory_waste_leaf_lignin": [0.13, 0.08, 0.27, 0.22],
     }
 
@@ -485,6 +474,50 @@ def dummy_litter_data(fixture_core_components):
     data["air_temperature"][lyr_strct.index_filled_atmosphere] = np.array(
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
+
+    data["stem_turnover_cnp"] = DataArray(
+        data=[
+            [607.5, 10.00823, 0.70928196],
+            [801.9, 13.84974, 1.187296],
+            [510.3, 6.98085, 0.546828],
+            [267.3, 4.85118, 0.3007426],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["root_turnover_cnp"] = DataArray(
+        data=[
+            [218.7, 7.2178, 0.333029],
+            [170.1, 3.73026, 0.377497],
+            [2.43, 0.05612, 0.0055568],
+            [201.69, 5.43639, 0.5423232],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["foliage_turnover_cnp"] = DataArray(
+        data=[
+            [218.7, 14.58, 0.52698795],
+            [2.43, 0.09529412, 0.00742211],
+            [170.1, 3.94663573, 0.3067628],
+            [230.85, 4.021777, 0.6060646],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["herbivory_waste_leaf_cnp"] = DataArray(
+        data=[
+            [0.243, 0.010519, 0.00114353],
+            [17.01, 0.507761, 0.0493329],
+            [
+                23.085,
+                0.999351,
+                0.0689516,
+            ],
+            [21.87, 1.264162, 0.052059],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     return data
 

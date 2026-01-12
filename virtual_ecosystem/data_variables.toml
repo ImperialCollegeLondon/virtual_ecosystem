@@ -896,23 +896,9 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Mass of leaves added to the litter due to herbivore mechanical inefficiency"
-name = "herbivory_waste_leaf_carbon"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon nitrogen ratio of leaves added to litter due to herbivore mechanical inefficiency"
-name = "herbivory_waste_leaf_nitrogen"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon phosphorus ratio of leaves added to litter due to herbivore mechanical inefficiency"
-name = "herbivory_waste_leaf_phosphorus"
-unit = "-"
+description = "Carbon, nitrogen and phosphorus mass of leaves added to the litter due to herbivore mechanical inefficiency"
+name = "herbivory_waste_leaf_cnp"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
@@ -1028,20 +1014,6 @@ unit = "kg C m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
-description = "Amount of dead wood produced since last update"
-name = "deadwood_production"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Leaf turnover since last update"
-name = "leaf_turnover"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
 axis = ["spatial"] # ["spatial", "pft"]
 description = "Per cell counts of propagules for each plant functional type"
 name = "plant_pft_propagules"
@@ -1052,13 +1024,6 @@ variable_type = "integer"
 axis = ["spatial"]
 description = "Plant reproductive tissue non-propagule turnover since last update"
 name = "fallen_non_propagule_c_mass"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Root turnover since last update"
-name = "root_turnover"
 unit = "kg C m^-2"
 variable_type = "float"
 
@@ -1092,43 +1057,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Carbon:nitrogen ratio of deadwood"
-name = "deadwood_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon:nitrogen ratio of leaf turnover"
-name = "leaf_turnover_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Carbon:nitrogen ratio of plant reproductive tissue turnover"
 name = "plant_reproductive_tissue_turnover_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon:nitrogen ratio of root turnover"
-name = "root_turnover_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon:phosphorus ratio of deadwood"
-name = "deadwood_c_p_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon:phosphorus ratio of leaf turnover"
-name = "leaf_turnover_c_p_ratio"
 unit = "-"
 variable_type = "float"
 
@@ -1137,41 +1067,6 @@ axis = ["spatial"]
 description = "Carbon:phosphorus ratio of plant reproductive tissue turnover"
 name = "plant_reproductive_tissue_turnover_c_p_ratio"
 unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon:phosphorus ratio of root turnover"
-name = "root_turnover_c_p_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Nitrogen in foliage turnover"
-name = "leaf_turnover_n_mass"
-unit = "kg N"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Phosphorus in foliage turnover"
-name = "leaf_turnover_p_mass"
-unit = "kg P"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Nitrogen in root turnover"
-name = "root_turnover_n_mass"
-unit = "kg N"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Phosphorus in root turnover"
-name = "root_turnover_p_mass"
-unit = "kg P"
 variable_type = "float"
 
 [[variable]]
@@ -1185,20 +1080,6 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Mass of Phosphorus in plant reproductive and tissue turnover"
 name = "plant_rt_turnover_p_mass"
-unit = "kg P"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Nitrogen in deadwood"
-name = "deadwood_n_mass"
-unit = "kg N"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Phosphorus in deadwood"
-name = "deadwood_p_mass"
 unit = "kg P"
 variable_type = "float"
 
@@ -1386,76 +1267,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "C/P ratio of subcanopy vegetation."
-name = "subcanopy_vegetation_c_p_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "C/P ratio of subcanopy seedbank."
-name = "subcanopy_seedbank_c_p_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "C/P ratio of subcanopy vegetation litter"
-name = "subcanopy_vegetation_litter_c_p_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "C/P ratio of subcanopy seedbank litter"
-name = "subcanopy_seedbank_litter_c_p_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "C/N ratio of subcanopy vegetation."
-name = "subcanopy_vegetation_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "C/N ratio of subcanopy seedbank.."
-name = "subcanopy_seedbank_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "C/N ratio of subcanopy vegetation litter."
-name = "subcanopy_vegetation_litter_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "C/P ratio of subcanopy seedbank litter."
-name = "subcanopy_seedbank_litter_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon biomass of subcanopy vegetation litter."
-name = "subcanopy_vegetation_litter_biomass"
-unit = "kg C m-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon biomass of subcanopy seedbank litter"
-name = "subcanopy_seedbank_litter_biomass"
-unit = "kg C m-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Lignin proportion of subcanopy vegetation litter."
 name = "subcanopy_vegetation_litter_lignin"
 unit = "unitless"
@@ -1583,7 +1394,7 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "Number of seeds per fruit per PFT"
-name = "fallen_seeeds_per_fruit"
+name = "fallen_seeds_per_fruit"
 unit = "kg"
 variable_type = "float"
 
