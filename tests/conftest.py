@@ -595,19 +595,17 @@ def dummy_climate_data(fixture_core_components):
         [0.14, 0.2, 0.2, 0.2, 0.14]
     )[:, None]
 
-    flux_index = np.logical_or(lyr_str.index_surface_scalar, lyr_str.index_flux_layers)
-
     data["shortwave_absorption"] = from_template()
-    data["shortwave_absorption"][flux_index] = 450.0
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 450.0
 
     data["sensible_heat_flux"] = from_template()
-    data["sensible_heat_flux"][flux_index] = 0.0
+    data["sensible_heat_flux"][lyr_str.index_flux_layers] = 0.0
 
     data["latent_heat_flux"] = from_template()
-    data["latent_heat_flux"][flux_index] = 0.0
+    data["latent_heat_flux"][lyr_str.index_flux_layers] = 0.0
 
     data["net_radiation"] = from_template()
-    data["net_radiation"][flux_index] = 20.0
+    data["net_radiation"][lyr_str.index_flux_layers] = 20.0
 
     data["molar_density_air"] = from_template()
     data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0

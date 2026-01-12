@@ -114,7 +114,7 @@ def test_abiotic_simple_model_initialization(
             (
                 "[core]\n[core.grid]\ncell_nx = 2\ncell_ny = 2\n"
                 "[core.timing]\nupdate_interval = '1 week'\n"
-                "[abiotic_simple.constants]\ninitial_net_radiation = 20\n"
+                "[abiotic_simple.constants]\nplaceholder = 20\n"
             ),
             id="modified_config_correct",
         ),

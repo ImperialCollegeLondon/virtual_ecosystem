@@ -160,7 +160,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "atmosphere": np.arange(0, 12),
                     "filled_canopy": np.array([], dtype=np.int_),
                     "filled_atmosphere": np.array([0, 11]),
-                    "flux_layers": np.array([12]),
+                    "flux_layers": np.array([11, 12]),
                 },
                 soil_thickness=np.array([0.25, 0.75]),
                 soil_active=np.array([0.25, 0]),
@@ -194,7 +194,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "atmosphere": np.arange(0, 5),
                     "filled_canopy": np.array([], dtype=np.int_),
                     "filled_atmosphere": np.array([0, 4]),
-                    "flux_layers": np.array([5]),
+                    "flux_layers": np.array([4, 5]),
                 },
                 soil_thickness=np.array([0.1, 0.4, 0.4]),
                 soil_active=np.array([0.1, 0.15, 0]),
@@ -230,7 +230,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "atmosphere": np.arange(0, 5),
                     "filled_canopy": np.array([], dtype=np.int_),
                     "filled_atmosphere": np.array([0, 4]),
-                    "flux_layers": np.array([5]),
+                    "flux_layers": np.array([4, 5]),
                 },
                 soil_thickness=np.repeat(0.1, 9),
                 soil_active=np.array([0.1, 0.1, 0.1, 0.1, 0.05, 0, 0, 0, 0]),
@@ -395,5 +395,5 @@ def test_LayerStructure_set_filled_canopy():
     assert np.allclose(layer_structure.index_filled_atmosphere, exp_filled_atmosphere)
 
     exp_flux_layers = np.repeat(False, layer_structure.n_layers)
-    exp_flux_layers[np.concatenate([np.arange(1, 9), [12]])] = True
+    exp_flux_layers[np.concatenate([np.arange(1, 9), [11, 12]])] = True
     assert np.allclose(layer_structure.index_flux_layers, exp_flux_layers)
