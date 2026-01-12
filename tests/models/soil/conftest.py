@@ -109,6 +109,26 @@ def dummy_carbon_data(fixture_core_components):
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
 
+    data["decomposed_excrement_cnp"] = DataArray(
+        data=[
+            [4.214e-5, 1.939e-6, 3.174e-6],
+            [0.000388, 9.895e-5, 5.681e-6],
+            [0.000555, 8.199e-7, 6.278e-6],
+            [0.003313, 0.0002465, 3.846e-5],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["decomposed_carcasses_cnp"] = DataArray(
+        data=[
+            [0.0002844, 1.544e-6, 8.935e-7],
+            [0.00011089, 7.520e-5, 1.932e-6],
+            [2.459e-5, 1.433e-5, 4.928e-6],
+            [0.003891, 0.0002582, 3.769e-6],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
     return data
 
 
