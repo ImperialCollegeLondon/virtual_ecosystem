@@ -27,8 +27,7 @@ class TestingModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        flora: A Flora instance of the plant functional types to be used in the model.
-        model_constants: Set of constants for the plants model.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
@@ -36,7 +35,6 @@ class TestingModel(
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
-        **kwargs: Any,
     ):
         """Plants init function.
 
@@ -44,7 +42,11 @@ class TestingModel(
         handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
+
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup()
 
     @classmethod
     def from_config(
@@ -80,7 +82,7 @@ class TestingModel(
         LOGGER.info("Testing model instance generated from configuration.")
         return inst
 
-    def _setup(self, **kwargs: Any) -> None:
+    def _setup(self) -> None:
         """Placeholder function to setup the testing model."""
 
     def spinup(self) -> None:

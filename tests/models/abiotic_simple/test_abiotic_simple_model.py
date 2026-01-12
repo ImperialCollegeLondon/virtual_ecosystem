@@ -1,41 +1,74 @@
 """Test module for abiotic_simple.abiotic_simple_model.py."""
 
-from contextlib import nullcontext as does_not_raise
 from logging import DEBUG, INFO
-from unittest.mock import patch
 
 import numpy as np
 import pytest
 import xarray as xr
 from xarray import DataArray
 
-from tests.conftest import log_check, patch_bypass_setup, patch_run_update
-
-# Global set of messages from model required var checks
-MODEL_VAR_CHECK_LOG = [
-    (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
-    (INFO, "Replacing data array for 'soil_temperature'"),
-    (INFO, "Replacing data array for 'net_radiation'"),
-    (INFO, "Replacing data array for 'vapour_pressure_deficit_ref'"),
-    (INFO, "Replacing data array for 'vapour_pressure_ref'"),
-]
+from tests.conftest import log_check
 
 
-@pytest.mark.parametrize(
-    "raises,expected_log_entries",
-    [
-        (does_not_raise(), tuple(MODEL_VAR_CHECK_LOG)),
-    ],
-)
+@pytest.fixture
+def fixture_abiotic_simple_init_log():
+    """Helper function to generate expected log messages."""
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
+        AbioticSimpleModel,
+    )
+
+    return (
+        (
+            INFO,
+            "Information required to initialise the abiotic simple model "
+            "successfully extracted.",
+        ),
+        *(
+            (DEBUG, f"abiotic_simple model: required var '{v}' checked")
+            for v in AbioticSimpleModel.vars_required_for_init
+        ),
+        *(
+            (INFO, f"Adding data array for '{v}'")
+            for v in (
+                # vars_populated_by_init is not currently guaranteed to be in the order
+                # in which the variables are populated
+                "vapour_pressure_deficit_ref",
+                "vapour_pressure_ref",
+                "air_temperature",
+                "relative_humidity",
+                "vapour_pressure_deficit",
+                "wind_speed",
+                "atmospheric_pressure",
+                "atmospheric_co2",
+                "soil_temperature",
+                "net_radiation",
+            )
+        ),
+    )
+
+
+@pytest.fixture
+def fixture_abiotic_simple_init_data(dummy_climate_data_varying_canopy):
+    """Returns a reduced dataset suitable for initialising an Abiotic Model."""
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
+        AbioticSimpleModel,
+    )
+
+    # Reduce to data to initialise model
+    init_data = Data(grid=dummy_climate_data_varying_canopy.grid)
+    for var in AbioticSimpleModel.vars_required_for_init:
+        init_data[var] = dummy_climate_data_varying_canopy[var]
+
+    return init_data
+
+
 def test_abiotic_simple_model_initialization(
     caplog,
-    dummy_climate_data_varying_canopy,
+    fixture_abiotic_simple_init_data,
     fixture_core_components,
-    raises,
-    expected_log_entries,
-    fixture_abiotic_constants,
     fixture_pyrealm_config,
+    fixture_abiotic_simple_init_log,
 ):
     """Test `AbioticSimpleModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
@@ -48,64 +81,40 @@ def test_abiotic_simple_model_initialization(
 
     default_config = AbioticSimpleConfiguration()
 
-    with (
-        patch_run_update(AbioticSimpleModel),
-        patch_bypass_setup(AbioticSimpleModel) as mock_bypass_setup,
-    ):
-        mock_bypass_setup.return_value = False
-        with raises:
-            # Initialize model
-            model = AbioticSimpleModel(
-                data=dummy_climate_data_varying_canopy,
-                core_components=fixture_core_components,
-                model_configuration=default_config,
-                abiotic_constants=fixture_abiotic_constants,
-                pyrealm_core_constants=fixture_pyrealm_config.core,
-            )
+    # Initialize model
+    model = AbioticSimpleModel(
+        data=fixture_abiotic_simple_init_data,
+        core_components=fixture_core_components,
+        model_configuration=default_config,
+        pyrealm_core_constants=fixture_pyrealm_config.core,
+    )
 
-            # In cases where it passes then checks that the object has the right
-            # properties
-            assert isinstance(model, BaseModel)
-            assert model.model_name == "abiotic_simple"
-            assert repr(model) == "AbioticSimpleModel(update_interval=1209600 seconds)"
-            assert model.bounds == default_config.bounds
+    # In cases where it passes then checks that the object has the right
+    # properties
+    assert isinstance(model, BaseModel)
+    assert model.model_name == "abiotic_simple"
+    assert repr(model) == "AbioticSimpleModel(update_interval=1209600 seconds)"
+    assert model.bounds == default_config.bounds
 
     # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    log_check(caplog, fixture_abiotic_simple_init_log[1:])
 
 
 @pytest.mark.parametrize(
-    "cfg_string,raises,expected_log_entries",
+    "cfg_string",
     [
         pytest.param(
-            "[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n",
-            does_not_raise(),
-            tuple(
-                [
-                    (
-                        INFO,
-                        "Information required to initialise the abiotic simple model "
-                        "successfully extracted.",
-                    ),
-                    *MODEL_VAR_CHECK_LOG[:2],
-                ],
+            (
+                "[core]\n[core.grid]\ncell_nx = 2\ncell_ny = 2\n"
+                "[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n"
             ),
             id="default_config",
         ),
         pytest.param(
-            "[core.timing]\nupdate_interval = '1 week'\n"
-            "[abiotic_simple.constants]\n"
-            "initial_net_radiation = 20\n",
-            does_not_raise(),
-            tuple(
-                [
-                    (
-                        INFO,
-                        "Information required to initialise the abiotic simple model "
-                        "successfully extracted.",
-                    ),
-                    *MODEL_VAR_CHECK_LOG[:2],
-                ],
+            (
+                "[core]\n[core.grid]\ncell_nx = 2\ncell_ny = 2\n"
+                "[core.timing]\nupdate_interval = '1 week'\n"
+                "[abiotic_simple.constants]\ninitial_net_radiation = 20\n"
             ),
             id="modified_config_correct",
         ),
@@ -113,10 +122,9 @@ def test_abiotic_simple_model_initialization(
 )
 def test_generate_abiotic_simple_model(
     caplog,
-    dummy_climate_data_varying_canopy,
+    fixture_abiotic_simple_init_data,
     cfg_string,
-    raises,
-    expected_log_entries,
+    fixture_abiotic_simple_init_log,
 ):
     """Test that the initialisation of the simple abiotic model works as expected."""
     from virtual_ecosystem.core.config_builder import (
@@ -134,35 +142,21 @@ def test_generate_abiotic_simple_model(
 
     caplog.clear()
 
-    # We patch the _setup step as it is tested separately
-    object_to_patch = (
-        "virtual_ecosystem.models.abiotic_simple.abiotic_simple_model"
-        ".AbioticSimpleModel"
+    # Check whether model is initialised (or not) as expected
+    AbioticSimpleModel.from_config(
+        data=fixture_abiotic_simple_init_data,
+        configuration=configuration,
+        core_components=core_components,
     )
-    with (
-        patch_run_update(AbioticSimpleModel),
-        patch_bypass_setup(AbioticSimpleModel) as mock_bypass_setup,
-        patch(f"{object_to_patch}._setup") as mock_setup,
-    ):
-        mock_bypass_setup.return_value = False
-        # Check whether model is initialised (or not) as expected
-        with raises:
-            AbioticSimpleModel.from_config(
-                data=dummy_climate_data_varying_canopy,
-                configuration=configuration,
-                core_components=core_components,
-            )
-
-            mock_setup.assert_called_once()
 
     # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    log_check(caplog, fixture_abiotic_simple_init_log)
 
 
-def test_setup(
+def test_setup_and_update_abiotic_simple_model(
+    fixture_abiotic_simple_init_data,
     dummy_climate_data_varying_canopy,
     fixture_core_components,
-    fixture_abiotic_constants,
     fixture_pyrealm_config,
 ):
     """Test set up and update."""
@@ -177,20 +171,18 @@ def test_setup(
     lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
-    with (
-        patch_run_update(AbioticSimpleModel),
-        patch_bypass_setup(AbioticSimpleModel) as mock_bypass_setup,
-    ):
-        mock_bypass_setup.return_value = False
-        model = AbioticSimpleModel(
-            data=dummy_climate_data_varying_canopy,
-            core_components=fixture_core_components,
-            model_configuration=AbioticSimpleConfiguration(),
-            abiotic_constants=fixture_abiotic_constants,
-            pyrealm_core_constants=fixture_pyrealm_config.core,
-        )
+    model = AbioticSimpleModel(
+        data=fixture_abiotic_simple_init_data,
+        core_components=fixture_core_components,
+        model_configuration=AbioticSimpleConfiguration(),
+        pyrealm_core_constants=fixture_pyrealm_config.core,
+    )
 
     exp_soil_temp = lyr_strct.from_template()
+    exp_soil_temp[lyr_strct.index_all_soil] = [
+        [20.712458, 21.317566, 21.922674, 22.527783],
+        [20.0, 20.0, 20.0, 20.0],
+    ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 
     xr.testing.assert_allclose(
@@ -201,6 +193,10 @@ def test_setup(
             coords={"cell_id": [0, 1, 2, 3]},
         ),
     )
+
+    # Add update data to the model data
+    for var in AbioticSimpleModel.vars_required_for_update:
+        model.data[var] = dummy_climate_data_varying_canopy[var]
 
     # Run the update step
     model.update(time_index=0)

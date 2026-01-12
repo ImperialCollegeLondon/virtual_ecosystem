@@ -26,7 +26,7 @@ from math import ceil, sqrt
 from random import choice
 from typing import Any, cast
 
-from numpy import array, float32, inf, random, timedelta64, where, zeros
+from numpy import array, float32, inf, random, stack, timedelta64, where, zeros
 from numpy.typing import NDArray
 from xarray import DataArray
 
@@ -95,12 +95,8 @@ class AnimalModel(
         "production_of_fungal_fruiting_bodies",
     ),
     vars_populated_by_first_update=(
-        "decomposed_excrement_carbon",
-        "decomposed_excrement_nitrogen",
-        "decomposed_excrement_phosphorus",
-        "decomposed_carcasses_carbon",
-        "decomposed_carcasses_nitrogen",
-        "decomposed_carcasses_phosphorus",
+        "decomposed_excrement_cnp",
+        "decomposed_carcasses_cnp",
         "herbivory_waste_leaf_carbon",
         "herbivory_waste_leaf_nitrogen",
         "herbivory_waste_leaf_phosphorus",
@@ -120,12 +116,8 @@ class AnimalModel(
         "decay_of_fungal_fruiting_bodies",
     ),
     vars_updated=(
-        "decomposed_excrement_carbon",
-        "decomposed_excrement_nitrogen",
-        "decomposed_excrement_phosphorus",
-        "decomposed_carcasses_carbon",
-        "decomposed_carcasses_nitrogen",
-        "decomposed_carcasses_phosphorus",
+        "decomposed_excrement_cnp",
+        "decomposed_carcasses_cnp",
         "herbivory_waste_leaf_carbon",
         "herbivory_waste_leaf_nitrogen",
         "herbivory_waste_leaf_phosphorus",
@@ -156,9 +148,16 @@ class AnimalModel(
         data: The data object to be used in the model.
         core_components: The core components used across models.
         exporter: The export system for animal cohort data.
-        static: If True, runs in static mode.
         density_scaling_method: Which density scaling equation to use in initialization.
-        **kwargs: Additional arguments for the base model.
+        functional_groups: The list of animal functional groups present in the
+            simulation.
+        microbial_c_n_p_ratios: Biomass stoichiometry of each microbial functional
+            group.
+        model_constants: An
+            :class:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
+            instance, providing constants for the model and setting the density
+            scaling method to be used in simulation.
+        static: If True, runs in static mode.
     """
 
     def __init__(
@@ -166,8 +165,10 @@ class AnimalModel(
         data: Data,
         core_components: CoreComponents,
         exporter: AnimalCohortDataExporter,
+        functional_groups: list[FunctionalGroup],
+        microbial_c_n_p_ratios: dict[str, dict[str, float]],
+        model_constants: AnimalConstants = AnimalConstants(),
         static: bool = False,
-        **kwargs: Any,
     ):
         """Animal init function.
 
@@ -175,10 +176,7 @@ class AnimalModel(
         handled in :fun:`~virtual_ecosystem.animal.animal_model._setup`.
         """
 
-        self.exporter: AnimalCohortDataExporter = exporter
-        """Exporter for animal cohort data."""
-
-        super().__init__(data, core_components, static, **kwargs)  # runs _setup
+        super().__init__(data, core_components, static)
 
         self.model_constants: AnimalConstants
         """Animal constants."""
@@ -216,187 +214,23 @@ class AnimalModel(
         self.fungal_fruiting_bodies: dict[int, FungalFruitPool]
         """The pools of fungal fruiting bodies with associated grid cell ids."""
 
-    def _setup_grid_neighbours(self) -> None:
-        """Set up grid neighbours for the model.
+        # Set the exporter - this is always set _regardless_ of the static mode.
+        self.exporter: AnimalCohortDataExporter = exporter
+        """Exporter for animal cohort data."""
 
-        Currently, this is redundant with the set_neighbours method of grid.
-        This will become a more complex animal specific implementation to manage
-        functional group specific adjacency.
-
-        """
-        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
-
-    def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
-        """Initializes the animal communities.
-
-        Args:
-            functional_groups: The list of functional groups that will populate the
-            model.
-
-        """
-
-        self.communities = {cell_id: [] for cell_id in self.data.grid.cell_id}
-
-        for fg in functional_groups:
-            total_individuals = self._estimate_total_individuals(fg)
-            cohort_sizes = self._distribute_individuals_to_cohorts(total_individuals)
-            cohort_locations = self._assign_cohort_locations(len(cohort_sizes))
-
-            for size, cell_id in zip(cohort_sizes, cohort_locations):
-                self.create_new_cohort(
-                    functional_group=fg,
-                    mass=fg.adult_mass,
-                    age=0.0,
-                    individuals=size,
-                    centroid_key=cell_id,
-                )
-
-    def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
-        """Estimates the total number of individuals of a functional group.
-
-        Args:
-            functional_group: The specific functional group having its individuals
-                estimated.
-
-        Returns: The integer number of individuals of the group.
-
-        """
-
-        total_area = self.data.grid.n_cells * self.data.grid.cell_area
-
-        if functional_group.density_individuals_m2 is not None:
-            # User-provided empirical density overrides scaling laws
-            return int(functional_group.density_individuals_m2 * total_area)
-
-        # No empirical density → use selected scaling method
-        if self.density_scaling_method == "damuth":
-            density = damuths_law(
-                functional_group.adult_mass,
-                functional_group.population_density_terms,
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
+                functional_groups=functional_groups,
+                microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+                model_constants=model_constants,
             )
-        elif self.density_scaling_method == "madingley":
-            density = madingley_individuals_density(
-                functional_group.adult_mass,
-                functional_group.population_density_terms,
-            )
-        else:
-            raise ValueError(
-                f"Unsupported density scaling method: {self.density_scaling_method}"
-            )
-
-        return ceil(density * total_area)
-
-    def _distribute_individuals_to_cohorts(self, total_individuals: int) -> list[int]:
-        """Distribute individuals into cohorts respecting minimum size.
-
-        Args:
-            total_individuals: The number of individuals to distribute.
-
-        Returns:
-            A list of cohort sizes.
-        """
-        n_target = self.target_cohorts_per_fg  # ideal number of cohorts
-        min_size = self.minimum_cohort_size  # minimum size of cohorts
-
-        if total_individuals < n_target * min_size:
-            # if I don't have enough individuals to meet my size and number targets
-            # reduce the number of cohorts
-            n_target = max(1, total_individuals // min_size)
-
-        base_size = total_individuals // n_target  # the number of indiv in each cohorts
-        remainder = total_individuals % n_target  # the leftover number of indiv
-
-        # evenly distribute the remained and return the list of cohort sizes
-        return [base_size + 1 if i < remainder else base_size for i in range(n_target)]
-
-    def _assign_cohort_locations(self, n_cohorts: int) -> list[int]:
-        """Assign each cohort to a grid cell.
-
-        Args:
-            n_cohorts: Number of cohorts to distribute.
-
-        Returns:
-            A list of grid cell IDs for each cohort.
-        """
-        cell_ids = list(self.data.grid.cell_id)  # a list of all the grid cell ids
-        n_cells = len(cell_ids)  # the number of grid cells
-
-        if n_cohorts <= n_cells:  # if more cells than cohorts
-            # assign one random cell per cohort without replacement
-            return random.choice(cell_ids, size=n_cohorts, replace=False).tolist()
-        else:  # if more cohorts than cells
-            # one cohort per cell, to start
-            locations = cell_ids.copy()
-            # randomly select grid cell ids equal to number of remaining cohorts
-            extra = random.choice(
-                cell_ids, size=n_cohorts - n_cells, replace=True
-            ).tolist()
-            locations.extend(extra)  # assign the extras to the location list
-            return locations
-
-    @classmethod
-    def from_config(
-        cls,
-        data: Data,
-        configuration: CompiledConfiguration,
-        core_components: CoreComponents,
-    ) -> AnimalModel:
-        """Factory function to initialise the animal model from configuration.
-
-        This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance None is returned.
-
-        Args:
-            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-            configuration: A validated Virtual Ecosystem model configuration object.
-            core_components: The core components used across models.
-        """
-
-        # Extract the validated model configuration from the complete compiled
-        # configuration.
-        model_configuration: AnimalConfiguration = configuration.get_subconfiguration(
-            "animal", AnimalConfiguration
-        )
-
-        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
-            "core", CoreConfiguration
-        )
-
-        functional_groups = import_functional_groups(
-            fg_csv_file=model_configuration.functional_group_definitions_path,
-            constants=model_configuration.constants,
-        )
-
-        # Find microbial stoichiometries based on the config
-        microbial_c_n_p_ratios = find_microbial_stoichiometries(config=configuration)
-
-        exporter = AnimalCohortDataExporter.from_config(
-            output_directory=core_configuration.data_output_options.out_path,
-            config=model_configuration.cohort_data_export,
-        )
-
-        LOGGER.info(
-            "Information required to initialise the animal model successfully "
-            "extracted."
-        )
-
-        return cls(
-            data=data,
-            core_components=core_components,
-            static=model_configuration.static,
-            functional_groups=functional_groups,
-            model_constants=model_configuration.constants,
-            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
-            exporter=exporter,
-        )
 
     def _setup(
         self,
         functional_groups: list[FunctionalGroup],
         microbial_c_n_p_ratios: dict[str, dict[str, float]],
         model_constants: AnimalConstants,
-        **kwargs: Any,
     ) -> None:
         """Method to setup the animal model specific data variables.
 
@@ -408,16 +242,7 @@ class AnimalModel(
             active_cohorts bug. Dig in an see what is going on with when setup is called
             in relation to the rest of init.
 
-        Args:
-            functional_groups: The list of animal functional groups present in the
-                simulation.
-            microbial_c_n_p_ratios: Biomass stoichiometry of each microbial functional
-                group.
-            model_constants: An
-                :class:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
-                instance, providing constants for the model and setting the density
-                scaling method to be used in simulation.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         self.model_constants = model_constants
@@ -539,6 +364,63 @@ class AnimalModel(
         # initialize values
         self.update_population_densities()
 
+    @classmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+    ) -> AnimalModel:
+        """Factory function to initialise the animal model from configuration.
+
+        This function unpacks the relevant information from the configuration file, and
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance None is returned.
+
+        Args:
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
+            core_components: The core components used across models.
+        """
+
+        # Extract the validated model configuration from the complete compiled
+        # configuration.
+        model_configuration: AnimalConfiguration = configuration.get_subconfiguration(
+            "animal", AnimalConfiguration
+        )
+
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+
+        functional_groups = import_functional_groups(
+            fg_csv_file=model_configuration.functional_group_definitions_path,
+            constants=model_configuration.constants,
+        )
+
+        # Find microbial stoichiometries based on the config
+        microbial_c_n_p_ratios = find_microbial_stoichiometries(config=configuration)
+
+        exporter = AnimalCohortDataExporter.from_config(
+            output_directory=core_configuration.data_output_options.out_path,
+            config=model_configuration.cohort_data_export,
+        )
+
+        LOGGER.info(
+            "Information required to initialise the animal model successfully "
+            "extracted."
+        )
+
+        return cls(
+            data=data,
+            core_components=core_components,
+            static=model_configuration.static,
+            functional_groups=functional_groups,
+            model_constants=model_configuration.constants,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+            exporter=exporter,
+        )
+
     def spinup(self) -> None:
         """Placeholder function to spin up the animal model."""
 
@@ -608,6 +490,124 @@ class AnimalModel(
                 + time_index * self.model_timing.update_interval
             ),
         )
+
+    def _setup_grid_neighbours(self) -> None:
+        """Set up grid neighbours for the model.
+
+        Currently, this is redundant with the set_neighbours method of grid.
+        This will become a more complex animal specific implementation to manage
+        functional group specific adjacency.
+
+        """
+        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
+
+    def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
+        """Initializes the animal communities.
+
+        Args:
+            functional_groups: The list of functional groups that will populate the
+            model.
+
+        """
+
+        self.communities = {cell_id: [] for cell_id in self.data.grid.cell_id}
+
+        for fg in functional_groups:
+            total_individuals = self._estimate_total_individuals(fg)
+            cohort_sizes = self._distribute_individuals_to_cohorts(total_individuals)
+            cohort_locations = self._assign_cohort_locations(len(cohort_sizes))
+
+            for size, cell_id in zip(cohort_sizes, cohort_locations):
+                self.create_new_cohort(
+                    functional_group=fg,
+                    mass=fg.adult_mass,
+                    age=0.0,
+                    individuals=size,
+                    centroid_key=cell_id,
+                )
+
+    def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
+        """Estimates the total number of individuals of a functional group.
+
+        Args:
+            functional_group: The specific functional group having its individuals
+                estimated.
+
+        Returns: The integer number of individuals of the group.
+
+        """
+
+        total_area = self.data.grid.n_cells * self.data.grid.cell_area
+
+        if functional_group.density_individuals_m2 is not None:
+            # User-provided empirical density overrides scaling laws
+            return int(functional_group.density_individuals_m2 * total_area)
+
+        # No empirical density → use selected scaling method
+        if self.density_scaling_method == "damuth":
+            density = damuths_law(
+                functional_group.adult_mass,
+                functional_group.population_density_terms,
+            )
+        elif self.density_scaling_method == "madingley":
+            density = madingley_individuals_density(
+                functional_group.adult_mass,
+                functional_group.population_density_terms,
+            )
+        else:
+            raise ValueError(
+                f"Unsupported density scaling method: {self.density_scaling_method}"
+            )
+
+        return ceil(density * total_area)
+
+    def _distribute_individuals_to_cohorts(self, total_individuals: int) -> list[int]:
+        """Distribute individuals into cohorts respecting minimum size.
+
+        Args:
+            total_individuals: The number of individuals to distribute.
+
+        Returns:
+            A list of cohort sizes.
+        """
+        n_target = self.target_cohorts_per_fg  # ideal number of cohorts
+        min_size = self.minimum_cohort_size  # minimum size of cohorts
+
+        if total_individuals < n_target * min_size:
+            # if I don't have enough individuals to meet my size and number targets
+            # reduce the number of cohorts
+            n_target = max(1, total_individuals // min_size)
+
+        base_size = total_individuals // n_target  # the number of indiv in each cohorts
+        remainder = total_individuals % n_target  # the leftover number of indiv
+
+        # evenly distribute the remained and return the list of cohort sizes
+        return [base_size + 1 if i < remainder else base_size for i in range(n_target)]
+
+    def _assign_cohort_locations(self, n_cohorts: int) -> list[int]:
+        """Assign each cohort to a grid cell.
+
+        Args:
+            n_cohorts: Number of cohorts to distribute.
+
+        Returns:
+            A list of grid cell IDs for each cohort.
+        """
+        cell_ids = list(self.data.grid.cell_id)  # a list of all the grid cell ids
+        n_cells = len(cell_ids)  # the number of grid cells
+
+        if n_cohorts <= n_cells:  # if more cells than cohorts
+            # assign one random cell per cohort without replacement
+            return random.choice(cell_ids, size=n_cohorts, replace=False).tolist()
+        else:  # if more cohorts than cells
+            # one cohort per cell, to start
+            locations = cell_ids.copy()
+            # randomly select grid cell ids equal to number of remaining cohorts
+            extra = random.choice(
+                cell_ids, size=n_cohorts - n_cells, replace=True
+            ).tolist()
+            locations.extend(extra)  # assign the extras to the location list
+            return locations
 
     def update_community_bookkeeping(self, dt: timedelta64) -> None:
         """Perform status updates and cleanup at the community level.
@@ -872,22 +872,26 @@ class AnimalModel(
         )
 
         return {
-            "animal_pom_consumption_carbon": self.to_per_day(pom_consumption_carbon),
-            "animal_pom_consumption_nitrogen": self.to_per_day(
-                pom_consumption_nitrogen
+            "animal_pom_consumption_carbon": DataArray(
+                self.to_per_day(pom_consumption_carbon), dims="cell_id"
             ),
-            "animal_pom_consumption_phosphorus": self.to_per_day(
-                pom_consumption_phosphorus
+            "animal_pom_consumption_nitrogen": DataArray(
+                self.to_per_day(pom_consumption_nitrogen), dims="cell_id"
             ),
-            "animal_bacteria_consumption": self.to_per_day(bacteria_consumption),
-            "animal_saprotrophic_fungi_consumption": self.to_per_day(
-                saprotrophic_fungi_consumption
+            "animal_pom_consumption_phosphorus": DataArray(
+                self.to_per_day(pom_consumption_phosphorus), dims="cell_id"
             ),
-            "animal_ectomycorrhiza_consumption": self.to_per_day(
-                ectomycorrhiza_consumption
+            "animal_bacteria_consumption": DataArray(
+                self.to_per_day(bacteria_consumption), dims="cell_id"
             ),
-            "animal_arbuscular_mycorrhiza_consumption": self.to_per_day(
-                arbuscular_mycorrhiza_consumption
+            "animal_saprotrophic_fungi_consumption": DataArray(
+                self.to_per_day(saprotrophic_fungi_consumption), dims="cell_id"
+            ),
+            "animal_ectomycorrhiza_consumption": DataArray(
+                self.to_per_day(ectomycorrhiza_consumption), dims="cell_id"
+            ),
+            "animal_arbuscular_mycorrhiza_consumption": DataArray(
+                self.to_per_day(arbuscular_mycorrhiza_consumption), dims="cell_id"
             ),
         }
 
@@ -1006,7 +1010,7 @@ class AnimalModel(
                 pool.decomposed_nutrient_per_area(
                     nutrient=nutrient, grid_cell_area=self.data.grid.cell_area
                 )
-                for cell_id, pools in self.excrement_pools.items()
+                for _, pools in self.excrement_pools.items()
                 for pool in pools
             ]
             for nutrient in nutrients
@@ -1017,7 +1021,7 @@ class AnimalModel(
                 pool.decomposed_nutrient_per_area(
                     nutrient=nutrient, grid_cell_area=self.data.grid.cell_area
                 )
-                for cell_id, pools in self.carcass_pools.items()
+                for _, pools in self.carcass_pools.items()
                 for pool in pools
             ]
             for nutrient in nutrients
@@ -1032,25 +1036,28 @@ class AnimalModel(
             for carcass_pool in carcass_pools:
                 carcass_pool.reset()
 
-        # Create the output DataArray for each nutrient
         return {
-            "decomposed_excrement_carbon": self.to_per_day(
-                array(decomposed_excrement["carbon"])
+            "decomposed_excrement_cnp": DataArray(
+                data=stack(
+                    (
+                        self.to_per_day(array(decomposed_excrement["carbon"])),
+                        self.to_per_day(array(decomposed_excrement["nitrogen"])),
+                        self.to_per_day(array(decomposed_excrement["phosphorus"])),
+                    ),
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
-            "decomposed_excrement_nitrogen": self.to_per_day(
-                array(decomposed_excrement["nitrogen"])
-            ),
-            "decomposed_excrement_phosphorus": self.to_per_day(
-                array(decomposed_excrement["phosphorus"])
-            ),
-            "decomposed_carcasses_carbon": self.to_per_day(
-                array(decomposed_carcasses["carbon"])
-            ),
-            "decomposed_carcasses_nitrogen": self.to_per_day(
-                array(decomposed_carcasses["nitrogen"])
-            ),
-            "decomposed_carcasses_phosphorus": self.to_per_day(
-                array(decomposed_carcasses["phosphorus"])
+            "decomposed_carcasses_cnp": DataArray(
+                data=stack(
+                    (
+                        self.to_per_day(array(decomposed_carcasses["carbon"])),
+                        self.to_per_day(array(decomposed_carcasses["nitrogen"])),
+                        self.to_per_day(array(decomposed_carcasses["phosphorus"])),
+                    ),
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
         }
 
@@ -1068,18 +1075,18 @@ class AnimalModel(
                 / self.data.grid.cell_area
             )
 
-    def to_per_day(self, change: NDArray[float32]) -> DataArray:
+    def to_per_day(self, change: NDArray[float32]) -> NDArray[float32]:
         """Method to convert a change caused by the animal model into a per day rate.
 
         Args:
-            change: Change in pool caused by the animal model [kg m^-3].
+            change: Change in pool caused by the animal model [kg m^-2] or [kg m^-3].
 
         Returns:
             Change converted to a per day rate (which are the units the soil model needs
-            it in) units [kg m^-3 day^-1].
+            it in) units [kg m^-2 day^-1] or [kg m^-3 day^-1].
         """
 
-        return DataArray(change / self.update_interval_in_days, dims="cell_id")
+        return change / self.update_interval_in_days
 
     def update_population_densities(self) -> None:
         """Updates the densities for each functional group in each community."""

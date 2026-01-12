@@ -2,7 +2,6 @@
 
 from logging import DEBUG
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -299,23 +298,6 @@ def generate_config_strings(
 
 
 @pytest.fixture
-def fixture_config():
-    """Default configuration object with 2x2 grid."""
-
-    from virtual_ecosystem.core.config import Config
-
-    return Config(cfg_strings=generate_config_strings())
-
-
-@pytest.fixture
-def animal_fixture_config():
-    """Default configuration object with 3x3 grid."""
-    from virtual_ecosystem.core.config import Config
-
-    return Config(cfg_strings=generate_config_strings(nx=3, ny=3))
-
-
-@pytest.fixture
 def fixture_configuration():
     """Default configuration with 2x2 grid."""
     from virtual_ecosystem.core.config_builder import (
@@ -563,7 +545,7 @@ def dummy_climate_data(fixture_core_components):
         "diabatic_correction_momentum_above": 0.1,
         "diabatic_correction_momentum_canopy": 1.0,
         "mean_mixing_length": 1.3,
-        "aerodynamic_resistance_surface": 12.5,
+        "aerodynamic_resistance_soil": 12.5,
         "aerodynamic_resistance_canopy": 12.5,
         "mean_annual_temperature": 20.0,
     }
@@ -822,22 +804,3 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     return dummy_climate_data
-
-
-def patch_run_update(model: type):
-    """Patch the run update check during the init of the model."""
-    return patch(
-        f"{model.__module__}.{model.__name__}._run_update_due_to_static_configuration"
-    )
-
-
-def patch_bypass_setup(model: type):
-    """Patch the bypass setup check during the init of the model."""
-    return patch(
-        f"{model.__module__}.{model.__name__}._bypass_setup_due_to_static_configuration"
-    )
-
-
-def patch_static_config(model: type):
-    """Patch the check static config during the init of the model."""
-    return patch(f"{model.__module__}.{model.__name__}._check_static_config")

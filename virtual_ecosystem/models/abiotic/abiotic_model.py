@@ -37,10 +37,22 @@ class AbioticModel(
     model_update_bounds=("1 hour", "1 month"),
     vars_required_for_init=(
         "air_temperature_ref",
-        "relative_humidity_ref",
-        "leaf_area_index",
+        "atmospheric_co2_ref",
+        "atmospheric_pressure_ref",
         "layer_heights",
+        "leaf_area_index",
+        "mean_annual_temperature",
+        "relative_humidity_ref",
+        "shortwave_absorption",
         "wind_speed_ref",
+        # These four aren't actually required but they _are_ populated by
+        # HydrologyModel.__init__ and the current logic for static model update checking
+        # objects when the data provides _some_ of the variables that a model updates
+        # and that do not appear in this list.
+        "aerodynamic_resistance_canopy",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
+        "density_air",
     ),
     vars_updated=(
         "air_temperature",
@@ -56,7 +68,6 @@ class AbioticModel(
         "specific_heat_air",
         "latent_heat_vapourisation",
         "aerodynamic_resistance_canopy",
-        "aerodynamic_resistance_understorey",
         "net_radiation",
         "conductive_flux_understorey",
     ),
@@ -72,8 +83,10 @@ class AbioticModel(
         "downward_shortwave_radiation",
         "stomatal_conductance",
         "shortwave_absorption",
-        "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_soil",
         "soil_evaporation",
+        "canopy_evaporation",
+        "transpiration",
     ),
     vars_populated_by_init=(
         "soil_temperature",
@@ -94,7 +107,6 @@ class AbioticModel(
     ),
     vars_populated_by_first_update=(
         "longwave_emission",
-        "aerodynamic_resistance_understorey",
         "conductive_flux_understorey",
     ),
 ):
@@ -104,14 +116,20 @@ class AbioticModel(
         data: The data object to be used in the model.
         core_components: The core components used across models.
         model_constants: Set of constants for the abiotic model.
+        pyrealm_core_constants: Additional configuration options to the pyrealm
+                package.
+        bounds: A set of bounds to be applied to abiotic variables.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
+        model_constants: AbioticConstants = AbioticConstants(),
+        pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
+        bounds: AbioticSimpleBounds = AbioticSimpleBounds(),
         static: bool = False,
-        **kwargs: Any,
     ):
         """Abiotic init function.
 
@@ -119,7 +137,7 @@ class AbioticModel(
         handled in :fun:`~virtual_ecosystem.abiotic.abiotic_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
 
         self.model_constants: AbioticConstants
         """Set of constants for the abiotic model."""
@@ -128,6 +146,75 @@ class AbioticModel(
         of the initial state and the full energy balance calculations."""
         self.pyrealm_core_constants: PyrealmCoreConst
         """Pyrealm core constants."""
+
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
+                model_constants=model_constants,
+                pyrealm_core_constants=pyrealm_core_constants,
+                bounds=bounds,
+            )
+
+    def _setup(
+        self,
+        model_constants: AbioticConstants = AbioticConstants(),
+        pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
+        bounds: AbioticSimpleBounds = AbioticSimpleBounds(),
+    ) -> None:
+        """Function to set up the abiotic model.
+
+        This function initializes soil temperature and canopy temperature for all
+        corresponding layers and calculates the reference vapour pressure deficit for
+        all time steps of the simulation. All variables are added directly to the
+        self.data object.
+
+        See __init__ for argument descriptions.
+        """
+
+        self.model_constants = model_constants
+        self.pyrealm_core_constants = pyrealm_core_constants
+        self.bounds = bounds
+
+        # Calculate vapour pressure deficit at reference height for all time steps
+        vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
+            temperature=self.data["air_temperature_ref"],
+            relative_humidity=self.data["relative_humidity_ref"],
+            pyrealm_core_constants=self.pyrealm_core_constants,
+        )
+        self.data["vapour_pressure_deficit_ref"] = (
+            vapour_pressure_and_deficit["vapour_pressure_deficit"]
+        ).rename("vapour_pressure_deficit_ref")
+
+        self.data["vapour_pressure_ref"] = (
+            vapour_pressure_and_deficit["vapour_pressure"]
+        ).rename("vapour_pressure_ref")
+
+        # Generate initial profiles of air temperature [C], relative humidity [-],
+        # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
+        # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
+        initial_microclimate = run_simple_microclimate(
+            data=self.data,
+            layer_structure=self.layer_structure,
+            time_index=0,
+            constants=self.model_constants,
+            core_constants=self.core_constants,
+            bounds=self.bounds,
+        )
+
+        # Generate initial profiles of canopy temperature and heat fluxes from soil and
+        # canopy
+        initial_canopy_and_soil = initialise_canopy_and_soil_fluxes(
+            air_temperature=initial_microclimate["air_temperature"],
+            layer_structure=self.layer_structure,
+            initial_flux_value=self.model_constants.initial_flux_value,
+        )
+
+        # Update data object
+        for output_dict in (
+            initial_microclimate,
+            initial_canopy_and_soil,
+        ):
+            self.data.add_from_dict(output_dict=output_dict)
 
     @classmethod
     def from_config(
@@ -170,76 +257,6 @@ class AbioticModel(
             pyrealm_core_constants=core_configuration.pyrealm.core,
             bounds=model_configuration.bounds,
         )
-
-    def _setup(
-        self,
-        model_constants: AbioticConstants = AbioticConstants(),
-        pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
-        bounds: AbioticSimpleBounds = AbioticSimpleBounds(),
-        **kwargs,
-    ) -> None:
-        """Function to set up the abiotic model.
-
-        This function initializes soil temperature and canopy temperature for all
-        corresponding layers and calculates the reference vapour pressure deficit for
-        all time steps of the simulation. All variables are added directly to the
-        self.data object.
-
-        Args:
-            model_constants: Set of constants for the abiotic model.
-            pyrealm_core_constants: Additional configuration options to the pyrealm
-                package.
-            bounds: A set of bounds to be applied to abiotic variables.
-            **kwargs: Further arguments to the setup method.
-        """
-
-        self.model_constants = model_constants
-        self.pyrealm_core_constants = pyrealm_core_constants
-        self.bounds = bounds
-
-        # create soil temperature array
-        self.data["soil_temperature"] = self.layer_structure.from_template()
-
-        # Calculate vapour pressure deficit at reference height for all time steps
-        vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
-            temperature=self.data["air_temperature_ref"],
-            relative_humidity=self.data["relative_humidity_ref"],
-            pyrealm_core_constants=self.pyrealm_core_constants,
-        )
-        self.data["vapour_pressure_deficit_ref"] = (
-            vapour_pressure_and_deficit["vapour_pressure_deficit"]
-        ).rename("vapour_pressure_deficit_ref")
-
-        self.data["vapour_pressure_ref"] = (
-            vapour_pressure_and_deficit["vapour_pressure"]
-        ).rename("vapour_pressure_ref")
-
-        # Generate initial profiles of air temperature [C], relative humidity [-],
-        # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
-        # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
-        initial_microclimate = run_simple_microclimate(
-            data=self.data,
-            layer_structure=self.layer_structure,
-            time_index=0,
-            constants=self.model_constants,
-            core_constants=self.core_constants,
-            bounds=self.bounds,
-        )
-
-        # Generate initial profiles of canopy temperature and heat fluxes from soil and
-        # canopy
-        initial_canopy_and_soil = initialise_canopy_and_soil_fluxes(
-            air_temperature=initial_microclimate["air_temperature"],
-            layer_structure=self.layer_structure,
-            initial_flux_value=self.model_constants.initial_flux_value,
-        )
-
-        # Update data object
-        for output_dict in (
-            initial_microclimate,
-            initial_canopy_and_soil,
-        ):
-            self.data.add_from_dict(output_dict=output_dict)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""

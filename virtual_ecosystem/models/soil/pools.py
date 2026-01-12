@@ -658,6 +658,12 @@ class SoilPools:
             + maom_desorption_to_lmwc
             + necromass_decay_to_lmwc
             + fungal_fruiting_body_decay["carbon"]
+            + self.to_per_volume(
+                self.data["decomposed_excrement_cnp"].loc[:, "C"].to_numpy()
+            )
+            + self.to_per_volume(
+                self.data["decomposed_carcasses_cnp"].loc[:, "C"].to_numpy()
+            )
             - microbial_changes.lmwc_uptake
             - lmwc_sorption_to_maom
             - nutrient_removal_by_water.lmwc
@@ -716,6 +722,12 @@ class SoilPools:
             + necromass_outflows["decay_nitrogen"]
             + nutrient_transfers_maom_to_lmwc["nitrogen"]
             + fungal_fruiting_body_decay["nitrogen"]
+            + self.to_per_volume(
+                self.data["decomposed_excrement_cnp"].loc[:, "N"].to_numpy()
+            )
+            + self.to_per_volume(
+                self.data["decomposed_carcasses_cnp"].loc[:, "N"].to_numpy()
+            )
             - microbial_changes.don_uptake
             - nutrient_removal_by_water.don
         )
@@ -759,6 +771,12 @@ class SoilPools:
             + necromass_outflows["decay_phosphorus"]
             + nutrient_transfers_maom_to_lmwc["phosphorus"]
             + fungal_fruiting_body_decay["phosphorus"]
+            + self.to_per_volume(
+                self.data["decomposed_excrement_cnp"].loc[:, "P"].to_numpy()
+            )
+            + self.to_per_volume(
+                self.data["decomposed_carcasses_cnp"].loc[:, "P"].to_numpy()
+            )
             - microbial_changes.dop_uptake
             - nutrient_removal_by_water.dop
         )
@@ -1371,7 +1389,11 @@ def calculate_maintenance_biomass_synthesis(
         reference_temperature=microbial_group.reference_temperature,
     )
 
-    return microbial_group.turnover_rate * temp_factor * microbe_pool_size
+    return np.where(
+        microbe_pool_size >= 0.0,
+        microbial_group.turnover_rate * temp_factor * microbe_pool_size,
+        0.0,
+    )
 
 
 def calculate_enzyme_turnover(
