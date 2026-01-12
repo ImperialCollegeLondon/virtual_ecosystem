@@ -26,7 +26,7 @@ from math import ceil, sqrt
 from random import choice
 from typing import Any, cast
 
-from numpy import array, float32, inf, random, timedelta64, where, zeros
+from numpy import array, float32, inf, random, stack, timedelta64, where, zeros
 from numpy.typing import NDArray
 from xarray import DataArray
 
@@ -95,12 +95,8 @@ class AnimalModel(
         "production_of_fungal_fruiting_bodies",
     ),
     vars_populated_by_first_update=(
-        "decomposed_excrement_carbon",
-        "decomposed_excrement_nitrogen",
-        "decomposed_excrement_phosphorus",
-        "decomposed_carcasses_carbon",
-        "decomposed_carcasses_nitrogen",
-        "decomposed_carcasses_phosphorus",
+        "decomposed_excrement_cnp",
+        "decomposed_carcasses_cnp",
         "herbivory_waste_leaf_carbon",
         "herbivory_waste_leaf_nitrogen",
         "herbivory_waste_leaf_phosphorus",
@@ -120,12 +116,8 @@ class AnimalModel(
         "decay_of_fungal_fruiting_bodies",
     ),
     vars_updated=(
-        "decomposed_excrement_carbon",
-        "decomposed_excrement_nitrogen",
-        "decomposed_excrement_phosphorus",
-        "decomposed_carcasses_carbon",
-        "decomposed_carcasses_nitrogen",
-        "decomposed_carcasses_phosphorus",
+        "decomposed_excrement_cnp",
+        "decomposed_carcasses_cnp",
         "herbivory_waste_leaf_carbon",
         "herbivory_waste_leaf_nitrogen",
         "herbivory_waste_leaf_phosphorus",
@@ -880,22 +872,26 @@ class AnimalModel(
         )
 
         return {
-            "animal_pom_consumption_carbon": self.to_per_day(pom_consumption_carbon),
-            "animal_pom_consumption_nitrogen": self.to_per_day(
-                pom_consumption_nitrogen
+            "animal_pom_consumption_carbon": DataArray(
+                self.to_per_day(pom_consumption_carbon), dims="cell_id"
             ),
-            "animal_pom_consumption_phosphorus": self.to_per_day(
-                pom_consumption_phosphorus
+            "animal_pom_consumption_nitrogen": DataArray(
+                self.to_per_day(pom_consumption_nitrogen), dims="cell_id"
             ),
-            "animal_bacteria_consumption": self.to_per_day(bacteria_consumption),
-            "animal_saprotrophic_fungi_consumption": self.to_per_day(
-                saprotrophic_fungi_consumption
+            "animal_pom_consumption_phosphorus": DataArray(
+                self.to_per_day(pom_consumption_phosphorus), dims="cell_id"
             ),
-            "animal_ectomycorrhiza_consumption": self.to_per_day(
-                ectomycorrhiza_consumption
+            "animal_bacteria_consumption": DataArray(
+                self.to_per_day(bacteria_consumption), dims="cell_id"
             ),
-            "animal_arbuscular_mycorrhiza_consumption": self.to_per_day(
-                arbuscular_mycorrhiza_consumption
+            "animal_saprotrophic_fungi_consumption": DataArray(
+                self.to_per_day(saprotrophic_fungi_consumption), dims="cell_id"
+            ),
+            "animal_ectomycorrhiza_consumption": DataArray(
+                self.to_per_day(ectomycorrhiza_consumption), dims="cell_id"
+            ),
+            "animal_arbuscular_mycorrhiza_consumption": DataArray(
+                self.to_per_day(arbuscular_mycorrhiza_consumption), dims="cell_id"
             ),
         }
 
@@ -1014,7 +1010,7 @@ class AnimalModel(
                 pool.decomposed_nutrient_per_area(
                     nutrient=nutrient, grid_cell_area=self.data.grid.cell_area
                 )
-                for cell_id, pools in self.excrement_pools.items()
+                for _, pools in self.excrement_pools.items()
                 for pool in pools
             ]
             for nutrient in nutrients
@@ -1025,7 +1021,7 @@ class AnimalModel(
                 pool.decomposed_nutrient_per_area(
                     nutrient=nutrient, grid_cell_area=self.data.grid.cell_area
                 )
-                for cell_id, pools in self.carcass_pools.items()
+                for _, pools in self.carcass_pools.items()
                 for pool in pools
             ]
             for nutrient in nutrients
@@ -1040,25 +1036,28 @@ class AnimalModel(
             for carcass_pool in carcass_pools:
                 carcass_pool.reset()
 
-        # Create the output DataArray for each nutrient
         return {
-            "decomposed_excrement_carbon": self.to_per_day(
-                array(decomposed_excrement["carbon"])
+            "decomposed_excrement_cnp": DataArray(
+                data=stack(
+                    (
+                        self.to_per_day(array(decomposed_excrement["carbon"])),
+                        self.to_per_day(array(decomposed_excrement["nitrogen"])),
+                        self.to_per_day(array(decomposed_excrement["phosphorus"])),
+                    ),
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
-            "decomposed_excrement_nitrogen": self.to_per_day(
-                array(decomposed_excrement["nitrogen"])
-            ),
-            "decomposed_excrement_phosphorus": self.to_per_day(
-                array(decomposed_excrement["phosphorus"])
-            ),
-            "decomposed_carcasses_carbon": self.to_per_day(
-                array(decomposed_carcasses["carbon"])
-            ),
-            "decomposed_carcasses_nitrogen": self.to_per_day(
-                array(decomposed_carcasses["nitrogen"])
-            ),
-            "decomposed_carcasses_phosphorus": self.to_per_day(
-                array(decomposed_carcasses["phosphorus"])
+            "decomposed_carcasses_cnp": DataArray(
+                data=stack(
+                    (
+                        self.to_per_day(array(decomposed_carcasses["carbon"])),
+                        self.to_per_day(array(decomposed_carcasses["nitrogen"])),
+                        self.to_per_day(array(decomposed_carcasses["phosphorus"])),
+                    ),
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
         }
 
@@ -1076,18 +1075,18 @@ class AnimalModel(
                 / self.data.grid.cell_area
             )
 
-    def to_per_day(self, change: NDArray[float32]) -> DataArray:
+    def to_per_day(self, change: NDArray[float32]) -> NDArray[float32]:
         """Method to convert a change caused by the animal model into a per day rate.
 
         Args:
-            change: Change in pool caused by the animal model [kg m^-3].
+            change: Change in pool caused by the animal model [kg m^-2] or [kg m^-3].
 
         Returns:
             Change converted to a per day rate (which are the units the soil model needs
-            it in) units [kg m^-3 day^-1].
+            it in) units [kg m^-2 day^-1] or [kg m^-3 day^-1].
         """
 
-        return DataArray(change / self.update_interval_in_days, dims="cell_id")
+        return change / self.update_interval_in_days
 
     def update_population_densities(self) -> None:
         """Updates the densities for each functional group in each community."""
