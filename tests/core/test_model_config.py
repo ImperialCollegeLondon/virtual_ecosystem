@@ -166,6 +166,7 @@ def test_ModelTiming(config, output, raises, err_msg):
             model_timing.update_interval_quantity
             == output["update_interval_as_quantity"]
         )
+        assert len(model_timing.update_dates) == model_timing.n_updates
         return
 
     assert excep.value.errors()[0]["msg"] == err_msg
