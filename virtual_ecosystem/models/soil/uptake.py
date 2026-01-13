@@ -604,11 +604,9 @@ def calculate_actual_carbon_gain_symbiotic(
     return np.where(
         carbon_gain > 0,
         carbon_gain,
-        np.minimum.reduce(
-            [
-                functional_group.c_n_ratio * nitrogen_gain_max,
-                functional_group.c_p_ratio * phosphorus_gain_max,
-            ]
+        np.minimum(
+            functional_group.c_n_ratio * nitrogen_gain_max,
+            functional_group.c_p_ratio * phosphorus_gain_max,
         ),
     )
 

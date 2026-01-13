@@ -50,7 +50,7 @@ def test_calculate_all_pool_updates(
     )
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.12423277, 0.1782469, 0.24889312, 0.04461268],
+        "soil_c_pool_lmwc": [0.12553893, 0.18024246, 0.25121148, 0.07342868],
         "soil_c_pool_maom": [3.7894322e-2, 4.8705495e-3, 5.67937268e-2, 7.27579158e-2],
         "soil_c_pool_bacteria": [
             -0.048350513,
@@ -92,13 +92,13 @@ def test_calculate_all_pool_updates(
             -4.98421451e-05,
             -3.60369242e-05,
         ],
-        "soil_n_pool_don": [0.00165842, 0.00749503, 0.00530508, 0.00345491],
+        "soil_n_pool_don": [0.001672352, 0.00819163, 0.0053656796, 0.00547371],
         "soil_n_pool_particulate": [-8.93527e-5, 5.102785e-5, 9.028158e-5, 5.163279e-6],
         "soil_n_pool_necromass": [7.37406e-3, -1.87488e-3, 4.96976e-3, -1.53633e-7],
         "soil_n_pool_maom": [1.183733e-3, 1.082948e-2, 1.343197e-2, 7.72882e-3],
         "soil_n_pool_ammonium": [0.00014092, 0.00838896, -0.00018991, -0.00054167],
         "soil_n_pool_nitrate": [-0.00564313, -0.00582794, -0.00202432, -0.00163434],
-        "soil_p_pool_dop": [0.00022033, 0.00013363, 0.0001604, 0.00021956],
+        "soil_p_pool_dop": [0.0002366, 0.000164082, 0.000205224, 0.000388476],
         "soil_p_pool_particulate": [6.804384e-6, -6.47598e-6, -9.0058e-7, 1.583258e-7],
         "soil_p_pool_necromass": [0.00225261, 0.00282114, 0.00596048, 0.0014114],
         "soil_p_pool_maom": [5.47518e-4, -3.2943e-5, 4.6272e-4, 3.0915e-4],
@@ -537,6 +537,30 @@ def test_calculate_maintenance_biomass_synthesis(
 
     actual_loss = calculate_maintenance_biomass_synthesis(
         microbe_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
+        soil_temp=averaged_soil_temp,
+        microbial_group=functional_groups["bacteria"],
+    )
+
+    assert np.allclose(actual_loss, expected_loss)
+
+
+def test_calculate_maintenance_biomass_synthesis_negative(
+    dummy_carbon_data, averaged_soil_temp, functional_groups
+):
+    """Check maintenance biomass synthesis handles negative populations correctly."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_maintenance_biomass_synthesis,
+    )
+
+    # Replace two values with negative biomasses to check that negatives are handled
+    microbe_pool_size = dummy_carbon_data["soil_c_pool_bacteria"]
+    microbe_pool_size[1] = -0.456
+    microbe_pool_size[3] = -1.33e-3
+
+    expected_loss = [0.04254605, 0.0, 0.08862048, 0.0]
+
+    actual_loss = calculate_maintenance_biomass_synthesis(
+        microbe_pool_size=microbe_pool_size,
         soil_temp=averaged_soil_temp,
         microbial_group=functional_groups["bacteria"],
     )

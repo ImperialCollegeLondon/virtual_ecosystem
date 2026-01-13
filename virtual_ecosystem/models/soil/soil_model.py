@@ -163,6 +163,8 @@ class SoilModel(
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
         "decay_of_fungal_fruiting_bodies",
+        "decomposed_excrement_cnp",
+        "decomposed_carcasses_cnp",
     ),
     vars_updated=(
         "soil_c_pool_maom",
@@ -209,14 +211,28 @@ class SoilModel(
     can be updated by numerical integration. At present the underlying model this class
     wraps is quite simple (i.e. four soil carbon pools), but this will get more complex
     as the Virtual Ecosystem develops.
+
+    Args:
+        data: The data object to be used in the model.
+        core_components: The core components used across models.
+        microbial_groups: A dictionary of soil microbial group constant classes.
+        enzyme_classes: A dictionary of soil enzyme classes.
+        soil_moisture_saturation: An initial value for soil moisture saturation
+        soil_moisture_residual: An initial value for soil moisture residual
+        model_constants: Set of constants for the soil model.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
+        microbial_groups: dict[str, MicrobialGroupConstants],
+        enzyme_classes: dict[str, SoilEnzymeClass],
+        soil_moisture_saturation: float,
+        soil_moisture_residual: float,
+        model_constants: SoilConstants = SoilConstants(),
         static: bool = False,
-        **kwargs: Any,
     ):
         """Soil init function.
 
@@ -224,12 +240,7 @@ class SoilModel(
         handled in :fun:`~virtual_ecosystem.soil.soil_model._setup`.
         """
 
-        super().__init__(
-            data=data,
-            core_components=core_components,
-            static=static,
-            **kwargs,
-        )
+        super().__init__(data=data, core_components=core_components, static=static)
 
         self.model_constants: SoilConstants
         """Set of constants for the soil model."""
@@ -240,6 +251,66 @@ class SoilModel(
         These variables are intermediate values that it does not make sense to store in
         the data object.
         """
+
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
+                model_constants=model_constants,
+                microbial_groups=microbial_groups,
+                enzyme_classes=enzyme_classes,
+                soil_moisture_saturation=soil_moisture_saturation,
+                soil_moisture_residual=soil_moisture_residual,
+            )
+
+    def _setup(
+        self,
+        model_constants: SoilConstants,
+        microbial_groups: dict[str, MicrobialGroupConstants],
+        enzyme_classes: dict[str, SoilEnzymeClass],
+        soil_moisture_saturation: float,
+        soil_moisture_residual: float,
+    ) -> None:
+        """Function to setup up the soil model.
+
+        See __init__ for argument descriptions.
+        """
+
+        self.model_constants = model_constants
+
+        # Store microbial functional groups and enzyme classes needed by the model
+        self.microbial_groups = microbial_groups
+        self.enzyme_classes = enzyme_classes
+
+        # Store the required hydrology constants
+        self.soil_moisture_saturation = soil_moisture_saturation
+        self.soil_moisture_residual = soil_moisture_residual
+
+        # Calculate dissolved amounts of each inorganic nutrient
+        dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
+        # Update the data object with these pools
+        self.data.add_from_dict(dissolved_nutrient_pools)
+
+        # Calculate the limit on what the plants can take from the symbiotic microbes
+        symbiotic_supply_limits = self.calculate_symbiotic_supply_limits(init=True)
+        # Add these limits to the data object
+        self.data.add_from_dict(symbiotic_supply_limits)
+
+        # The initial production of fungal fruiting bodies is set to zero, because the
+        # initial density estimate implicitly contains the initial production
+        fungal_fruiting_body_production = {
+            "production_of_fungal_fruiting_bodies": DataArray(
+                np.zeros(self.data.grid.n_cells), dims="cell_id"
+            )
+        }
+        self.data.add_from_dict(fungal_fruiting_body_production)
+
+        # Check that soil pool data is appropriately bounded
+        if not self._all_pools_positive():
+            to_raise = InitialisationError(
+                "Initial carbon pools contain at least one negative value!"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
 
     @classmethod
     def from_config(
@@ -290,7 +361,6 @@ class SoilModel(
 
         return cls(
             data=data,
-            configuration=configuration,
             core_components=core_components,
             static=soil_configuration.static,
             model_constants=soil_configuration.constants,
@@ -299,54 +369,6 @@ class SoilModel(
             soil_moisture_saturation=hydrology_configuration.constants.soil_moisture_saturation,
             soil_moisture_residual=hydrology_configuration.constants.soil_moisture_residual,
         )
-
-    def _setup(
-        self,
-        model_constants: SoilConstants,
-        microbial_groups: dict[str, MicrobialGroupConstants],
-        enzyme_classes: dict[str, SoilEnzymeClass],
-        soil_moisture_saturation: float,
-        soil_moisture_residual: float,
-        **kwargs: Any,
-    ) -> None:
-        """Function to setup up the soil model."""
-
-        self.model_constants = model_constants
-
-        # Store microbial functional groups and enzyme classes needed by the model
-        self.microbial_groups = microbial_groups
-        self.enzyme_classes = enzyme_classes
-
-        # Store the required hydrology constants
-        self.soil_moisture_saturation = soil_moisture_saturation
-        self.soil_moisture_residual = soil_moisture_residual
-
-        # Calculate dissolved amounts of each inorganic nutrient
-        dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
-        # Update the data object with these pools
-        self.data.add_from_dict(dissolved_nutrient_pools)
-
-        # Calculate the limit on what the plants can take from the symbiotic microbes
-        symbiotic_supply_limits = self.calculate_symbiotic_supply_limits(init=True)
-        # Add these limits to the data object
-        self.data.add_from_dict(symbiotic_supply_limits)
-
-        # The initial production of fungal fruiting bodies is set to zero, because the
-        # initial density estimate implicitly contains the initial production
-        fungal_fruiting_body_production = {
-            "production_of_fungal_fruiting_bodies": DataArray(
-                np.zeros(self.data.grid.n_cells), dims="cell_id"
-            )
-        }
-        self.data.add_from_dict(fungal_fruiting_body_production)
-
-        # Check that soil pool data is appropriately bounded
-        if not self._all_pools_positive():
-            to_raise = InitialisationError(
-                "Initial carbon pools contain at least one negative value!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""

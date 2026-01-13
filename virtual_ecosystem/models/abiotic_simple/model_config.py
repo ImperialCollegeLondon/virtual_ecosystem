@@ -30,10 +30,8 @@ class AbioticSharedConstants(Configuration):
 class AbioticSimpleConstants(AbioticSharedConstants):
     """Dataclass to store all constants for the `abiotic_simple` model."""
 
-    initial_net_radiation: float = 10.0
-    """Initial value for net radiation per layer, W m-2.
-    
-    TODO This is currently set to an arbitrary value."""
+    placeholder: float = 10.0
+    """Placeholder value for test."""
 
 
 class AbioticSimpleBounds(Configuration):

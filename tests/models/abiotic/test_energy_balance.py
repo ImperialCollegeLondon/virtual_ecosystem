@@ -424,7 +424,10 @@ def test_update_humidity_vpd(
 
     # Run function
     result = update_humidity_vpd(
-        evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
+        canopy_evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
+        understorey_evapotranspiration=evapotranspiration[
+            lystr.index_surface_scalar
+        ].to_numpy(),
         soil_evaporation=data["soil_evaporation"].to_numpy(),
         saturated_vapour_pressure=saturated_vapour_pressure,
         specific_humidity=specific_humidity,

@@ -61,8 +61,11 @@ class HydrologyModel(
     vars_required_for_init=(
         "layer_heights",
         "elevation",
+        "air_temperature_ref",
+        "atmospheric_pressure_ref",
     ),
     vars_updated=(
+        "interception",
         "canopy_evaporation",
         "precipitation_surface",
         "soil_moisture",
@@ -78,7 +81,7 @@ class HydrologyModel(
         "subsurface_flow",
         "baseflow",
         "bypass_flow",
-        "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_soil",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -101,7 +104,7 @@ class HydrologyModel(
         "soil_moisture",
         "matric_potential",
         "groundwater_storage",
-        "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_soil",
         "aerodynamic_resistance_canopy",
         "specific_heat_air",
         "stomatal_conductance",
@@ -109,6 +112,7 @@ class HydrologyModel(
         "density_air",
     ),
     vars_populated_by_first_update=(
+        "interception",
         "precipitation_surface",
         "surface_runoff",
         "bypass_flow",
@@ -134,18 +138,22 @@ class HydrologyModel(
             0 and 1) for all layers and grid cells identical. This will be converted to
             groundwater storage in mm.
         model_constants: Set of constants for the hydrology model.
-
-    Raises:
-        InitialisationError: when soil moisture or saturation parameters are not numeric
-            or out of [0, 1] bounds.
+        abiotic_constants: Some abiotic constants are required in the hydrology
+            model.
+        pyrealm_core_constants: Core constants for the pyrealm package.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
+        initial_soil_moisture: float,
+        initial_groundwater_saturation: float,
+        model_constants: HydrologyConstants = HydrologyConstants(),
+        abiotic_constants: AbioticConstants = AbioticConstants(),
+        pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
         static: bool = False,
-        **kwargs: Any,
     ):
         """Hydrology init function.
 
@@ -153,7 +161,7 @@ class HydrologyModel(
         handled in :fun:`~virtual_ecosystem.hydrology.hydrology_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
 
         self.initial_soil_moisture: float
         """Initial volumetric relative water content [unitless] for all layers and grid
@@ -171,59 +179,15 @@ class HydrologyModel(
         self.surface_layer_index: int
         """Surface layer index."""
 
-    @classmethod
-    def from_config(
-        cls,
-        data: Data,
-        configuration: CompiledConfiguration,
-        core_components: CoreComponents,
-    ) -> HydrologyModel:
-        """Factory function to initialise the hydrology model from configuration.
-
-        This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance an error is raised.
-
-        Args:
-            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-            configuration: A validated Virtual Ecosystem model configuration object.
-            core_components: The core components used across models.
-        """
-
-        # Extract the validated hydrology and abiotic configuration from the complete
-        # compiled configuration.
-        hydrology_configuration: HydrologyConfiguration = (
-            configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
-        )
-
-        # Extract the pyrealm configuration from the core constants
-        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
-            "core", CoreConfiguration
-        )
-
-        # The abiotic constants are currently hardcoded here - the issue is that the
-        # model relies on two abiotic constants:
-        #         abiotic_constants.latent_heat_vap_equ_factors
-        #         abiotic_constants.saturated_pressure_slope_parameters
-        # These need to be inherited properly from the configuration but at the moment
-        # we're using abiotic_simple in testing and it isn't a simple swap. So, leaving
-        # this hardcoded for now.
-        abiotic_constants: AbioticConstants = AbioticConstants()
-
-        LOGGER.info(
-            "Information required to initialise the hydrology model successfully "
-            "extracted."
-        )
-        return cls(
-            data=data,
-            core_components=core_components,
-            static=hydrology_configuration.static,
-            initial_soil_moisture=hydrology_configuration.initial_soil_moisture,
-            initial_groundwater_saturation=hydrology_configuration.initial_groundwater_saturation,
-            model_constants=hydrology_configuration.constants,
-            abiotic_constants=abiotic_constants,
-            pyrealm_core_constants=core_configuration.pyrealm.core,
-        )
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
+                initial_soil_moisture=initial_soil_moisture,
+                initial_groundwater_saturation=initial_groundwater_saturation,
+                model_constants=model_constants,
+                abiotic_constants=abiotic_constants,
+                pyrealm_core_constants=pyrealm_core_constants,
+            )
 
     def _setup(
         self,
@@ -232,7 +196,6 @@ class HydrologyModel(
         model_constants: HydrologyConstants = HydrologyConstants(),
         abiotic_constants: AbioticConstants = AbioticConstants(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
-        **kwargs: Any,
     ) -> None:
         """Function to set up the hydrology model.
 
@@ -246,18 +209,7 @@ class HydrologyModel(
         atmospheric variables are initialised to ensure they are available for update
         when the Virtual Ecosystem is run with the `abiotic_simple` model.
 
-        Args:
-            initial_soil_moisture: The initial volumetric relative water content
-                [unitless] for all layers. This will be converted to soil moisture in
-                mm.
-            initial_groundwater_saturation: Initial level of groundwater saturation
-                (between 0 and 1) for all layers and grid cells identical. This will be
-                converted to groundwater storage in mm.
-            model_constants: Set of constants for the hydrology model.
-            abiotic_constants: Some abiotic constants are required in the hydrology
-                model.
-            pyrealm_core_constants: Core constants for the pyrealm package.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         self.initial_soil_moisture = initial_soil_moisture
@@ -336,6 +288,60 @@ class HydrologyModel(
         )
         self.data.add_from_dict(output_dict=atmosphere_setup)
 
+    @classmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+    ) -> HydrologyModel:
+        """Factory function to initialise the hydrology model from configuration.
+
+        This function unpacks the relevant information from the configuration file, and
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance an error is raised.
+
+        Args:
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
+            core_components: The core components used across models.
+        """
+
+        # Extract the validated hydrology and abiotic configuration from the complete
+        # compiled configuration.
+        hydrology_configuration: HydrologyConfiguration = (
+            configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
+        )
+
+        # Extract the pyrealm configuration from the core constants
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+
+        # The abiotic constants are currently hardcoded here - the issue is that the
+        # model relies on two abiotic constants:
+        #         abiotic_constants.latent_heat_vap_equ_factors
+        #         abiotic_constants.saturated_pressure_slope_parameters
+        # These need to be inherited properly from the configuration but at the moment
+        # we're using abiotic_simple in testing and it isn't a simple swap. So, leaving
+        # this hardcoded for now.
+        abiotic_constants: AbioticConstants = AbioticConstants()
+
+        LOGGER.info(
+            "Information required to initialise the hydrology model successfully "
+            "extracted."
+        )
+        return cls(
+            data=data,
+            core_components=core_components,
+            static=hydrology_configuration.static,
+            initial_soil_moisture=hydrology_configuration.initial_soil_moisture,
+            initial_groundwater_saturation=hydrology_configuration.initial_groundwater_saturation,
+            model_constants=hydrology_configuration.constants,
+            abiotic_constants=abiotic_constants,
+            pyrealm_core_constants=core_configuration.pyrealm.core,
+        )
+
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
@@ -345,6 +351,7 @@ class HydrologyModel(
         This function calculates the main hydrological components of the Virtual
         Ecosystem and updates the following variables in the `data` object:
 
+        * interception, [mm]
         * canopy_evaporation, [mm]
         * precipitation_surface, [mm]
         * soil_moisture, [mm]
@@ -361,7 +368,7 @@ class HydrologyModel(
         * total_runoff, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
-        * aerodynamic_resistance_surface, [s m-1]
+        * aerodynamic_resistance_soil, [s m-1]
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the
@@ -424,7 +431,10 @@ class HydrologyModel(
         * layer heights, [m]
         * Soil moisture (previous time step), [mm]
         * transpiration (current time step), [mm]
-        * aerodynamic_resistance_canopy, [s m-1]
+        * density of air, [kg m-3]
+        * specific heat of air, [kJ kg-1 K-1]
+        * stomatal conductance, [mol m-2 s-1]
+        * aerodynamic resistance canopy, [s m-1]
         * net radiation, [W m-2]
 
         and a number of parameters that as described in detail in
@@ -472,22 +482,23 @@ class HydrologyModel(
         for day in np.arange(days):
             # Interception of water in canopy, [mm]
             interception = above_ground.calculate_interception(
-                leaf_area_index=hydro_input["leaf_area_index_sum"],
+                leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 precipitation=hydro_input["current_precipitation"][:, day],
                 intercept_parameters=self.model_constants.intercept_parameters,
                 veg_density_param=self.model_constants.veg_density_param,
             )
+            daily_lists["interception"].append(interception)
 
-            # Calculate canopy evaporation and leaf drainage, [mm day-1]
-            canopy_water_balance = above_ground.calculate_canopy_evaporation(
+            # Calculate canopy evaporation, [mm day-1]
+            canopy_evaporation = above_ground.calculate_canopy_evaporation(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 interception=interception,
-                net_radiation=self.data["net_radiation"].to_numpy() / days,
+                net_radiation=self.data["net_radiation"].to_numpy(),
                 vapour_pressure_deficit=self.data["vapour_pressure_deficit"].to_numpy(),
                 air_temperature=self.data["air_temperature"].to_numpy(),
                 density_air_kg=self.data["density_air"].to_numpy(),
                 specific_heat_air=self.data["specific_heat_air"].to_numpy(),
-                aerodynamic_resistance=self.data[
+                aerodynamic_resistance_canopy=self.data[
                     "aerodynamic_resistance_canopy"
                 ].to_numpy(),
                 stomatal_resistance=(
@@ -502,25 +513,20 @@ class HydrologyModel(
                     self.abiotic_constants.saturated_pressure_slope_parameters
                 ),
                 time_interval=self.core_constants.seconds_to_day,
-                intercept_residence_time=self.model_constants.intercept_residence_time,
                 extinction_coefficient_global_radiation=(
                     self.model_constants.extinction_coefficient_global_radiation
                 ),
             )
-            daily_lists["canopy_evaporation"].append(
-                canopy_water_balance["canopy_evaporation"]
-            )
+            daily_lists["canopy_evaporation"].append(canopy_evaporation)
+
             # Precipitation that reaches the surface per day, [mm]
-            precipitation_surface = (
-                hydro_input["current_precipitation"][:, day]
-                - interception
-                + canopy_water_balance["leaf_drainage"]
-            )
+            precipitation_surface = hydro_input["current_precipitation"][
+                :, day
+            ] - np.nansum(canopy_evaporation, axis=0)
 
             hydrology_tools.check_precipitation_surface(
                 precipitation_surface=precipitation_surface
             )
-
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
             # Calculate daily surface runoff of each grid cell, [mm]
@@ -587,8 +593,8 @@ class HydrologyModel(
                 pyrealm_core_constants=self.pyrealm_core_constants,
             )
             daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
-            daily_lists["aerodynamic_resistance_surface"].append(
-                soil_evaporation["aerodynamic_resistance_surface"]
+            daily_lists["aerodynamic_resistance_soil"].append(
+                soil_evaporation["aerodynamic_resistance_soil"]
             )
 
             # Calculate top soil moisture after evap and combine with lower layers, [mm]
@@ -751,12 +757,17 @@ class HydrologyModel(
                 coords={"cell_id": self.grid.cell_id},
             )
 
-        soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
-        soil_hydrology["canopy_evaporation"][:,] = np.nansum(
-            daily_lists["canopy_evaporation"], axis=0
-        )
+        # Canopy evaporation/intercept is accumulated over days, [mm]
+        for var in ["canopy_evaporation", "interception"]:
+            soil_hydrology[var] = self.layer_structure.from_template()
+            soil_hydrology[var][:,] = np.where(
+                np.isnan(self.data["leaf_area_index"]),
+                np.nan,
+                np.nansum(daily_lists[var], axis=0),
+            )
 
-        for var in ["river_discharge_rate", "aerodynamic_resistance_surface"]:
+        # Calculate monthly mean values for river discharge rate and soil resistance
+        for var in ["river_discharge_rate", "aerodynamic_resistance_soil"]:
             soil_hydrology[var] = DataArray(
                 np.mean(np.stack(daily_lists[var], axis=1), axis=1),
                 dims="cell_id",

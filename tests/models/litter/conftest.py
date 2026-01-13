@@ -4,9 +4,23 @@ import pytest
 
 
 @pytest.fixture
-def fixture_litter_model(dummy_litter_data):
+def fixture_litter_init_data(dummy_litter_data):
+    """Returns a reduced dataset suitable for initialising an Abiotic Model."""
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
+
+    # Reduce to data to initialise model
+    init_data = Data(grid=dummy_litter_data.grid)
+    for var in LitterModel.vars_required_for_init:
+        init_data[var] = dummy_litter_data[var]
+
+    return init_data
+
+
+@pytest.fixture
+def fixture_litter_model(fixture_litter_init_data):
     """Create a litter model fixture based on the dummy litter data."""
-    from tests.conftest import patch_bypass_setup, patch_run_update
+
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
@@ -15,23 +29,20 @@ def fixture_litter_model(dummy_litter_data):
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     # Build the config object
-    cfg_strings = "[core]\n[core.timing]\nupdate_interval = '48 hours'\n[litter]\n"
+    cfg_strings = (
+        "[core]\n[core.grid]\ncell_nx = 2\ncell_ny = 2\n"
+        "[core.timing]\nupdate_interval = '48 hours'\n[litter]\n"
+    )
 
     config_data = ConfigurationLoader(cfg_strings=cfg_strings)
     configuration = generate_configuration(config_data.data)
-
     core_components = CoreComponents(configuration.core)
 
-    with (
-        patch_run_update(LitterModel),
-        patch_bypass_setup(LitterModel) as mock_bypass_setup,
-    ):
-        mock_bypass_setup.return_value = False
-        return LitterModel.from_config(
-            data=dummy_litter_data,
-            configuration=configuration,
-            core_components=core_components,
-        )
+    return LitterModel.from_config(
+        data=fixture_litter_init_data,
+        configuration=configuration,
+        core_components=core_components,
+    )
 
 
 @pytest.fixture

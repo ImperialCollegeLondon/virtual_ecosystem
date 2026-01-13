@@ -470,14 +470,16 @@ class Subcanopy:
             self.data["cell_id"], self.model_constants.subcanopy_seedbank_lignin
         )
 
-        # Write nutrient uptakes and transpiration - one m3 is 1000 mm/m2
+        # Write nutrient uptakes
         for name, values in (
             ("subcanopy_ammonium_uptake", ammonium_uptake_kg),
             ("subcanopy_nitrate_uptake", nitrate_uptake_kg),
             ("subcanopy_phosphorus_uptake", phosphorus_uptake_kg),
-            ("subcanopy_transpiration", subcanopy_volume_m3 / 1000),
         ):
             self.data[name] = DataArray(values, coords=coords)
+
+        # Write transpiration
+        self.data["transpiration"][self.layer_index] = subcanopy_volume_m3 / 1000
 
     def set_light_capture(self, below_canopy_light_fraction: NDArray) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.
