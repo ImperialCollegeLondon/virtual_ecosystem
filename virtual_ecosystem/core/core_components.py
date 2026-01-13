@@ -79,6 +79,8 @@ class ModelTiming:
     """The difference between start and calculated end time."""
     run_length: np.timedelta64 = field(init=False)
     """The configured run length."""
+    update_datestamps: NDArray[np.datetime64] = field(init=False)
+    """The dates each of the updates TODO: temporary fix."""
     update_interval: np.timedelta64 = field(init=False)
     """The configured update interval."""
     run_length_quantity: pint.Quantity = field(init=False)
@@ -121,6 +123,14 @@ class ModelTiming:
         self.reconciled_run_length = self.end_time - self.start_time
 
         self.n_updates = int((self.end_time - self.start_time) / self.update_interval)
+
+        # Calculate the approximate dates of these updates
+        # TODO: This is a temporary fix to provide actual data to the data science team
+        # alongside the time index: see
+        # https://github.com/ImperialCollegeLondon/virtual_ecosystem/discussions/1246
+        self.update_datestamps = np.arange(
+            self.start_time, self.end_time, self.update_interval
+        ).astype("datetime64[D]")
 
         # Calculate the number of updates in one year
         # TODO - this is not calendar aware - variable length months and leap years.
