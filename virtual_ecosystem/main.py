@@ -198,10 +198,13 @@ def ve_run(
     # Create output folder if it does not exist
     os.makedirs(output_config.out_path, exist_ok=True)
 
-    # Save the initial state of the model
+    # Save the initial state of the model - all input variables with no selection using
+    # variables_to_save
     if output_config.save_initial_state:
         data.save_to_netcdf(
-            output_config.out_path / output_config.out_initial_file_name
+            output_file_path=output_config.out_path
+            / output_config.out_initial_file_name,
+            timing=core_components.model_timing,
         )
         if progress > Progress.MINIMAL:
             print("* Saved model initial state")
@@ -255,6 +258,7 @@ def ve_run(
                 variables_to_save=variables_to_save,
                 output_directory_path=continuous_output_dir,
                 time_index=time_index,
+                timestamp=core_components.model_timing.update_datestamps[time_index],
             )
             continuous_data_files.append(outfile_path)
 
@@ -280,7 +284,11 @@ def ve_run(
 
     # Save the final model state
     if output_config.save_final_state:
-        data.save_to_netcdf(output_config.out_path / output_config.out_final_file_name)
+        data.save_to_netcdf(
+            output_file_path=output_config.out_path / output_config.out_final_file_name,
+            variables_to_save=variables_to_save,
+            timing=core_components.model_timing,
+        )
         if progress > Progress.MINIMAL:
             print("* Saved final model state")
 
