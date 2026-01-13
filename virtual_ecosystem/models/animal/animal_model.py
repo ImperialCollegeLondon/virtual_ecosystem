@@ -319,7 +319,7 @@ class AnimalModel(
         animal cohorts."""
 
         self.exporter.dump(
-            communities=self.communities,
+            cohorts=self.active_cohorts.values(),
             time=self.model_timing.start_time,
         )
 
@@ -485,7 +485,7 @@ class AnimalModel(
 
         # Dump the cohort data to CSV
         self.exporter.dump(
-            communities=self.communities,
+            cohorts=self.active_cohorts.values(),
             time=(
                 self.model_timing.start_time
                 + time_index * self.model_timing.update_interval
