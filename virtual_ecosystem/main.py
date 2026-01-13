@@ -249,9 +249,6 @@ def ve_run(
         for model in models_update.values():
             model.update(time_index)
 
-        # With updates complete increment the time_index
-        time_index += 1
-
         # Append updated data to the continuous data file
         if output_config.save_continuous_data:
             outfile_path = data.output_current_state(
@@ -260,6 +257,9 @@ def ve_run(
                 time_index=time_index,
             )
             continuous_data_files.append(outfile_path)
+
+        # With updates complete increment the time_index
+        time_index += 1
 
         pbar.update(n=1)
 
