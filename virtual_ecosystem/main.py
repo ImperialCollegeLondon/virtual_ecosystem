@@ -199,7 +199,7 @@ def ve_run(
     os.makedirs(output_config.out_path, exist_ok=True)
 
     # Save the initial state of the model - all input variables with no selection using
-    # variables_to_save
+    # variables_to_save.
     if output_config.save_initial_state:
         data.save_to_netcdf(
             output_file_path=output_config.out_path
