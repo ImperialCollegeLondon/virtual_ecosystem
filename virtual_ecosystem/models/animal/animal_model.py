@@ -1881,7 +1881,6 @@ class AnimalModel(
         return cohort
 
     def reset_trophic_records(self) -> None:
-        """Reset trophic interaction records for all cohorts."""
-        for cohorts in self.communities.values():
-            for cohort in cohorts:
-                cohort.reset_trophic_record()
+        """Reset trophic interaction records for all active cohorts."""
+        for cohort in self.active_cohorts.values():
+            cohort.reset_trophic_record()
