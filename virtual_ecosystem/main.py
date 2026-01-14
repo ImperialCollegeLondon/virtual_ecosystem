@@ -262,6 +262,19 @@ def ve_run(
             )
             continuous_data_files.append(outfile_path)
 
+        # Handle the debug option to truncate the run
+        if (core_configuration.debug.truncate_run_at_update >= 0) & (
+            core_configuration.debug.truncate_run_at_update == time_index
+        ):
+            msg = (
+                f"Simulation truncated by core.debug.truncate_run_at_update at "
+                f"index {core_configuration.debug.truncate_run_at_update}"
+            )
+            LOGGER.warning(msg)
+            if progress > Progress.MINIMAL:
+                print("* " + msg)
+            break
+
         # With updates complete increment the time_index
         time_index += 1
 
