@@ -80,7 +80,7 @@ class ModelTiming:
     run_length: np.timedelta64 = field(init=False)
     """The configured run length."""
     update_datestamps: NDArray[np.datetime64] = field(init=False)
-    """The dates each of the updates TODO: temporary fix."""
+    """The date of the start of each update interval."""  # TODO: temp fix from #1257
     update_interval: np.timedelta64 = field(init=False)
     """The configured update interval."""
     run_length_quantity: pint.Quantity = field(init=False)
