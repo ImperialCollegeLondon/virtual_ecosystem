@@ -45,6 +45,41 @@ class AnimalCohortDataExporter:
     }
     """Mapping from output key to (filename, path-attribute-name)."""
 
+    required_attributes: ClassVar[set[str]] = {
+        "cell_id",
+        "cohort_id",
+        "time",
+        "time_index",
+    }
+    """A set of output fields that are always included in cohort export."""
+
+    available_attributes: ClassVar[set[str]] = {
+        "functional_group",
+        "development_type",
+        "diet_type",
+        "reproductive_environment",
+        "age",
+        "individuals",
+        "is_alive",
+        "is_mature",
+        "time_to_maturity",
+        "time_since_maturity",
+        "location_status",
+        "centroid_key",
+        "territory_size",
+        "territory",
+        "occupancy_proportion",
+        "largest_mass_achieved",
+        "mass_carbon",
+        "mass_nitrogen",
+        "mass_phosphorus",
+        "reproductive_mass_carbon",
+        "reproductive_mass_nitrogen",
+        "reproductive_mass_phosphorus",
+    }
+
+    """The set of valid attribute names that can be selected for cohort export."""
+
     def __init__(
         self,
         output_directory: Path,
@@ -67,6 +102,10 @@ class AnimalCohortDataExporter:
         self._active: bool = True
         """Has any data export has been requested."""
         self._cohort_path: Path | None = None
+
+        # Remove any required headers from the cohort attributes so that the attribute
+        # subset validation only checks the optional available values
+        self.cohort_attributes -= self.required_attributes
 
         self._check_and_set_paths()
         self._check_attribute_subsets()
@@ -137,12 +176,11 @@ class AnimalCohortDataExporter:
         Raises:
             ConfigurationError: If any requested attribute is unknown.
         """
-        available = self.available_attributes
 
         if not self.cohort_attributes:
             return
 
-        not_found = self.cohort_attributes.difference(available)
+        not_found = self.cohort_attributes.difference(self.available_attributes)
         if not_found:
             msg = (
                 "The cohort exporter configuration contains unknown attributes: "
@@ -150,37 +188,6 @@ class AnimalCohortDataExporter:
             )
             LOGGER.error(msg)
             raise ConfigurationError(msg)
-
-    @property
-    def available_attributes(self) -> set[str]:
-        """Return the set of valid attribute names for cohort export."""
-        return {
-            "cell_id",
-            "time",
-            "cohort_id",
-            "functional_group",
-            "development_type",
-            "diet_type",
-            "reproductive_environment",
-            "age",
-            "individuals",
-            "is_alive",
-            "is_mature",
-            "time_to_maturity",
-            "time_since_maturity",
-            "location_status",
-            "centroid_key",
-            "territory_size",
-            "territory",
-            "occupancy_proportion",
-            "largest_mass_achieved",
-            "mass_carbon",
-            "mass_nitrogen",
-            "mass_phosphorus",
-            "reproductive_mass_carbon",
-            "reproductive_mass_nitrogen",
-            "reproductive_mass_phosphorus",
-        }
 
     def dump(
         self,
@@ -220,7 +227,12 @@ class AnimalCohortDataExporter:
         df = pd.DataFrame(rows)
 
         if self.cohort_attributes:
-            df = df[list(self.cohort_attributes)]
+            df = df[
+                [
+                    *list(self.required_attributes),
+                    *list(self.cohort_attributes),
+                ]
+            ]
 
         df.to_csv(
             self._cohort_path,
