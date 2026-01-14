@@ -203,8 +203,8 @@ class LayerStructure:
         2, The ``filled_atmosphere`` role includes the above canopy layer, all filled
         canopy layer indices and the surface layer.
 
-        3. The ``flux_layers`` role includes the filled canopy layers and the topsoil
-           layer.
+        3. The ``flux_layers`` role includes the filled canopy layers, understorey, and
+            the topsoil layer.
 
         In addition, the :attr:`.lowest_canopy_filled` attribute provides an array
         giving the vertical index of the lowest filled canopy layer in each grid cell.
@@ -418,7 +418,10 @@ class LayerStructure:
             "flux_layers",
             np.logical_or(
                 self._role_indices_bool["filled_canopy"],
-                self._role_indices_bool["topsoil"],
+                np.logical_or(
+                    self._role_indices_bool["surface"],
+                    self._role_indices_bool["topsoil"],
+                ),
             ),
         )
 
@@ -509,7 +512,10 @@ class LayerStructure:
             "flux_layers",
             np.logical_or(
                 self._role_indices_bool["filled_canopy"],
-                self._role_indices_bool["topsoil"],
+                np.logical_or(
+                    self._role_indices_bool["surface"],
+                    self._role_indices_bool["topsoil"],
+                ),
             ),
         )
 
