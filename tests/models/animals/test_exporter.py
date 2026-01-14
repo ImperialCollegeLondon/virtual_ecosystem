@@ -61,7 +61,7 @@ class TestAnimalCohortDataExporter:
         assert exporter._cohort_path is None
         assert exporter.float_format == "%0.3f"
 
-        exporter.dump(communities={}, time=np.datetime64("2000-01-01"))
+        exporter.dump(communities={}, time=np.datetime64("2000-01-01"), time_index=0)
 
         output_path = output_dir / "animal_cohort_data.csv"
         assert output_path.exists() is False
@@ -267,8 +267,8 @@ class TestAnimalCohortDataExporter:
         time_1 = np.datetime64("2001-01-01")
         time_2 = np.datetime64("2001-01-02")
 
-        exporter.dump(communities=communities, time=time_1)
-        exporter.dump(communities=communities, time=time_2)
+        exporter.dump(communities=communities, time=time_1, time_index=0)
+        exporter.dump(communities=communities, time=time_2, time_index=1)
 
         output_path = output_dir / "animal_cohort_data.csv"
         assert output_path.exists()
@@ -328,12 +328,12 @@ class TestAnimalCohortDataExporter:
         time_1 = np.datetime64("2001-01-01")
         time_2 = np.datetime64("2001-01-02")
 
-        exporter.dump(communities=communities, time=time_1)
+        exporter.dump(communities=communities, time=time_1, time_index=0)
 
         assert exporter._output_mode == "a"
         assert exporter._write_header is False
 
-        exporter.dump(communities=communities, time=time_2)
+        exporter.dump(communities=communities, time=time_2, time_index=1)
 
         out_path = output_dir / "animal_cohort_data.csv"
         assert out_path.exists()
@@ -390,7 +390,7 @@ class TestAnimalCohortDataExporter:
 
         time_val = np.datetime64("2001-01-01")
 
-        exporter.dump(communities=communities, time=time_val)
+        exporter.dump(communities=communities, time=time_val, time_index=0)
 
         assert exporter._output_mode == "a"
         assert exporter._write_header is False
