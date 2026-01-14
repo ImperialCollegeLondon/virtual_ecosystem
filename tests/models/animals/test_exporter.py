@@ -85,7 +85,7 @@ class TestAnimalCohortDataExporter:
 
         config = AnimalExportConfig(
             enabled=True,
-            cohort_attributes=("cell_id", "time", "cohort_id"),
+            cohort_attributes=("is_alive",),
             float_format="%0.4f",
         )
 
@@ -97,7 +97,7 @@ class TestAnimalCohortDataExporter:
         expected_path = output_dir / "animal_cohort_data.csv"
         assert exporter._active is True
         assert exporter._cohort_path == expected_path
-        assert exporter.cohort_attributes == {"cell_id", "time", "cohort_id"}
+        assert exporter.cohort_attributes == {"is_alive"}
         assert exporter.float_format == "%0.4f"
 
     def test_from_config_raises_if_output_file_exists(self, tmp_path):
@@ -211,9 +211,6 @@ class TestAnimalCohortDataExporter:
         attrs = exporter.available_attributes
 
         for field in [
-            "cell_id",
-            "time",
-            "cohort_id",
             "mass_carbon",
             "mass_nitrogen",
             "mass_phosphorus",
@@ -251,7 +248,7 @@ class TestAnimalCohortDataExporter:
 
         config = AnimalExportConfig(
             enabled=True,
-            cohort_attributes=("cell_id", "time", "cohort_id"),
+            cohort_attributes=("is_alive",),
         )
 
         exporter = AnimalCohortDataExporter.from_config(
@@ -275,7 +272,13 @@ class TestAnimalCohortDataExporter:
 
         df = pd.read_csv(output_path)
 
-        assert set(df.columns) == {"cell_id", "time", "cohort_id"}
+        assert set(df.columns) == {
+            "cell_id",
+            "time",
+            "cohort_id",
+            "time_index",
+            "is_alive",
+        }
         # two cohorts, two time steps
         assert len(df) == 4
 
@@ -371,7 +374,7 @@ class TestAnimalCohortDataExporter:
 
         config = AnimalExportConfig(
             enabled=True,
-            cohort_attributes=("cell_id", "time", "cohort_id"),
+            cohort_attributes=("is_alive",),
         )
 
         exporter = AnimalCohortDataExporter.from_config(
@@ -399,7 +402,13 @@ class TestAnimalCohortDataExporter:
         assert out_path.exists()
 
         df = pd.read_csv(out_path)
-        assert set(df.columns) == {"cell_id", "time", "cohort_id"}
+        assert set(df.columns) == {
+            "cell_id",
+            "time",
+            "cohort_id",
+            "time_index",
+            "is_alive",
+        }
         assert len(df) == 2
 
         # Two distinct cohorts written once each.
