@@ -186,6 +186,7 @@ class AnimalCohortDataExporter:
         self,
         communities: Mapping[int, Iterable[AnimalCohort]],
         time: np.datetime64,
+        time_index: int,
     ) -> None:
         """Write animal cohort data to CSV.
 
@@ -193,6 +194,7 @@ class AnimalCohortDataExporter:
             communities: Mapping from cell id to iterable of AnimalCohort instances in
                 the cell.
             time: Timestamp to associate with this snapshot.
+            time_index: The index of the datatime within the model updates.
         """
         if not self._active:
             return
@@ -205,7 +207,11 @@ class AnimalCohortDataExporter:
 
         for cell_id, cohorts in communities.items():
             for cohort in cohorts:
-                rows.append(self._build_row(cell_id=cell_id, cohort=cohort, time=time))
+                rows.append(
+                    self._build_row(
+                        cell_id=cell_id, cohort=cohort, time=time, time_index=time_index
+                    )
+                )
 
         if not rows:
             LOGGER.info("Animal cohort exporter called with no cohorts present.")
@@ -234,6 +240,7 @@ class AnimalCohortDataExporter:
         cell_id: int,
         cohort: AnimalCohort,
         time: np.datetime64,
+        time_index: int,
     ) -> dict[str, object]:
         """Build a single output row for a cohort.
 
@@ -241,6 +248,7 @@ class AnimalCohortDataExporter:
             cell_id: Grid cell identifier.
             cohort: Cohort to serialise.
             time: Timestamp for this snapshot.
+            time_index: The index of the datatime within the model updates.
 
         Returns:
             Dictionary mapping column name to value.
@@ -252,6 +260,7 @@ class AnimalCohortDataExporter:
         return {
             "cell_id": cell_id,
             "time": time,
+            "time_index": time_index,
             "cohort_id": str(cohort.id),
             "functional_group": fg.name,
             "development_type": str(fg.development_type),
