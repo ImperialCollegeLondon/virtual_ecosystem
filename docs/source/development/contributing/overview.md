@@ -206,7 +206,8 @@ There are two options to do this:
    This is a little odd - the command `poetry env activate` return the correct command
    to do this, but _does not actually run it_. This means that you need to tell your
    computer to run the output of the `poetry` command: once you have done this the
-   command line updates to show you are now running in the virtual environment
+   command line updates to show you are now running in the virtual environment - your
+   command line prompt should start with something like `(virtual-ecostem-py3.13)`.
 
     `````{tab-set}
     :sync-group: operating_system
@@ -215,8 +216,7 @@ There are two options to do this:
     :sync: macoslinux
 
     ```{code-block} shell
-    $ eval $(poetry env activate)
-    (test-project-for-test) $
+    eval $(poetry env activate)
     ```
     ````
 
