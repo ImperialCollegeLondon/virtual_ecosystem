@@ -35,6 +35,9 @@ class ExtraTraitsPFT:
         "root_turnover_c_n_ratio",
         "foliage_c_n_ratio",
         "foliage_c_p_ratio",
+        "c_mass_fruit_flesh",
+        "c_mass_per_fruit_seed",
+        "seeds_per_fruit",
     )
     """Additional array attributes accepted by the ExtraTraitsPFT class."""
 

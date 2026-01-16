@@ -417,6 +417,10 @@ class PlantsModel(
                 coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
             "cell": xr.zeros_like(self.data["elevation"]),
+            "pft": xr.DataArray(
+                data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
+                coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
+            ),
         }
 
         # Initialize the fruit and seed DataArrays for the data object. These values
@@ -1019,84 +1023,69 @@ class PlantsModel(
             self.data["root_turnover_cnp"].loc[cell_id, "C"] += np.sum(
                 stem_allocation.fine_root_turnover * cohorts.n_individuals
             )
-            # The amount of reproductive tissue available for turnover cannot exceed
-            # the amount of carbon in the canopy fruit.
-            rt_turnover_c = np.minimum(
-                stem_allocation.reproductive_tissue_respiration * cohorts.n_individuals,
-                (
-                    self.data["canopy_fruit_flesh_cnp"].loc[cell_id, "C"]
-                    + self.data["canopy_seedbank_cnp"].loc[cell_id, "C"]
-                ),
-            )
 
-            # Partition reproductive tissue into propagule and non-propagule masses and
-            # convert the propagule mass to number of propagules.
-            # 1. Turnover reproductive tissue mass leaving the canopy to the ground
-            stem_fallen_n_propagules, stem_fallen_non_propagule_c_mass = (
-                self.partition_reproductive_tissue(
-                    # TODO: dimension issue in pyrealm, returns 2D array.
-                    rt_turnover_c.squeeze()
-                )
-            )
-            self.data["canopy_fruit_flesh_turnover_cnp"].loc[cell_id, "C"] += np.sum(
-                stem_fallen_non_propagule_c_mass  # todo check if this is per individual
-            )
-            self.data["canopy_seedbank_turnover_cnp"].loc[cell_id, "C"] += np.sum(
-                stem_fallen_n_propagules
-            )
-
-            # 2. Canopy reproductive tissue mass: partition into propagules and
-            # non-propagules.
-            # TODO - This is wrong. Reproductive tissue mass can't simply move backwards
-            #        and forwards between these two classes.
-            stem_canopy_n_propagules, stem_canopy_non_propagule_c_mass = (
-                self.partition_reproductive_tissue(
-                    community.stem_allometry.reproductive_tissue_mass
-                )
-            )
-
-            # To delete:
-            # Add those partitions to pools
-            #  - Merge fallen non-propagule mass into a single pool
-            self.data["fallen_non_propagule_c_mass"][cell_id] = (
-                self.convert_to_litter_units(
-                    input_mass=(
-                        stem_fallen_non_propagule_c_mass * cohorts.n_individuals
-                    ).sum(),
-                )
-            )
-
-            # Allocate fallen propagules, and canopy propagules and non-propagule mass
-            # into PFT specific pools by iterating over cohort PFTs.
-            # TODO: not sure how performant this is, there might be a better solution.
-            for (
-                cohort_pft,
-                fallen_n_propagules,
-                canopy_n_propagules,
-                canopy_non_propagule_mass,
-                cohort_n_stems,
-            ) in zip(
-                cohorts.pft_names,
-                stem_fallen_n_propagules.squeeze(),
-                stem_canopy_n_propagules.squeeze(),
-                stem_canopy_non_propagule_c_mass.squeeze(),
-                cohorts.n_individuals,
-            ):
-                self.data["plant_pft_propagules"].loc[cell_id, cohort_pft] += (
-                    fallen_n_propagules * cohort_n_stems
-                )
-                self.data["canopy_n_propagules"].loc[cell_id, cohort_pft] += (
-                    canopy_n_propagules * cohort_n_stems
-                )
-                self.data["canopy_non_propagule_c_mass"].loc[cell_id, cohort_pft] += (
-                    canopy_non_propagule_mass * cohort_n_stems
+            # Deal with fruit growth and turnover.
+            # For the fruit pools, calculate turnover and growth for each PFT. Do not
+            # allow turnover to exceed the existing pool size.
+            for pft in cohorts.pft_names:
+                flesh_portion = self.extra_pft_traits.traits[pft][
+                    "c_mass_fruit_flesh"
+                ] / (
+                    self.extra_pft_traits.traits[pft]["c_mass_fruit_flesh"]
+                    + (
+                        self.extra_pft_traits.traits[pft]["c_mass_per_fruit_seed"]
+                        * self.extra_pft_traits.traits[pft]["seeds_per_fruit"]
+                    )
                 )
 
-            # ALLOCATE ELEMENT MASS TO REGROW WHAT WAS LOST TO TURNOVER
+                pft_traits = self.flora.get_pft_traits(pft_name=pft)
+
+                # Calculate fruit turnover using the turnover rate and existing fruit
+                # pools.
+                canopy_fruit_flesh_turnover_c = (
+                    self.data["canopy_fruit_flesh_cnp"]
+                    .loc[cell_id, {"pft": pft}, "C"]
+                    .to_numpy()
+                    * pft_traits["tau_rt"],
+                )
+                self.data["canopy_fruit_flesh_turnover_cnp"].loc[cell_id, pft, "C"] += (
+                    canopy_fruit_flesh_turnover_c
+                )
+
+                canopy_seedbank_turnover_c = (
+                    self.data["canopy_seedbank_cnp"]
+                    .loc[cell_id, {"pft": pft}, "C"]
+                    .to_numpy()
+                    * pft_traits["tau_rt"],
+                )
+                self.data["canopy_seedbank_turnover_cnp"].loc[cell_id, pft, "C"] += (
+                    canopy_seedbank_turnover_c
+                )
+
+                # Grow the fruit pools by adding new growth and subtracting turnover
+                self.data["canopy_fruit_flesh_cnp"].loc[cell_id, pft, "C"] += (
+                    -1 * canopy_fruit_flesh_turnover_c
+                ) + sum(
+                    stem_allocation.stem_allometry.reproductive_tissue_growth[num]
+                    * cohorts.n_individuals
+                    * flesh_portion
+                    for num in range(stem_allocation.stem_allometry)
+                    if stem_allocation.flora.pft_name[num] == pft
+                )
+                self.data["canopy_seedbank_cnp"].loc[cell_id, pft, "C"] += (
+                    -1 * canopy_seedbank_turnover_c
+                ) + sum(
+                    alloc.reproductive_tissue_growth
+                    * cohorts.n_individuals
+                    * (1 - flesh_portion)
+                    for alloc in stem_allocation.stem_allometry
+                    if alloc.pft_name == pft
+                )
+
+            # Allocate element mass to regrow what was lost during turnover
             for stoichiometry in stoichiometries.values():
                 stoichiometry.account_for_element_loss_turnover(stem_allocation)
 
-            # ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
             # Allocate the topsliced GPP to root exudates with remainder as active
             # nutrient pathways
             self.data["root_carbohydrate_exudation"][cell_id] = (
@@ -1119,12 +1108,11 @@ class PlantsModel(
                 )
             )
 
-            # Subtract the N/P required from growth from the element store, and
-            # redistribute it to the individual tissues.
-            for stoichiometry in stoichiometries.values():
-                stoichiometry.account_for_growth(stem_allocation)
-
             for element in ["N", "P"]:
+                # Subtract the N/P required from growth from the element store, and
+                # redistribute it to the individual tissues.
+                stoichiometries[element].account_for_growth(stem_allocation)
+
                 # Balance the N & P surplus/deficit with the symbiote carbon supply
                 total_supply = float(
                     self.data["ecto_supply_limit_" + element.lower()][cell_id]
@@ -1144,6 +1132,59 @@ class PlantsModel(
                 )
                 stoichiometries[element].element_surplus += element_per_stem
 
+                # Cohort by cohort, distribute the surplus/deficit across the tissue
+                # types
+                for cohort in range(len(cohorts.n_individuals)):
+                    if stoichiometry.element_surplus[cohort] < 0:
+                        # Distribute deficit across the tissue types
+                        stoichiometries[element].distribute_deficit(cohort)
+
+                    elif (
+                        stoichiometries[element].element_surplus[cohort] > 0
+                        and stoichiometries[element].tissue_deficit[cohort] > 0
+                    ):
+                        # Distribute the surplus across the tissue types
+                        stoichiometries[element].distribute_surplus(cohort)
+
+                    else:
+                        # NO ADJUSTMENT REQUIRED - there is a surplus in the store, but
+                        # there is no deficit in the tissue types.
+                        pass
+
+                    pft = cohorts.pft_names[cohorts]
+                    flesh_portion = self.extra_pft_traits.traits[pft][
+                        "c_mass_fruit_flesh"
+                    ] / (
+                        self.extra_pft_traits.traits[pft]["c_mass_fruit_flesh"]
+                        + (
+                            self.extra_pft_traits.traits[pft]["c_mass_per_fruit_seed"]
+                            * self.extra_pft_traits.traits[pft]["seeds_per_fruit"]
+                        )
+                    )
+                    total_element_turnover = (
+                        stoichiometries[element]
+                        .get_tissue("ReproductiveTissue")
+                        .element_turnover(stem_allocation)[cohort]
+                    )
+                    self.data["canopy_fruit_flesh_turnover_cnp"].loc[
+                        cell_id, pft, element
+                    ] += total_element_turnover * flesh_portion
+                    self.data["canopy_seedbank_turnover_cnp"].loc[
+                        cell_id, pft, element
+                    ] += total_element_turnover * (1 - flesh_portion)
+
+                    total_element = (
+                        stoichiometries[element]
+                        .get_tissue("ReproductiveTissue")
+                        .actual_element_mass[cohort]
+                    )
+                    self.data["canopy_fruit_flesh_cnp"].loc[cell_id, pft, element] += (
+                        total_element * flesh_portion
+                    )
+                    self.data["canopy_seedbank_cnp"].loc[cell_id, pft, element] = (
+                        total_element * (1 - flesh_portion)
+                    )
+
                 # Add the N and P turnover masses to the data object
                 self.data["foliage_turnover_cnp"].loc[cell_id, element] += np.sum(
                     cohorts.n_individuals
@@ -1157,33 +1198,6 @@ class PlantsModel(
                     .get_tissue("RootTissue")
                     .element_turnover(stem_allocation)
                 )
-                self.data[f"plant_rt_turnover_{element.lower()}_mass"][cell_id] = (
-                    np.sum(
-                        cohorts.n_individuals
-                        * stoichiometries[element]
-                        .get_tissue("ReproductiveTissue")
-                        .element_turnover(stem_allocation)
-                    )
-                )
-
-            # Cohort by cohort, distribute the surplus/deficit across the tissue types
-            for cohort in range(len(cohorts.n_individuals)):
-                for stoichiometry in stoichiometries.values():
-                    if stoichiometry.element_surplus[cohort] < 0:
-                        # Distribute deficit across the tissue types
-                        stoichiometry.distribute_deficit(cohort)
-
-                    elif (
-                        stoichiometry.element_surplus[cohort] > 0
-                        and stoichiometry.tissue_deficit[cohort] > 0
-                    ):
-                        # Distribute the surplus across the tissue types
-                        stoichiometry.distribute_surplus(cohort)
-
-                    else:
-                        # NO ADJUSTMENT REQUIRED - there is a surplus in the store, but
-                        # there is no deficit in the tissue types.
-                        pass
 
             # Update community allometry with new dbh values
             community.stem_allometry = StemAllometry(
