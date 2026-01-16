@@ -277,6 +277,7 @@ class AnimalModel(
                 ExcrementPool(
                     scavengeable_cnp=CNP(1e-3, 1e-4, 1e-6),
                     decomposed_cnp=CNP(0.0, 0.0, 0.0),
+                    cell_id=cell_id,
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -287,6 +288,7 @@ class AnimalModel(
                 CarcassPool(
                     scavengeable_cnp=CNP(1e-3, 1e-4, 1e-6),
                     decomposed_cnp=CNP(0.0, 0.0, 0.0),
+                    cell_id=cell_id,
                 )
             ]
             for cell_id in self.data.grid.cell_id
