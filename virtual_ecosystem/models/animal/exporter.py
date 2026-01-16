@@ -61,10 +61,14 @@ class AnimalCohortDataExporter:
         """The float format for data export."""
 
         # Internal state
-        self._output_mode: str = "w"
-        """Switches the exporter between write and append mode."""
-        self._write_header: bool = True
-        """Stops headers being duplicated in append mode."""
+        self._cohort_output_mode: str = "w"
+        """Switches the cohort exporter between write and append mode."""
+        self._trophic_output_mode: str = "w"
+        """Switches the trophic exporter between write and append mode."""
+        self._write_cohort_header: bool = True
+        """Stops cohort headers being duplicated in append mode."""
+        self._write_trophic_header: bool = True
+        """Stops trophic headers being duplicated in append mode."""
         self._active: bool = True
         """Has any data export has been requested."""
         self._cohort_path: Path | None = None
@@ -93,14 +97,22 @@ class AnimalCohortDataExporter:
         if not config.enabled:
             LOGGER.info("Animal cohort data exporter not active.")
             exporter = cls.__new__(cls)
+
+            # Public configuration (still useful for consistency / introspection)
             exporter.output_directory = output_directory
             exporter.cohort_attributes = set()
             exporter.float_format = config.float_format
-            exporter._output_mode = "w"
-            exporter._write_header = True
+
+            # Internal state (match your refactor)
+            exporter._cohort_output_mode = "w"
+            exporter._trophic_output_mode = "w"
+            exporter._write_cohort_header = True
+            exporter._write_trophic_header = True
+
             exporter._active = False
             exporter._cohort_path = None
             exporter._trophic_path = None
+
             return exporter
 
         cohort_attributes = set(config.cohort_attributes)
@@ -223,13 +235,17 @@ class AnimalCohortDataExporter:
 
         df.to_csv(
             self._cohort_path,
-            mode=self._output_mode,
-            header=self._write_header,
+            mode=self._cohort_output_mode,
+            header=self._write_cohort_header,
             index=False,
             float_format=self.float_format,
         )
 
         LOGGER.info("Animal model cohort data dumped at time: %s", time)
+
+        # Flip cohort state ONLY because we actually wrote a file.
+        self._cohort_output_mode = "a"
+        self._write_cohort_header = False
 
     def _dump_trophic(
         self,
@@ -244,6 +260,9 @@ class AnimalCohortDataExporter:
             territory_by_id: Dictionary of str(uuid),territory pairs for lookup.
             time: Timestamp to associate with this snapshot.
         """
+        if not self._active:
+            return
+
         if self._trophic_path is None:
             LOGGER.debug("Trophic exporter called with no output path.")
             return
@@ -266,11 +285,15 @@ class AnimalCohortDataExporter:
         df = pd.DataFrame(rows)
         df.to_csv(
             self._trophic_path,
-            mode=self._output_mode,
-            header=self._write_header,
+            mode=self._trophic_output_mode,
+            header=self._write_trophic_header,
             index=False,
             float_format=self.float_format,
         )
+
+        # Flip trophic state ONLY because we actually wrote a file.
+        self._trophic_output_mode = "a"
+        self._write_trophic_header = False
 
     def dump(
         self,
@@ -287,8 +310,8 @@ class AnimalCohortDataExporter:
         if not self._active:
             return
 
-        if self._cohort_path is None:
-            LOGGER.debug("Animal cohort exporter called with no output path.")
+        if self._cohort_path is None and self._trophic_path is None:
+            LOGGER.debug("Animal exporter called with no output path.")
             return
 
         cohort_list = list(cohorts)
@@ -297,9 +320,6 @@ class AnimalCohortDataExporter:
         self._dump_trophic(
             cohorts=cohort_list, territory_by_id=territory_by_id, time=time
         )
-
-        self._output_mode = "a"
-        self._write_header = False
 
     def _build_cohort_row(
         self,
