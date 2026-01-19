@@ -558,6 +558,7 @@ class PlantsModel(
             canopies=self.canopies,
             stem_allocations=self.stem_allocations,
             time=self.model_timing.start_time,
+            time_index=0,
         )
 
     @classmethod
@@ -736,8 +737,8 @@ class PlantsModel(
             communities=self.communities,
             canopies=self.canopies,
             stem_allocations=self.stem_allocations,
-            time=self.model_timing.start_time
-            + time_index * self.model_timing.update_interval,
+            time=self.model_timing.update_datestamps[time_index],
+            time_index=time_index,
         )
 
     def cleanup(self) -> None:
