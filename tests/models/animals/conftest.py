@@ -419,19 +419,19 @@ def dummy_animal_exporter():
     """Provide a no-op exporter for AnimalModel tests.
 
     Returns:
-        An object with a dump method matching the AnimalCohortDataExporter
+        An object with a ``dump`` method matching the AnimalCohortDataExporter
         interface but performing no output.
     """
 
     class DummyAnimalExporter:
         """No-op stand-in for AnimalCohortDataExporter."""
 
-        def dump(self, communities, time):
+        def dump(self, cohorts, time):
             """Ignore export calls in tests that do not check CSV output.
 
             Args:
-                communities: Mapping of cell IDs to cohorts.
-                time: Export time stamp.
+                cohorts: Iterable of AnimalCohort objects.
+                time: Export timestamp.
             """
             return None
 

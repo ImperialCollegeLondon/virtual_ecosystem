@@ -61,7 +61,7 @@ class TestAnimalCohortDataExporter:
         assert exporter._cohort_path is None
         assert exporter.float_format == "%0.3f"
 
-        exporter.dump(communities={}, time=np.datetime64("2000-01-01"))
+        exporter.dump(cohorts={}, time=np.datetime64("2000-01-01"))
 
         output_path = output_dir / "animal_cohort_data.csv"
         assert output_path.exists() is False
@@ -85,7 +85,7 @@ class TestAnimalCohortDataExporter:
 
         config = AnimalExportConfig(
             enabled=True,
-            cohort_attributes=("cell_id", "time", "cohort_id"),
+            cohort_attributes=("time", "cohort_id"),
             float_format="%0.4f",
         )
 
@@ -97,7 +97,7 @@ class TestAnimalCohortDataExporter:
         expected_path = output_dir / "animal_cohort_data.csv"
         assert exporter._active is True
         assert exporter._cohort_path == expected_path
-        assert exporter.cohort_attributes == {"cell_id", "time", "cohort_id"}
+        assert exporter.cohort_attributes == {"time", "cohort_id"}
         assert exporter.float_format == "%0.4f"
 
     def test_from_config_raises_if_output_file_exists(self, tmp_path):
@@ -211,7 +211,6 @@ class TestAnimalCohortDataExporter:
         attrs = exporter.available_attributes
 
         for field in [
-            "cell_id",
             "time",
             "cohort_id",
             "mass_carbon",
@@ -251,7 +250,7 @@ class TestAnimalCohortDataExporter:
 
         config = AnimalExportConfig(
             enabled=True,
-            cohort_attributes=("cell_id", "time", "cohort_id"),
+            cohort_attributes=("time", "cohort_id"),
         )
 
         exporter = AnimalCohortDataExporter.from_config(
@@ -259,23 +258,20 @@ class TestAnimalCohortDataExporter:
             config=config,
         )
 
-        communities = {
-            1: [herbivore_cohort_instance],
-            2: [predator_cohort_instance],
-        }
+        cohorts = [herbivore_cohort_instance, predator_cohort_instance]
 
         time_1 = np.datetime64("2001-01-01")
         time_2 = np.datetime64("2001-01-02")
 
-        exporter.dump(communities=communities, time=time_1)
-        exporter.dump(communities=communities, time=time_2)
+        exporter.dump(cohorts=cohorts, time=time_1)
+        exporter.dump(cohorts=cohorts, time=time_2)
 
         output_path = output_dir / "animal_cohort_data.csv"
         assert output_path.exists()
 
         df = pd.read_csv(output_path)
 
-        assert set(df.columns) == {"cell_id", "time", "cohort_id"}
+        assert set(df.columns) == {"time", "cohort_id"}
         # two cohorts, two time steps
         assert len(df) == 4
 
@@ -320,20 +316,23 @@ class TestAnimalCohortDataExporter:
             config=config,
         )
 
-        assert exporter._output_mode == "w"
-        assert exporter._write_header
+        assert exporter._cohort_output_mode == "w"
+        assert exporter._write_cohort_header
 
-        communities = {1: [herbivore_cohort_instance]}
+        assert exporter._trophic_output_mode == "w"
+        assert exporter._write_trophic_header
+
+        cohorts = [herbivore_cohort_instance]
 
         time_1 = np.datetime64("2001-01-01")
         time_2 = np.datetime64("2001-01-02")
 
-        exporter.dump(communities=communities, time=time_1)
+        exporter.dump(cohorts=cohorts, time=time_1)
 
-        assert exporter._output_mode == "a"
-        assert exporter._write_header is False
+        assert exporter._cohort_output_mode == "a"
+        assert exporter._write_cohort_header is False
 
-        exporter.dump(communities=communities, time=time_2)
+        exporter.dump(cohorts=cohorts, time=time_2)
 
         out_path = output_dir / "animal_cohort_data.csv"
         assert out_path.exists()
@@ -371,7 +370,7 @@ class TestAnimalCohortDataExporter:
 
         config = AnimalExportConfig(
             enabled=True,
-            cohort_attributes=("cell_id", "time", "cohort_id"),
+            cohort_attributes=("time", "cohort_id"),
         )
 
         exporter = AnimalCohortDataExporter.from_config(
@@ -380,30 +379,29 @@ class TestAnimalCohortDataExporter:
         )
 
         assert exporter._active
-        assert exporter._output_mode == "w"
-        assert exporter._write_header
+        assert exporter._cohort_output_mode == "w"
+        assert exporter._write_cohort_header
 
-        communities = {
-            1: [herbivore_cohort_instance],
-            2: [predator_cohort_instance],
-        }
+        assert exporter._trophic_output_mode == "w"
+        assert exporter._write_trophic_header
+
+        cohorts = [herbivore_cohort_instance, predator_cohort_instance]
 
         time_val = np.datetime64("2001-01-01")
 
-        exporter.dump(communities=communities, time=time_val)
+        exporter.dump(cohorts=cohorts, time=time_val)
 
-        assert exporter._output_mode == "a"
-        assert exporter._write_header is False
+        assert exporter._cohort_output_mode == "a"
+        assert exporter._write_cohort_header is False
 
         out_path = output_dir / "animal_cohort_data.csv"
         assert out_path.exists()
 
         df = pd.read_csv(out_path)
-        assert set(df.columns) == {"cell_id", "time", "cohort_id"}
+        assert set(df.columns) == {"time", "cohort_id"}
         assert len(df) == 2
 
         # Two distinct cohorts written once each.
-        assert len(set(df["cell_id"].unique())) == 2
         assert len(set(df["cohort_id"].unique())) == 2
 
     def test_exporter_runs_inside_animal_model(
@@ -444,8 +442,11 @@ class TestAnimalCohortDataExporter:
             cohort_attributes=None,
         )
 
-        assert exporter._output_mode == "w"
-        assert exporter._write_header
+        assert exporter._cohort_output_mode == "w"
+        assert exporter._write_cohort_header
+
+        assert exporter._trophic_output_mode == "w"
+        assert exporter._write_trophic_header
 
         model = AnimalModel(
             data=clean_data,
@@ -459,8 +460,8 @@ class TestAnimalCohortDataExporter:
         out_path = output_dir / "animal_cohort_data.csv"
         assert out_path.exists()
 
-        assert exporter._output_mode == "a"
-        assert exporter._write_header is False
+        assert exporter._cohort_output_mode == "a"
+        assert exporter._write_cohort_header is False
 
         df_initial = pd.read_csv(out_path)
         initial_rows = len(df_initial)
