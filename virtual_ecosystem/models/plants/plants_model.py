@@ -1000,6 +1000,9 @@ class PlantsModel(
                 stem_allometry=community.stem_allometry,
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
+            # TODO: The code below prevents DBH shrinking, however the allocation isn't
+            #       similarly adjusted, so these results may still be based on the
+            #       incorrect shrinking tree values.
             self.stem_allocations[cell_id] = stem_allocation
 
             # Grow the plants by increasing the stem dbh
@@ -1027,62 +1030,49 @@ class PlantsModel(
             # Deal with fruit growth and turnover.
             # For the fruit pools, calculate turnover and growth for each PFT. Do not
             # allow turnover to exceed the existing pool size.
-            for pft in cohorts.pft_names:
-                flesh_portion = self.extra_pft_traits.traits[pft][
-                    "c_mass_fruit_flesh"
-                ] / (
-                    self.extra_pft_traits.traits[pft]["c_mass_fruit_flesh"]
-                    + (
-                        self.extra_pft_traits.traits[pft]["c_mass_per_fruit_seed"]
-                        * self.extra_pft_traits.traits[pft]["seeds_per_fruit"]
-                    )
-                )
-
-                pft_traits = self.flora.get_pft_traits(pft_name=pft)
+            for pft, tau_rt in zip(self.flora.name, self.flora.tau_rt):
+                flesh_portion = self.extra_pft_traits.traits[pft]["fruit_flesh_portion"]
 
                 # Calculate fruit turnover using the turnover rate and existing fruit
                 # pools.
                 canopy_fruit_flesh_turnover_c = (
-                    self.data["canopy_fruit_flesh_cnp"]
-                    .loc[cell_id, {"pft": pft}, "C"]
-                    .to_numpy()
-                    * pft_traits["tau_rt"],
+                    self.data["canopy_fruit_flesh_cnp"].loc[cell_id, pft, "C"] * tau_rt
                 )
+                canopy_seedbank_turnover_c = (
+                    self.data["canopy_seedbank_cnp"].loc[cell_id, pft, "C"] * tau_rt
+                )
+
+                # Assign to the data object:
                 self.data["canopy_fruit_flesh_turnover_cnp"].loc[cell_id, pft, "C"] += (
                     canopy_fruit_flesh_turnover_c
                 )
 
-                canopy_seedbank_turnover_c = (
-                    self.data["canopy_seedbank_cnp"]
-                    .loc[cell_id, {"pft": pft}, "C"]
-                    .to_numpy()
-                    * pft_traits["tau_rt"],
-                )
                 self.data["canopy_seedbank_turnover_cnp"].loc[cell_id, pft, "C"] += (
                     canopy_seedbank_turnover_c
                 )
 
                 # Grow the fruit pools by adding new growth and subtracting turnover
+                fruit_growth = (
+                    stem_allocation.delta_foliage_mass
+                    * community.stem_traits.p_foliage_for_reproductive_tissue
+                ).squeeze()
                 self.data["canopy_fruit_flesh_cnp"].loc[cell_id, pft, "C"] += (
                     -1 * canopy_fruit_flesh_turnover_c
                 ) + sum(
-                    stem_allocation.stem_allometry.reproductive_tissue_growth[num]
-                    * cohorts.n_individuals
-                    * flesh_portion
-                    for num in range(stem_allocation.stem_allometry)
-                    if stem_allocation.flora.pft_name[num] == pft
+                    fruit_growth[n] * cohorts.n_individuals[n] * flesh_portion
+                    for n in range(len(fruit_growth))
+                    if cohorts.pft_names[n] == pft
                 )
                 self.data["canopy_seedbank_cnp"].loc[cell_id, pft, "C"] += (
                     -1 * canopy_seedbank_turnover_c
                 ) + sum(
-                    alloc.reproductive_tissue_growth
-                    * cohorts.n_individuals
-                    * (1 - flesh_portion)
-                    for alloc in stem_allocation.stem_allometry
-                    if alloc.pft_name == pft
+                    fruit_growth[n] * cohorts.n_individuals[n] * (1 - flesh_portion)
+                    for n in range(len(fruit_growth))
+                    if cohorts.pft_names[n] == pft
                 )
 
             # Allocate element mass to regrow what was lost during turnover
+            # TODO: needs to incorporate modified fruit turnover values.
             for stoichiometry in stoichiometries.values():
                 stoichiometry.account_for_element_loss_turnover(stem_allocation)
 
@@ -1135,7 +1125,7 @@ class PlantsModel(
                 # Cohort by cohort, distribute the surplus/deficit across the tissue
                 # types
                 for cohort in range(len(cohorts.n_individuals)):
-                    if stoichiometry.element_surplus[cohort] < 0:
+                    if stoichiometries[element].element_surplus[cohort] < 0:
                         # Distribute deficit across the tissue types
                         stoichiometries[element].distribute_deficit(cohort)
 
@@ -1151,16 +1141,10 @@ class PlantsModel(
                         # there is no deficit in the tissue types.
                         pass
 
-                    pft = cohorts.pft_names[cohorts]
+                    pft = cohorts.pft_names[cohort]
                     flesh_portion = self.extra_pft_traits.traits[pft][
-                        "c_mass_fruit_flesh"
-                    ] / (
-                        self.extra_pft_traits.traits[pft]["c_mass_fruit_flesh"]
-                        + (
-                            self.extra_pft_traits.traits[pft]["c_mass_per_fruit_seed"]
-                            * self.extra_pft_traits.traits[pft]["seeds_per_fruit"]
-                        )
-                    )
+                        "fruit_flesh_portion"
+                    ]
                     total_element_turnover = (
                         stoichiometries[element]
                         .get_tissue("ReproductiveTissue")
@@ -1249,7 +1233,7 @@ class PlantsModel(
 
             # Update N and P masses to include dead plant material
             for element in ["N", "P"]:
-                self.data["stem_turnover_cnp"].loc[cell_id, element] = np.sum(
+                self.data["stem_turnover_cnp"].loc[cell_id, element] += np.sum(
                     mortality
                     * self.stoichiometries[cell_id][element]
                     .get_tissue("WoodTissue")

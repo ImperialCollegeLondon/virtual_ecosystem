@@ -672,6 +672,7 @@ class StemStoichiometry(CohortMethods, PandasExporter):
         """
 
         if self.element_surplus[cohort] > 0:
+            print(self.element_surplus[cohort])
             raise ValueError("distribute_deficit called with non-negative surplus.")
 
         deficit = -self.element_surplus[cohort]
