@@ -46,6 +46,7 @@ class ExtraTraitsPFT:
     def __init__(self, traits: dict[str, dict[str, float]]):
         """Initialise the ExtraTraitsPFT instance with a dictionary of traits."""
         self.traits = traits
+        self.post_init()
 
     @classmethod
     def _from_file_data(cls, input_traits: list) -> ExtraTraitsPFT:
@@ -75,6 +76,19 @@ class ExtraTraitsPFT:
         traits = df.to_dict(orient="records")
 
         return cls._from_file_data(traits)
+
+    def post_init(self):
+        """Post-initialisation processing for ExtraTraitsPFT."""
+        for pft in self.traits.keys():
+            self.traits[pft]["fruit_flesh_portion"] = self.traits[pft][
+                "c_mass_fruit_flesh"
+            ] / (
+                self.traits[pft]["c_mass_fruit_flesh"]
+                + (
+                    self.traits[pft]["c_mass_per_fruit_seed"]
+                    * self.traits[pft]["seeds_per_fruit"]
+                )
+            )
 
 
 def get_flora_from_config(config: PlantsConfiguration) -> tuple[Flora, ExtraTraitsPFT]:
