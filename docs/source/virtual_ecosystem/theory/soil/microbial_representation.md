@@ -158,8 +158,6 @@ soil in a labile organic form, i.e. as {term}`LMWC`, {term}`DON` and {term}`DOP`
 
 ### Mycorrhiza
 
-TODO - BUILD DOCS AND PROOF THIS WHOLE SECTION
-
 Mycorrhizal fungi differ from both bacteria and saprotrophic fungi in that they cannot
 use the forms of carbon that can be taken up from the soil to grow. Instead, they are
 entirely dependent on their symbiotic plant partners for the carbon they need to grow.
