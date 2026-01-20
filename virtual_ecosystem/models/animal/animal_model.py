@@ -323,6 +323,7 @@ class AnimalModel(
         self.exporter.dump(
             cohorts=self.active_cohorts.values(),
             time=self.model_timing.start_time,
+            time_index=0,
         )
 
         # animal respiration data variable
@@ -488,10 +489,8 @@ class AnimalModel(
         # Dump the cohort data to CSV
         self.exporter.dump(
             cohorts=self.active_cohorts.values(),
-            time=(
-                self.model_timing.start_time
-                + time_index * self.model_timing.update_interval
-            ),
+            time=self.model_timing.update_datestamps[time_index],
+            time_index=time_index,
         )
 
     def _setup_grid_neighbours(self) -> None:

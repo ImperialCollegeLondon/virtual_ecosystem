@@ -432,6 +432,7 @@ def dummy_animal_exporter():
             Args:
                 cohorts: Iterable of AnimalCohort objects.
                 time: Export timestamp.
+                time_index: Index of update.
             """
             return None
 

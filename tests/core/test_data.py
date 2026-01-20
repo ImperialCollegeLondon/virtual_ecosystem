@@ -742,6 +742,7 @@ def test_on_core_axis(
 def test_save_to_netcdf(
     shared_datadir,
     caplog,
+    fixture_core_components,
     dummy_litter_data,
     folder,
     file_name,
@@ -759,10 +760,15 @@ def test_save_to_netcdf(
     with raises:
         if save_specific:
             dummy_litter_data.save_to_netcdf(
-                out_path, variables_to_save=["litter_pool_woody"]
+                output_file_path=out_path,
+                timing=fixture_core_components.model_timing,
+                variables_to_save=["litter_pool_woody"],
             )
         else:
-            dummy_litter_data.save_to_netcdf(out_path)
+            dummy_litter_data.save_to_netcdf(
+                output_file_path=out_path,
+                timing=fixture_core_components.model_timing,
+            )
 
         # Load in netcdf data to check the contents
         saved_data = xr.open_dataset(out_path)
@@ -847,6 +853,7 @@ def test_save_timeslice_to_netcdf(
             out_path,
             variables_to_save=["litter_pool_woody", "soil_temperature"],
             time_index=1,
+            timestamp=np.datetime64("2000-01-01"),
         )
 
         # Load file, and then check that contents meet expectation
@@ -880,9 +887,11 @@ def test_save_timeslice_to_netcdf(
         )
 
         # Check that only expected variables were added
-        assert (
-            set(saved_data.keys()) - {"litter_pool_woody", "soil_temperature"} == set()
-        )
+        assert set(saved_data.keys()) == {
+            "litter_pool_woody",
+            "soil_temperature",
+            "timestamp",
+        }
         # Finally, close the dataset
         saved_data.close()
 
@@ -960,14 +969,15 @@ def test_output_current_state(mocker, dummy_litter_data, time_index):
         variables_to_save=variables_to_save,
         output_directory_path=Path("."),
         time_index=time_index,
+        timestamp=np.datetime64("2000-01-01"),
     )
 
     # Check that the mocked function was called once with correct input (which is
     # calculated in the higher level function)
     mock_save.assert_called_once()
     assert mock_save.call_args == mocker.call(
-        Path(f"./continuous_state{time_index:05}.nc"),
-        [
+        output_file_path=Path(f"./continuous_state{time_index:05}.nc"),
+        variables_to_save=[
             "litter_pool_above_metabolic",
             "litter_pool_above_structural",
             "litter_pool_woody",
@@ -990,7 +1000,8 @@ def test_output_current_state(mocker, dummy_litter_data, time_index):
             "litter_N_mineralisation_rate",
             "litter_P_mineralisation_rate",
         ],
-        time_index,
+        time_index=time_index,
+        timestamp=np.datetime64("2000-01-01"),
     )
     assert outpath == Path(f"./continuous_state{time_index:05}.nc")
 
@@ -1007,6 +1018,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
         output_file_path=shared_datadir / "continuous_state1.nc",
         variables_to_save=variables_to_save,
         time_index=1,
+        timestamp=np.datetime64("2000-01-01"),
     )
 
     # Alter data so that files differ (slightly)
@@ -1020,6 +1032,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
         output_file_path=shared_datadir / "continuous_state2.nc",
         variables_to_save=variables_to_save,
         time_index=2,
+        timestamp=np.datetime64("2000-02-01"),
     )
 
     # Merge data
@@ -1088,9 +1101,10 @@ def test_merge_continuous_file_already_exists(
 
     # Save first data file
     dummy_litter_data.save_timeslice_to_netcdf(
-        shared_datadir / "continuous_state1.nc",
-        variables_to_save,
-        1,
+        output_file_path=shared_datadir / "continuous_state1.nc",
+        variables_to_save=variables_to_save,
+        time_index=1,
+        timestamp=np.datetime64("2000-01-01"),
     )
 
     with pytest.raises(ConfigurationError):

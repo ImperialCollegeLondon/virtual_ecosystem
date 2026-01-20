@@ -46,6 +46,41 @@ class AnimalCohortDataExporter:
     }
     """Mapping from output key to (filename, path-attribute-name)."""
 
+    required_attributes: ClassVar[set[str]] = {
+        "cell_id",
+        "cohort_id",
+        "time",
+        "time_index",
+    }
+    """A set of output fields that are always included in cohort export."""
+
+    available_attributes: ClassVar[set[str]] = {
+        "functional_group",
+        "development_type",
+        "diet_type",
+        "reproductive_environment",
+        "age",
+        "individuals",
+        "is_alive",
+        "is_mature",
+        "time_to_maturity",
+        "time_since_maturity",
+        "location_status",
+        "centroid_key",
+        "territory_size",
+        "territory",
+        "occupancy_proportion",
+        "largest_mass_achieved",
+        "mass_carbon",
+        "mass_nitrogen",
+        "mass_phosphorus",
+        "reproductive_mass_carbon",
+        "reproductive_mass_nitrogen",
+        "reproductive_mass_phosphorus",
+    }
+
+    """The set of valid attribute names that can be selected for cohort export."""
+
     def __init__(
         self,
         output_directory: Path,
@@ -75,6 +110,10 @@ class AnimalCohortDataExporter:
         """Sets the output path for the cohort csv."""
         self._trophic_path: Path | None = None
         """Sets the output path for the trophic csv."""
+
+        # Remove any required headers from the cohort attributes so that the attribute
+        # subset validation only checks the optional available values
+        self.cohort_attributes -= self.required_attributes
 
         self._check_and_set_paths()
         self._check_attribute_subsets()
@@ -157,12 +196,11 @@ class AnimalCohortDataExporter:
         Raises:
             ConfigurationError: If any requested attribute is unknown.
         """
-        available = self.available_attributes
 
         if not self.cohort_attributes:
             return
 
-        not_found = self.cohort_attributes.difference(available)
+        not_found = self.cohort_attributes.difference(self.available_attributes)
         if not_found:
             msg = (
                 "The cohort exporter configuration contains unknown attributes: "
@@ -171,46 +209,18 @@ class AnimalCohortDataExporter:
             LOGGER.error(msg)
             raise ConfigurationError(msg)
 
-    @property
-    def available_attributes(self) -> set[str]:
-        """Return the set of valid attribute names for cohort export."""
-        return {
-            "time",
-            "cohort_id",
-            "functional_group",
-            "development_type",
-            "diet_type",
-            "reproductive_environment",
-            "age",
-            "individuals",
-            "is_alive",
-            "is_mature",
-            "time_to_maturity",
-            "time_since_maturity",
-            "location_status",
-            "centroid_key",
-            "territory_size",
-            "territory",
-            "occupancy_proportion",
-            "largest_mass_achieved",
-            "mass_carbon",
-            "mass_nitrogen",
-            "mass_phosphorus",
-            "reproductive_mass_carbon",
-            "reproductive_mass_nitrogen",
-            "reproductive_mass_phosphorus",
-        }
-
     def _dump_cohorts(
         self,
         cohorts: Iterable[AnimalCohort],
         time: np.datetime64,
+        time_index: int,
     ) -> None:
         """Write animal cohort data to CSV.
 
         Args:
             cohorts: Iterable of animal cohort objects.
             time: Timestamp to associate with this snapshot.
+            time_index: The index of the datatime within the model updates.
         """
         if not self._active:
             return
@@ -222,7 +232,9 @@ class AnimalCohortDataExporter:
         rows: list[dict[str, object]] = []
 
         for cohort in cohorts:
-            rows.append(self._build_cohort_row(cohort=cohort, time=time))
+            rows.append(
+                self._build_cohort_row(cohort=cohort, time=time, time_index=time_index)
+            )
 
         if not rows:
             LOGGER.info("Animal cohort exporter called with no cohorts present.")
@@ -231,7 +243,12 @@ class AnimalCohortDataExporter:
         df = pd.DataFrame(rows)
 
         if self.cohort_attributes:
-            df = df[list(self.cohort_attributes)]
+            df = df[
+                [
+                    *list(self.required_attributes),
+                    *list(self.cohort_attributes),
+                ]
+            ]
 
         df.to_csv(
             self._cohort_path,
@@ -252,6 +269,7 @@ class AnimalCohortDataExporter:
         cohorts: Iterable[AnimalCohort],
         territory_by_id: dict[str, list[int]],
         time: np.datetime64,
+        time_index: int,
     ) -> None:
         """Write trophic interaction data to CSV.
 
@@ -259,6 +277,7 @@ class AnimalCohortDataExporter:
             cohorts: List of animal cohort objects.
             territory_by_id: Dictionary of str(uuid),territory pairs for lookup.
             time: Timestamp to associate with this snapshot.
+            time_index: The index of the datatime within the model updates.
         """
         if not self._active:
             return
@@ -275,6 +294,7 @@ class AnimalCohortDataExporter:
                     cohort=cohort,
                     time=time,
                     territory_by_id=territory_by_id,
+                    time_index=time_index,
                 )
             )
 
@@ -296,15 +316,14 @@ class AnimalCohortDataExporter:
         self._write_trophic_header = False
 
     def dump(
-        self,
-        cohorts: Iterable[AnimalCohort],
-        time: np.datetime64,
+        self, cohorts: Iterable[AnimalCohort], time: np.datetime64, time_index: int
     ) -> None:
         """Write animal cohort and trophic interaction data to CSV.
 
         Args:
             cohorts: List of animal cohort objects.
             time: Timestamp to associate with this snapshot.
+            time_index: The index of the datatime within the model updates.
 
         """
         if not self._active:
@@ -316,21 +335,26 @@ class AnimalCohortDataExporter:
 
         cohort_list = list(cohorts)
         territory_by_id = {str(cohort.id): cohort.territory for cohort in cohort_list}
-        self._dump_cohorts(cohorts=cohort_list, time=time)
+        self._dump_cohorts(cohorts=cohort_list, time=time, time_index=time_index)
         self._dump_trophic(
-            cohorts=cohort_list, territory_by_id=territory_by_id, time=time
+            cohorts=cohort_list,
+            territory_by_id=territory_by_id,
+            time=time,
+            time_index=time_index,
         )
 
     def _build_cohort_row(
         self,
         cohort: AnimalCohort,
         time: np.datetime64,
+        time_index: int,
     ) -> dict[str, object]:
         """Build a single output row for a cohort.
 
         Args:
             cohort: Cohort to serialise.
             time: Timestamp for this snapshot.
+            time_index: The index of the datatime within the model updates.
 
         Returns:
             Dictionary mapping column name to value.
@@ -341,6 +365,7 @@ class AnimalCohortDataExporter:
 
         return {
             "time": time,
+            "time_index": time_index,
             "cohort_id": str(cohort.id),
             "functional_group": fg.name,
             "development_type": str(fg.development_type),
@@ -371,6 +396,7 @@ class AnimalCohortDataExporter:
         cohort: AnimalCohort,
         territory_by_id: dict[str, list[int]],
         time: np.datetime64,
+        time_index: int,
     ) -> list[dict[str, object]]:
         """Build trophic interaction rows for a single cohort.
 
@@ -378,6 +404,7 @@ class AnimalCohortDataExporter:
             cohort: Consumer cohort containing a trophic_record for the timestep.
             territory_by_id: Dictionary of str(uuid),territory pairs for lookup.
             time: Timestamp for this snapshot.
+            time_index: The index of the datatime within the model updates.
 
         Returns:
             List of dictionaries, one per resource consumed, with C/N/P removed.
@@ -398,6 +425,7 @@ class AnimalCohortDataExporter:
             rows.append(
                 {
                     "time": time,
+                    "time_index": time_index,
                     "consumer_cohort_id": str(cohort.id),
                     "consumer_territory": cohort.territory,
                     "resource_kind": resource_kind,
