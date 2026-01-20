@@ -61,7 +61,7 @@ class TestAnimalCohortDataExporter:
         assert exporter._cohort_path is None
         assert exporter.float_format == "%0.3f"
 
-        exporter.dump(communities={}, time=np.datetime64("2000-01-01"))
+        exporter.dump(communities={}, time=np.datetime64("2000-01-01"), time_index=0)
 
         output_path = output_dir / "animal_cohort_data.csv"
         assert output_path.exists() is False
@@ -85,7 +85,7 @@ class TestAnimalCohortDataExporter:
 
         config = AnimalExportConfig(
             enabled=True,
-            cohort_attributes=("cell_id", "time", "cohort_id"),
+            cohort_attributes=("is_alive",),
             float_format="%0.4f",
         )
 
@@ -97,7 +97,7 @@ class TestAnimalCohortDataExporter:
         expected_path = output_dir / "animal_cohort_data.csv"
         assert exporter._active is True
         assert exporter._cohort_path == expected_path
-        assert exporter.cohort_attributes == {"cell_id", "time", "cohort_id"}
+        assert exporter.cohort_attributes == {"is_alive"}
         assert exporter.float_format == "%0.4f"
 
     def test_from_config_raises_if_output_file_exists(self, tmp_path):
@@ -211,9 +211,6 @@ class TestAnimalCohortDataExporter:
         attrs = exporter.available_attributes
 
         for field in [
-            "cell_id",
-            "time",
-            "cohort_id",
             "mass_carbon",
             "mass_nitrogen",
             "mass_phosphorus",
@@ -251,7 +248,7 @@ class TestAnimalCohortDataExporter:
 
         config = AnimalExportConfig(
             enabled=True,
-            cohort_attributes=("cell_id", "time", "cohort_id"),
+            cohort_attributes=("is_alive",),
         )
 
         exporter = AnimalCohortDataExporter.from_config(
@@ -267,15 +264,21 @@ class TestAnimalCohortDataExporter:
         time_1 = np.datetime64("2001-01-01")
         time_2 = np.datetime64("2001-01-02")
 
-        exporter.dump(communities=communities, time=time_1)
-        exporter.dump(communities=communities, time=time_2)
+        exporter.dump(communities=communities, time=time_1, time_index=0)
+        exporter.dump(communities=communities, time=time_2, time_index=1)
 
         output_path = output_dir / "animal_cohort_data.csv"
         assert output_path.exists()
 
         df = pd.read_csv(output_path)
 
-        assert set(df.columns) == {"cell_id", "time", "cohort_id"}
+        assert set(df.columns) == {
+            "cell_id",
+            "time",
+            "cohort_id",
+            "time_index",
+            "is_alive",
+        }
         # two cohorts, two time steps
         assert len(df) == 4
 
@@ -328,12 +331,12 @@ class TestAnimalCohortDataExporter:
         time_1 = np.datetime64("2001-01-01")
         time_2 = np.datetime64("2001-01-02")
 
-        exporter.dump(communities=communities, time=time_1)
+        exporter.dump(communities=communities, time=time_1, time_index=0)
 
         assert exporter._output_mode == "a"
         assert exporter._write_header is False
 
-        exporter.dump(communities=communities, time=time_2)
+        exporter.dump(communities=communities, time=time_2, time_index=1)
 
         out_path = output_dir / "animal_cohort_data.csv"
         assert out_path.exists()
@@ -371,7 +374,7 @@ class TestAnimalCohortDataExporter:
 
         config = AnimalExportConfig(
             enabled=True,
-            cohort_attributes=("cell_id", "time", "cohort_id"),
+            cohort_attributes=("is_alive",),
         )
 
         exporter = AnimalCohortDataExporter.from_config(
@@ -390,7 +393,7 @@ class TestAnimalCohortDataExporter:
 
         time_val = np.datetime64("2001-01-01")
 
-        exporter.dump(communities=communities, time=time_val)
+        exporter.dump(communities=communities, time=time_val, time_index=0)
 
         assert exporter._output_mode == "a"
         assert exporter._write_header is False
@@ -399,7 +402,13 @@ class TestAnimalCohortDataExporter:
         assert out_path.exists()
 
         df = pd.read_csv(out_path)
-        assert set(df.columns) == {"cell_id", "time", "cohort_id"}
+        assert set(df.columns) == {
+            "cell_id",
+            "time",
+            "cohort_id",
+            "time_index",
+            "is_alive",
+        }
         assert len(df) == 2
 
         # Two distinct cohorts written once each.
