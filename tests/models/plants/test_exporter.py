@@ -289,6 +289,7 @@ def test_CommunityDataExporter_dump_cohort_data(
         canopies=canopies,
         stem_allocations={},
         time=np.datetime64("2000-01-01"),
+        time_index=0,
     )
 
     out_path = tmp_path / "plants_cohort_data.csv"
@@ -333,6 +334,7 @@ def test_CommunityDataExporter_dump_community_canopy_data(
     exporter._dump_community_canopy_data(
         canopies=canopies,
         time=np.datetime64("2000-01-01"),
+        time_index=0,
     )
 
     out_path = tmp_path / "plants_community_canopy_data.csv"
@@ -376,6 +378,7 @@ def test_CommunityDataExporter_dump_stem_canopy_data(
         communities=communities,
         canopies=canopies,
         time=np.datetime64("2000-01-01"),
+        time_index=0,
     )
 
     out_path = tmp_path / "plants_stem_canopy_data.csv"
@@ -487,6 +490,7 @@ class TestExporterDump:
             canopies=canopies,
             stem_allocations={},
             time=np.datetime64("2000-01-01"),
+            time_index=0,
         )
 
         if required:
@@ -503,6 +507,7 @@ class TestExporterDump:
             canopies=canopies,
             stem_allocations=stem_allocations,
             time=np.datetime64("2001-01-01"),
+            time_index=0,
         )
 
         # Check the files are ok and have increased their number of row
@@ -598,6 +603,7 @@ class TestExporterDump:
             canopies=canopies,
             stem_allocations={},
             time=np.datetime64("2000-01-01"),
+            time_index=0,
         )
 
         if required:

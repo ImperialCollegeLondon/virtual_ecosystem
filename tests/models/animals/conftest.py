@@ -426,12 +426,13 @@ def dummy_animal_exporter():
     class DummyAnimalExporter:
         """No-op stand-in for AnimalCohortDataExporter."""
 
-        def dump(self, communities, time):
+        def dump(self, communities, time, time_index):
             """Ignore export calls in tests that do not check CSV output.
 
             Args:
                 communities: Mapping of cell IDs to cohorts.
                 time: Export time stamp.
+                time_index: Index of update.
             """
             return None
 

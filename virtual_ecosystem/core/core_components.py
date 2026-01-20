@@ -79,6 +79,8 @@ class ModelTiming:
     """The difference between start and calculated end time."""
     run_length: np.timedelta64 = field(init=False)
     """The configured run length."""
+    update_datestamps: NDArray[np.datetime64] = field(init=False)
+    """The date of the start of each update interval."""  # TODO: temp fix from #1257
     update_interval: np.timedelta64 = field(init=False)
     """The configured update interval."""
     run_length_quantity: pint.Quantity = field(init=False)
@@ -121,6 +123,14 @@ class ModelTiming:
         self.reconciled_run_length = self.end_time - self.start_time
 
         self.n_updates = int((self.end_time - self.start_time) / self.update_interval)
+
+        # Calculate the approximate dates of these updates
+        # TODO: This is a temporary fix to provide actual data to the data science team
+        # alongside the time index: see
+        # https://github.com/ImperialCollegeLondon/virtual_ecosystem/discussions/1246
+        self.update_datestamps = np.arange(
+            self.start_time, self.end_time, self.update_interval
+        ).astype("datetime64[D]")
 
         # Calculate the number of updates in one year
         # TODO - this is not calendar aware - variable length months and leap years.
@@ -203,8 +213,8 @@ class LayerStructure:
         2, The ``filled_atmosphere`` role includes the above canopy layer, all filled
         canopy layer indices and the surface layer.
 
-        3. The ``flux_layers`` role includes the filled canopy layers and the topsoil
-           layer.
+        3. The ``flux_layers`` role includes the filled canopy layers, understorey, and
+            the topsoil layer.
 
         In addition, the :attr:`.lowest_canopy_filled` attribute provides an array
         giving the vertical index of the lowest filled canopy layer in each grid cell.
@@ -418,7 +428,10 @@ class LayerStructure:
             "flux_layers",
             np.logical_or(
                 self._role_indices_bool["filled_canopy"],
-                self._role_indices_bool["topsoil"],
+                np.logical_or(
+                    self._role_indices_bool["surface"],
+                    self._role_indices_bool["topsoil"],
+                ),
             ),
         )
 
@@ -509,7 +522,10 @@ class LayerStructure:
             "flux_layers",
             np.logical_or(
                 self._role_indices_bool["filled_canopy"],
-                self._role_indices_bool["topsoil"],
+                np.logical_or(
+                    self._role_indices_bool["surface"],
+                    self._role_indices_bool["topsoil"],
+                ),
             ),
         )
 

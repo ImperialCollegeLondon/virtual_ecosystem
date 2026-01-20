@@ -198,10 +198,13 @@ def ve_run(
     # Create output folder if it does not exist
     os.makedirs(output_config.out_path, exist_ok=True)
 
-    # Save the initial state of the model
+    # Save the initial state of the model - all input variables with no selection using
+    # variables_to_save.
     if output_config.save_initial_state:
         data.save_to_netcdf(
-            output_config.out_path / output_config.out_initial_file_name
+            output_file_path=output_config.out_path
+            / output_config.out_initial_file_name,
+            timing=core_components.model_timing,
         )
         if progress > Progress.MINIMAL:
             print("* Saved model initial state")
@@ -249,17 +252,31 @@ def ve_run(
         for model in models_update.values():
             model.update(time_index)
 
-        # With updates complete increment the time_index
-        time_index += 1
-
         # Append updated data to the continuous data file
         if output_config.save_continuous_data:
             outfile_path = data.output_current_state(
                 variables_to_save=variables_to_save,
                 output_directory_path=continuous_output_dir,
                 time_index=time_index,
+                timestamp=core_components.model_timing.update_datestamps[time_index],
             )
             continuous_data_files.append(outfile_path)
+
+        # Handle the debug option to truncate the run
+        if (core_configuration.debug.truncate_run_at_update >= 0) & (
+            core_configuration.debug.truncate_run_at_update == time_index
+        ):
+            msg = (
+                f"Simulation truncated by core.debug.truncate_run_at_update at "
+                f"index {core_configuration.debug.truncate_run_at_update}"
+            )
+            LOGGER.warning(msg)
+            if progress > Progress.MINIMAL:
+                print("* " + msg)
+            break
+
+        # With updates complete increment the time_index
+        time_index += 1
 
         pbar.update(n=1)
 
@@ -280,7 +297,11 @@ def ve_run(
 
     # Save the final model state
     if output_config.save_final_state:
-        data.save_to_netcdf(output_config.out_path / output_config.out_final_file_name)
+        data.save_to_netcdf(
+            output_file_path=output_config.out_path / output_config.out_final_file_name,
+            variables_to_save=variables_to_save,
+            timing=core_components.model_timing,
+        )
         if progress > Progress.MINIMAL:
             print("* Saved final model state")
 
