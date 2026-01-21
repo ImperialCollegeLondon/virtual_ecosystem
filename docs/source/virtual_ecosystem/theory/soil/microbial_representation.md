@@ -164,32 +164,28 @@ entirely dependent on their symbiotic plant partners for the carbon they need to
 Because of this mycorrhizal fungi are assumed to preferentially take up inorganic forms
 of nutrients. They can take up organic matter if the availability of inorganic matter is
 insufficient, but this is used solely for the acquisition of nutrients and the carbon
-contained in this organic matter is returned to the soil as {term}`LMWC`.
+contained in this organic matter is returned to the soil as {term}`LMWC`. If the plant
+supply of carbon exceeds the mycorrhizal fungi's ability to use it then the excess is
+exuded into the soil (again as {term}`LMWC`).
 
 In return for the carbon they depend on, mycorrhizal fungi supply nutrients to the
-plants. Before each plant model time step the mycorrhizal fungal groups calculate the
-maximum rate at which they can supply nutrients to the plants, this is calculated using
-the assumption that the mycorrhizal fungi will not supply a nutrient if it means they
-can no longer maintain a steady population. So, the maximum rate that mycorrhizal fungal
-group will supply a nutrient to the plants is the difference between the maximum uptake
-rate for the nutrient and the demand for this nutrient for maintenance biomass
-synthesis. The plants then decide how much nutrients to take from the mycorrhizal fungal
-groups based on this maximum. If they take less than the maximum for both nitrogen and
-phosphorus then the mycorrhizal fungi can synthesis additional biomass on top of their
-maintenance requirements and therefore grow.
+plants. We assume that mycorrhiza supply a fixed (but configurable) fraction of the
+nutrients that they uptake to their plant partners. This is a fairly strong assumption,
+as in reality mycorrhizal fungi should vary the amount of nutrients they supply to
+plants based on the amount of carbon received, not just soil nutrient availability. We
+hope that by using this assumption we can treat the outcome of the (incredibly) complex
+eco-evolutionary involved in plant-mycorrhizal nutrient trading as a model parameter, to
+be determined based on real world data.
 
-The rate at which the plants take nutrients from their mycorrhizal partners is set by
-the plants model, and so it cannot vary as the soil model is updated. This creates
-problems as the amount of nutrients that the mycorrhizal fungi can uptake will fluctuate
-as conditions in the soil change. A decline in nutrient availability can mean that
-mycorrhizal fungi cannot synthesis biomass at a high enough rate to balance maintenance
-costs, while also supplying nutrients to plants at the required rate. For extreme enough
-changes in conditions, mycorrhizal fungi can be forced to breakdown biomass to satisfy
-the nutrient demand from plants. The limiting nutrients in this broken down biomass are
-supplied to plants and the carbon and non-limiting nutrients are return to the soil in
-labile forms. This doesn't represent a real biological process (in reality mycorrhizal
-fungi would just stop supplying nutrients), rather it is a way of maintaining nutrient
-balance between two models that are updated separately.
+At present, the soil model runs after the plants model (when running the standard set of
+models). This means that the nutrients the plants receive were effectively supplied on
+the previous time step. In many ways this lag is biologically realistic, as plants do
+show delayed responses to changes in soil nutrient conditions. However it does mean that
+an estimate of the nutrient supplied by the mycorrhizal fungi on the zeroth timestep is
+needed in order to run the first plant model time step. This estimate is made based on
+the initial soil conditions under the assumption that mycorrhizal fungi take up
+nutrients at the maximum possible rate. This is almost certainly an overestimate, but
+one that only really impact the initial time step of the simulation.
 
 We include two different mycorrhizal groups in the soil model, ectomycorrhizal fungi and
 arbuscular mycorrhizal fungi. The only difference between these groups are how they are
