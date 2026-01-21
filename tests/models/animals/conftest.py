@@ -426,7 +426,7 @@ def dummy_animal_exporter():
     class DummyAnimalExporter:
         """No-op stand-in for AnimalCohortDataExporter."""
 
-        def dump(self, cohorts, time):
+        def dump(self, cohorts, time, time_index):
             """Ignore export calls in tests that do not check CSV output.
 
             Args:

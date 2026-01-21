@@ -46,12 +46,11 @@ class AnimalCohortDataExporter:
     }
     """Mapping from output key to (filename, path-attribute-name)."""
 
-    required_attributes: ClassVar[set[str]] = {
-        "cell_id",
+    required_attributes: ClassVar[tuple[str, ...]] = (
         "cohort_id",
         "time",
         "time_index",
-    }
+    )
     """A set of output fields that are always included in cohort export."""
 
     available_attributes: ClassVar[set[str]] = {
@@ -113,7 +112,7 @@ class AnimalCohortDataExporter:
 
         # Remove any required headers from the cohort attributes so that the attribute
         # subset validation only checks the optional available values
-        self.cohort_attributes -= self.required_attributes
+        self.cohort_attributes -= set(self.required_attributes)
 
         self._check_and_set_paths()
         self._check_attribute_subsets()
@@ -243,12 +242,7 @@ class AnimalCohortDataExporter:
         df = pd.DataFrame(rows)
 
         if self.cohort_attributes:
-            df = df[
-                [
-                    *list(self.required_attributes),
-                    *list(self.cohort_attributes),
-                ]
-            ]
+            df = df[list(self.required_attributes) + sorted(self.cohort_attributes)]
 
         df.to_csv(
             self._cohort_path,
