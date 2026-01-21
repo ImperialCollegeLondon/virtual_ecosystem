@@ -17,6 +17,7 @@ reported as one.
 
 from __future__ import annotations
 
+from itertools import product
 from typing import Any
 
 import numpy as np
@@ -634,16 +635,15 @@ class SoilModel(
             (per grid cell) [kg nutrient].
         """
 
+        var_combinations = product(
+            ["n", "p"], [["amf", "arbuscular_mycorrhizal"], ["emf", "ectomycorrhizal"]]
+        )
+
         return {
-            f"{full_name}_{nut}_supply": updated_soil_pools[
-                f"new_{abbreviation}_{nut}_supply"
-            ]
+            f"{full}_{nut}_supply": updated_soil_pools[f"new_{abbr}_{nut}_supply"]
             * self.grid.cell_area
             * self.core_constants.max_depth_of_microbial_activity
-            for nut in ["n", "p"]
-            for abbreviation, full_name in zip(
-                ["amf", "emf"], ["arbuscular_mycorrhizal", "ectomycorrhizal"]
-            )
+            for nut, (abbr, full) in var_combinations
         }
 
     def to_total_mass(
