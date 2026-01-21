@@ -489,3 +489,260 @@ class TestAnimalCohortDataExporter:
         updated_rows = len(df_updated)
 
         assert updated_rows > initial_rows
+
+    def test_check_and_set_paths_sets_paths_for_all_outputs(self, tmp_path):
+        """Test _check_and_set_paths sets cohort and trophic paths.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+        """
+        from pathlib import Path
+
+        from virtual_ecosystem.models.animal.exporter import AnimalCohortDataExporter
+
+        exporter = AnimalCohortDataExporter.__new__(AnimalCohortDataExporter)
+        exporter.output_directory = Path(tmp_path)
+
+        exporter._cohort_path = None
+        exporter._trophic_path = None
+
+        exporter._check_and_set_paths()
+
+        assert exporter._cohort_path == Path(tmp_path) / "animal_cohort_data.csv"
+        assert (
+            exporter._trophic_path == Path(tmp_path) / "animal_trophic_interactions.csv"
+        )
+
+    def test_check_attribute_subsets_raises_on_unknown_optional_attribute(
+        self, tmp_path
+    ):
+        """Test _check_attribute_subsets raises for unknown attributes.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+        """
+        from pathlib import Path
+
+        import pytest
+
+        from virtual_ecosystem.core.exceptions import ConfigurationError
+        from virtual_ecosystem.models.animal.exporter import AnimalCohortDataExporter
+
+        exporter = AnimalCohortDataExporter.__new__(AnimalCohortDataExporter)
+        exporter.output_directory = Path(tmp_path)
+        exporter.cohort_attributes = {"not_a_real_field"}
+
+        with pytest.raises(ConfigurationError, match="unknown attributes"):
+            exporter._check_attribute_subsets()
+
+    def test_build_cohort_row_includes_required_and_selected_fields(self, mocker):
+        """Test _build_cohort_row serialises expected fields.
+
+        Args:
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import AnimalCohortDataExporter
+
+        exporter = AnimalCohortDataExporter.__new__(AnimalCohortDataExporter)
+
+        fg = mocker.Mock()
+        fg.name = "Herbivore"
+        fg.development_type = "direct"
+        fg.diet = "foliage"
+        fg.reproductive_environment = "terrestrial"
+
+        mass_cnp = mocker.Mock(carbon=1.0, nitrogen=2.0, phosphorus=3.0)
+        repro_cnp = mocker.Mock(carbon=0.1, nitrogen=0.2, phosphorus=0.3)
+
+        cohort = mocker.Mock()
+        cohort.id = "abc"
+        cohort.functional_group = fg
+        cohort.mass_cnp = mass_cnp
+        cohort.reproductive_mass_cnp = repro_cnp
+
+        cohort.age = 10
+        cohort.individuals = 5
+        cohort.is_alive = True
+        cohort.is_mature = False
+        cohort.time_to_maturity = 123
+        cohort.time_since_maturity = 0
+        cohort.location_status = "settled"
+        cohort.centroid_key = 7
+        cohort.territory_size = 1
+        cohort.territory = [7]
+        cohort.occupancy_proportion = 1.0
+        cohort.largest_mass_achieved = 99.0
+
+        t = np.datetime64("2001-01-01")
+        row = exporter._build_cohort_row(cohort=cohort, time=t, time_index=42)
+
+        assert row["time"] == t
+        assert row["time_index"] == 42
+        assert row["cohort_id"] == "abc"
+        assert row["functional_group"] == "Herbivore"
+        assert row["mass_carbon"] == 1.0
+        assert row["reproductive_mass_phosphorus"] == 0.3
+        assert row["is_alive"] is True
+
+    def test_build_trophic_rows_handles_cohort_and_pool_resources(self, mocker):
+        """Test _build_trophic_rows builds rows for cohort prey and pools.
+
+        Args:
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import AnimalCohortDataExporter
+
+        exporter = AnimalCohortDataExporter.__new__(AnimalCohortDataExporter)
+
+        cohort = mocker.Mock()
+        cohort.id = "pred"
+        cohort.territory = [1, 2]
+
+        cohort.trophic_record = {
+            ("cohort", "prey-1"): {"carbon": 1.0, "nitrogen": 2.0, "phosphorus": 3.0},
+            ("carcass_pool", "60"): {"carbon": 4.0, "nitrogen": 5.0, "phosphorus": 6.0},
+        }
+        territory_by_id = {"prey-1": [9]}
+
+        t = np.datetime64("2013-01-01")
+        rows = exporter._build_trophic_rows(
+            cohort=cohort,
+            territory_by_id=territory_by_id,
+            time=t,
+            time_index=7,
+        )
+
+        assert len(rows) == 2
+
+        cohort_row = next(r for r in rows if r["resource_kind"] == "cohort")
+        assert cohort_row["time"] == t
+        assert cohort_row["time_index"] == 7
+        assert cohort_row["consumer_cohort_id"] == "pred"
+        assert cohort_row["prey_territory"] == [9]
+        assert cohort_row["resource_cell_id"] is None
+        assert cohort_row["carbon"] == 1.0
+
+        pool_row = next(r for r in rows if r["resource_kind"] == "carcass_pool")
+        assert pool_row["resource_id"] == "60"
+        assert pool_row["resource_cell_id"] == 60
+        assert pool_row["prey_territory"] is None
+        assert pool_row["phosphorus"] == 6.0
+
+    def test_dump_cohorts_writes_file_and_flips_cohort_state(self, tmp_path, mocker):
+        """Test _dump_cohorts writes cohort CSV and flips cohort write state.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+            mocker: Pytest mocker fixture.
+        """
+        from pathlib import Path
+
+        import numpy as np
+        import pandas as pd
+
+        from virtual_ecosystem.models.animal.exporter import AnimalCohortDataExporter
+
+        exporter = AnimalCohortDataExporter(
+            output_directory=Path(tmp_path),
+            cohort_attributes={"is_alive"},
+        )
+
+        cohort = mocker.Mock()
+        cohort.id = "c1"
+        cohort.functional_group = mocker.Mock(
+            name="X", development_type="d", diet="e", reproductive_environment="r"
+        )
+        cohort.mass_cnp = mocker.Mock(carbon=1.0, nitrogen=1.0, phosphorus=1.0)
+        cohort.reproductive_mass_cnp = mocker.Mock(
+            carbon=0.0, nitrogen=0.0, phosphorus=0.0
+        )
+        cohort.age = 0
+        cohort.individuals = 1
+        cohort.is_alive = True
+        cohort.is_mature = False
+        cohort.time_to_maturity = 0
+        cohort.time_since_maturity = 0
+        cohort.location_status = "s"
+        cohort.centroid_key = 0
+        cohort.territory_size = 0
+        cohort.territory = [1]
+        cohort.occupancy_proportion = 1.0
+        cohort.largest_mass_achieved = 0.0
+
+        assert exporter._cohort_output_mode == "w"
+        assert exporter._write_cohort_header is True
+
+        exporter._dump_cohorts(
+            cohorts=[cohort],
+            time=np.datetime64("2000-01-01"),
+            time_index=0,
+        )
+
+        out_path = Path(tmp_path) / "animal_cohort_data.csv"
+        assert out_path.exists()
+
+        df = pd.read_csv(out_path)
+        assert set(df.columns) == {"time", "cohort_id", "time_index", "is_alive"}
+        assert len(df) == 1
+
+        assert exporter._cohort_output_mode == "a"
+        assert exporter._write_cohort_header is False
+
+    def test_dump_trophic_writes_file_and_flips_trophic_state(self, tmp_path, mocker):
+        """Test _dump_trophic writes trophic CSV and flips trophic write state.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+            mocker: Pytest mocker fixture.
+        """
+        from pathlib import Path
+
+        import numpy as np
+        import pandas as pd
+
+        from virtual_ecosystem.models.animal.exporter import AnimalCohortDataExporter
+
+        exporter = AnimalCohortDataExporter(
+            output_directory=Path(tmp_path), cohort_attributes=None
+        )
+
+        cohort = mocker.Mock()
+        cohort.id = "c1"
+        cohort.territory = [10]
+        cohort.trophic_record = {
+            ("carcass_pool", "60"): {"carbon": 1.0, "nitrogen": 2.0, "phosphorus": 3.0}
+        }
+
+        assert exporter._trophic_output_mode == "w"
+        assert exporter._write_trophic_header is True
+
+        exporter._dump_trophic(
+            cohorts=[cohort],
+            territory_by_id={},
+            time=np.datetime64("2000-01-01"),
+            time_index=0,
+        )
+
+        out_path = Path(tmp_path) / "animal_trophic_interactions.csv"
+        assert out_path.exists()
+
+        df = pd.read_csv(out_path)
+        assert len(df) == 1
+        assert set(df.columns) >= {
+            "time",
+            "time_index",
+            "consumer_cohort_id",
+            "resource_kind",
+            "resource_id",
+            "resource_cell_id",
+            "carbon",
+            "nitrogen",
+            "phosphorus",
+        }
+
+        assert exporter._trophic_output_mode == "a"
+        assert exporter._write_trophic_header is False
