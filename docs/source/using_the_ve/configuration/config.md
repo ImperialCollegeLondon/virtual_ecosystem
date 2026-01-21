@@ -222,7 +222,7 @@ useful to set some models to keep their data in a static state. For example:
 To implement this, all models (except `core`) accept a boolean configuration option,
 `static`, that indicates if such the model data should held static. Changing the default
 configuration `static=false` to `static=true` puts a model into static mode. For an
-example of this in use, see [this tutorial](../virtual_ecosystem_in_static_mode.md).
+example of this in use, see [this tutorial](../virtual_ecosystem_in_static_mode.ipynb).
 
 However, even when the model is run in static mode the model constants and variables
 need to be populated, for use by any models that are not in static mode. Because of
