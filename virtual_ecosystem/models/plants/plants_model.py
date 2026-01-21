@@ -75,10 +75,10 @@ class PlantsModel(
         "subcanopy_seedbank_biomass",
         "subcanopy_vegetation_biomass",
         "vapour_pressure_deficit",
-        "ecto_supply_limit_n",
-        "ecto_supply_limit_p",
-        "arbuscular_supply_limit_n",
-        "arbuscular_supply_limit_p",
+        "arbuscular_mycorrhizal_n_supply",
+        "arbuscular_mycorrhizal_p_supply",
+        "ectomycorrhizal_n_supply",
+        "ectomycorrhizal_p_supply",
     ),
     vars_updated=(
         "stem_turnover_cnp",  # i.e. deadwood
@@ -128,11 +128,7 @@ class PlantsModel(
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "plant_ammonium_uptake",
-        "plant_n_uptake_arbuscular",
-        "plant_n_uptake_ecto",
         "plant_nitrate_uptake",
-        "plant_p_uptake_arbuscular",
-        "plant_p_uptake_ecto",
         "plant_phosphorus_uptake",
         "plant_reproductive_tissue_lignin",
         "plant_symbiote_carbon_supply",
@@ -178,11 +174,7 @@ class PlantsModel(
         "leaf_turnover_n_mass",
         "leaf_turnover_p_mass",
         "plant_ammonium_uptake",
-        "plant_n_uptake_arbuscular",
-        "plant_n_uptake_ecto",
         "plant_nitrate_uptake",
-        "plant_p_uptake_arbuscular",
-        "plant_p_uptake_ecto",
         "plant_phosphorus_uptake",
         "plant_reproductive_tissue_turnover",
         "plant_reproductive_tissue_lignin",
@@ -716,9 +708,6 @@ class PlantsModel(
         # Calculate the turnover of each plant biomass pool
         self.calculate_turnover()
 
-        # Calculate the rate at which plants take nutrients from mycorrhizal fungi
-        self.calculate_mycorrhizal_uptakes()
-
         # Calculate the subcanopy vegetation
         self.subcanopy.calculate_dynamics(
             lue=self.pmodel.lue[self.layer_structure.index_surface_scalar, :],
@@ -1166,8 +1155,10 @@ class PlantsModel(
             for element in ["N", "P"]:
                 # Balance the N & P surplus/deficit with the symbiote carbon supply
                 total_supply = float(
-                    self.data["ecto_supply_limit_" + element.lower()][cell_id]
-                    + self.data["arbuscular_supply_limit_" + element.lower()][cell_id]
+                    self.data["ectomycorrhizal_" + element.lower() + "_supply"][cell_id]
+                    + self.data[
+                        "arbuscular_mycorrhizal_" + element.lower() + "_supply"
+                    ][cell_id]
                 )
 
                 # Calculate the fraction of the total supply that each stem gets by
@@ -1451,25 +1442,6 @@ class PlantsModel(
                 ammonium_uptake + nitrate_uptake
             )
             self.stoichiometries[cell_id]["P"].element_surplus += phosphorous_uptake
-
-    def calculate_mycorrhizal_uptakes(self) -> None:
-        """Calculate the rate at which plants take nutrients from mycorrhizal fungi.
-
-        Warning:
-            At present, this function just calculates uptake based on an entirely made
-            up function, and does not link to plant dynamics in any way.
-        """
-
-        # Making arbitrary assumption that the plants take exactly half the maximum
-        # supply amount, this should be replaced by something more sensible
-        self.data["plant_n_uptake_arbuscular"] = (
-            0.5 * self.data["arbuscular_supply_limit_n"]
-        )
-        self.data["plant_n_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_n"]
-        self.data["plant_p_uptake_arbuscular"] = (
-            0.5 * self.data["arbuscular_supply_limit_p"]
-        )
-        self.data["plant_p_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_p"]
 
     def partition_reproductive_tissue(
         self, reproductive_tissue_mass: NDArray[np.floating]
