@@ -1246,30 +1246,30 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Limit on rate at which ectomycorrhizal fungi will supply nitrogen to their plant partners"
-name = "ecto_supply_limit_n"
-unit = "kg N m^-2 day^-1"
+description = "Amount of nitrogen provided by arbuscular mycorrhizal fungi to their plant partners"
+name = "arbuscular_mycorrhizal_n_supply"
+unit = "kg N"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Limit on rate at which ectomycorrhizal fungi will supply phosphorus to their plant partners"
-name = "ecto_supply_limit_p"
-unit = "kg P m^-2 day^-1"
+description = "Amount of phosphorous provided by arbuscular mycorrhizal fungi to their plant partners"
+name = "arbuscular_mycorrhizal_p_supply"
+unit = "kg P"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Limit on rate at which arbuscular mycorrhizal fungi will supply nitrogen to their plant partners"
-name = "arbuscular_supply_limit_n"
-unit = "kg N m^-2 day^-1"
+description = "Amount of nitrogen provided by ectomycorrhizal fungi to their plant partners"
+name = "ectomycorrhizal_n_supply"
+unit = "kg N"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Limit on rate at which arbuscular mycorrhizal fungi will supply phosphorus to their plant partners"
-name = "arbuscular_supply_limit_p"
-unit = "kg P m^-2 day^-1"
+description = "Amount of phosphorous provided by ectomycorrhizal fungi to their plant partners"
+name = "ectomycorrhizal_p_supply"
+unit = "kg P"
 variable_type = "float"
 
 [[variable]]
@@ -1290,34 +1290,6 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Rate at which plants uptake labile inorganic phosphorus from the soil"
 name = "plant_phosphorus_uptake"
-unit = "kg P m^-2 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate at which plants take nitrogen from their arbuscular mycorrhizal partners"
-name = "plant_n_uptake_arbuscular"
-unit = "kg N m^-2 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate at which plants take nitrogen from their ectomycorrhizal partners"
-name = "plant_n_uptake_ecto"
-unit = "kg N m^-2 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate at which plants take phosphorus from their arbuscular mycorrhizal partners"
-name = "plant_p_uptake_arbuscular"
-unit = "kg P m^-2 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate at which plants take phosphorus from their ectomycorrhizal partners"
-name = "plant_p_uptake_ecto"
 unit = "kg P m^-2 day^-1"
 variable_type = "float"
 

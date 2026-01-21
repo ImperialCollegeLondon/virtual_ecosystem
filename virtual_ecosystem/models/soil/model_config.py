@@ -391,18 +391,37 @@ class SoilMicrobialGroup(Configuration):
     enzyme production. This allocation is expressed as a fraction of the (gross)
     cellular biomass growth.
     """
-    reproductive_allocation: float = Field(default=0.0)
+    reproductive_allocation: float = Field(default=0.0, ge=0.0, le=1.0)
     """Reproductive allocation as fraction of (gross) cellular biomass growth [unitless]
     Only fungi generate separate reproductive bodies, so this value **must** be set to
     zero for bacterial functional groups. Providing a non-zero value for a bacterial
     functional group will prevent the soil model from configuring.
     """
+    symbiote_nitrogen_uptake_fraction: float = Field(default=0.0, ge=0.0, le=1.0)
+    """Fraction of nitrogen uptake that is supplied to symbiotic (plant) partners.
+    [unitless]. This should only have a non-zero value for mycorrhizal fungi."""
+    symbiote_phosphorus_uptake_fraction: float = Field(default=0.0, ge=0.0, le=1.0)
+    """Fraction of nitrogen uptake that is supplied to symbiotic (plant) partners.
+    [unitless]. This should only have a non-zero value for mycorrhizal fungi."""
 
     @model_validator(mode="after")
     def _only_fungi_fruit(self) -> SoilMicrobialGroup:
         if self.taxonomic_group != "fungi" and self.reproductive_allocation > 0:
             raise ValueError(
                 "Reproductive allocation for non fungal groups must be zero."
+            )
+
+        return self
+
+    @model_validator(mode="after")
+    def _only_mycorrhiza_are_symbiotes(self) -> SoilMicrobialGroup:
+        if self.name not in ["ectomycorrhiza", "arbuscular_mycorrhiza"] and (
+            self.symbiote_nitrogen_uptake_fraction > 0
+            or self.symbiote_phosphorus_uptake_fraction > 0
+        ):
+            raise ValueError(
+                "Non-mycorrhizal groups should allocate zero nutrient uptake to "
+                "symbiotic partners!"
             )
 
         return self

@@ -115,6 +115,8 @@ c_p_ratio = 16
 enzyme_production.pom = 0.005
 enzyme_production.maom = 0.005
 reproductive_allocation = 0.0
+symbiote_nitrogen_uptake_fraction = 0.0
+symbiote_phosphorus_uptake_fraction = 0.0
 
 [[soil.microbial_group_definition]]
 name = "saprotrophic_fungi"
@@ -137,6 +139,8 @@ c_p_ratio = 40.0
 enzyme_production.pom = 0.005
 enzyme_production.maom = 0.005
 reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.0
+symbiote_phosphorus_uptake_fraction = 0.0
 
 [[soil.microbial_group_definition]]
 name = "arbuscular_mycorrhiza"
@@ -159,6 +163,8 @@ c_p_ratio = 120.0
 enzyme_production.pom = 0.0
 enzyme_production.maom = 0.0
 reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.2
+symbiote_phosphorus_uptake_fraction = 0.2
 
 [[soil.microbial_group_definition]]
 name = "ectomycorrhiza"
@@ -181,6 +187,8 @@ c_p_ratio = 120.0
 enzyme_production.pom = 0.02
 enzyme_production.maom = 0.02
 reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.2
+symbiote_phosphorus_uptake_fraction = 0.2
 
 [[soil.enzyme_class_definition]]
 source = "bacteria"
