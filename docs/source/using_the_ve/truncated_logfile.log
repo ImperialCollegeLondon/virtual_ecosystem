@@ -1,42 +1,41 @@
-[INFO] - config - collect_config_paths(329) - Config paths resolve to 5 files
-[INFO] - config - load_config_toml(358) - Config TOML loaded from ve_example/config/soil_microbial_groups.toml
-[INFO] - config - load_config_toml(358) - Config TOML loaded from ve_example/config/ve_run.toml
-[INFO] - config - load_config_toml(358) - Config TOML loaded from ve_example/config/plant_config.toml
-[INFO] - config - load_config_toml(358) - Config TOML loaded from ve_example/config/data_config.toml
-[INFO] - config - load_config_toml(358) - Config TOML loaded from ve_example/config/animal_functional_groups.toml
-[INFO] - config - build_config(463) - Config built from 5 file(s)
-[INFO] - config - build_config(465) - Config input file: ve_example/config
-[INFO] - registry - register_module(109) - Registering module: virtual_ecosystem.core
-[INFO] - registry - register_module(159) - Schema registered for virtual_ecosystem.core: /Users/dorme/Research/Virtual_Rainforest/virtual_ecosystem/virtual_ecosystem/core/module_schema.json 
-[INFO] - registry - register_module(181) - Constants class registered for virtual_ecosystem.core: CoreConsts 
-[INFO] - registry - register_module(109) - Registering module: virtual_ecosystem.models.soil
-[INFO] - registry - register_module(143) - Registering model class for virtual_ecosystem.models.soil: SoilModel
-[INFO] - registry - register_module(159) - Schema registered for virtual_ecosystem.models.soil: /Users/dorme/Research/Virtual_Rainforest/virtual_ecosystem/virtual_ecosystem/models/soil/module_schema.json 
-[INFO] - registry - register_module(181) - Constants class registered for virtual_ecosystem.models.soil: SoilConsts 
-[INFO] - registry - register_module(109) - Registering module: virtual_ecosystem.models.hydrology
-[INFO] - registry - register_module(143) - Registering model class for virtual_ecosystem.models.hydrology: HydrologyModel
-[INFO] - registry - register_module(159) - Schema registered for virtual_ecosystem.models.hydrology: /Users/dorme/Research/Virtual_Rainforest/virtual_ecosystem/virtual_ecosystem/models/hydrology/module_schema.json 
-[INFO] - registry - register_module(181) - Constants class registered for virtual_ecosystem.models.hydrology: HydroConsts 
-# Does that need changing manually?
-[INFO] - registry - register_module(109) - Registering module: virtual_ecosystem.models.abiotic_simple
+[INFO] - config_builder - _collect_config_paths(416) - Config paths resolve to 5 files
+[INFO] - config_builder - _load_config_toml(439) - Config TOML loaded from ve_example/config/soil_microbial_groups.toml
+[INFO] - config_builder - _load_config_toml(439) - Config TOML loaded from ve_example/config/ve_run.toml
+[INFO] - config_builder - _load_config_toml(439) - Config TOML loaded from ve_example/config/plant_config.toml
+[INFO] - config_builder - _load_config_toml(439) - Config TOML loaded from ve_example/config/data_config.toml
+[INFO] - config_builder - _load_config_toml(439) - Config TOML loaded from ve_example/config/animal_config.toml
+[INFO] - config_builder - _compile_data(363) - Configuration data compiled.
+[INFO] - registry - register_module(91) - Registering module: virtual_ecosystem.models.soil
+[INFO] - registry - get_model(161) - Registering model class for virtual_ecosystem.models.soil: SoilModel
+[INFO] - registry - register_module(104) - Configuration class registered for virtual_ecosystem.models.soil
+[INFO] - registry - register_module(91) - Registering module: virtual_ecosystem.core
+[INFO] - registry - register_module(104) - Configuration class registered for virtual_ecosystem.core
+[INFO] - registry - register_module(91) - Registering module: virtual_ecosystem.models.hydrology
+[INFO] - registry - get_model(161) - Registering model class for virtual_ecosystem.models.hydrology: HydrologyModel
+[INFO] - registry - register_module(104) - Configuration class registered for virtual_ecosystem.models.hydrology
+[INFO] - registry - register_module(91) - Registering module: virtual_ecosystem.models.abiotic
+[INFO] - registry - get_model(161) - Registering model class for virtual_ecosystem.models.abiotic: AbioticModel
+[INFO] - registry - register_module(104) - Configuration class registered for virtual_ecosystem.models.abiotic
+[INFO] - registry - register_module(91) - Registering module: virtual_ecosystem.models.animal
+[INFO] - registry - get_model(161) - Registering model class for virtual_ecosystem.models.animal: AnimalModel
 --- many lines omitted ---
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_n_pool_necromass'
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_n_pool_maom'
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_n_pool_ammonium'
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_n_pool_nitrate'
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_p_pool_dop'
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_p_pool_particulate'
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_p_pool_necromass'
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_p_pool_maom'
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_p_pool_primary'
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_p_pool_secondary'
-[INFO] - data - __setitem__(226) - Replacing data array for 'soil_p_pool_labile'
-[INFO] - data - __setitem__(226) - Replacing data array for 'production_of_fungal_fruiting_bodies'
-[INFO] - data - __setitem__(226) - Replacing data array for 'dissolved_nitrate'
-[INFO] - data - __setitem__(226) - Replacing data array for 'dissolved_ammonium'
-[INFO] - data - __setitem__(226) - Replacing data array for 'dissolved_phosphorus'
-[INFO] - data - __setitem__(226) - Replacing data array for 'ecto_supply_limit_n'
-[INFO] - data - __setitem__(226) - Replacing data array for 'ecto_supply_limit_p'
-[INFO] - data - __setitem__(226) - Replacing data array for 'arbuscular_supply_limit_n'
-[INFO] - data - __setitem__(226) - Replacing data array for 'arbuscular_supply_limit_p'
-[INFO] - main - ve_run(251) - Virtual Ecosystem model run completed!
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_n_pool_necromass'
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_n_pool_maom'
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_n_pool_ammonium'
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_n_pool_nitrate'
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_p_pool_dop'
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_p_pool_particulate'
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_p_pool_necromass'
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_p_pool_maom'
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_p_pool_primary'
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_p_pool_secondary'
+[INFO] - data - __setitem__(233) - Replacing data array for 'soil_p_pool_labile'
+[INFO] - data - __setitem__(233) - Replacing data array for 'production_of_fungal_fruiting_bodies'
+[INFO] - data - __setitem__(233) - Replacing data array for 'dissolved_nitrate'
+[INFO] - data - __setitem__(233) - Replacing data array for 'dissolved_ammonium'
+[INFO] - data - __setitem__(233) - Replacing data array for 'dissolved_phosphorus'
+[INFO] - data - __setitem__(233) - Replacing data array for 'ecto_supply_limit_n'
+[INFO] - data - __setitem__(233) - Replacing data array for 'ecto_supply_limit_p'
+[INFO] - data - __setitem__(233) - Replacing data array for 'arbuscular_supply_limit_n'
+[INFO] - data - __setitem__(233) - Replacing data array for 'arbuscular_supply_limit_p'
+[INFO] - main - ve_run(308) - Virtual Ecosystem model run completed!

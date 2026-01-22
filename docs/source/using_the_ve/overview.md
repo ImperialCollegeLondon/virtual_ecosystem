@@ -67,6 +67,7 @@ Once you have your own model running, you can run experiments on the system.
   sensitivity of your simulation to changes in the parameterisation.
 
 * Isolate a single component of the model to see how it responds to constant inputs
-  through time using the [static model system](./virtual_ecosystem_in_static_mode.md).
-  Although this is primarily intended as a model development tool, it can be useful to
-  understand the details of how different components of your model are behaving.
+  through time using the [static model
+  system](./virtual_ecosystem_in_static_mode.ipynb). Although this is primarily intended
+  as a model development tool, it can be useful to understand the details of how
+  different components of your model are behaving.
