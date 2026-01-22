@@ -323,9 +323,11 @@ def calculate_energy_balance_residual(
     # Latent heat flux canopy, [W m-2]
     # The current implementation converts outputs from plant and hydrology model to
     # ensure energy conservation between modules for now.
-    latent_heat_flux_canopy = (
-        evapotranspiration * latent_heat_vapourisation
-    ) / seconds_to_hour
+    latent_heat_flux_canopy = calculate_latent_heat_flux(
+        evapotranspiration=evapotranspiration,
+        latent_heat_vapourisation=latent_heat_vapourisation,
+        time_interval=seconds_to_hour,
+    )
 
     # Energy balance residual, [W m-2]
     energy_balance_residual = (

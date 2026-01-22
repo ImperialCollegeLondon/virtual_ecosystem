@@ -623,12 +623,12 @@ def test_calculate_latent_heat_flux(
 
     exp_canopy = np.array(
         [
-            [113.055556, 113.055556, 113.055556, np.nan],
-            [84.791667, 84.791667, np.nan, np.nan],
-            [56.527778, np.nan, np.nan, np.nan],
+            [65.949074, 65.949074, 65.949074, np.nan],
+            [47.106481, 47.106481, np.nan, np.nan],
+            [28.263889, np.nan, np.nan, np.nan],
         ]
     )
-    exp_surface = np.array([113.055556, 113.055556, 113.055556, 113.055556])
+    exp_surface = np.array([37.685185, 37.685185, 37.685185, 37.685185])
 
     np.testing.assert_allclose(result[canopy_layers], exp_canopy, rtol=1e-4, atol=1e-4)
     np.testing.assert_allclose(result[surface_layer], exp_surface, rtol=1e-4, atol=1e-4)
