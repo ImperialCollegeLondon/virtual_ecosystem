@@ -136,12 +136,12 @@ class AnimalCohortDataExporter:
             LOGGER.info("Animal cohort data exporter not active.")
             exporter = cls.__new__(cls)
 
-            # Public configuration (still useful for consistency / introspection)
+            # Public configuration
             exporter.output_directory = output_directory
             exporter.cohort_attributes = set()
             exporter.float_format = config.float_format
 
-            # Internal state (match your refactor)
+            # Internal state
             exporter._cohort_output_mode = "w"
             exporter._trophic_output_mode = "w"
             exporter._write_cohort_header = True
@@ -254,7 +254,7 @@ class AnimalCohortDataExporter:
 
         LOGGER.info("Animal model cohort data dumped at time: %s", time)
 
-        # Flip cohort state ONLY because we actually wrote a file.
+        # Flip cohort state because we actually wrote a file.
         self._cohort_output_mode = "a"
         self._write_cohort_header = False
 
@@ -305,7 +305,7 @@ class AnimalCohortDataExporter:
             float_format=self.float_format,
         )
 
-        # Flip trophic state ONLY because we actually wrote a file.
+        # Flip trophic state because we actually wrote a file.
         self._trophic_output_mode = "a"
         self._write_trophic_header = False
 
