@@ -402,4 +402,4 @@ The example model data directory also contains:
    [data inputs](./model_data_inputs.md) using data for your ecosystem.
 
 * The `static_config` directory is empty and is used as part of the advanced usage of
-  [static models](./virtual_ecosystem_in_static_mode.md) in the Virtual Ecosystem.
+  [static models](./virtual_ecosystem_in_static_mode.ipynb) in the Virtual Ecosystem.
