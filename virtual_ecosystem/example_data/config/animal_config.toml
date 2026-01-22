@@ -8,7 +8,6 @@ enabled = true
 
 # select whichever subset of attributes is of interest
 cohort_attributes = [
-"cell_id",
   "time",
   "cohort_id",
   "functional_group",
