@@ -353,3 +353,204 @@ def test_calculate_atmospheric_layer_geometry(
     np.testing.assert_allclose(
         result["thickness"], exp_thickness, rtol=1e-04, atol=1e-04
     )
+
+
+def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_canopy):
+    """Test generation of a single-day diurnal cycle from monthly means."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        generate_diurnal_cycle_from_monthly_data,
+    )
+
+    latitude_deg = 0.0
+    month = 2
+    daily_temp_amplitude = 5.0
+    data = dummy_climate_data_varying_canopy
+    n_layers, n_cells = data["canopy_evaporation"].shape
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+
+    # Generate diurnal cycle
+    forcing = generate_diurnal_cycle_from_monthly_data(
+        monthly_air_temperature=data["air_temperature_ref"]
+        .isel(time_index=1)
+        .to_numpy(),
+        monthly_relative_humidity=data["relative_humidity_ref"]
+        .isel(time_index=1)
+        .to_numpy(),
+        monthly_shortwave_absorption=data["shortwave_absorption"].to_numpy(),
+        monthly_evapotranspiration=evapotranspiration.to_numpy(),
+        monthly_soil_evaporation=data["soil_evaporation"].to_numpy(),
+        latitude_deg=latitude_deg,
+        month=month,
+        daily_temp_amplitude=daily_temp_amplitude,
+    )
+
+    # Shape checks
+    assert forcing["air_temperature_hourly"].shape == (24, n_cells)
+    assert forcing["relative_humidity_hourly"].shape == (24, n_cells)
+    assert forcing["shortwave_absorption_hourly"].shape == (24, n_layers, n_cells)
+    assert forcing["evapotranspiration_hourly"].shape == (24, n_layers, n_cells)
+    assert forcing["soil_evaporation_hourly"].shape == (24, n_cells)
+
+    # Air temperature bounds
+    air_temp = forcing["air_temperature_hourly"]
+    air_temp_monthly = data["air_temperature_ref"].isel(time_index=1).to_numpy()
+    assert np.all(air_temp >= air_temp_monthly - daily_temp_amplitude - 1e-6)
+    assert np.all(air_temp <= air_temp_monthly + daily_temp_amplitude + 1e-6)
+
+    # Relative humidity bounds
+    rh = forcing["relative_humidity_hourly"]
+    assert np.all(rh >= 0.0)
+    assert np.all(rh <= 100.0)
+
+    # Radiation only during daytime
+    sw = forcing["shortwave_absorption_hourly"]
+    nighttime_sw = sw[[0, 1, 2, 3, 22, 23], 11, :]
+    assert np.all(nighttime_sw == 0.0)
+
+    # Check conservation
+    daily_sum_et = np.nansum(forcing["evapotranspiration_hourly"], axis=0)
+    daily_sum_sw_abs = np.nansum(forcing["shortwave_absorption_hourly"], axis=0)
+    daily_sum_soil_evap = np.nansum(forcing["soil_evaporation_hourly"], axis=0)
+
+    # Mask for valid monthly
+    mask = ~np.isnan(evapotranspiration.to_numpy())
+
+    assert np.allclose(
+        daily_sum_et[mask], evapotranspiration.to_numpy()[mask], rtol=1e-5
+    )
+    assert np.allclose(
+        daily_sum_sw_abs[mask], data["shortwave_absorption"].to_numpy()[mask], rtol=1e-5
+    )
+    assert np.allclose(
+        daily_sum_soil_evap,
+        data["soil_evaporation"].to_numpy(),
+        rtol=1e-5,
+    )
+
+
+def test_fill_layer_template(fixture_core_components):
+    """Test fill layer template."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import fill_layer_template
+
+    layer_structure = fixture_core_components.layer_structure
+
+    # Define indices
+    canopy_index = [1, 2, 3]
+    surface_index = [11]
+    soil_index = [12, 13]
+
+    # Define values
+    canopy_vals = np.array([[10.0, 20.0, 30.0, 40.0]] * 3)
+    surface_vals = np.array([1.0, 2.0, 3.0, 4.0])
+    soil_vals = np.array([[5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0]])
+
+    assignments = [
+        (canopy_index, canopy_vals),
+        (surface_index, surface_vals),
+        (soil_index, soil_vals),
+    ]
+
+    out = fill_layer_template(layer_structure, assignments)
+
+    assert np.allclose(out[canopy_index], canopy_vals)
+    assert np.allclose(out[surface_index], surface_vals)
+    assert np.allclose(out[soil_index], soil_vals)
+
+    # --- Unfilled layers remain NaN ---
+    assert np.all(np.isnan(out[0]))
+
+
+def test_record_hourly_output(fixture_core_components):
+    """Test record hourly input."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import record_hourly_output
+
+    hours = 24
+    layers = 14
+    cells = 4
+    hour = 5
+
+    layer_structure = fixture_core_components.layer_structure
+
+    # Initialise data_record
+    data_record = {
+        # 1D variable
+        "ground_heat_flux": np.full((hours, cells), np.nan),
+        # 2D layered variable
+        "longwave_emission": np.full((hours, layers, cells), np.nan),
+    }
+
+    # Hourly inputs
+    ground_heat_flux = np.array([1.0, 2.0, 3.0, 4.0])
+
+    canopy_index = layer_structure.index_filled_canopy
+    surface_index = layer_structure.index_surface_scalar
+
+    longwave_canopy = np.array([[10.0, 20.0, 30.0, 20.0]] * 3)
+    longwave_surface = np.array([5.0, 5.0, 5.0, 5.0])
+
+    hourly_values = {
+        "ground_heat_flux": ground_heat_flux,
+        "longwave_emission": [
+            (canopy_index, longwave_canopy),
+            (surface_index, longwave_surface),
+        ],
+        "unknown_var": np.array([999.0, 999.0, 999.0, 999.0]),  # ignored
+    }
+
+    updated = record_hourly_output(
+        hour=hour,
+        data_record=data_record,
+        layer_structure=layer_structure,
+        hourly_values=hourly_values,
+    )
+
+    # 1D variable recorded correctly
+    assert np.allclose(updated["ground_heat_flux"][hour], ground_heat_flux)
+
+    # 2D layered variable recorded correctly
+    assert np.allclose(updated["longwave_emission"][hour, 1], longwave_canopy[0])
+    assert np.allclose(updated["longwave_emission"][hour, 11], longwave_surface[0])
+
+    # Unfilled layers remain NaN
+    assert np.all(np.isnan(updated["longwave_emission"][hour, 0]))
+    assert np.all(np.isnan(updated["longwave_emission"][hour, 5]))
+
+    # Other hours untouched
+    assert np.all(np.isnan(updated["ground_heat_flux"][:hour]))
+    assert np.all(np.isnan(updated["ground_heat_flux"][hour + 1 :]))
+
+    assert np.all(np.isnan(updated["longwave_emission"][:hour]))
+    assert np.all(np.isnan(updated["longwave_emission"][hour + 1 :]))
+
+
+# Test function
+def test_mean_to_layers(fixture_core_components):
+    """Test mean_to_layers function."""
+    from virtual_ecosystem.models.abiotic.abiotic_tools import mean_to_layers
+
+    data = np.arange(24 * 14 * 4, dtype=float).reshape(24, 14, 4)
+    data[0, 2, 3] = np.nan
+    data[5, 10, 1] = np.nan
+    data_record = {"test_var": data}
+
+    layer_structure = fixture_core_components.layer_structure
+    index = layer_structure.index_filled_canopy
+
+    result = mean_to_layers(
+        var="test_var",
+        index=index,
+        data_record=data_record,
+        layer_structure=layer_structure,
+    )
+
+    # Compute expected manually
+    mean_vals = np.nanmean(data, axis=0)
+    expected = np.full((14, 4), np.nan)
+    expected[index] = mean_vals[index]
+
+    # Assertions
+    assert result.shape == (14, 4)
+    np.testing.assert_allclose(result, expected, rtol=1e-8)
