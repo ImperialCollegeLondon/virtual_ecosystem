@@ -550,6 +550,7 @@ def bfs_territory(
     TODO: Revise for diagonals if we stay on grid squares/cells.
     TODO: might be able to save time with an ifelse for small territories
     TODO: scaling territories is a temporary home while i rework territories
+    TODO: replace pop with collections.deque
 
     Args:
         centroid_key: The community key anchoring the territory.
@@ -560,6 +561,11 @@ def bfs_territory(
     Returns:
         A list of grid cell keys representing the territory.
     """
+
+    centroid_key = int(centroid_key)
+    target_cell_number = int(target_cell_number)
+    cell_nx = int(cell_nx)
+    cell_ny = int(cell_ny)
 
     # Convert centroid key to row and column indices
     row, col = divmod(centroid_key, cell_nx)
