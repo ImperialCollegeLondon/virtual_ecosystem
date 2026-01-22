@@ -593,3 +593,42 @@ def test_calculate_conductive_flux_understorey():
     actual_flux_signs = np.sign(result)
     assert np.all(actual_flux_signs == expected_flux_signs)
     np.testing.assert_allclose(result, exp_flux, rtol=1e-6)
+
+
+def test_calculate_latent_heat_flux(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test calculation of latent heat flux."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_latent_heat_flux,
+    )
+
+    evapotranspiration = (
+        dummy_climate_data_varying_canopy["transpiration"]
+        + dummy_climate_data_varying_canopy["canopy_evaporation"]
+    ).to_numpy()
+    canopy_layers = fixture_core_components.layer_structure.index_filled_canopy
+    surface_layer = fixture_core_components.layer_structure.index_surface_scalar
+
+    result = calculate_latent_heat_flux(
+        evapotranspiration=evapotranspiration
+        / (30 * 24),  # convert mm month-1 to mm hour-1
+        latent_heat_vapourisation=dummy_climate_data_varying_canopy[
+            "latent_heat_vapourisation"
+        ].to_numpy()
+        * 1000,
+        time_interval=3600.0,
+    )
+
+    exp_canopy = np.array(
+        [
+            [113.055556, 113.055556, 113.055556, np.nan],
+            [84.791667, 84.791667, np.nan, np.nan],
+            [56.527778, np.nan, np.nan, np.nan],
+        ]
+    )
+    exp_surface = np.array([113.055556, 113.055556, 113.055556, 113.055556])
+
+    np.testing.assert_allclose(result[canopy_layers], exp_canopy, rtol=1e-4, atol=1e-4)
+    np.testing.assert_allclose(result[surface_layer], exp_surface, rtol=1e-4, atol=1e-4)

@@ -830,3 +830,28 @@ def calculate_conductive_flux_understorey(
         / understorey_layer_thickness
     )
     return flux
+
+
+def calculate_latent_heat_flux(
+    evapotranspiration: NDArray[np.floating],
+    latent_heat_vapourisation: NDArray[np.floating],
+    time_interval: float,
+) -> NDArray[np.floating]:
+    """Calculate latent heat flux from evapotranspiration.
+
+    Args:
+        evapotranspiration: Evapotranspiration per unit area, [kg m-2]
+            (1 kg m-2 of water = 1 mm of water)
+        latent_heat_vapourisation: Latent heat of vaporisation of water, [J kg-1]
+        time_interval: Time interval over which flux is computed, [s]
+
+    Returns:
+        Latent heat flux, [W m-2]
+    """
+    # Energy transferred as latent heat [J m-2] over the time interval
+    energy_j_per_m2 = evapotranspiration * latent_heat_vapourisation
+
+    # Convert to flux [W m-2] by dividing by time interval [s]
+    latent_heat_flux = energy_j_per_m2 / time_interval
+
+    return latent_heat_flux

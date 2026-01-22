@@ -763,10 +763,11 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     dummy_climate_data["canopy_evaporation"][index_filled_canopy] = [
-        [10.0, 10.0, 10.0, np.nan],
-        [10.0, 10.0, np.nan, np.nan],
-        [10.0, np.nan, np.nan, np.nan],
+        [40.0, 40.0, 40.0, np.nan],
+        [30.0, 30.0, np.nan, np.nan],
+        [20.0, np.nan, np.nan, np.nan],
     ]
+    dummy_climate_data["canopy_evaporation"][lyr_str.index_surface_scalar] = 40.0
 
     dummy_climate_data["stomatal_conductance"][index_filled_canopy] = [
         [15.0, 15.0, 15.0, np.nan],
@@ -776,9 +777,10 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
 
     # Hydrology
     dummy_climate_data["transpiration"][index_filled_canopy] = [
-        [20.0, 20.0, 20.0, np.nan],
-        [20.0, 20.0, np.nan, np.nan],
-        [20.0, np.nan, np.nan, np.nan],
+        [80.0, 80.0, 80.0, np.nan],
+        [60.0, 60.0, np.nan, np.nan],
+        [40.0, np.nan, np.nan, np.nan],
     ]
+    dummy_climate_data["transpiration"][lyr_str.index_surface_scalar] = 80.0
 
     return dummy_climate_data
