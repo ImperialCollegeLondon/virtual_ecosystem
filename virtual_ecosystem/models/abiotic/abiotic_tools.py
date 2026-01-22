@@ -340,3 +340,170 @@ def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStruc
         "layer_top": layer_top,
         "layer_midpoints": midpoints,
     }
+
+
+def generate_diurnal_cycle_from_monthly_data(
+    monthly_air_temperature: NDArray[np.floating],
+    monthly_shortwave_absorption: NDArray[np.floating],
+    monthly_relative_humidity: NDArray[np.floating],
+    monthly_evapotranspiration: NDArray[np.floating],
+    monthly_soil_evaporation: NDArray[np.floating],
+    latitude_deg: float,
+    month: int,
+    daily_temp_amplitude: float = 5.0,
+) -> dict[str, NDArray[np.floating]]:
+    """Generate synthetic hourly forcing for one day from monthly averages.
+
+    Args:
+        monthly_air_temperature: Monthly mean air temperature [C]
+        monthly_shortwave_absorption: Monthly mean daily shortwave absorption [W m-2]
+        monthly_relative_humidity: Monthly mean relative humidity [%]
+        monthly_evapotranspiration: Monthly total evapotranspiration [mm/month]
+        monthly_soil_evaporation: Monthly total soil evaporation [mm/month]
+        latitude_deg: Latitude for daylength calculation [deg]
+        month: Month number [1-12]
+        daily_temp_amplitude: typical diurnal temperature swing [C]
+
+    Returns:
+        dict of arrays air_temperature_hourly, shortwave_absorption_hourly,
+        relative_humidity_hourly, evapotranspiration_hourly, soil_evaporation_hourly
+    """
+
+    hours = np.arange(24)
+
+    # Air temperature (sine wave, max at 14:00), (24, cell)
+    air_temperature_hourly = monthly_air_temperature[
+        None, :
+    ] + daily_temp_amplitude * np.sin(2 * np.pi * (hours[:, None] - 8) / 24)
+
+    # Daylength (simple climatology)
+    daylength = 12 + 4 * np.cos((month - 1) * np.pi / 6) * np.cos(
+        np.radians(latitude_deg)
+    )
+    daylength = np.clip(daylength, 6.0, 18.0)
+
+    sunrise = 12 - daylength / 2
+    sunset = 12 + daylength / 2
+
+    # Shortwave radiation (half-sine over daylight)
+    hour_fraction = np.zeros(24)
+
+    for h in range(24):
+        if sunrise <= h <= sunset:
+            hour_fraction[h] = np.sin(np.pi * (h - sunrise) / daylength)
+
+    if hour_fraction.sum() > 0:
+        hour_fraction /= hour_fraction.sum()
+
+    # Shortwave absorption (distributed like radiation), (24, layer, cell)
+    shortwave_absorption_hourly = (
+        monthly_shortwave_absorption[None, :, :] * hour_fraction[:, None, None]
+    )
+
+    # Relative humidity (constant vapor pressure)
+    e_s_mean = calc_vp_sat(monthly_air_temperature)  # (cell,)
+    e_a = monthly_relative_humidity / 100.0 * e_s_mean  # (cell,)
+
+    e_s_hourly = calc_vp_sat(air_temperature_hourly)  # (24, cell)
+    relative_humidity_hourly = 100.0 * e_a[None, :] / e_s_hourly
+    relative_humidity_hourly = np.clip(relative_humidity_hourly, 0.0, 100.0)
+
+    # Evapotranspiration (distributed like radiation)
+    sw_sum = shortwave_absorption_hourly.sum(axis=0, keepdims=True)
+
+    evapotranspiration_hourly = np.where(
+        sw_sum > 0,
+        monthly_evapotranspiration[None, :, :] * shortwave_absorption_hourly / sw_sum,
+        monthly_evapotranspiration[None, :, :] / 24.0,
+    )
+
+    # Soil evaporation (distributed like radiation)
+    soil_evaporation_hourly = np.where(
+        shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :] > 0,
+        monthly_soil_evaporation[None, :]
+        * shortwave_absorption_hourly.sum(axis=1)
+        / shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :],
+        monthly_soil_evaporation[None, :] / 24.0,
+    )
+
+    return {
+        "air_temperature_hourly": air_temperature_hourly,
+        "relative_humidity_hourly": relative_humidity_hourly,
+        "shortwave_absorption_hourly": shortwave_absorption_hourly,
+        "evapotranspiration_hourly": evapotranspiration_hourly,
+        "soil_evaporation_hourly": soil_evaporation_hourly,
+    }
+
+
+def fill_layer_template(
+    layer_structure: LayerStructure,
+    assignments: list[tuple],
+) -> NDArray[np.floating]:
+    """Fill layer template with index values.
+
+    Args:
+        layer_structure: LayerStructure
+        assignments: list of variable names, indices and values
+
+    Returns:
+        array with updated indices
+    """
+    out = layer_structure.from_template().to_numpy()
+
+    for indices, values in assignments:
+        out[indices, :] = values
+
+    return out
+
+
+def record_hourly_output(
+    hour: int,
+    data_record: dict,
+    layer_structure: LayerStructure,
+    hourly_values: dict,
+):
+    """Record hourly data.
+
+    Args:
+        hour: Hour of the day
+        data_record: dict that contains all hourly data
+        layer_structure: LayerStructure object
+        hourly_values: Hourly values
+
+    Returns:
+        updated dict with hour values
+    """
+    for var, value in hourly_values.items():
+        if var not in data_record:
+            continue
+
+        # 1D (cells)
+        if isinstance(value, np.ndarray) and value.ndim == 1:
+            data_record[var][hour] = value
+
+        # 2D layered variable
+        else:
+            full = fill_layer_template(layer_structure, value)
+            data_record[var][hour] = full
+
+    return data_record
+
+
+def mean_to_layers(
+    var: str, index: list[int], data_record: dict, layer_structure: LayerStructure
+) -> DataArray:
+    """Return mean value over time for given variable and fill into layer structure.
+
+    Args:
+        var: Variable name
+        index: List of layer indices to fill
+        data_record: Data record dict
+        layer_structure: LayerStructure object
+
+    Returns:
+        DataArray with mean values filled into layer structure
+    """
+    out = layer_structure.from_template()
+    mean_vals = np.nanmean(data_record[var], axis=0)
+    out[index] = mean_vals[index]
+    return out
