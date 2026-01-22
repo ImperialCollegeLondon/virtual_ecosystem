@@ -273,6 +273,7 @@ class AnimalModel(
                 ExcrementPool(
                     scavengeable_cnp=CNP(1e-3, 1e-4, 1e-6),
                     decomposed_cnp=CNP(0.0, 0.0, 0.0),
+                    cell_id=cell_id,
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -283,6 +284,7 @@ class AnimalModel(
                 CarcassPool(
                     scavengeable_cnp=CNP(1e-3, 1e-4, 1e-6),
                     decomposed_cnp=CNP(0.0, 0.0, 0.0),
+                    cell_id=cell_id,
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -315,7 +317,7 @@ class AnimalModel(
         animal cohorts."""
 
         self.exporter.dump(
-            communities=self.communities,
+            cohorts=self.active_cohorts.values(),
             time=self.model_timing.start_time,
             time_index=0,
         )
@@ -446,6 +448,7 @@ class AnimalModel(
         # and the rate of decay
         fruiting_bodies_decay = self.update_fungal_fruiting_bodies()
 
+        self.reset_trophic_records()
         self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
         self.birth_community()
@@ -481,7 +484,7 @@ class AnimalModel(
 
         # Dump the cohort data to CSV
         self.exporter.dump(
-            communities=self.communities,
+            cohorts=self.active_cohorts.values(),
             time=self.model_timing.update_datestamps[time_index],
             time_index=time_index,
         )
@@ -1861,3 +1864,8 @@ class AnimalModel(
             self.update_community_occupancy(cohort, centroid_key)
 
         return cohort
+
+    def reset_trophic_records(self) -> None:
+        """Reset trophic interaction records for all active cohorts."""
+        for cohort in self.active_cohorts.values():
+            cohort.reset_trophic_record()
