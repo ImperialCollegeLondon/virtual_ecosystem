@@ -49,7 +49,7 @@ def test_ve_run(capsys):
                     "--logfile",
                     str(logfile),
                     "--config",
-                    'core.timing.run_length="2 months"',
+                    "core.debug.truncate_run_at_update=1",
                 ]
             )
 

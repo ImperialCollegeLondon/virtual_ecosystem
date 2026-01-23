@@ -262,6 +262,7 @@ class CommunityDataExporter:
         canopies: dict[int, Canopy],
         stem_allocations: dict[int, StemAllocation],
         time: np.datetime64,
+        time_index: int,
     ) -> None:
         """Export plant community data to file.
 
@@ -273,6 +274,7 @@ class CommunityDataExporter:
             canopies: A dictionary of Canopy instances, keyed by cell id.
             stem_allocations: A dictionary of StemAllocations, also keyed by cell id
             time: A datetime to be used as a timestamp in the output files.
+            time_index: The index of the datatime within the model updates.
         """
 
         if not self._active:
@@ -284,15 +286,18 @@ class CommunityDataExporter:
             canopies=canopies,
             stem_allocations=stem_allocations,
             time=time,
+            time_index=time_index,
         )
         self._dump_community_canopy_data(
             canopies=canopies,
             time=time,
+            time_index=time_index,
         )
         self._dump_stem_canopy_data(
             communities=communities,
             canopies=canopies,
             time=time,
+            time_index=time_index,
         )
 
         # Update the output mode and header: all subsequent dump calls use append
@@ -305,6 +310,7 @@ class CommunityDataExporter:
         canopies: dict[int, Canopy],
         stem_allocations: dict[int, StemAllocation],
         time: np.datetime64,
+        time_index: int,
     ) -> None:
         """Dump plant cohort data to file.
 
@@ -313,6 +319,7 @@ class CommunityDataExporter:
             canopies: A dictionary of Canopy instances, keyed by cell id.
             stem_allocations: A dictionary of StemAllocations, also keyed by cell id
             time: A datetime to be used as a timestamp in the output files
+            time_index: The index of the datatime within the model updates.
         """
 
         # If the data has not been requested - so the path is None - then exit
@@ -354,6 +361,7 @@ class CommunityDataExporter:
         # Concatenate the cells by row and add time
         cohort_data_compiled = pd.concat(cohort_data)
         cohort_data_compiled["time"] = time
+        cohort_data_compiled["time_index"] = time_index
 
         # Reduce to requested attributes
         if self.cohort_attributes:
@@ -374,12 +382,14 @@ class CommunityDataExporter:
         self,
         canopies: dict[int, Canopy],
         time: np.datetime64,
+        time_index: int,
     ):
         """Dump community canopy data to file.
 
         Args:
             canopies: A dictionary of Canopy instances, keyed by cell id.
             time: A datetime to be used as a timestamp in the output files
+            time_index: The index of the datatime within the model updates.
         """
         # If the data has not been requested - so the path is None - then exit
         if self._community_canopy_path is None:
@@ -392,6 +402,8 @@ class CommunityDataExporter:
             data["heights"] = canopy.heights
             data["cell_id"] = cell_id
             data["time"] = time
+            data["time_index"] = time_index
+
             community_canopy_data.append(data)
 
         # Concatenate the cells into a single data frame
@@ -418,6 +430,7 @@ class CommunityDataExporter:
         communities: PlantCommunities,
         canopies: dict[int, Canopy],
         time: np.datetime64,
+        time_index: int,
     ) -> None:
         """Dump stem canopy data to file.
 
@@ -425,6 +438,7 @@ class CommunityDataExporter:
             communities: A PlantCommunities instance.
             canopies: A dictionary of Canopy instances, keyed by cell id.
             time: A datetime to be used as a timestamp in the output files
+            time_index: The index of the datatime within the model updates.
         """
         # If the data has not been requested - so the path is None - then exit
         if self._stem_canopy_path is None:
@@ -438,7 +452,9 @@ class CommunityDataExporter:
             data["cohort_id"] = np.repeat(
                 community.cohorts.cohort_id, len(canopy.heights)
             )
+
             data["time"] = time
+            data["time_index"] = time_index
             stem_canopy_data.append(data)
 
         # Concatenate the cells into a single data frame

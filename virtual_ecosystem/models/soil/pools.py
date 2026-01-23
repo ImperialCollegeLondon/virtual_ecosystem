@@ -128,7 +128,21 @@ class MicrobialChanges:
     """Phosphorus flow associated with necromass generation [kg P m^-3 day^-1]."""
 
     fruiting_body_production: NDArray[np.floating]
-    """Rate a which fungal fruiting bodies are being produced [kg C m^-3 day^-1]."""
+    """Rate at which fungal fruiting bodies are being produced [kg C m^-3 day^-1]."""
+
+    arbuscular_mycorrhiza_n_supply: NDArray[np.floating]
+    """Supply rate of nitrogen to plants by arbuscular mycorrhiza [kg N m^-3 day^-1]."""
+
+    arbuscular_mycorrhiza_p_supply: NDArray[np.floating]
+    """Supply rate of phosphorus to plants by arbuscular mycorrhiza [kg P m^-3 day^-1].
+    """
+
+    ectomycorrhiza_n_supply: NDArray[np.floating]
+    """Supply rate of nitrogen to plants by ectomycorrhiza [kg N m^-3 day^-1]."""
+
+    ectomycorrhiza_p_supply: NDArray[np.floating]
+    """Supply rate of phosphorus to plants by ectomycorrhiza [kg P m^-3 day^-1].
+    """
 
 
 @dataclass
@@ -361,6 +375,30 @@ class PoolData:
     new_fungal_fruiting_body_production: NDArray[np.floating]
     """Fungal fruiting biomass produced during simulation time step [kg C m^-3]."""
 
+    new_amf_n_supply: NDArray[np.floating]
+    """Nitrogen supplied to plants by arbuscular mycorrhiza over integration time.
+
+    Units of [kg N m^-3].
+    """
+
+    new_amf_p_supply: NDArray[np.floating]
+    """Phosphorus supplied to plants by arbuscular mycorrhiza over integration time.
+
+    Units of [kg P m^-3].
+    """
+
+    new_emf_n_supply: NDArray[np.floating]
+    """Nitrogen supplied to plants by ectomycorrhiza over integration time.
+
+    Units of [kg N m^-3].
+    """
+
+    new_emf_p_supply: NDArray[np.floating]
+    """Phosphorus supplied to plants by ectomycorrhiza over integration time.
+
+    Units of [kg P m^-3].
+    """
+
 
 class SoilPools:
     """This class collects all the various soil pools so that they can be updated.
@@ -486,18 +524,6 @@ class SoilPools:
             microbial_groups=self.functional_groups,
             enzyme_classes=self.enzyme_classes,
             carbon_supply=carbon_supply,
-            plant_n_uptake_arbuscular=self.to_per_volume(
-                self.data["plant_n_uptake_arbuscular"].to_numpy()
-            ),
-            plant_p_uptake_arbuscular=self.to_per_volume(
-                self.data["plant_p_uptake_arbuscular"].to_numpy()
-            ),
-            plant_n_uptake_ecto=self.to_per_volume(
-                self.data["plant_n_uptake_ecto"].to_numpy()
-            ),
-            plant_p_uptake_ecto=self.to_per_volume(
-                self.data["plant_p_uptake_ecto"].to_numpy()
-            ),
         )
         # find changes driven by the enzyme pools
         enzyme_mediated = calculate_enzyme_mediated_rates(
@@ -658,6 +684,12 @@ class SoilPools:
             + maom_desorption_to_lmwc
             + necromass_decay_to_lmwc
             + fungal_fruiting_body_decay["carbon"]
+            + self.to_per_volume(
+                self.data["decomposed_excrement_cnp"].loc[:, "C"].to_numpy()
+            )
+            + self.to_per_volume(
+                self.data["decomposed_carcasses_cnp"].loc[:, "C"].to_numpy()
+            )
             - microbial_changes.lmwc_uptake
             - lmwc_sorption_to_maom
             - nutrient_removal_by_water.lmwc
@@ -710,12 +742,30 @@ class SoilPools:
         delta_pools_ordered["new_fungal_fruiting_body_production"] = (
             microbial_changes.fruiting_body_production
         )
+        delta_pools_ordered["new_amf_n_supply"] = (
+            microbial_changes.arbuscular_mycorrhiza_n_supply
+        )
+        delta_pools_ordered["new_amf_p_supply"] = (
+            microbial_changes.arbuscular_mycorrhiza_p_supply
+        )
+        delta_pools_ordered["new_emf_n_supply"] = (
+            microbial_changes.ectomycorrhiza_n_supply
+        )
+        delta_pools_ordered["new_emf_p_supply"] = (
+            microbial_changes.ectomycorrhiza_p_supply
+        )
         delta_pools_ordered["soil_n_pool_don"] = (
             litter_mineralisation_flux.don
             + pom_n_mineralisation
             + necromass_outflows["decay_nitrogen"]
             + nutrient_transfers_maom_to_lmwc["nitrogen"]
             + fungal_fruiting_body_decay["nitrogen"]
+            + self.to_per_volume(
+                self.data["decomposed_excrement_cnp"].loc[:, "N"].to_numpy()
+            )
+            + self.to_per_volume(
+                self.data["decomposed_carcasses_cnp"].loc[:, "N"].to_numpy()
+            )
             - microbial_changes.don_uptake
             - nutrient_removal_by_water.don
         )
@@ -759,6 +809,12 @@ class SoilPools:
             + necromass_outflows["decay_phosphorus"]
             + nutrient_transfers_maom_to_lmwc["phosphorus"]
             + fungal_fruiting_body_decay["phosphorus"]
+            + self.to_per_volume(
+                self.data["decomposed_excrement_cnp"].loc[:, "P"].to_numpy()
+            )
+            + self.to_per_volume(
+                self.data["decomposed_carcasses_cnp"].loc[:, "P"].to_numpy()
+            )
             - microbial_changes.dop_uptake
             - nutrient_removal_by_water.dop
         )
@@ -824,17 +880,14 @@ def calculate_microbial_changes(
     microbial_groups: dict[str, MicrobialGroupConstants],
     enzyme_classes: dict[str, SoilEnzymeClass],
     carbon_supply: CarbonSupply,
-    plant_n_uptake_arbuscular: NDArray[np.floating],
-    plant_p_uptake_arbuscular: NDArray[np.floating],
-    plant_n_uptake_ecto: NDArray[np.floating],
-    plant_p_uptake_ecto: NDArray[np.floating],
 ) -> MicrobialChanges:
     """Calculate the changes for the microbial biomass and enzyme pools.
 
     This function calculates the uptake of :term:`LMWC` and inorganic nutrients by the
     microbial biomass pool and uses this to calculate the net change in the pool. The
-    net change in each enzyme pool is found, and finally the total rate at which
-    necromass is created is found.
+    net change in each enzyme pool is found, as well as the total rate at which
+    necromass is created is found. Finally, production of fungal fruiting bodies and the
+    supply of nutrients to plants by mycorrhiza are found.
 
     Args:
         pools: Data class containing the various soil pools.
@@ -846,14 +899,6 @@ def calculate_microbial_changes(
         enzyme_classes: Details of the enzyme classes used by the soil model.
         carbon_supply: The carbon supply to each symbiotic microbial partner [kg C m^-3
             day^-1]
-        plant_n_uptake_arbuscular: The rate at which plants take up nitrogen from the
-            arbuscular mycorrhizal fungi [kg N m^-3 day^-1].
-        plant_p_uptake_arbuscular: The rate at which plants take up phosphorus from the
-            arbuscular mycorrhizal fungi [kg P m^-3 day^-1].
-        plant_n_uptake_ecto: The rate at which plants take up nitrogen from the
-            ectomycorrhizal fungi [kg N m^-3 day^-1].
-        plant_p_uptake_ecto: The rate at which plants take up phosphorus from the
-            ectomycorrhizal fungi [kg P m^-3 day^-1].
 
     Returns:
         A dataclass containing the rate at which microbes uptake LMWC, DON and DOP, and
@@ -870,8 +915,6 @@ def calculate_microbial_changes(
         soil_p_pool_labile=pools.soil_p_pool_labile,
         microbial_pool_size=pools.soil_c_pool_bacteria,
         external_carbon_supply=None,
-        nitrogen_exchange=None,
-        phosphorus_exchange=None,
         water_factor=env_factors.water,
         pH_factor=env_factors.pH,
         soil_temp=soil_temp,
@@ -888,8 +931,6 @@ def calculate_microbial_changes(
             soil_p_pool_labile=pools.soil_p_pool_labile,
             microbial_pool_size=pools.soil_c_pool_saprotrophic_fungi,
             external_carbon_supply=None,
-            nitrogen_exchange=None,
-            phosphorus_exchange=None,
             water_factor=env_factors.water,
             pH_factor=env_factors.pH,
             soil_temp=soil_temp,
@@ -907,8 +948,6 @@ def calculate_microbial_changes(
             soil_p_pool_labile=pools.soil_p_pool_labile,
             microbial_pool_size=pools.soil_c_pool_arbuscular_mycorrhiza,
             external_carbon_supply=carbon_supply.arbuscular_mycorrhiza,
-            nitrogen_exchange=plant_n_uptake_arbuscular,
-            phosphorus_exchange=plant_p_uptake_arbuscular,
             water_factor=env_factors.water,
             pH_factor=env_factors.pH,
             soil_temp=soil_temp,
@@ -925,8 +964,6 @@ def calculate_microbial_changes(
         soil_p_pool_labile=pools.soil_p_pool_labile,
         microbial_pool_size=pools.soil_c_pool_ectomycorrhiza,
         external_carbon_supply=carbon_supply.ectomycorrhiza,
-        nitrogen_exchange=plant_n_uptake_ecto,
-        phosphorus_exchange=plant_p_uptake_ecto,
         water_factor=env_factors.water,
         pH_factor=env_factors.pH,
         soil_temp=soil_temp,
@@ -973,6 +1010,26 @@ def calculate_microbial_changes(
     fungal_fruiting_body_production = calculate_fruiting_body_production(
         microbial_groups=microbial_groups, growth_rates=growth_rates
     )
+
+    # Calculate amount of nutrients supplied by mycorrhiza to symbiotic plant partners
+    arbuscular_mycorrhiza_n_supply = (
+        arbuscular_mycorrhizal_uptake.organic_nitrogen
+        + arbuscular_mycorrhizal_uptake.ammonium
+        + arbuscular_mycorrhizal_uptake.nitrate
+    ) * microbial_groups["arbuscular_mycorrhiza"].symbiote_nitrogen_uptake_fraction
+    arbuscular_mycorrhiza_p_supply = (
+        arbuscular_mycorrhizal_uptake.organic_phosphorus
+        + arbuscular_mycorrhizal_uptake.inorganic_phosphorus
+    ) * microbial_groups["arbuscular_mycorrhiza"].symbiote_phosphorus_uptake_fraction
+    ectomycorrhiza_n_supply = (
+        ectomycorrhizal_uptake.organic_nitrogen
+        + ectomycorrhizal_uptake.ammonium
+        + ectomycorrhizal_uptake.nitrate
+    ) * microbial_groups["ectomycorrhiza"].symbiote_nitrogen_uptake_fraction
+    ectomycorrhiza_p_supply = (
+        ectomycorrhizal_uptake.organic_phosphorus
+        + ectomycorrhizal_uptake.inorganic_phosphorus
+    ) * microbial_groups["ectomycorrhiza"].symbiote_phosphorus_uptake_fraction
 
     return MicrobialChanges(
         lmwc_uptake=bacterial_uptake.carbon
@@ -1026,6 +1083,10 @@ def calculate_microbial_changes(
         necromass_n_flow=necromass_n_flow,
         necromass_p_flow=necromass_p_flow,
         fruiting_body_production=fungal_fruiting_body_production,
+        arbuscular_mycorrhiza_n_supply=arbuscular_mycorrhiza_n_supply,
+        arbuscular_mycorrhiza_p_supply=arbuscular_mycorrhiza_p_supply,
+        ectomycorrhiza_n_supply=ectomycorrhiza_n_supply,
+        ectomycorrhiza_p_supply=ectomycorrhiza_p_supply,
     )
 
 

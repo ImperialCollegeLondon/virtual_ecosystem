@@ -348,6 +348,15 @@ class PyrealmConfig(Configuration):
     """Pyrealm constants for the PModel."""
 
 
+class DebugConfiguration(Configuration):
+    """Debugging options."""
+
+    truncate_run_at_update: int = -1
+    """This option can be used to exit a simulation at a particular update index. This
+    can be useful for testing settings on a model and dataset without having to create a
+    specific temporal subset. If the value is less than 1, then no truncation occurs."""
+
+
 class CoreConfiguration(Configuration):
     """The core model configuration."""
 
@@ -363,6 +372,8 @@ class CoreConfiguration(Configuration):
     """Configuration of the model run and step lengths"""
     data: DataConfiguration = DataConfiguration()
     """Configuration of the input variables and data sources."""
+    debug: DebugConfiguration = DebugConfiguration()
+    """Configuration of debugging options."""
     pyrealm: PyrealmConfig = Field(default=PyrealmConfig(), exclude=True)
     """Constant dataclasses for the pyrealm package.
     

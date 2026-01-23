@@ -55,10 +55,6 @@ def dummy_carbon_data(fixture_core_components):
         "plant_ammonium_uptake": [5.0e-5, 2.5e-5, 1.0e-5, 1.0e-4],
         "plant_nitrate_uptake": [7.5e-4, 1.0e-3, 2.5e-4, 1.0e-4],
         "plant_phosphorus_uptake": [3.0e-6, 5e-5, 2.0e-6, 1.0e-6],
-        "plant_n_uptake_arbuscular": [2.07e-5, 3.12e-5, 3.57e-6, 6.98e-5],
-        "plant_n_uptake_ecto": [3.07e-5, 4.20e-5, 4.02e-6, 2.98e-5],
-        "plant_p_uptake_arbuscular": [1.57e-6, 5.07e-5, 2.13e-6, 1.81e-6],
-        "plant_p_uptake_ecto": [1.78e-6, 5.64e-5, 1.07e-6, 9.90e-7],
         "subcanopy_ammonium_uptake": [4.35e-6, 1.64e-5, 9.48e-6, 2.75e-5],
         "subcanopy_nitrate_uptake": [6.51e-4, 4.74e-4, 2.35e-4, 4.51e-5],
         "subcanopy_phosphorus_uptake": [7.58e-7, 4.83e-5, 1.96e-6, 4.91e-7],
@@ -71,7 +67,10 @@ def dummy_carbon_data(fixture_core_components):
         "animal_arbuscular_mycorrhiza_consumption": [3.43e-4, 4.29e-4, 6.0e-4, 2.30e-4],
         "decay_of_fungal_fruiting_bodies": [2.2499e-4, 5.8168e-4, 3.2185e-4, 2.5871e-3],
         "new_fungal_fruiting_body_production": [0.0, 0.0, 0.0, 0.0],
-        "mean_annual_temperature": [20.0, 20.0, 20.0, 20.0],
+        "new_amf_n_supply": [0.0, 0.0, 0.0, 0.0],
+        "new_amf_p_supply": [0.0, 0.0, 0.0, 0.0],
+        "new_emf_n_supply": [0.0, 0.0, 0.0, 0.0],
+        "new_emf_p_supply": [0.0, 0.0, 0.0, 0.0],
     }
 
     for var_name, var_values in data_values.items():
@@ -108,6 +107,26 @@ def dummy_carbon_data(fixture_core_components):
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
+
+    data["decomposed_excrement_cnp"] = DataArray(
+        data=[
+            [4.214e-5, 1.939e-6, 3.174e-6],
+            [0.000388, 9.895e-5, 5.681e-6],
+            [0.000555, 8.199e-7, 6.278e-6],
+            [0.003313, 0.0002465, 3.846e-5],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["decomposed_carcasses_cnp"] = DataArray(
+        data=[
+            [0.0002844, 1.544e-6, 8.935e-7],
+            [0.00011089, 7.520e-5, 1.932e-6],
+            [2.459e-5, 1.433e-5, 4.928e-6],
+            [0.003891, 0.0002582, 3.769e-6],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     return data
 
@@ -224,7 +243,14 @@ def soil_pool_data(dummy_carbon_data):
         var: pool
         for var, pool in dummy_carbon_data.data.items()
         if var in SoilModel.vars_updated
-        or var in ["new_fungal_fruiting_body_production"]
+        or var
+        in [
+            "new_fungal_fruiting_body_production",
+            "new_amf_n_supply",
+            "new_amf_p_supply",
+            "new_emf_n_supply",
+            "new_emf_p_supply",
+        ]
     }
 
     return PoolData(**pools)
@@ -370,8 +396,6 @@ def growth_rates(
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_bacteria,
         external_carbon_supply=None,
-        nitrogen_exchange=None,
-        phosphorus_exchange=None,
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
@@ -387,8 +411,6 @@ def growth_rates(
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_saprotrophic_fungi,
         external_carbon_supply=None,
-        nitrogen_exchange=None,
-        phosphorus_exchange=None,
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
@@ -404,8 +426,6 @@ def growth_rates(
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_arbuscular_mycorrhiza,
         external_carbon_supply=carbon_supply_from_plants.arbuscular_mycorrhiza,
-        nitrogen_exchange=dummy_carbon_data["plant_n_uptake_arbuscular"],
-        phosphorus_exchange=dummy_carbon_data["plant_p_uptake_arbuscular"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
@@ -421,8 +441,6 @@ def growth_rates(
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_ectomycorrhiza,
         external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
-        nitrogen_exchange=dummy_carbon_data["plant_n_uptake_ecto"],
-        phosphorus_exchange=dummy_carbon_data["plant_p_uptake_ecto"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,

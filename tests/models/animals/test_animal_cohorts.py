@@ -1,5 +1,7 @@
 """Test module for animal_cohorts.py."""
 
+import uuid
+
 import pytest
 from numpy import isclose, timedelta64
 
@@ -1600,6 +1602,9 @@ class TestAnimalCohort:
         # Mock the animal cohorts and carcass pools
         if animal_list:
             animal_list = [mocker.MagicMock(spec=AnimalCohort) for _ in animal_list]
+            for prey in animal_list:
+                prey.id = uuid.uuid4()
+                mocker.patch.object(prey, "get_eaten", return_value=mock_actual_cnp)
         if carcass_pools:
             carcass_pools = {
                 k: [mocker.MagicMock(spec=CarcassPool) for _ in v]
@@ -1770,6 +1775,7 @@ class TestAnimalCohort:
                     adjusted_dt=10,
                     calculate_consumed_mass=mock_calc,
                     herbivory_waste_pools=waste_pools,
+                    resource_kind="plant_resource",
                 )
         else:
             result = herbivore.forage_resource_list(
@@ -1777,6 +1783,7 @@ class TestAnimalCohort:
                 adjusted_dt=10,
                 calculate_consumed_mass=mock_calc,
                 herbivory_waste_pools=waste_pools,
+                resource_kind="plant_resource",
             )
 
             expected = {
@@ -1816,6 +1823,7 @@ class TestAnimalCohort:
             adjusted_dt=7.5,
             calculate_consumed_mass=cohort._consumed_resource_mass,
             herbivory_waste_pools=waste_pools,
+            resource_kind="plant_resource",
         )
         assert result == {"carbon": 1, "nitrogen": 2, "phosphorus": 3}
 
@@ -1838,6 +1846,7 @@ class TestAnimalCohort:
             resources=pools,
             adjusted_dt=7.5,
             calculate_consumed_mass=cohort._consumed_resource_mass,
+            resource_kind="litter_pool",
         )
         assert result == {"carbon": 1, "nitrogen": 2, "phosphorus": 3}
 
@@ -1863,6 +1872,7 @@ class TestAnimalCohort:
             resources=carcass_pools,
             adjusted_dt=7.5,
             calculate_consumed_mass=cohort._consumed_resource_mass,
+            resource_kind="carcass_pool",
         )
 
         assert result == {"carbon": 1.0, "nitrogen": 2.0, "phosphorus": 3.0}
@@ -1889,6 +1899,7 @@ class TestAnimalCohort:
             resources=excrement_pools,
             adjusted_dt=7.5,
             calculate_consumed_mass=cohort._consumed_resource_mass,
+            resource_kind="excrement_pool",
         )
 
         assert result == {"carbon": 4.0, "nitrogen": 1.0, "phosphorus": 0.5}
@@ -1918,6 +1929,7 @@ class TestAnimalCohort:
             adjusted_dt=5.0,
             calculate_consumed_mass=cohort._consumed_resource_mass,
             herbivory_waste_pools=waste_pools,
+            resource_kind="fungal_fruit_pool",
         )
         assert result == {"carbon": 1, "nitrogen": 2, "phosphorus": 3}
 
@@ -1944,6 +1956,7 @@ class TestAnimalCohort:
             adjusted_dt=3.25,
             calculate_consumed_mass=cohort._consumed_resource_mass,
             herbivory_waste_pools=None,
+            resource_kind="soil_fungi_pool",
         )
         assert result == {"carbon": 4, "nitrogen": 5, "phosphorus": 6}
 
@@ -1969,7 +1982,8 @@ class TestAnimalCohort:
             resources=poms,
             adjusted_dt=2.0,
             calculate_consumed_mass=cohort._consumed_resource_mass,
-            herbivory_waste_pools=None,
+            herbivory_waste_pools=None,  #
+            resource_kind="pom_pool",
         )
         assert result == {"carbon": 7, "nitrogen": 8, "phosphorus": 9}
 
@@ -1996,6 +2010,7 @@ class TestAnimalCohort:
             adjusted_dt=1.5,
             calculate_consumed_mass=cohort._consumed_resource_mass,
             herbivory_waste_pools=None,
+            resource_kind="bacteria_pool",
         )
         assert result == {"carbon": 10, "nitrogen": 11, "phosphorus": 12}
 

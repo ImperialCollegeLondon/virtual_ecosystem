@@ -115,6 +115,8 @@ c_p_ratio = 16
 enzyme_production.pom = 0.005
 enzyme_production.maom = 0.005
 reproductive_allocation = 0.0
+symbiote_nitrogen_uptake_fraction = 0.0
+symbiote_phosphorus_uptake_fraction = 0.0
 
 [[soil.microbial_group_definition]]
 name = "saprotrophic_fungi"
@@ -137,6 +139,8 @@ c_p_ratio = 40.0
 enzyme_production.pom = 0.005
 enzyme_production.maom = 0.005
 reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.0
+symbiote_phosphorus_uptake_fraction = 0.0
 
 [[soil.microbial_group_definition]]
 name = "arbuscular_mycorrhiza"
@@ -159,6 +163,8 @@ c_p_ratio = 120.0
 enzyme_production.pom = 0.0
 enzyme_production.maom = 0.0
 reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.2
+symbiote_phosphorus_uptake_fraction = 0.2
 
 [[soil.microbial_group_definition]]
 name = "ectomycorrhiza"
@@ -181,6 +187,8 @@ c_p_ratio = 120.0
 enzyme_production.pom = 0.02
 enzyme_production.maom = 0.02
 reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.2
+symbiote_phosphorus_uptake_fraction = 0.2
 
 [[soil.enzyme_class_definition]]
 source = "bacteria"
@@ -440,20 +448,12 @@ def dummy_litter_data(fixture_core_components):
         "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
         "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
         "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
-        "deadwood_production": [0.075, 0.099, 0.063, 0.033],
-        "leaf_turnover": [0.027, 0.0003, 0.021, 0.0285],
         "fallen_non_propagule_c_mass": [0.003, 0.0075, 0.00255, 0.00375],
-        "root_turnover": [0.027, 0.021, 0.0003, 0.0249],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "plant_reproductive_tissue_lignin": [0.01, 0.03, 0.04, 0.02],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
-        "deadwood_c_n_ratio": [60.7, 57.9, 73.1, 55.1],
-        "leaf_turnover_c_n_ratio": [15.0, 25.5, 43.1, 57.4],
         "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
-        "root_turnover_c_n_ratio": [30.3, 45.6, 43.3, 37.1],
-        "deadwood_c_p_ratio": [856.5, 675.4, 933.2, 888.8],
-        "leaf_turnover_c_p_ratio": [415.0, 327.4, 554.5, 380.9],
         "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
         "root_turnover_c_p_ratio": [656.7, 450.6, 437.3, 371.9],
         "litter_consumption_above_metabolic": [0.019785, 0.011631, 0.016129, 0.023456],
@@ -461,9 +461,6 @@ def dummy_litter_data(fixture_core_components):
         "litter_consumption_woody": [0.4773833, 0.385701, 0.373456, 0.162192],
         "litter_consumption_below_metabolic": [0.010373, 0.005794, 0.010181, 0.013494],
         "litter_consumption_below_structural": [0.013547, 0.011674, 0.012738, 0.009168],
-        "herbivory_waste_leaf_carbon": [3e-5, 2.1e-3, 2.85e-3, 2.7e-3],
-        "herbivory_waste_leaf_nitrogen": [23.1, 33.5, 23.1, 17.3],
-        "herbivory_waste_leaf_phosphorus": [212.5, 344.8, 334.8, 420.1],
         "herbivory_waste_leaf_lignin": [0.13, 0.08, 0.27, 0.22],
     }
 
@@ -485,6 +482,50 @@ def dummy_litter_data(fixture_core_components):
     data["air_temperature"][lyr_strct.index_filled_atmosphere] = np.array(
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
+
+    data["stem_turnover_cnp"] = DataArray(
+        data=[
+            [607.5, 10.00823, 0.70928196],
+            [801.9, 13.84974, 1.187296],
+            [510.3, 6.98085, 0.546828],
+            [267.3, 4.85118, 0.3007426],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["root_turnover_cnp"] = DataArray(
+        data=[
+            [218.7, 7.2178, 0.333029],
+            [170.1, 3.73026, 0.377497],
+            [2.43, 0.05612, 0.0055568],
+            [201.69, 5.43639, 0.5423232],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["foliage_turnover_cnp"] = DataArray(
+        data=[
+            [218.7, 14.58, 0.52698795],
+            [2.43, 0.09529412, 0.00742211],
+            [170.1, 3.94663573, 0.3067628],
+            [230.85, 4.021777, 0.6060646],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["herbivory_waste_leaf_cnp"] = DataArray(
+        data=[
+            [0.243, 0.010519, 0.00114353],
+            [17.01, 0.507761, 0.0493329],
+            [
+                23.085,
+                0.999351,
+                0.0689516,
+            ],
+            [21.87, 1.264162, 0.052059],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     return data
 
@@ -524,12 +565,8 @@ def dummy_climate_data(fixture_core_components):
     # Spatially varying but not vertically structured
     spatially_variable = {
         "shortwave_radiation_surface": [100, 10, 0, 0],
-        "sensible_heat_flux_topofcanopy": [100, 50, 10, 10],
         "friction_velocity": [12, 5, 2, 2],
         "soil_evaporation": [0.001, 0.01, 0.1, 0.1],
-        # "surface_runoff": [10, 50, 100, 100],
-        "surface_runoff_accumulated": [0, 10, 300, 300],
-        "subsurface_flow_accumulated": [10, 10, 30, 30],
         "elevation": [200, 100, 10, 10],
     }
     for var, vals in spatially_variable.items():
@@ -540,10 +577,6 @@ def dummy_climate_data(fixture_core_components):
         "sensible_heat_flux_soil": 1,
         "latent_heat_flux_soil": 1,
         "zero_plane_displacement": 20.0,
-        "diabatic_correction_heat_above": 0.1,
-        "diabatic_correction_heat_canopy": 1.0,
-        "diabatic_correction_momentum_above": 0.1,
-        "diabatic_correction_momentum_canopy": 1.0,
         "mean_mixing_length": 1.3,
         "aerodynamic_resistance_soil": 12.5,
         "aerodynamic_resistance_canopy": 12.5,
@@ -581,8 +614,8 @@ def dummy_climate_data(fixture_core_components):
     data["soil_temperature"][lyr_str.index_all_soil] = 20.0
 
     data["matric_potential"] = from_template()
-    data["matric_potential"][lyr_str.index_topsoil] = np.array(
-        [-3.0, -10.0, -250.0, -10000.0]
+    data["matric_potential"][lyr_str.index_all_soil] = np.array(
+        [[-3.0, -10.0, -250.0, -10000.0], [-3.0, -10.0, -250.0, -10000.0]]
     )
 
     data["relative_humidity"] = from_template()
@@ -595,19 +628,17 @@ def dummy_climate_data(fixture_core_components):
         [0.14, 0.2, 0.2, 0.2, 0.14]
     )[:, None]
 
-    flux_index = np.logical_or(lyr_str.index_surface_scalar, lyr_str.index_flux_layers)
-
     data["shortwave_absorption"] = from_template()
-    data["shortwave_absorption"][flux_index] = 450.0
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 450.0
 
     data["sensible_heat_flux"] = from_template()
-    data["sensible_heat_flux"][flux_index] = 0.0
+    data["sensible_heat_flux"][lyr_str.index_flux_layers] = 0.0
 
     data["latent_heat_flux"] = from_template()
-    data["latent_heat_flux"][flux_index] = 0.0
+    data["latent_heat_flux"][lyr_str.index_flux_layers] = 0.0
 
     data["net_radiation"] = from_template()
-    data["net_radiation"][flux_index] = 20.0
+    data["net_radiation"][lyr_str.index_flux_layers] = 20.0
 
     data["molar_density_air"] = from_template()
     data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0
@@ -617,16 +648,6 @@ def dummy_climate_data(fixture_core_components):
 
     data["specific_heat_air"] = from_template()
     data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 1.006
-
-    data["attenuation_coefficient"] = from_template()
-    data["attenuation_coefficient"][lyr_str.index_filled_atmosphere] = np.array(
-        [13.0, 13.0, 13.0, 13.0, 2.0]
-    )[:, None]
-
-    data["relative_turbulence_intensity"] = from_template()
-    data["relative_turbulence_intensity"][lyr_str.index_filled_atmosphere] = np.array(
-        [17.64, 16.56, 11.16, 5.76, 0.414]
-    )[:, None]
 
     data["latent_heat_vapourisation"] = from_template()
     data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2442.0
@@ -638,19 +659,6 @@ def dummy_climate_data(fixture_core_components):
     data["canopy_evaporation"] = from_template()
     data["canopy_evaporation"][lyr_str.index_filled_canopy] = 10.0
     data["canopy_evaporation"][lyr_str.index_surface_scalar] = 10.0
-
-    data["leaf_air_heat_conductivity"] = from_template()
-    data["leaf_air_heat_conductivity"][lyr_str.index_filled_canopy] = 0.13
-    data["leaf_air_heat_conductivity"][lyr_str.index_surface_scalar] = 0.13
-
-    data["leaf_vapour_conductivity"] = from_template()
-    data["leaf_vapour_conductivity"][lyr_str.index_filled_canopy] = 0.2
-    data["leaf_vapour_conductivity"][lyr_str.index_surface_scalar] = 0.2
-
-    data["conductivity_from_ref_height"] = from_template()
-    data["conductivity_from_ref_height"][
-        np.logical_or(lyr_str.index_filled_canopy, lyr_str.index_surface_scalar)
-    ] = 3.0
 
     data["stomatal_conductance"] = from_template()
     data["stomatal_conductance"][lyr_str.index_filled_canopy] = 15.0
@@ -748,18 +756,6 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [20.0, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["attenuation_coefficient"][index_filled_canopy] = [
-        [13.0, 13.0, 13.0, np.nan],
-        [13.0, 13.0, np.nan, np.nan],
-        [13.0, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["relative_turbulence_intensity"][index_filled_canopy] = [
-        [16.56, 16.56, 16.56, np.nan],
-        [11.16, 11.16, np.nan, np.nan],
-        [5.76, np.nan, np.nan, np.nan],
-    ]
-
     dummy_climate_data["canopy_temperature"][index_filled_canopy] = [
         [25.0, 25.0, 25.0, np.nan],
         [25.0, 25.0, np.nan, np.nan],
@@ -767,28 +763,11 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     dummy_climate_data["canopy_evaporation"][index_filled_canopy] = [
-        [10.0, 10.0, 10.0, np.nan],
-        [10.0, 10.0, np.nan, np.nan],
-        [10.0, np.nan, np.nan, np.nan],
+        [40.0, 40.0, 40.0, np.nan],
+        [30.0, 30.0, np.nan, np.nan],
+        [20.0, np.nan, np.nan, np.nan],
     ]
-
-    dummy_climate_data["leaf_air_heat_conductivity"][index_filled_canopy] = [
-        [0.13, 0.13, 0.13, np.nan],
-        [0.13, 0.13, np.nan, np.nan],
-        [0.13, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["leaf_vapour_conductivity"][index_filled_canopy] = [
-        [0.2, 0.2, 0.2, np.nan],
-        [0.2, 0.2, np.nan, np.nan],
-        [0.2, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["conductivity_from_ref_height"][index_filled_canopy] = [
-        [3.0, 3.0, 3.0, np.nan],
-        [3.0, 3.0, np.nan, np.nan],
-        [3.0, np.nan, np.nan, np.nan],
-    ]
+    dummy_climate_data["canopy_evaporation"][lyr_str.index_surface_scalar] = 20.0
 
     dummy_climate_data["stomatal_conductance"][index_filled_canopy] = [
         [15.0, 15.0, 15.0, np.nan],
@@ -798,9 +777,10 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
 
     # Hydrology
     dummy_climate_data["transpiration"][index_filled_canopy] = [
-        [20.0, 20.0, 20.0, np.nan],
+        [30.0, 30.0, 30.0, np.nan],
         [20.0, 20.0, np.nan, np.nan],
-        [20.0, np.nan, np.nan, np.nan],
+        [10.0, np.nan, np.nan, np.nan],
     ]
+    dummy_climate_data["transpiration"][lyr_str.index_surface_scalar] = 20.0
 
     return dummy_climate_data

@@ -254,11 +254,11 @@ def run_microclimate(
     )
 
     # Latent heat flux understorey vegetation, [W m-2]
-    latent_heat_flux_understorey = (
-        evapotranspiration[surface_index].to_numpy()
-        * latent_heat_vapourisation[-1]
-        * 1000
-    ) / time_interval
+    latent_heat_flux_understorey = energy_balance.calculate_latent_heat_flux(
+        evapotranspiration=evapotranspiration[surface_index].to_numpy(),
+        latent_heat_vapourisation=latent_heat_vapourisation[-1] * 1000,
+        time_interval=time_interval,
+    )
 
     # Conductive flux from understorey vegetation to soil, [W m-2]
     # A positive flux is directed towards the soil
@@ -321,9 +321,11 @@ def run_microclimate(
     )
 
     # Latent heat flux topsoil, [W m-2]
-    latent_heat_flux_soil = (
-        data["soil_evaporation"].to_numpy() * latent_heat_vapourisation[-1] * 1000
-    ) / time_interval
+    latent_heat_flux_soil = energy_balance.calculate_latent_heat_flux(
+        evapotranspiration=data["soil_evaporation"].to_numpy(),
+        latent_heat_vapourisation=latent_heat_vapourisation[-1] * 1000,
+        time_interval=time_interval,
+    )
 
     # Ground heat flux, [W m-2]
     # Note the convention is that latent and sensible heat fluxes are negative when
