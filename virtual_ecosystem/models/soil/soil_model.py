@@ -17,6 +17,7 @@ reported as one.
 
 from __future__ import annotations
 
+from itertools import product
 from typing import Any
 
 import numpy as np
@@ -51,10 +52,7 @@ from virtual_ecosystem.models.soil.model_config import (
     SoilConstants,
     SoilEnzymeClass,
 )
-from virtual_ecosystem.models.soil.pools import (
-    SoilPools,
-    calculate_maintenance_biomass_synthesis,
-)
+from virtual_ecosystem.models.soil.pools import SoilPools
 from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
 
 
@@ -95,16 +93,17 @@ class SoilModel(
         "pH",
         "clay_fraction",
         "matric_potential",
-        "mean_annual_temperature",
+        "soil_temperature",
+        "air_temperature",
     ),
     vars_populated_by_init=(
         "dissolved_nitrate",
         "dissolved_ammonium",
         "dissolved_phosphorus",
-        "ecto_supply_limit_n",
-        "ecto_supply_limit_p",
-        "arbuscular_supply_limit_n",
-        "arbuscular_supply_limit_p",
+        "arbuscular_mycorrhizal_n_supply",
+        "arbuscular_mycorrhizal_p_supply",
+        "ectomycorrhizal_n_supply",
+        "ectomycorrhizal_p_supply",
         "production_of_fungal_fruiting_bodies",
     ),
     vars_required_for_update=(
@@ -148,10 +147,6 @@ class SoilModel(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
-        "plant_n_uptake_arbuscular",
-        "plant_n_uptake_ecto",
-        "plant_p_uptake_arbuscular",
-        "plant_p_uptake_ecto",
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
@@ -163,6 +158,8 @@ class SoilModel(
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
         "decay_of_fungal_fruiting_bodies",
+        "decomposed_excrement_cnp",
+        "decomposed_carcasses_cnp",
     ),
     vars_updated=(
         "soil_c_pool_maom",
@@ -193,10 +190,10 @@ class SoilModel(
         "dissolved_nitrate",
         "dissolved_ammonium",
         "dissolved_phosphorus",
-        "ecto_supply_limit_n",
-        "ecto_supply_limit_p",
-        "arbuscular_supply_limit_n",
-        "arbuscular_supply_limit_p",
+        "arbuscular_mycorrhizal_n_supply",
+        "arbuscular_mycorrhizal_p_supply",
+        "ectomycorrhizal_n_supply",
+        "ectomycorrhizal_p_supply",
         "production_of_fungal_fruiting_bodies",
     ),
     # TODO - If anything gets added to this section the implementation docs will need to
@@ -243,7 +240,13 @@ class SoilModel(
         self.model_constants: SoilConstants
         """Set of constants for the soil model."""
 
-        self.refreshed_variables = ["new_fungal_fruiting_body_production"]
+        self.refreshed_variables = [
+            "new_fungal_fruiting_body_production",
+            "new_amf_n_supply",
+            "new_amf_p_supply",
+            "new_emf_n_supply",
+            "new_emf_p_supply",
+        ]
         """List of variables that the model resets for each new integration step.
         
         These variables are intermediate values that it does not make sense to store in
@@ -289,9 +292,9 @@ class SoilModel(
         self.data.add_from_dict(dissolved_nutrient_pools)
 
         # Calculate the limit on what the plants can take from the symbiotic microbes
-        symbiotic_supply_limits = self.calculate_symbiotic_supply_limits(init=True)
+        initial_symbiotic_supply = self.calculate_initial_symbiotic_supply()
         # Add these limits to the data object
-        self.data.add_from_dict(symbiotic_supply_limits)
+        self.data.add_from_dict(initial_symbiotic_supply)
 
         # The initial production of fungal fruiting bodies is set to zero, because the
         # initial density estimate implicitly contains the initial production
@@ -403,11 +406,11 @@ class SoilModel(
         # Update the data object with these pools
         self.data.add_from_dict(dissolved_nutrient_pools)
 
-        # Calculate the limit on what the plants can take from the symbiotic microbes
-        symbiotic_supply_limits = self.calculate_symbiotic_supply_limits(init=False)
-
-        # Add these limits to the data object
-        self.data.add_from_dict(symbiotic_supply_limits)
+        # Calculate mycorrhizal (converted to total mass units) supplies
+        mycorrhizal_supplies = self.convert_mycorrhizal_supplies_to_mass(
+            updated_soil_pools
+        )
+        self.data.add_from_dict(mycorrhizal_supplies)
 
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
@@ -618,68 +621,89 @@ class SoilModel(
             ),
         }
 
-    def to_per_area(
+    def convert_mycorrhizal_supplies_to_mass(
+        self, updated_soil_pools: dict[str, DataArray]
+    ) -> dict[str, DataArray]:
+        """Convert mycorrhizal nutrient supplies from mass per volume to mass units.
+
+        Args:
+            updated_soil_pools: A dictionary of data arrays containing soil pool values
+                at the end of the model integration.
+
+        Returns:
+            A dictionary of data arrays containing the total supply of each nutrient
+            (per grid cell) [kg nutrient].
+        """
+
+        var_combinations = product(
+            ["n", "p"], [["amf", "arbuscular_mycorrhizal"], ["emf", "ectomycorrhizal"]]
+        )
+
+        return {
+            f"{full}_{nut}_supply": updated_soil_pools[f"new_{abbr}_{nut}_supply"]
+            * self.grid.cell_area
+            * self.core_constants.max_depth_of_microbial_activity
+            for nut, (abbr, full) in var_combinations
+        }
+
+    def to_total_mass(
         self, output_rate: float | NDArray[np.floating]
     ) -> NDArray[np.floating]:
-        """Method to convert an soil model rates from per volume to per area units.
+        """Method to convert soil model rates from per volume to total mass units.
 
-        Per area units are used by the plant model, so quantities returned to the plant
-        model need to have their units converted to this.
+        Total mass (across a grid cell over a time step) units are used by the plant
+        model, so quantities returned to the plant model need to have their units
+        converted to this.
 
         Args:
             output_rate: Rate of output to convert [kg m^-3 day^-1].
 
         Returns:
-            Output rate converted to per area units [kg m^-2 day^-1].
+            Output rate converted to per area units [kg].
         """
 
         if isinstance(output_rate, float):
             return np.array(
-                output_rate * self.core_constants.max_depth_of_microbial_activity
+                output_rate
+                * self.core_constants.max_depth_of_microbial_activity
+                * self.grid.cell_area
+                * self.model_timing.update_interval_quantity.to("days").magnitude
             )
         else:
-            return output_rate * self.core_constants.max_depth_of_microbial_activity
+            return (
+                output_rate
+                * self.core_constants.max_depth_of_microbial_activity
+                * self.grid.cell_area
+                * self.model_timing.update_interval_quantity.to("days").magnitude
+            )
 
-    def calculate_symbiotic_supply_limits(self, init: bool) -> dict[str, DataArray]:
-        """Calculate supply limits of nutrients to plants by symbiotic microbes.
+    def calculate_initial_symbiotic_supply(self) -> dict[str, DataArray]:
+        """Estimate symbiotic supply from zeroth time step.
 
-        These limits are calculated for each symbiote for each nutrient. If the limits
-        are negative they are returned as zero to prevent negative uptake. The rates are
-        converted from the per volume units used in the soil model, to the per area
-        units used in the plant model.
-
-        TODO - In model initialisation, the annual mean temperature is used as an
-        estimate of the soil temperature as soil temperatures are not yet known. This
-        issue won't be resolved until we have decided what we are doing about model spin
-        up
-
-        Args:
-            init: A boolean specifying whether this function is being called as part of
-               the model initialisation or as part of the model update.
+        In order to do the first update pf the plant model an estimate of the amount of
+        nutrients supplied in the previous (zeroth) time step needs to be provided. As
+        the plant model runs first this has to be an estimate. We make this estimate
+        by assuming that mycorrhizal fungi uptake nutrients at the maximum achievable
+        rate. Maximum uptake is only observed in our model if microbes are equally
+        limited by all nutrients, if this isn't the case then the initial prediction
+        will be an overestimate.
 
         Returns:
-            The maximum amount each nutrient (nitrogen and phosphorus) that plants can
-            draw from each mycorrhizal partner (arbuscular mycorrhizal and
-            ectomycorrhizal fungi) [kg m^-2 day^-1]
+            The amount of each nutrient (nitrogen and phosphorus) that plants receive
+            from each mycorrhizal partner (arbuscular mycorrhizal and ectomycorrhizal
+            fungi) for the initial time step [kg]
         """
-
-        if not init:
-            averaged_soil_temperature = (
-                average_temperature_over_microbially_active_layers(
-                    soil_temperatures=self.data["soil_temperature"],
-                    surface_temperature=self.data["air_temperature"][
-                        self.layer_structure.index_surface_scalar
-                    ].to_numpy(),
-                    layer_structure=self.layer_structure,
-                )
-            )
-        else:
-            # As soil temperature hasn't be calculated yet we assume that it matches the
-            # mean annual temperature (a common assumption for deeper soil layers)
-            averaged_soil_temperature = self.data["mean_annual_temperature"].to_numpy()
 
         # Average soil temperature and water potential over the microbially active
         # layers, and then use to calculate the environmental factors
+        averaged_soil_temperature = average_temperature_over_microbially_active_layers(
+            soil_temperatures=self.data["soil_temperature"],
+            surface_temperature=self.data["air_temperature"][
+                self.layer_structure.index_surface_scalar
+            ].to_numpy(),
+            layer_structure=self.layer_structure,
+        )
+
         soil_water_potential = average_water_potential_over_microbially_active_layers(
             water_potentials=self.data["matric_potential"],
             layer_structure=self.layer_structure,
@@ -692,7 +716,7 @@ class SoilModel(
             constants=self.model_constants,
         )
 
-        ecto_n_limit, ecto_p_limit = find_maximum_mycorrhizal_supply(
+        initial_ecto_n, initial_ecto_p = estimate_past_mycorrhizal_supply(
             soil_c_pool_lmwc=self.data["soil_c_pool_lmwc"].to_numpy(),
             soil_n_pool_don=self.data["soil_n_pool_don"].to_numpy(),
             soil_n_pool_ammonium=self.data["soil_n_pool_ammonium"].to_numpy(),
@@ -704,7 +728,7 @@ class SoilModel(
             microbial_group=self.microbial_groups["ectomycorrhiza"],
             env_factors=env_factors,
         )
-        arbuscular_n_limit, arbuscular_p_limit = find_maximum_mycorrhizal_supply(
+        initial_arbuscular_n, initial_arbuscular_p = estimate_past_mycorrhizal_supply(
             soil_c_pool_lmwc=self.data["soil_c_pool_lmwc"].to_numpy(),
             soil_n_pool_don=self.data["soil_n_pool_don"].to_numpy(),
             soil_n_pool_ammonium=self.data["soil_n_pool_ammonium"].to_numpy(),
@@ -718,30 +742,30 @@ class SoilModel(
         )
 
         return {
-            "ecto_supply_limit_n": where(
-                DataArray(ecto_n_limit) >= 0.0,
-                self.to_per_area(ecto_n_limit),
+            "ectomycorrhizal_n_supply": where(
+                DataArray(initial_ecto_n) >= 0.0,
+                self.to_total_mass(initial_ecto_n),
                 0.0,
             ),
-            "ecto_supply_limit_p": where(
-                DataArray(ecto_p_limit) >= 0.0,
-                self.to_per_area(ecto_p_limit),
+            "ectomycorrhizal_p_supply": where(
+                DataArray(initial_ecto_p) >= 0.0,
+                self.to_total_mass(initial_ecto_p),
                 0.0,
             ),
-            "arbuscular_supply_limit_n": where(
-                DataArray(arbuscular_n_limit) >= 0.0,
-                self.to_per_area(arbuscular_n_limit),
+            "arbuscular_mycorrhizal_n_supply": where(
+                DataArray(initial_arbuscular_n) >= 0.0,
+                self.to_total_mass(initial_arbuscular_n),
                 0.0,
             ),
-            "arbuscular_supply_limit_p": where(
-                DataArray(arbuscular_p_limit) >= 0.0,
-                self.to_per_area(arbuscular_p_limit),
+            "arbuscular_mycorrhizal_p_supply": where(
+                DataArray(initial_arbuscular_p) >= 0.0,
+                self.to_total_mass(initial_arbuscular_p),
                 0.0,
             ),
         }
 
 
-def find_maximum_mycorrhizal_supply(
+def estimate_past_mycorrhizal_supply(
     soil_c_pool_lmwc: NDArray[np.floating],
     soil_n_pool_don: NDArray[np.floating],
     soil_n_pool_ammonium: NDArray[np.floating],
@@ -753,14 +777,14 @@ def find_maximum_mycorrhizal_supply(
     microbial_group: MicrobialGroupConstants,
     env_factors: EnvironmentalEffectFactors,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
-    """Find maximum amount of nutrients mycorrhizal fungi can supply to plant partners.
+    """Estimate nutrient supply by mycorrhizal fungi for the previous time step.
 
-    The assumption underlying this function is that mycorrhizal fungi are prepared to
-    supply nutrients to their plant partners up to the point where it causes them to
-    lose biomass. So, this function calculates the nitrogen and phosphorus uptake rates
-    required to balance biomass losses. This is then subtracted from the maximum
-    possible nutrient uptake rates to determine the maximum amount of nutrients that
-    mycorrhiza are prepared to supply to their plant partners.
+    This function estimates the rates at which mycorrhizal fungi were supplying
+    nutrients (nitrogen and phosphorus) to their plant partners prior to the start
+    of the simulation. This estimate is calculated based the initial soil
+    conditions, and involves assuming that mycorrhizal fungi take up nutrients at
+    the maximum possible rate, and then pass on a fixed fraction of this to their
+    plant partners.
 
     Args:
         soil_c_pool_lmwc: The amount of carbon in the labile mineral associated organic
@@ -779,19 +803,10 @@ def find_maximum_mycorrhizal_supply(
             environment effects soil cycling rates.
 
     Returns:
-        A tuple containing the maximum rate that the mycorrhizal fungal group is
-        prepared to supply nitrogen and phosphorus to their plant partners [kg m^-3
-        day^-1].
+        A tuple containing estimates of the rate at which each mycorrhizal fungal group
+        supplied nitrogen and phosphorus to their plant partners in the time step before
+        the simulation started [kg m^-3 day^-1].
     """
-
-    # Find the nitrogen and phosphorus uptake rates required to balance biomass losses
-    biomass_loss = calculate_maintenance_biomass_synthesis(
-        microbe_pool_size=microbe_pool_size,
-        soil_temp=soil_temp,
-        microbial_group=microbial_group,
-    )
-    nitrogen_requirement = biomass_loss / microbial_group.c_n_ratio
-    phosphorus_requirement = biomass_loss / microbial_group.c_p_ratio
 
     # Find maximum uptake rates, and sum nitrogen and phosphorus ones
     maximum_uptake_rates = calculate_maximum_uptake_rates(
@@ -818,8 +833,8 @@ def find_maximum_mycorrhizal_supply(
     )
 
     return (
-        maximum_nitrogen_uptake - nitrogen_requirement,
-        maximum_phosphorus_uptake - phosphorus_requirement,
+        maximum_nitrogen_uptake * microbial_group.symbiote_nitrogen_uptake_fraction,
+        maximum_phosphorus_uptake * microbial_group.symbiote_phosphorus_uptake_fraction,
     )
 
 

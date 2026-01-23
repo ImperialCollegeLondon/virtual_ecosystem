@@ -75,66 +75,39 @@ class PlantsModel(
         "subcanopy_seedbank_biomass",
         "subcanopy_vegetation_biomass",
         "vapour_pressure_deficit",
-        "ecto_supply_limit_n",
-        "ecto_supply_limit_p",
-        "arbuscular_supply_limit_n",
-        "arbuscular_supply_limit_p",
+        "arbuscular_mycorrhizal_n_supply",
+        "arbuscular_mycorrhizal_p_supply",
+        "ectomycorrhizal_n_supply",
+        "ectomycorrhizal_p_supply",
     ),
     vars_updated=(
         "stem_turnover_cnp",  # i.e. deadwood
-        "deadwood_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "deadwood_c_p_ratio",  # NOTE - will be deprecated in #1131
-        "deadwood_production",  # NOTE - will be deprecated in #1131
         "foliage_turnover_cnp",
-        "leaf_turnover",  # NOTE - will be deprecated in #1131
-        "leaf_turnover_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "leaf_turnover_c_p_ratio",  # NOTE - will be deprecated in #1131
-        "leaf_turnover_n_mass",  # NOTE - will be deprecated in #1131
-        "leaf_turnover_p_mass",  # NOTE - will be deprecated in #1131
         "root_turnover_cnp",
-        "root_turnover",  # NOTE - will be deprecated in #1131
-        "root_turnover_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "root_turnover_c_p_ratio",  # NOTE - will be deprecated in #1131
-        "root_turnover_n_mass",  # NOTE - will be deprecated in #1131
-        "root_turnover_p_mass",  # NOTE - will be deprecated in #1131
         "canopy_fruit_n",
         "canopy_fruit_cnp",
         "canopy_seeds_per_fruit",
         "canopy_seeds_cnp",
         "fallen_fruit_n",
         "fallen_fruit_cnp",
-        "fallen_seeeds_per_fruit",
+        "fallen_seeds_per_fruit",
         "fallen_seeds_cnp",
-        "fallen_non_propagule_c_mass",  # NOTE - will be deprecated in #1131
-        "plant_rt_turnover_n_mass",  # NOTE - will be deprecated in #1131
-        "plant_rt_turnover_p_mass",  # NOTE - will be deprecated in #1131
-        "plant_reproductive_tissue_turnover",  # NOTE - will be deprecated in #1131
+        "fallen_non_propagule_c_mass",  # NOTE - will be deprecated in #1132
+        "plant_rt_turnover_n_mass",  # NOTE - will be deprecated in #1132
+        "plant_rt_turnover_p_mass",  # NOTE - will be deprecated in #1132
+        "plant_reproductive_tissue_turnover",  # NOTE - will be deprecated in #1132
         "subcanopy_seedbank_litter_cnp",
-        "subcanopy_seedbank_litter_biomass",  # NOTE - will be deprecated in #1131
-        "subcanopy_seedbank_litter_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "subcanopy_seedbank_litter_c_p_ratio",  # NOTE - will be deprecated in #1131
         "subcanopy_vegetation_litter_cnp",
-        "subcanopy_vegetation_litter_biomass",  # NOTE - will be deprecated in #1131
-        "subcanopy_vegetation_litter_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "subcanopy_vegetation_litter_c_p_ratio",  # NOTE - will be deprecated in #1131
         "subcanopy_vegetation_cnp",
-        "subcanopy_vegetation_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "subcanopy_vegetation_c_p_ratio",  # NOTE - will be deprecated in #1131
         "subcanopy_seedbank_cnp",
-        "subcanopy_seedbank_c_n_ratio",  # NOTE - will be deprecated in #1131
-        "subcanopy_seedbank_c_p_ratio",  # NOTE - will be deprecated in #1131
         "layer_fapar",
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "plant_ammonium_uptake",
-        "plant_n_uptake_arbuscular",
-        "plant_n_uptake_ecto",
         "plant_nitrate_uptake",
-        "plant_p_uptake_arbuscular",
-        "plant_p_uptake_ecto",
         "plant_phosphorus_uptake",
-        "plant_reproductive_tissue_lignin",
+        "plant_reproductive_tissue_lignin",  # NOTE - will be deprecated in #1132
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "root_lignin",
@@ -160,59 +133,28 @@ class PlantsModel(
         "canopy_seeds_cnp",
         "fallen_fruit_n",
         "fallen_fruit_cnp",
-        "fallen_seeeds_per_fruit",
+        "fallen_seeds_per_fruit",
         "fallen_seeds_cnp",
         "subcanopy_seedbank_litter_cnp",
         "subcanopy_vegetation_litter_cnp",
         "subcanopy_vegetation_cnp",
         "subcanopy_seedbank_cnp",
-        "deadwood_c_n_ratio",
-        "deadwood_c_p_ratio",
-        "deadwood_n_mass",
-        "deadwood_p_mass",
-        "deadwood_production",
         "fallen_non_propagule_c_mass",
-        "leaf_turnover",
-        "leaf_turnover_c_n_ratio",
-        "leaf_turnover_c_p_ratio",
-        "leaf_turnover_n_mass",
-        "leaf_turnover_p_mass",
         "plant_ammonium_uptake",
-        "plant_n_uptake_arbuscular",
-        "plant_n_uptake_ecto",
         "plant_nitrate_uptake",
-        "plant_p_uptake_arbuscular",
-        "plant_p_uptake_ecto",
         "plant_phosphorus_uptake",
         "plant_reproductive_tissue_turnover",
         "plant_reproductive_tissue_lignin",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
         "plant_rt_turnover_n_mass",
         "plant_rt_turnover_p_mass",
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "root_lignin",
-        "root_turnover",
-        "root_turnover_c_n_ratio",
-        "root_turnover_c_p_ratio",
-        "root_turnover_n_mass",
-        "root_turnover_p_mass",
         "senesced_leaf_lignin",
         "stem_lignin",
         "transpiration",
-        "subcanopy_seedbank_litter_biomass",
-        "subcanopy_seedbank_litter_c_n_ratio",
-        "subcanopy_seedbank_litter_c_p_ratio",
         "subcanopy_seedbank_litter_lignin",
-        "subcanopy_vegetation_litter_biomass",
-        "subcanopy_vegetation_litter_c_n_ratio",
-        "subcanopy_vegetation_litter_c_p_ratio",
         "subcanopy_vegetation_litter_lignin",
-        "subcanopy_vegetation_c_n_ratio",
-        "subcanopy_vegetation_c_p_ratio",
-        "subcanopy_seedbank_c_n_ratio",
-        "subcanopy_seedbank_c_p_ratio",
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
@@ -478,7 +420,7 @@ class PlantsModel(
             "canopy_seeds_cnp",
             "fallen_fruit_n",
             "fallen_fruit_cnp",
-            "fallen_seeeds_per_fruit",
+            "fallen_seeds_per_fruit",
             "fallen_seeds_cnp",
         ]
         for var_name in vars_to_initialize:
@@ -558,6 +500,7 @@ class PlantsModel(
             canopies=self.canopies,
             stem_allocations=self.stem_allocations,
             time=self.model_timing.start_time,
+            time_index=0,
         )
 
     @classmethod
@@ -635,6 +578,7 @@ class PlantsModel(
 
         # The deprecated variables have been moved to a separate method to keep this one
         # current, but still need to be initialised until they are deleted in #1131:
+        # I can delete this as I will stop the litter model using the variables
         self.old_stoichiometry_ratios_to_depricate()
 
         # Initialize variables that hold one value per cell
@@ -715,9 +659,6 @@ class PlantsModel(
         # Calculate the turnover of each plant biomass pool
         self.calculate_turnover()
 
-        # Calculate the rate at which plants take nutrients from mycorrhizal fungi
-        self.calculate_mycorrhizal_uptakes()
-
         # Calculate the subcanopy vegetation
         self.subcanopy.calculate_dynamics(
             lue=self.pmodel.lue[self.layer_structure.index_surface_scalar, :],
@@ -726,18 +667,13 @@ class PlantsModel(
             data_object_template=self.data_object_templates["cnp"],
         )
 
-        # Use new data variables to update the old ones for cross compatibility with
-        # litter and soil. Delete this after litter/soil are updated to use the new
-        # variable structure.
-        self.old_outputs_to_depricate()
-
         # Run the community data exporter
         self.exporter.dump(
             communities=self.communities,
             canopies=self.canopies,
             stem_allocations=self.stem_allocations,
-            time=self.model_timing.start_time
-            + time_index * self.model_timing.update_interval,
+            time=self.model_timing.update_datestamps[time_index],
+            time_index=time_index,
         )
 
     def cleanup(self) -> None:
@@ -1165,8 +1101,10 @@ class PlantsModel(
             for element in ["N", "P"]:
                 # Balance the N & P surplus/deficit with the symbiote carbon supply
                 total_supply = float(
-                    self.data["ecto_supply_limit_" + element.lower()][cell_id]
-                    + self.data["arbuscular_supply_limit_" + element.lower()][cell_id]
+                    self.data["ectomycorrhizal_" + element.lower() + "_supply"][cell_id]
+                    + self.data[
+                        "arbuscular_mycorrhizal_" + element.lower() + "_supply"
+                    ][cell_id]
                 )
 
                 # Calculate the fraction of the total supply that each stem gets by
@@ -1451,25 +1389,6 @@ class PlantsModel(
             )
             self.stoichiometries[cell_id]["P"].element_surplus += phosphorous_uptake
 
-    def calculate_mycorrhizal_uptakes(self) -> None:
-        """Calculate the rate at which plants take nutrients from mycorrhizal fungi.
-
-        Warning:
-            At present, this function just calculates uptake based on an entirely made
-            up function, and does not link to plant dynamics in any way.
-        """
-
-        # Making arbitrary assumption that the plants take exactly half the maximum
-        # supply amount, this should be replaced by something more sensible
-        self.data["plant_n_uptake_arbuscular"] = (
-            0.5 * self.data["arbuscular_supply_limit_n"]
-        )
-        self.data["plant_n_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_n"]
-        self.data["plant_p_uptake_arbuscular"] = (
-            0.5 * self.data["arbuscular_supply_limit_p"]
-        )
-        self.data["plant_p_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_p"]
-
     def partition_reproductive_tissue(
         self, reproductive_tissue_mass: NDArray[np.floating]
     ) -> tuple[NDArray[np.int_], NDArray[np.floating]]:
@@ -1493,6 +1412,7 @@ class PlantsModel(
 
         return n_propagules, non_propagule_mass
 
+    # NOTE - will be deprecated in #1132
     def old_stoichiometry_ratios_to_depricate(self) -> None:
         """Temporary function to initialise variables for the litter and soil models.
 
@@ -1501,27 +1421,10 @@ class PlantsModel(
         """
 
         vars_to_update = [
-            "leaf_turnover",
-            "leaf_turnover_c_n_ratio",
-            "leaf_turnover_c_p_ratio",
-            "leaf_turnover_n_mass",
-            "leaf_turnover_p_mass",
-            "root_turnover",
-            "root_turnover_c_n_ratio",
-            "root_turnover_c_p_ratio",
-            "root_turnover_n_mass",
-            "root_turnover_p_mass",
             "plant_reproductive_tissue_turnover",
-            "plant_reproductive_tissue_turnover_c_n_ratio",
-            "plant_reproductive_tissue_turnover_c_p_ratio",
             "plant_rt_turnover_n_mass",
             "plant_rt_turnover_p_mass",
             "fallen_non_propagule_c_mass",
-            "deadwood_production",
-            "deadwood_c_n_ratio",
-            "deadwood_c_p_ratio",
-            "deadwood_n_mass",
-            "deadwood_p_mass",
         ]
         cell_template = xr.full_like(self.data["elevation"], 0)
         for var_name in vars_to_update:
@@ -1578,79 +1481,3 @@ class PlantsModel(
         time_interval_in_days = self.model_timing.update_interval_seconds / 86400
 
         return input_mass / (1000.0 * time_interval_in_days * self.grid.cell_area)
-
-    def old_outputs_to_depricate(self):
-        """Ensure all vars are here and correct."""
-
-        self.data["leaf_turnover"] = self.data["foliage_turnover_cnp"].loc[:, "C"]
-        self.data["root_turnover"] = self.data["root_turnover_cnp"].loc[:, "C"]
-        self.data["deadwood_production"] = self.data["stem_turnover_cnp"].loc[:, "C"]
-
-        for element in ["N", "P"]:
-            self.data[f"leaf_turnover_{element.lower()}_mass"] = self.data[
-                "foliage_turnover_cnp"
-            ].loc[:, element]
-
-            self.data[f"root_turnover_{element.lower()}_mass"] = self.data[
-                "root_turnover_cnp"
-            ].loc[:, element]
-
-            self.data[f"stem_turnover_{element.lower()}_mass"] = self.data[
-                "stem_turnover_cnp"
-            ].loc[:, element]
-
-        # Convert turnover pools to litter units
-        self.data["deadwood_production"] = self.convert_to_litter_units(
-            input_mass=self.data["deadwood_production"]
-        )
-        self.data["leaf_turnover"] = self.convert_to_litter_units(
-            input_mass=self.data["leaf_turnover"]
-        )
-        self.data["root_turnover"] = self.convert_to_litter_units(
-            input_mass=self.data["root_turnover"]
-        )
-        self.data["plant_reproductive_tissue_turnover"] = self.convert_to_litter_units(
-            input_mass=self.data["plant_reproductive_tissue_turnover"]
-        )
-
-        for element in ["n", "p"]:
-            # Update carbon to nitruent ratios for turnover pools
-            self.data[f"deadwood_c_{element}_ratio"] = np.divide(
-                self.data["stem_turnover_cnp"].loc[:, "C"],
-                self.data[f"deadwood_{element}_mass"],
-                out=np.full_like(
-                    self.data["stem_turnover_cnp"].loc[:, "C"], np.inf, dtype=float
-                ),
-                where=self.data[f"deadwood_{element}_mass"] != 0,
-            )
-
-            self.data[f"leaf_turnover_c_{element}_ratio"] = np.divide(
-                self.data["foliage_turnover_cnp"].loc[:, "C"],
-                self.data[f"leaf_turnover_{element}_mass"],
-                out=np.full_like(
-                    self.data["foliage_turnover_cnp"].loc[:, "C"], np.inf, dtype=float
-                ),
-                where=self.data[f"leaf_turnover_{element}_mass"] != 0,
-            )
-
-            self.data[f"root_turnover_c_{element}_ratio"] = np.divide(
-                self.data["root_turnover_cnp"].loc[:, "C"],
-                self.data[f"root_turnover_{element}_mass"],
-                out=np.full_like(
-                    self.data["root_turnover_cnp"].loc[:, "C"], np.inf, dtype=float
-                ),
-                where=self.data[f"root_turnover_{element}_mass"] != 0,
-            )
-
-            self.data[f"plant_reproductive_tissue_turnover_c_{element}_ratio"] = (
-                np.divide(
-                    self.data["plant_reproductive_tissue_turnover"],
-                    self.data[f"plant_rt_turnover_{element}_mass"],
-                    out=np.full_like(
-                        self.data["plant_reproductive_tissue_turnover"],
-                        np.inf,
-                        dtype=float,
-                    ),
-                    where=self.data[f"plant_rt_turnover_{element}_mass"] != 0,
-                )
-            )

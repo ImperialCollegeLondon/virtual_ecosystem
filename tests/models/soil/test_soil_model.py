@@ -42,17 +42,18 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'pH' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
     (DEBUG, "soil model: required var 'matric_potential' checked"),
-    (DEBUG, "soil model: required var 'mean_annual_temperature' checked"),
+    (DEBUG, "soil model: required var 'soil_temperature' checked"),
+    (DEBUG, "soil model: required var 'air_temperature' checked"),
 )
 POST_SETUP_LOG = (
     *REQUIRED_INIT_VAR_LOG,
     (INFO, "Adding data array for 'dissolved_nitrate'"),
     (INFO, "Adding data array for 'dissolved_ammonium'"),
     (INFO, "Adding data array for 'dissolved_phosphorus'"),
-    (INFO, "Adding data array for 'ecto_supply_limit_n'"),
-    (INFO, "Adding data array for 'ecto_supply_limit_p'"),
-    (INFO, "Adding data array for 'arbuscular_supply_limit_n'"),
-    (INFO, "Adding data array for 'arbuscular_supply_limit_p'"),
+    (INFO, "Adding data array for 'ectomycorrhizal_n_supply'"),
+    (INFO, "Adding data array for 'ectomycorrhizal_p_supply'"),
+    (INFO, "Adding data array for 'arbuscular_mycorrhizal_n_supply'"),
+    (INFO, "Adding data array for 'arbuscular_mycorrhizal_p_supply'"),
     (INFO, "Adding data array for 'production_of_fungal_fruiting_bodies'"),
 )
 
@@ -317,6 +318,16 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     fruiting_body_production = [2.0235824e-6, 2.6018971e-4, 4.7134783e-4, 3.9772191e-4]
     production_rate = [1.01179122e-6, 0.000130094855, 0.000235673915, 0.00019886095475]
 
+    # Do the same for the mycorrhizal nutrient supplies
+    new_amf_n_supply = [2.07e-5, 3.12e-5, 3.57e-6, 6.98e-5]
+    new_emf_n_supply = [3.07e-5, 4.20e-5, 4.02e-6, 2.98e-5]
+    new_amf_p_supply = [1.57e-6, 5.07e-5, 2.13e-6, 1.81e-6]
+    new_emf_p_supply = [1.78e-6, 5.64e-5, 1.07e-6, 9.90e-7]
+    arbuscular_mycorrhizal_n_supply = [0.0419175, 0.06318, 0.00722925, 0.141345]
+    arbuscular_mycorrhizal_p_supply = [0.00317925, 0.1026675, 0.00431325, 0.00366525]
+    ectomycorrhizal_n_supply = [0.0621675, 0.08505, 0.0081405, 0.060345]
+    ectomycorrhizal_p_supply = [0.0036045, 0.11421, 0.00216675, 0.00200475]
+
     mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
     mock_integrate.return_value = Dataset(
@@ -332,6 +343,10 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             new_fungal_fruiting_body_production=DataArray(
                 fruiting_body_production, dims="cell_id"
             ),
+            new_amf_n_supply=DataArray(new_amf_n_supply, dims="cell_id"),
+            new_emf_n_supply=DataArray(new_emf_n_supply, dims="cell_id"),
+            new_amf_p_supply=DataArray(new_amf_p_supply, dims="cell_id"),
+            new_emf_p_supply=DataArray(new_emf_p_supply, dims="cell_id"),
         )
     )
 
@@ -359,6 +374,23 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
         dummy_carbon_data["production_of_fungal_fruiting_bodies"], production_rate
     )
 
+    # Check that nutrient supplies are populated based on values supplied by (mocked)
+    # integrator
+    assert np.allclose(
+        dummy_carbon_data["arbuscular_mycorrhizal_n_supply"],
+        arbuscular_mycorrhizal_n_supply,
+    )
+    assert np.allclose(
+        dummy_carbon_data["arbuscular_mycorrhizal_p_supply"],
+        arbuscular_mycorrhizal_p_supply,
+    )
+    assert np.allclose(
+        dummy_carbon_data["ectomycorrhizal_n_supply"], ectomycorrhizal_n_supply
+    )
+    assert np.allclose(
+        dummy_carbon_data["ectomycorrhizal_p_supply"], ectomycorrhizal_p_supply
+    )
+
 
 @pytest.mark.parametrize(
     argnames=["mock_output", "raises", "final_pools", "expected_log"],
@@ -369,73 +401,73 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     soil_c_pool_lmwc=DataArray(
-                        [0.11178218, 0.11014931, 0.22560475, 0.02752463], dims="cell_id"
+                        [0.12324074, 0.40624134, 0.23074348, 0.04374807], dims="cell_id"
                     ),
                     soil_c_pool_maom=DataArray(
-                        [2.51940026, 1.70920791, 4.53482052, 0.53791812], dims="cell_id"
+                        [2.51940338, 1.70928575, 4.53482197, 0.53792231], dims="cell_id"
                     ),
                     soil_c_pool_bacteria=DataArray(
-                        [5.77597083, 2.29141379, 11.2560934, 0.99661124],
+                        [5.7759712, 2.29140027, 11.25613092, 0.99661487],
                         dims="cell_id",
                     ),
                     soil_c_pool_saprotrophic_fungi=DataArray(
-                        [0.88651637, 8.51906044, 2.20165899, 4.52525138], dims="cell_id"
+                        [0.88651651, 8.51894111, 2.20167628, 4.52533503], dims="cell_id"
                     ),
                     soil_c_pool_arbuscular_mycorrhiza=DataArray(
-                        [0.64699164, 1.45289622, 3.90575332, 9.01240459], dims="cell_id"
+                        [0.6475252, 1.4647442, 3.90588435, 9.01256566], dims="cell_id"
                     ),
                     soil_c_pool_ectomycorrhiza=DataArray(
-                        [0.46690783, 1.30203656, 4.18439671, 3.75797075], dims="cell_id"
+                        [0.467854, 1.31523705, 4.18439291, 3.75807565], dims="cell_id"
                     ),
                     soil_c_pool_pom=DataArray(
-                        [0.09607891, 0.98273885, 0.68662647, 0.34901083], dims="cell_id"
+                        [0.09607891, 0.98273313, 0.68662648, 0.3490108], dims="cell_id"
                     ),
                     soil_c_pool_necromass=DataArray(
-                        [0.06031107, 0.05107849, 0.12718234, 0.11319268], dims="cell_id"
+                        [0.06031341, 0.05111967, 0.12718265, 0.11319312], dims="cell_id"
                     ),
                     soil_enzyme_pom_bacteria=DataArray(
-                        [0.02240912, 0.00946262, 0.04945801, 0.00297424], dims="cell_id"
+                        [0.02240913, 0.00946256, 0.0494582, 0.00297425], dims="cell_id"
                     ),
                     soil_enzyme_maom_bacteria=DataArray(
-                        [0.035176, 0.01156129, 0.02479475, 0.00450575], dims="cell_id"
+                        [0.035176, 0.01156122, 0.02479494, 0.00450577], dims="cell_id"
                     ),
                     soil_enzyme_pom_fungi=DataArray(
-                        [0.02575926, 0.0056889, 0.00640517, 0.00436779], dims="cell_id"
+                        [0.02576026, 0.00569679, 0.00640518, 0.0043703], dims="cell_id"
                     ),
                     soil_enzyme_maom_fungi=DataArray(
-                        [0.00856583, 0.00675207, 0.00378381, 0.00214759], dims="cell_id"
+                        [0.00856682, 0.00675996, 0.00378383, 0.0021501], dims="cell_id"
                     ),
                     soil_n_pool_don=DataArray(
-                        [0.00154434, 0.0050889, 0.00269656, 0.00456648], dims="cell_id"
+                        [0.00156622, 0.00439449, 0.00268103, 0.00556602], dims="cell_id"
                     ),
                     soil_n_pool_particulate=DataArray(
                         [0.00709874, 0.00073964, 0.00290216, 0.01428832], dims="cell_id"
                     ),
                     soil_n_pool_necromass=DataArray(
-                        [0.00582739, 0.0171198, 0.02216189, 0.01114657], dims="cell_id"
+                        [0.00582752, 0.01712208, 0.02216192, 0.0111466], dims="cell_id"
                     ),
                     soil_n_pool_maom=DataArray(
-                        [0.86652863, 0.48604326, 0.33400693, 0.10001777], dims="cell_id"
+                        [0.86652865, 0.48604307, 0.33400693, 0.10001802], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [0.00016898, 0.01029679, 0.0002293, 0.00475862], dims="cell_id"
+                        [0.00016957, 0.01008935, 0.0002286, 0.00487271], dims="cell_id"
                     ),
                     soil_n_pool_nitrate=DataArray(
-                        [-0.00091917, -0.0004919, -0.00063804, 0.0125369],
+                        [-0.00093066, -0.00049545, -0.00063842, 0.01256253],
                         dims="cell_id",
                     ),
                     soil_p_pool_dop=DataArray(
-                        [0.00016343, 0.00012056, 0.00025246, 0.00025337], dims="cell_id"
+                        [0.00016547, 0.00014088, 0.00027078, 0.00033433], dims="cell_id"
                     ),
                     soil_p_pool_particulate=DataArray(
-                        [3.19589948e-5, 2.82519250e-4, 1.13848638e-4, 5.71508667e-4],
+                        [3.19589918e-5, 2.82517608e-4, 1.13848640e-4, 5.71508620e-4],
                         dims="cell_id",
                     ),
                     soil_p_pool_necromass=DataArray(
-                        [0.00170673, 0.0012422, 0.00309617, 0.00100997], dims="cell_id"
+                        [0.00170675, 0.00124254, 0.00309618, 0.00100997], dims="cell_id"
                     ),
                     soil_p_pool_maom=DataArray(
-                        [0.0135186, 0.03480958, 0.01990662, 0.00410604], dims="cell_id"
+                        [0.0135186, 0.0348096, 0.01990663, 0.00410606], dims="cell_id"
                     ),
                     soil_p_pool_primary=DataArray(
                         [0.0019594, 0.00535662, 0.00277434, 0.00059892], dims="cell_id"
@@ -444,11 +476,27 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00705642, 0.03816755, 0.0115255, 0.00733095], dims="cell_id"
                     ),
                     soil_p_pool_labile=DataArray(
-                        [2.52800215e-6, -1.65026722e-4, 3.11246209e-5, 1.77905251e-4],
+                        [2.40213931e-6, -1.65094948e-4, 3.11266283e-5, 1.76524136e-4],
                         dims="cell_id",
                     ),
                     new_fungal_fruiting_body_production=DataArray(
-                        [4.72647034e-6, 1.50518467e-4, 2.79621626e-4, 2.03771721e-4],
+                        [1.73450986e-5, 2.33647556e-4, 2.94101986e-4, 2.38779611e-4],
+                        dims="cell_id",
+                    ),
+                    new_amf_n_supply=DataArray(
+                        [1.24825719e-6, 8.59052210e-6, 2.50358419e-5, 2.53364588e-5],
+                        dims="cell_id",
+                    ),
+                    new_amf_p_supply=DataArray(
+                        [1.84065044e-7, 1.26673801e-6, 3.69172584e-6, 3.73605410e-6],
+                        dims="cell_id",
+                    ),
+                    new_emf_n_supply=DataArray(
+                        [8.94317870e-7, 7.64686838e-6, 1.82871956e-5, 1.04737865e-5],
+                        dims="cell_id",
+                    ),
+                    new_emf_p_supply=DataArray(
+                        [1.33028451e-7, 1.13746028e-6, 2.72019310e-6, 1.55796014e-6],
                         dims="cell_id",
                     ),
                 ),
@@ -558,10 +606,6 @@ def test_order_independance(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
-        "plant_n_uptake_arbuscular",
-        "plant_n_uptake_ecto",
-        "plant_p_uptake_arbuscular",
-        "plant_p_uptake_ecto",
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
@@ -573,7 +617,8 @@ def test_order_independance(
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
         "decay_of_fungal_fruiting_bodies",
-        "mean_annual_temperature",
+        "decomposed_excrement_cnp",
+        "decomposed_carcasses_cnp",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
@@ -722,6 +767,36 @@ def test_calculate_dissolved_nutrient_concentrations(fixture_soil_model):
         assert np.allclose(actual_concs[nutrient], expected_concs[nutrient])
 
 
+def test_convert_mycorrhizal_supplies_to_mass(fixture_soil_model):
+    """Test that mycorrhizal supplies are correctly converted to mass units."""
+
+    supplies = {
+        "new_amf_n_supply": DataArray([2.07e-5, 3.12e-5, 3.57e-6, 6.98e-5]),
+        "new_emf_n_supply": DataArray([3.07e-5, 4.20e-5, 4.02e-6, 2.98e-5]),
+        "new_amf_p_supply": DataArray([1.57e-6, 5.07e-5, 2.13e-6, 1.81e-6]),
+        "new_emf_p_supply": DataArray([1.78e-6, 5.64e-5, 1.07e-6, 9.90e-7]),
+    }
+
+    expected_masses = {
+        "arbuscular_mycorrhizal_n_supply": [0.0419175, 0.06318, 0.00722925, 0.141345],
+        "arbuscular_mycorrhizal_p_supply": [
+            0.00317925,
+            0.1026675,
+            0.00431325,
+            0.00366525,
+        ],
+        "ectomycorrhizal_n_supply": [0.0621675, 0.08505, 0.0081405, 0.060345],
+        "ectomycorrhizal_p_supply": [0.0036045, 0.11421, 0.00216675, 0.00200475],
+    }
+
+    actual_masses = fixture_soil_model.convert_mycorrhizal_supplies_to_mass(supplies)
+
+    assert expected_masses.keys() == actual_masses.keys()
+
+    for nutrient in expected_masses.keys():
+        assert np.allclose(actual_masses[nutrient], expected_masses[nutrient])
+
+
 def test_calculate_dissolved_nutrient_concentrations_negative(fixture_soil_model):
     """Test that the dissolved nutrient concentrations handles negative values."""
 
@@ -744,40 +819,42 @@ def test_calculate_dissolved_nutrient_concentrations_negative(fixture_soil_model
         assert np.allclose(actual_concs[nutrient], expected_concs[nutrient])
 
 
-@pytest.mark.parametrize(
-    argnames=["expected_limits", "init"],
-    argvalues=[
-        pytest.param(
-            {
-                "ecto_supply_limit_n": [0.0, 0.00040386, 0.0, 0.0],
-                "ecto_supply_limit_p": [0.0, 0.0, 0.0, 0.0],
-                "arbuscular_supply_limit_n": [0.0, 0.000449755, 0.0, 0.0],
-                "arbuscular_supply_limit_p": [0.0, 0.0, 0.0, 0.0],
-            },
-            False,
-            id="update",
-        ),
-        pytest.param(
-            {
-                "ecto_supply_limit_n": [0.0, 0.00033416, 0.0, 0.0],
-                "ecto_supply_limit_p": [0.0, 0.0, 0.0, 0.0],
-                "arbuscular_supply_limit_n": [0.0, 0.00037213, 0.0, 0.0],
-                "arbuscular_supply_limit_p": [0.0, 0.0, 0.0, 0.0],
-            },
-            True,
-            id="init",
-        ),
-    ],
-)
-def test_calculate_symbiotic_supply_limits(fixture_soil_model, expected_limits, init):
+def test_calculate_initial_symbiotic_supply(fixture_soil_model):
     """Test that the function to calculate the symbiotic supply limits works."""
 
-    actual_limits = fixture_soil_model.calculate_symbiotic_supply_limits(init=init)
+    expected_supply = {
+        "arbuscular_mycorrhizal_n_supply": [
+            0.00564199467525,
+            0.4897515879,
+            0.02949683596875,
+            0.26289689265,
+        ],
+        "arbuscular_mycorrhizal_p_supply": [
+            7.955705840625001e-5,
+            0.002408107127625,
+            0.005366038093875,
+            0.005891451620625,
+        ],
+        "ectomycorrhizal_n_supply": [
+            0.004079596154625,
+            0.4397769358875,
+            0.0316037527875,
+            0.1096373100375,
+        ],
+        "ectomycorrhizal_p_supply": [
+            5.752587306375e-5,
+            0.002162381902875,
+            0.005749326529875,
+            0.002456943870375,
+        ],
+    }
 
-    assert expected_limits.keys() == actual_limits.keys()
+    actual_supply = fixture_soil_model.calculate_initial_symbiotic_supply()
 
-    for nutrient in expected_limits.keys():
-        assert np.allclose(actual_limits[nutrient], expected_limits[nutrient])
+    assert expected_supply.keys() == actual_supply.keys()
+
+    for nutrient in expected_supply.keys():
+        assert np.allclose(actual_supply[nutrient], expected_supply[nutrient])
 
 
 def test_construct_full_soil_model(
@@ -796,110 +873,126 @@ def test_construct_full_soil_model(
     )
 
     delta_pools = [
-        0.12423276789810479,
-        0.17824690353363165,
-        0.24889312020519574,
-        0.04461268311156227,
-        0.03789432226121193,
-        0.0048705495045138604,
-        0.05679372684410118,
-        0.07275791584131786,
-        -0.048350512953900526,
-        -0.017251387205083662,
-        -0.08839738199974588,
-        -0.006818221242128573,
-        -0.007054381881973864,
-        -0.062406069562776195,
-        -0.016970421222328322,
-        -0.029782167319928037,
-        -0.006099980945117987,
-        -0.03448916431713757,
-        -0.029482787236391438,
-        -0.05578802168235312,
-        -0.0062474662218545435,
-        -0.03618790265212354,
-        -0.031363428955056026,
-        -0.02428923629007954,
-        -0.007886552416349007,
-        -0.03490772073159405,
-        -0.02708249030566494,
-        -0.001980102593152352,
-        0.005919504291669271,
-        0.09042041729288817,
-        0.08573325241740355,
-        0.020663189212488817,
-        -0.0005440183248982889,
-        -0.00022835022939807217,
-        -0.00119517352162211,
-        -7.210671588615208e-05,
-        -0.000854122324898289,
-        -0.0002793262293980722,
-        -0.0005961095216221099,
-        -0.00010930671588615208,
-        -0.0006255788208779072,
-        -0.0001249905144817899,
-        -0.00011351414512076786,
-        -8.99649242347219e-05,
-        -0.0002079548208779072,
-        -0.0001508145144817899,
-        -4.9842145120767855e-05,
-        -3.6036924234721896e-05,
-        0.0016584234296920736,
-        0.0074950304404597795,
-        0.005305079816810536,
-        0.0034549092570503354,
-        -8.935270377987001e-05,
-        5.1027852640287704e-05,
-        9.028158092281784e-05,
-        5.163279168507174e-06,
-        0.007374059842314254,
-        -0.001874881616071234,
-        0.00496976092581884,
-        -1.536330357454832e-07,
-        0.001183732724349199,
-        0.010829477443235935,
-        0.01343197389737877,
-        0.00772882102985433,
-        0.00014092,
-        0.00838896,
+        0.14736524,
+        0.76933205,
+        0.26335729,
+        0.07947176,
+        3.7894322e-2,
+        4.8705495e-3,
+        5.67937268e-2,
+        7.27579158e-2,
+        -0.048350513,
+        -0.0172513872,
+        -0.088397382,
+        -0.00681822124,
+        -0.00705438,
+        -0.06240607,
+        -0.01697042,
+        -0.02978217,
+        -0.00507858,
+        -0.01059603,
+        -0.02956509,
+        -0.05564099,
+        -0.00437839,
+        -0.00959643,
+        -0.03157447,
+        -0.02414548,
+        -0.007886552416,
+        -0.0349077207,
+        -0.02708249,
+        -0.001980103,
+        0.0059195,
+        0.09042042,
+        0.08573325,
+        0.02066319,
+        -5.44018e-4,
+        -2.2835e-4,
+        -1.19517e-3,
+        -7.21028e-5,
+        -8.54122e-4,
+        -2.79326e-4,
+        -5.9611e-4,
+        -1.0930e-4,
+        -6.25152703e-04,
+        -1.08972871e-04,
+        -1.17734954e-04,
+        -8.70898203e-05,
+        -2.07528703e-04,
+        -1.34796871e-04,
+        -5.40629537e-05,
+        -3.31618203e-05,
+        0.00169496,
+        0.0057789,
+        0.00535622,
+        0.00547371,
+        -8.93527e-5,
+        5.102785e-5,
+        9.028158e-5,
+        5.163279e-6,
+        7.37406e-3,
+        -1.87488e-3,
+        4.96976e-3,
+        -1.53633e-7,
+        1.183733e-3,
+        1.082948e-2,
+        1.343197e-2,
+        7.72882e-3,
+        0.00014578,
+        0.00824912,
         -0.00018991,
-        -0.00054167,
-        -0.00564313,
-        -0.00582794,
+        -0.00027484,
+        -0.00562716,
+        -0.00584054,
         -0.00202432,
-        -0.00163434,
-        0.00022033246159142047,
-        0.00013362575874243532,
-        0.0001603979712690391,
-        0.00021955836334496687,
-        6.80438411291209e-06,
-        -6.4759821411240326e-06,
-        -9.005795710872872e-07,
-        1.5832583154028685e-07,
-        0.0022526061841475044,
-        0.0028211359615132703,
-        0.005960476482892584,
-        0.001411403170040861,
-        0.0005475184888330325,
-        -3.2942810279703953e-05,
-        0.0004627200836890926,
-        0.0003091500688257559,
-        -4.47351598173516e-10,
-        -1.2229726027397262e-09,
-        -6.334109589041096e-10,
-        -1.3673972602739725e-10,
-        -5.050797153703703e-07,
-        -2.773114353703704e-06,
-        -7.403238796296297e-07,
-        -2.187697222222222e-07,
-        -1.71650755e-5,
-        -0.000455931235,
-        -9.74662048e-5,
-        -2.9763896e-5,
-        2.023582441855903e-06,
-        0.0002601897103642022,
-        0.0004308595717737112,
-        0.000313705913362231,
+        -0.00157849,
+        0.00022614,
+        0.00016408,
+        0.00021213,
+        0.00038847,
+        6.804384e-6,
+        -6.47598e-6,
+        -9.0058e-7,
+        1.583258e-7,
+        0.00225261,
+        0.00282114,
+        0.00596048,
+        0.0014114,
+        5.47518e-4,
+        -3.2943e-5,
+        4.6272e-4,
+        3.0915e-4,
+        -4.473516e-10,
+        -1.222973e-9,
+        -6.33411e-10,
+        -1.3674e-10,
+        -5.050797e-7,
+        -2.77311e-6,
+        -7.40324e-7,
+        -2.187697e-7,
+        -1.76159741e-05,
+        -4.55931235e-04,
+        -9.74662048e-05,
+        -2.97638960e-05,
+        7.40554437e-06,
+        4.38693546e-04,
+        4.01525064e-04,
+        3.42784354e-04,
+        5.32864078e-7,
+        1.612922608e-5,
+        2.91326774e-5,
+        3.94602692e-5,
+        7.85748726e-8,
+        2.3783774e-6,
+        4.2958355e-6,
+        5.81871764e-6,
+        3.81957958e-7,
+        1.435769562e-5,
+        3.1213583e-5,
+        1.63135162e-5,
+        5.6815677e-8,
+        2.13568584e-6,
+        4.64297396e-6,
+        2.42661124e-6,
     ]
 
     # make pools
@@ -911,13 +1004,23 @@ def test_construct_full_soil_model(
         ]
     )
 
+    # List of variables that are added to the data object
+    refreshed_variables = [
+        "new_fungal_fruiting_body_production",
+        "new_amf_n_supply",
+        "new_amf_p_supply",
+        "new_emf_n_supply",
+        "new_emf_p_supply",
+    ]
     # Find and store order of pools
     delta_pools_ordered = {
-        name: np.array([])
-        for name in dummy_carbon_data.data.keys()
-        if name in SoilModel.vars_updated
+        **{
+            name: np.array([])
+            for name in map(str, dummy_carbon_data.data.keys())
+            if name in SoilModel.vars_updated
+        },
+        **{name: np.array([]) for name in refreshed_variables},
     }
-    delta_pools_ordered["new_fungal_fruiting_body_production"] = np.array([])
 
     rate_of_change = construct_full_soil_model(
         0.0,
@@ -954,27 +1057,29 @@ def test_make_slices():
     assert slices[1] == slice(4, 8)
 
 
-def test_to_per_area(fixture_soil_model):
-    """Test that the SoilModel.to_per_area method converts correctly."""
+def test_to_total_mass(fixture_soil_model):
+    """Test that the SoilModel.to_total_mass method converts correctly."""
 
     # Test that it works for both floats and numpy arrays
-    assert np.isclose(fixture_soil_model.to_per_area(40.0), 10.0)
+    assert np.isclose(fixture_soil_model.to_total_mass(40.0), 40500.0)
     assert np.allclose(
-        fixture_soil_model.to_per_area(np.array([40.0, 100.0, 396.0, 138.8])),
-        [10.0, 25.0, 99.0, 34.7],
+        fixture_soil_model.to_total_mass(np.array([40.0, 100.0, 396.0, 138.8])),
+        [40500.0, 101250.0, 400950.0, 140535.0],
     )
 
 
-def test_find_maximum_mycorrhizal_supply(
+def test_estimate_past_mycorrhizal_supply(
     dummy_carbon_data, averaged_soil_temp, functional_groups, environmental_factors
 ):
     """Test that the function to calculate the maximum mycorrhizal supply works."""
-    from virtual_ecosystem.models.soil.soil_model import find_maximum_mycorrhizal_supply
+    from virtual_ecosystem.models.soil.soil_model import (
+        estimate_past_mycorrhizal_supply,
+    )
 
-    expected_maximum_n = [-0.00017139, 0.001615443, -0.00167385, -0.00079816]
-    expected_maximum_p = [-2.844675e-5, -7.276582e-5, -0.000246096, -0.000188804]
+    expected_n_supply = [4.02923076e-6, 0.000434347592, 3.1213583e-5, 0.0001082837634]
+    expected_p_supply = [5.6815677e-8, 2.13568584e-6, 5.67834718e-6, 2.42661124e-6]
 
-    actual_maximum_n, actual_maximum_p = find_maximum_mycorrhizal_supply(
+    actual_n_supply, actual_p_supply = estimate_past_mycorrhizal_supply(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
@@ -987,5 +1092,5 @@ def test_find_maximum_mycorrhizal_supply(
         env_factors=environmental_factors,
     )
 
-    assert np.allclose(actual_maximum_n, expected_maximum_n)
-    assert np.allclose(actual_maximum_p, expected_maximum_p)
+    assert np.allclose(actual_n_supply, expected_n_supply)
+    assert np.allclose(actual_p_supply, expected_p_supply)
