@@ -5,21 +5,21 @@ from numpy.typing import NDArray
 from pyrealm.core.hygro import calc_specific_heat
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import abiotic_tools
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.hydrology import above_ground
-from virtual_ecosystem.models.hydrology.constants import HydroConsts
+from virtual_ecosystem.models.hydrology.model_config import HydrologyConstants
 
 
 def initialise_atmosphere_for_hydrology(
     data: Data,
-    model_constants: HydroConsts,
-    abiotic_constants: AbioticConsts,
-    core_constants: CoreConsts,
+    model_constants: HydrologyConstants,
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
     layer_structure: LayerStructure,
 ):
     """Initialise atmospheric variables required for hydrology model.
@@ -32,7 +32,7 @@ def initialise_atmosphere_for_hydrology(
         layer_structure: The LayerStructure instance for a simulation
 
     Returns:
-        aerodynamic_resistance_surface, aerodynamic_resistance_canopy,
+        aerodynamic_resistance_soil, aerodynamic_resistance_canopy,
             stomatal_conductance, density_air, specific_heat_air,
             latent_heat_vapourisation
     """
@@ -42,25 +42,29 @@ def initialise_atmosphere_for_hydrology(
     # Initialise scalar layers
     initial_values = [
         (
-            "aerodynamic_resistance_surface",
+            "aerodynamic_resistance_soil",
+            {},
             layer_structure.index_surface_scalar,
-            model_constants.initial_aerodynamic_resistance_surface,
+            model_constants.initial_aerodynamic_resistance_soil,
         ),
         (
             "aerodynamic_resistance_canopy",
             layer_structure.index_filled_canopy,
-            model_constants.initial_aerodynamic_resistance_canopy,
+            layer_structure.index_surface_scalar,
+            core_constants.initial_aerodynamic_resistance_canopy,
         ),
         (
             "stomatal_conductance",
             layer_structure.index_filled_canopy,
+            layer_structure.index_surface_scalar,
             model_constants.initial_stomatal_conductance,
         ),
     ]
 
-    for key, index, value in initial_values:
+    for key, index, index_surface, value in initial_values:
         layer = layer_structure.from_template()
         layer[index] = value
+        layer[index_surface] = value
         output[key] = layer
 
     # Extract air temperature and pressure

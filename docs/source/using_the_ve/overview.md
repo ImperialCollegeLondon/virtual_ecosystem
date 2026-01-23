@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -42,12 +42,32 @@ a step-by-step guide to getting up and running. The main sections are:
    you should be able to [run the example model](./virtual_ecosystem_in_use) to learn
    about how the model runs and learn about the model outputs.
 
-1. When it comes to running your own models, you will need to understand how to generate
-   the required inputs to the Virtual Ecosystem model for your own system. The [model
-   inputs](./model_inputs) page provides a guide to the different ways in which you will
-   need to configure the model and provide initial data.
+1. When it comes to running your own models, you will need to understand how to provide
+   the required inputs to the Virtual Ecosystem model for your own system. There are
+   three main parts to setting up your own model.
 
-1. Once you have your own model running, you can run experiments on the system. One
-   example is isolating a component of the model to see how it responds to constant
-   inputs through time. This is the [static model
-   system](./virtual_ecosystem_in_static_mode.md).
+   1. Defining the [configuration of the model core system](./core_configuration.md),
+      which establishes the spatial and temporal context of your simulation
+
+   1. [Configuring the science models](./science_model_configuration.md) that you want
+      to include in your simulation.
+
+   1. [Creating any data inputs](./model_data_inputs.md) required by your science models
+      and then adding those to your configuration files.
+
+## Advanced usage
+
+Once you have your own model running, you can run experiments on the system.
+
+* Develop new model configurations to run different scenarios within your virtual
+  ecosystem. What happens if you remove a top predator? What happens with a 2°C increase
+  in temperature?
+
+* Run models with different permutations of particular parameters to explore the
+  sensitivity of your simulation to changes in the parameterisation.
+
+* Isolate a single component of the model to see how it responds to constant inputs
+  through time using the [static model
+  system](./virtual_ecosystem_in_static_mode.ipynb). Although this is primarily intended
+  as a model development tool, it can be useful to understand the details of how
+  different components of your model are behaving.

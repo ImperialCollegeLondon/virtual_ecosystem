@@ -82,8 +82,8 @@ subclass. The method must follow the signature of that method, providing:
 * ``data`` as an instance of :class:`~virtual_ecosystem.core.data.Data`.
 * ``core_components`` as an instance of
   :class:`~virtual_ecosystem.core.core_components.CoreComponents`.
-* ``config`` as an instance of
-  :class:`~virtual_ecosystem.core.config.Config`.
+* ``configuration`` as an instance of
+  :class:`~virtual_ecosystem.core.configuration.CompiledConfiguration`.
 
 The method should provide any code to validate the configuration for that model and then
 use the configuration to initialise and return a new instance of the class.
@@ -91,12 +91,11 @@ use the configuration to initialise and return a new instance of the class.
 Model registration
 ------------------
 
-Models have three core components: the
-:class:`~virtual_ecosystem.core.base_model.BaseModel` subclass itself (``model``),
-a JSON schema for validating the model configuration (``schema``) and an optional set of
-user modifiable constants classes (``constants``, see
-:class:`~virtual_ecosystem.core.constants_class.ConstantsDataclass`). All model
-modules must register these components when they are imported: see the
+Models have two core components: the
+:class:`~virtual_ecosystem.core.base_model.BaseModel` subclass itself (``model``) and a
+model configuration module that both defines the configuration options and constants
+associated with the model and provides validation of configuration data from TOML files.
+All model modules must register these components when they are imported: see the
 :mod:`~virtual_ecosystem.core.registry` module.
 """  # noqa: D205, D415
 
@@ -107,8 +106,7 @@ from typing import Any
 
 import pint
 
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import (
     CoreComponents,
     LayerStructure,
@@ -117,6 +115,7 @@ from virtual_ecosystem.core.core_components import (
 from virtual_ecosystem.core.data import Data, Grid
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 
 
 class BaseModel(ABC):
@@ -206,7 +205,7 @@ class BaseModel(ABC):
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
-        **kwargs: Any,
+        *args: Any,
     ):
         """Performs core initialisation for BaseModel subclasses.
 
@@ -225,8 +224,9 @@ class BaseModel(ABC):
         * ``layer_structure``: the
           :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance from
           the ``core_components`` argument.
-        * ``core_constants``: the :class:`~virtual_ecosystem.core.constants.CoreConsts`
-          instance from the ``core_components`` argument.
+        * ``core_constants``: the
+          :class:`~virtual_ecosystem.core.model_config.CoreConstants` instance from the
+          ``core_components`` argument.
 
         It then uses the
         :meth:`~virtual_ecosystem.core.base_model.BaseModel.check_init_data` method to
@@ -241,49 +241,47 @@ class BaseModel(ABC):
         """The Grid details used in the model."""
         self.layer_structure: LayerStructure = core_components.layer_structure
         """The LayerStructure details used in the model."""
-        self.core_constants: CoreConsts = core_components.core_constants
+        self.core_constants: CoreConstants = core_components.core_constants
         """The core constants used in the model."""
         self._repr: list[tuple[str, ...]] = [("model_timing", "update_interval")]
         """A list of attributes to be included in the class __repr__ output"""
         self._static = static
         """Flag indicating if the model is static, i.e. does not change with time."""
+        self._run_setup: bool
+        """Flag indicating if the setup method should run when model static."""
+        self._run_initial_static_update: bool
+        """Flag indicating if the update method should be run once when model static."""
 
         # Check the required init variables
         self.check_init_data()
         # Check the configured update interval is within model bounds
         self._check_update_speed()
-        # Check static configuration
-        bypass_setup, run_initial = self._check_static_config()
+        # Set the static configuration settings
+        self._set_static_config()
 
-        self._run_initial_static_update = run_initial
-        """Flag indicating if the update method should be run once when model static."""
+    def _set_static_config(self):
+        """Set the static configuration .
 
-        if not bypass_setup:
-            self._setup(**kwargs)
-
-    def _check_static_config(self) -> tuple[bool, bool]:
-        """Check if the static configuration is valid.
+        The method checks that the model static configuration and provided data are a
+        valid configuration and then sets the `_run_setup` and
+        `_run_initial_static_update` flags as appropriate.
 
         Raises:
             ConfigurationError: If there is any error in the static configuration of the
             model.
-
-        Returns:
-            A tuple of two boolean flags indicating if the _setup method should be
-            bypassed and the update method should be run, respectively.
         """
-        bypass = self._bypass_setup_due_to_static_configuration()
-        run = self._run_update_due_to_static_configuration()
+        self._run_setup = self._run_setup_due_to_static_configuration()
+        self._run_initial_static_update = self._run_update_due_to_static_configuration()
 
         # Bypassing the setup and running the update is not valid
-        if bypass and run:
+        if not self._run_setup and self._run_initial_static_update:
             raise ConfigurationError(
                 f"Static model {self.model_name} will not run the setup method, but "
                 "requires the update method to run once. This is an invalid "
-                "configuration. Please, make sure that either both methods are run once"
-                " by not providing any variables in vars_populated_by_first_update and "
-                "vars_updated or that both are bypassed by providing all variables in "
-                "vars_populated_by_init."
+                "configuration. Please, make sure that either both methods are run "
+                "once by not providing any variables in vars_populated_by_first_update "
+                "and vars_updated or that both are bypassed by providing all variables "
+                "in vars_populated_by_init."
             )
 
         # Flag indicating if the setup method will setup any variable
@@ -296,7 +294,12 @@ class BaseModel(ABC):
         # Running the setup but not the update is only valid if
         # - There are no variables to setup (setup is always run in this case), or
         # - There are no variables to update (unusual case)
-        if not bypass and not run and any_var_to_setup and any_var_to_update:
+        if (
+            self._run_setup
+            and not self._run_initial_static_update
+            and any_var_to_setup
+            and any_var_to_update
+        ):
             raise ConfigurationError(
                 f"Static model {self.model_name} will run the setup method, but "
                 "not the update method. This is an invalid configuration. "
@@ -305,10 +308,9 @@ class BaseModel(ABC):
                 " are bypassed by providing all variables in "
                 "vars_populated_by_first_update and vars_updated."
             )
-        return bypass, run
 
-    def _bypass_setup_due_to_static_configuration(self) -> bool:
-        """Decide if the setup should be bypassed based on the static flag.
+    def _run_setup_due_to_static_configuration(self) -> bool:
+        """Decide if the setup should be run based on the static flag.
 
         In particular, it checks that the appropriate variables populated by init are
         present or not in the data object. Based on this, an exception is raised is
@@ -321,8 +323,8 @@ class BaseModel(ABC):
                 vars_populated_by_init are not present in the data object.
 
         Returns:
-            True if the model is static and all variables are present, such that the
-            setup method can be bypassed. False otherwise.
+            False if the model is static and all variables are present, such that the
+            setup method can be bypassed. True otherwise.
         """
         present = [var for var in self.vars_populated_by_init if var in self.data]
         found = len(present)
@@ -345,12 +347,12 @@ class BaseModel(ABC):
                 )
             elif found == 0:
                 # The case when static is true and no init vars provided
-                return False
+                return True
             else:
                 # The case when static is true and all init vars provided
-                return True
+                return False
 
-        return False
+        return True
 
     def _run_update_due_to_static_configuration(self) -> bool:
         """Decides if the update should be bypassed based on the static flag.
@@ -400,7 +402,7 @@ class BaseModel(ABC):
         return True
 
     @abstractmethod
-    def _setup(self, *args: Any, **kwargs: Any) -> None:
+    def _setup(self, *args: Any) -> None:
         """Function to setup the model during initialisation."""
 
     @abstractmethod
@@ -449,7 +451,10 @@ class BaseModel(ABC):
     @classmethod
     @abstractmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 

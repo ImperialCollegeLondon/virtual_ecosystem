@@ -4,7 +4,7 @@ This module tests the functionality of base_model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR
+from logging import CRITICAL, ERROR
 from typing import Any
 
 import pytest
@@ -320,128 +320,6 @@ def test_check_failure_on_missing_methods(dummy_climate_data, fixture_core_compo
     assert str(err.value).startswith("Can't instantiate abstract class InitVarModel ")
 
 
-@pytest.mark.skip(
-    "This functionality is going to be handed off to the variables system "
-    "so skipping for now but this will probably be deleted"
-)
-@pytest.mark.parametrize(
-    argnames="req_init_vars, raises, exp_err_msg, exp_log",
-    argvalues=[
-        pytest.param(
-            [("temperature", ("spatial",))],
-            does_not_raise(),
-            None,
-            ((DEBUG, "init_var model: required var 'temperature' checked"),),
-            id="single var with axes ok",
-        ),
-        pytest.param(
-            [("precipitation", tuple())],
-            does_not_raise(),
-            None,
-            ((DEBUG, "init_var model: required var 'precipitation' checked"),),
-            id="single var without axes ok",
-        ),
-        pytest.param(
-            [("temperature", ("spatial",)), ("precipitation", tuple())],
-            does_not_raise(),
-            None,
-            (
-                (DEBUG, "init_var model: required var 'temperature' checked"),
-                (DEBUG, "init_var model: required var 'precipitation' checked"),
-            ),
-            id="multivar ok",
-        ),
-        pytest.param(
-            [("precipitation", ("spatial",))],
-            pytest.raises(ValueError),
-            "init_var model: error checking vars_required_for_init, see log.",
-            (
-                (
-                    ERROR,
-                    "init_var model: required var 'precipitation' not on required "
-                    "axes: spatial",
-                ),
-                (
-                    ERROR,
-                    "init_var model: error checking vars_required_for_init, see log.",
-                ),
-            ),
-            id="missing axis",
-        ),
-    ],
-)
-def test_check_vars_required_for_init(
-    caplog,
-    fixture_data_instance_for_model_validation,
-    fixture_core_components,
-    req_init_vars,
-    raises,
-    exp_err_msg,
-    exp_log,
-):
-    """Tests the validation of the vars_required_for_init property on init."""
-
-    # This gets registered for each parameterisation but I can't figure out how to
-    # create the instance via a module-scope fixture and the alternative is just
-    # defining it at the top, which isn't encapsulated in a test.
-
-    from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.core_components import CoreComponents
-    from virtual_ecosystem.core.data import Data
-
-    class TestCaseModel(
-        BaseModel,
-        model_name="init_var",
-        model_update_bounds=("1 second", "1 year"),
-        vars_required_for_init=(),
-        vars_updated=[],
-    ):
-        def spinup(self) -> None:
-            pass
-
-        def update(self, time_index: int, **kwargs: Any) -> None:
-            pass
-
-        def cleanup(self) -> None:
-            pass
-
-        @classmethod
-        def from_config(
-            cls,
-            data: Data,
-            core_components: CoreComponents,
-            config: Config,
-        ) -> Any:
-            return super().from_config(
-                data=data, core_components=core_components, config=config
-            )
-
-    # Registration of TestClassModel emits logging messages - discard.
-    caplog.clear()
-
-    # Override the vars_required_for_init for different test cases against the
-    # data_instance
-    TestCaseModel.vars_required_for_init = req_init_vars
-
-    # Create an instance to check the handling
-    with raises as err:
-        inst = TestCaseModel(
-            data=fixture_data_instance_for_model_validation,
-            core_components=fixture_core_components,
-        )
-
-    if err:
-        # Check any error message
-        assert str(err.value) == exp_err_msg
-    else:
-        # Check the special methods
-        assert repr(inst).startswith("TestCaseModel(")
-        assert str(inst) == "A init_var model instance"
-
-    log_check(caplog, exp_log)
-
-
 @pytest.mark.parametrize(
     argnames=["config_string", "raises", "expected_log"],
     argvalues=[
@@ -505,7 +383,11 @@ def test_check_update_speed(
     """Tests check on update speed."""
 
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
+    from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.core.data import Data
 
@@ -535,15 +417,20 @@ def test_check_update_speed(
         def from_config(
             cls,
             data: Data,
+            configuration: CompiledConfiguration,
             core_components: CoreComponents,
-            config: Config,
         ) -> Any:
             return super().from_config(
-                data=data, core_components=core_components, config=config
+                data=data,
+                configuration=configuration,
+                core_components=core_components,
             )
 
-    config = Config(cfg_strings=config_string)
-    core_components = CoreComponents(config=config)
+    # Process the configuration
+    cfg_data = ConfigurationLoader(cfg_strings=config_string)
+    cfg = generate_configuration(cfg_data.data)
+    core_components = CoreComponents(config=cfg.core)
+
     # Clear model registration and configuration messages
     caplog.clear()
 
@@ -565,7 +452,7 @@ def test_check_update_speed(
             True,
             ("var1", "var2"),
             {"var1": 1, "var2": 2},
-            True,
+            False,
             does_not_raise(),
             None,
             id="static_all_vars_present",
@@ -575,7 +462,7 @@ def test_check_update_speed(
             True,
             ("var1", "var2"),
             {},
-            False,
+            True,
             does_not_raise(),
             None,
             id="static_no_vars_present",
@@ -597,7 +484,7 @@ def test_check_update_speed(
             False,
             ("var1", "var2"),
             {},
-            False,
+            True,
             does_not_raise(),
             None,
             id="non_static_no_vars_present",
@@ -616,7 +503,7 @@ def test_check_update_speed(
         ),
     ],
 )
-def test_bypass_setup_due_to_static_configuration(
+def test_run_setup_due_to_static_configuration(
     static,
     vars_populated_by_init,
     data_vars,
@@ -624,11 +511,11 @@ def test_bypass_setup_due_to_static_configuration(
     expected_exception,
     expected_message,
     fixture_data,
-    fixture_config,
+    fixture_configuration,
 ):
-    """Test the _bypass_setup_due_to_static_configuration method."""
+    """Test the _run_setup_due_to_static_configuration method."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import (
         CoreComponents,
     )
@@ -658,22 +545,27 @@ def test_bypass_setup_due_to_static_configuration(
 
         @classmethod
         def from_config(
-            cls, data: Data, core_components: CoreComponents, config: Config
+            cls,
+            data: Data,
+            configuration: CompiledConfiguration,
+            core_components: CoreComponents,
         ) -> BaseModel:
             return super().from_config(
-                data=data, core_components=core_components, config=config
+                data=data,
+                configuration=configuration,
+                core_components=core_components,
             )
 
     for var in data_vars.keys():
         fixture_data[var] = fixture_data["existing_var"].copy()
 
-    core_components = CoreComponents(config=fixture_config)
+    core_components = CoreComponents(config=fixture_configuration.core)
 
     with expected_exception as exc:
         model = TestModel(
             data=fixture_data, core_components=core_components, static=static
         )
-        result = model._bypass_setup_due_to_static_configuration()
+        result = model._run_setup_due_to_static_configuration()
         assert result == expected_result
 
     if expected_message:
@@ -754,12 +646,12 @@ def test_run_update_due_to_static_configuration(
     expected_exception,
     expected_message,
     fixture_data,
-    fixture_config,
+    fixture_configuration,
 ):
     """Test the _run_update_due_to_static_configuration method."""
 
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.core.data import Data
 
@@ -787,16 +679,21 @@ def test_run_update_due_to_static_configuration(
 
         @classmethod
         def from_config(
-            cls, data: Data, core_components: CoreComponents, config: Config
+            cls,
+            data: Data,
+            configuration: CompiledConfiguration,
+            core_components: CoreComponents,
         ) -> BaseModel:
             return super().from_config(
-                data=data, core_components=core_components, config=config
+                data=data,
+                configuration=configuration,
+                core_components=core_components,
             )
 
     for var in data_vars.keys():
         fixture_data[var] = fixture_data["existing_var"].copy()
 
-    core_components = CoreComponents(config=fixture_config)
+    core_components = CoreComponents(config=fixture_configuration.core)
 
     with expected_exception as exc:
         model = TestModel(
@@ -853,11 +750,11 @@ def test_bypass_setup_but_run_update_fails(
     expected_exception,
     expected_message,
     fixture_data,
-    fixture_config,
+    fixture_core_components,
 ):
-    """Test the _bypass_setup_due_to_static_configuration method."""
+    """Test the _run_setup_due_to_static_configuration method."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import (
         CoreComponents,
     )
@@ -887,19 +784,24 @@ def test_bypass_setup_but_run_update_fails(
 
         @classmethod
         def from_config(
-            cls, data: Data, core_components: CoreComponents, config: Config
+            cls,
+            data: Data,
+            configuration: CompiledConfiguration,
+            core_components: CoreComponents,
         ) -> BaseModel:
             return super().from_config(
-                data=data, core_components=core_components, config=config
+                data=data,
+                configuration=configuration,
+                core_components=core_components,
             )
 
     for var in data_vars.keys():
         fixture_data[var] = fixture_data["existing_var"].copy()
 
-    core_components = CoreComponents(config=fixture_config)
-
     with expected_exception as exc:
-        TestModel(data=fixture_data, core_components=core_components, static=static)
+        TestModel(
+            data=fixture_data, core_components=fixture_core_components, static=static
+        )
 
     if expected_message:
         assert str(exc.value) == expected_message

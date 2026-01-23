@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.0
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -35,92 +35,283 @@ However, the simulation is designed to be modular:
 This page sets out the steps needed to add a new model to the Virtual Ecosystem and
 ensure that it can be accessed by the `core` processes in the simulation.
 
+```{important}
+When a model is used in the Virtual Ecosystem, the code relies on naming conventions to
+access the different model components used in the model and register these components so
+that they can be easily found from within the code - see the
+{mod}`~virtual_ecosystem.core.registry` submodule for details.
+
+You need to choose a unique model name that will be used to name the root model
+directory, submodules within the model and then two critical model components. The name
+will be used following two standard Python naming conventions:
+
+* Model directory and file names use **snake case** (lower case with underscores): e.g.
+  `abiotic` or `abiotic_simple`.
+* Class names use **camel case** (capitalised words with no spaces): e.g. `Abiotic` and
+  `AbioticSimple`.
+
+The critical names are the model subclass and configuration subclasses and the example
+below shows the required pattern.
+
+* `abiotic_simple.abiotic_simple_model.AbioticSimpleModel`
+* `abiotic_simple.model_config.AbioticSimpleConfiguration`
+```
+
+The rest of this page assumes that you are creating a new `freshwater` model.
+
 ## Create a new submodule folder
 
-Start by creating  a new folder for your model, within the `virtual_ecosystem/models/`
-directory.
+Start by creating  a new directory for your model within the `models` directory:
+`virtual_ecosystem/models/freshwater`
 
-```bash
-mkdir virtual_ecosystem/models/freshwater
-```
+You will then need to create the three files shown below within this folder:
 
-You will need to create at least four files within this folder, although you may choose
-to add other python modules containing different parts of the module functionality.
+* The init file `virtual_ecosystem/models/freshwater/__init__.py`. This is
+  required to indicate to Python that the folder is a submodule within the
+  `virtual_ecosystem` package, but we also use it to provide overview documentation of
+  the model structure.
+* The `virtual_ecosystem/models/freshwater/model_config.py` submodule, providing the
+  `FreshwaterConfiguration` class that defines  the settings needed to configure how
+  the model runs.
+* The `virtual_ecosystem/models/freshwater/freshwater_model.py` submodule, providing the
+  main `FreshwaterModel` class that implements the model itself.
 
-* An `__init__.py` file, which tells Python that the folder is a submodule within the
-  `virtual_ecosystem` package.
-* A python module  `{model_name}_model.py` that will contain the main model
-  object.
-* A JSON Schema file defining the model configuration, called `schema.json`.
-* A python module  `constants.py` that will contain the constants relevant to the model.
+It is very likely that you will also want to create additional code submodules within
+this directory to split out different parts of the module functionality and  to keep
+code files organised and a manageable size.
 
-For example:
+## The model `__init__.py` file
 
-```bash
-touch virtual_ecosystem/models/freshwater/__init__.py
-touch virtual_ecosystem/models/freshwater/freshwater_model.py
-touch virtual_ecosystem/models/freshwater/schema.json
-touch virtual_ecosystem/models/freshwater/constants.py
-```
+This file is used to tell Python that the directory contains a package submodule. It
+_can_ be used to run code automatically when any component of the submodule is imported,
+but in the Virtual Ecosystem, we only use the `__init__.py` to provide a brief overview
+of the module as a docstring. It can be used to provide a short description of any
+submodules and how they are used within the model. The submodule files should then have
+their own docstring progviding more detail. These docstrings are automatically included
+in the HTML documentation of the package.
 
-## Defining constants and their default values
-
-The definition of 'constant' in the Virtual Ecosystem is basically a parameter of any
-kind that should be held constant throughout a simulation. However, while some constants
-are likely never to be varied, many constants are estimated with error and users
-may want to explore the sensitivity of simulations to changes in those values. We
-therefore use a framework for constants that allows constant values to be configured for
-any given simulation.
-
-Each model needs to define a `constants.py` module that will define  one or more
-constants _dataclasses_. Dataclasses provide an simple way to define a class containing
-a set of named constant attributes with default values. However, when an instance of a
-dataclass is created, it can be provided with an alternative value for an attribute,
-allowing default values to be overridden by the configuration for a particular
-simulation. All constant dataclasses must be configured to be _frozen_: the resulting
-dataclass instance can be configured when it is created, but cannot be altered while a
-simulation is running.
-
-The constants for a module can be stored in a single data class or spread over multiple
-data classes. However, having a large number of data classes is likely to make the
-downstream code messier, so constants should only be split across multiple classes when
-there's a strong reason to do so.
-
-Because dataclasses are widely used structures in Python, the Virtual Ecosystem defines
-a specific {class}`~virtual_ecosystem.core.constants_class.ConstantsDataclass` base
-class to uniquely identify _constants dataclasses_ from other dataclasses. This base
-class also provides the
-{meth}`~virtual_ecosystem.core.constants_class.ConstantsDataclass.from_config` methods,
-which validates a configuration dictionary against the dataclass definition and returns
-a configured dataclass instance.
-
-Constants dataclasses can also provide truly universal constants that you explicitly do
-not want users to be able to alter. This can be done by  typing a constants attribute as
-a class variable. All instances of the constants dataclass will provide the value, but
-it cannot be altered through configuration. Be aware that untyped attributes are also
-treated as class attributes but we prefer that class attributes are explicitly typed.
-
-Putting all of these components together, the contents of a `constants.py` file will
-look like the following code:
+A docstring should be formatted using block quotes, as below:
 
 ```{code-block} python
-from dataclasses import dataclass
-from typing import ClassVar
+"""This is the freshwater model module. The module level docstring should contain a
+short description of the overall model design and purpose, and link to key components
+and how they interact.
+"""  # noqa: D204, D415
 
-from virtual_ecosystem.core.constants_class import ConstantsDataclass
-
-# Dataclasses are frozen to prevent constants from changing during a simulation
-@dataclass(frozen=True)
-class FreshwaterConsts(ConstantsDataclass):
-    """Dataclass to store all constants for the `example_model` model."""
-
-    # Constants must be typed, to make them configurable instance attributes.
-    example_constant_1: float = -1.27
-    """Details of source of constant and its units."""
-
-    example_constant_2: ClassVar[float] = 5.4
-    """A non-configurable global constants, with details and units."""
 ```
+
+## Model configuration
+
+The model configuration needs to define both model settings - such as paths to model
+specific input files, method choices and the like - and model constants. These are
+defined in the `model_config.py` as [Pydantic
+models](https://docs.pydantic.dev/latest/concepts/models/), which are very close to
+standard Python dataclasses but have built in support for validation and serialisation.
+When the Virtual Ecosystem model runs using `ve_run`, the first thing that happens is
+that specified configuration files are loaded and then validated using this
+configuration models. This allows the model to detect bad configuration and provided
+detailed error reports before any further processing.
+
+Each Virtual Ecosystem model needs to provide a single root configuration model. This
+root class must have a couple of specific features to allow it to be identified when the
+simulation starts.
+
+* The root configuration class name must derive from the model name using the following
+  pattern: the `abiotic_simple` model would have the `AbioticSimpleConfiguration` root
+  configuration class. Basically, underscores are dropped and words are capitalised.
+* The class must inherit from a shared root model class:
+  {class}`~virtual_ecosystem.core.configuration.ModelConfigurationRoot`. This is used to
+  enforce some model settings:
+
+  * Instances of model configuration are frozen so they cannot be changed during a run.
+  * Configuration models are strict about extra data: is unknown settings are provided
+    when a configuration model instance is created, it fails.
+
+The `model_config.py` file can then also contain additional configuration classes that
+can be nested within the root configuration to define a tree of configuration settings.
+For example, all existing models define a separate class to hold constants. Any
+additional class must inherit from the
+{class}`~virtual_ecosystem.core.configuration.Configuration` class, which again freezes
+configuration model instances and makes them intolerant of extra data.
+
+All of your configuration models and fields must have clear docstrings that describe
+what the model and fields are. As an example, the new `freshwater.model_config` module
+might look like this:
+
+```{code} python
+
+class FreshwaterConstants(Configuration):
+    """Constants settings for the freshwater model."""
+
+    number_of_pools: int = 5
+    """Number of pools to simulate."""
+    ashrae_model_a: float = 95
+    """The A constant of the ASHRAE evaporation model."""
+    ashrae_model_b: float = Field(gt=0, default=37.4)
+    """The B constant of the ASHRAE evaporation model."""
+    molar_mass_water: ClassVar[float] = 18.01528
+    """The molar mass of water."""
+
+class FreshwaterConfiguration(ModelConfigurationRoot):
+
+    pond_data_path: FILEPATH_PLACEHOLDER
+    """Path to a CSV file containing pond data for simulation cells."""
+    constants: FreshwaterConstants = FreshwaterConstants()
+    """The constants settings for the freshwater model."""
+```
+
+With these validation classes, an instance of the root model above can be easily created
+by reading data from an appropriate file format ('de-serialised'). We use TOML for
+configuration files and so an instance of model above could be created from TOML like
+this:
+
+```{code} toml
+[freshwater]
+pond_data_path = '/path/to/freswater_pond_data.csv'
+[freshwater.constants]
+ashrae_model_a = 96
+ashrae_model_b = 38
+```
+
+Similarly, a model instance can be exported to a file format ('serialised') to provide a
+record of the settings used in a particular model.
+
+### Defining constants
+
+The definition of 'constant' in the Virtual Ecosystem is basically a parameter of any
+kind that should be held constant throughout a simulation. Many of the parameters
+required in a Virtual Ecosystem simulation have been estimated from field data, The
+values may have uncertainty or may vary significantly between sites. For this reason,
+all parameters for your model should be included in your model configuration, to allow
+other users to experiment with the results of changing variables and to explore the
+sensitivity of model predictions to the configuration settings.
+
+However, some variables are genuine constants, such as the molar mass of water in the
+example above. The `pydantic` package has a few ways of fixing constants:
+
+* For integer values and strings, the `Literal` type can be used to specify the exact
+  value to be used and then no other value will be accepted. For example,
+  {code}`number_of_pools: Literal[5] = 5`, would enforce a fixed number of pools.
+* The `Literal` type cannot be used with floating point numbers, which is unfortunate
+  since most parameters will be floats! You _can_ write a custom field validator that
+  will enforce the specified default value.
+* Alternatively, you can make the constant field a class attribute using `ClassVar`, as
+  in the example above. Whenever the configuration model is used, it will always have
+  this fixed value. Additionally, class attributes are not included when configuration
+  models are dumped to file, so the constant field will not appear in the TOML version
+  of the configuration. If users try to add it, it will be rejected. The class
+  attributes _do_ occur in the configuration documentation though!
+
+  This is probably the cleanest way to set fixed constants, but you should clearly
+  document which parameters in your configuration cannot be changed.
+
+The example model below shows the various options in practice:
+
+```{code-block} ipython3
+from pydantic import field_validator
+from typing import ClassVar, Literal
+from scipy import constants
+from virtual_ecosystem.core.configuration import ModelConfigurationRoot, Configuration
+
+
+class Example(Configuration):
+    """An example configuration model."""
+
+    f1: ClassVar[float] = 12.3
+    """A constant float set as a class attribute. This field does not appear in the TOML
+    representation of the model and cannot be changed."""
+    f2: Literal[3] = 3
+    """A constant  integer set using Literal. This field _does_ appear in the TOML
+    representation of the model but users cannot change the value."""
+    f3: float = constants.Boltzmann
+    """The Bolzmann constant"""
+    f4: float = constants.angstrom
+    """One angstrom in metres."""
+
+    @field_validator("f3", "f4", mode="after")
+    @classmethod
+    def enforce_constants(cls, value, context):
+        """Custom validation to enforce constants in field f3 and f4."""
+
+        fname = context.field_name
+        constant_default = cls.model_fields[fname].default
+        if not value == constant_default:
+            raise ValueError(
+                f"The {fname} field can only take the constant value {constant_default}"
+            )
+```
+
+### Validation
+
+The `pydantic` package provides a wide range of validation tools to enforce conditions on
+the fields within the configuration models.
+
+* All pydantic fields must have a declared type - validation will fail if the input data
+  does not match that type. So any attempt to set `ashrae_model_a` must provide a float.
+* The `Field` class provides additional built-in constraints on provided values. Each
+  type supports [different
+  constraints](https://docs.pydantic.dev/latest/api/standard_library_types), but in the
+  example above `Field(gt=0, default=37.4)` checks that the input value is greater than
+  zero.
+* In addition, you can add [custom
+  validators](https://docs.pydantic.dev/latest/concepts/validators/) for fields or
+  validators for the whole class.
+
+You should be as precise as you can about the validation of your model settings: they
+provide very strong guidance to users about how to configure a simulation. When values
+fail validation, we are able to use the great error reporting built in to pydantic to
+provide detailed information about conguration failures.
+
+### Defaults
+
+The example above provides defaults for all values and you should do the same. This is
+partly to give users some kind of a sense check of what expected values look like, but
+also because it is easy to export example configurations as templates when all fields
+have defaults. Defaults can either be provided by assignment - as with
+`ashrae_model_a: float = 95` - or be provided using `Field(default=...)`.
+
+When a model instance is created from configuration files (de-serialised), the defaults
+will be used to fill in any missing settings. This is extremely useful if a user wants
+to be able to just switch one value in setting without having a complete configuration
+file.
+
+### Paths in configuration classes
+
+You may want your configuration file to point to resources stored in an external file,
+as in the example above. This should not be used to load array data that uses the core
+data axes, but can be used to load model specific initialisation data.
+
+As an example, the plants model uses definitions of different plant functional types and
+the initial plant cohort distributions. The most convenient way to provide these for the
+model initialisation is in CSV files containing a data frame. Since this data is not
+needed by the other models, they are passed to the model using the
+`pft_definitions_path` and `cohort_data_path` configuration options.
+
+There are some specific requirements for including paths in configuration models:
+
+* The Virtual Ecosystem allows users to provide multiple configuration files - this
+  allows users to build up a library of settings for different models and then can
+  specify combination of different configurations.
+
+  These files are compiled into a single set of configuration data before validation.
+  However, if those configuration files provide relative paths to data files, then the
+  relative paths may well break when the data is compiled. For this reason, the
+  compilation process resolves all paths in a given configuration file to absolute paths
+  before compiling the data. Although settings may be typed as paths in a
+  configuration class, the compilation step comes before validation and there is no type
+  information available. For this reason, you **must** use the `_path` suffix on
+  configuration options that provide file paths. This naming convention allows the
+  Virtual Ecosystem configuration to manage file paths to ensure that file paths are
+  preserved when configuration files are compiled.
+
+* File paths should obviously point to existing files, but that makes it hard to set
+  meaningful default values for use in generating example or template configurations.
+  The custom {class}`~virtual_ecosystem.core.configuration.FILEPATH_PLACEHOLDER` type
+  used in the example above helps solve this issue. Under the hood, this type uses the
+  pydantic `FilePath`, which will fail validation if the input path does not exist. It
+  also sets the default values `<PLACEHOLDER>`, but has extended validation to
+  specifically check that this placeholder default has not been left in configuration
+  file in use.
 
 ## Defining the new model class
 
@@ -156,98 +347,173 @@ from pint import Quantity
 # - an custom exception to cover model initialisation failure
 # - the global LOGGER, used to report information to users.
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 
 # You will likely also have a set of imports of model specific code such as constants
 # classes and other classes and functions. For example:
-from virtual_ecosystem.models.freshwater.constants import FreshwaterConsts
+from virtual_ecosystem.models.freshwater.model_config import FreshwaterConstants
 from virtual_ecosystem.models.freshwater.streamflow import calculate_streamflow
 ```
 
 ### Defining the new class and class attributes
 
-Now create a new class, that derives from the
-{mod}`~virtual_ecosystem.core.base_model.BaseModel`. To begin with, choose a class name
-for the model and define the following class attributes.
+Now create a new class that derives from the
+{mod}`~virtual_ecosystem.core.base_model.BaseModel`. This base class requires that you
+also set a number of class attributes: these are bits of information about the model
+that will be the same for every time the model is used. These values are set as class
+attributes by providing them as arguments to the class signature. You will end up with
+something like the following:
 
-The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute
-: This is a string providing the name that is used to refer to this model class in
-configuration files. This **must** match the chosen submodule name for the model, so the
-module `virtual_ecosystem.models.freshwater` must use `freshwater` as the model name.
+```{code-block} ipython
+class FreshWaterModel(
+    BaseModel,
+    model_name="freshwater",
+    model_update_bounds=("1 day", "1 month"),
+    vars_required_for_init=("temperature",),
+    vars_populated_by_init=("pond_temperature"),
+    vars_required_for_update=(
+        "air_temperature",
+        "relative_humidity",
+        "atmospheric_pressure",
+        "vapour_pressure_deficit",
+        "precipitation",
+    ),
+    vars_populated_by_first_update=("average_P_concentration",),
+    vars_updated=("average_P_concentration",),
+):
+    """Docstring describing model.
 
-The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init` attribute
-: This is a tuple that sets which variables must be present in the data used to create a
-new instance of the model. Each entry should provide a variable name and then another
-tuple that sets any required axes for the variable. For example:
-
-```{code-block} ipython3
-()  # no required variables
-(("temperature", ()),)  # temperature must be present, no core axes
-(("temperature", ("spatial",)),)  # temperature must be present and on the spatial axis
+    Args:
+        Describe the __init__ arguments here (see below)
+    """
 ```
 
-The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_updated` attribute : This
-is a tuple that provides information about which data object variables are updated by
-this model. Entries should simply be variable names. The information contained here is
-used to determine which variables to include in the continuous output. So, it is
-important to ensure that this information is up to date.
+The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute provides a
+short lower case name that is used throughout the simulation: for example, it is used to
+identify the parts of the configuration data that apply to the model. The name **must**
+match the chosen submodule name for the model, so the module
+`virtual_ecosystem.models.freshwater` must use `freshwater` as the model name.
 
 The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_update_bounds`
-attribute :
-
-This class attribute defines two time intervals that define a lower and upper bound
+attribute sets two time intervals that define a lower and upper bound
 on the update frequency that can reasonably be used with a model. Models updated
 more often than the lower bound may fail to capture transient dynamics and models
 updated more slowly than the upper bound may fail to capture important temporal
 patterns. Each attribute is a string that can be parsed by {class}`pint.Quantity`
 into a time period
 
-These values are set as class attributes by providing them as arguments to the class
-signature. You will end up with something like the following:
+#### Data requirements
 
-```{code-block} ipython3
+The remaining class attributes all start with `vars_` and are used to define sets of
+variables that will be shared across models in a central data store (a `Data` object)
+for the simulation. The variables in this central data store are all arrays of data and
+are structured across the [core data axes](../../using_the_ve/configuration/axes.md) in
+the simulation.
 
-class FreshWaterModel(
-    BaseModel,
-    model_name="freshwater",
-    model_update_bounds=("1 day", "1 month"),
-    vars_required_for_init=(("temperature", ("spatial",)),),
-    vars_updated=("average_P_concentration",),
-):
-    """Docstring describing model.
+:::{admonition} New variables
+:class: important
 
-    Args:
-        Describe arguments here
-    """
-```
+If your model requires new variables - either to be loaded from initial data or that
+your model writes to the `Data` object - you **must** add the variable details to the
+`data_variables.toml` file.
+:::
+
+These attributes define which variables the model reads from and writes to the central
+data store and when that happens during the model run. There are two main phases to
+running models within the simulation:
+
+1. model **initialisation**, which sets up any core model structures and data once
+   at the start of the simulation.
+1. model **updates**, which run at every time step and modify the model structure and
+   data throughout the simulation.
+
+The `var_` attributes define which variables are needed at both of these stages, and are
+critical to defining the model data dependencies and the sequence in which models can
+run.
+
+The first two variables set data requirements during model initialisation:
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init`
+  attribute sets which variables must be loaded into the `Data` object before your model
+  can be initialised. These must either be:
+
+  * included in the [configured initial data](../../using_the_ve/model_data_inputs.md)
+    that is loaded when the simulation starts, or
+  * be populated by a model that initialises earlier in the model sequence.
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_init`
+  attribute sets which variables are written to the `Data` object when your model is
+  initialised. These variables are then available for models later in the sequence.
+
+The remaining three variables set data requirements during each update:
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_update`
+  attribute defines the data that must be in the `Data` object for the model to be able
+  to update. These variables can be:
+  * provided in the initial data, often as time series of data that provides different
+    values for each time step
+  * populated during the initialisation of any of the models, or
+  * populated during the first update of another model that _updates_ before your model.
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_first_update`
+  attribute defines the variables that your model writes to the `Data` object when the
+  model updates for the first time.
+
+* The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_updated` attribute
+  records which variables in the `Data` object are altered when your model updates. This
+  will typically include all variables in ``vars_populated_by_first_update`` but your
+  model may also alter the state of other variables in the simulation.
+
+:::{admonition} Model dependencies
+:class: important
+
+The `var_` attributes defined for your model are used to automatically detect model
+dependencies and resolve the sequence in which the set of models included in a
+simulation can run. For example, if your model requires variable `A` to be initialised
+and that variable is provided during the initialisation of another model, this second
+model must run first.
+
+If a suitable order cannot be found, the simulation will stop and an error message will
+be provided informing on the specific issue.
+:::
 
 ### Defining the model `__init__` method
 
 The next step is to define the `__init__` method for the class. This needs to do a few
-things.
-
-1. It should define any specific instance attributes of the new model class. For
-  example, the class might require that the user set a number of ponds. These should be
-  added to the signature of the `__init__` method, alongside the required parameters of
-  the base class, and then stored as attributes of the instance.
+things, **in this order**:
 
 1. It _must_ call the {meth}`~virtual_ecosystem.core.base_model.BaseModel.__init__`
    method of the {meth}`~virtual_ecosystem.core.base_model.BaseModel` parent class,
    also known as the superclass:
 
-```{code-block} ipython3
-super().__init__(data, update_interval, **kwargs)
-```
+   ```{code-block} ipython3
+   super().__init__(data, core_components, static)
+   ```
 
-   Calling this method runs all of the shared functionality across models, such as
-   setting the update intervals and validating the input data.
+   Calling this method runs all of the shared core functionality across models, such as
+   setting the update intervals and validating that the input data provides the required
+   variables to run the model.
 
-1. The method should check that the provided initialisation values are sane, for example
-  that the number of ponds is not negative.
+1. It should define any specific attributes of the new model class. For
+  example, the configuration above defines a path to a CSV file of pond data, which
+  needs to be provided to the models and the set of model constants. These should be
+  added to the signature of the `__init__` method, alongside the required parameters of
+  the base class, and then stored as attributes of the instance.
+
+1. The method should then _conditionally_ call the model `_setup` method. This method is
+   used to run any code that is used to populate the initial state of the model.
+
+   The call must be conditional because it is possible to configure a model so that all
+   of the model state, including the data generated by the `_setup` method, is fixed by
+   the initial inputs. In this case, the model should not run the setup step: this is
+   indicated if the model `_run_setup` attribute is `False`.
+
+1. The `__init__` method can also contain code that should be executed _regardless_ of
+   the static configuration. For example, some models have can configure additional data
+   export and so `__init__` would then need to set up the exporter process even when the
+   model is running in static mode.
 
 1. The {meth}`~virtual_ecosystem.core.base_model.BaseModel` provides a basic `__repr__`
    to provide a simple text representation of a class object. This just prints the class
@@ -260,195 +526,98 @@ You should end up with something like this:
 def __init__(
     self,
     data: Data,
+    core_components: CoreComponents,
     update_interval: pint.Quantity,
-    no_of_ponds: int,
-    constants: FreshwaterConsts,
-    **kwargs: Any,
+    community_data: pandas.DataFrame,
+    constants: FreshwaterConstants,
+    static: bool = False,
 ):
 
-    # Sanity checking of input variables goes here
-    if no_of_ponds < 0:
-        to_raise = InitialisationError(
-            "There has to be at least one pond in the freshwater model!"
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
     # Call the __init__() method of the base class
-    super().__init__(data, update_interval, **kwargs)
+    super().__init__(data, core_components, static)
 
-    # Store model specific details as attributes.
-    self.no_of_ponds = int(no_of_ponds)
+    # Type and document attributes
+    self.community_data: pandas.DataFrame
+    """A data frame containing pond community cohort data for each cell."""
+    self.constants: FreshwaterConstants
+    """Constants for the model."""
 
-    # Store the constants relevant to the freshwater model
-    self.constants = constants
+    # Conditionally run setup steps.
+    if self._run_setup:
+        self._setup(community_data=community_data, constants=constants)
 
     # Save attribute names to be used by the __repr__
-    self._repr.append("no_of_ponds")
+    self._repr.append("pond_data_path")
 ```
 
-## Model configuration
+### The `_setup` method
 
-The arguments to the model `__init__` method define the **model configuration**: a
-collection of settings that set how the model runs. To allow the model to be defined and
-run from a set of configuration files, the model now needs to define two things:
+The `_setup` method typically contains the bulk of the code that needs to run to setup
+the initial state of the model and populate the data variables listed in the
+`_vars_populated_by_init` attribute. The signature of the function typically takes the
+model specific arguments defined on the `__init__` method and uses those values to
+populate model attributes and calculate data values. It is typical for `_setup` to call
+additional methods that you define on the class or functions from additional submodules.
 
-1. The model configuration schema, which is a JSONSchema document that defines the
-   structure of the model configuration and can also be used to validate an input
-   configuration.
+Following the example above:
 
-1. A `from_config` factory method, which should take a dictionary containing
-   configuration data and return an instance of the class configured using that data.
+```{code-block} ipython3
+def _setup(
+  self, community_data: pandas.DataFrame, constants: FreshwaterConstants
+) -> None:
+    """Set up the freshwater model."""
 
-### The model configuration schema
+    self.community_data = community_data
+    self.constants = constants
 
-The [JSONSchema](https://json-schema.org/) document in the module root directory defines
-the configuration options for the model. We also provide a detailed description of [how
-the configuration system works](../../using_the_ve/configuration/config.md) but, in
-brief, the schema definition is used to validate configuration files for a Virtual
-Ecosystem simulation that uses your model. Essentially, it defines all of the `__init__`
-arguments that are unique to your model.
-
-Writing JSONSchema documents can be very tedious. The following tools may be of use:
-
-* [https://www.jsonschema.net/app](https://www.jsonschema.net/app): this is a web
-  application that takes a data document - which is what the configuration file - and
-  automatically generates a JSON schema to validate it. You will need to then edit it
-  but you'll be starting with a valid schema!
-* [https://jsonschemalint.com/](https://jsonschemalint.com/) works the other way. It
-  takes a data document and a schema and checks whether the data is compliant. This can
-  be useful for checking errors.
-
-Both of those tools take data documents formatted as JSON as inputs, where we use TOML
-configuration files, but there are lots of web tools to convert TOML to JSON and back.
-
-As an example, the `FreshwaterModel` above might need the following configuration
-options.
-
-```toml
-[freshwater]
-update_interval = "1 month"
-no_of_ponds = 3
-pond_classification_path = "../path/to/pond_classification.csv"
+    # Populate a variable in the Data object using a user defined method
+    self.data["pond_temperature"] = calculate_pond_temperature(
+        data=self.data, constants=self.constants, time_index=0
+    )
 ```
 
-The JSON Schema document generated from the JSON Schema app above is shown below. Some
-of the fields - such as the `title` and `examples` entries - are not required in the
-Virtual Ecosystem configuration and so can be deleted. You may also need to edit which
-properties are required and which provide defaults that will be used to fill missing
-properties.
+### The `_update` method
 
-#### Paths in model schema
+The `_update` method must then be defined to calculate the changes in the model state
+that occur at each time step. The function _must_ have a `time_index` argument, which is
+used by some models to iterate over data that follows a time series through a
+simulation, such as climatic variables.
 
-You may want your configuration file to point to resources stored in an external file,
-as in the example above. You should not be loading core data in this way, but you may
-want to point to a file that defines model specific configuration data. For example, the
-plants model uses definitions of different plant functional types: the most convenient
-way to provide these for the model initialisation is as a small CSV file containing a
-data frame. This isn't data that is needed by the other models, but it is easier to
-maintain and edit in a small CSV, so it is passed in via the `pft_definitions_path`
-configuration option.
+```{code-block} ipython3
+def update(self, time_index: int) -> None:
+    """Function to update the freshwater model.
 
-However, users may provide a configuration with an absolute file, but could also provide
-a path relative to the configuration file itself. This can become a problem when a
-complete configuration is compiled from sections in multiple configuration files,
-possibly in different locations.
+    Args:
+        time_index: The index representing the current time step in the data object.
+    """
 
-For this reason, the Virtual Ecosystem resolves configured paths when the configuration
-is compiled and checked. In order to trigger this path resolution, you **must** use the
-`_path` suffix on configuration options that set file paths. This naming convention
-allows the Virtual Ecosystem configuration to manage file paths to ensure that file
-paths are preserved when configuration files are compiled.
+    # Recalculate the pond temperature based on the current conditions
+    self.data["pond_temperature"] = calculate_pond_temperature(
+      data=self.data, constants=self.constants, time_index=time_index
+    )
 
-```json
-{
-    "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "$id": "http://example.com/example.json",
-    "type": "object",
-    "default": {},
-    "title": "Root Schema",
-    "required": [
-        "update_interval",
-        "no_of_ponds"
-    ],
-    "properties": {
-        "update_interval": {
-            "type": "string",
-            "default": "",
-            "title": "The update_interval Schema",
-            "examples": [
-                "1 month"
-            ]
-        },
-        "no_of_ponds": {
-            "type": "integer",
-            "default": 0,
-            "title": "The no_of_ponds Schema",
-            "examples": [
-                3
-            ]
-        },
-        "pond_classification_path": {
-            "type": "string",
-            "default": "",
-            "title": "The pond_classification_path Schema",
-            "examples": [
-                "../path/to/pond_classification.csv"
-            ]
-        }
-    },
-    "examples": [{
-        "update_interval": "1 month",
-        "no_of_ponds": 3,
-        "pond_classification_path": "../path/to/pond_classification.csv"
-    }]
-}
 ```
-
-#### Model dependencies
-
-Your model may depend on a particular execution order for other models. This order is
-found automatically by Virtual Ecosystem based on the variables that the models require
-to be initialised and updated. Eg. if a model requires variable `A` to be initialised
-and that variable is provided by another model, this second model will run first.
-
-If a suitable order cannot be found, the simulation will stop and an error message will
-be provided informing on the specific issue.
 
 ### The `from_config` factory method
 
-Configuration files are used to create a configuration object (see
-{class}`~virtual_ecosystem.core.config.Config`), which contains details of the
-configuration process but also provides a dictionary interface to the configuration
-data. So, the example above might result in a `Config` object with the following model
-specific data.
-
-```{code-block} ipython3
-{"freshwater": {"update_interval": "1 month", "no_of_ponds": 3}}
-```
-
-The job of the `from_config` method for a model is to take that configuration, along
-with the shared `data` and `start_time` inputs, and then do any processing and
-validating to convert the configuration into the arguments required by the `__init__`
-method.
+The job of the `from_config` method for a model is to take a validated configuration and
+then do any processing and validating to convert the configuration into the arguments
+required by the `__init__` method. The configuration object will contain sections for
+all of the models being used in a simulation, so you should extract the configuration
+for your model and then do any processing - this might simply be passing sections of the
+configuration to the `__init__` method or might need to do some pre-processing, such as
+loading additional model specific data.
 
 The method then uses those parsed arguments to actually call the `__init__` method and
 return an initialised instance of the model using the settings. The `from_config`
 method should raise an `InitialisationError` if the configuration fails.
-
-The `from_config` method should also generate the required constants classes from the
-config. At least one constants class should be created, but it's fine to split constants
-across more classes if that makes for clearer code. For each constants class the
-{func}`~virtual_ecosystem.core.constants_loader.load_constants` utility function can be
-used to construct the class with the default values replaced if they are overwritten in
-the config.
 
 As an example:
 
 ```{code-block} ipython3
 @classmethod
 def from_config(
-    cls, data: Data, config: Config, update_interval: Quantity
+    cls, data: Data, configuration: Configuration, update_interval: Quantity
 ) -> FreshWaterModel:
     """Factory function to initialise the freshwater model from configuration.
 
@@ -458,85 +627,62 @@ def from_config(
 
     Args:
         data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-        config: A validated Virtual Ecosystem model configuration object.
+        configuration: A validated Virtual Ecosystem model configuration object.
         update_interval: Frequency with which all models are updated
     """
 
-    # Non-timing details now extracted
-    no_of_pools = config["freshwater"]["no_of_pools"]
+    # Extract the model configuration from the complete configuration.
+    model_config: FreshwaterConfiguration = configuration.get_subconfiguration(
+        "freshwater", FreshwaterConfiguration
+    )
 
-    # Load in the relevant constants
-    constants = load_constants(config, "freshwater", "FreshwaterConsts")
+    # Load the community data into a data frame
+    community_data = pandas.read_csv(model_config.pond_data_path)
+    constants = model_config.constants
+
+    # Run a model specific function to validate the community data
+    if not check_community_data(self.community_data):
+        raise ConfigurationError("Pond community data is not valid")
 
     LOGGER.info(
         "Information required to initialise the soil model successfully extracted."
     )
-    return cls(data, update_interval, no_pools, constants)
+    return cls(
+        data=data,
+        update_interval=update_interval,
+        community_data=community_data,
+        constants=constants
+    )
 ```
 
-## Other model steps
+:::{admonition} Additional data inputs to a model
+:class: tip
 
-There are four functions that must be included as part of the model class. The names and
-roles of these functions might well change as the Virtual Ecosystem model develops, but
-that kind of API change is something that would require significant discussion. Only the
-`update` function is used at present. The other functions need to be included, but
-there's no need to include any particular content within them (i.e. they can just be
-function definitions with docstrings).
+Most of the data in a Virtual Ecosystem simulation is loaded into the central `Data`
+object and shared between the models. However, you may need to load additional data to
+initialise your model that is only used within the model and not shared through the
+`Data` object. You might share summary data with other models through the `Data`
+object - these are variables that will be included in `vars_populated_by_init` or
+`vars_populated_by_first_update`.
+
+The preferred way to do this is to add a configuration option that points to a file
+containing data to load - such as the `pond_data_path` in the example above. The
+`from_config` method should handle loading the data and converting it into a Python
+object that is one of the arguments to the model `__init__` method. This approach
+separates data loading from the model processing and makes it easier to test and run the
+model class.
+:::
+
+### Other model steps
+
+There are currently two other method that must be included as part of the model class.
+Neither of these are currently used, so can simply be included as function stubs with
+docstrings as shown below:
 
 ```{code-block} ipython3
-def _setup(self) -> None:
-    """Placeholder function to set up the freshwater model."""
-
-
 def spinup(self) -> None:
     """Placeholder function to spin up the freshwater model."""
-
-
-# While model updates have to take time_index as an argument, they do not necessarily
-# have to use it anywhere
-def update(self, time_index: int) -> None:
-    """Function to update the freshwater model.
-
-    Args:
-        time_index: The index representing the current time step in the data object.
-    """
-
-    # Model simulation + update steps go in here.
-
 
 def cleanup(self) -> None:
     """Placeholder function for freshwater model cleanup."""
 ```
-
-## Setting up the model `__init__.py` file
-
-Lastly, you will need to set up the `__init__.py` file in the submodule directory. This
-file is used to tell Python that the directory contains a package submodule, but can
-also be used to supply code that is automatically run when a module is imported.
-
-In the Virtual Ecosystem, we use the `__init__.py` file in model submodules to:
-
-* provide a brief overview of the module, and
-* import the model object into the module root to make it easier to import.
-
-The file will look something like:
-
-```{code-block} python
-"""This is the freshwater model module. The module level docstring should contain a
-short description of the overall model design and purpose, and link to key components
-and how they interact.
-"""  # noqa: D204, D415
-
-from virtual_ecosystem.models.freshwater.freshwater_model import (  # noqa: F401
-    FreshwaterModel,
-)
-```
-
-Under the hood, when a given model is used in a simulation, then the configuration
-process automatically loads all of the model components for that model using the
-{func}`~virtual_ecosystem.core.registry.register_module` function. This automatically
-loads and validates the model schema, discovers any
-{class}`~virtual_ecosystem.core.constants_class.ConstantsDataclass` in the `constants`
-submodule and then adds those, along with the BaseModel subclass to a central
-{data}`~virtual_ecosystem.core.registry.MODULE_REGISTRY` object, which is used to allow
-the simulation code to easily access model components.

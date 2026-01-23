@@ -5,11 +5,8 @@ from logging import ERROR
 
 import numpy as np
 import pytest
-from pyrealm.constants import CoreConst as PyrealmConst
 
 from tests.conftest import log_check
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
 def test_potential_evaporation_leaf():
@@ -26,7 +23,7 @@ def test_potential_evaporation_leaf():
         air_temperature=np.array([[25.0, 26.0], [24.5, np.nan]]),
         density_air_kg=np.array([[1.2, 1.2], [1.2, np.nan]]),
         specific_heat_air=np.array([[1.005, 1.005], [1.005, np.nan]]),
-        aerodynamic_resistance=np.array([[50.0, 55.0], [52.0, np.nan]]),
+        aerodynamic_resistance_canopy=np.array([[50.0, 55.0]]),
         stomatal_resistance=np.array([[200.0, 220.0], [210.0, np.nan]]),
         latent_heat_vapourisation=np.array([[2268.0, 2268.0], [2268.0, np.nan]]),
         psychrometric_constant=np.array([[66.0, 66.0], [66.0, np.nan]]),
@@ -37,7 +34,7 @@ def test_potential_evaporation_leaf():
     mask = ~np.isnan(result)
     assert np.all(result[mask] >= 0)
     assert np.all(np.isfinite(result[mask]))
-    exp_evap = np.array([[2.522137e-05, 3.186381e-05], [2.682281e-05, np.nan]])
+    exp_evap = np.array([[2.522137e-05, 3.186381e-05], [2.599098e-05, np.nan]])
     np.testing.assert_allclose(result, exp_evap, rtol=1e-3)
 
 
@@ -48,7 +45,8 @@ def test_calculate_canopy_evaporation():
         calculate_canopy_evaporation,
     )
 
-    interception = np.array([0.5, 1.0, np.nan])
+    interception = np.array([[5.0, 10.0, np.nan], [2.0, np.nan, np.nan]])
+
     output = calculate_canopy_evaporation(
         leaf_area_index=np.array([[1.0, 2.0, np.nan], [1.0, np.nan, np.nan]]),
         interception=interception,
@@ -57,7 +55,7 @@ def test_calculate_canopy_evaporation():
         air_temperature=np.array([[21.0, 22.0, np.nan], [18.0, np.nan, np.nan]]),
         density_air_kg=np.array([[1.2, 1.2, np.nan], [1.2, np.nan, np.nan]]),
         specific_heat_air=np.array([[1.005, 1.005, np.nan], [1.005, np.nan, np.nan]]),
-        aerodynamic_resistance=np.array([[50.0, 60.0, np.nan], [50.0, np.nan, np.nan]]),
+        aerodynamic_resistance_canopy=np.array([50.0, 60.0, np.nan]),
         stomatal_resistance=np.array([[150.0, 160.0, np.nan], [150.0, np.nan, np.nan]]),
         latent_heat_vapourisation=np.array(
             [[2268.0, 2268.0, np.nan], [2268.0, np.nan, np.nan]]
@@ -65,28 +63,16 @@ def test_calculate_canopy_evaporation():
         psychrometric_constant=np.array([0.066, 0.067, np.nan]),
         saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
         time_interval=86400.0,  # 1 day in seconds
-        intercept_residence_time=86400.0,  # 1 day in seconds
         extinction_coefficient_global_radiation=0.5,
     )
 
     # Check value constraints
-    mask = ~np.isnan(output["leaf_drainage"])
-    assert np.all(output["leaf_drainage"][mask] >= 0)
-    assert np.all(output["leaf_drainage"][mask] <= interception[mask])
-    assert output["canopy_evaporation"].shape == (2, 3)
-    assert output["leaf_drainage"].shape == (3,)
-    np.testing.assert_allclose(
-        output["canopy_evaporation"],
-        np.array([[0.290727, 1.0, np.nan], [0.209273, np.nan, np.nan]]),
-        rtol=1e-4,
-        atol=1e-4,
-    )
-    np.testing.assert_allclose(
-        output["leaf_drainage"],
-        np.array([0.0, 0.0, np.nan]),
-        rtol=1e-4,
-        atol=1e-4,
-    )
+    mask = ~np.isnan(interception)
+
+    assert np.all(output[mask] >= 0)
+    assert np.all(np.isfinite(output[mask]))
+    assert np.all(output[mask] <= interception[mask])
+    assert output.shape == (2, 3)
 
 
 @pytest.mark.parametrize(
@@ -102,7 +88,13 @@ def test_calculate_canopy_evaporation():
         ),
     ],
 )
-def test_calculate_soil_evaporation(dens_air, latvap):
+def test_calculate_soil_evaporation(
+    dens_air,
+    latvap,
+    fixture_hydrology_constants,
+    fixture_core_constants,
+    fixture_pyrealm_config,
+):
     """Test soil evaporation with float and DataArray."""
 
     from virtual_ecosystem.models.hydrology.above_ground import (
@@ -120,21 +112,25 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         leaf_area_index=np.array([3.0, 4.0, 5.0]),
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
-        gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour / 1000.0,
-        drag_coefficient_evaporation=HydroConsts.drag_coefficient_evaporation,
+        gas_constant_water_vapour=fixture_core_constants.gas_constant_water_vapour
+        / 1000.0,
+        drag_coefficient_evaporation=fixture_hydrology_constants.drag_coefficient_evaporation,
         extinction_coefficient_global_radiation=(
-            HydroConsts.extinction_coefficient_global_radiation
+            fixture_hydrology_constants.extinction_coefficient_global_radiation
         ),
         time_interval=86400,
-        pyrealm_const=PyrealmConst,
+        pyrealm_core_constants=fixture_pyrealm_config.core,
     )
+
+    assert np.all(result["soil_evaporation"] >= 0)
+    assert np.all(np.isfinite(result["soil_evaporation"]))
+    assert np.all(result["aerodynamic_resistance_soil"] >= 0)
+    assert np.all(np.isfinite(result["aerodynamic_resistance_soil"]))
 
     exp_evap = np.array([2.18791, 0.521941, 0.090352])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
     exp_ra = np.array([5.0, 10.0, 50.0])
-    np.testing.assert_allclose(
-        result["aerodynamic_resistance_surface"], exp_ra, rtol=0.01
-    )
+    np.testing.assert_allclose(result["aerodynamic_resistance_soil"], exp_ra, rtol=0.01)
 
 
 def test_find_lowest_neighbour(fixture_core_components, dummy_climate_data):
@@ -278,6 +274,8 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
         ]
     )
 
+    caplog.clear()
+
     with raises:
         grid = Grid(grid_type, cell_nx=5, cell_ny=5)
         result = calculate_drainage_map(grid, elevation)
@@ -289,24 +287,38 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
     log_check(caplog, expected_log_entries)
 
 
-def test_calculate_interception():
-    """Test."""
+def test_calculate_interception(
+    fixture_hydrology_constants,
+    fixture_core_components,
+    dummy_climate_data_varying_canopy,
+):
+    """Test interception."""
     from virtual_ecosystem.models.hydrology.above_ground import calculate_interception
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
-    precip = np.array([0, 20, 100, 100])
-    lai = np.array([0, 2, 10, np.nan])
+    data = dummy_climate_data_varying_canopy
+    lyr_str = fixture_core_components.layer_structure
 
     result = calculate_interception(
-        leaf_area_index=lai,
-        precipitation=precip,
-        intercept_parameters=HydroConsts.intercept_parameters,
-        veg_density_param=HydroConsts.veg_density_param,
+        leaf_area_index=data["leaf_area_index"].to_numpy(),
+        precipitation=data["precipitation"].isel(time_index=1).to_numpy(),
+        intercept_parameters=fixture_hydrology_constants.intercept_parameters,
+        veg_density_param=fixture_hydrology_constants.veg_density_param,
     )
 
-    exp_result = np.array([0.0, 1.180619, 5.339031, 0.0])
-
-    np.testing.assert_allclose(result, exp_result)
+    exp_canopy = np.array(
+        [
+            [1.424985, 1.424985, 1.424985, np.nan],
+            [1.424879, 1.424879, np.nan, np.nan],
+            [1.424767, np.nan, np.nan, np.nan],
+        ]
+    )
+    exp_understorey = np.array([1.424651, 1.424767, 1.424879, 1.424985])
+    np.testing.assert_allclose(
+        result[lyr_str.index_filled_canopy], exp_canopy, rtol=1e-4, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        result[lyr_str.index_surface_scalar], exp_understorey, rtol=1e-4, atol=1e-4
+    )
 
 
 def test_distribute_monthly_rainfall():
@@ -339,7 +351,7 @@ def test_calculate_bypass_flow():
     np.testing.assert_allclose(result, exp_result)
 
 
-def test_convert_mm_flow_to_m3_per_second():
+def test_convert_mm_flow_to_m3_per_second(fixture_core_constants):
     """Test channel flow conversion."""
 
     from virtual_ecosystem.models.hydrology.above_ground import (
@@ -352,7 +364,7 @@ def test_convert_mm_flow_to_m3_per_second():
         river_discharge_mm=channel_flow,
         area=np.array([10000, 10000, 10000]),
         days=30,
-        seconds_to_day=CoreConsts.seconds_to_day,
+        seconds_to_day=fixture_core_constants.seconds_to_day,
         meters_to_millimeters=1000,
     )
 

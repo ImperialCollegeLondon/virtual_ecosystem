@@ -16,8 +16,8 @@ Each of the animal sub-modules has its own API reference page:
 * The :mod:`~virtual_ecosystem.models.animal.scaling_functions` provides a set of
   allometric scaling functions that define the biological rates used in the animal
   module.
-* The :mod:`~virtual_ecosystem.models.animal.constants` provides a set of dataclasses
-  containing the constants required by the broader animal model.
+* The :mod:`~virtual_ecosystem.models.animal.model_config` submodule provides
+  configuration options for the model along with constants required by the animal model.
 * The :mod:`~virtual_ecosystem.models.animal.decay` provides a model for carcasses
   created by animal mortality, animal excrement and the litter available for animals to
   consume.
@@ -25,5 +25,3 @@ Each of the animal sub-modules has its own API reference page:
   :class:`~virtual_ecosystem.models.animal.plant_resources.PlantResources` class,
   which provides an API for exposing plant model data via the animal model protocols.
 """  # noqa: D205
-
-from virtual_ecosystem.models.animal.animal_model import AnimalModel  # noqa: F401

@@ -31,8 +31,7 @@ import numpy as np
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
@@ -44,12 +43,15 @@ from virtual_ecosystem.models.litter.carbon import (
     calculate_updated_pools,
 )
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
-from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.inputs import (
     LitterInputs,
     calculate_input_chemistries,
 )
 from virtual_ecosystem.models.litter.losses import calculate_litter_losses
+from virtual_ecosystem.models.litter.model_config import (
+    LitterConfiguration,
+    LitterConstants,
+)
 
 
 class LitterModel(
@@ -96,25 +98,13 @@ class LitterModel(
         "c_p_ratio_woody",
         "c_p_ratio_below_metabolic",
         "c_p_ratio_below_structural",
-        "deadwood_production",
-        "leaf_turnover",
-        "fallen_non_propagule_c_mass",
-        "root_turnover",
+        "stem_turnover_cnp",
+        "root_turnover_cnp",
+        "foliage_turnover_cnp",
         "stem_lignin",
         "senesced_leaf_lignin",
-        "plant_reproductive_tissue_lignin",
         "root_lignin",
-        "deadwood_c_n_ratio",
-        "leaf_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "root_turnover_c_n_ratio",
-        "deadwood_c_p_ratio",
-        "leaf_turnover_c_p_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
-        "root_turnover_c_p_ratio",
-        "herbivory_waste_leaf_carbon",
-        "herbivory_waste_leaf_nitrogen",
-        "herbivory_waste_leaf_phosphorus",
+        "herbivory_waste_leaf_cnp",
         "herbivory_waste_leaf_lignin",
         "litter_consumption_above_metabolic",
         "litter_consumption_above_structural",
@@ -164,14 +154,15 @@ class LitterModel(
         data: The data object to be used in the model.
         core_components: The core components used across models.
         model_constants: Set of constants for the litter model.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
+        model_constants: LitterConstants = LitterConstants(),
         static: bool = False,
-        **kwargs: Any,
     ):
         """Litter init function.
 
@@ -179,54 +170,26 @@ class LitterModel(
         handled in :fun:`~virtual_ecosystem.litter.litter_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
 
         self.litter_chemistry: LitterChemistry
         """Litter chemistry object for tracking of litter pool chemistries."""
-        self.model_constants: LitterConsts
+        self.model_constants: LitterConstants
         """Set of constants for the litter model."""
 
-    @classmethod
-    def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
-    ) -> LitterModel:
-        """Factory function to initialise the litter model from configuration.
-
-        This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance an error is raised.
-
-        Args:
-            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-            core_components: The core components used across models.
-            config: A validated Virtual Ecosystem model configuration object.
-        """
-
-        # Load in the relevant constants
-        model_constants = load_constants(config, "litter", "LitterConsts")
-        static = config["litter"]["static"]
-
-        LOGGER.info(
-            "Information required to initialise the litter model successfully "
-            "extracted."
-        )
-        return cls(
-            data=data,
-            core_components=core_components,
-            static=static,
-            model_constants=model_constants,
-        )
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
+                model_constants=model_constants,
+            )
 
     def _setup(
         self,
-        model_constants: LitterConsts = LitterConsts(),
-        **kwargs: Any,
+        model_constants: LitterConstants = LitterConstants(),
     ) -> None:
         """Method to setup the litter model specific data variables.
 
-        Args:
-            model_constants: Set of constants for the litter model.
-            **kwargs: Further arguments to the setup method.
+        See __init__ for argument descriptions.
         """
 
         # Check that no litter pool is negative
@@ -295,6 +258,42 @@ class LitterModel(
 
         self.litter_chemistry = LitterChemistry(self.data)
         self.model_constants = model_constants
+
+    @classmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+    ) -> LitterModel:
+        """Factory function to initialise the litter model from configuration.
+
+        This function unpacks the relevant information from the configuration file, and
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance an error is raised.
+
+        Args:
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
+            core_components: The core components used across models.
+        """
+
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: LitterConfiguration = configuration.get_subconfiguration(
+            "litter", LitterConfiguration
+        )
+
+        LOGGER.info(
+            "Information required to initialise the litter model successfully "
+            "extracted."
+        )
+        return cls(
+            data=data,
+            core_components=core_components,
+            static=model_configuration.static,
+            model_constants=model_configuration.constants,
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""

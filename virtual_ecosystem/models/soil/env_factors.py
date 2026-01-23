@@ -13,7 +13,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.soil.constants import SoilConsts
+from virtual_ecosystem.models.soil.model_config import SoilConstants
 
 
 @dataclass
@@ -32,7 +32,7 @@ def calculate_environmental_effect_factors(
     soil_water_potential: NDArray[np.floating],
     pH: NDArray[np.floating],
     clay_fraction: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> EnvironmentalEffectFactors:
     """Calculate the effects that the environment has on relevant biogeochemical rates.
 

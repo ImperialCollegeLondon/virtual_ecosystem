@@ -7,6 +7,9 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
+from virtual_ecosystem.core.configuration import CompiledConfiguration
+from virtual_ecosystem.models.soil.model_config import SoilConfiguration
+
 
 @dataclass
 class CNP:
@@ -133,3 +136,29 @@ class CNP:
             "nitrogen": self.nitrogen / total_mass if total_mass > 0 else 0.0,
             "phosphorus": self.phosphorus / total_mass if total_mass > 0 else 0.0,
         }
+
+
+def find_microbial_stoichiometries(
+    config: CompiledConfiguration,
+) -> dict[str, dict[str, float]]:
+    """Find the stoichiometries of each microbial functional group.
+
+    This extracts the soil configuration from the simulation configuration and then
+    compiles a dictionary of CN and CP ratios for each microbial group.
+
+    Args:
+        config: A compiled Virtual Ecosystem configuration instance.
+
+    Returns:
+        A dictionary containing the carbon to nutrient ratios of each microbial
+        functional group, for both nitrogen and phosphorus [unitless]
+    """
+
+    soil_config: SoilConfiguration = config.get_subconfiguration(
+        "soil", SoilConfiguration
+    )
+
+    return {
+        group.name: {"nitrogen": group.c_n_ratio, "phosphorus": group.c_p_ratio}
+        for group in soil_config.microbial_group_definition
+    }

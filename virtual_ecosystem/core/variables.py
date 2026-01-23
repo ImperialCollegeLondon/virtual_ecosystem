@@ -27,7 +27,8 @@ where `axis1` and `axis2` are the name of axis validators defined
 on :mod:`~virtual_ecosystem.core.axes`.
 """
 
-import json
+from __future__ import annotations
+
 import pkgutil
 import tomllib
 from collections.abc import Hashable
@@ -37,14 +38,13 @@ from importlib import import_module, resources
 from pathlib import Path
 from typing import cast
 
-from jsonschema import FormatChecker
+from pydantic import BaseModel, field_validator, model_validator
 from tabulate import tabulate
 
 import virtual_ecosystem.core.axes as axes
 import virtual_ecosystem.core.base_model as base_model
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.schema import ValidatorWithDefaults
 
 
 def to_camel_case(snake_str: str) -> str:
@@ -57,6 +57,47 @@ def to_camel_case(snake_str: str) -> str:
         The camel case string.
     """
     return "".join(x.capitalize() for x in snake_str.lower().split("_"))
+
+
+class VariableMetadata(BaseModel):
+    """Validator class for entries in the variables metadata file."""
+
+    name: str
+    """Name of the variable. Must be unique."""
+    description: str
+    """Description of what the variable represents."""
+    unit: str
+    """Units the variable should be represented in."""
+    variable_type: str
+    """Type of the variable."""
+    axis: list[str]
+    """Axes the variable is defined on."""
+
+    @field_validator("axis")
+    def unique_axes(cls, value: list[str]) -> list[str]:
+        """Check axis list entries are unique."""
+
+        if len(value) != len(set(value)):
+            raise ValueError("Axis values not unique.")
+
+        return value
+
+
+class VariablesFile(BaseModel):
+    """Validation class for the variables.toml file."""
+
+    variable: list[VariableMetadata] = []
+
+    @model_validator(mode="after")
+    def _names_unique(self) -> VariablesFile:
+        """Model validation that the variable names are unique."""
+
+        names = [var.name for var in self.variable]
+
+        if len(names) != len(set(names)):
+            raise ValueError("Duplicate variable names in variables file")
+
+        return self
 
 
 @dataclass
@@ -124,21 +165,16 @@ KNOWN_VARIABLES: dict[str, Variable] = {}
 
 def register_all_variables() -> None:
     """Registers all variables provided by the models."""
+
     with open(
         str(resources.files("virtual_ecosystem") / "data_variables.toml"), "rb"
     ) as f:
-        known_vars = tomllib.load(f).get("variable", [])
+        known_vars = tomllib.load(f)
 
-    with (resources.files("virtual_ecosystem.core") / "variables_schema.json").open(
-        "r"
-    ) as f:
-        schema = json.load(f)
+    validated = VariablesFile.model_validate(known_vars)
 
-    val = ValidatorWithDefaults(schema, format_checker=FormatChecker())
-    val.validate(known_vars)
-
-    for var in known_vars:
-        Variable(**var)
+    for var in validated.variable:
+        Variable(**var.model_dump())
 
 
 def _discover_models() -> list[type[base_model.BaseModel]]:

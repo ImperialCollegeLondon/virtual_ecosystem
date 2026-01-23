@@ -3,8 +3,6 @@
 import numpy as np
 import pytest
 
-from virtual_ecosystem.models.hydrology.constants import HydroConsts
-
 
 @pytest.mark.parametrize(
     "soilm_sat, soilm_res, hydr_con, nonlin_par, gw_cap",
@@ -63,7 +61,7 @@ def test_calculate_vertical_flow(
     np.testing.assert_allclose(result["vertical_flow"], exp_flow, rtol=0.001)
 
 
-def test_update_soil_moisture():
+def test_update_soil_moisture(fixture_hydrology_constants):
     """Test soil moisture update."""
 
     from virtual_ecosystem.models.hydrology.below_ground import update_soil_moisture
@@ -77,20 +75,22 @@ def test_update_soil_moisture():
         soil_moisture=np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]]),
         vertical_flow=np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]]),
         transpiration=np.array([10, 2, 3]),
-        soil_moisture_saturation=HydroConsts.soil_moisture_saturation * layer_thickness,
-        soil_moisture_residual=HydroConsts.soil_moisture_residual * layer_thickness,
+        soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation
+        * layer_thickness,
+        soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual
+        * layer_thickness,
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=0.001)
 
 
-def test_calculate_matric_potential():
+def test_calculate_matric_potential(fixture_hydrology_constants):
     """Test that function to convert soil moisture to a water potential works."""
     from virtual_ecosystem.models.hydrology.below_ground import (
         calculate_matric_potential,
     )
 
-    constants = HydroConsts()
+    constants = fixture_hydrology_constants
     expected_potentials = np.repeat(-68.197326, 3)
     actual_potentials = calculate_matric_potential(
         effective_saturation=np.repeat(0.5, 3),
@@ -103,23 +103,22 @@ def test_calculate_matric_potential():
     np.testing.assert_allclose(actual_potentials, expected_potentials, rtol=0.001)
 
 
-def test_update_groundwater_storage(dummy_climate_data):
+def test_update_groundwater_storage(dummy_climate_data, fixture_hydrology_constants):
     """Test the update_groundwater_storage() function."""
 
     from virtual_ecosystem.models.hydrology.below_ground import (
         update_groundwater_storage,
     )
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
     data = dummy_climate_data
     result = update_groundwater_storage(
         groundwater_storage=np.array(data["groundwater_storage"]),
         vertical_flow_to_groundwater=np.array([2, 4, 5, 5]),
         bypass_flow=np.array([2, 4, 5, 5]),
-        max_percolation_rate_uzlz=HydroConsts.max_percolation_rate_uzlz,
-        groundwater_loss=HydroConsts.groundwater_loss,
-        reservoir_const_upper_groundwater=HydroConsts.reservoir_const_upper_groundwater,
-        reservoir_const_lower_groundwater=HydroConsts.reservoir_const_lower_groundwater,
+        max_percolation_rate_uzlz=fixture_hydrology_constants.max_percolation_rate_uzlz,
+        groundwater_loss=fixture_hydrology_constants.groundwater_loss,
+        reservoir_const_upper_groundwater=fixture_hydrology_constants.reservoir_const_upper_groundwater,
+        reservoir_const_lower_groundwater=fixture_hydrology_constants.reservoir_const_lower_groundwater,
     )
 
     exp_groundwat = np.array(

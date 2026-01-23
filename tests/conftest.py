@@ -2,7 +2,6 @@
 
 from logging import DEBUG
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -60,7 +59,11 @@ def record_found_in_log(
     try:
         # Iterate over the record tuples, ignoring the leading element
         # giving the logger name
-        _ = next(msg for msg in caplog.record_tuples if msg[1:] == find)
+        _ = next(
+            _
+            for _, level, message in caplog.record_tuples
+            if level == find[0] and message.startswith(find[1])
+        )
         return True
     except StopIteration:
         return False
@@ -112,6 +115,8 @@ c_p_ratio = 16
 enzyme_production.pom = 0.005
 enzyme_production.maom = 0.005
 reproductive_allocation = 0.0
+symbiote_nitrogen_uptake_fraction = 0.0
+symbiote_phosphorus_uptake_fraction = 0.0
 
 [[soil.microbial_group_definition]]
 name = "saprotrophic_fungi"
@@ -134,6 +139,8 @@ c_p_ratio = 40.0
 enzyme_production.pom = 0.005
 enzyme_production.maom = 0.005
 reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.0
+symbiote_phosphorus_uptake_fraction = 0.0
 
 [[soil.microbial_group_definition]]
 name = "arbuscular_mycorrhiza"
@@ -156,6 +163,8 @@ c_p_ratio = 120.0
 enzyme_production.pom = 0.0
 enzyme_production.maom = 0.0
 reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.2
+symbiote_phosphorus_uptake_fraction = 0.2
 
 [[soil.microbial_group_definition]]
 name = "ectomycorrhiza"
@@ -178,6 +187,8 @@ c_p_ratio = 120.0
 enzyme_production.pom = 0.02
 enzyme_production.maom = 0.02
 reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.2
+symbiote_phosphorus_uptake_fraction = 0.2
 
 [[soil.enzyme_class_definition]]
 source = "bacteria"
@@ -235,7 +246,7 @@ def microbial_groups_cfg():
     return MICROBE_CONFIG_TOML
 
 
-def generate_config(
+def generate_config_strings(
     nx: int = 2,
     ny: int = 2,
     additional_toml: str = MICROBE_CONFIG_TOML,
@@ -255,8 +266,6 @@ def generate_config(
         additional_toml: Any additional TOML to append to the core string
         fixture_root_data_dir: The path of the root data directory
     """
-
-    from virtual_ecosystem.core.config import Config
 
     cfg_string = f"""
         [core]
@@ -289,29 +298,111 @@ def generate_config(
 {(fixture_root_data_dir / "animal_functional_groups.csv")!s}'''
 
         [hydrology]
+        [litter]
+        [abiotic]
     """
 
-    return Config(cfg_strings=[cfg_string, additional_toml])
+    return [cfg_string, additional_toml]
 
 
 @pytest.fixture
-def fixture_config():
-    """Default configuration object with 2x2 grid."""
-    return generate_config()
+def fixture_configuration():
+    """Default configuration with 2x2 grid."""
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
+
+    config_data = ConfigurationLoader(cfg_strings=generate_config_strings())
+
+    return generate_configuration(config_data.data)
 
 
 @pytest.fixture
-def animal_fixture_config():
-    """Default configuration object with 3x3 grid."""
-    return generate_config(nx=3, ny=3)
+def animal_fixture_configuration():
+    """Default configuration with 3x3 grid."""
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
+
+    config_data = ConfigurationLoader(cfg_strings=generate_config_strings(nx=3, ny=3))
+
+    return generate_configuration(config_data.data)
 
 
 @pytest.fixture
-def fixture_core_components(fixture_config):
+def fixture_core_constants(fixture_configuration):
+    """Get the core constants instance from the config."""
+
+    return fixture_configuration.core.constants
+
+
+@pytest.fixture
+def fixture_pyrealm_config(fixture_configuration):
+    """Get the pyrealm config instance from the config."""
+
+    return fixture_configuration.core.pyrealm
+
+
+@pytest.fixture
+def fixture_soil_constants(fixture_configuration):
+    """Get the soil constants instance from the config."""
+
+    return fixture_configuration.soil.constants
+
+
+@pytest.fixture
+def fixture_hydrology_constants(fixture_configuration):
+    """Get the hydrology constants instance from the config."""
+
+    return fixture_configuration.hydrology.constants
+
+
+@pytest.fixture
+def fixture_abiotic_constants(fixture_configuration):
+    """Get the abiotic constants instance from the config."""
+
+    return fixture_configuration.abiotic.constants
+
+
+@pytest.fixture
+def fixture_plants_constants(fixture_configuration):
+    """Get the abiotic constants instance from the config."""
+
+    return fixture_configuration.plants.constants
+
+
+@pytest.fixture
+def fixture_litter_constants(fixture_configuration):
+    """Get the abiotic constants instance from the config."""
+
+    return fixture_configuration.litter.constants
+
+
+@pytest.fixture
+def fixture_abiotic_simple_configuration():
+    """Get an abiotic_simple configuration instance to provide bounds and constants.
+
+    The abiotic simple model is not used in the fixture_configuration so this fixture
+    creates one from scratch.
+    """
+
+    from virtual_ecosystem.models.abiotic_simple.model_config import (
+        AbioticSimpleConfiguration,
+    )
+
+    return AbioticSimpleConfiguration()
+
+
+@pytest.fixture
+def fixture_core_components(fixture_configuration):
     """A CoreComponents instance for use in testing."""
     from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.model_config import CoreConfiguration
 
-    core_components = CoreComponents(fixture_config)
+    core_cfg = fixture_configuration.get_subconfiguration("core", CoreConfiguration)
+    core_components = CoreComponents(core_cfg)
 
     # Setup three filled canopy layers
     canopy_array = np.full(
@@ -357,20 +448,12 @@ def dummy_litter_data(fixture_core_components):
         "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
         "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
         "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
-        "deadwood_production": [0.075, 0.099, 0.063, 0.033],
-        "leaf_turnover": [0.027, 0.0003, 0.021, 0.0285],
         "fallen_non_propagule_c_mass": [0.003, 0.0075, 0.00255, 0.00375],
-        "root_turnover": [0.027, 0.021, 0.0003, 0.0249],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "plant_reproductive_tissue_lignin": [0.01, 0.03, 0.04, 0.02],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
-        "deadwood_c_n_ratio": [60.7, 57.9, 73.1, 55.1],
-        "leaf_turnover_c_n_ratio": [15.0, 25.5, 43.1, 57.4],
         "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
-        "root_turnover_c_n_ratio": [30.3, 45.6, 43.3, 37.1],
-        "deadwood_c_p_ratio": [856.5, 675.4, 933.2, 888.8],
-        "leaf_turnover_c_p_ratio": [415.0, 327.4, 554.5, 380.9],
         "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
         "root_turnover_c_p_ratio": [656.7, 450.6, 437.3, 371.9],
         "litter_consumption_above_metabolic": [0.019785, 0.011631, 0.016129, 0.023456],
@@ -378,9 +461,6 @@ def dummy_litter_data(fixture_core_components):
         "litter_consumption_woody": [0.4773833, 0.385701, 0.373456, 0.162192],
         "litter_consumption_below_metabolic": [0.010373, 0.005794, 0.010181, 0.013494],
         "litter_consumption_below_structural": [0.013547, 0.011674, 0.012738, 0.009168],
-        "herbivory_waste_leaf_carbon": [3e-5, 2.1e-3, 2.85e-3, 2.7e-3],
-        "herbivory_waste_leaf_nitrogen": [23.1, 33.5, 23.1, 17.3],
-        "herbivory_waste_leaf_phosphorus": [212.5, 344.8, 334.8, 420.1],
         "herbivory_waste_leaf_lignin": [0.13, 0.08, 0.27, 0.22],
     }
 
@@ -402,6 +482,50 @@ def dummy_litter_data(fixture_core_components):
     data["air_temperature"][lyr_strct.index_filled_atmosphere] = np.array(
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
+
+    data["stem_turnover_cnp"] = DataArray(
+        data=[
+            [607.5, 10.00823, 0.70928196],
+            [801.9, 13.84974, 1.187296],
+            [510.3, 6.98085, 0.546828],
+            [267.3, 4.85118, 0.3007426],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["root_turnover_cnp"] = DataArray(
+        data=[
+            [218.7, 7.2178, 0.333029],
+            [170.1, 3.73026, 0.377497],
+            [2.43, 0.05612, 0.0055568],
+            [201.69, 5.43639, 0.5423232],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["foliage_turnover_cnp"] = DataArray(
+        data=[
+            [218.7, 14.58, 0.52698795],
+            [2.43, 0.09529412, 0.00742211],
+            [170.1, 3.94663573, 0.3067628],
+            [230.85, 4.021777, 0.6060646],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["herbivory_waste_leaf_cnp"] = DataArray(
+        data=[
+            [0.243, 0.010519, 0.00114353],
+            [17.01, 0.507761, 0.0493329],
+            [
+                23.085,
+                0.999351,
+                0.0689516,
+            ],
+            [21.87, 1.264162, 0.052059],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     return data
 
@@ -441,12 +565,8 @@ def dummy_climate_data(fixture_core_components):
     # Spatially varying but not vertically structured
     spatially_variable = {
         "shortwave_radiation_surface": [100, 10, 0, 0],
-        "sensible_heat_flux_topofcanopy": [100, 50, 10, 10],
         "friction_velocity": [12, 5, 2, 2],
         "soil_evaporation": [0.001, 0.01, 0.1, 0.1],
-        # "surface_runoff": [10, 50, 100, 100],
-        "surface_runoff_accumulated": [0, 10, 300, 300],
-        "subsurface_flow_accumulated": [10, 10, 30, 30],
         "elevation": [200, 100, 10, 10],
     }
     for var, vals in spatially_variable.items():
@@ -457,12 +577,9 @@ def dummy_climate_data(fixture_core_components):
         "sensible_heat_flux_soil": 1,
         "latent_heat_flux_soil": 1,
         "zero_plane_displacement": 20.0,
-        "diabatic_correction_heat_above": 0.1,
-        "diabatic_correction_heat_canopy": 1.0,
-        "diabatic_correction_momentum_above": 0.1,
-        "diabatic_correction_momentum_canopy": 1.0,
         "mean_mixing_length": 1.3,
-        "aerodynamic_resistance_surface": 12.5,
+        "aerodynamic_resistance_soil": 12.5,
+        "aerodynamic_resistance_canopy": 12.5,
         "mean_annual_temperature": 20.0,
     }
     for var, val in spatially_constant.items():
@@ -471,6 +588,7 @@ def dummy_climate_data(fixture_core_components):
     # Structural variables - assign values to vertical layer indices across grid id
     data["leaf_area_index"] = from_template()
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
+    data["leaf_area_index"][lyr_str.index_surface_scalar] = 1.0
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
@@ -484,9 +602,6 @@ def dummy_climate_data(fixture_core_components):
     data["wind_speed"] = from_template()
     data["wind_speed"][lyr_str.index_filled_atmosphere] = 0.1
 
-    data["aerodynamic_resistance_canopy"] = from_template()
-    data["aerodynamic_resistance_canopy"][lyr_str.index_filled_canopy] = 12.5
-
     data["atmospheric_pressure"] = from_template()
     data["atmospheric_pressure"][lyr_str.index_filled_atmosphere] = 96.0
 
@@ -499,8 +614,8 @@ def dummy_climate_data(fixture_core_components):
     data["soil_temperature"][lyr_str.index_all_soil] = 20.0
 
     data["matric_potential"] = from_template()
-    data["matric_potential"][lyr_str.index_topsoil] = np.array(
-        [-3.0, -10.0, -250.0, -10000.0]
+    data["matric_potential"][lyr_str.index_all_soil] = np.array(
+        [[-3.0, -10.0, -250.0, -10000.0], [-3.0, -10.0, -250.0, -10000.0]]
     )
 
     data["relative_humidity"] = from_template()
@@ -513,16 +628,14 @@ def dummy_climate_data(fixture_core_components):
         [0.14, 0.2, 0.2, 0.2, 0.14]
     )[:, None]
 
-    flux_index = np.logical_or(lyr_str.index_above, lyr_str.index_flux_layers)
-
     data["shortwave_absorption"] = from_template()
-    data["shortwave_absorption"][flux_index] = 450.0
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 450.0
 
     data["sensible_heat_flux"] = from_template()
-    data["sensible_heat_flux"][flux_index] = 0.0
+    data["sensible_heat_flux"][lyr_str.index_flux_layers] = 0.0
 
     data["latent_heat_flux"] = from_template()
-    data["latent_heat_flux"][flux_index] = 0.0
+    data["latent_heat_flux"][lyr_str.index_flux_layers] = 0.0
 
     data["net_radiation"] = from_template()
     data["net_radiation"][lyr_str.index_flux_layers] = 20.0
@@ -536,42 +649,24 @@ def dummy_climate_data(fixture_core_components):
     data["specific_heat_air"] = from_template()
     data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 1.006
 
-    data["attenuation_coefficient"] = from_template()
-    data["attenuation_coefficient"][lyr_str.index_filled_atmosphere] = np.array(
-        [13.0, 13.0, 13.0, 13.0, 2.0]
-    )[:, None]
-
-    data["relative_turbulence_intensity"] = from_template()
-    data["relative_turbulence_intensity"][lyr_str.index_filled_atmosphere] = np.array(
-        [17.64, 16.56, 11.16, 5.76, 0.414]
-    )[:, None]
-
     data["latent_heat_vapourisation"] = from_template()
     data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2442.0
 
     data["canopy_temperature"] = from_template()
     data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0
+    data["canopy_temperature"][lyr_str.index_surface_scalar] = 25.0
 
     data["canopy_evaporation"] = from_template()
     data["canopy_evaporation"][lyr_str.index_filled_canopy] = 10.0
-
-    data["leaf_air_heat_conductivity"] = from_template()
-    data["leaf_air_heat_conductivity"][lyr_str.index_filled_canopy] = 0.13
-
-    data["leaf_vapour_conductivity"] = from_template()
-    data["leaf_vapour_conductivity"][lyr_str.index_filled_canopy] = 0.2
-
-    data["conductivity_from_ref_height"] = from_template()
-    data["conductivity_from_ref_height"][
-        np.logical_or(lyr_str.index_filled_canopy, lyr_str.index_surface)
-    ] = 3.0
+    data["canopy_evaporation"][lyr_str.index_surface_scalar] = 10.0
 
     data["stomatal_conductance"] = from_template()
     data["stomatal_conductance"][lyr_str.index_filled_canopy] = 15.0
+    data["stomatal_conductance"][lyr_str.index_surface_scalar] = 15.0
 
     # Hydrology
     data["transpiration"] = from_template()
-    data["transpiration"][lyr_str.index_filled_canopy] = 20.0
+    data["transpiration"][lyr_str.index_filled_canopy] = 20.0  # TODO add understorey
 
     data["soil_moisture"] = from_template()
     data["soil_moisture"][lyr_str.index_all_soil] = np.array([5.0, 500.0])[:, None]
@@ -630,19 +725,10 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [96.157312, np.nan, np.nan, np.nan],
     ]
 
-    sw_indexes = [1, 2, 3, 13]
-    dummy_climate_data["shortwave_absorption"][sw_indexes] = [
+    dummy_climate_data["shortwave_absorption"][index_filled_canopy] = [
         [450.0, 450.0, 450.0, np.nan],
         [450.0, 450.0, np.nan, np.nan],
         [450.0, np.nan, np.nan, np.nan],
-        [450.0, 450.0, 450.0, 450],
-    ]
-    # dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
-
-    dummy_climate_data["aerodynamic_resistance_canopy"][index_filled_canopy] = [
-        [12.5, 12.5, 12.5, np.nan],
-        [12.5, 12.5, np.nan, np.nan],
-        [12.5, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
@@ -664,23 +750,10 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [0.0, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["net_radiation"][lyr_str.index_flux_layers] = [
+    dummy_climate_data["net_radiation"][lyr_str.index_filled_canopy] = [
         [20.0, 20.0, 20.0, np.nan],
         [20.0, 20.0, np.nan, np.nan],
         [20.0, np.nan, np.nan, np.nan],
-        [20.0, 20.0, 20.0, 20.0],
-    ]
-
-    dummy_climate_data["attenuation_coefficient"][index_filled_canopy] = [
-        [13.0, 13.0, 13.0, np.nan],
-        [13.0, 13.0, np.nan, np.nan],
-        [13.0, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["relative_turbulence_intensity"][index_filled_canopy] = [
-        [16.56, 16.56, 16.56, np.nan],
-        [11.16, 11.16, np.nan, np.nan],
-        [5.76, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["canopy_temperature"][index_filled_canopy] = [
@@ -690,28 +763,11 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     dummy_climate_data["canopy_evaporation"][index_filled_canopy] = [
-        [10.0, 10.0, 10.0, np.nan],
-        [10.0, 10.0, np.nan, np.nan],
-        [10.0, np.nan, np.nan, np.nan],
+        [40.0, 40.0, 40.0, np.nan],
+        [30.0, 30.0, np.nan, np.nan],
+        [20.0, np.nan, np.nan, np.nan],
     ]
-
-    dummy_climate_data["leaf_air_heat_conductivity"][index_filled_canopy] = [
-        [0.13, 0.13, 0.13, np.nan],
-        [0.13, 0.13, np.nan, np.nan],
-        [0.13, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["leaf_vapour_conductivity"][index_filled_canopy] = [
-        [0.2, 0.2, 0.2, np.nan],
-        [0.2, 0.2, np.nan, np.nan],
-        [0.2, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["conductivity_from_ref_height"][index_filled_canopy] = [
-        [3.0, 3.0, 3.0, np.nan],
-        [3.0, 3.0, np.nan, np.nan],
-        [3.0, np.nan, np.nan, np.nan],
-    ]
+    dummy_climate_data["canopy_evaporation"][lyr_str.index_surface_scalar] = 20.0
 
     dummy_climate_data["stomatal_conductance"][index_filled_canopy] = [
         [15.0, 15.0, 15.0, np.nan],
@@ -721,28 +777,10 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
 
     # Hydrology
     dummy_climate_data["transpiration"][index_filled_canopy] = [
-        [20.0, 20.0, 20.0, np.nan],
+        [30.0, 30.0, 30.0, np.nan],
         [20.0, 20.0, np.nan, np.nan],
-        [20.0, np.nan, np.nan, np.nan],
+        [10.0, np.nan, np.nan, np.nan],
     ]
+    dummy_climate_data["transpiration"][lyr_str.index_surface_scalar] = 20.0
 
     return dummy_climate_data
-
-
-def patch_run_update(model: type):
-    """Patch the run update check during the init of the model."""
-    return patch(
-        f"{model.__module__}.{model.__name__}._run_update_due_to_static_configuration"
-    )
-
-
-def patch_bypass_setup(model: type):
-    """Patch the bypass setup check during the init of the model."""
-    return patch(
-        f"{model.__module__}.{model.__name__}._bypass_setup_due_to_static_configuration"
-    )
-
-
-def patch_static_config(model: type):
-    """Patch the check static config during the init of the model."""
-    return patch(f"{model.__module__}.{model.__name__}._check_static_config")

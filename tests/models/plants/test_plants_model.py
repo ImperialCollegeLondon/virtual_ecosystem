@@ -168,14 +168,19 @@ def test_PlantsModel__init__errors(
 
 
 def test_PlantsModel_from_config(
-    plants_data, fixture_config, fixture_core_components, fixture_canopy_layer_data
+    plants_data,
+    fixture_configuration,
+    fixture_core_components,
+    fixture_canopy_layer_data,
 ):
     """Test the PlantsModel.from_config factory method."""
 
     from virtual_ecosystem.models.plants.plants_model import PlantsModel
 
     plants_model = PlantsModel.from_config(
-        data=plants_data, config=fixture_config, core_components=fixture_core_components
+        data=plants_data,
+        configuration=fixture_configuration,
+        core_components=fixture_core_components,
     )
 
     # Currently trivial test.
@@ -272,6 +277,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     fxt_plants_model.set_shortwave_absorption()
 
     # Calculate GPP
+    fxt_plants_model.reset_update_vars()
     fxt_plants_model.calculate_light_use_efficiency()
     fxt_plants_model.estimate_gpp(time_index=0)
 
@@ -386,6 +392,7 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
     """Test the calculate_turnover method of the plants model."""
 
     # Check reset
+    fxt_plants_model.reset_update_vars()
     fxt_plants_model.calculate_turnover()
     consts = fxt_plants_model.model_constants
 
@@ -402,38 +409,26 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
     assert np.allclose(fxt_plants_model.data["leaf_lignin"], consts.leaf_lignin)
 
 
-def test_PlantsModel_update_cn_ratios(fxt_plants_model, fixture_config):
-    """Test the update_cn_ratios method of the plants model."""
-
-    fxt_plants_model.update_cn_ratios()
-
-    assert np.allclose(fxt_plants_model.data["deadwood_c_n_ratio"], 56.5)
-    assert np.allclose(fxt_plants_model.data["leaf_turnover_c_n_ratio"], 25.5)
-    assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_n_ratio"],
-        12.5,
-    )
-    assert np.allclose(fxt_plants_model.data["root_turnover_c_n_ratio"], 45.6)
-    assert np.allclose(fxt_plants_model.data["deadwood_c_p_ratio"], 856.5)
-    assert np.allclose(fxt_plants_model.data["leaf_turnover_c_p_ratio"], 415.0)
-    assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_p_ratio"],
-        125.5,
-    )
-    assert np.allclose(fxt_plants_model.data["root_turnover_c_p_ratio"], 656.7)
-
-
 def test_PlantsModel_calculate_turnover_constant_override(
-    plants_data, fixture_config, fixture_core_components
+    plants_data, fixture_configuration, fixture_core_components
 ):
-    """Test that the turnover constants can be overridden by values in config."""
+    """Test that the turnover constants can be overridden by values in config.
+
+    TODO - not sure what this actually tests?
+    """
 
     from virtual_ecosystem.models.plants.plants_model import PlantsModel
 
-    fixture_config["plants"]["constants"] = {"PlantsConsts": {"leaf_lignin": 100.0}}
+    # Force setting of new value on frozen pydantic configuration class.
+    fixture_configuration.plants.constants.__dict__["leaf_lignin"] = 100.0
+
     plants_model = PlantsModel.from_config(
-        data=plants_data, config=fixture_config, core_components=fixture_core_components
+        data=plants_data,
+        configuration=fixture_configuration,
+        core_components=fixture_core_components,
     )
+
+    plants_model.reset_update_vars()
     plants_model.calculate_turnover()
 
     assert np.allclose(plants_model.data["leaf_lignin"], 100.0)
@@ -479,19 +474,6 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
     )
 
 
-def test_PlantsModel_calculate_mycorrhizal_uptakes(fxt_plants_model):
-    """Test the calculate_mycorrhizal_uptakes method of the plants model."""
-
-    # Check reset
-    fxt_plants_model.calculate_mycorrhizal_uptakes()
-
-    # Check that all expected variables are generated and have the correct value
-    assert np.allclose(fxt_plants_model.data["plant_n_uptake_arbuscular"], 0.00216)
-    assert np.allclose(fxt_plants_model.data["plant_n_uptake_ecto"], 0.000805)
-    assert np.allclose(fxt_plants_model.data["plant_p_uptake_arbuscular"], 0.000117)
-    assert np.allclose(fxt_plants_model.data["plant_p_uptake_ecto"], 6.6e-5)
-
-
 def test_PlantsModel_apply_mortality(fxt_plants_model):
     """Test the apply_mortality method of the plants model."""
 
@@ -499,6 +481,8 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
         cell_id: fxt_plants_model.communities[cell_id].cohorts.n_individuals.copy()
         for cell_id in fxt_plants_model.communities.keys()
     }
+
+    fxt_plants_model.reset_update_vars()
 
     # Check reset
     fxt_plants_model.apply_mortality()
@@ -510,16 +494,16 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
             original_population[cell_id]
             - fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
-        deadwood_mass = (
-            np.sum(mortality * community.stem_allometry.stem_mass)
-            / fxt_plants_model.grid.cell_area
-        )
+        deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
 
         assert np.all(
             original_population[cell_id]
             >= fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
-        assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass
+        assert (
+            fxt_plants_model.data["stem_turnover_cnp"].loc[cell_id, "C"]
+            == deadwood_mass
+        )
 
 
 def test_PlantsModel_apply_recruitment(fxt_plants_model):

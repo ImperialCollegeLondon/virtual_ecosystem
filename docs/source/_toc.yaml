@@ -45,12 +45,15 @@ subtrees:
         entries:
           - file: using_the_ve/installing_ve
           - file: using_the_ve/example_data
+          - file: using_the_ve/core_configuration
+          - file: using_the_ve/science_model_configuration
           - file: using_the_ve/virtual_ecosystem_in_use
-          - file: using_the_ve/model_inputs
+          - file: using_the_ve/model_data_inputs
           - file: using_the_ve/virtual_ecosystem_in_static_mode
       - file: using_the_ve/configuration/config
         title: Configuring your model
         entries:
+          - file: using_the_ve/configuration/new_config
           - file: using_the_ve/configuration/axes
           - file: using_the_ve/configuration/grid
           - file: using_the_ve/configuration/constants
@@ -90,16 +93,14 @@ subtrees:
                 title: The axes submodule
               - file: api/core/base_model.md
                 title: The base_model submodule
-              - file: api/core/config.md
-                title: The config submodule
-              - file: api/core/constants.md
-                title: The constants submodule
-              - file: api/core/constants_class.md
-                title: The constants_class submodule
-              - file: api/core/constants_loader.md
-                title: The constants_loader submodule
+              - file: api/core/config_builder.md
+                title: The config_builder submodule
+              - file: api/core/configuration.md
+                title: The configuration submodule
               - file: api/core/core_components.md
                 title: The core_components submodule
+              - file: api/core/model_config.md
+                title: The model_config submodule
               - file: api/core/data.md
                 title: The data submodule
               - file: api/core/exceptions.md
@@ -112,8 +113,6 @@ subtrees:
                 title: The readers submodule
               - file: api/core/registry.md
                 title: The registry submodule
-              - file: api/core/schema.md
-                title: The schema submodule
               - file: api/core/utils.md
                 title: The utils submodule
               - file: api/core/variables.md
@@ -127,8 +126,8 @@ subtrees:
             entries:
               - file: api/models/abiotic/abiotic_model
                 title: The abiotic model submodule
-              - file: api/models/abiotic/abiotic_constants
-                title: The abiotic constants submodule
+              - file: api/models/abiotic/model_config
+                title: The model_config submodule
               - file: api/models/abiotic/abiotic_tools
                 title: The abiotic tools submodule
               - file: api/models/abiotic/wind
@@ -140,10 +139,10 @@ subtrees:
           - file: api/models/abiotic_simple
             title: The abiotic simple model
             entries:
-              - file: api/models/abiotic_simple/abiotic_simple_constants
-                title: The abiotic_simple_constants submodule
               - file: api/models/abiotic_simple/abiotic_simple_model
                 title: The abiotic simple_model submodule
+              - file: api/models/abiotic_simple/model_config
+                title: The model_config submodule
               - file: api/models/abiotic_simple/microclimate_simple
                 title: The simple microclimate submodule
           - file: api/models/animal
@@ -153,10 +152,10 @@ subtrees:
                 title: The animal_cohorts submodule
               - file: api/models/animal/animal_model
                 title: The animal_model submodule
+              - file: api/models/animal/model_config
+                title: The model_config submodule
               - file: api/models/animal/animal_traits
                 title: The animal_traits submodule
-              - file: api/models/animal/constants
-                title: The constants submodule
               - file: api/models/animal/cnp
                 title: The CNP submodule
               - file: api/models/animal/decay
@@ -169,6 +168,8 @@ subtrees:
                 title: The protocols submodule
               - file: api/models/animal/scaling_functions
                 title: The scaling_functions submodule
+              - file: api/models/animal/exporter
+                title: The animal data exporter submodule
           - file: api/models/hydrology
             title: The hydrology model
             entries:
@@ -176,10 +177,10 @@ subtrees:
                 title: The above_ground submodule
               - file: api/models/hydrology/below_ground
                 title: The below_ground submodule
-              - file: api/models/hydrology/constants
-                title: The constants submodule
               - file: api/models/hydrology/hydrology_model
                 title: The hydrology_model submodule
+              - file: api/models/hydrology/model_config
+                title: The model_config submodule
               - file: api/models/hydrology/hydrology_tools
                 title: The hydrology_tools submodule
           - file: api/models/litter
@@ -189,8 +190,8 @@ subtrees:
                 title: The litter carbon submodule
               - file: api/models/litter/chemistry
                 title: The litter chemistry submodule
-              - file: api/models/litter/constants
-                title: The constants submodule
+              - file: api/models/litter/model_config
+                title: The model_config submodule
               - file: api/models/litter/env_factors
                 title: The env_factors submodule
               - file: api/models/litter/inputs
@@ -204,8 +205,8 @@ subtrees:
             entries:
               - file: api/models/soil/pools
                 title: The pools submodule
-              - file: api/models/soil/constants
-                title: The constants submodule
+              - file: api/models/soil/model_config
+                title: The model_config submodule
               - file: api/models/soil/env_factors
                 title: The env_factors submodule
               - file: api/models/soil/microbial_groups
@@ -217,10 +218,12 @@ subtrees:
           - file: api/models/plants
             title: The plants model
             entries:
-              - file: api/models/plants/plant_structures
-                title: The plant_structures submodule
               - file: api/models/plants/plants_model
                 title: The plants_model submodule
+              - file: api/models/plants/model_config
+                title: The model_config submodule
+              - file: api/models/plants/plant_structures
+                title: The plant_structures submodule
       - file: api/example_data
         title: The example_data submodule
 

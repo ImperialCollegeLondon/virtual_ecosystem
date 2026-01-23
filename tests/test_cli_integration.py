@@ -19,14 +19,13 @@ def test_ve_run_install_example(capsys):
 
 
 @pytest.mark.slow
-def test_ve_run(capsys, mocker):
+def test_ve_run(capsys):
     """Test that the CLI can successfully run with example data.
 
     Note that this does not currently test the various CLI options independently. We
     could do with a fast running minimal test or a mocker to do that.
     """
 
-    # import virtual_ecosystem.core  #F401
     from virtual_ecosystem.core.logger import remove_file_logger
     from virtual_ecosystem.entry_points import ve_run_cli
 
@@ -40,6 +39,7 @@ def test_ve_run(capsys, mocker):
             example_dir = Path(tempdir) / "ve_example"
             configs = example_dir / "config"
             outdir = example_dir / "out"
+            outdir.mkdir(exist_ok=True)
             logfile = outdir / "ve_example.log"
             ve_run_cli(
                 args_list=[
@@ -48,6 +48,8 @@ def test_ve_run(capsys, mocker):
                     str(outdir),
                     "--logfile",
                     str(logfile),
+                    "--config",
+                    "core.debug.truncate_run_at_update=1",
                 ]
             )
 
@@ -108,6 +110,8 @@ save_initial_state = false
 save_continuous_data = false
 save_final_state = false
 save_merged_config = false
+[core.data]
+variable = []
 [testing]
 """
         )
@@ -130,3 +134,50 @@ save_merged_config = false
     assert len(err.splitlines()) == 0
     output = [v for v in out.splitlines() if v]  # drop blank lines
     assert len(output) == output_length
+
+
+@pytest.mark.parametrize(
+    argnames="cli_config, expected_called_value",
+    argvalues=(
+        pytest.param([], {}, id="no cli config"),
+        pytest.param(
+            ["--config", "core.grid.cell_nx=6"],
+            {"core": {"grid": {"cell_nx": 6}}},
+            id="single cli config",
+        ),
+        pytest.param(
+            [
+                "--config",
+                "core.grid.cell_nx=6",
+                "--config",
+                "plants.constants.value=0.1",
+            ],
+            {"core": {"grid": {"cell_nx": 6}}, "plants": {"constants": {"value": 0.1}}},
+            id="multiple cli config",
+        ),
+    ),
+)
+def test_ve_run_cli_config(tmp_path, mocker, cli_config, expected_called_value):
+    """Test that the CLI can successfully override configuration.
+
+    This test just checks that a command line config option is successfully passed
+    through from the ve_run_cli entry point into the actual call to ve_run. There is no
+    testing of the handling of the input by ve_run, which is mocked out to keep the test
+    fast and focussed.
+
+    Actual testing of the integration of CLI config data into the configuration is here:
+    tests/core/test_configuration_builder.py::test_ConfigurationLoader_load_configuration_data
+    """
+
+    from virtual_ecosystem.entry_points import ve_run_cli
+
+    # Don't actually _run_ the ve_run function
+    run_function = mocker.patch("virtual_ecosystem.entry_points.ve_run")
+
+    # Call the CLI interface with a temporary empty file and the parameterised CLI
+    # config  details
+    ve_run_cli(args_list=[str(tmp_path), *cli_config])
+
+    # Retrieve what would have been passed to ve_run and check it matches expectations.
+    called_value = run_function.call_args.kwargs["cli_config"]
+    assert called_value == expected_called_value

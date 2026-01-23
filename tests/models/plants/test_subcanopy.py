@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import xarray as xr
 from numpy.testing import assert_allclose
 
 
@@ -137,7 +138,7 @@ def test_SubcanopyBiomass(fixture_plants_constants):
 def test_subcanopy_vegetation_dynamics(
     plants_data,
     fixture_plants_constants,
-    fixture_pyrealm_constants,
+    fixture_pyrealm_config,
     fixture_core_components,
     veg_biomass,
     seedbank_biomass,
@@ -152,8 +153,6 @@ def test_subcanopy_vegetation_dynamics(
 
     from virtual_ecosystem.models.plants.subcanopy import Subcanopy
 
-    pyrealm_core_constants, _ = fixture_pyrealm_constants
-
     # Update data from scenario
     plants_data["subcanopy_vegetation_biomass"][:] = veg_biomass
     plants_data["subcanopy_seedbank_biomass"][:] = seedbank_biomass
@@ -161,13 +160,22 @@ def test_subcanopy_vegetation_dynamics(
     template = fixture_core_components.layer_structure.from_template()
     template[:] = 0
 
+    cnp_template = xr.DataArray(
+        data=np.zeros((fixture_core_components.grid.n_cells, 3)),
+        coords={
+            "cell_id": fixture_core_components.grid.cell_id,
+            "element": ["C", "N", "P"],
+        },
+    )
+
     plants_data["shortwave_absorption"] = template.copy()
     plants_data["leaf_area_index"] = template.copy()
     plants_data["layer_fapar"] = template.copy()
+    plants_data["transpiration"] = template.copy()
 
     subcanopy = Subcanopy(
         data=plants_data,
-        pmodel_core_constants=pyrealm_core_constants,
+        pyrealm_core_constants=fixture_pyrealm_config.core,
         model_constants=fixture_plants_constants,
         layer_index=fixture_core_components.layer_structure.index_surface_scalar,
         model_timing=fixture_core_components.model_timing,
@@ -179,9 +187,15 @@ def test_subcanopy_vegetation_dynamics(
 
     # Set the subcanopy shortwave absorption - don't need finesse here - either
     # vegetation present or not
+
     subcanopy.set_light_capture(below_canopy_light_fraction=np.ones(4))
 
-    subcanopy.calculate_dynamics(lue=np.ones(4), iwue=np.ones(4), swd=np.ones(4))
+    subcanopy.calculate_dynamics(
+        lue=np.ones(4),
+        iwue=np.ones(4),
+        swd=np.ones(4),
+        data_object_template=cnp_template,
+    )
 
     # Assert that biomasses are either equal to zero or greater.
     assert np.all(
