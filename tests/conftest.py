@@ -554,6 +554,7 @@ def dummy_climate_data(fixture_core_components):
         "atmospheric_co2_ref": 400.0,
         "precipitation": 200.0,
         "downward_shortwave_radiation": 500.0,
+        "downward_longwave_radiation": 400.0,
     }
 
     for var, value in ref_values.items():
@@ -647,7 +648,7 @@ def dummy_climate_data(fixture_core_components):
     data["density_air"][lyr_str.index_filled_atmosphere] = 1.255
 
     data["specific_heat_air"] = from_template()
-    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 1.006
+    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 1006.0
 
     data["latent_heat_vapourisation"] = from_template()
     data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2442.0

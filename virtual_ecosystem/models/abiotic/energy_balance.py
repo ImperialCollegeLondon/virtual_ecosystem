@@ -17,7 +17,8 @@ follows (after :cite:t:`maclean_microclimc_2021`):
     = R_{abs} - \epsilon_{l} \sigma T_{l}^{4} - \frac{\rho_{a} c_p}{r_a}(T_{l} - T_{a})
     - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} - PP = 0
 
-where :math:`R_{abs}` is absorbed radiation, :math:`R_{em}` emitted radiation, :math:`H`
+where :math:`R_{abs}` is absorbed shortwave and longwave radiation, :math:`R_{em}`
+emitted radiation, :math:`H`
 the sensible heat flux, :math:`\lambda E` the latent heat flux, :math:`\epsilon_{l}` the
 emissivity of the leaf, :math:`\sigma` the Stefan-Boltzmann constant, :math:`T_{l}` the
 absolute temperature of the leaf, :math:`T_{a}` the absolute temperature of the air
@@ -256,7 +257,8 @@ def calculate_energy_balance_residual(
     canopy_temperature_initial: NDArray[np.floating],
     air_temperature: NDArray[np.floating],
     evapotranspiration: NDArray[np.floating],
-    absorbed_radiation_canopy: NDArray[np.floating],
+    absorbed_shortwave_radiation: NDArray[np.floating],
+    absorbed_longwave_radiation: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
@@ -274,7 +276,7 @@ def calculate_energy_balance_residual(
     .. math::
         \frac{dQ}{dt} = R_{abs} - \epsilon_{l} \sigma T_{l}^{4} - H - \lambda E - PP
 
-    Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
+    Where :math:`R_abs` is the absorbed shortwave and longwave radiation by the canopy,
     :math:`\epsilon_{l}` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
     constant, :math:`T_{l}` is the leaf temperature, :math:`H` is the sensible heat
     flux from the canopy, :math:`\lambda E` is the latent heat flux from the canopy,
@@ -286,7 +288,9 @@ def calculate_energy_balance_residual(
         canopy_temperature_initial: Initial leaf temperature for all canopy layers, [C]
         air_temperature: Initial air temperature in canopy layers, [C]
         evapotranspiration: Evapotranspiration, [mm]
-        absorbed_radiation_canopy: Absorbed shortwave radiation for all canopy layers,
+        absorbed_shortwave_radiation: Absorbed shortwave radiation for all canopy
+            layers, [W m-2]
+        absorbed_longwave_radiation: Absorbed longwave radiation for all canopy layers,
             [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
@@ -331,10 +335,11 @@ def calculate_energy_balance_residual(
 
     # Energy balance residual, [W m-2]
     energy_balance_residual = (
-        absorbed_radiation_canopy
+        absorbed_shortwave_radiation
+        + absorbed_longwave_radiation
         - longwave_emission_canopy
-        + sensible_heat_flux_canopy
-        + latent_heat_flux_canopy
+        - sensible_heat_flux_canopy
+        - latent_heat_flux_canopy
         # - absorption_par
     )
 
@@ -354,7 +359,8 @@ def solve_canopy_temperature(
     canopy_temperature_initial: NDArray[np.floating],
     air_temperature: NDArray[np.floating],
     evapotranspiration: NDArray[np.floating],
-    absorbed_radiation_canopy: NDArray[np.floating],
+    absorbed_shortwave_radiation: NDArray[np.floating],
+    absorbed_longwave_radiation: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
@@ -378,11 +384,12 @@ def solve_canopy_temperature(
     .. math::
         R_{abs} - \epsilon_{l} \sigma T_{l}^{4} - H - \lambda E - PP = 0
 
-    Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
-    :math:`\epsilon_{l}` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
-    constant, :math:`T_{l}` is the leaf temperature, :math:`H` is the sensible heat
-    flux from the canopy, :math:`\lambda E` is the latent heat flux from the canopy, and
-    :math:`PP` is a fraction of the absorbed light is used in photosynthesis (PAR).
+    Where :math:`R_{abs}` is the absorbed shortwave and longwave radiation by the canopy
+    , :math:`\epsilon_{l}` is the leaf emissivity, :math:`\sigma` is the
+    Stefan-Boltzmann constant, :math:`T_{l}` is the leaf temperature, :math:`H` is the
+    sensible heat flux from the canopy, :math:`\lambda E` is the latent heat flux from
+    the canopy, and :math:`PP` is a fraction of the absorbed light is used in
+    photosynthesis (PAR).
 
     Note that the latent heat flux is currently a constant given by the plant model.
     PP is not considered explicitly but will also be treated as a constant.
@@ -413,7 +420,9 @@ def solve_canopy_temperature(
         canopy_temperature_initial: Initial leaf temperature for all canopy layers, [C]
         air_temperature: Initial air temperature in canopy layers, [C]
         evapotranspiration: Evapotranspiration, [mm]
-        absorbed_radiation_canopy: Absorbed shortwave radiation for all canopy layers,
+        absorbed_shortwave_radiation: Absorbed shortwave radiation for all canopy
+            layers, [W m-2]
+        absorbed_longwave_radiation: Absorbed longwave radiation for all canopy layers,
             [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
@@ -456,8 +465,11 @@ def solve_canopy_temperature(
                     evapotranspiration=np.array(
                         [[evapotranspiration[i, j]]], dtype=np.float64
                     ),
-                    absorbed_radiation_canopy=np.array(
-                        [[absorbed_radiation_canopy[i, j]]], dtype=np.float64
+                    absorbed_shortwave_radiation=np.array(
+                        [[absorbed_shortwave_radiation[i, j]]], dtype=np.float64
+                    ),
+                    absorbed_longwave_radiation=np.array(
+                        [[absorbed_longwave_radiation[i]]], dtype=np.float64
                     ),
                     specific_heat_air=np.array(
                         [[specific_heat_air[i, j]]], dtype=np.float64
@@ -781,11 +793,11 @@ def update_understorey_temperature(
 
     """
     # Start with net energy flux
-    total_flux = net_radiation + sensible_heat_flux - conductive_flux
+    total_flux = net_radiation - sensible_heat_flux - conductive_flux
 
     # Include latent heat flux if provided
     if latent_heat_flux is not None:
-        total_flux += latent_heat_flux
+        total_flux -= latent_heat_flux
 
     # Temperature change [K]
     delta_temperature = total_flux * time_step_seconds / effective_heat_capacity
