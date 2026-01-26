@@ -83,6 +83,7 @@ class AbioticModel(
         "downward_shortwave_radiation",
         "stomatal_conductance",
         "shortwave_absorption",
+        "downward_longwave_radiation",
         "aerodynamic_resistance_soil",
         "soil_evaporation",
         "canopy_evaporation",
