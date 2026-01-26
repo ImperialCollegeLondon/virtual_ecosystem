@@ -131,6 +131,7 @@ import numpy as np
 from xarray import DataArray, Dataset, open_mfdataset
 
 from virtual_ecosystem.core.axes import AXIS_VALIDATORS, validate_dataarray
+from virtual_ecosystem.core.core_components import ModelTiming
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
@@ -147,6 +148,11 @@ from virtual_ecosystem.core.utils import check_outfile
 # Following advice on both those issues, we currently explicitly stop dask from trying
 # to use parallel file processing and use open_mfdataset(..., lock=False)
 dask.config.set(scheduler="single-threaded")
+
+
+# TODO: Model timing is currently used when writing the data to file to provide the
+#       datestamps of the time_index dimension. This should probably be passed to
+#       Data.__init__ so that it is available for all methods.
 
 
 class Data:
@@ -362,7 +368,10 @@ class Data:
             raise ConfigurationError(msg)
 
     def save_to_netcdf(
-        self, output_file_path: Path, variables_to_save: list[str] | None = None
+        self,
+        output_file_path: Path,
+        timing: ModelTiming,
+        variables_to_save: list[str] | None = None,
     ) -> None:
         """Save the contents of the data object as a NetCDF file.
 
@@ -371,6 +380,7 @@ class Data:
 
         Args:
             output_file_path: Path location to save the Virtual Ecosystem model state.
+            timing: The ModelTiming instance for the simulation
             variables_to_save: List of variables to be saved. If not provided then all
                 variables are saved.
         """
@@ -382,12 +392,21 @@ class Data:
         # If the file path is okay then write the model state out as a NetCDF. Should
         # check if all variables should be saved or just the requested ones.
         if variables_to_save:
-            self.data[variables_to_save].to_netcdf(output_file_path)
+            out = self.data[variables_to_save]
         else:
-            self.data.to_netcdf(output_file_path)
+            out = self.data
+
+        # Add the timestamps to the output
+        out["timestamp"] = DataArray(timing.update_datestamps, dims="time_index")
+
+        out.to_netcdf(output_file_path)
 
     def save_timeslice_to_netcdf(
-        self, output_file_path: Path, variables_to_save: list[str], time_index: int
+        self,
+        output_file_path: Path,
+        variables_to_save: list[str],
+        time_index: int,
+        timestamp: np.datetime64,
     ) -> None:
         """Save specific variables from current state of data as a NetCDF file.
 
@@ -399,6 +418,7 @@ class Data:
             output_file_path: Path location to save NetCDF file to.
             variables_to_save: List of variables to save in the file
             time_index: The time index of the slice being saved
+            timestamp: The timestamp of the start of the timeslice
 
         Raises:
             ConfigurationError: If the file to save to can't be found
@@ -414,6 +434,9 @@ class Data:
             .expand_dims({"time_index": 1})
             .assign_coords(time_index=[time_index])
         )
+
+        # Add the timestamp
+        time_slice["timestamp"] = DataArray([timestamp], dims="time_index")
 
         # Save and close new dataset
         time_slice.to_netcdf(Path(output_file_path))
@@ -442,6 +465,7 @@ class Data:
         variables_to_save: list[str],
         output_directory_path: Path,
         time_index: int,
+        timestamp: np.datetime64,
     ) -> Path:
         """Method to output the current state of the data object.
 
@@ -454,6 +478,7 @@ class Data:
             variables_to_save: List of variables to save
             output_directory_path: The output directory for the current state data.
             time_index: The index representing the current time step in the data object.
+            timestamp: The timestamp of the start of the timeslice
 
         Raises:
             ConfigurationError: If the final output directory doesn't exist, isn't a
@@ -468,7 +493,12 @@ class Data:
         out_path = output_directory_path / f"continuous_state{time_index:05}.nc"
 
         # Save the required variables by appending to existing file
-        self.save_timeslice_to_netcdf(out_path, variables_to_save, time_index)
+        self.save_timeslice_to_netcdf(
+            output_file_path=out_path,
+            variables_to_save=variables_to_save,
+            time_index=time_index,
+            timestamp=timestamp,
+        )
 
         return out_path
 

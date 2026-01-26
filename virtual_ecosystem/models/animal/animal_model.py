@@ -26,7 +26,7 @@ from math import ceil, sqrt
 from random import choice
 from typing import Any, cast
 
-from numpy import array, float32, inf, random, timedelta64, where, zeros
+from numpy import array, float32, random, stack, timedelta64, where, zeros
 from numpy.typing import NDArray
 from xarray import DataArray
 
@@ -95,15 +95,9 @@ class AnimalModel(
         "production_of_fungal_fruiting_bodies",
     ),
     vars_populated_by_first_update=(
-        "decomposed_excrement_carbon",
-        "decomposed_excrement_nitrogen",
-        "decomposed_excrement_phosphorus",
-        "decomposed_carcasses_carbon",
-        "decomposed_carcasses_nitrogen",
-        "decomposed_carcasses_phosphorus",
-        "herbivory_waste_leaf_carbon",
-        "herbivory_waste_leaf_nitrogen",
-        "herbivory_waste_leaf_phosphorus",
+        "decomposed_excrement_cnp",
+        "decomposed_carcasses_cnp",
+        "herbivory_waste_leaf_cnp",
         "herbivory_waste_leaf_lignin",
         "litter_consumption_above_metabolic",
         "litter_consumption_above_structural",
@@ -120,15 +114,9 @@ class AnimalModel(
         "decay_of_fungal_fruiting_bodies",
     ),
     vars_updated=(
-        "decomposed_excrement_carbon",
-        "decomposed_excrement_nitrogen",
-        "decomposed_excrement_phosphorus",
-        "decomposed_carcasses_carbon",
-        "decomposed_carcasses_nitrogen",
-        "decomposed_carcasses_phosphorus",
-        "herbivory_waste_leaf_carbon",
-        "herbivory_waste_leaf_nitrogen",
-        "herbivory_waste_leaf_phosphorus",
+        "decomposed_excrement_cnp",
+        "decomposed_carcasses_cnp",
+        "herbivory_waste_leaf_cnp",
         "herbivory_waste_leaf_lignin",
         "total_animal_respiration",
         "litter_consumption_above_metabolic",
@@ -285,6 +273,7 @@ class AnimalModel(
                 ExcrementPool(
                     scavengeable_cnp=CNP(1e-3, 1e-4, 1e-6),
                     decomposed_cnp=CNP(0.0, 0.0, 0.0),
+                    cell_id=cell_id,
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -295,6 +284,7 @@ class AnimalModel(
                 CarcassPool(
                     scavengeable_cnp=CNP(1e-3, 1e-4, 1e-6),
                     decomposed_cnp=CNP(0.0, 0.0, 0.0),
+                    cell_id=cell_id,
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -327,8 +317,9 @@ class AnimalModel(
         animal cohorts."""
 
         self.exporter.dump(
-            communities=self.communities,
+            cohorts=self.active_cohorts.values(),
             time=self.model_timing.start_time,
+            time_index=0,
         )
 
         # animal respiration data variable
@@ -457,6 +448,7 @@ class AnimalModel(
         # and the rate of decay
         fruiting_bodies_decay = self.update_fungal_fruiting_bodies()
 
+        self.reset_trophic_records()
         self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
         self.birth_community()
@@ -492,11 +484,9 @@ class AnimalModel(
 
         # Dump the cohort data to CSV
         self.exporter.dump(
-            communities=self.communities,
-            time=(
-                self.model_timing.start_time
-                + time_index * self.model_timing.update_interval
-            ),
+            cohorts=self.active_cohorts.values(),
+            time=self.model_timing.update_datestamps[time_index],
+            time_index=time_index,
         )
 
     def _setup_grid_neighbours(self) -> None:
@@ -880,22 +870,26 @@ class AnimalModel(
         )
 
         return {
-            "animal_pom_consumption_carbon": self.to_per_day(pom_consumption_carbon),
-            "animal_pom_consumption_nitrogen": self.to_per_day(
-                pom_consumption_nitrogen
+            "animal_pom_consumption_carbon": DataArray(
+                self.to_per_day(pom_consumption_carbon), dims="cell_id"
             ),
-            "animal_pom_consumption_phosphorus": self.to_per_day(
-                pom_consumption_phosphorus
+            "animal_pom_consumption_nitrogen": DataArray(
+                self.to_per_day(pom_consumption_nitrogen), dims="cell_id"
             ),
-            "animal_bacteria_consumption": self.to_per_day(bacteria_consumption),
-            "animal_saprotrophic_fungi_consumption": self.to_per_day(
-                saprotrophic_fungi_consumption
+            "animal_pom_consumption_phosphorus": DataArray(
+                self.to_per_day(pom_consumption_phosphorus), dims="cell_id"
             ),
-            "animal_ectomycorrhiza_consumption": self.to_per_day(
-                ectomycorrhiza_consumption
+            "animal_bacteria_consumption": DataArray(
+                self.to_per_day(bacteria_consumption), dims="cell_id"
             ),
-            "animal_arbuscular_mycorrhiza_consumption": self.to_per_day(
-                arbuscular_mycorrhiza_consumption
+            "animal_saprotrophic_fungi_consumption": DataArray(
+                self.to_per_day(saprotrophic_fungi_consumption), dims="cell_id"
+            ),
+            "animal_ectomycorrhiza_consumption": DataArray(
+                self.to_per_day(ectomycorrhiza_consumption), dims="cell_id"
+            ),
+            "animal_arbuscular_mycorrhiza_consumption": DataArray(
+                self.to_per_day(arbuscular_mycorrhiza_consumption), dims="cell_id"
             ),
         }
 
@@ -907,33 +901,24 @@ class AnimalModel(
 
         Returns:
             A dictionary containing details of the leaf litter addition due to herbivory
-            this comprises of the mass added in carbon terms [kg C m^-2], ratio of
-            carbon to nitrogen [unitless], ratio of carbon to phosphorus [unitless], and
-            the proportion of input carbon that is lignin [unitless].
+            this comprises of the masses of carbon, nitrogen and phosphorus added [kg],
+            and the proportion of input carbon that is lignin [unitless].
         """
 
-        # Find the size of the leaf waste pool (in carbon terms)
-        leaf_addition = [
-            self.leaf_waste_pools[cell_id].mass_cnp["carbon"] / self.data.grid.cell_area
-            for cell_id in self.data.grid.cell_id
-        ]
+        nutrients = ["carbon", "nitrogen", "phosphorus"]
 
-        # Find the chemistry of the pools, handling different cases properly
-        leaf_c_n = [
-            self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
-            / self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"]
-            if self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"] > 0
-            else inf
-            for cell_id in self.data.grid.cell_id
-        ]
-
-        leaf_c_p = [
-            self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
-            / self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"]
-            if self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"] > 0
-            else inf
-            for cell_id in self.data.grid.cell_id
-        ]
+        leaf_cnp = stack(
+            [
+                array(
+                    [
+                        self.leaf_waste_pools[cell_id].mass_cnp[nutrient]
+                        for cell_id in self.data.grid.cell_id
+                    ]
+                )
+                for nutrient in nutrients
+            ],
+            axis=1,
+        )
 
         leaf_lignin = [
             self.leaf_waste_pools[cell_id].lignin_proportion
@@ -947,12 +932,9 @@ class AnimalModel(
             waste.mass_cnp["phosphorus"] = 0.0
 
         return {
-            "herbivory_waste_leaf_carbon": DataArray(
-                array(leaf_addition), dims="cell_id"
-            ),
-            "herbivory_waste_leaf_nitrogen": DataArray(array(leaf_c_n), dims="cell_id"),
-            "herbivory_waste_leaf_phosphorus": DataArray(
-                array(leaf_c_p), dims="cell_id"
+            "herbivory_waste_leaf_cnp": DataArray(
+                data=leaf_cnp,
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
             "herbivory_waste_leaf_lignin": DataArray(
                 array(leaf_lignin), dims="cell_id"
@@ -1014,7 +996,7 @@ class AnimalModel(
                 pool.decomposed_nutrient_per_area(
                     nutrient=nutrient, grid_cell_area=self.data.grid.cell_area
                 )
-                for cell_id, pools in self.excrement_pools.items()
+                for _, pools in self.excrement_pools.items()
                 for pool in pools
             ]
             for nutrient in nutrients
@@ -1025,7 +1007,7 @@ class AnimalModel(
                 pool.decomposed_nutrient_per_area(
                     nutrient=nutrient, grid_cell_area=self.data.grid.cell_area
                 )
-                for cell_id, pools in self.carcass_pools.items()
+                for _, pools in self.carcass_pools.items()
                 for pool in pools
             ]
             for nutrient in nutrients
@@ -1040,25 +1022,28 @@ class AnimalModel(
             for carcass_pool in carcass_pools:
                 carcass_pool.reset()
 
-        # Create the output DataArray for each nutrient
         return {
-            "decomposed_excrement_carbon": self.to_per_day(
-                array(decomposed_excrement["carbon"])
+            "decomposed_excrement_cnp": DataArray(
+                data=stack(
+                    (
+                        self.to_per_day(array(decomposed_excrement["carbon"])),
+                        self.to_per_day(array(decomposed_excrement["nitrogen"])),
+                        self.to_per_day(array(decomposed_excrement["phosphorus"])),
+                    ),
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
-            "decomposed_excrement_nitrogen": self.to_per_day(
-                array(decomposed_excrement["nitrogen"])
-            ),
-            "decomposed_excrement_phosphorus": self.to_per_day(
-                array(decomposed_excrement["phosphorus"])
-            ),
-            "decomposed_carcasses_carbon": self.to_per_day(
-                array(decomposed_carcasses["carbon"])
-            ),
-            "decomposed_carcasses_nitrogen": self.to_per_day(
-                array(decomposed_carcasses["nitrogen"])
-            ),
-            "decomposed_carcasses_phosphorus": self.to_per_day(
-                array(decomposed_carcasses["phosphorus"])
+            "decomposed_carcasses_cnp": DataArray(
+                data=stack(
+                    (
+                        self.to_per_day(array(decomposed_carcasses["carbon"])),
+                        self.to_per_day(array(decomposed_carcasses["nitrogen"])),
+                        self.to_per_day(array(decomposed_carcasses["phosphorus"])),
+                    ),
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
         }
 
@@ -1076,18 +1061,18 @@ class AnimalModel(
                 / self.data.grid.cell_area
             )
 
-    def to_per_day(self, change: NDArray[float32]) -> DataArray:
+    def to_per_day(self, change: NDArray[float32]) -> NDArray[float32]:
         """Method to convert a change caused by the animal model into a per day rate.
 
         Args:
-            change: Change in pool caused by the animal model [kg m^-3].
+            change: Change in pool caused by the animal model [kg m^-2] or [kg m^-3].
 
         Returns:
             Change converted to a per day rate (which are the units the soil model needs
-            it in) units [kg m^-3 day^-1].
+            it in) units [kg m^-2 day^-1] or [kg m^-3 day^-1].
         """
 
-        return DataArray(change / self.update_interval_in_days, dims="cell_id")
+        return change / self.update_interval_in_days
 
     def update_population_densities(self) -> None:
         """Updates the densities for each functional group in each community."""
@@ -1879,3 +1864,8 @@ class AnimalModel(
             self.update_community_occupancy(cohort, centroid_key)
 
         return cohort
+
+    def reset_trophic_records(self) -> None:
+        """Reset trophic interaction records for all active cohorts."""
+        for cohort in self.active_cohorts.values():
+            cohort.reset_trophic_record()

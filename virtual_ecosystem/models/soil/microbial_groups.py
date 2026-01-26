@@ -92,6 +92,18 @@ class MicrobialGroupConstants:
     functional group will prevent the soil model from configuring.
     """
 
+    symbiote_nitrogen_uptake_fraction: float
+    """Fraction of nitrogen uptake that is supplied to symbiotic (plant) partners.
+    
+    [unitless]. This should only have a non-zero value for mycorrhizal fungi.
+    """
+
+    symbiote_phosphorus_uptake_fraction: float
+    """Fraction of phosphorus uptake that is supplied to symbiotic (plant) partners.
+    
+    [unitless]. This should only have a non-zero value for mycorrhizal fungi.
+    """
+
     synthesis_nutrient_ratios: dict[str, float]
     """Average carbon to nutrient ratios for the total synthesised biomass.
     

@@ -91,15 +91,13 @@ def initialise_canopy_and_soil_fluxes(
 
     # Initialise sensible heat flux with non-zero minimum values
     sensible_heat_flux = layer_structure.from_template()
-    sensible_heat_flux[layer_structure.index_filled_canopy] = initial_flux_value
-    sensible_heat_flux[layer_structure.index_surface_scalar] = initial_flux_value
-    sensible_heat_flux[layer_structure.index_topsoil] = initial_flux_value
+    sensible_heat_flux[layer_structure.index_flux_layers] = initial_flux_value
     output["sensible_heat_flux"] = sensible_heat_flux
 
     # Initialise latent heat flux with non-zero minimum values
     output["latent_heat_flux"] = sensible_heat_flux.copy()
 
-    # Initialise latent heat flux with non-zero minimum values
+    # Initialise ground heat flux with non-zero minimum values
     ground_heat_flux = layer_structure.from_template()
     ground_heat_flux[layer_structure.index_topsoil] = initial_flux_value
     output["ground_heat_flux"] = ground_heat_flux
@@ -325,9 +323,11 @@ def calculate_energy_balance_residual(
     # Latent heat flux canopy, [W m-2]
     # The current implementation converts outputs from plant and hydrology model to
     # ensure energy conservation between modules for now.
-    latent_heat_flux_canopy = (
-        evapotranspiration * latent_heat_vapourisation
-    ) / seconds_to_hour
+    latent_heat_flux_canopy = calculate_latent_heat_flux(
+        evapotranspiration=evapotranspiration,
+        latent_heat_vapourisation=latent_heat_vapourisation,
+        time_interval=seconds_to_hour,
+    )
 
     # Energy balance residual, [W m-2]
     energy_balance_residual = (
@@ -832,3 +832,28 @@ def calculate_conductive_flux_understorey(
         / understorey_layer_thickness
     )
     return flux
+
+
+def calculate_latent_heat_flux(
+    evapotranspiration: NDArray[np.floating],
+    latent_heat_vapourisation: NDArray[np.floating],
+    time_interval: float,
+) -> NDArray[np.floating]:
+    """Calculate latent heat flux from evapotranspiration.
+
+    Args:
+        evapotranspiration: Evapotranspiration per unit area, [kg m-2]
+            (1 kg m-2 of water = 1 mm of water)
+        latent_heat_vapourisation: Latent heat of vaporisation of water, [J kg-1]
+        time_interval: Time interval over which flux is computed, [s]
+
+    Returns:
+        Latent heat flux, [W m-2]
+    """
+    # Energy transferred as latent heat [J m-2] over the time interval
+    energy_j_per_m2 = evapotranspiration * latent_heat_vapourisation
+
+    # Convert to flux [W m-2] by dividing by time interval [s]
+    latent_heat_flux = energy_j_per_m2 / time_interval
+
+    return latent_heat_flux
