@@ -315,6 +315,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial", "time"]
+description = "Top of canopy downward longwave radiation (DLR)"
+name = "downward_longwave_radiation"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial", "time"]
 description = "Precipitation input at the top of the canopy"
 name = "precipitation"
 unit = "mm"

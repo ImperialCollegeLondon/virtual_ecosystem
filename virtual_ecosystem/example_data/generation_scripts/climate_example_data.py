@@ -41,6 +41,7 @@ var_specs = {
     "atmospheric_pressure_ref": {"mean": 101.0, "amp": 1.0, "noise": 0.5},  # kPa
     "atmospheric_co2_ref": {"mean": 400.0, "amp": 0.0, "noise": 0.0},  # ppm (fixed)
     "wind_speed_ref": {"mean": 0.15, "amp": 0.05, "noise": 0.05},  # m/s
+    "downward_longwave_radiation": {"mean": 400.0, "amp": 20.0, "noise": 5.0},  # W/m²
 }
 
 # Loop to fill data
