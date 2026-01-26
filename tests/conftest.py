@@ -648,7 +648,7 @@ def dummy_climate_data(fixture_core_components):
     data["density_air"][lyr_str.index_filled_atmosphere] = 1.255
 
     data["specific_heat_air"] = from_template()
-    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 1.006
+    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 1006.0
 
     data["latent_heat_vapourisation"] = from_template()
     data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2442.0

@@ -106,9 +106,9 @@ def test_calculate_sensible_heat_flux(
 
     expected_flux = np.array(
         [
-            [-0.489356, -0.489356, -0.489356, np.nan],
-            [-0.390997, -0.390997, np.nan, np.nan],
-            [-0.222852, np.nan, np.nan, np.nan],
+            [-489.356123, -489.356123, -489.356123, np.nan],
+            [-390.997461, -390.997461, np.nan, np.nan],
+            [-222.8522, np.nan, np.nan, np.nan],
         ]
     )
 
@@ -213,7 +213,13 @@ def test_energy_balance_residual_only(
         canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
         evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
-        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
+        absorbed_shortwave_radiation=data["shortwave_absorption"][
+            canopy_index
+        ].to_numpy(),
+        absorbed_longwave_radiation=data["downward_longwave_radiation"]
+        .isel(time_index=0)
+        .to_numpy()
+        * fixture_abiotic_constants.leaf_emissivity,
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
@@ -252,7 +258,13 @@ def test_energy_balance_return_fluxes(
         canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
         evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
-        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
+        absorbed_shortwave_radiation=data["shortwave_absorption"][
+            canopy_index
+        ].to_numpy(),
+        absorbed_longwave_radiation=data["downward_longwave_radiation"]
+        .isel(time_index=0)
+        .to_numpy()
+        * fixture_abiotic_constants.leaf_emissivity,
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
@@ -284,6 +296,7 @@ def test_solve_canopy_temperature(
     dummy_climate_data_varying_canopy,
     fixture_core_components,
     fixture_core_constants,
+    fixture_abiotic_constants,
     caplog,
 ):
     """Test solving canopy temperature with Newton method."""
@@ -302,10 +315,14 @@ def test_solve_canopy_temperature(
                 canopy_index
             ].to_numpy(),
             air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-            evapotranspiration=evapotranspiration[canopy_index].to_numpy() / 730,
-            absorbed_radiation_canopy=data["shortwave_absorption"][
+            evapotranspiration=evapotranspiration[canopy_index].to_numpy() / (24 * 30),
+            absorbed_shortwave_radiation=data["shortwave_absorption"][
                 canopy_index
             ].to_numpy(),
+            absorbed_longwave_radiation=data["downward_longwave_radiation"]
+            .isel(time_index=0)
+            .to_numpy()
+            * fixture_abiotic_constants.leaf_emissivity,
             specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
             density_air=data["density_air"][canopy_index].to_numpy(),
             aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
@@ -557,7 +574,7 @@ def test_update_understorey_temperature():
         max_delta_temperature=10.0,
     )
 
-    expected_temperature = np.array([27.416, 23.43, 18.403636])
+    expected_temperature = np.array([26.624, 23.07, 17.814545])
 
     # Assert the temperatures match expected values
     np.testing.assert_allclose(result, expected_temperature)
