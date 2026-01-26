@@ -45,6 +45,7 @@ class AbioticModel(
         "relative_humidity_ref",
         "shortwave_absorption",
         "wind_speed_ref",
+        "downward_longwave_radiation",
         # These four aren't actually required but they _are_ populated by
         # HydrologyModel.__init__ and the current logic for static model update checking
         # objects when the data provides _some_ of the variables that a model updates
