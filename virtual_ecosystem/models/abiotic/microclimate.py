@@ -96,6 +96,17 @@ def run_microclimate(
         layer_structure=layer_structure,
     )
 
+    # Effective heat capacity of understorey vegetation, [J m-2 K-1]
+    effective_heat_capacity_understorey = (
+        energy_balance.calculate_understorey_effective_heat_capacity(
+            layer_thickness=atmospheric_layer_geometry["thickness"][-1],
+            leaf_area_index=data["leaf_area_index"][surface_index].to_numpy(),
+            leaf_mass_per_area=abiotic_constants.leaf_mass_per_area_understorey,
+            leaf_specific_heat=abiotic_constants.specific_heat_capacity_understorey,
+            air_volumetric_heat_capacity=core_constants.air_volumetric_heat_capacity,
+        )
+    )
+
     # -------------------------------------------------------------------------
     # Wind profiles and resistances
     # -------------------------------------------------------------------------
@@ -198,8 +209,8 @@ def run_microclimate(
     soil_temperature = data["soil_temperature"][
         layer_structure.index_all_soil
     ].to_numpy()
-    relative_humidity = data["relative_humidity"][atm_index].to_numpy()
 
+    relative_humidity = data["relative_humidity"][atm_index].to_numpy()
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     downward_longwave_radiation = (
@@ -236,6 +247,7 @@ def run_microclimate(
         celsius_to_kelvin=core_constants.zero_Celsius,
         latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
     )
+    latent_heat_vapourisation_j = latent_heat_vapourisation * 1000  # [J kg-1]
 
     # -------------------------------------------------------------------------
     # Canopy energy balance
@@ -260,7 +272,7 @@ def run_microclimate(
         specific_heat_air=specific_heat_air[1:-1],
         density_air=density_air[1:-1],
         aerodynamic_resistance=aerodynamic_resistance_canopy,
-        latent_heat_vapourisation=latent_heat_vapourisation[1:-1] * 1000,
+        latent_heat_vapourisation=latent_heat_vapourisation_j[1:-1],
         emissivity_leaf=abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
@@ -268,6 +280,7 @@ def run_microclimate(
         return_fluxes=False,
         maxiter=10000,
     )
+
     # Calculate new energy balance and return all fluxes, [W m-2]
     new_energy_balance_canopy = energy_balance.calculate_energy_balance_residual(
         canopy_temperature_initial=canopy_temperature,
@@ -281,14 +294,13 @@ def run_microclimate(
         specific_heat_air=specific_heat_air[1:-1],
         density_air=density_air[1:-1],
         aerodynamic_resistance=aerodynamic_resistance_canopy,
-        latent_heat_vapourisation=latent_heat_vapourisation[1:-1] * 1000,
+        latent_heat_vapourisation=latent_heat_vapourisation_j[1:-1],
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=True,
     )
 
-    # Net radiation canopy, [W m-2]
     if not isinstance(new_energy_balance_canopy, dict):
         to_raise = ValueError("The energy balance has not returned any fluxes!")
         LOGGER.error(to_raise)
@@ -305,6 +317,7 @@ def run_microclimate(
         + longwave_emission_understorey * abiotic_constants.leaf_emissivity
     )
 
+    # Update canopy air temperatures, [C], # TODO integration interval 1 hour
     canopy_air_temperature = energy_balance.update_air_temperature(
         air_temperature=canopy_air_temperature,
         sensible_heat_flux=sensible_heat_flux_canopy,
@@ -317,7 +330,7 @@ def run_microclimate(
     # Understorey vegetation energy balance
     # -------------------------------------------------------------------------
 
-    # Net radiation understorey vegetation, shortwave in - longwave out, [W m-2]
+    # Net radiation understorey vegetation, [W m-2]
     net_radiation_understorey = (
         shortwave_absorption_understorey
         - longwave_emission_understorey
@@ -337,7 +350,7 @@ def run_microclimate(
     # Latent heat flux understorey vegetation, [W m-2]
     latent_heat_flux_understorey = energy_balance.calculate_latent_heat_flux(
         evapotranspiration=evapotranspiration[surface_index].to_numpy(),
-        latent_heat_vapourisation=latent_heat_vapourisation[-1] * 1000,
+        latent_heat_vapourisation=latent_heat_vapourisation_j[-1],
         time_interval=time_interval,
     )
 
@@ -351,16 +364,7 @@ def run_microclimate(
         understorey_thermal_conductivity=abiotic_constants.understorey_thermal_conductivity,
     )
 
-    # Update understory vegetation temperatures, [C], TODO integration interval 1 hour
-    effective_heat_capacity_understorey = (
-        energy_balance.calculate_understorey_effective_heat_capacity(
-            layer_thickness=atmospheric_layer_geometry["thickness"][-1],
-            leaf_area_index=data["leaf_area_index"][surface_index].to_numpy(),
-            leaf_mass_per_area=abiotic_constants.leaf_mass_per_area_understorey,
-            leaf_specific_heat=abiotic_constants.specific_heat_capacity_understorey,
-            air_volumetric_heat_capacity=core_constants.air_volumetric_heat_capacity,
-        )
-    )
+    # Update understory vegetation temperatures, [C]
 
     understorey_temperature = energy_balance.update_understorey_temperature(
         current_temperature=understorey_temperature,
@@ -401,7 +405,7 @@ def run_microclimate(
     # Latent heat flux topsoil, [W m-2]
     latent_heat_flux_soil = energy_balance.calculate_latent_heat_flux(
         evapotranspiration=data["soil_evaporation"].to_numpy(),
-        latent_heat_vapourisation=latent_heat_vapourisation[-1] * 1000,
+        latent_heat_vapourisation=latent_heat_vapourisation_j[-1],
         time_interval=time_interval,
     )
 
@@ -426,6 +430,7 @@ def run_microclimate(
         time_interval=core_constants.seconds_to_hour,
     )
 
+    # Update surface air temperatures, [C], TODO integration interval 1 hour
     surface_air_temperature = energy_balance.update_air_temperature(
         air_temperature=surface_air_temperature,
         sensible_heat_flux=sensible_heat_flux_understorey + sensible_heat_flux_soil,
@@ -433,6 +438,8 @@ def run_microclimate(
         density_air=density_air[-1],
         mixing_layer_thickness=atmospheric_layer_geometry["thickness"][-1],
     )
+
+    # Update all air temperatures, [C]
     all_air_temperature[0] = data["air_temperature_ref"].isel(time_index=time_index)
     all_air_temperature[1 : len(canopy_temperature) + 1] = canopy_air_temperature
     all_air_temperature[-1] = surface_air_temperature
