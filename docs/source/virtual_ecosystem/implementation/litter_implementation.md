@@ -42,8 +42,9 @@ The litter model uses the following sequence:
 3. Plant inputs are considered from two sources, which have different stoichiometric
    properties.
 
-    * Inputs from tissue senescence and turnover directly from plant communities
-      typically have reduced nutrient concentrations through translocation.
+    * The nutrient concentrations of turned over plant tissues generally have reduced
+      nutrient concentrations because plants translocate nutrients out of them before
+      dropping them.
 
     * Plant inputs generated during herbivory, where animals drop unconsumed biomass,
       are not depleted in nutrients and herbivores may be actively selecting plant

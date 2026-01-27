@@ -139,7 +139,7 @@ flow of water through the system:
 
 * **Evapotranspiration**: Evaporation describes the process where water is converted
   from liquid to vapor and released into the atmosphere from surfaces like soil, water
-  bodies, and vegetation. Transpiration rferns to the release of water vapor from plants
+  bodies, and vegetation. Transpiration refers to the release of water vapor from plants
   into the atmosphere through small openings in their leaves called stomata. Combined,
   these processes account for water loss from the surface and vegetation to the
   atmosphere.
