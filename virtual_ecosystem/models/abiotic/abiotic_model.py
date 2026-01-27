@@ -270,11 +270,20 @@ class AbioticModel(
             time_index: The index of the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
+        month = (
+            self.model_timing.update_datestamps[time_index]
+            .astype("datetime64[M]")
+            .astype(int)
+            % 12
+            + 1
+        )
+
         # Run microclimate model
         update_dict = run_microclimate(
             data=self.data,
             time_index=time_index,
             time_interval=self.model_timing.update_interval_seconds,
+            month=month,
             cell_area=self.grid.cell_area,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,

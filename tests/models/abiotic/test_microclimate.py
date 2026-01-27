@@ -22,6 +22,7 @@ def test_run_microclimate(
         data=dummy_climate_data_varying_canopy,
         time_index=0,
         time_interval=86400 * 30,
+        month=1,
         cell_area=10000,
         layer_structure=lyr_str,
         abiotic_constants=fixture_abiotic_constants,

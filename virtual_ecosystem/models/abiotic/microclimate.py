@@ -20,6 +20,7 @@ def run_microclimate(
     data: Data,
     time_index: int,
     time_interval: float,
+    month: int,
     cell_area: float,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConstants,
@@ -47,6 +48,7 @@ def run_microclimate(
         data: Data object
         time_index: Time index
         time_interval: Time interval, [s]
+        month: Current month (1-12)
         cell_area: Cell area, [m2]
         layer_structure: Layer structure object
         abiotic_constants: Set of constants for abiotic model
