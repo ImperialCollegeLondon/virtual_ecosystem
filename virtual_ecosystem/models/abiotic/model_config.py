@@ -164,6 +164,15 @@ class AbioticConstants(AbioticSharedConstants):
     Values roughly estimated based on :cite:t:`poorter_causes_2009`.
     """
 
+    aerodynamic_resistance_canopy_night: float = 250.0
+    """Aerodynamic resistance of the canopy at night, [s m-1]."""
+
+    aerodynamic_resistance_soil_night: float = 150.0
+    """Aerodynamic resistance of the soil at night, [s m-1]."""
+
+    aerodynamic_resistance_canopy_day: float = 50.0
+    """Aerodynamic resistance of the canopy during the day, [s m-1]."""
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""
