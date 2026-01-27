@@ -23,65 +23,55 @@ involved in a real ecosystem including the:
 - biotic and abiotic processes within the soil, and the
 - growth and demography of heterotrophs.
 
-The project is open-source and is being developed using the Python programming language.
-
-## What to read next
-
-The project documentation and the underlying code are big, so here are some quick links
-to help guide you in finding out more about the Virtual Ecosystem. Are you interested
-in:
-
-- Reading more about the [scientific theories](./virtual_ecosystem/theory/theory.md)
-  underlying the development of the Virtual Ecosystem.
-- Exploring the
-  [big picture workflow](./virtual_ecosystem/implementation/implementation.md) of the
-  implementation of the Virtual Ecosystem.
-- Getting started by [installing the Virtual
-  Ecosystem](./using_the_ve/overview.md) and running a simple example.
-- Moving on to [configuring your own simulation](./using_the_ve/configuration/config.md)
-  and [providing new data](./using_the_ve/data/data.md).
-- Contributing to the [development](./development/contributing.md) of the Virtual
-  Ecosystem.
-- Simply taking a look at the code! The project is open source and is developed on the
-  [ImperialCollegeLondon/virtual_ecosystem](https://github.com/ImperialCollegeLondon/virtual_ecosystem)
-  repository on GitHub.
-
-## About the project
+<!-- markdownlint-disable MD034 -->
+<!-- The :link: tag requires bare URLs and markdownlint autowraps them in <>
+unless this rule is disabled. Do not combine the text of these two comments - apparently
+markdownlint is fussy about the formatting within the disable comment.
+-->
 
 ::::{grid} 1 1 2 2
 
-:::{grid-item-card} Project details
+:::{grid-item-card} {fas}`microscope;fa-xl` Theory
+:margin: 2 2 0 0
+:link: ./virtual_ecosystem/implementation.html
 
-This project is funded by a 2021 [Distinguished Scientist award](<https://nomisfoundation.ch/projects/a-virtual-rainforest-for-understanding-the-stability-resilience-and-sustainability-of-complex-ecosystems/>)
-from the [NOMIS Foundation](https://nomisfoundation.ch) to Professor Ewers.
-
-```{image} _static/images/logo-nomis-822-by-321.png
-:alt: NOMIS logo
-:class: bg-primary
-:width: 250px
-```
-
-The research is based at [Imperial College London](https://imperial.ac.uk):
-
-```{image} _static/images/IMPERIAL_logo_RGB_Blue_safe_area_2024.png
-:alt: Imperial logo
-:class: bg-primary
-:width: 250px
-```
+Read more about the scientific theories and implementation underlying the Virtual
+Ecosystem.
 
 :::
 
-:::{grid-item-card} Project Team
+:::{grid-item-card} {fas}`user-group;fa-xl` Users
+:margin: 2 2 0 0
+:link: ./using_the_ve/overview.html
 
-The project team is an international group of research scientists and software
-developers, lead by [Professor Robert Ewers](https://profiles.imperial.ac.uk/r.ewers)
-(Imperial College London). For more details, please see our [team
-page](project_team.md).
+Explore how to start using the Virtual Ecosystem, from installing the model to
+configuring and running your own ecological simulations.
 
-The research team are supported by the Imperial College London
-[Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/service-offering/research-software-engineering/)
-team.
+:::
 
+:::{grid-item-card} {fas}`terminal;fa-xl` Developers
+:margin: 2 2 0 0
+:link: ./development/contributing.html
+
+Learn more about contributing to the development of the Virtual Ecosystem, from fixing
+that critical bug to contributing new science models to the project.
+
+:::
+
+:::{grid-item-card} {fas}`book;fa-xl` API
+:margin: 2 2 0 0
+:link: ./api/virtual_ecosystem.html
+
+Venture into the technical details of the API of the Virtual Ecosystem.
+
+:::
+
+:::{grid-item-card} {fas}`circle-info;fa-xl` About the project
+:margin: 2 2 0 0
+:link: ./project_team.html
+
+Find out more about the project team, our research computing support and the funding of
+the Virtual Ecosystem project
 :::
 
 ::::

@@ -74,7 +74,7 @@ def test_run_microclimate(
     valid_values_rel_hum_clean = valid_values_rel_hum.dropna(dim="layers", how="any")
 
     # Now do the test
-    assert ((soil_temps >= 18.0) & (soil_temps <= 25.0)).all()
+    assert ((soil_temps >= 10.0) & (soil_temps <= 30.0)).all()
     assert (
         (valid_values_can_temp_clean >= 15.0) & (valid_values_can_temp_clean <= 40.0)
     ).all()
