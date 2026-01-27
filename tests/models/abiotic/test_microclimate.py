@@ -24,6 +24,7 @@ def test_run_microclimate(
         time_interval=86400 * 30,
         month=1,
         cell_area=10000,
+        latitude=0.0,
         layer_structure=lyr_str,
         abiotic_constants=fixture_abiotic_constants,
         core_constants=fixture_core_constants,

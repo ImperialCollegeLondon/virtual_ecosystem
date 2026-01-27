@@ -278,6 +278,7 @@ class AbioticModel(
             + 1
         )
 
+        latitude = 0.0  # Placeholder for future use
         # Run microclimate model
         update_dict = run_microclimate(
             data=self.data,
@@ -285,6 +286,7 @@ class AbioticModel(
             time_interval=self.model_timing.update_interval_seconds,
             month=month,
             cell_area=self.grid.cell_area,
+            latitude=latitude,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
             core_constants=self.core_constants,

@@ -22,6 +22,7 @@ def run_microclimate(
     time_interval: float,
     month: int,
     cell_area: float,
+    latitude: float,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
@@ -50,6 +51,7 @@ def run_microclimate(
         time_interval: Time interval, [s]
         month: Current month (1-12)
         cell_area: Cell area, [m2]
+        latitude: Latitude of the location, [degrees]
         layer_structure: Layer structure object
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
