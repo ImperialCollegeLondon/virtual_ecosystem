@@ -409,21 +409,23 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_can
     assert np.all(nighttime_sw == 0.0)
 
     # Check conservation
-    daily_sum_et = np.nansum(forcing["evapotranspiration_hourly"], axis=0)
-    daily_sum_sw_abs = np.nansum(forcing["shortwave_absorption_hourly"], axis=0)
-    daily_sum_soil_evap = np.nansum(forcing["soil_evaporation_hourly"], axis=0)
+    monthly_sum_et = np.nansum(forcing["evapotranspiration_hourly"], axis=0) * 30
+    monthly_sum_sw_abs = np.nansum(forcing["shortwave_absorption_hourly"], axis=0)
+    monthly_sum_soil_evap = np.nansum(forcing["soil_evaporation_hourly"], axis=0) * 30
 
     # Mask for valid monthly
     mask = ~np.isnan(evapotranspiration.to_numpy())
 
     assert np.allclose(
-        daily_sum_et[mask], evapotranspiration.to_numpy()[mask], rtol=1e-5
+        monthly_sum_et[mask], evapotranspiration.to_numpy()[mask], rtol=1e-5
     )
     assert np.allclose(
-        daily_sum_sw_abs[mask], data["shortwave_absorption"].to_numpy()[mask], rtol=1e-5
+        monthly_sum_sw_abs[mask],
+        data["shortwave_absorption"].to_numpy()[mask],
+        rtol=1e-5,
     )
     assert np.allclose(
-        daily_sum_soil_evap,
+        monthly_sum_soil_evap,
         data["soil_evaporation"].to_numpy(),
         rtol=1e-5,
     )

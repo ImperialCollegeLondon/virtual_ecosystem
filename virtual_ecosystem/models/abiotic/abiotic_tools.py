@@ -413,17 +413,21 @@ def generate_diurnal_cycle_from_monthly_data(
 
     evapotranspiration_hourly = np.where(
         sw_sum > 0,
-        monthly_evapotranspiration[None, :, :] * shortwave_absorption_hourly / sw_sum,
-        monthly_evapotranspiration[None, :, :] / 24.0,
+        monthly_evapotranspiration[None, :, :]
+        / 30
+        * shortwave_absorption_hourly
+        / sw_sum,
+        monthly_evapotranspiration[None, :, :] / 30 / 24.0,
     )
 
     # Soil evaporation (distributed like radiation)
     soil_evaporation_hourly = np.where(
         shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :] > 0,
         monthly_soil_evaporation[None, :]
+        / 30
         * shortwave_absorption_hourly.sum(axis=1)
         / shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :],
-        monthly_soil_evaporation[None, :] / 24.0,
+        monthly_soil_evaporation[None, :] / 30 / 24.0,
     )
 
     return {
