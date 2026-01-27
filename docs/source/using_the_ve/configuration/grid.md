@@ -247,7 +247,7 @@ The function will raise `ValueError` exceptions if:
 * any points ambiguously lie on cell boundaries,
 * if more than one point falls in any cell,
 * if no points fall in a cell, or
-* any points fall outside all the grid cell.
+* any points fall outside all the grid cells.
 
 It then returns indices
 from the original X and Y axes that map the 2 dimensional data onto a one dimensional

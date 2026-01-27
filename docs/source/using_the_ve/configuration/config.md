@@ -206,7 +206,7 @@ variable creation and updating:
 
 * All data needed by the model to set up is read in.
 * The initial model setup adds new variables provided by the model.
-* When the model updates at the first time step it create additional new variables.
+* When the model is first updated it creates additional new variables.
 * At each time step, it then updates a set of variables.
 
 This sequence of changing data drives the interactions between models and leads to
@@ -220,7 +220,7 @@ useful to set some models to keep their data in a static state. For example:
   understand the interactions without running the entire complex model.
 
 To implement this, all models (except `core`) accept a boolean configuration option,
-`static`, that indicates if such the model data should held static. Changing the default
+`static`, that indicates if the model data should be held static. Changing the default
 configuration `static=false` to `static=true` puts a model into static mode. For an
 example of this in use, see [this tutorial](../virtual_ecosystem_in_static_mode.ipynb).
 

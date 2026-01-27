@@ -19,11 +19,11 @@ A Virtual Ecosystem simulation requires data to run. That includes the loading o
 initial forcing data for the model - things like air temperature, elevation and
 photosynthetically active radiation - but also  includes the storage of internal
 variables calculated by the various models running within the simulation. The data
-handling for simulations is managed by the {mod}`~virtual_ecosystem.core.data` module
-and the {class}`~virtual_ecosystem.core.data.Data` class, which provides the data
-loading and storage functions for the Virtual Ecosystem. The data system is extendable
-to provide support for different file formats and axis validation (see the [module API
-docs](../../api/core/data.md)) but that is beyond the scope of this document.
+handling for simulations is managed by the {class}`~virtual_ecosystem.core.data.Data`
+class, which provides the data loading and storage functions for the Virtual Ecosystem.
+The data system is extendable to provide support for different file formats and axis
+validation (see the [module API docs](../../api/core/data.md)) but that is beyond the
+scope of this document.
 
 A Virtual Ecosystem simulation will have one instance of the
 {class}`~virtual_ecosystem.core.data.Data` class to provide access to the different
@@ -45,7 +45,7 @@ applied along a set of **core axes** used in the simulation. For a given core ax
   that axis. For example, a dataset with `x` and `y` dimensions will be validated
   on the `spatial` core axis.
 
-* The axis will have a set of defined validators, which are provided to handles different
+* The axis will have a set of defined validators, which are provided to handle different
   possible data configurations. For example, there is a specific `spatial` validator
   used to handle a dataset with `x` and `y` dimensions but no coordinate values.
 
@@ -63,7 +63,7 @@ validators see the [core axis](../configuration/axes.md) documentation.
 
 ## Creating a `Data` instance
 
-A  {class}`~virtual_ecosystem.core.data.Data` instance is created using information
+A {class}`~virtual_ecosystem.core.data.Data` instance is created using information
 that provides information on the core configuration of the simulation. At present, this
 is just the spatial grid being used.
 
@@ -104,12 +104,12 @@ two methods:
    is a dictionary of DataArrays keyed by the variable names and can then be added
    directly to a Data instance:
 
-```{code-block} ipython3
-loaded_data = load_to_dataarray("path/to/file.nc", var_names=["temperature"])
-# iterate over the dictionary of variable names and arrays
-for var_name, data_array in loaded_data.items():
-    data[var_name] = data_array
-```
+   ```{code-block} ipython3
+   loaded_data = load_to_dataarray("path/to/file.nc", var_names=["temperature"])
+   # iterate over the dictionary of variable names and arrays
+   for var_name, data_array in loaded_data.items():
+       data[var_name] = data_array
+   ```
 
 1. The  {meth}`~virtual_ecosystem.core.data.Data.load_data_config` method takes a
    loaded Data configuration - which is a set of named variables and source files - and
@@ -153,7 +153,7 @@ data
 ```
 
 A variable can be accessed from the `data` object using the variable name as a key, and
-the data is returned as an :class:`xarray.DataArray` object.
+the data is returned as a :class:`xarray.DataArray` object.
 
 Note that the `x` and `y` coordinates have been mapped onto the internal `cell_id`
 dimension used to label the different grid cells (see the
@@ -216,9 +216,8 @@ You can include `core.data.variable` tags in different files. This can be useful
 group model-specific data with other model configuration options, and allow
 configuration files to be swapped in a more modular fashion.
 
-To load configuration data , you will typically use the `cfg_paths` argument
-to pass one or more TOML formatted configuration files to create a
- object. You can also use a string
+To load configuration data , you will typically use the `cfg_paths` argument to pass one
+or more TOML formatted configuration files to create a object. You can also use a string
 containing TOML formatted text or a list of TOML strings to create a configuration
 object:
 

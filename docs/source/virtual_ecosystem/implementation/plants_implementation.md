@@ -174,7 +174,7 @@ Mortality and reproduction have not yet been implemented.
 ## Generated variables
 
 The calculations described above result in the following variables being calculated and
-saved within the model data store, and then updated
+saved within the data object, and then updated
 
 ```{code-cell} ipython3
 ---
