@@ -59,8 +59,8 @@ class AbioticModel(
         "air_temperature",
         "canopy_temperature",
         "soil_temperature",
-        "vapour_pressure",
         "vapour_pressure_deficit",
+        "relative_humidity",
         "wind_speed",
         "sensible_heat_flux",
         "latent_heat_flux",
@@ -71,6 +71,7 @@ class AbioticModel(
         "aerodynamic_resistance_canopy",
         "net_radiation",
         "conductive_flux_understorey",
+        "longwave_emission",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -96,7 +97,6 @@ class AbioticModel(
         "vapour_pressure_deficit_ref",
         "air_temperature",
         "relative_humidity",
-        "vapour_pressure",
         "vapour_pressure_deficit",
         "wind_speed",
         "atmospheric_pressure",
@@ -106,11 +106,10 @@ class AbioticModel(
         "latent_heat_flux",
         "ground_heat_flux",
         "net_radiation",
-    ),
-    vars_populated_by_first_update=(
         "longwave_emission",
         "conductive_flux_understorey",
     ),
+    vars_populated_by_first_update=(),
 ):
     """A class describing the abiotic model.
 
@@ -282,6 +281,7 @@ class AbioticModel(
         # Run microclimate model
         update_dict = run_microclimate(
             data=self.data,
+            vars_updated=self.vars_updated,
             time_index=time_index,
             time_interval=self.model_timing.update_interval_seconds,
             month=month,

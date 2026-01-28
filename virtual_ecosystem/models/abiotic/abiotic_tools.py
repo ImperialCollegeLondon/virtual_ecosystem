@@ -6,6 +6,8 @@ TODO cross-check with pyrealm for duplication/ different implementation
 TODO change temperatures to Kelvin
 """  # noqa: D205
 
+from collections.abc import Iterable
+
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
@@ -511,3 +513,74 @@ def mean_to_layers(
     mean_vals = np.nanmean(data_record[var], axis=0)
     out[index] = mean_vals[index]
     return out
+
+
+def initialize_data_record(
+    variables: dict[str, DataArray],
+    time_dim: int,
+    layers: int,
+    cell_ids: int,
+) -> dict[str, NDArray[np.floating]]:
+    """Create a data_record dict with a new leading time dimension.
+
+    Assumptions:
+        - 1D variables have shape (cell_ids,)
+        - 2D variables have shape (layers, cell_ids)
+
+    Args:
+        variables : Dictionary of variable names to template arrays
+        time_dim : Size of the new time dimension (e.g. 24)
+        layers : Number of layers
+        cell_ids : Number of cell ids
+
+    Returns:
+        Dictionary with initialized arrays filled with NaNs
+    """
+    data_record = {}
+
+    for var, arr in variables.items():
+        shape: tuple[int, ...]
+
+        if arr.ndim == 1:
+            shape = (time_dim, cell_ids)
+        elif arr.ndim == 2:
+            shape = (time_dim, layers, cell_ids)
+        else:
+            raise ValueError(
+                f"Unsupported number of dimensions for '{var}': {arr.ndim}"
+            )
+
+        data_record[var] = np.full(shape, np.nan)
+
+    return data_record
+
+
+def validate_variables(
+    names: tuple[str, ...],
+    values: dict[str, object],
+    exclude: Iterable[str] = (),
+) -> None:
+    """Validate all variables are in update dictionary.
+
+    Args:
+        names: variable names in output
+        values: variables in hourly update
+        exclude: variable names to ignore in the comparison
+
+    Returns:
+        None
+    """
+    exclude_set = set(exclude)
+
+    names_set = set(names) - exclude_set
+    values_set = set(values) - exclude_set
+
+    missing = names_set - values_set
+    extra = values_set - names_set
+
+    if missing or extra:
+        raise ValueError(
+            "Variable mismatch detected\n"
+            f"Missing: {sorted(missing)}\n"
+            f"Extra: {sorted(extra)}"
+        )

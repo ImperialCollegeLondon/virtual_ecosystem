@@ -48,12 +48,6 @@ def initialise_atmosphere_for_hydrology(
             model_constants.initial_aerodynamic_resistance_soil,
         ),
         (
-            "aerodynamic_resistance_canopy",
-            layer_structure.index_filled_canopy,
-            layer_structure.index_surface_scalar,
-            core_constants.initial_aerodynamic_resistance_canopy,
-        ),
-        (
             "stomatal_conductance",
             layer_structure.index_filled_canopy,
             layer_structure.index_surface_scalar,
@@ -66,6 +60,14 @@ def initialise_atmosphere_for_hydrology(
         layer[index] = value
         layer[index_surface] = value
         output[key] = layer
+
+    output["aerodynamic_resistance_canopy"] = DataArray(
+        np.repeat(
+            core_constants.initial_aerodynamic_resistance_canopy,
+            data["air_temperature_ref"].shape[0],
+        ),
+        dims="cell_id",
+    )
 
     # Extract air temperature and pressure
     air_temp = data["air_temperature_ref"].isel(time_index=0).to_numpy()

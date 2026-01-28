@@ -582,6 +582,8 @@ def dummy_climate_data(fixture_core_components):
         "aerodynamic_resistance_soil": 12.5,
         "aerodynamic_resistance_canopy": 12.5,
         "mean_annual_temperature": 20.0,
+        "ground_heat_flux": 100.0,
+        "conductive_flux_understorey": 50.0,
     }
     for var, val in spatially_constant.items():
         data[var] = DataArray(np.repeat(val, 4), dims=["cell_id"])
@@ -631,6 +633,9 @@ def dummy_climate_data(fixture_core_components):
 
     data["shortwave_absorption"] = from_template()
     data["shortwave_absorption"][lyr_str.index_flux_layers] = 450.0
+
+    data["longwave_emission"] = from_template()
+    data["longwave_emission"][lyr_str.index_flux_layers] = 450.0
 
     data["sensible_heat_flux"] = from_template()
     data["sensible_heat_flux"][lyr_str.index_flux_layers] = 0.0
@@ -727,6 +732,12 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     dummy_climate_data["shortwave_absorption"][index_filled_canopy] = [
+        [450.0, 450.0, 450.0, np.nan],
+        [450.0, 450.0, np.nan, np.nan],
+        [450.0, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["longwave_emission"][index_filled_canopy] = [
         [450.0, 450.0, 450.0, np.nan],
         [450.0, 450.0, np.nan, np.nan],
         [450.0, np.nan, np.nan, np.nan],

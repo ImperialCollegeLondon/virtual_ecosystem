@@ -5,7 +5,6 @@ balance in the Virtual Ecosystem.
 from types import SimpleNamespace
 
 import numpy as np
-from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_specific_heat, calc_vp_sat
 from xarray import DataArray
@@ -24,6 +23,7 @@ from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBo
 
 def run_microclimate(
     data: Data,
+    vars_updated: tuple[str, ...],
     time_index: int,
     time_interval: float,
     month: int,
@@ -38,12 +38,12 @@ def run_microclimate(
     """Run microclimate model.
 
     This function updates air, soil, understorey, and canopy temperatures by calculating
-    the energy balance for each layer. We currently make the assumption that over the
-    time interval of one month, different compartments are in equilibrium. For numerical
-    stability, the integration interval is 1 hour.
+    the radiation and energy balance for each layer. We currently make the assumption
+    that over the time interval of one month, different compartments are in equilibrium.
+    For numerical stability, the integration interval is 1 hour.
 
     The understorey layer is treated as a separate vegetation layer with its own
-    temperature, aerodynamic resistance, and energy balance. The implementation is based
+    radiation and energy balance. The implementation is based
     on a forest floor model for heat and moisture including a litter layer by
     :cite:t:`ogee_a_forest_2002`.
 
@@ -53,6 +53,8 @@ def run_microclimate(
 
     Args:
         data: Data object
+        vars_updated: Tuple containing strings of all variables that are updated by the
+            abiotic model
         time_index: Time index
         time_interval: Time interval, [s]
         month: Current month (1-12)
@@ -95,7 +97,7 @@ def run_microclimate(
     )
 
     # Evapotranspiration from plant and hydrology model, [mm per time interval]
-    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
 
     # Atmospheric pressure profile set to reference value, [kPa]
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
@@ -206,7 +208,7 @@ def run_microclimate(
         monthly_relative_humidity=data["relative_humidity_ref"]
         .isel(time_index=time_index)
         .to_numpy(),
-        monthly_evapotranspiration=evapotranspiration.to_numpy(),
+        monthly_evapotranspiration=evapotranspiration,
         monthly_soil_evaporation=data["soil_evaporation"].to_numpy(),
         latitude_deg=latitude,
         month=month,
@@ -230,48 +232,17 @@ def run_microclimate(
         data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
     )
 
-    # ----------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Hourly record arrays
     # -------------------------------------------------------------------------
-    data_record: dict[str, NDArray[np.floating]] = {}
 
-    # 1D arrays
-    one_d_vars = [
-        "ground_heat_flux",
-        "conductive_flux_understorey",
-        "aerodynamic_resistance_canopy",
-    ]
-
-    # 2D Arrays
-    two_d_soil_vars = ["soil_temperature"]
-    two_d_atm_vars_static = ["density_air", "specific_heat_air", "wind_speed"]
-    two_d_atm_vars = [
-        "latent_heat_vapourisation",
-        "air_temperature",
-        "relative_humidity",
-        "vapour_pressure",
-        "vapour_pressure_deficit",
-    ]
-    two_d_flux_vars = [
-        "longwave_emission",
-        "net_radiation",
-        "sensible_heat_flux",
-        "latent_heat_flux",
-    ]
-    two_d_canopy_vars = ["canopy_temperature"]
-
-    all_two_d_vars = (
-        two_d_soil_vars
-        + two_d_atm_vars_static
-        + two_d_atm_vars
-        + two_d_flux_vars
-        + two_d_canopy_vars
+    variables = {name: data[name] for name in vars_updated}
+    data_record = abiotic_tools.initialize_data_record(
+        variables=variables,
+        time_dim=24,
+        layers=layer_structure.n_layers,
+        cell_ids=data.grid.n_cells,
     )
-
-    for var in one_d_vars:
-        data_record[var] = np.full((24, idx.cell_id), np.nan)
-    for var in all_two_d_vars:
-        data_record[var] = np.full((24, idx.layers, idx.cell_id), np.nan)
 
     # -----------------------------------------------------------------------------
     # Hourly loop
@@ -286,7 +257,7 @@ def run_microclimate(
         all_air_temperature[0] = hourly_forcing["air_temperature_hourly"][hour, :]
         relative_humidity[0] = hourly_forcing["relative_humidity_hourly"][hour, :]
 
-        # Shortwave absorption profiles, [W m-2]
+        # Select shortwave absorption profiles, [W m-2]
         shortwave_absorption_canopy = hourly_forcing["shortwave_absorption_hourly"][
             hour, idx.canopy, :
         ]
@@ -297,7 +268,7 @@ def run_microclimate(
             hour, layer_structure.index_topsoil_scalar, :
         ]
 
-        # Evapotranspiration and soil evaporation, [mm per hour]
+        # Select evapotranspiration and soil evaporation, [mm per hour]
         evapotranspiration_canopy = hourly_forcing["evapotranspiration_hourly"][
             hour, idx.canopy, :
         ]
@@ -615,6 +586,7 @@ def run_microclimate(
             # 1D arrays
             "ground_heat_flux": ground_heat_flux,
             "conductive_flux_understorey": conductive_flux_understorey,
+            "aerodynamic_resistance_canopy": aerodynamic_resistance_canopy,
             # 2D layered arrays
             "longwave_emission": [
                 (idx.canopy, longwave_emission_canopy),
@@ -645,34 +617,26 @@ def run_microclimate(
                 (idx.surface, surface_air_temperature),
             ],
             "latent_heat_vapourisation": [
-                (
-                    idx.atm,
-                    latent_heat_vapourisation,
-                ),
+                (idx.atm, latent_heat_vapourisation),
             ],
             "relative_humidity": [
-                (
-                    idx.atm,
-                    new_atmospheric_humidity_vars["relative_humidity"],
-                ),
-            ],
-            "vapour_pressure": [
-                (
-                    idx.atm,
-                    new_atmospheric_humidity_vars["vapour_pressure"],
-                ),
+                (idx.atm, new_atmospheric_humidity_vars["relative_humidity"]),
             ],
             "vapour_pressure_deficit": [
-                (
-                    idx.atm,
-                    new_atmospheric_humidity_vars["vapour_pressure_deficit"],
-                ),
+                (idx.atm, new_atmospheric_humidity_vars["vapour_pressure_deficit"]),
             ],
             "canopy_temperature": [
                 (idx.canopy, canopy_temperature),
                 (idx.surface, understorey_temperature),
             ],
         }
+
+        # Check that all vars are updated
+        abiotic_tools.validate_variables(
+            names=vars_updated,
+            values=hourly_values,
+            exclude=("density_air", "specific_heat_air", "wind_speed"),
+        )
 
         # Record this hour
         abiotic_tools.record_hourly_output(
@@ -681,26 +645,39 @@ def run_microclimate(
             layer_structure=layer_structure,
             hourly_values=hourly_values,
         )
+        print("hour", data_record["aerodynamic_resistance_canopy"][hour].shape)
 
     # End of loop
 
     # Write in output dictionary
+
     # Static atmospheric variables
     output["atmospheric_pressure"] = atmospheric_pressure
     output["atmospheric_co2"] = atmospheric_co2
 
+    # 1D arrays
+    one_d_vars = [
+        "ground_heat_flux",
+        "conductive_flux_understorey",
+        "aerodynamic_resistance_canopy",
+    ]
+    for var in one_d_vars:
+        output[var] = DataArray(np.nanmean(data_record[var], axis=0), dims="cell_id")
+
+    # 2d arrays
+    two_d_atm_vars_static = ["density_air", "specific_heat_air", "wind_speed"]
     two_d_atm_vars_static_data = [wind_profile, specific_heat_air, density_air]
     for var_name, var_value in zip(two_d_atm_vars_static, two_d_atm_vars_static_data):
         temp_array = layer_structure.from_template()
         temp_array[idx.atm] = var_value
         output[var_name] = temp_array
 
-    # 1d variables
-    for var in one_d_vars:
-        output[var] = DataArray(np.nanmean(data_record[var], axis=0), dims="cell_id")
-
-    # Time-variable variables
-    # Atmospheric variables
+    two_d_atm_vars = [
+        "latent_heat_vapourisation",
+        "air_temperature",
+        "relative_humidity",
+        "vapour_pressure_deficit",
+    ]
     for var in two_d_atm_vars:
         output[var] = abiotic_tools.mean_to_layers(
             var=var,
@@ -709,7 +686,7 @@ def run_microclimate(
             layer_structure=layer_structure,
         )
 
-    # Soil variables
+    two_d_soil_vars = ["soil_temperature"]
     for var in two_d_soil_vars:
         output[var] = abiotic_tools.mean_to_layers(
             var=var,
@@ -718,7 +695,12 @@ def run_microclimate(
             layer_structure=layer_structure,
         )
 
-    # Flux variables
+    two_d_flux_vars = [
+        "longwave_emission",
+        "net_radiation",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+    ]
     for var in two_d_flux_vars:
         output[var] = abiotic_tools.mean_to_layers(
             var=var,
@@ -727,7 +709,6 @@ def run_microclimate(
             layer_structure=layer_structure,
         )
 
-    # Canopy variables
     canopy_temperature_out = layer_structure.from_template()
     mean_vals = np.nanmean(data_record["canopy_temperature"], axis=0)
     canopy_temperature_out[idx.canopy] = mean_vals[idx.canopy]

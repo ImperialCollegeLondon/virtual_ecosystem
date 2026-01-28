@@ -35,6 +35,8 @@ def test_initialise_canopy_and_soil_fluxes(
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
+        "longwave_emission",
+        "conductive_flux_understorey",
     ]:
         assert var in result
 

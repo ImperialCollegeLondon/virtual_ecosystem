@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+from xarray import DataArray
 
 
 def test_calculate_molar_density_air(
@@ -528,7 +529,6 @@ def test_record_hourly_output(fixture_core_components):
     assert np.all(np.isnan(updated["longwave_emission"][hour + 1 :]))
 
 
-# Test function
 def test_mean_to_layers(fixture_core_components):
     """Test mean_to_layers function."""
     from virtual_ecosystem.models.abiotic.abiotic_tools import mean_to_layers
@@ -548,11 +548,93 @@ def test_mean_to_layers(fixture_core_components):
         layer_structure=layer_structure,
     )
 
-    # Compute expected manually
     mean_vals = np.nanmean(data, axis=0)
     expected = np.full((14, 4), np.nan)
     expected[index] = mean_vals[index]
 
-    # Assertions
     assert result.shape == (14, 4)
     np.testing.assert_allclose(result, expected, rtol=1e-8)
+
+
+def test_initialize_data_record_shapes_and_nans():
+    """Test initialize_data_record for correct shapes and NaN initialization."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import initialize_data_record
+
+    time_dim = 24
+    layers = 3
+    cell_ids = 5
+
+    variables = {
+        "one_d_var": DataArray(np.zeros(cell_ids)),
+        "two_d_var": DataArray(np.zeros((layers, cell_ids))),
+    }
+
+    result = initialize_data_record(
+        variables=variables,
+        time_dim=time_dim,
+        layers=layers,
+        cell_ids=cell_ids,
+    )
+
+    # Check keys preserved
+    assert set(result.keys()) == set(variables.keys())
+
+    # 1D -> (time, cell_ids)
+    assert result["one_d_var"].shape == (time_dim, cell_ids)
+
+    # 2D -> (time, layers, cell_ids)
+    assert result["two_d_var"].shape == (time_dim, layers, cell_ids)
+
+    # All values should be NaN
+    for arr in result.values():
+        assert np.isnan(arr).all()
+
+
+def test_initialize_data_record_raises_on_invalid_dim():
+    """Test initialize_data_record raises error on invalid variable dimensions."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import initialize_data_record
+
+    variables = {
+        "bad_var": DataArray(np.zeros((2, 3, 4))),
+    }
+
+    with pytest.raises(ValueError, match="Unsupported number of dimensions"):
+        initialize_data_record(
+            variables=variables,
+            time_dim=24,
+            layers=3,
+            cell_ids=4,
+        )
+
+
+@pytest.mark.parametrize(
+    "names, values, exclude, should_raise",
+    [
+        # Would normally fail, but excluded → OK
+        (
+            ("a", "b", "c"),
+            {"a": 1},
+            ("b", "c"),
+            False,
+        ),
+        # Still fails: non-excluded missing
+        (
+            ("a", "b", "c"),
+            {"a": 1},
+            ("b",),
+            True,
+        ),
+    ],
+)
+def test_validate_variables_with_exclude(names, values, exclude, should_raise):
+    """Test variable validation between vars_updated and hourly record."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import validate_variables
+
+    if should_raise:
+        with pytest.raises(ValueError):
+            validate_variables(names, values, exclude=exclude)
+    else:
+        validate_variables(names, values, exclude=exclude)

@@ -90,18 +90,29 @@ def initialise_canopy_and_soil_fluxes(
     ]
     output["canopy_temperature"] = canopy_temperature
 
-    # Initialise sensible heat flux with non-zero minimum values
-    sensible_heat_flux = layer_structure.from_template()
-    sensible_heat_flux[layer_structure.index_flux_layers] = initial_flux_value
-    output["sensible_heat_flux"] = sensible_heat_flux
+    # Base flux template (non-zero minimum)
+    base_flux = layer_structure.from_template()
+    base_flux[layer_structure.index_flux_layers] = initial_flux_value
 
-    # Initialise latent heat flux with non-zero minimum values
-    output["latent_heat_flux"] = sensible_heat_flux.copy()
+    # Fluxes that share the same structure
+    for name in (
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "longwave_emission",
+    ):
+        output[name] = base_flux.copy()
 
-    # Initialise ground heat flux with non-zero minimum values
-    ground_heat_flux = layer_structure.from_template()
-    ground_heat_flux[layer_structure.index_topsoil] = initial_flux_value
-    output["ground_heat_flux"] = ground_heat_flux
+    # 1D fluxes (cell-wise)
+    cell_flux = DataArray(
+        np.full(base_flux.shape[1], initial_flux_value),
+        dims="cell_id",
+    )
+
+    for name in (
+        "ground_heat_flux",
+        "conductive_flux_understorey",
+    ):
+        output[name] = cell_flux.copy()
 
     return output
 

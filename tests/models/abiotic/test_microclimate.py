@@ -17,9 +17,28 @@ def test_run_microclimate(
         run_microclimate,
     )
 
+    vars_updated = (
+        "air_temperature",
+        "canopy_temperature",
+        "soil_temperature",
+        "vapour_pressure_deficit",
+        "relative_humidity",
+        "wind_speed",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "ground_heat_flux",
+        "density_air",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
+        "aerodynamic_resistance_canopy",
+        "net_radiation",
+        "conductive_flux_understorey",
+        "longwave_emission",
+    )
     lyr_str = fixture_core_components.layer_structure
     result = run_microclimate(
         data=dummy_climate_data_varying_canopy,
+        vars_updated=vars_updated,
         time_index=0,
         time_interval=86400 * 30,
         month=1,
