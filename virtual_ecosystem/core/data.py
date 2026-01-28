@@ -178,14 +178,12 @@ class Data:
             raise to_raise
 
         # Local import to avoid circular import issue
-        from virtual_ecosystem.core.variables import (
-            KNOWN_VARIABLES,
-            Variable,
-            register_all_variables,
+        from virtual_ecosystem.core.variables_that_work import (
+            VariableMetadata,
+            load_known_variables,
         )
 
-        register_all_variables()
-        self.known_variables: dict[str, Variable] = KNOWN_VARIABLES
+        self.known_variables: dict[str, VariableMetadata] = load_known_variables()
         """A dictionary of known variables."""
 
         self.grid: Grid = grid
