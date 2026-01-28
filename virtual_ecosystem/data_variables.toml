@@ -1383,3 +1383,10 @@ description = "Average C, N, and P masses of each seed in a PFT"
 name = "fallen_seeds_cnp"
 unit = "kg"
 variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "root_turnover_c_p_ratio"
+unit = "NEEDS UNITS"
+variable_type = "float"

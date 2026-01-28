@@ -13,6 +13,14 @@ from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
+@pytest.fixture(autouse=False, scope="module")
+def populate_known_variables():
+    """Make sure that KNOWN_VARIABLES is populated."""
+    from virtual_ecosystem.core.variables import register_all_variables
+
+    register_all_variables()
+
+
 @pytest.mark.parametrize(
     argnames=["use_grid", "exp_err", "expected_log"],
     argvalues=[
@@ -698,9 +706,9 @@ def test_on_core_axis(
 @pytest.mark.parametrize(
     argnames=["folder", "file_name", "raises", "save_specific", "exp_log"],
     argvalues=[
-        (None, "initial.nc", does_not_raise(), False, ()),
-        (None, "initial.nc", does_not_raise(), True, ()),
-        (
+        pytest.param(None, "initial.nc", does_not_raise(), False, (), id="fine_all"),
+        pytest.param(None, "initial.nc", does_not_raise(), True, (), id="fine_subset"),
+        pytest.param(
             "bad_folder",
             "initial.nc",
             pytest.raises(ConfigurationError),
@@ -711,8 +719,9 @@ def test_on_core_axis(
                     "The user specified output directory (bad_folder) doesn't exist!",
                 ),
             ),
+            id="bad_folder",
         ),
-        (
+        pytest.param(
             "pyproject.toml",
             "initial.nc",
             pytest.raises(ConfigurationError),
@@ -724,8 +733,9 @@ def test_on_core_axis(
                     "directory!",
                 ),
             ),
+            id="not folder",
         ),
-        (
+        pytest.param(
             None,
             "already_exists.nc",
             pytest.raises(ConfigurationError),
@@ -736,10 +746,12 @@ def test_on_core_axis(
                     "A file in the user specified output folder (",
                 ),
             ),
+            id="folder exists",
         ),
     ],
 )
 def test_save_to_netcdf(
+    populate_known_variables,
     shared_datadir,
     caplog,
     fixture_core_components,
