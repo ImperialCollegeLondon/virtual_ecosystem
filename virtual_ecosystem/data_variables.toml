@@ -1383,3 +1383,38 @@ description = "Average C, N, and P masses of each seed in a PFT"
 name = "fallen_seeds_cnp"
 unit = "kg"
 variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "fallen_n_propagules"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "canopy_n_propagules"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "canopy_non_propagule_c_mass"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "leaf_lignin"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "nitrogen_fixation_carbon_supply"
+unit = "NEEDS UNIT"
+variable_type = "float"

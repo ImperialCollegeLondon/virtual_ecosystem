@@ -124,7 +124,8 @@ def ve_run(
     if progress > Progress.MINIMAL:
         print("* Loading configuration")
 
-    variables.register_all_variables()
+    # Moved into Data
+    # variables.register_all_variables()
 
     # Load the configuration data
     config_data: ConfigurationLoader = ConfigurationLoader(

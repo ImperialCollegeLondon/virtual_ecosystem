@@ -177,6 +177,17 @@ class Data:
             LOGGER.critical(to_raise)
             raise to_raise
 
+        # Local import to avoid circular import issue
+        from virtual_ecosystem.core.variables import (
+            KNOWN_VARIABLES,
+            Variable,
+            register_all_variables,
+        )
+
+        register_all_variables()
+        self.known_variables: dict[str, Variable] = KNOWN_VARIABLES
+        """A dictionary of known variables."""
+
         self.grid: Grid = grid
         """The configured Grid to be used in a simulation."""
         self.data = Dataset()
@@ -210,7 +221,11 @@ class Data:
         key.
 
         Note that the DataArray name is expected to match the standard internal variable
-        names used in Virtual Ecosystem.
+        names used in Virtual Ecosystem and this is enforced against the dictionary of
+        known variables.
+
+        The method also adds unit and description metadata to from the known variables
+        database to attributes as they are written to the data object.
 
         Args:
             key: The name to store the data under
@@ -227,10 +242,21 @@ class Data:
             LOGGER.critical(to_raise)
             raise to_raise
 
+        if key not in self.known_variables:
+            msg = f"Attempt to add unknown variable to data: '{key}'"
+            LOGGER.critical(msg)
+            raise ValueError(msg)
+
         if key not in self.data.data_vars:
             LOGGER.info(f"Adding data array for '{key}'")
         else:
             LOGGER.info(f"Replacing data array for '{key}'")
+
+        # Add variable_metadata from known variables database - these needs to be done
+        # for both adding and replacing variables as the science models do not attempt
+        # to persist array attributes during calculations.
+        variable = self.known_variables[key]
+        value.attrs.update({"unit": variable.unit, "description": variable.description})
 
         # Validate and store the data array
         value, valid_dict = validate_dataarray(value=value, grid=self.grid)
