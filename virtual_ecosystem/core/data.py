@@ -178,7 +178,7 @@ class Data:
             raise to_raise
 
         # Local import to avoid circular import issue
-        from virtual_ecosystem.core.variables_that_work import (
+        from virtual_ecosystem.core.variables_new import (
             VariableMetadata,
             load_known_variables,
         )
