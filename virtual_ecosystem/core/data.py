@@ -401,10 +401,11 @@ class Data:
 
         # Add variable_metadata from variables database
         for var in out.data_vars:
-            variable = KNOWN_VARIABLES[str(var)]
-            out[var].attrs.update(
-                {"unit": variable.unit, "description": variable.description}
-            )
+            if not out[var].attrs:
+                variable = KNOWN_VARIABLES[str(var)]
+                out[var].attrs.update(
+                    {"unit": variable.unit, "description": variable.description}
+                )
 
         # Add the timestamps to the output
         out["timestamp"] = DataArray(timing.update_datestamps, dims="time_index")
@@ -448,12 +449,13 @@ class Data:
             .assign_coords(time_index=[time_index])
         )
 
-        # Add variable_metadata from variables database
+        # Update any missing variable_metadata from variables database
         for var in time_slice.data_vars:
-            variable = KNOWN_VARIABLES[str(var)]
-            time_slice[var].attrs.update(
-                {"unit": variable.unit, "description": variable.description}
-            )
+            if not time_slice[var].attrs:
+                variable = KNOWN_VARIABLES[str(var)]
+                time_slice[var].attrs.update(
+                    {"unit": variable.unit, "description": variable.description}
+                )
 
         # Add the timestamp
         time_slice["timestamp"] = DataArray([timestamp], dims="time_index")
