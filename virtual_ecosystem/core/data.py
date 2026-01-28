@@ -385,6 +385,9 @@ class Data:
                 variables are saved.
         """
 
+        # Local import to avoid circular import issue
+        from virtual_ecosystem.core.variables import KNOWN_VARIABLES
+
         # Check that the folder to save to exists and that there isn't already a file
         # saved there
         check_outfile(output_file_path)
@@ -395,6 +398,13 @@ class Data:
             out = self.data[variables_to_save]
         else:
             out = self.data
+
+        # Add variable_metadata from variables database
+        for var in out.data_vars:
+            variable = KNOWN_VARIABLES[str(var)]
+            out[var].attrs.update(
+                {"unit": variable.unit, "description": variable.description}
+            )
 
         # Add the timestamps to the output
         out["timestamp"] = DataArray(timing.update_datestamps, dims="time_index")
@@ -424,6 +434,9 @@ class Data:
             ConfigurationError: If the file to save to can't be found
         """
 
+        # Local import to avoid circular import issue
+        from virtual_ecosystem.core.variables import KNOWN_VARIABLES
+
         # Check that the folder to save to exists and that there isn't already a file
         # saved there
         check_outfile(output_file_path)
@@ -434,6 +447,13 @@ class Data:
             .expand_dims({"time_index": 1})
             .assign_coords(time_index=[time_index])
         )
+
+        # Add variable_metadata from variables database
+        for var in time_slice.data_vars:
+            variable = KNOWN_VARIABLES[str(var)]
+            time_slice[var].attrs.update(
+                {"unit": variable.unit, "description": variable.description}
+            )
 
         # Add the timestamp
         time_slice["timestamp"] = DataArray([timestamp], dims="time_index")
