@@ -231,6 +231,9 @@ def run_microclimate(
     downward_longwave_radiation = (
         data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
     )
+    # TODO get correct timestep/nighttime value, might require moving around
+    conductive_flux_understorey = np.repeat(0, idx.cell_id)
+    sensible_heat_flux_soil = np.repeat(0, idx.cell_id)
 
     # -------------------------------------------------------------------------
     # Hourly record arrays
@@ -324,24 +327,65 @@ def run_microclimate(
         )
 
         # -------------------------------------------------------------------------
-        # Canopy energy balance
+        # Radiation balance
         # -------------------------------------------------------------------------
 
-        # Longwave emission from understorey vegetation, [W m-2]
+        # Longwave emission [W m-2]
         longwave_emission_understorey = energy_balance.calculate_longwave_emission(
             temperature=understorey_temperature + core_constants.zero_Celsius,
             emissivity=abiotic_constants.leaf_emissivity,
             stefan_boltzmann=core_constants.stefan_boltzmann_constant,
         )
 
-        # Solve energy balance for canopy temperature, [C], integration interval 1 hour
+        longwave_emission_soil = energy_balance.calculate_longwave_emission(
+            temperature=soil_temperature[0] + core_constants.zero_Celsius,
+            emissivity=abiotic_constants.soil_emissivity,
+            stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+        )
+
+        longwave_emission_canopy = energy_balance.calculate_longwave_emission(
+            temperature=canopy_temperature + core_constants.zero_Celsius,
+            emissivity=abiotic_constants.soil_emissivity,
+            stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+        )
+
+        # Net radiation, [W m-2]
+        net_radiation_canopy = (
+            shortwave_absorption_canopy
+            - longwave_emission_canopy
+            + downward_longwave_radiation
+            + 0.5 * (longwave_emission_understorey * abiotic_constants.leaf_emissivity)
+        )
+
+        net_radiation_understorey = (
+            shortwave_absorption_understorey
+            - longwave_emission_understorey
+            + 0.5
+            * (
+                np.nanmean(longwave_emission_canopy, axis=0)
+                * abiotic_constants.leaf_emissivity
+            )
+            + longwave_emission_soil
+        )
+
+        net_radiation_soil = (
+            shortwave_absorption_soil
+            + 0.5 * (longwave_emission_understorey * abiotic_constants.leaf_emissivity)
+            - longwave_emission_soil
+        )
+
+        # -------------------------------------------------------------------------
+        # Canopy energy balance
+        # -------------------------------------------------------------------------
+
+        # Solve energy balance for canopy temperature, [C]
         canopy_temperature = energy_balance.solve_canopy_temperature(
             canopy_temperature_initial=canopy_temperature,
             air_temperature=canopy_air_temperature,
             evapotranspiration=evapotranspiration_canopy,
             absorbed_shortwave_radiation=shortwave_absorption_canopy,
             absorbed_longwave_radiation=downward_longwave_radiation
-            + longwave_emission_understorey * abiotic_constants.leaf_emissivity,
+            + 0.5 * (longwave_emission_understorey * abiotic_constants.leaf_emissivity),
             specific_heat_air=specific_heat_air[1:-1],
             density_air=density_air[1:-1],
             aerodynamic_resistance=aerodynamic_resistance_canopy,
@@ -361,7 +405,7 @@ def run_microclimate(
             evapotranspiration=evapotranspiration_canopy,
             absorbed_shortwave_radiation=shortwave_absorption_canopy,
             absorbed_longwave_radiation=downward_longwave_radiation
-            + longwave_emission_understorey * abiotic_constants.leaf_emissivity,
+            + 0.5 * (longwave_emission_understorey * abiotic_constants.leaf_emissivity),
             leaf_emissivity=abiotic_constants.leaf_emissivity,
             specific_heat_air=specific_heat_air[1:-1],
             density_air=density_air[1:-1],
@@ -382,13 +426,6 @@ def run_microclimate(
         latent_heat_flux_canopy = energy_balance_canopy["latent_heat_flux_canopy"]
         sensible_heat_flux_canopy = energy_balance_canopy["sensible_heat_flux_canopy"]
 
-        net_radiation_canopy = (
-            shortwave_absorption_canopy
-            - longwave_emission_canopy
-            + downward_longwave_radiation
-            + longwave_emission_understorey * abiotic_constants.leaf_emissivity
-        )
-
         # Update canopy air temperatures, [C], # TODO integration interval 1 hour
         canopy_air_temperature = energy_balance.update_air_temperature(
             air_temperature=canopy_air_temperature,
@@ -401,14 +438,6 @@ def run_microclimate(
         # -------------------------------------------------------------------------
         # Understorey energy balance
         # -------------------------------------------------------------------------
-
-        # Net radiation understorey vegetation, [W m-2]
-        net_radiation_understorey = (
-            shortwave_absorption_understorey
-            - longwave_emission_understorey
-            + np.nanmean(longwave_emission_canopy, axis=0)
-            * abiotic_constants.leaf_emissivity
-        )
 
         #  Sensible heat flux from understorey vegetation, [W m-2]
         sensible_heat_flux_understorey = energy_balance.calculate_sensible_heat_flux(
@@ -442,30 +471,16 @@ def run_microclimate(
             current_temperature=understorey_temperature,
             net_radiation=net_radiation_understorey,
             sensible_heat_flux=sensible_heat_flux_understorey,
-            conductive_flux=conductive_flux_understorey,
+            conductive_flux=-conductive_flux_understorey,
             effective_heat_capacity=effective_heat_capacity_understorey,
             time_step_seconds=1.0,  # TODO core_constants.seconds_to_hour,
             latent_heat_flux=latent_heat_flux_understorey,
-            max_delta_temperature=10.0,
+            max_delta_temperature=10.0,  # TODO add to constants
         )
 
         # -------------------------------------------------------------------------
         # Soil energy balance
         # -------------------------------------------------------------------------
-
-        # Longwave emission from soil, [W m-2]
-        longwave_emission_soil = energy_balance.calculate_longwave_emission(
-            temperature=soil_temperature[0] + core_constants.zero_Celsius,
-            emissivity=abiotic_constants.soil_emissivity,
-            stefan_boltzmann=core_constants.stefan_boltzmann_constant,
-        )
-
-        # Net radiation topsoil, [W m-2]
-        net_radiation_soil = (
-            shortwave_absorption_soil
-            + conductive_flux_understorey
-            - longwave_emission_soil
-        )
 
         #  Sensible heat flux from topsoil, [W m-2]
         sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
@@ -488,6 +503,7 @@ def run_microclimate(
         # directed away from the surface, hence added here
         ground_heat_flux = (
             net_radiation_soil - latent_heat_flux_soil - sensible_heat_flux_soil
+            # + conductive_flux_understorey # TODO causes ridiculous values
         )
 
         # Update soil temperatures, [C], integration interval 1 hour
@@ -645,7 +661,6 @@ def run_microclimate(
             layer_structure=layer_structure,
             hourly_values=hourly_values,
         )
-        print("hour", data_record["aerodynamic_resistance_canopy"][hour].shape)
 
     # End of loop
 
