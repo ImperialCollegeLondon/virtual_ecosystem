@@ -37,8 +37,8 @@ from importlib import resources
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic.dataclasses import dataclass as py_dataclass
 
-import virtual_ecosystem.core.axes as axes
 import virtual_ecosystem.core.base_model as base_model
+from virtual_ecosystem.core.axes import AXIS_VALIDATORS
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 
@@ -82,10 +82,17 @@ class VariableMetadata:
 
     @field_validator("axis")
     def unique_axes(cls, value: list[str]) -> list[str]:
-        """Check axis list entries are unique."""
+        """Check axis list entries are unique and known."""
 
         if len(value) != len(set(value)):
-            raise ValueError("Axis values not unique.")
+            raise ValueError(f"Axis values not unique in variable: {cls.name}.")
+
+        unknown_axes = sorted(set(value).difference(AXIS_VALIDATORS.keys()))
+
+        if unknown_axes:
+            raise ValueError(
+                f"Variable {cls.name} uses unknown axes: {','.join(unknown_axes)}"
+            )
 
         return value
 
@@ -398,19 +405,6 @@ def _collect_vars_required_for_update(
                     " by any model neither provided as input."
                 )
             runtime_variables[var].vars_required_by_update.append(model.model_name)
-
-
-def verify_variables_axis(runtime_variables) -> None:
-    """Verify that all required variables have valid, available axis."""
-    for var in runtime_variables.values():
-        unknown_axes = sorted(set(var.axis).difference(axes.AXIS_VALIDATORS.keys()))
-
-        if unknown_axes:
-            to_raise = ValueError(
-                f"Variable {var.name} uses unknown axis: {','.join(unknown_axes)}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
 
 
 def get_model_order(

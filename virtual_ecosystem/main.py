@@ -13,6 +13,7 @@ from typing import Any
 
 from tqdm import tqdm
 
+from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config_builder import (
     ConfigurationLoader,
     generate_configuration,
@@ -28,7 +29,6 @@ from virtual_ecosystem.core.model_config import (
 from virtual_ecosystem.core.variables_new import (
     get_model_order,
     setup_variables,
-    verify_variables_axis,
 )
 
 
@@ -45,8 +45,8 @@ def initialise_models(
     configuration: CompiledConfiguration,
     data: Data,
     core_components: CoreComponents,
-    models: dict[str, Any],  # FIXME -> dict[str, Type[BaseModel]]
-) -> dict[str, Any]:  # FIXME -> dict[str, Type[BaseModel]]
+    models: dict[str, type[BaseModel]],
+) -> dict[str, BaseModel]:
     """Initialise a set of models for use in a `virtual_ecosystem` simulation.
 
     Args:
@@ -173,8 +173,6 @@ def ve_run(
         known_variables=data.known_variables,
     )
 
-    # Verify that all variables have the correct axis
-    verify_variables_axis(runtime_variables)
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
     # Get the model initialisation sequence and initialise
