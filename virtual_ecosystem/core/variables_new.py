@@ -34,11 +34,19 @@ from collections import Counter
 from graphlib import CycleError, TopologicalSorter
 from importlib import resources
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel as PydanticBaseModel,
+)
+from pydantic import (
+    Field,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from pydantic.dataclasses import dataclass as py_dataclass
 
-import virtual_ecosystem.core.base_model as base_model
 from virtual_ecosystem.core.axes import AXIS_VALIDATORS
+from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 
@@ -80,18 +88,21 @@ class VariableMetadata:
     vars_updated: list[str] = Field(init=False, default=[])
     """Models that update the variable."""
 
-    @field_validator("axis")
-    def unique_axes(cls, value: list[str]) -> list[str]:
+    @field_validator("axis", mode="after")
+    def unique_axes(cls, value: list[str], info: ValidationInfo) -> list[str]:
         """Check axis list entries are unique and known."""
 
         if len(value) != len(set(value)):
-            raise ValueError(f"Axis values not unique in variable: {cls.name}.")
+            raise ValueError(
+                f"Axis values not unique in variable: {info.data['name']}."
+            )
 
         unknown_axes = sorted(set(value).difference(AXIS_VALIDATORS.keys()))
 
         if unknown_axes:
             raise ValueError(
-                f"Variable {cls.name} uses unknown axes: {','.join(unknown_axes)}"
+                f"Variable {info.data['name']} uses unknown "
+                f"axes: {','.join(unknown_axes)}"
             )
 
         return value
@@ -114,7 +125,7 @@ class VariableMetadata:
         return all_models
 
 
-class VariablesFile(BaseModel):
+class VariablesFile(PydanticBaseModel):
     """Validation class for the variables.toml file."""
 
     variable: list[VariableMetadata] = []
@@ -152,7 +163,7 @@ def load_known_variables() -> dict[str, VariableMetadata]:
 
 
 def setup_variables(
-    models: list[type[base_model.BaseModel]],
+    models: list[type[BaseModel]],
     data_vars: list[str],
     known_variables: dict[str, VariableMetadata],
 ) -> dict[str, VariableMetadata]:
@@ -170,9 +181,6 @@ def setup_variables(
 
     runtime_variables: dict[str, VariableMetadata] = {}
 
-    # Check all the variables in the models are present in known variables
-    _check_model_variables_are_known(models, known_variables)
-
     # Variables related to the initialisation step
     _collect_initial_data_vars(
         vars=data_vars,
@@ -180,35 +188,64 @@ def setup_variables(
         known_variables=known_variables,
     )
 
+    # Check all the variables in the models are present in known variables
+    _check_model_variables_are_known(models, known_variables)
+
+    # Variables related to the init step
     _collect_vars_populated_by_init(
         models=models,
         runtime_variables=runtime_variables,
         known_variables=known_variables,
     )
     _collect_vars_required_for_init(
-        models,
+        models=models,
         runtime_variables=runtime_variables,
     )
 
     # Variables related to the update step
     _collect_vars_populated_by_first_update(
-        models,
+        models=models,
         runtime_variables=runtime_variables,
         known_variables=known_variables,
     )
-    _collect_updated_by_vars(
-        models,
+    _collect_vars_updated(
+        models=models,
         runtime_variables=runtime_variables,
     )
     _collect_vars_required_for_update(
-        models,
+        models=models,
         runtime_variables=runtime_variables,
     )
 
     return runtime_variables
 
 
-def _check_model_variables_are_known(models, known_variables):
+def _collect_initial_data_vars(
+    vars: list[str],
+    runtime_variables: dict[str, VariableMetadata],
+    known_variables: dict[str, VariableMetadata],
+) -> None:
+    """Collects the variables defined in the data object.
+
+    Args:
+        vars: The list of variables defined in the data object.
+        runtime_variables: A dictionary of variables being used in this runtime
+        known_variables: A dictionary of known variables
+    """
+    for var in vars:
+        if var not in known_variables:
+            raise ValueError(f"Unknown variable {var} in data object")
+
+        if var in runtime_variables:
+            raise ValueError(f"Variable {var} already populated from data")
+
+        runtime_variables[var] = known_variables[var]
+        runtime_variables[var].vars_populated_by_init.append("data")
+
+
+def _check_model_variables_are_known(
+    models: list[type[BaseModel]], known_variables: dict[str, VariableMetadata]
+):
     variable_attributes = (
         "vars_required_for_init",
         "vars_populated_by_init",
@@ -225,36 +262,19 @@ def _check_model_variables_are_known(models, known_variables):
 
             if unknown_variables:
                 LOGGER.error(
-                    f"Unknown variables in {mod.name}.{var_attr}: "
+                    f"Unknown variables in {mod.model_name}.{var_attr}: "
                     f"{', '.join(unknown_variables)}"
                 )
                 fail = True
 
     if fail:
-        msg = "Model configuration contains unknown variables, check log"
+        msg = f"Model {mod.model_name} definition contains unknown variables, check log"
         LOGGER.critical(msg)
         raise ValueError(msg)
 
 
-def _collect_initial_data_vars(
-    vars: list[str],
-    runtime_variables: dict[str, VariableMetadata],
-    known_variables: dict[str, VariableMetadata],
-) -> None:
-    """Collects the variables defined in the data object.
-
-    Args:
-        vars: The list of variables defined in the data object.
-        runtime_variables: A dictionary of variables being used in this runtime
-        known_variables: A dictionary of known variables
-    """
-    for var in vars:
-        runtime_variables[var] = known_variables[var]
-        runtime_variables[var].vars_populated_by_init.append("data")
-
-
 def _collect_vars_populated_by_init(
-    models: list[type[base_model.BaseModel]],
+    models: list[type[BaseModel]],
     runtime_variables: dict[str, VariableMetadata],
     known_variables: dict[str, VariableMetadata],
 ) -> None:
@@ -275,9 +295,8 @@ def _collect_vars_populated_by_init(
         for var in model.vars_populated_by_init:
             if var in runtime_variables:
                 raise ValueError(
-                    f"Variable {var} initialised by {model.model_name} already in "
-                    f"registry as initialised by "
-                    f"{runtime_variables[var].vars_populated_by_init}."
+                    f"Variable {var} initialised by {model.model_name} already "
+                    f"initialised by {runtime_variables[var].vars_populated_by_init}."
                 )
 
             runtime_variables[var] = known_variables[var]
@@ -285,7 +304,7 @@ def _collect_vars_populated_by_init(
 
 
 def _collect_vars_required_for_init(
-    models: list[type[base_model.BaseModel]],
+    models: list[type[BaseModel]],
     runtime_variables: dict[str, VariableMetadata],
 ) -> None:
     """Verify that all variables required by the init methods are in the registry.
@@ -310,7 +329,7 @@ def _collect_vars_required_for_init(
 
 
 def _collect_vars_populated_by_first_update(
-    models: list[type[base_model.BaseModel]],
+    models: list[type[BaseModel]],
     runtime_variables: dict[str, VariableMetadata],
     known_variables: dict[str, VariableMetadata],
 ) -> None:
@@ -335,14 +354,14 @@ def _collect_vars_populated_by_first_update(
         for var in model.vars_populated_by_first_update:
             if var in runtime_variables:
                 v = runtime_variables[var]
-                initialiser = (
-                    v.vars_populated_by_init[0]
+                init_model, init_stage = (
+                    (v.vars_populated_by_init[0], "init")
                     if v.vars_populated_by_init
-                    else v.vars_populated_by_first_update[0]
+                    else (v.vars_populated_by_first_update[0], "first update")
                 )
                 raise ValueError(
-                    f"Variable {var} initialised by {model.model_name} already in "
-                    f"registry as initialised by {initialiser}."
+                    f"Variable {var} initialised by {model.model_name} already "
+                    f"initialised during {init_stage} by {init_model}."
                 )
 
             runtime_variables[var] = known_variables[var]
@@ -351,8 +370,8 @@ def _collect_vars_populated_by_first_update(
             )
 
 
-def _collect_updated_by_vars(
-    models: list[type[base_model.BaseModel]],
+def _collect_vars_updated(
+    models: list[type[BaseModel]],
     runtime_variables: dict[str, VariableMetadata],
 ) -> None:
     """Verify that all variables updated by models are in the runtime registry.
@@ -383,7 +402,7 @@ def _collect_updated_by_vars(
 
 
 def _collect_vars_required_for_update(
-    models: list[type[base_model.BaseModel]],
+    models: list[type[BaseModel]],
     runtime_variables: dict[str, VariableMetadata],
 ) -> None:
     """Verify that all variables required by the update methods are in the registry.
