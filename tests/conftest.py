@@ -545,16 +545,16 @@ def dummy_climate_data(fixture_core_components):
 
     # Reference data with a time series
     ref_values = {
-        "air_temperature_ref": 30.0,
-        "wind_speed_ref": 1.0,
-        "relative_humidity_ref": 90.0,
-        "vapour_pressure_deficit_ref": 0.14,
-        "vapour_pressure_ref": 0.14,
-        "atmospheric_pressure_ref": 96.0,
-        "atmospheric_co2_ref": 400.0,
-        "precipitation": 200.0,
-        "downward_shortwave_radiation": 500.0,
-        "downward_longwave_radiation": 400.0,
+        "air_temperature_ref": 30.0,  # °C
+        "wind_speed_ref": 1.0,  # m s-1
+        "relative_humidity_ref": 90.0,  # %
+        "vapour_pressure_deficit_ref": 0.14,  # kPa
+        "vapour_pressure_ref": 3.7,  # kPa (consistent with 30C, 90% RH)
+        "atmospheric_pressure_ref": 96.0,  # kPa
+        "atmospheric_co2_ref": 400.0,  # ppm
+        "precipitation": 200.0,  # mm month-1
+        "downward_shortwave_radiation": 220.0,  # W m-2 (24h monthly mean)
+        "downward_longwave_radiation": 400.0,  # W m-2 (24h monthly mean)
     }
 
     for var, value in ref_values.items():
@@ -565,24 +565,24 @@ def dummy_climate_data(fixture_core_components):
 
     # Spatially varying but not vertically structured
     spatially_variable = {
-        "shortwave_radiation_surface": [100, 10, 0, 0],
-        "friction_velocity": [12, 5, 2, 2],
-        "soil_evaporation": [0.001, 0.01, 0.1, 0.1],
-        "elevation": [200, 100, 10, 10],
+        "shortwave_radiation_surface": [120, 80, 30, 10],  # W m-2
+        "friction_velocity": [0.35, 0.25, 0.15, 0.15],  # m s-1
+        "soil_evaporation": [30.0, 40.0, 60.0, 60.0],  # mm month-1
+        "elevation": [200, 100, 10, 10],  # m
     }
     for var, vals in spatially_variable.items():
         data[var] = DataArray(vals, dims=["cell_id"])
 
     # Spatially constant and not vertically structured
     spatially_constant = {
-        "sensible_heat_flux_soil": 1,
-        "latent_heat_flux_soil": 1,
-        "zero_plane_displacement": 20.0,
-        "mean_mixing_length": 1.3,
-        "aerodynamic_resistance_soil": 12.5,
-        "aerodynamic_resistance_canopy": 12.5,
-        "mean_annual_temperature": 20.0,
-        "ground_heat_flux": 100.0,
+        "sensible_heat_flux_soil": 20.0,  # W m-2
+        "latent_heat_flux_soil": 40.0,  # W m-2
+        "zero_plane_displacement": 20.0,  # m
+        "mean_mixing_length": 1.3,  # m
+        "aerodynamic_resistance_soil": 50.0,  # s m-1
+        "aerodynamic_resistance_canopy": 30.0,  # s m-1
+        "mean_annual_temperature": 20.0,  # C
+        "ground_heat_flux": 20.0,
         "conductive_flux_understorey": 50.0,
     }
     for var, val in spatially_constant.items():
@@ -610,7 +610,7 @@ def dummy_climate_data(fixture_core_components):
 
     data["air_temperature"] = from_template()
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.844995, 28.87117, 27.206405, 21.145945]
+        [30.0, 29.8, 28.9, 27.2, 22.0]
     )[:, None]
 
     data["soil_temperature"] = from_template()
@@ -623,25 +623,25 @@ def dummy_climate_data(fixture_core_components):
 
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
-        [90.0, 90.341644, 92.488034, 96.157312, 100]
+        [90.0, 91.0, 93.0, 96.0, 98.0]
     )[:, None]
 
     data["vapour_pressure_deficit"] = from_template()
     data["vapour_pressure_deficit"][lyr_str.index_filled_atmosphere] = np.array(
-        [0.14, 0.2, 0.2, 0.2, 0.14]
+        [0.14, 0.16, 0.18, 0.20, 0.22]
     )[:, None]
 
     data["shortwave_absorption"] = from_template()
-    data["shortwave_absorption"][lyr_str.index_flux_layers] = 450.0
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 180.0
 
     data["longwave_emission"] = from_template()
     data["longwave_emission"][lyr_str.index_flux_layers] = 450.0
 
     data["sensible_heat_flux"] = from_template()
-    data["sensible_heat_flux"][lyr_str.index_flux_layers] = 0.0
+    data["sensible_heat_flux"][lyr_str.index_flux_layers] = 20.0
 
     data["latent_heat_flux"] = from_template()
-    data["latent_heat_flux"][lyr_str.index_flux_layers] = 0.0
+    data["latent_heat_flux"][lyr_str.index_flux_layers] = 40.0
 
     data["net_radiation"] = from_template()
     data["net_radiation"][lyr_str.index_flux_layers] = 20.0
@@ -659,20 +659,23 @@ def dummy_climate_data(fixture_core_components):
     data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2442.0
 
     data["canopy_temperature"] = from_template()
-    data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0
-    data["canopy_temperature"][lyr_str.index_surface_scalar] = 25.0
+    data["canopy_temperature"][lyr_str.index_filled_canopy] = np.array(
+        [29.8, 28.9, 27.2]
+    )[:, None]
+    data["canopy_temperature"][lyr_str.index_surface_scalar] = 22.0
 
     data["canopy_evaporation"] = from_template()
-    data["canopy_evaporation"][lyr_str.index_filled_canopy] = 10.0
-    data["canopy_evaporation"][lyr_str.index_surface_scalar] = 10.0
+    data["canopy_evaporation"][lyr_str.index_filled_canopy] = 40.0
+    data["canopy_evaporation"][lyr_str.index_surface_scalar] = 40.0
 
     data["stomatal_conductance"] = from_template()
-    data["stomatal_conductance"][lyr_str.index_filled_canopy] = 15.0
-    data["stomatal_conductance"][lyr_str.index_surface_scalar] = 15.0
+    data["stomatal_conductance"][lyr_str.index_filled_canopy] = 12.0
+    data["stomatal_conductance"][lyr_str.index_surface_scalar] = 12.0
 
     # Hydrology
     data["transpiration"] = from_template()
-    data["transpiration"][lyr_str.index_filled_canopy] = 20.0  # TODO add understorey
+    data["transpiration"][lyr_str.index_filled_canopy] = 80.0
+    data["transpiration"][lyr_str.index_surface_scalar] = 80.0
 
     data["soil_moisture"] = from_template()
     data["soil_moisture"][lyr_str.index_all_soil] = np.array([5.0, 500.0])[:, None]
@@ -714,27 +717,27 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
 
     # Microclimate and energy balance
     dummy_climate_data["wind_speed"][index_filled_canopy] = [
-        [0.1, 0.1, 0.1, np.nan],
-        [0.1, 0.1, np.nan, np.nan],
+        [0.3, 0.3, 0.3, np.nan],
+        [0.25, 0.25, np.nan, np.nan],
         [0.1, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["air_temperature"][index_filled_canopy] = [
-        [29.844995, 29.844995, 29.844995, np.nan],
-        [28.87117, 28.87117, np.nan, np.nan],
-        [27.206405, np.nan, np.nan, np.nan],
+        [29.8, 29.8, 29.8, np.nan],
+        [28.9, 28.9, np.nan, np.nan],
+        [27.2, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["relative_humidity"][index_filled_canopy] = [
-        [90.341644, 90.341644, 90.341644, np.nan],
-        [92.488034, 92.488034, np.nan, np.nan],
-        [96.157312, np.nan, np.nan, np.nan],
+        [91.0, 91.0, 91.0, np.nan],
+        [93.0, 93.0, np.nan, np.nan],
+        [96.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["shortwave_absorption"][index_filled_canopy] = [
-        [450.0, 450.0, 450.0, np.nan],
-        [450.0, 450.0, np.nan, np.nan],
-        [450.0, np.nan, np.nan, np.nan],
+        [180.0, 180.0, 180.0, np.nan],
+        [160.0, 160.0, np.nan, np.nan],
+        [120.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["longwave_emission"][index_filled_canopy] = [
@@ -745,33 +748,33 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
 
     dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
         [0.14, 0.14, 0.14, 0.14],
-        [0.2, 0.2, 0.2, np.nan],
-        [0.2, 0.2, np.nan, np.nan],
-        [0.2, np.nan, np.nan, np.nan],
-        [0.14, 0.14, 0.14, 0.14],
+        [0.16, 0.16, 0.16, np.nan],
+        [0.18, 0.18, np.nan, np.nan],
+        [0.20, np.nan, np.nan, np.nan],
+        [0.22, 0.22, 0.22, 0.22],
     ]
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
-        [0.0, 0.0, 0.0, np.nan],
-        [0.0, 0.0, np.nan, np.nan],
-        [0.0, np.nan, np.nan, np.nan],
+        [25.0, 25.0, 25.0, np.nan],
+        [20.0, 20.0, np.nan, np.nan],
+        [15.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["latent_heat_flux"][index_filled_canopy] = [
-        [0.0, 0.0, 0.0, np.nan],
-        [0.0, 0.0, np.nan, np.nan],
-        [0.0, np.nan, np.nan, np.nan],
+        [45.0, 45.0, 45.0, np.nan],
+        [40.0, 40.0, np.nan, np.nan],
+        [30.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["net_radiation"][lyr_str.index_filled_canopy] = [
-        [20.0, 20.0, 20.0, np.nan],
-        [20.0, 20.0, np.nan, np.nan],
-        [20.0, np.nan, np.nan, np.nan],
+        [70.0, 70.0, 70.0, np.nan],
+        [60.0, 60.0, np.nan, np.nan],
+        [45.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["canopy_temperature"][index_filled_canopy] = [
-        [25.0, 25.0, 25.0, np.nan],
-        [25.0, 25.0, np.nan, np.nan],
-        [25.0, np.nan, np.nan, np.nan],
+        [29.8, 29.8, 29.8, np.nan],
+        [28.9, 28.9, np.nan, np.nan],
+        [27.2, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["canopy_evaporation"][index_filled_canopy] = [

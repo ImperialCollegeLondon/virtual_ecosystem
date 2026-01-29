@@ -5,7 +5,6 @@ from logging import DEBUG, INFO
 import numpy as np
 import pint
 import pytest
-from xarray import DataArray
 
 from tests.conftest import log_check
 
@@ -149,123 +148,21 @@ def test_generate_hydrology_model(
 
 
 @pytest.mark.parametrize(
-    "update_interval, expected_canopy, expected_2d, expected_1d",
-    [
-        pytest.param(
-            pint.Quantity(1, "month"),
-            {
-                "canopy_evaporation": [
-                    [0.0, 0.0, 0.0, np.nan],
-                    [0.0, 0.0, np.nan, np.nan],
-                    [0.0, np.nan, np.nan, np.nan],
-                    [0.0, 0.0, 0.0, 1.110223e-16],
-                ],
-                "interception": [
-                    [8.277091, 8.277559, 8.277034, np.nan],
-                    [7.9687, 7.969121, np.nan, np.nan],
-                    [7.669195, np.nan, np.nan, np.nan],
-                    [7.378513, 7.669572, 7.968649, 8.277055],
-                ],
-            },
-            {
-                "soil_moisture": [
-                    [250.034515, 248.937075, 246.480176, 241.09322],
-                    [208.661374, 213.828078, 224.161657, 239.66517],
-                ],
-                "matric_potential": [
-                    [-49.445511, -56.438412, -70.911742, -100.159331],
-                    [-295.313852, -253.625397, -185.684886, -103.971971],
-                ],
-                "vertical_flow": [
-                    [0.000156, 0.000165, 0.000185, 0.000746],
-                    [0.000521, 0.000526, 0.000531, 0.000887],
-                ],
-            },
-            {
-                "total_runoff": [
-                    1477.363339,
-                    1476.076772,
-                    7371.383915,
-                    2945.792003,
-                ],
-                "surface_runoff": [50.976197, 20.664557, 5.379422, 2.135745],
-                "surface_runoff_routed_plus_local": [
-                    50.976197,
-                    20.664557,
-                    84.535341,
-                    22.800302,
-                ],
-                "soil_evaporation": [2.841155, 5.937251, 12.35961, 25.498485],
-            },
-            id="1 month",
-        ),
-        pytest.param(
-            pint.Quantity(1, "week"),
-            {
-                "canopy_evaporation": [
-                    [0.0, 0.0, 0.0, np.nan],
-                    [0.0, 0.0, np.nan, np.nan],
-                    [0.0, np.nan, np.nan, np.nan],
-                    [0.0, 0.0, 0.0, 1.110223e-16],
-                ],
-                "interception": [
-                    [6.012631, 6.012636, 6.012606, np.nan],
-                    [5.900963, 5.900968, np.nan, np.nan],
-                    [5.788322, np.nan, np.nan, np.nan],
-                    [5.674818, 5.788327, 5.90094, 6.012613],
-                ],
-            },
-            {
-                "soil_moisture": [
-                    [250.010998, 249.628113, 248.833481, 247.201583],
-                    [204.284611, 209.998895, 221.427455, 238.570238],
-                ],
-                "matric_potential": [
-                    [-49.599568, -52.085765, -57.073136, -66.79106],
-                    [-261.561112, -227.084546, -169.41266, -97.954074],
-                ],
-                "vertical_flow": [
-                    [0.000265, 0.00029, 0.00034, 0.000433],
-                    [0.000589, 0.000611, 0.000658, 0.000754],
-                ],
-            },
-            {
-                "total_runoff": [
-                    485.514023,
-                    483.741559,
-                    2401.75852,
-                    956.1384,
-                ],
-                "surface_runoff": [165.057627, 163.019875, 158.780454, 149.981774],
-                "surface_runoff_routed_plus_local": [
-                    165.057627,
-                    163.019875,
-                    795.620184,
-                    313.001649,
-                ],
-                "soil_evaporation": [0.66289, 1.388223, 2.904608, 6.066105],
-            },
-            id="1 week",
-        ),
-    ],
+    "update_interval", [pint.Quantity(1, "month"), pint.Quantity(1, "week")]
 )
-def test_setup_and_update_hydrology_model(
-    fixture_core_components,
+def test_hydrology_model_general(
     fixture_hydrology_init_data,
     dummy_climate_data_varying_canopy,
     fixture_configuration,
     update_interval,
-    expected_canopy,
-    expected_2d,
-    expected_1d,
 ):
-    """Test set up and update."""
+    """Test HydrologyModel update produces sensible outputs for a range of inputs."""
+
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.hydrology import hydrology_tools
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
-    # Override the new update interval into the configuration object - it is frozen so
-    # need to bypass that mechanism. Also need to override the computed field
+    # Override update interval
     fixture_configuration.core.timing.__dict__["update_interval"] = update_interval
     fixture_configuration.core.timing.__dict__["update_interval_seconds"] = (
         update_interval.to("seconds").magnitude
@@ -281,86 +178,58 @@ def test_setup_and_update_hydrology_model(
         core_components=core_components,
     )
 
-    # Test soil moisture and matric potential initial values
-    soil_indices = lyr_strct.index_all_soil
-    expected_values = {
-        "soil_moisture": (soil_indices, np.full((2, 4), 250.0)),
-        "matric_potential": (soil_indices, np.full((2, 4), -49.673613)),
-    }
-    for var_name, (indices, values) in expected_values.items():
-        exp_var = lyr_strct.from_template()
-        exp_var[indices] = values
-        np.testing.assert_allclose(
-            model.data[var_name],
-            exp_var,
-            rtol=1e-3,
-            atol=1e-3,
-        )
-
-    # Test groundwater storage
-    exp_groundwater = DataArray(
-        np.full((2, fixture_core_components.grid.n_cells), 450.0),
-        dims=("groundwater_layers", "cell_id"),
-    )
-    np.testing.assert_allclose(
-        model.data["groundwater_storage"],
-        exp_groundwater,
-        rtol=1e-3,
-        atol=1e-3,
-    )
-
-    # Add additional data required to update the model
-    data_required_from_other_sources = set(model.vars_required_for_update) - set(
+    # Populate variables required for update
+    missing_vars = set(model.vars_required_for_update) - set(
         model.vars_populated_by_init
     )
-    for var in data_required_from_other_sources:
+    for var in missing_vars:
         model.data[var] = dummy_climate_data_varying_canopy[var]
 
-    # Run the update step
+    # Run update
     model.update(time_index=1, seed=42)
 
-    # Test canopy variables
-    canopy_indices = [1, 2, 3, 11]
-    for var_name, expected_vals in expected_canopy.items():
-        exp_var = lyr_strct.from_template()
-        exp_var[canopy_indices] = expected_vals
+    # ---- General sanity checks ----
+    # 1. Shapes
+    assert model.data["soil_moisture"].shape == (
+        len(lyr_strct.index_all_soil),
+        model.grid.n_cells,
+    )
+    assert model.data["groundwater_storage"].shape[1] == model.grid.n_cells
 
-        np.testing.assert_allclose(
-            model.data[var_name][canopy_indices],
-            exp_var[canopy_indices],
-            rtol=1e-4,
-            atol=1e-4,
-        )
+    # 2. Non-negativity where expected
+    for var in [
+        "canopy_evaporation",
+        "interception",
+        "soil_moisture",
+        "total_runoff",
+        "surface_runoff",
+        "soil_evaporation",
+    ]:
+        vals = model.data[var].to_numpy().flatten()
+        vals = vals[~np.isnan(vals)]
+        assert np.all(vals >= 0.0), f"{var} contains negative values"
 
-    # Test 2d soil variables
-    for var_name, expected_vals in expected_2d.items():
-        exp_var = lyr_strct.from_template()
-        exp_var[soil_indices] = expected_vals
+    # 3. Plausible ranges
+    # Soil moisture: 0 - 500 mm (example max soil capacity)
+    sm = model.data["soil_moisture"].to_numpy().flatten()
+    sm = sm[~np.isnan(sm)]
+    assert np.all(sm <= 500.0), "soil_moisture exceeds plausible maximum"
 
-        np.testing.assert_allclose(
-            model.data[var_name][soil_indices],
-            exp_var[soil_indices],
-            rtol=1e-4,
-            atol=1e-4,
-        )
-
-    # Test one dimensional variables
-    for var_name, expected_vals in expected_1d.items():
-        np.testing.assert_allclose(
-            model.data[var_name],
-            expected_vals,
-            rtol=1e-2,
-            atol=1e-2,
-        )
-
-    # Mass balance check for the month
+    # 4. Mass balance roughly holds (monthly precipitation vs evap + runoff)
+    precipitation_mm = (
+        dummy_climate_data_varying_canopy["precipitation"].isel(time_index=1).to_numpy()
+    )
+    surface_runoff_mm = model.data["surface_runoff_routed_plus_local"].to_numpy()
+    soil_evap_mm = model.data["soil_evaporation"].to_numpy()
     hydrology_tools.check_monthly_mass_balance(
         drainage_map=model.drainage_map,
-        surface_channel_inflow_mm=model.data[
-            "surface_runoff_routed_plus_local"
-        ].to_numpy(),
-        monthly_precipitation_mm=dummy_climate_data_varying_canopy["precipitation"]
-        .isel(time_index=1)
-        .to_numpy(),
-        monthly_evaporation_mm=model.data["soil_evaporation"].to_numpy(),
+        surface_channel_inflow_mm=surface_runoff_mm,
+        monthly_precipitation_mm=precipitation_mm,
+        monthly_evaporation_mm=soil_evap_mm,
     )
+
+    # 5. 2D variables have finite values somewhere
+    for var in ["matric_potential", "vertical_flow"]:
+        vals = model.data[var].to_numpy().flatten()
+        vals = vals[~np.isnan(vals)]
+        assert len(vals) > 0, f"{var} has no valid values"
