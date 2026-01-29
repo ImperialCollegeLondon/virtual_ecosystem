@@ -1,7 +1,7 @@
 """Variable validation and model checking.
 
 Variables are defined in the ``data_variables.toml`` file in the root folder of
-``virtual_ecosystem ``. When the model runs, this data is loaded into the
+``virtual_ecosystem`` . When the model runs, this data is loaded into the
 :attr:`Data.known_variables<virtual_ecosystem.core.data.Data.known_variables>`
 attribute, using the :meth:`load_known_variables` function is this module. The attribute
 provides a dictionary, keyed by variable name, of
@@ -23,7 +23,7 @@ This is used to build up a dictionary of variables used by a particular simulati
     * Are there running orders for both model initialisation and update that
       avoid circular variable dependencies.
 
-To add a new variable, simply edit the `data_variables.toml` file and add the variable
+To add a new variable, simply edit the ``data_variables.toml`` file and add the variable
 as:
 
 .. code-block:: toml
@@ -205,8 +205,9 @@ def setup_variables(
       appear in the dictionary of known variables.
     * Populates the model usage attributes of the variables being used at runtime,
       including initial checking that:
-       * variables are uniquely initialised,
-       * required variables have been initialised by a model or from data,
+
+        * variables are uniquely initialised,
+        * required variables have been initialised by a model or from data,
 
     Note that the called functions all update the ``runtime_variables`` dictionary by
     reference. This is used because - in addition to adding new variables - the
@@ -221,8 +222,8 @@ def setup_variables(
 
     Raises:
         ValueError: If: a variable required by a model is not in the known variables; a
-        variable is required but not populated; a variable is initialised more than
-        once.
+            variable is required but not populated; a variable is initialised more than
+            once.
     """
 
     runtime_variables: dict[str, VariableMetadata] = {}
