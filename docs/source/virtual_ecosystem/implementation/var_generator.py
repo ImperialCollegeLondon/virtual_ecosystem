@@ -1,15 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     cell_metadata_filter: all,-trusted
-#     notebook_metadata_filter: settings,mystnb,language_info,execution
-#     text_representation:
-#       extension: .py
-#       format_name: light
-#       format_version: '1.5'
-#       jupytext_version: 1.19.1
-# ---
-
 """Utility functions to generate model variable listings."""
 
 from pydantic import fields
@@ -17,10 +5,8 @@ from pydantic import fields
 from virtual_ecosystem.core.base_model import _discover_models
 from virtual_ecosystem.core.variables import VariableMetadata, load_known_variables
 
-# + [markdown]
 # TODO - merge these into a single generate_model_variable_markdown and probably move it
 #        inside the variables submodule.
-# -
 
 
 def generate_variable_listing(model_name: str, var_attributes: list[str]) -> str:
