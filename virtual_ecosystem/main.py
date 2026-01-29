@@ -26,7 +26,7 @@ from virtual_ecosystem.core.logger import LOGGER, add_file_logger, remove_file_l
 from virtual_ecosystem.core.model_config import (
     CoreConfiguration,
 )
-from virtual_ecosystem.core.variables_new import (
+from virtual_ecosystem.core.variables import (
     get_model_order,
     setup_variables,
 )
