@@ -809,7 +809,7 @@ def test_bypass_setup_but_run_update_fails(
 
 def test_to_camel_case():
     """Test the to_camel_case function."""
-    from virtual_ecosystem.core.variables_new import to_camel_case
+    from virtual_ecosystem.core.base_model import to_camel_case
 
     assert to_camel_case("abiotic") == "Abiotic"
     assert to_camel_case("abiotic_simple") == "AbioticSimple"
