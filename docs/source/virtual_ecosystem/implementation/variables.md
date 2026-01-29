@@ -53,9 +53,3 @@ display_markdown(
     raw=True,
 )
 ```
-
-## Detailed variable listing
-
-```{eval-rst}
-.. include:: ../../variables.rst
-```
