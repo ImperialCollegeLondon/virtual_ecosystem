@@ -1460,6 +1460,13 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "NEEDS DESCRIPTION"
+name = "soil_c_pool_microbe"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
 name = "root_turnover_c_p_ratio"
 unit = "NEEDS UNIT"
 variable_type = "float"
