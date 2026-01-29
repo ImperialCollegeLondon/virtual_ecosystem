@@ -800,21 +800,21 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Proportion of above ground structural pool which is lignin"
 name = "lignin_above_structural"
-unit = "kg lignin kg C^-1"
+unit = "kg lignin C (kg C)^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Proportion of below ground structural pool which is lignin"
 name = "lignin_below_structural"
-unit = "kg lignin kg C^-1"
+unit = "kg lignin C (kg C)^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Proportion of dead wood pool which is lignin"
 name = "lignin_woody"
-unit = "kg lignin kg C^-1"
+unit = "kg lignin C (kg C)^-1"
 variable_type = "float"
 
 [[variable]]
@@ -912,7 +912,7 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Lignin proportion of leaves added to litter due to herbivore mechanical inefficiency"
 name = "herbivory_waste_leaf_lignin"
-unit = "-"
+unit = "kg lignin C (kg C)^-1"
 variable_type = "float"
 
 [[variable]]
@@ -1038,28 +1038,28 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Lignin proportion of deadwood"
 name = "stem_lignin"
-unit = "kg lignin kg C^-1"
+unit = "kg lignin C (kg C)^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of leaf turnover"
 name = "senesced_leaf_lignin"
-unit = "kg lignin kg C^-1"
+unit = "kg lignin C (kg C)^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of plant reproductive tissue turnover"
 name = "plant_reproductive_tissue_lignin"
-unit = "kg lignin kg C^-1"
+unit = "kg lignin C (kg C)^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of root turnover"
 name = "root_lignin"
-unit = "kg lignin kg C^-1"
+unit = "kg lignin C (kg C)^-1"
 variable_type = "float"
 
 [[variable]]
