@@ -1,6 +1,7 @@
 """Tests for the virtual_ecosystem.core.variables module."""
 
 from contextlib import nullcontext as does_not_raise
+from importlib import resources
 
 import pytest
 
@@ -158,14 +159,20 @@ def test_VariablesFile():
     assert "Duplicate variable names in variables file" in str(out.value)
 
 
-def test_load_known_variables():
+@pytest.mark.parametrize(argnames="filepath_is_none", argvalues=(True, False))
+def test_load_known_variables(filepath_is_none):
     """Test the load_known_variables function."""
     from virtual_ecosystem.core.variables_new import (
         VariableMetadata,
         load_known_variables,
     )
 
-    variables = load_known_variables()
+    filepath = (
+        None
+        if filepath_is_none
+        else str(resources.files("virtual_ecosystem") / "data_variables.toml")
+    )
+    variables = load_known_variables(variable_file=filepath)
 
     assert len(variables) > 0
 

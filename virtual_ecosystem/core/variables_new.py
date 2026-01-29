@@ -45,7 +45,6 @@ import tomllib
 from collections import Counter
 from graphlib import CycleError, TopologicalSorter
 from importlib import resources
-from pathlib import Path
 
 from pydantic import (
     BaseModel as PydanticBaseModel,
@@ -161,9 +160,7 @@ class VariablesFile(PydanticBaseModel):
 
 
 def load_known_variables(
-    filepath: Path = Path(
-        str(resources.files("virtual_ecosystem") / "data_variables.toml")
-    ),
+    variable_file: str | None = None,
 ) -> dict[str, VariableMetadata]:
     """Loads variables from a TOML variable database file.
 
@@ -171,12 +168,21 @@ def load_known_variables(
     :class:`VariablesFile` validation class, which in turn applies the
     :class:`VariableMetadata` validation class to each entry.
 
+    Args:
+        variable_file: The path to a variables file.
+
     Returns:
         A dictionary, keyed by variable name, of validated ``VariableMetadata``
         instances.
     """
 
-    with open(filepath, "rb") as f:
+    # Default to the main variables file.
+    if variable_file is None:
+        variable_file = str(
+            resources.files("virtual_ecosystem") / "data_variables.toml"
+        )
+
+    with open(variable_file, "rb") as f:
         known_vars = tomllib.load(f)
 
     validated = VariablesFile.model_validate(known_vars)
