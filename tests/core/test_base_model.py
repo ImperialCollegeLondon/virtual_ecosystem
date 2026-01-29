@@ -805,3 +805,21 @@ def test_bypass_setup_but_run_update_fails(
 
     if expected_message:
         assert str(exc.value) == expected_message
+
+
+def test_to_camel_case():
+    """Test the to_camel_case function."""
+    from virtual_ecosystem.core.variables_new import to_camel_case
+
+    assert to_camel_case("abiotic") == "Abiotic"
+    assert to_camel_case("abiotic_simple") == "AbioticSimple"
+    assert to_camel_case("abiotic_super_simple") == "AbioticSuperSimple"
+
+
+def test_discover_models():
+    """Test the discover_all_variables_usage function."""
+    from virtual_ecosystem.core.base_model import BaseModel, _discover_models
+
+    models = _discover_models()
+    assert len(models) > 0
+    assert all(issubclass(x, BaseModel) for x in models)

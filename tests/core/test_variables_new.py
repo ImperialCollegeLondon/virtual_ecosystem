@@ -174,15 +174,6 @@ def test_load_known_variables():
         assert isinstance(var, VariableMetadata)
 
 
-def test_discover_models(known_variables):
-    """Test the discover_all_variables_usage function."""
-    from virtual_ecosystem.core import base_model, variables_new
-
-    models = variables_new._discover_models()
-    assert len(models) > 0
-    assert all(issubclass(x, base_model.BaseModel) for x in models)
-
-
 def test_check_model_variables_are_known(fixture_variable, fixture_test_model):
     """Test the _collect_vars_populated_by_init function."""
     from virtual_ecosystem.core.variables_new import _check_model_variables_are_known
@@ -444,15 +435,6 @@ def test_setup_variables(mocker, fixture_variable, fixture_test_model):
         models=[fixture_test_model],
         runtime_variables={},
     )
-
-
-def test_to_camel_case():
-    """Test the to_camel_case function."""
-    from virtual_ecosystem.core.variables_new import to_camel_case
-
-    assert to_camel_case("abiotic") == "Abiotic"
-    assert to_camel_case("abiotic_simple") == "AbioticSimple"
-    assert to_camel_case("abiotic_super_simple") == "AbioticSuperSimple"
 
 
 def test_get_model_order():

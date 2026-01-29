@@ -51,18 +51,6 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 
 
-def to_camel_case(snake_str: str) -> str:
-    """Convert a snake_case string to CamelCase.
-
-    Args:
-        snake_str: The snake case string to convert.
-
-    Returns:
-        The camel case string.
-    """
-    return "".join(x.capitalize() for x in snake_str.lower().split("_"))
-
-
 @py_dataclass
 class VariableMetadata:
     """Validator class for entries in the variables metadata file."""
