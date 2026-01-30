@@ -470,7 +470,7 @@ class HydrologyModel(
         psychrometric_constant = hydrology_tools.calculate_psychrometric_constant(
             atmospheric_pressure=self.data["atmospheric_pressure"].to_numpy(),
             latent_heat_vapourization=self.data["latent_heat_vapourisation"].to_numpy(),
-            specific_heat_air=self.data["specific_heat_air"].to_numpy(),
+            specific_heat_air=self.data["specific_heat_air"].to_numpy() / 1000.0,
             molecular_weight_ratio_water_to_dry_air=(
                 self.core_constants.molecular_weight_ratio_water_to_dry_air
             ),
@@ -497,7 +497,7 @@ class HydrologyModel(
                 vapour_pressure_deficit=self.data["vapour_pressure_deficit"].to_numpy(),
                 air_temperature=self.data["air_temperature"].to_numpy(),
                 density_air_kg=self.data["density_air"].to_numpy(),
-                specific_heat_air=self.data["specific_heat_air"].to_numpy(),
+                specific_heat_air=self.data["specific_heat_air"].to_numpy() / 1000,
                 aerodynamic_resistance_canopy=self.data[
                     "aerodynamic_resistance_canopy"
                 ].to_numpy(),
