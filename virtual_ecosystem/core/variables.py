@@ -1,17 +1,29 @@
-"""Module for all variables.
+"""Variable validation and model checking.
 
-Variables are defined in the `data_variables.toml` file, in the root folder of
-`virtual_ecosystem `, which is loaded at runtime and validated. Variables are then
-registered in the `KNOWN_VARIABLES` registry. The usage of the variables is then
-discovered by checking the models for the different methods that the variables are
-used (initialisation, update, etc.).
+Variables are defined in the ``data_variables.toml`` file in the root folder of
+``virtual_ecosystem`` . When the model runs, this data is loaded into the
+:attr:`Data.known_variables<virtual_ecosystem.core.data.Data.known_variables>`
+attribute, using the :meth:`load_known_variables` function is this module. The attribute
+provides a dictionary, keyed by variable name, of
+:class:`~virtual_ecosystem.core.variables.VariableMetadata` instances, which hold
+the metadata loaded from file. That data is used to:
 
-The variables actually used by the models in a run are then registered in the global
-`RUN_VARIABLES_REGISTRY` registry. The subset of the variables are checked to ensure
-the consistency of the simulation (eg. all variables required by a model are initialised
-by another model, all axis needed by the variables are defined, etc.).
+    * Check that only known variables are added to the Data instance.
+    * Check that variable axes are defined correctly.
+    * Add variable metadata, such as units and description, to output files.
 
-To add a new variable, simply edit the `data_variables.toml` file and add the variable
+The ``VariableMetadata`` instances also have attributes that are used to track which
+variables appear in the various ``var_...`` attributes of the set of running models.
+This is used to build up a dictionary of variables used by a particular simulation run
+(runtime variables) that tracks variable usage during runtime:
+
+    * What variables are initialised from data or by models, and are they uniquely
+      initialised.
+    * Are variables required by models initialised by other models?
+    * Are there running orders for both model initialisation and update that
+      avoid circular variable dependencies.
+
+To add a new variable, simply edit the ``data_variables.toml`` file and add the variable
 as:
 
 .. code-block:: toml
@@ -29,38 +41,37 @@ on :mod:`~virtual_ecosystem.core.axes`.
 
 from __future__ import annotations
 
-import pkgutil
 import tomllib
-from collections.abc import Hashable
-from dataclasses import asdict, dataclass, field
+from collections import Counter
 from graphlib import CycleError, TopologicalSorter
-from importlib import import_module, resources
-from pathlib import Path
-from typing import cast
+from importlib import resources
 
-from pydantic import BaseModel, field_validator, model_validator
-from tabulate import tabulate
+from pydantic import (
+    BaseModel as PydanticBaseModel,
+)
+from pydantic import (
+    Field,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
+from pydantic.dataclasses import dataclass as py_dataclass
 
-import virtual_ecosystem.core.axes as axes
-import virtual_ecosystem.core.base_model as base_model
+from virtual_ecosystem.core.axes import AXIS_VALIDATORS
+from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 
 
-def to_camel_case(snake_str: str) -> str:
-    """Convert a snake_case string to CamelCase.
+@py_dataclass
+class VariableMetadata:
+    """Variable metadata class.
 
-    Args:
-        snake_str: The snake case string to convert.
-
-    Returns:
-        The camel case string.
+    This class is used to both validate entries loaded from a variables metadata
+    file and to provide attributes that are used to track how each variable is used by
+    the different models at runtime. The ``axis`` attribute has additional validation
+    applied after loading to check that it values are unique and valid.
     """
-    return "".join(x.capitalize() for x in snake_str.lower().split("_"))
-
-
-class VariableMetadata(BaseModel):
-    """Validator class for entries in the variables metadata file."""
 
     name: str
     """Name of the variable. Must be unique."""
@@ -72,71 +83,37 @@ class VariableMetadata(BaseModel):
     """Type of the variable."""
     axis: list[str]
     """Axes the variable is defined on."""
+    vars_required_by_init: list[str] = Field(init=False, default=[])
+    """Used at runtime to track which models require the variable to be initialised."""
+    vars_populated_by_init: list[str] = Field(init=False, default=[])
+    """Used at runtime to track whether the variable is initialised from input data or
+    during the initialisation stage of one of the models."""
+    vars_required_by_update: list[str] = Field(init=False, default=[])
+    """Used at runtime to track which models use the variable."""
+    vars_populated_by_first_update: list[str] = Field(init=False, default=[])
+    """Used at runtime to track which model initialises the variable during the update
+    stage."""
+    vars_updated: list[str] = Field(init=False, default=[])
+    """Used at runtime to track which models update the variable."""
 
-    @field_validator("axis")
-    def unique_axes(cls, value: list[str]) -> list[str]:
-        """Check axis list entries are unique."""
+    @field_validator("axis", mode="after")
+    def unique_axes(cls, value: list[str], info: ValidationInfo) -> list[str]:
+        """Check axis list entries are unique and known."""
 
         if len(value) != len(set(value)):
-            raise ValueError("Axis values not unique.")
-
-        return value
-
-
-class VariablesFile(BaseModel):
-    """Validation class for the variables.toml file."""
-
-    variable: list[VariableMetadata] = []
-
-    @model_validator(mode="after")
-    def _names_unique(self) -> VariablesFile:
-        """Model validation that the variable names are unique."""
-
-        names = [var.name for var in self.variable]
-
-        if len(names) != len(set(names)):
-            raise ValueError("Duplicate variable names in variables file")
-
-        return self
-
-
-@dataclass
-class Variable:
-    """Simulation variable, containing static and runtime metadata."""
-
-    name: str
-    """Name of the variable. Must be unique."""
-    description: str
-    """Description of what the variable represents."""
-    unit: str
-    """Units the variable should be represented in."""
-    variable_type: str
-    """Type of the variable."""
-    axis: tuple[str, ...]
-    """Axes the variable is defined on."""
-    populated_by_init: list[str] = field(default_factory=list, init=False)
-    """Model that initialised the variable either in init or by input data."""
-    populated_by_update: list[str] = field(default_factory=list, init=False)
-    """Model that initialised the variable in its update method."""
-    required_by_init: list[str] = field(default_factory=list, init=False)
-    """Models that require the variable to be initialised."""
-    updated_by: list[str] = field(default_factory=list, init=False)
-    """Models that update the variable."""
-    required_by_update: list[str] = field(default_factory=list, init=False)
-    """Models that use the variable."""
-
-    def __post_init__(self) -> None:
-        """Register the variable in the known variables.
-
-        Raises:
-            ValueError: If a variable is already in the known variables registry.
-        """
-        if self.name in KNOWN_VARIABLES:
             raise ValueError(
-                f"Variable {self.name} already in the known variables registry."
+                f"Axis values not unique in variable: {info.data['name']}."
             )
 
-        KNOWN_VARIABLES[self.name] = self
+        unknown_axes = sorted(set(value).difference(AXIS_VALIDATORS.keys()))
+
+        if unknown_axes:
+            raise ValueError(
+                f"Variable {info.data['name']} uses unknown "
+                f"axes: {','.join(unknown_axes)}"
+            )
+
+        return value
 
     @property
     def related_models(self) -> set[str]:
@@ -146,370 +123,409 @@ class Variable:
             The set of all models related to the variable.
         """
         all_models = (
-            set(self.populated_by_init)
-            | set(self.populated_by_update)
-            | set(self.required_by_init)
-            | set(self.updated_by)
-            | set(self.required_by_update)
+            set(self.vars_required_by_init)
+            | set(self.vars_populated_by_init)
+            | set(self.vars_required_by_update)
+            | set(self.vars_populated_by_first_update)
+            | set(self.vars_updated)
         )
         all_models.discard("data")
         return all_models
 
 
-RUN_VARIABLES_REGISTRY: dict[str, Variable] = {}
-"""The global registry of variables used in a run."""
+class VariablesFile(PydanticBaseModel):
+    """Validation class for a variable definitions file.
 
-KNOWN_VARIABLES: dict[str, Variable] = {}
-"""The global known variable registry."""
+    This validator loads a variable definitions file, following the format used in
+    ``data_variables.toml``, applying validation to each entry, and then checks that the
+    file does not contain duplicate variable definitions.
+    """
+
+    variable: list[VariableMetadata] = []
+
+    @model_validator(mode="after")
+    def _names_unique(self) -> VariablesFile:
+        """Model validation that the variable names are unique."""
+
+        names = [var.name for var in self.variable]
+        names_count = Counter(names)
+
+        duplicated = [n for n, c in names_count.items() if c > 1]
+        if duplicated:
+            raise ValueError(
+                f"Duplicate variable names in variables file: {','.join(duplicated)}"
+            )
+
+        return self
 
 
-def register_all_variables() -> None:
-    """Registers all variables provided by the models."""
+def load_known_variables(
+    variable_file: str | None = None,
+) -> dict[str, VariableMetadata]:
+    """Loads variables from a TOML variable database file.
 
-    with open(
-        str(resources.files("virtual_ecosystem") / "data_variables.toml"), "rb"
-    ) as f:
+    The contents of the file are loaded using tomllib and then passed to the
+    :class:`VariablesFile` validation class, which in turn applies the
+    :class:`VariableMetadata` validation class to each entry.
+
+    Args:
+        variable_file: The path to a variables file.
+
+    Returns:
+        A dictionary, keyed by variable name, of validated ``VariableMetadata``
+        instances.
+    """
+
+    # Default to the main variables file.
+    if variable_file is None:
+        variable_file = str(
+            resources.files("virtual_ecosystem") / "data_variables.toml"
+        )
+
+    with open(variable_file, "rb") as f:
         known_vars = tomllib.load(f)
 
     validated = VariablesFile.model_validate(known_vars)
 
-    for var in validated.variable:
-        Variable(**var.model_dump())
+    return {v.name: v for v in validated.variable}
 
 
-def _discover_models() -> list[type[base_model.BaseModel]]:
-    """Discover all the models in Virtual Ecosystem."""
-    import virtual_ecosystem.models as models
+def setup_variables(
+    models: list[type[BaseModel]],
+    data_vars: list[str],
+    known_variables: dict[str, VariableMetadata],
+) -> dict[str, VariableMetadata]:
+    """Generate the runtime variables dictionary.
 
-    models_found = []
-    for mod in pkgutil.iter_modules(models.__path__):
-        if not mod.ispkg:
-            continue
+    This function takes the data variables provided by the initial data and a
+    list of requested science models and populates a dictionary of runtime variables.
+    The function then:
 
-        try:
-            module = import_module(f"{models.__name__}.{mod.name}.{mod.name}_model")
-        except ImportError:
-            LOGGER.warning(
-                f"No model file found for model {models.__name__}.{mod.name}."
-            )
-            continue
+    * Checks that all variables provided in the data or appearing in model definitions
+      appear in the dictionary of known variables.
+    * Populates the model usage attributes of the variables being used at runtime,
+      including initial checking that:
 
-        mod_class_name = to_camel_case(mod.name) + "Model"
-        if hasattr(module, mod_class_name):
-            models_found.append(getattr(module, mod_class_name))
-        else:
-            LOGGER.warning(
-                f"No model class '{mod_class_name}' found in module "
-                f"'{models.__name__}.{mod.name}.{mod.name}_model'."
-            )
-            continue
+        * variables are uniquely initialised,
+        * required variables have been initialised by a model or from data,
 
-    return models_found
-
-
-def output_known_variables(output_file: Path) -> None:
-    """Output the known variables to a file.
-
-    For the variables to be output, the variables must be registered and the usage of
-    the variables must be discovered, assigning the appropriate models to the variables.
+    Note that the called functions all update the ``runtime_variables`` dictionary by
+    reference. This is used because - in addition to adding new variables - the
+    functions are updating attributes of existing runtime variables. It is much more
+    concise to update by reference here rather than passing update information back to
+    this function.
 
     Args:
-        output_file: The file to output the known variables to.
+        models: The list of models to setup variables for.
+        data_vars: The list of variables defined in the data object.
+        known_variables: A dictionary of known variables
+
+    Raises:
+        ValueError: If: a variable required by a model is not in the known variables; a
+            variable is required but not populated; a variable is initialised more than
+            once.
     """
-    register_all_variables()
 
-    models = _discover_models()
-    _collect_vars_populated_by_init(models, check_unique_initialisation=False)
-    _collect_vars_populated_by_first_update(models, check_unique_initialisation=False)
+    runtime_variables: dict[str, VariableMetadata] = {}
 
-    # Add any variables that are not yet in the run registry to account for those
-    # that would have been initialised by the data object.
-    for name, var in KNOWN_VARIABLES.items():
-        if name not in RUN_VARIABLES_REGISTRY:
-            RUN_VARIABLES_REGISTRY[name] = var
+    # Variables related to the initialisation step
+    _collect_initial_data_vars(
+        vars=data_vars,
+        runtime_variables=runtime_variables,
+        known_variables=known_variables,
+    )
 
-    _collect_vars_required_for_init(models)
-    _collect_updated_by_vars(models, check_unique_update=False)
-    _collect_vars_required_for_update(models)
+    # Check all the variables in the models are present in known variables
+    _check_model_variables_are_known(models, known_variables)
 
-    vars = {
-        var.name: asdict(var)
-        for var in sorted(KNOWN_VARIABLES.values(), key=lambda x: x.name)
-    }
+    # Variables related to the init step
+    _collect_vars_populated_by_init(
+        models=models,
+        runtime_variables=runtime_variables,
+        known_variables=known_variables,
+    )
+    _collect_vars_required_for_init(
+        models=models,
+        runtime_variables=runtime_variables,
+    )
 
-    Path(output_file).with_suffix(".rst").write_text(_format_variables_list(vars))
+    # Variables related to the update step
+    _collect_vars_populated_by_first_update(
+        models=models,
+        runtime_variables=runtime_variables,
+        known_variables=known_variables,
+    )
+    _collect_vars_updated(
+        models=models,
+        runtime_variables=runtime_variables,
+    )
+    _collect_vars_required_for_update(
+        models=models,
+        runtime_variables=runtime_variables,
+    )
+
+    return runtime_variables
 
 
-def _format_variables_list(vars: dict[str, dict]) -> str:
-    """Format the variables list for the RST output.
+def _collect_initial_data_vars(
+    vars: list[str],
+    runtime_variables: dict[str, VariableMetadata],
+    known_variables: dict[str, VariableMetadata],
+) -> None:
+    """Collects the variables defined in the data object.
+
+    The ``runtime_variables`` dictionary is updated in place to add variables provided
+    in the initial data.
 
     Args:
-        vars: The variables to format.
+        vars: The list of variables defined in the data object.
+        runtime_variables: A dictionary of variables being used in this runtime
+        known_variables: A dictionary of known variables
 
-    Returns:
-        The flist of variables and attributes formatted as a sequence of tables
-        in RST format.
+    Raises:
+        ValueError: if a provided variable is unknown or is already present in the
+            runtime variables dictionary.
     """
-    out = []
-    for i, v in enumerate(vars.values()):
-        title = f"{i + 1}- {v['name']}"
-        out.append(title)
-        out.append(f"{'=' * len(title)}")
-        out.append("")
-        out.append(tabulate(list(zip(v.keys(), v.values())), tablefmt="rst"))
-        out.append("")
+    for var in vars:
+        if var not in known_variables:
+            raise ValueError(f"Unknown variable {var} in data object")
 
-    return "\n".join(out)
+        if var in runtime_variables:
+            raise ValueError(f"Variable {var} already populated from data")
+
+        runtime_variables[var] = known_variables[var]
+        runtime_variables[var].vars_populated_by_init.append("data")
+
+
+def _check_model_variables_are_known(
+    models: list[type[BaseModel]], known_variables: dict[str, VariableMetadata]
+):
+    """Checks the model variables are known.
+
+    This function iterates over the provided models and checks that all of the variables
+    listed in the variable usage attributes are present in a dictionary of known
+    variables.
+
+    Args:
+        models: The list of models that are initialising the variables.
+        known_variables: A dictionary of known variables
+
+    Raises:
+        ValueError: if an unknown variable appears in a model variable usage attribute.
+    """
+
+    variable_attributes = (
+        "vars_required_for_init",
+        "vars_populated_by_init",
+        "vars_required_for_update",
+        "vars_populated_by_first_update",
+        "vars_updated",
+    )
+
+    fail = False
+
+    for mod in models:
+        for var_attr in variable_attributes:
+            unknown_variables = set(getattr(mod, var_attr)).difference(known_variables)
+
+            if unknown_variables:
+                LOGGER.error(
+                    f"Unknown variables in {mod.model_name}.{var_attr}: "
+                    f"{', '.join(unknown_variables)}"
+                )
+                fail = True
+
+    if fail:
+        msg = f"Model {mod.model_name} definition contains unknown variables, check log"
+        LOGGER.critical(msg)
+        raise ValueError(msg)
 
 
 def _collect_vars_populated_by_init(
-    models: list[type[base_model.BaseModel]], check_unique_initialisation: bool = True
+    models: list[type[BaseModel]],
+    runtime_variables: dict[str, VariableMetadata],
+    known_variables: dict[str, VariableMetadata],
 ) -> None:
-    """Initialise the runtime variable registry.
+    """Adds variables populated by model initialisation to the runtime variables.
 
-    It is a runtime error if a variable is initialised by more than one model. However,
-    when this function is used to populate variable descriptions across known model - as
-    in :func:`virtual_ecosystem.core.variables.output_known_variables` - alternative
-    models may report initialising the same variable. The `check_unique_initialisation`
-    flag is used to switch between these use cases.
+    This function adds variables appearing in the ``vars_populated_by_init`` attribute
+    of each model to the runtime variable dictionary, adding the model name to the
+    :attr:`VariableMetadata.vars_populated_by_init` attribute of the variable.
+
+    The ``runtime_variables`` dictionary is updated in place to add variables provided
+    in the initial data.
 
     Args:
         models: The list of models that are initialising the variables.
-        check_unique_initialisation: Fail on duplicate initialisation.
+        runtime_variables: A dictionary of variables being used in this runtime
+        known_variables: A dictionary of known variables
 
     Raises:
-        ValueError: If a variable required by a model is not in the known variables
-            registry or if it is already initialised by another model.
+        ValueError: If a variable is already initialised by another model or by initial
+            data .
     """
     for model in models:
         for var in model.vars_populated_by_init:
-            if var not in KNOWN_VARIABLES:
+            if var in runtime_variables:
                 raise ValueError(
-                    f"Variable {var} initialised by {model.model_name} is not in the"
-                    " known variables registry."
-                )
-            if var in RUN_VARIABLES_REGISTRY and check_unique_initialisation:
-                raise ValueError(
-                    f"Variable {var} initialised by {model.model_name} already in "
-                    f"registry as initialised by "
-                    f"{RUN_VARIABLES_REGISTRY[var].populated_by_init}."
+                    f"Variable {var} initialised by {model.model_name} already "
+                    f"initialised by {runtime_variables[var].vars_populated_by_init}."
                 )
 
-            KNOWN_VARIABLES[var].populated_by_init.append(model.model_name)
-            RUN_VARIABLES_REGISTRY[var] = KNOWN_VARIABLES[var]
+            runtime_variables[var] = known_variables[var]
+            runtime_variables[var].vars_populated_by_init.append(model.model_name)
 
 
-def _collect_vars_populated_by_first_update(
-    models: list[type[base_model.BaseModel]], check_unique_initialisation: bool = True
+def _collect_vars_required_for_init(
+    models: list[type[BaseModel]],
+    runtime_variables: dict[str, VariableMetadata],
 ) -> None:
-    """Initialise the runtime variable registry.
+    """Checks variables required for model initialisation.
 
-    It is a runtime error if a variable is initialised by more than one model. However,
-    when this function is used to populate variable descriptions across known model - as
-    in :func:`virtual_ecosystem.core.variables.output_known_variables` - alternative
-    models may report initialising the same variable. The `check_unique_initialisation`
-    flag is used to switch between these use cases.
+    The function checks that all variables appearing in the ``vars_required_for_init``
+    attribute of each model has been added to the dictionary of runtime variables as
+    being initialised from data or by a model. It updates the runtime variables
+    dictionary to add model names to the :attr:`VariableMetadata.vars_required_for_init`
+    attribute for each variable.
 
-    Args:
-        models: The list of models that are initialising the variables.
-        check_unique_initialisation: Fail on duplicate initialisation.
-
-    Raises:
-        ValueError: If a variable required by a model is not in the known variables
-            registry or if it is already initialised by another model.
-    """
-    for model in models:
-        for var in model.vars_populated_by_first_update:
-            if var not in KNOWN_VARIABLES:
-                raise ValueError(
-                    f"Variable {var} initialised by {model.model_name} is not in the"
-                    " known variables registry."
-                )
-            if var in RUN_VARIABLES_REGISTRY and check_unique_initialisation:
-                v = RUN_VARIABLES_REGISTRY[var]
-                initialiser = (
-                    v.populated_by_init[0]
-                    if v.populated_by_init
-                    else v.populated_by_update[0]
-                )
-                raise ValueError(
-                    f"Variable {var} initialised by {model.model_name} already in "
-                    f"registry as initialised by {initialiser}."
-                )
-
-            KNOWN_VARIABLES[var].populated_by_update.append(model.model_name)
-            RUN_VARIABLES_REGISTRY[var] = KNOWN_VARIABLES[var]
-
-
-def _collect_updated_by_vars(
-    models: list[type[base_model.BaseModel]], check_unique_update: bool = True
-) -> None:
-    """Verify that all variables updated by models are in the runtime registry.
+    The ``runtime_variables`` dictionary is updated in place to record which models
+    require each variable for initialisation.
 
     Args:
         models: The list of models to check.
-        check_unique_update: Fail on duplicate update.
+        runtime_variables: A dictionary of variables being used in this runtime
 
     Raises:
-        ValueError: If a variable required by a model is not in the known variables
-            registry or the runtime registry.
-    """
-    for model in models:
-        for var in model.vars_updated:
-            if var not in KNOWN_VARIABLES:
-                raise ValueError(
-                    f"Variable {var} required by {model.model_name} is not in the known"
-                    " variables registry."
-                )
-            if var not in RUN_VARIABLES_REGISTRY:
-                raise ValueError(
-                    f"Variable {var} required by {model.model_name} is not initialised"
-                    " by any model."
-                )
-            if len(RUN_VARIABLES_REGISTRY[var].updated_by) and check_unique_update:
-                LOGGER.warning(
-                    f"Variable {var} updated by {model.model_name} is already updated"
-                    f" by {RUN_VARIABLES_REGISTRY[var].updated_by}."
-                )
-            RUN_VARIABLES_REGISTRY[var].updated_by.append(model.model_name)
-
-
-def _collect_vars_required_for_update(models: list[type[base_model.BaseModel]]) -> None:
-    """Verify that all variables required by the update methods are in the registry.
-
-    Args:
-        models: The list of models to check.
-
-    Raises:
-        ValueError: If a variable required by a model is not in the known variables
-            registry or the runtime registry.
-    """
-    for model in models:
-        for var in model.vars_required_for_update:
-            if var not in KNOWN_VARIABLES:
-                raise ValueError(
-                    f"Variable {var} required by {model.model_name} is not in the known"
-                    " variables registry."
-                )
-            if var not in RUN_VARIABLES_REGISTRY:
-                raise ValueError(
-                    f"Variable {var} required by {model.model_name} is not initialised"
-                    " by any model neither provided as input."
-                )
-            RUN_VARIABLES_REGISTRY[var].required_by_update.append(model.model_name)
-
-
-def _collect_vars_required_for_init(models: list[type[base_model.BaseModel]]) -> None:
-    """Verify that all variables required by the init methods are in the registry.
-
-    Args:
-        models: The list of models to check.
-
-    Raises:
-        ValueError: If a variable required by a model is not in the known variables
-            registry or the runtime registry.
+        ValueError: If a variable required by a model for initialisation has not been
+            initialised from data or by a model.
     """
     for model in models:
         for var in model.vars_required_for_init:
-            # TODO In the future, var will be a string, so this won't be necessary
-            # var = v[0]
-            if var not in KNOWN_VARIABLES:
-                raise ValueError(
-                    f"Variable {var} required by {model.model_name} is not in the known"
-                    " variables registry."
-                )
-            if var not in RUN_VARIABLES_REGISTRY:
+            if var not in runtime_variables:
                 raise ValueError(
                     f"Variable {var} required by {model.model_name} during "
                     "initialisation is not initialised by any model neither provided as"
                     " input."
                 )
-            RUN_VARIABLES_REGISTRY[var].required_by_init.append(model.model_name)
+            runtime_variables[var].vars_required_by_init.append(model.model_name)
 
 
-def _collect_initial_data_vars(vars: list[str]) -> None:
-    """Collects the variables defined in the data object.
-
-    Args:
-        vars: The list of variables defined in the data object.
-    """
-    for var in vars:
-        if var not in KNOWN_VARIABLES:
-            raise ValueError(f"Variable {var} defined in data object is not known.")
-
-        if var in RUN_VARIABLES_REGISTRY:
-            raise ValueError(
-                f"Variable {var} already in registry, initialised by"
-                f"{RUN_VARIABLES_REGISTRY[var].populated_by_init}."
-            )
-
-        KNOWN_VARIABLES[var].populated_by_init.append("data")
-        RUN_VARIABLES_REGISTRY[var] = KNOWN_VARIABLES[var]
-
-
-def setup_variables(
-    models: list[type[base_model.BaseModel]], data_vars: list[Hashable]
+def _collect_vars_populated_by_first_update(
+    models: list[type[BaseModel]],
+    runtime_variables: dict[str, VariableMetadata],
+    known_variables: dict[str, VariableMetadata],
 ) -> None:
-    """Setup the runtime variable registry, running some validation.
+    """Adds variables populated by model first update to the runtime variables.
+
+    This function adds variables appearing in the ``vars_populated_by_first_update``
+    attribute of each model to the runtime variable dictionary, adding the model name to
+    the :attr:`VariableMetadata.vars_populated_by_first_update` attribute of the
+    variable.
+
+    The ``runtime_variables`` dictionary is updated in place to add variables provided
+    in the initial data.
 
     Args:
-        models: The list of models to setup the registry for.
-        data_vars: The list of variables defined in the data object.
+        models: The list of models that are initialising the variables.
+        runtime_variables: A dictionary of variables being used in this runtime
+        known_variables: A dictionary of known variables
 
     Raises:
-        ValueError: If a variable required by a model is not in the known variables
-            registry or the runtime registry.
+        ValueError: If a variable is already initialised by another model, at either
+            model initialisation or update, or from initial data.
     """
-    # Variables related to the initialisation step
-    _collect_initial_data_vars(cast(list[str], data_vars))
-    _collect_vars_populated_by_init(models)
-    _collect_vars_required_for_init(models)
+    for model in models:
+        for var in model.vars_populated_by_first_update:
+            if var in runtime_variables:
+                v = runtime_variables[var]
+                init_model, init_stage = (
+                    (v.vars_populated_by_init[0], "init")
+                    if v.vars_populated_by_init
+                    else (v.vars_populated_by_first_update[0], "first update")
+                )
+                raise ValueError(
+                    f"Variable {var} initialised by {model.model_name} already "
+                    f"initialised during {init_stage} by {init_model}."
+                )
 
-    # Variables related to the update step
-    _collect_vars_populated_by_first_update(models)
-    _collect_updated_by_vars(models)
-    _collect_vars_required_for_update(models)
-
-
-def verify_variables_axis() -> None:
-    """Verify that all required variables have valid, available axis."""
-    for var in RUN_VARIABLES_REGISTRY.values():
-        unknown_axes = sorted(set(var.axis).difference(axes.AXIS_VALIDATORS.keys()))
-
-        if unknown_axes:
-            to_raise = ValueError(
-                f"Variable {var.name} uses unknown axis: {','.join(unknown_axes)}"
+            runtime_variables[var] = known_variables[var]
+            runtime_variables[var].vars_populated_by_first_update.append(
+                model.model_name
             )
-            LOGGER.error(to_raise)
-            raise to_raise
 
 
-def get_variable(name: str) -> Variable:
-    """Get the variable by name.
+def _collect_vars_updated(
+    models: list[type[BaseModel]],
+    runtime_variables: dict[str, VariableMetadata],
+) -> None:
+    """Checks variables updated by models.
+
+    The function checks that all variables appearing in the ``vars_updated`` attribute
+    of each model are initialised by data or a model. It adds the model name to the
+    :attr:`VariableMetadata.vars_updated` attribute of each variable.
+
+    The ``runtime_variables`` dictionary is updated in place to record which models
+    require each variable for initialisation.
+
+    The function emits a log warning if more than one model updates a variable.
 
     Args:
-        name: The name of the variable to get.
-
-    Returns:
-        The variable with the given name.
+        models: The list of models to check.
+        runtime_variables: A dictionary of variables being used in this runtime
 
     Raises:
-        KeyError: If the variable is not in the run variables registry, whether known
-            or unknown to Virtual Ecosystem.
+        ValueError: If a variable has not been initialised.
     """
-    if var := RUN_VARIABLES_REGISTRY.get(name):
-        return var
+    for model in models:
+        for var in model.vars_updated:
+            if var not in runtime_variables:
+                raise ValueError(
+                    f"Variable {var} required by {model.model_name} is not initialised"
+                    " by any model."
+                )
+            if len(runtime_variables[var].vars_updated):
+                LOGGER.warning(
+                    f"Variable {var} updated by {model.model_name} is already updated"
+                    f" by {runtime_variables[var].vars_updated}."
+                )
 
-    if name in KNOWN_VARIABLES:
-        raise KeyError(
-            f"Variable '{name}' is a known variable but is not initialised by any model"
-            " or provided as input data in this run."
-        )
-    else:
-        raise KeyError(f"Variable '{name}' is not a known variable.")
+            runtime_variables[var].vars_updated.append(model.model_name)
 
 
-def get_model_order(stage: str) -> list[str]:
+def _collect_vars_required_for_update(
+    models: list[type[BaseModel]],
+    runtime_variables: dict[str, VariableMetadata],
+) -> None:
+    """Checks variables required for model updates.
+
+    The function checks that all variables appearing in the ``vars_required_for_update``
+    attribute of each model are initialised by data or a model. It adds the model name
+    to the :attr:`VariableMetadata.vars_required_for_update` attribute of each variable.
+
+    The ``runtime_variables`` dictionary is updated in place to record which models
+    require each variable for initialisation.
+
+    Args:
+        models: The list of models to check.
+        runtime_variables: A dictionary of variables being used in this runtime
+
+    Raises:
+        ValueError: If a variable has not been initialised..
+    """
+
+    for model in models:
+        for var in model.vars_required_for_update:
+            if var not in runtime_variables:
+                raise ValueError(
+                    f"Variable {var} required by {model.model_name} is not initialised"
+                    " by any model neither provided as input."
+                )
+            runtime_variables[var].vars_required_by_update.append(model.model_name)
+
+
+def get_model_order(
+    stage: str, runtime_variables: dict[str, VariableMetadata]
+) -> list[str]:
     """Get the order of running the models during init or update.
 
     This order is based on the dependencies of initialisation and update of the
@@ -518,6 +534,7 @@ def get_model_order(stage: str) -> list[str]:
     Args:
         stage: The stage of the simulation to get the order for. It must be either
             "init" or "update".
+        runtime_variables: A dictionary of variables being used in this runtime
 
     Returns:
         The order of initialisation of the variables.
@@ -526,19 +543,21 @@ def get_model_order(stage: str) -> list[str]:
         raise ConfigurationError("Stage must be either 'init' or 'update'.")
 
     depends: dict[str, set] = {}
-    for var in RUN_VARIABLES_REGISTRY.values():
+    for var in runtime_variables.values():
         depends.update(
             {model: set() for model in var.related_models if model not in depends}
         )
 
         # If the variable does not impose a dependency, skip it
-        if (stage == "init" and not var.populated_by_init) or (
-            stage == "update" and not var.populated_by_update
+        if (stage == "init" and not var.vars_populated_by_init) or (
+            stage == "update" and not var.vars_populated_by_first_update
         ):
             continue
 
         initialiser = (
-            var.populated_by_init[0] if stage == "init" else var.populated_by_update[0]
+            var.vars_populated_by_init[0]
+            if stage == "init"
+            else var.vars_populated_by_first_update[0]
         )
 
         # If the variable is initialised by the data object, it does not impose a
@@ -547,7 +566,9 @@ def get_model_order(stage: str) -> list[str]:
             continue
 
         required_by = (
-            var.required_by_init if stage == "init" else var.required_by_update
+            var.vars_required_by_init
+            if stage == "init"
+            else var.vars_required_by_update
         )
 
         for dep in required_by:

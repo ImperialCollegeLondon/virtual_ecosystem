@@ -28,7 +28,7 @@ def fixture_data_instance_for_model_validation():
     grid = Grid()
     data = Data(grid=grid)
 
-    data["temperature"] = DataArray([20] * 100, dims="cell_id")
+    data["air_temperature"] = DataArray([20] * 100, dims="cell_id")
     data["precipitation"] = DataArray([20] * 100, dims="not_cell_id")
 
     return data
@@ -557,7 +557,10 @@ def test_run_setup_due_to_static_configuration(
             )
 
     for var in data_vars.keys():
-        fixture_data[var] = fixture_data["existing_var"].copy()
+        # This bypasses the normal Data.__set_item__ to avoid the integral check on
+        # adding only known variable names. Alternatively, we could update this test to
+        # use only known variables but that seems excessive
+        fixture_data.data[var] = fixture_data["atmospheric_co2"].copy()
 
     core_components = CoreComponents(config=fixture_configuration.core)
 
@@ -691,7 +694,10 @@ def test_run_update_due_to_static_configuration(
             )
 
     for var in data_vars.keys():
-        fixture_data[var] = fixture_data["existing_var"].copy()
+        # This bypasses the normal Data.__set_item__ to avoid the integral check on
+        # adding only known variable names. Alternatively, we could update this test to
+        # use only known variables but that seems excessive
+        fixture_data.data[var] = fixture_data["atmospheric_co2"].copy()
 
     core_components = CoreComponents(config=fixture_configuration.core)
 
@@ -796,7 +802,10 @@ def test_bypass_setup_but_run_update_fails(
             )
 
     for var in data_vars.keys():
-        fixture_data[var] = fixture_data["existing_var"].copy()
+        # This bypasses the normal Data.__set_item__ to avoid the integral check on
+        # adding only known variable names. Alternatively, we could update this test to
+        # use only known variables but that seems excessive
+        fixture_data.data[var] = fixture_data["atmospheric_co2"].copy()
 
     with expected_exception as exc:
         TestModel(
@@ -805,3 +814,21 @@ def test_bypass_setup_but_run_update_fails(
 
     if expected_message:
         assert str(exc.value) == expected_message
+
+
+def test_to_camel_case():
+    """Test the to_camel_case function."""
+    from virtual_ecosystem.core.base_model import to_camel_case
+
+    assert to_camel_case("abiotic") == "Abiotic"
+    assert to_camel_case("abiotic_simple") == "AbioticSimple"
+    assert to_camel_case("abiotic_super_simple") == "AbioticSuperSimple"
+
+
+def test_discover_models():
+    """Test the discover_all_variables_usage function."""
+    from virtual_ecosystem.core.base_model import BaseModel, _discover_models
+
+    models = _discover_models()
+    assert len(models) > 0
+    assert all(issubclass(x, BaseModel) for x in models)

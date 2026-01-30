@@ -26,7 +26,6 @@ from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
 import virtual_ecosystem as ve
-from virtual_ecosystem.core import variables
 
 # Silence sphinx 9 warnings.
 warnings.filterwarnings("ignore", category=RemovedInSphinx90Warning)
@@ -42,10 +41,6 @@ sys.path.append(str(Path(__file__).parent / "development/documentation"))
 
 version = ve.__version__
 release = version
-
-# Update the variables file
-varfile = Path(__file__).parent / "variables.rst"
-variables.output_known_variables(varfile)
 
 
 # -- Project information -----------------------------------------------------
