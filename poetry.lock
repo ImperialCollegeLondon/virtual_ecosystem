@@ -1370,24 +1370,24 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "hypothesis"
-version = "6.150.3"
+version = "6.151.4"
 description = "The property-based testing library for Python"
 optional = false
 python-versions = ">=3.10"
 groups = ["test"]
 files = [
-    {file = "hypothesis-6.150.3-py3-none-any.whl", hash = "sha256:5577c0f8eff5ac54a8aff1ce32e30c5454167c29360fdabf1bfea0539b1689f9"},
-    {file = "hypothesis-6.150.3.tar.gz", hash = "sha256:32c88d4b7df3a8483e69877561b520320bf7779b0709c11869e392025e9279d4"},
+    {file = "hypothesis-6.151.4-py3-none-any.whl", hash = "sha256:a1cf7e0fdaa296d697a68ff3c0b3912c0050f07aa37e7d2ff33a966749d1d9b4"},
+    {file = "hypothesis-6.151.4.tar.gz", hash = "sha256:658a62da1c3ccb36746ac2f7dc4bb1a6e76bd314e0dc54c4e1aaba2503d5545c"},
 ]
 
 [package.dependencies]
 sortedcontainers = ">=2.1.0,<3.0.0"
 
 [package.extras]
-all = ["black (>=20.8b0)", "click (>=7.0)", "crosshair-tool (>=0.0.101)", "django (>=4.2)", "dpcontracts (>=0.4)", "hypothesis-crosshair (>=0.0.27)", "lark (>=0.10.1)", "libcst (>=0.3.16)", "numpy (>=1.21.6)", "pandas (>=1.1)", "pytest (>=4.6)", "python-dateutil (>=1.4)", "pytz (>=2014.1)", "redis (>=3.0.0)", "rich (>=9.0.0)", "tzdata (>=2025.3) ; sys_platform == \"win32\" or sys_platform == \"emscripten\"", "watchdog (>=4.0.0)"]
+all = ["black (>=20.8b0)", "click (>=7.0)", "crosshair-tool (>=0.0.102)", "django (>=4.2)", "dpcontracts (>=0.4)", "hypothesis-crosshair (>=0.0.27)", "lark (>=0.10.1)", "libcst (>=0.3.16)", "numpy (>=1.21.6)", "pandas (>=1.1)", "pytest (>=4.6)", "python-dateutil (>=1.4)", "pytz (>=2014.1)", "redis (>=3.0.0)", "rich (>=9.0.0)", "tzdata (>=2025.3) ; sys_platform == \"win32\" or sys_platform == \"emscripten\"", "watchdog (>=4.0.0)"]
 cli = ["black (>=20.8b0)", "click (>=7.0)", "rich (>=9.0.0)"]
 codemods = ["libcst (>=0.3.16)"]
-crosshair = ["crosshair-tool (>=0.0.101)", "hypothesis-crosshair (>=0.0.27)"]
+crosshair = ["crosshair-tool (>=0.0.102)", "hypothesis-crosshair (>=0.0.27)"]
 dateutil = ["python-dateutil (>=1.4)"]
 django = ["django (>=4.2)"]
 dpcontracts = ["dpcontracts (>=0.4)"]
@@ -1966,14 +1966,14 @@ test = ["hatch", "ipykernel", "openapi-core (>=0.18.0,<0.19.0)", "openapi-spec-v
 
 [[package]]
 name = "jupytext"
-version = "1.19.0"
+version = "1.19.1"
 description = "Jupyter notebooks as Markdown documents, Julia, Python or R scripts"
 optional = false
 python-versions = ">=3.9"
 groups = ["devenv"]
 files = [
-    {file = "jupytext-1.19.0-py3-none-any.whl", hash = "sha256:6e82527920600883088c5825f5d4a5bd06a2676d4958d4f3bc622bad2439c0ac"},
-    {file = "jupytext-1.19.0.tar.gz", hash = "sha256:724c1f75c850a12892ccbcdff33004ede33965d0da8520ab9ea74b39ff51283a"},
+    {file = "jupytext-1.19.1-py3-none-any.whl", hash = "sha256:d8975035155d034bdfde5c0c37891425314b7ea8d3a6c4b5d18c294348714cd9"},
+    {file = "jupytext-1.19.1.tar.gz", hash = "sha256:82587c07e299173c70ed5e8ec7e75183edf1be289ed518bab49ad0d4e3d5f433"},
 ]
 
 [package.dependencies]
@@ -1984,11 +1984,11 @@ packaging = "*"
 pyyaml = "*"
 
 [package.extras]
-dev = ["autopep8", "black", "flake8", "gitpython", "ipykernel", "isort", "jupyter-fs[fs] (>=1.0)", "jupyter-server (!=2.11)", "marimo (>=0.17.6)", "nbconvert", "pre-commit", "pytest", "pytest-asyncio", "pytest-cov (>=2.6.1)", "pytest-randomly", "pytest-xdist", "sphinx", "sphinx-gallery (>=0.8)"]
+dev = ["autopep8", "black", "flake8", "gitpython", "ipykernel", "isort", "jupyter-fs[fs] (>=1.0)", "jupyter-server (!=2.11)", "marimo (>=0.17.6,<=0.19.4)", "nbconvert", "pre-commit", "pytest", "pytest-asyncio", "pytest-cov (>=2.6.1)", "pytest-randomly", "pytest-xdist", "sphinx", "sphinx-gallery (>=0.8)"]
 docs = ["myst-parser", "sphinx", "sphinx-copybutton", "sphinx-rtd-theme"]
 test = ["pytest", "pytest-asyncio", "pytest-randomly", "pytest-xdist"]
 test-cov = ["black", "ipykernel", "jupyter-server (!=2.11)", "nbconvert", "pytest", "pytest-asyncio", "pytest-cov (>=2.6.1)", "pytest-randomly", "pytest-xdist"]
-test-external = ["autopep8", "black", "flake8", "gitpython", "ipykernel", "isort", "jupyter-fs[fs] (>=1.0)", "jupyter-server (!=2.11)", "marimo (>=0.17.6)", "nbconvert", "pre-commit", "pytest", "pytest-asyncio", "pytest-randomly", "pytest-xdist", "sphinx", "sphinx-gallery (>=0.8)"]
+test-external = ["autopep8", "black", "flake8", "gitpython", "ipykernel", "isort", "jupyter-fs[fs] (>=1.0)", "jupyter-server (!=2.11)", "marimo (>=0.17.6,<=0.19.4)", "nbconvert", "pre-commit", "pytest", "pytest-asyncio", "pytest-randomly", "pytest-xdist", "sphinx", "sphinx-gallery (>=0.8)"]
 test-functional = ["black", "pytest", "pytest-asyncio", "pytest-randomly", "pytest-xdist"]
 test-integration = ["black", "ipykernel", "jupyter-server (!=2.11)", "nbconvert", "pytest", "pytest-asyncio", "pytest-randomly", "pytest-xdist"]
 test-ui = ["bash-kernel"]
@@ -5543,4 +5543,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "986e7dde6b77f7369b0f3073ab48f8470f6353470117e209fddaf28a0d1a4807"
+content-hash = "8f95252e862c3224ca163c1912e2375df141878edbe621d5776068b4032be655"
