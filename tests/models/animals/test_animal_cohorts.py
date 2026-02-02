@@ -2015,13 +2015,13 @@ class TestAnimalCohort:
         assert result == {"carbon": 10, "nitrogen": 11, "phosphorus": 12}
 
     @pytest.mark.parametrize(
-        "cohort_instance, diet_type, plant_list, animal_list, fungal_fruit_list,"
+        "cohort_instance, diet_string, plant_list, animal_list, fungal_fruit_list,"
         "soil_fungi_list,pom_list, bacteria_list, expected_nutrient_gain,"
         "delta_mass_mock",
         [
             (
                 "herbivore_cohort_instance",
-                "HERBIVORE",
+                "foliage_fruit",
                 "plant_list_instance",
                 [],
                 [],
@@ -2033,7 +2033,7 @@ class TestAnimalCohort:
             ),
             (
                 "predator_cohort_instance",
-                "CARNIVORE",
+                "vertebrates_invertebrates_carcasses",
                 [],
                 "animal_list_instance",
                 [],
@@ -2045,7 +2045,7 @@ class TestAnimalCohort:
             ),
             (
                 "fungivore_cohort_instance",
-                "MUSHROOMS",
+                "mushrooms",
                 [],
                 [],
                 "fungal_fruit_list_instance",
@@ -2063,7 +2063,7 @@ class TestAnimalCohort:
         mocker,
         request,
         cohort_instance,
-        diet_type,
+        diet_string,
         plant_list,
         animal_list,
         fungal_fruit_list,
@@ -2087,7 +2087,7 @@ class TestAnimalCohort:
 
         # Resolve the cohort object and set its diet
         cohort = request.getfixturevalue(cohort_instance)
-        cohort.functional_group.diet = getattr(DietType, diet_type)
+        cohort.functional_group.diet = DietType.parse(diet_string)
 
         # Resolve lists from fixture names if provided as strings
         if isinstance(plant_list, str):
@@ -2103,15 +2103,13 @@ class TestAnimalCohort:
             for plant in plant_list_instance
         }
 
-        # Mock delta_mass_* method and eat method
+        # Mock delta_mass_* method
         mock_delta_mass = mocker.patch.object(
             cohort, delta_mass_mock, return_value=expected_nutrient_gain
         )
 
-        # Dummy values for untested inputs
         empty_list = []
 
-        # Call method under test
         cohort.forage_cohort(
             plant_list=plant_list,
             animal_list=animal_list,
@@ -2125,31 +2123,30 @@ class TestAnimalCohort:
             scavenge_carcass_pools=empty_list,
             scavenge_excrement_pools=empty_list,
             herbivory_waste_pools=herbivory_waste_pools
-            if diet_type == "HERBIVORE"
+            if diet_string == "foliage_fruit"
             else {},
             dt=30,
         )
 
-        # Validate delta_mass_* call
         mock_delta_mass.assert_called_once()
         kwargs = mock_delta_mass.call_args.kwargs
 
-        if diet_type == "HERBIVORE":
+        if diet_string == "foliage_fruit":
             assert kwargs["plant_list"] == plant_list_instance
             assert kwargs["herbivory_waste_pools"] == herbivory_waste_pools
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
-        elif diet_type == "CARNIVORE":
+        elif diet_string == "vertebrates_invertebrates_carcasses":
             assert kwargs["animal_list"] == animal_list_instance
             assert kwargs["carcass_pools"] == carcass_pools_by_cell_instance
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
-        elif diet_type == "MUSHROOMS":
+        elif diet_string == "mushrooms":
             assert kwargs["fungal_fruit_list"] == fungal_fruit_list_instance
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
         else:
-            assert False, f"Unhandled diet_type: {diet_type}"
+            assert False, f"Unhandled diet_string: {diet_string}"
 
     def test_forage_cohort_earthworm_multisoil(
         self,
