@@ -7,8 +7,6 @@ subtrees:
       - file: virtual_ecosystem/science
         title: Science
         entries:
-        - file: project_team
-          title: The Project Team
         - file: virtual_ecosystem/theory/theory
           title: Theory
           entries:
@@ -227,8 +225,9 @@ subtrees:
                   - file: api/models/plants/plant_structures
                     title: The plant_structures submodule
           - file: api/example_data
-            title: The example_data submodule
-
+            title: The example_data submodule   
+      - file: project_team
+        title: Project Team
       - file: reference
         title: References
         entries:
