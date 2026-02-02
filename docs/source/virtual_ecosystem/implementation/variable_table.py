@@ -6,7 +6,7 @@ from importlib import resources
 
 import dominate.tags as dt
 
-from virtual_ecosystem.core.variables import _discover_models
+from virtual_ecosystem.core.base_model import _discover_models
 
 
 def variable_table():

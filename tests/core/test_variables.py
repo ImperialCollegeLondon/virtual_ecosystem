@@ -1,366 +1,399 @@
 """Tests for the virtual_ecosystem.core.variables module."""
 
+from contextlib import nullcontext as does_not_raise
+from importlib import resources
+
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def known_variables():
-    """Fixture to reset the known variables after each test."""
-    from virtual_ecosystem.core import variables
+@pytest.fixture
+def fixture_variable():
+    """Fixture variable for use in testing."""
+    from virtual_ecosystem.core.variables import VariableMetadata
 
-    vars_bkp = variables.KNOWN_VARIABLES.copy()
-    variables.KNOWN_VARIABLES.clear()
-    yield variables.KNOWN_VARIABLES
-    variables.KNOWN_VARIABLES.clear()
-    variables.KNOWN_VARIABLES.update(vars_bkp)
-
-
-@pytest.fixture(autouse=True)
-def run_variables():
-    """Fixture to reset the run variables after each test."""
-    from virtual_ecosystem.core import variables
-
-    vars_bkp = variables.RUN_VARIABLES_REGISTRY.copy()
-    variables.RUN_VARIABLES_REGISTRY.clear()
-    yield variables.RUN_VARIABLES_REGISTRY
-    variables.RUN_VARIABLES_REGISTRY.clear()
-    variables.RUN_VARIABLES_REGISTRY.update(vars_bkp)
+    return VariableMetadata(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("spatial",),
+    )
 
 
 @pytest.fixture
-def axis_validators():
-    """Fixture to reset the axis validators after each test."""
-    import virtual_ecosystem.core.axes as axes
+def fixture_test_model():
+    """Provides a template model that can be updated to test variable checking."""
 
-    vars_bkp = axes.AXIS_VALIDATORS.copy()
-    axes.AXIS_VALIDATORS.clear()
-    yield axes.AXIS_VALIDATORS
-    axes.AXIS_VALIDATORS.clear()
-    axes.AXIS_VALIDATORS.update(vars_bkp)
+    class TestModel:
+        model_name = "TestModel"
+        vars_required_for_init = tuple()
+        vars_populated_by_init = tuple()
+        vars_required_for_update = tuple()
+        vars_populated_by_first_update = tuple()
+        vars_updated = tuple()
+
+    return TestModel
 
 
-def test_register_variable(known_variables):
-    """Test the register_variable function."""
-    from virtual_ecosystem.core import variables
+@pytest.mark.parametrize(
+    argnames="variable_definition,outcome,exc_text",
+    argvalues=(
+        pytest.param(
+            dict(
+                name="test_var",
+                description="Test variable",
+                unit="m",
+                variable_type="float",
+                axis=("spatial",),
+            ),
+            does_not_raise(),
+            None,
+            id="good",
+        ),
+        pytest.param(
+            dict(
+                name="test_var",
+                unit="m",
+                variable_type="float",
+                axis=("spatial",),
+            ),
+            pytest.raises(ValueError),
+            "Field required",
+            id="missing_field",
+        ),
+        pytest.param(
+            dict(
+                name="test_var",
+                description="Test variable",
+                unit="m",
+                variable_type="float",
+                axis=("spatial", "spatial"),
+            ),
+            pytest.raises(ValueError),
+            "Axis values not unique in variable: test_var",
+            id="repeated axis",
+        ),
+        pytest.param(
+            dict(
+                name="test_var",
+                description="Test variable",
+                unit="m",
+                variable_type="float",
+                axis=("cellid",),
+            ),
+            pytest.raises(ValueError),
+            "Variable test_var uses unknown axes:",
+            id="unknown axis",
+        ),
+    ),
+)
+def test_VariableMetadata(variable_definition, outcome, exc_text):
+    """Test the VariableMetadata class validation."""
 
-    var = variables.Variable(
+    from virtual_ecosystem.core.variables import VariableMetadata
+
+    with outcome as out:
+        _ = VariableMetadata(**variable_definition)
+        return
+
+    assert exc_text in str(out.value)
+
+
+def test_VariableMetadata_related_models():
+    """Test the VariablesFile.related_models property."""
+
+    from virtual_ecosystem.core.variables import VariableMetadata
+
+    var = VariableMetadata(
         name="test_var",
         description="Test variable",
         unit="m",
         variable_type="float",
-        axis=("x", "y", "z"),
-    )
-    assert "test_var" in variables.KNOWN_VARIABLES
-    assert variables.KNOWN_VARIABLES["test_var"] == var
-
-
-def test_register_variable_duplicate(known_variables):
-    """Test the register_variable function with a duplicate variable."""
-    from virtual_ecosystem.core import variables
-
-    variables.Variable(
-        name="test_var",
-        description="Test variable",
-        unit="m",
-        variable_type="float",
-        axis=("x", "y", "z"),
-    )
-    with pytest.raises(ValueError):
-        variables.Variable(
-            name="test_var",
-            description="Test variable",
-            unit="m",
-            variable_type="float",
-            axis=("x", "y", "z"),
-        )
-
-
-def test_variables_related_models(known_variables):
-    """Test the related_models function of the Variable class."""
-    from virtual_ecosystem.core import variables
-
-    var = variables.Variable(
-        name="test_var",
-        description="Test variable",
-        unit="m",
-        variable_type="float",
-        axis=("x", "y", "z"),
+        axis=("spatial",),
     )
 
     # Check that the related models are empty when no data is provided
     assert var.related_models == set()
 
     # Check that the related models are correctly returned
-    var.populated_by_init = ["model1"]
-    var.populated_by_update = ["model2"]
-    var.required_by_init = ["model3"]
-    var.required_by_update = ["model4", "model5"]
-    var.updated_by = ["model5"]
+    var.vars_populated_by_init = ["model1"]
+    var.vars_populated_by_first_update = ["model2"]
+    var.vars_required_by_init = ["model3"]
+    var.vars_required_by_update = ["model4", "model5"]
+    var.vars_updated = ["model5"]
+
     assert var.related_models == set(["model1", "model2", "model3", "model4", "model5"])
 
     # Test that data is not included in the related models
-    var.updated_by = ["data"]
+    var.vars_updated = ["data"]
     assert var.related_models == set(["model1", "model2", "model3", "model4", "model5"])
 
 
-def test_register_all_variables(known_variables):
-    """Test the register_all_variables function."""
-    from virtual_ecosystem.core import variables
+def test_VariablesFile():
+    """Test the VariablesFile class validation."""
 
-    assert len(variables.KNOWN_VARIABLES) == 0
-    variables.register_all_variables()
-    assert len(variables.KNOWN_VARIABLES) > 0
+    from virtual_ecosystem.core.variables import VariableMetadata, VariablesFile
 
-
-def test_discover_models(known_variables):
-    """Test the discover_all_variables_usage function."""
-    from virtual_ecosystem.core import base_model, variables
-
-    models = variables._discover_models()
-    assert len(models) > 0
-    assert all(issubclass(x, base_model.BaseModel) for x in models)
-
-
-def test_output_known_variables(known_variables, mocker, tmpdir):
-    """Test the output_known_variables function."""
-    from virtual_ecosystem.core import variables
-
-    mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
-    mocker.patch("virtual_ecosystem.core.variables._discover_models")
-    mocker.patch("virtual_ecosystem.core.variables._collect_vars_populated_by_init")
-    mocker.patch(
-        "virtual_ecosystem.core.variables._collect_vars_populated_by_first_update"
-    )
-    mocker.patch("virtual_ecosystem.core.variables._collect_vars_required_for_init")
-    mocker.patch("virtual_ecosystem.core.variables._collect_updated_by_vars")
-    mocker.patch("virtual_ecosystem.core.variables._collect_vars_required_for_update")
-
-    variables._discover_models.return_value = []
-
-    variables.Variable(
+    v1 = VariableMetadata(
         name="test_var",
         description="Test variable",
         unit="m",
         variable_type="float",
-        axis=("x", "y", "z"),
+        axis=("spatial",),
     )
-    path = tmpdir / "variables.rst"
 
-    variables.output_known_variables(path)
-
-    assert "test_var" in variables.RUN_VARIABLES_REGISTRY
-    variables.register_all_variables.assert_called_once()
-    variables._discover_models.assert_called_once()
-    variables._collect_vars_populated_by_init.assert_called_once_with(
-        [], check_unique_initialisation=False
+    v2 = VariableMetadata(
+        name="test_var2",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("spatial",),
     )
-    variables._collect_vars_populated_by_first_update.assert_called_once_with(
-        [], check_unique_initialisation=False
+
+    with does_not_raise():
+        _ = VariablesFile(variable=[v1, v2])
+
+    with pytest.raises(ValueError) as out:
+        _ = VariablesFile(variable=[v1, v1, v2])
+
+    assert "Duplicate variable names in variables file" in str(out.value)
+
+
+@pytest.mark.parametrize(argnames="filepath_is_none", argvalues=(True, False))
+def test_load_known_variables(filepath_is_none):
+    """Test the load_known_variables function."""
+    from virtual_ecosystem.core.variables import (
+        VariableMetadata,
+        load_known_variables,
     )
-    variables._collect_vars_required_for_init.assert_called_once_with([])
-    variables._collect_updated_by_vars.assert_called_once_with(
-        [], check_unique_update=False
+
+    filepath = (
+        None
+        if filepath_is_none
+        else str(resources.files("virtual_ecosystem") / "data_variables.toml")
     )
-    variables._collect_vars_required_for_update.assert_called_once_with([])
-    assert path.exists()
+    variables = load_known_variables(variable_file=filepath)
 
-    with open(path) as f:
-        assert "test_var" in f.read()
+    assert len(variables) > 0
+
+    for ky, var in variables.items():
+        assert isinstance(ky, str)
+        assert isinstance(var, VariableMetadata)
 
 
-def test_collect_vars_populated_by_init(known_variables, run_variables):
+def test_check_model_variables_are_known(fixture_variable, fixture_test_model):
     """Test the _collect_vars_populated_by_init function."""
-    from virtual_ecosystem.core import variables
+    from virtual_ecosystem.core.variables import _check_model_variables_are_known
 
-    class TestModel:
-        model_name = "TestModel"
-        vars_populated_by_init = ("test_var",)
+    fixture_test_model.vars_populated_by_init = ("test_var",)
 
-    with pytest.raises(ValueError, match=r"not in the known variables registry."):
-        variables._collect_vars_populated_by_init([TestModel])
+    known_variables = {}
 
-    variables.Variable(
-        name="test_var",
-        description="Test variable",
-        unit="m",
-        variable_type="float",
-        axis=("x", "y", "z"),
+    with pytest.raises(
+        ValueError, match=r"Model TestModel definition contains unknown variables"
+    ):
+        _check_model_variables_are_known(
+            [fixture_test_model], known_variables=known_variables
+        )
+
+    known_variables = {"test_var": fixture_variable}
+
+    with does_not_raise():
+        _check_model_variables_are_known(
+            [fixture_test_model], known_variables=known_variables
+        )
+
+
+def test_collect_vars_populated_by_init(fixture_variable, fixture_test_model):
+    """Test the _collect_vars_populated_by_init function."""
+    from virtual_ecosystem.core.variables import _collect_vars_populated_by_init
+
+    fixture_test_model.vars_populated_by_init = ("test_var",)
+
+    runtime_variables = {}
+    known_variables = {"test_var": fixture_variable}
+
+    _collect_vars_populated_by_init(
+        [fixture_test_model],
+        runtime_variables=runtime_variables,
+        known_variables=known_variables,
     )
 
-    variables._collect_vars_populated_by_init([TestModel])
+    assert "test_var" in runtime_variables
+    assert runtime_variables["test_var"].vars_populated_by_init == ["TestModel"]
 
-    assert "test_var" in variables.RUN_VARIABLES_REGISTRY
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_init == [
-        "TestModel"
-    ]
+    # Rerunning should detect that there is already an entry in vars_populated_by_init
+    with pytest.raises(ValueError, match="already initialised"):
+        _collect_vars_populated_by_init(
+            [fixture_test_model],
+            runtime_variables=runtime_variables,
+            known_variables=known_variables,
+        )
 
-    with pytest.raises(ValueError, match="already in registry"):
-        variables._collect_vars_populated_by_init([TestModel])
 
-
-def test_collect_vars_populated_by_first_update(known_variables, run_variables):
+def test_collect_vars_populated_by_first_update(fixture_variable, fixture_test_model):
     """Test the _collect_vars_populated_by_first_update function."""
-    from virtual_ecosystem.core import variables
-
-    class TestModel:
-        model_name = "TestModel"
-        vars_populated_by_first_update = ("test_var",)
-        vars_populated_by_init = ("test_var",)
-
-    with pytest.raises(ValueError, match=r"not in the known variables registry."):
-        variables._collect_vars_populated_by_first_update([TestModel])
-
-    variables.Variable(
-        name="test_var",
-        description="Test variable",
-        unit="m",
-        variable_type="float",
-        axis=("x", "y", "z"),
+    from virtual_ecosystem.core.variables import (
+        _collect_vars_populated_by_first_update,
+        _collect_vars_populated_by_init,
     )
 
-    variables._collect_vars_populated_by_first_update([TestModel])
+    fixture_test_model.vars_populated_by_first_update = ("test_var",)
+    fixture_test_model.vars_populated_by_init = ("test_var",)
 
-    assert "test_var" in variables.RUN_VARIABLES_REGISTRY
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_update == [
-        "TestModel"
-    ]
+    runtime_variables = {}
+    known_variables = {"test_var": fixture_variable}
 
-    with pytest.raises(ValueError, match="already in registry"):
-        variables._collect_vars_populated_by_first_update([TestModel])
+    # Running the collect should add the variable to the runtime variables
+    _collect_vars_populated_by_first_update(
+        [fixture_test_model],
+        runtime_variables=runtime_variables,
+        known_variables=known_variables,
+    )
+
+    assert "test_var" in runtime_variables
+    assert runtime_variables["test_var"].vars_populated_by_first_update == ["TestModel"]
+
+    # Rerunning should detect that there is already an entry in
+    # vars_populated_by_first_update
+    with pytest.raises(ValueError, match="already initialised during first update"):
+        _collect_vars_populated_by_first_update(
+            [fixture_test_model],
+            runtime_variables=runtime_variables,
+            known_variables=known_variables,
+        )
 
     # If the variable was initialised during init...
-    variables.RUN_VARIABLES_REGISTRY.pop("test_var")
-    variables._collect_vars_populated_by_init([TestModel])
-
-    # re-registering ruring update will also fail
-    with pytest.raises(ValueError, match="already in registry"):
-        variables._collect_vars_populated_by_first_update([TestModel])
-
-
-def test_collect_updated_by_vars(known_variables, run_variables, caplog):
-    """Test the _collect_updated_by_vars function."""
-    from virtual_ecosystem.core import variables
-
-    class TestModel:
-        model_name = "TestModel"
-        vars_updated = ("test_var",)
-
-    with pytest.raises(ValueError, match=r"not in the known variables registry."):
-        variables._collect_updated_by_vars([TestModel])
-
-    var = variables.Variable(
-        name="test_var",
-        description="Test variable",
-        unit="m",
-        variable_type="float",
-        axis=("x", "y", "z"),
+    runtime_variables.pop("test_var")
+    _collect_vars_populated_by_init(
+        [fixture_test_model],
+        runtime_variables=runtime_variables,
+        known_variables=known_variables,
     )
 
+    # re-registering during update will also fail
+    with pytest.raises(ValueError, match="already initialised during init"):
+        _collect_vars_populated_by_first_update(
+            [fixture_test_model],
+            runtime_variables=runtime_variables,
+            known_variables=known_variables,
+        )
+
+
+def test_collect_vars_updated(caplog, fixture_variable, fixture_test_model):
+    """Test the _collect_updated_by_vars function."""
+    from virtual_ecosystem.core.variables import _collect_vars_updated
+
+    fixture_test_model.vars_updated = ("test_var",)
+
+    runtime_variables = {}
+
+    # Model wants to update an uninitialised variable and fails
     with pytest.raises(ValueError, match="is not initialised"):
-        variables._collect_updated_by_vars([TestModel])
+        _collect_vars_updated(
+            [fixture_test_model],
+            runtime_variables=runtime_variables,
+        )
 
-    variables.RUN_VARIABLES_REGISTRY["test_var"] = var
-    variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_init = "AnotherModel"
+    # Model can successfully update an initialised variable
+    fixture_variable.vars_populated_by_init = ["AnotherModel"]
+    runtime_variables["test_var"] = fixture_variable
 
-    variables._collect_updated_by_vars([TestModel])
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].updated_by == ["TestModel"]
+    _collect_vars_updated([fixture_test_model], runtime_variables=runtime_variables)
+    assert runtime_variables["test_var"].vars_updated == ["TestModel"]
 
-    variables._collect_updated_by_vars([TestModel])
+    # Model gets told off for updating a variable already updated
+    _collect_vars_updated([fixture_test_model], runtime_variables=runtime_variables)
     assert caplog.records[-1].levelname == "WARNING"
     assert "is already updated" in caplog.records[-1].message
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].updated_by == [
+    assert runtime_variables["test_var"].vars_updated == [
         "TestModel",
         "TestModel",
     ]
 
 
-def test_collect_vars_required_for_update(known_variables, run_variables):
+def test_collect_vars_required_for_update(fixture_variable, fixture_test_model):
     """Test the _collect_vars_required_for_update function."""
-    from virtual_ecosystem.core import variables
+    from virtual_ecosystem.core.variables import _collect_vars_required_for_update
 
-    class TestModel:
-        model_name = "TestModel"
-        vars_required_for_update = ("test_var",)
+    fixture_test_model.vars_required_for_update = ("test_var",)
 
-    with pytest.raises(ValueError, match=r"not in the known variables registry."):
-        variables._collect_vars_required_for_update([TestModel])
+    runtime_variables = {}
 
-    var = variables.Variable(
-        name="test_var",
-        description="Test variable",
-        unit="m",
-        variable_type="float",
-        axis=("x", "y", "z"),
-    )
-
+    # Model requires an uninitialised variable to update and fails
     with pytest.raises(ValueError, match="is not initialised"):
-        variables._collect_vars_required_for_update([TestModel])
+        _collect_vars_required_for_update(
+            [fixture_test_model], runtime_variables=runtime_variables
+        )
 
-    variables.RUN_VARIABLES_REGISTRY["test_var"] = var
-    variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_init = "AnotherModel"
+    fixture_variable.vars_populated_by_init = ["AnotherModel"]
+    runtime_variables["test_var"] = fixture_variable
 
-    variables._collect_vars_required_for_update([TestModel])
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].required_by_update == [
-        "TestModel"
-    ]
+    # Model now has the variables required for update
+    _collect_vars_required_for_update(
+        [fixture_test_model], runtime_variables=runtime_variables
+    )
+    assert runtime_variables["test_var"].vars_required_by_update == ["TestModel"]
 
 
-def test_collect_vars_required_for_init(known_variables, run_variables):
+def test_collect_vars_required_for_init(fixture_variable, fixture_test_model):
     """Test the _collect_vars_required_for_init function."""
-    from virtual_ecosystem.core import variables
+    from virtual_ecosystem.core.variables import _collect_vars_required_for_init
 
-    class TestModel:
-        model_name = "TestModel"
-        vars_required_for_init = ("test_var",)
+    fixture_test_model.vars_required_for_init = ("test_var",)
 
-    with pytest.raises(ValueError, match=r"not in the known variables registry."):
-        variables._collect_vars_required_for_init([TestModel])
+    runtime_variables = {}
 
-    var = variables.Variable(
-        name="test_var",
-        description="Test variable",
-        unit="m",
-        variable_type="float",
-        axis=("x", "y", "z"),
-    )
-
+    # Model requires an uninitialised variable to init and fails
     with pytest.raises(ValueError, match="is not initialised"):
-        variables._collect_vars_required_for_init([TestModel])
+        _collect_vars_required_for_init(
+            [fixture_test_model], runtime_variables=runtime_variables
+        )
 
-    variables.RUN_VARIABLES_REGISTRY["test_var"] = var
-    variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_init = "AnotherModel"
+    fixture_variable.vars_populated_by_init = ["AnotherModel"]
+    runtime_variables["test_var"] = fixture_variable
 
-    variables._collect_vars_required_for_init([TestModel])
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].required_by_init == [
-        "TestModel"
-    ]
+    # Model now has the variables required for update
+    _collect_vars_required_for_init(
+        [fixture_test_model], runtime_variables=runtime_variables
+    )
+    assert runtime_variables["test_var"].vars_required_by_init == ["TestModel"]
 
 
-def test_collect_initial_data_vars(known_variables, run_variables):
+def test_collect_initial_data_vars(fixture_variable, fixture_test_model):
     """Test the _collect_initial_data_vars function."""
-    from virtual_ecosystem.core import variables
+    from virtual_ecosystem.core.variables import _collect_initial_data_vars
 
-    with pytest.raises(ValueError, match="defined in data object is not known"):
-        variables._collect_initial_data_vars(["test_var"])
+    runtime_variables = {}
+    known_variables = {}
 
-    variables.Variable(
-        name="test_var",
-        description="Test variable",
-        unit="m",
-        variable_type="float",
-        axis=("x", "y", "z"),
+    with pytest.raises(ValueError, match="Unknown variable test_var in data object"):
+        _collect_initial_data_vars(
+            ["test_var"],
+            runtime_variables=runtime_variables,
+            known_variables=known_variables,
+        )
+
+    known_variables["test_var"] = fixture_variable
+
+    _collect_initial_data_vars(
+        ["test_var"],
+        runtime_variables=runtime_variables,
+        known_variables=known_variables,
     )
 
-    variables._collect_initial_data_vars(["test_var"])
+    assert "test_var" in runtime_variables
+    assert runtime_variables["test_var"].vars_populated_by_init == ["data"]
 
-    assert "test_var" in variables.RUN_VARIABLES_REGISTRY
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_init == ["data"]
+    with pytest.raises(ValueError, match="already populated from data"):
+        _collect_initial_data_vars(
+            ["test_var"],
+            runtime_variables=runtime_variables,
+            known_variables=known_variables,
+        )
 
-    with pytest.raises(ValueError, match="already in registry"):
-        variables._collect_initial_data_vars(["test_var"])
 
-
-def test_setup_variables(mocker):
+def test_setup_variables(mocker, fixture_variable, fixture_test_model):
     """Test the _collect_initial_data_vars function."""
     from virtual_ecosystem.core import variables
 
@@ -370,171 +403,98 @@ def test_setup_variables(mocker):
         "virtual_ecosystem.core.variables._collect_vars_populated_by_first_update"
     )
     mocker.patch("virtual_ecosystem.core.variables._collect_vars_required_for_init")
-    mocker.patch("virtual_ecosystem.core.variables._collect_updated_by_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_vars_updated")
     mocker.patch("virtual_ecosystem.core.variables._collect_vars_required_for_update")
 
-    class TestModel:
-        pass
-
-    variables.setup_variables([TestModel], ["test_var"])
-
-    variables._collect_initial_data_vars.assert_called_once_with(["test_var"])
-    variables._collect_vars_populated_by_init.assert_called_once_with([TestModel])
-    variables._collect_vars_required_for_init.assert_called_once_with([TestModel])
-    variables._collect_updated_by_vars.assert_called_once_with([TestModel])
-    variables._collect_vars_required_for_update.assert_called_once_with([TestModel])
-
-
-def test_verify_variables_axis(known_variables, run_variables, axis_validators):
-    """Test the verify_variables_axis function."""
-    from virtual_ecosystem.core import variables
-
-    var = variables.Variable(
-        name="test_var",
-        description="Test variable",
-        unit="m",
-        variable_type="float",
-        axis=("x", "y", "z"),
-    )
-    variables.RUN_VARIABLES_REGISTRY["test_var"] = var
-
-    with pytest.raises(ValueError, match="uses unknown axis: x,y,z"):
-        variables.verify_variables_axis()
-
-    axis_validators["x"] = lambda x: x
-
-    with pytest.raises(ValueError, match="uses unknown axis: y,z"):
-        variables.verify_variables_axis()
-
-    axis_validators["y"] = lambda x: x
-    axis_validators["z"] = lambda x: x
-
-    variables.verify_variables_axis()
-
-
-def test_get_variable(known_variables, run_variables):
-    """Test the get_variable function."""
-    from virtual_ecosystem.core import variables
-
-    with pytest.raises(KeyError, match=r"not a known variable."):
-        variables.get_variable("test_var")
-
-    var = variables.Variable(
-        name="test_var",
-        description="Test variable",
-        unit="m",
-        variable_type="float",
-        axis=("x", "y", "z"),
+    variables.setup_variables(
+        [fixture_test_model],
+        ["test_var"],
+        known_variables={"test_var": fixture_variable},
     )
 
-    with pytest.raises(
-        KeyError, match="not initialised by any model or provided as input data"
-    ):
-        variables.get_variable("test_var")
+    variables._collect_initial_data_vars.assert_called_once_with(
+        vars=["test_var"],
+        known_variables={"test_var": fixture_variable},
+        runtime_variables={},
+    )
+    variables._collect_vars_populated_by_init.assert_called_once_with(
+        models=[fixture_test_model],
+        known_variables={"test_var": fixture_variable},
+        runtime_variables={},
+    )
 
-    variables.RUN_VARIABLES_REGISTRY["test_var"] = var
-    result = variables.get_variable("test_var")
-    assert result == var
-
-
-def test_to_camel_case():
-    """Test the to_camel_case function."""
-    from virtual_ecosystem.core.variables import to_camel_case
-
-    assert to_camel_case("abiotic") == "Abiotic"
-    assert to_camel_case("abiotic_simple") == "AbioticSimple"
-    assert to_camel_case("abiotic_super_simple") == "AbioticSuperSimple"
-
-
-def test_format_variables_list():
-    """Test the _format_variables_list function."""
-    from virtual_ecosystem.core.variables import _format_variables_list
-
-    vars = {
-        "var1": {
-            "name": "Variable 1",
-            "description": "Description 1",
-            "unit": "m",
-            "variable_type": "float",
-            "axis": ("x", "y", "z"),
-        },
-        "var2": {
-            "name": "Variable 2",
-            "description": "Description 2",
-            "unit": "s",
-            "variable_type": "int",
-            "axis": ("x", "y"),
-        },
-    }
-
-    expected_output = """1- Variable 1
-=============
-
-=============  ===============
-name           Variable 1
-description    Description 1
-unit           m
-variable_type  float
-axis           ('x', 'y', 'z')
-=============  ===============
-
-2- Variable 2
-=============
-
-=============  =============
-name           Variable 2
-description    Description 2
-unit           s
-variable_type  int
-axis           ('x', 'y')
-=============  =============
-"""
-
-    assert _format_variables_list(vars) == expected_output
+    variables._collect_vars_populated_by_first_update.assert_called_once_with(
+        models=[fixture_test_model],
+        known_variables={"test_var": fixture_variable},
+        runtime_variables={},
+    )
+    variables._collect_vars_required_for_init.assert_called_once_with(
+        models=[fixture_test_model],
+        runtime_variables={},
+    )
+    variables._collect_vars_updated.assert_called_once_with(
+        models=[fixture_test_model],
+        runtime_variables={},
+    )
+    variables._collect_vars_required_for_update.assert_called_once_with(
+        models=[fixture_test_model],
+        runtime_variables={},
+    )
 
 
-def test_get_model_order(run_variables):
+def test_get_model_order():
     """Test the get_model_order function."""
-    from virtual_ecosystem.core import variables
     from virtual_ecosystem.core.exceptions import ConfigurationError
+    from virtual_ecosystem.core.variables import VariableMetadata, get_model_order
+
+    var1 = VariableMetadata("var1", "", "", "", ())
+    var2 = VariableMetadata("var2", "", "", "", ())
+    var3 = VariableMetadata("var3", "", "", "", ())
+
+    runtime_variables = {"var1": var1, "var2": var2, "var3": var3}
 
     # Test wrong stage
     with pytest.raises(
         ConfigurationError, match=r"Stage must be either 'init' or 'update'."
     ):
-        variables.get_model_order("wrong_stage")
-
-    var1 = variables.Variable("var1", "", "", "", ())
-    var2 = variables.Variable("var2", "", "", "", ())
-    var3 = variables.Variable("var3", "", "", "", ())
-
-    run_variables["var1"] = var1
-    run_variables["var2"] = var2
-    run_variables["var3"] = var3
+        get_model_order("wrong_stage", {})
 
     # Test cyclic dependencies issues
-    var1.required_by_init = ["model2"]
-    var1.populated_by_init = ["model1"]
-    var2.required_by_init = ["model1"]
-    var2.populated_by_init = ["model2"]
+    var1.vars_required_by_init = ["model2"]
+    var1.vars_populated_by_init = ["model1"]
+    var2.vars_required_by_init = ["model1"]
+    var2.vars_populated_by_init = ["model2"]
+
     with pytest.raises(ConfigurationError, match="Model init dependencies are cyclic"):
-        variables.get_model_order("init")
+        get_model_order("init", runtime_variables=runtime_variables)
 
     # Check that a model that does not depend on init is still included (model3)
-    var2.required_by_init = ["model2"]
-    var2.populated_by_init = ["model1"]
-    var3.required_by_update = ["model3"]
-    assert variables.get_model_order("init") == ["model1", "model3", "model2"]
+    var2.vars_required_by_init = ["model2"]
+    var2.vars_populated_by_init = ["model1"]
+    var3.vars_required_by_update = ["model3"]
+    assert get_model_order("init", runtime_variables=runtime_variables) == [
+        "model1",
+        "model3",
+        "model2",
+    ]
 
     # Check that a model that depends on data is still included, but data isn't
-    var3.required_by_init = ["model3"]
-    var3.populated_by_init = ["data"]
-    var3.required_by_update = []
-    assert variables.get_model_order("init") == ["model1", "model3", "model2"]
+    var3.vars_required_by_init = ["model3"]
+    var3.vars_populated_by_init = ["data"]
+    var3.vars_required_by_update = []
+    assert get_model_order("init", runtime_variables=runtime_variables) == [
+        "model1",
+        "model3",
+        "model2",
+    ]
 
     # Check that a cascade of dependencies is correctly ordered (model3 should be last)
-    var2.required_by_init = ["model3"]
-    var2.populated_by_init = ["model1"]
-    var3.required_by_init = ["model3"]
-    var3.populated_by_init = ["model2"]
-    assert variables.get_model_order("init") == ["model1", "model2", "model3"]
+    var2.vars_required_by_init = ["model3"]
+    var2.vars_populated_by_init = ["model1"]
+    var3.vars_required_by_init = ["model3"]
+    var3.vars_populated_by_init = ["model2"]
+    assert get_model_order("init", runtime_variables=runtime_variables) == [
+        "model1",
+        "model2",
+        "model3",
+    ]

@@ -14,9 +14,9 @@ from dataclasses import dataclass
 from importlib import import_module
 from typing import Any
 
+from virtual_ecosystem.core.base_model import to_camel_case
 from virtual_ecosystem.core.configuration import Configuration
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.variables import to_camel_case
 
 
 @dataclass

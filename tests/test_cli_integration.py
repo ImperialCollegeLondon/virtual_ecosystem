@@ -86,7 +86,6 @@ def test_ve_run_verbosity(capsys, tmp_path, verbosity_flags, output_length):
 
     from virtual_ecosystem.core.logger import remove_file_logger
     from virtual_ecosystem.core.registry import MODULE_REGISTRY
-    from virtual_ecosystem.core.variables import KNOWN_VARIABLES, RUN_VARIABLES_REGISTRY
     from virtual_ecosystem.entry_points import ve_run_cli
 
     # Need to remove any existing file log attached to LOGGER and clear the variables
@@ -97,8 +96,6 @@ def test_ve_run_verbosity(capsys, tmp_path, verbosity_flags, output_length):
     # debug.
 
     remove_file_logger()
-    KNOWN_VARIABLES.clear()
-    RUN_VARIABLES_REGISTRY.clear()
     MODULE_REGISTRY.clear()
 
     config_file = tmp_path / "config.toml"
