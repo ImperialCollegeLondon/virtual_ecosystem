@@ -93,14 +93,10 @@ to work with but the datasets in the Virtual Ecosystem are commonly multi-dimens
 arrays (e.g. space and time), and the NetCDF format supports this kind of data, as well
 as providing critical metadata for data validation.
 
-<!-- TODO: fix this link to the variables.rst file
-when the variables system gets merged -->
-
-The Virtual Ecosystem has a long list of the
-[variables](../../../../virtual_ecosystem/data_variables.toml) that are used to set up
-the simulation and then update the model state through time. The configuration files
-need to provide the locations of the variables required to initialise each science
-model.
+The Virtual Ecosystem has a large number of variables
+[variables](../../using_the_ve/variables/variables.md) that are used to set up the
+simulation and then update the model state through time. The configuration files need to
+provide the locations of the variables required to initialise each science model.
 
 ## Science models
 

@@ -71,3 +71,12 @@ Once you have your own model running, you can run experiments on the system.
   system](./virtual_ecosystem_in_static_mode.ipynb). Although this is primarily intended
   as a model development tool, it can be useful to understand the details of how
   different components of your model are behaving.
+
+## Reference materials
+
+To help you understand how to setup, run, and analyse the behaviour of the Virtual
+Ecosystem we provide the following reference materials:
+
+* [A table containing the variables](./variables/variables.md) used by the Virtual
+  Ecosystem, searchable based on the model that variables are used by, and how the
+  variables are used by each model (e.g. generated during the setup process, etc).

@@ -38,7 +38,6 @@ subtrees:
             - file: virtual_ecosystem/implementation/soil_implementation
             - file: virtual_ecosystem/implementation/plants_implementation
             - file: virtual_ecosystem/implementation/main_simulation
-            - file: virtual_ecosystem/implementation/variables
 
       - file: using_the_ve/overview
         title: Users
@@ -61,6 +60,7 @@ subtrees:
             title: Adding data to the model
             entries:
               - file: using_the_ve/data/notes_preprocessing
+          - file: using_the_ve/variables/variables
 
       - file: development/contributing
         title: Developers
