@@ -37,8 +37,8 @@ Please check the following:
 * **What are the expected units?**
 
   Make sure that the units of the required input variables match those of the [required
-  variables](../../virtual_ecosystem/implementation/variables.md), e.g.
-  temperatures in Celsius, pressure in kPa, etc.
+  variables](../variables/variables), e.g. temperatures in Celsius, pressure in kPa,
+  etc.
 
 * **What are the variables names?**
 
