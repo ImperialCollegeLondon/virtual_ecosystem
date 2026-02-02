@@ -4,8 +4,8 @@ subtrees:
     maxdepth: 0
     caption: The Virtual Ecosystem
     entries:
-      - file: virtual_ecosystem/implementation
-        title: Implementation
+      - file: virtual_ecosystem/science
+        title: Science
         entries:
         - file: project_team
           title: The Project Team
