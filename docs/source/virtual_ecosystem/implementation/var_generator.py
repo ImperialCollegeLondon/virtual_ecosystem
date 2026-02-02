@@ -1,36 +1,22 @@
-# ---
-# jupyter:
-#   jupytext:
-#     cell_metadata_filter: all,-trusted
-#     notebook_metadata_filter: settings,mystnb,language_info,execution
-#     text_representation:
-#       extension: .py
-#       format_name: light
-#       format_version: '1.5'
-#       jupytext_version: 1.19.1
-# ---
-
 """Utility functions to generate model variable listings."""
 
-from dataclasses import fields
+from pydantic import fields
 
-from virtual_ecosystem.core import variables
+from virtual_ecosystem.core.base_model import _discover_models
+from virtual_ecosystem.core.variables import VariableMetadata, load_known_variables
 
-# + [markdown]
 # TODO - merge these into a single generate_model_variable_markdown and probably move it
 #        inside the variables submodule.
-# -
 
 
 def generate_variable_listing(model_name: str, var_attributes: list[str]) -> str:
     """Generate variable listings for a model."""
 
-    # populate the known variables registry if empty
-    if not variables.KNOWN_VARIABLES:
-        variables.register_all_variables()
+    # Get the known variables
+    variables = load_known_variables()
 
     # Find the model reference
-    models = {m.__name__: m for m in variables._discover_models()}
+    models = {m.__name__: m for m in _discover_models()}
     if model_name not in models:
         raise ValueError("Unknown model name")
     model = models[model_name]
@@ -56,7 +42,7 @@ def generate_variable_listing(model_name: str, var_attributes: list[str]) -> str
         listing = "\n".join(
             [
                 f"* {v.description} (``{v.name}``, {v.unit})"
-                for k, v in variables.KNOWN_VARIABLES.items()
+                for k, v in variables.items()
                 if k in getattr(model, vattr)
             ]
         )
@@ -71,13 +57,12 @@ def generate_all_variable_markdown(
 ) -> str:
     """Generate markdown table for all variables model."""
 
-    # populate the known variables registry if empty
-    if not variables.KNOWN_VARIABLES:
-        variables.register_all_variables()
+    # Get the known variables
+    variables = load_known_variables()
 
     # Get the fields to add as columns
     if fields_to_display is None:
-        fields_to_display = [f.name for f in fields(variables.Variable)]
+        fields_to_display = [f.name for f in fields(VariableMetadata)]
 
     # Set the widths of the fields
     if widths is not None:
@@ -89,7 +74,7 @@ def generate_all_variable_markdown(
     table_rows = ["* - " + "  - ".join([f"{fld}\n" for fld in fields_to_display])]
 
     # Add the variables formatted as list table rows
-    for v in variables.KNOWN_VARIABLES.values():
+    for v in variables.values():
         table_rows.append(
             "* - " + "  - ".join([f"{getattr(v, fld)}\n" for fld in fields_to_display])
         )
@@ -114,12 +99,11 @@ def generate_all_variable_markdown(
 def generate_variable_table(model_name: str, var_attributes: list[str]) -> str:
     """Generate variable listings for a model."""
 
-    # populate the known variables registry if empty
-    if not variables.KNOWN_VARIABLES:
-        variables.register_all_variables()
+    # Get the known variables
+    variables = load_known_variables()
 
     # Find the model reference
-    models = {m.__name__: m for m in variables._discover_models()}
+    models = {m.__name__: m for m in _discover_models()}
     if model_name not in models:
         raise ValueError("Unknown model name")
     model = models[model_name]
@@ -157,7 +141,7 @@ def generate_variable_table(model_name: str, var_attributes: list[str]) -> str:
         listing = "\n".join(
             [
                 f"* - `{v.name}`\n  - {v.description}\n  - {v.unit}"
-                for k, v in variables.KNOWN_VARIABLES.items()
+                for k, v in variables.items()
                 if k in vars_for_table
             ]
         )

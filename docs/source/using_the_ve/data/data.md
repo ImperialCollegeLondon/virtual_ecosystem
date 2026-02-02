@@ -132,7 +132,7 @@ One of the validation routines for the core spatial axis takes a DataArray with 
 ```{code-cell} ipython3
 temperature_data = DataArray(
     np.random.normal(loc=20.0, size=(10, 10)),
-    name="temperature",
+    name="air_temperature",
     coords={"y": np.arange(5, 100, 10), "x": np.arange(5, 100, 10)},
 )
 
@@ -142,7 +142,7 @@ temperature_data.plot()
 That data array can then be added to the  loaded and validated:
 
 ```{code-cell} ipython3
-data["temperature"] = temperature_data
+data["air_temperature"] = temperature_data
 ```
 
 The representation of the {class}`virtual_ecosystem.core.data.Data` instance now shows
@@ -161,7 +161,7 @@ dimension used to label the different grid cells (see the
 
 ```{code-cell} ipython3
 # Get the temperature data
-loaded_temp = data["temperature"]
+loaded_temp = data["air_temperature"]
 
 print(loaded_temp)
 ```
@@ -170,7 +170,7 @@ You can check whether a particular variable has been validated on a given core a
 using the {meth}`~virtual_ecosystem.core.data.Data.on_core_axis` method:
 
 ```{code-cell} ipython3
-data.on_core_axis("temperature", "spatial")
+data.on_core_axis("air_temperature", "spatial")
 ```
 
 ### Loading data from a file
@@ -184,7 +184,7 @@ configured grid.
 ```{code-cell} ipython3
 # Load data from a file
 file_path = Path("../../data/xy_dim.nc")
-loaded_data = load_to_dataarray(file_path, var_names=["temp"])
+loaded_data = load_to_dataarray(file_path, var_names=["air_temperature"])
 
 # iterate over the dictionary of variable names and arrays
 for var_name, data_array in loaded_data.items():
@@ -196,7 +196,7 @@ data
 ```
 
 ```{code-cell} ipython3
-data.on_core_axis("temp", "spatial")
+data.on_core_axis("air_temperature", "spatial")
 ```
 
 ### Loading data from a configuration
@@ -224,7 +224,7 @@ object:
 ```{code-cell} ipython3
 data_toml = """[[core.data.variable]]
 file_path = "../../data/xy_dim.nc"
-var_name = "temp"
+var_name = "air_temperature"
 """
 
 config_data = ConfigurationLoader(cfg_strings=data_toml)
@@ -259,8 +259,4 @@ data.save_to_netcdf(
     output_file_path=output_file_path,
     variables_to_save=variables_to_save
 )
-```
-
-```{code-cell} ipython3
-
 ```

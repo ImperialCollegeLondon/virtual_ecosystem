@@ -13,7 +13,7 @@ from typing import Any
 
 from tqdm import tqdm
 
-from virtual_ecosystem.core import variables
+from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config_builder import (
     ConfigurationLoader,
     generate_configuration,
@@ -25,6 +25,10 @@ from virtual_ecosystem.core.exceptions import ConfigurationError, Initialisation
 from virtual_ecosystem.core.logger import LOGGER, add_file_logger, remove_file_logger
 from virtual_ecosystem.core.model_config import (
     CoreConfiguration,
+)
+from virtual_ecosystem.core.variables import (
+    get_model_order,
+    setup_variables,
 )
 
 
@@ -41,8 +45,8 @@ def initialise_models(
     configuration: CompiledConfiguration,
     data: Data,
     core_components: CoreComponents,
-    models: dict[str, Any],  # FIXME -> dict[str, Type[BaseModel]]
-) -> dict[str, Any]:  # FIXME -> dict[str, Type[BaseModel]]
+    models: dict[str, type[BaseModel]],
+) -> dict[str, BaseModel]:
     """Initialise a set of models for use in a `virtual_ecosystem` simulation.
 
     Args:
@@ -124,8 +128,6 @@ def ve_run(
     if progress > Progress.MINIMAL:
         print("* Loading configuration")
 
-    variables.register_all_variables()
-
     # Load the configuration data
     config_data: ConfigurationLoader = ConfigurationLoader(
         cfg_paths=cfg_paths,
@@ -165,18 +167,20 @@ def ve_run(
         print("* Initial data loaded")
 
     # Setup the variables for the requested modules and verify consistency
-    variables.setup_variables(
-        list(configuration._model_classes.values()), list(data.data.keys())
+    runtime_variables = setup_variables(
+        models=list(configuration._model_classes.values()),
+        data_vars=[str(v) for v in data.data],
+        known_variables=data.known_variables,
     )
 
-    # Verify that all variables have the correct axis
-    variables.verify_variables_axis()
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
     # Get the model initialisation sequence and initialise
     init_sequence = {
         model_name: configuration._model_classes[model_name]
-        for model_name in variables.get_model_order("init")
+        for model_name in get_model_order(
+            stage="init", runtime_variables=runtime_variables
+        )
     }
 
     models_init = initialise_models(
@@ -229,7 +233,9 @@ def ve_run(
     # sequence
     models_update = {
         model_name: models_init[model_name]
-        for model_name in variables.get_model_order("update")
+        for model_name in get_model_order(
+            stage="update", runtime_variables=runtime_variables
+        )
     }
     if progress > Progress.MINIMAL:
         print("* Starting simulation")

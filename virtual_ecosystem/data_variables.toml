@@ -86,7 +86,7 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Shortwave radiation absorbed by individual canopy layers"
 name = "shortwave_absorption"
-unit = ""
+unit = "W m-2"
 variable_type = "float"
 
 [[variable]]
@@ -471,7 +471,7 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Specific heat of air"
 name = "specific_heat_air"
-unit = "kJ kg-1 K-1"
+unit = "J kg-1 K-1"
 variable_type = "float"
 
 [[variable]]
@@ -1382,4 +1382,147 @@ axis = ["spatial"]
 description = "Average C, N, and P masses of each seed in a PFT"
 name = "fallen_seeds_cnp"
 unit = "kg"
+variable_type = "float"
+
+## Everything below here added 2026-01-26 by David to meet new requirements for 
+## variables to actually be known
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "fallen_n_propagules"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "canopy_n_propagules"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "canopy_non_propagule_c_mass"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "leaf_lignin"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "nitrogen_fixation_carbon_supply"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "new_fungal_fruiting_body_production"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "new_amf_n_supply"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "new_amf_p_supply"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "new_emf_n_supply"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "new_emf_p_supply"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "soil_c_pool_microbe"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "root_turnover_c_p_ratio"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "sensible_heat_flux_topofcanopy"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "surface_runoff_accumulated"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "molar_density_air"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION - I THINK THIS MIGHT BE AN OUTDATED INPUT INTO ANIMALS"
+name = "subsurface_flow_accumulated"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION - I THINK THIS MIGHT BE AN OUTDATED INPUT INTO ANIMALS"
+name = "zero_displacement_height"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION - I THINK THIS MIGHT BE AN OUTDATED INPUT INTO ANIMALS"
+name = "aerodynamic_resistance_surface"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION - I THINK THIS MIGHT BE AN OUTDATED INPUT INTO ANIMALS"
+name = "absorbed_radiation"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION - I THINK THIS MIGHT BE AN OUTDATED INPUT INTO ANIMALS"
+name = "evapotranspiration"
+unit = "NEEDS UNIT"
 variable_type = "float"

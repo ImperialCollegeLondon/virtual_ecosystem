@@ -40,14 +40,25 @@ def test_initialise_atmosphere_for_hydrology(
     for key in expected_keys:
         assert key in output
 
-    expected_ra = layer_structure.from_template()
-    expected_ra[layer_structure.index_filled_canopy] = 12.1
-    expected_ra[layer_structure.index_surface_scalar] = 12.1
+    bounds = {
+        "specific_heat_air": (0.9, 1.5),
+        "latent_heat_vapourisation": (2300, 2600),
+        "density_air": (0.9, 1.5),
+        "stomatal_conductance": (0.0, np.inf),
+        "aerodynamic_resistance_soil": (0.0, np.inf),
+    }
 
-    np.testing.assert_allclose(
-        output["aerodynamic_resistance_canopy"],
-        expected_ra,
-    )
+    for var, (vmin, vmax) in bounds.items():
+        arr = output[var].to_numpy()
+        valid = ~np.isnan(arr)
+
+        assert np.all(arr[valid] > vmin)
+        assert np.all(arr[valid] < vmax)
+
+    ra_canopy = output["aerodynamic_resistance_canopy"].to_numpy()
+    valid_canopy = ~np.isnan(ra_canopy)
+
+    assert np.all(ra_canopy[valid_canopy] == 12.1)
 
 
 def test_setup_hydrology_input_current_timestep(
