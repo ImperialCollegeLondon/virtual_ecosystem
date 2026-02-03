@@ -28,16 +28,12 @@ language_info:
 This page provides an overview of the [key factors](#factors-affecting-hydrology)
 influencing the hydrology of an ecosystem, the main processes that drive the
 hydrological cycle at [local scale](#local-water-balance) and [catchment
-scale](#catchment-scale-water-balance), [state
-variables](#key-hydrological-variables-and-processes) involved in these processes and
-the [links between hydrology and biotic
-processes](#links-between-hydrology-and-biotic-processes) Further, this page offers a
-brief overview over hydrological [data collection](#data-collection) and
-[modelling](#hydrology-modelling) approaches as well as open [challenges and
-limitations](#challenges-and-limitations) in hydrological research.
+scale](#catchment-scale-water-balance).
 
-See the further documentation for [details of the implementation of hydrological
-concepts](../implementation/hydrology_implementation.md) in the Virtual Ecosystem.
+Hydrology only has a single implementation within the Virtual Ecosystem (the
+`hydrology` model). Details of the actual equations used to simulate hydrology are
+described in the [relevant section of the "How it works"
+documentation](../implementation/hydrology_implementation.md)
 
 ## Definition
 
@@ -139,7 +135,7 @@ flow of water through the system:
 
 * **Evapotranspiration**: Evaporation describes the process where water is converted
   from liquid to vapor and released into the atmosphere from surfaces like soil, water
-  bodies, and vegetation. Transpiration refers to the release of water vapor from plants
+  bodies, and vegetation. Transpiration rferns to the release of water vapor from plants
   into the atmosphere through small openings in their leaves called stomata. Combined,
   these processes account for water loss from the surface and vegetation to the
   atmosphere.
@@ -181,116 +177,3 @@ above and below ground flow of water.
   horizontally through aquifers, contributing to groundwater storage. Horizontal
   groundwater flow interacts with surface water bodies, influencing base flow in rivers
   and streams.
-
-## Links between hydrology and biotic processes
-
-Understanding the interactions between hydrology and biota is essential for ecosystem
-management, conservation efforts, and predicting the impacts of environmental changes on
-water resources and biodiversity.
-
-* **Vegetation and transpiration**: Vegetation plays a critical role in the hydrological
-  cycle by influencing water uptake and transpiration rates. Plant roots absorb water
-  from the soil, which is then released into the atmosphere through transpiration,
-  affecting local humidity and precipitation patterns.
-
-* **Influence on soil moisture**: The presence and density of vegetation affect soil
-  moisture levels through interception of rainfall and shading of the ground surface.
-  Changes in vegetation cover can impact soil infiltration rates and runoff, altering
-  local water availability and flow dynamics.
-
-* **Biotic nutrient cycling**: Biota such as microbes and plants participate in nutrient
-  cycling, affecting soil fertility and water quality. Nutrient uptake by vegetation and
-  subsequent decomposition of organic matter influence nutrient concentrations in
-  surface and groundwater.
-
-* **Ecosystem services**: Riparian vegetation along water bodies provides habitat and
-  stabilizes streambanks, reducing erosion and sediment transport. Wetlands act as
-  natural filters, improving water quality by trapping sediments and absorbing nutrients
-  before water enters larger water bodies.
-
-* **Feedbacks and adaptations**: Biota within aquatic ecosystems adapt to hydrological
-  changes, influencing community structure and biodiversity. In turn, changes in biotic
-  composition can feedback to alter water flow patterns and nutrient dynamics within the
-  ecosystem.
-
-## Methods for hydrology science
-
-This section gives a broad overview over common methods and models in hydrology
-research. A review on the progress and future of hydrological modelling is given by
-{cite:t}`singh_hydrologic_2018`.
-
-### Data collection
-
-Effective hydrology modelling relies on accurate data collection, ideally from a
-combination of sources:
-
-* **Meteorological stations**: Meteorological stations provide detailed, real-time data
-  on precipitation, humidity, and sometime soil moisture for locations across an area.
-  Data collection instruments include rain gauges, stream gauges, and soil moisture
-  sensors.
-* **Remote sensing**: Satellite imagery and aerial surveys provide spatial and temporal
-  data on precipitation patterns, land cover, and surface water dynamics.
-* **In-situ measurements**: Ground-based sensors complement provide high-resolution data
-  on specific local conditions.
-* **Reanalysis**: Reanalysis data sets such as ERA5 represent a combination of
-  observations and modelling which can complement measurements by filling gaps in
-  spatial cover and timeseries.
-
-### Hydrology modelling
-
-Hydrology models employ diverse methodologies to simulate the movement and distribution
-of water within natural systems.
-
-### Models
-
-* **Rainfall-Runoff models** simulate the transformation of precipitation into runoff,
-  accounting for factors like soil infiltration, evapotranspiration, and land cover
-  characteristics.
-* **Groundwater flow models** utilize principles of fluid mechanics to simulate the
-  movement of water through subsurface aquifers, considering geologic properties,
-  recharge rates, and extraction activities.
-* **Integrated watershed models** combine surface water and groundwater components to
-  provide a comprehensive view of water resources within a watershed, facilitating
-  watershed management and land use planning decisions.
-
-### Tools and techniques
-
-* **Modeling tools** include Geographic Information Systems (GIS), statistical software,
-  and specialized hydrological modeling platforms.
-* **Techniques** such as data assimilation, uncertainty analysis, and scenario testing
-  help improve model accuracy and reliability.
-
-### Applications
-
-* Hydrological models are used for flood forecasting, water resource management, drought
-  assessment, and climate change impact studies.
-* They support decision-making in agriculture, urban planning, and environmental
-  conservation by predicting water availability and mitigating risks.
-
-## Challenges and limitations
-
-* **Data scarcity and quality**: Limited availability of hydrological data in certain
-  regions hinders accurate modeling and forecasting. Data quality issues, such as
-  measurement errors or inconsistencies, can affect model reliability and decision
-  outcomes.
-
-* **Complexity of natural systems**: Natural variability and non-linear interactions in
-  hydrological processes pose challenges for model representation and prediction.
-  Incorporating spatial heterogeneity and temporal dynamics requires advanced modeling
-  techniques and computational resources.
-
-* **Uncertainty and assumptions**: Uncertainty in model parameters, input data, and
-  future climate projections affects the reliability of hydrological predictions.
-  Assumptions made in model development and simplifications of complex processes can
-  introduce biases and uncertainties.
-
-* **Human and environmental disturbance**: Anthropogenic activities such as land use
-  change, urbanization, and water infrastructure development alter hydrological
-  patterns. Environmental changes, including deforestation, climate variability, and
-  extreme weather events, challenge the resilience of hydrological systems.
-
-* **Interdisciplinary integration**: Effective integration of hydrological modeling with
-  other disciplines such as ecology, economics, and policy-making requires
-  interdisciplinary collaboration. Addressing societal needs and sustainable water
-  management goals requires holistic approaches that consider socio-economic and
-  environmental factors.
