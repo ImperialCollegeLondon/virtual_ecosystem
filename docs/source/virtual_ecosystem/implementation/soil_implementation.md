@@ -27,23 +27,16 @@ language_info:
 
 ## Model overview
 
-The soil model stores the size of a large number of soil pools within a [PoolData
-class](virtual_ecosystem.models.soil.pools.PoolData). These pools are generally
-densities of carbon, nitrogen of phosphorus. The soil model is updated by numerically
-integrating the [calculate_all_pool_updates
-method](virtual_ecosystem.models.soil.pools.SoilPools.calculate_all_pool_updates) of the
-[SoilPools](virtual_ecosystem.models.soil.pools.SoilPools) class. This method calculates
-how much the soil pools should change based on a large number of processes:
+The soil model comprises of a number of carbon, nitrogen and phosphorus pools. These
+pools are updated by numerical integration, of the following set of processes:
 
 1. Soil receives inputs from litter decay and the decay of animal necromass (simulated
    within the animal model). These inputs are split into dissolved and particulate forms,
    and the nutrient content is further divided into organic and inorganic forms.
 1. Carbon is transformed between two different protected forms and a form usable by
-   microbes. The rates at which this happens is based on environmental conditions (see
-   the [environmental factors submodule](virtual_ecosystem.models.soil.env_factors)) and
+   microbes. The rates at which this happens is based on environmental conditions and
    presence of microbially produced enzymes in the soil.
-1. Microbes grow by taking up carbon, nitrogen and phosphorus from the soil, this is
-   handled by the [uptake submodule](virtual_ecosystem.models.soil.uptake). Some of the
+1. Microbes grow by taking up carbon, nitrogen and phosphorus from the soil. Some of the
    carbon that microbes uptake is respired in order to gain energy, this carbon is then
    lost to the soil.
 1. Mycorrhizal fungi are a special case of microbial nutrient uptake, as they are
@@ -72,17 +65,13 @@ how much the soil pools should change based on a large number of processes:
    fungi.
 
 The model contains four functional groups (bacteria, saprotrophic fungi, arbuscular
-mycorrhizal fungi, and ectomycorrhizal fungi). The parameters associated with each group
-are stored using a [MicrobialGroupConstants data
-class](virtual_ecosystem.models.soil.microbial_groups.MicrobialGroupConstants), and the
-full set required for the simulation is constructed using the
-[make_full_set_of_microbial_groups
-function](virtual_ecosystem.models.soil.microbial_groups.make_full_set_of_microbial_groups).
-Similarly, enzyme classes are distinguished by whether they were produced by fungi or
-bacteria and by what substrate they break down ({term}`MAOM` or {term}`POM`). So, there
-is a total of four enzyme classes in the model. The parameters associated with each
-class are stored in an [SoilEnzymeClass data
-class](virtual_ecosystem.models.soil.model_config.SoilEnzymeClass).
+mycorrhizal fungi, and ectomycorrhizal fungi). Similarly, enzyme classes are
+distinguished by whether they were produced by fungi or bacteria and by what substrate
+they break down ({term}`MAOM` or {term}`POM`). So, there is a total of four enzyme
+classes in the model.
+
+If you want to understand the model flow in greater detail, please consult the [soil
+model API documentation](../../api/models/soil.md).
 
 ## Model variables
 
