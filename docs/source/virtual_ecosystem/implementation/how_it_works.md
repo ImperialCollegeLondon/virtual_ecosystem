@@ -23,7 +23,7 @@ language_info:
   version: 3.11.9
 ---
 
-# The implementation of the Virtual Ecosystem
+# How the Virtual Ecosystem works
 
 The main workflow of the Virtual Ecosystem ({numref}`fig_simulation_flow`) has the
 following steps:

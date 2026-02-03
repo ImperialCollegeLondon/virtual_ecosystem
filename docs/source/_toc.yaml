@@ -25,8 +25,8 @@ subtrees:
             - file: virtual_ecosystem/theory/animals/animal_theory
               entries:
                 - file: virtual_ecosystem/theory/animals/carcasses_and_excrement
-        - file: virtual_ecosystem/implementation/implementation
-          title: Implementation
+        - file: virtual_ecosystem/implementation/how_it_works
+          title: How it works
           entries:
             - file: virtual_ecosystem/implementation/science_model_overview
             - file: virtual_ecosystem/implementation/core_components_overview

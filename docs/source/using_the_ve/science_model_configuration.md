@@ -55,7 +55,7 @@ you will need to configure the sources of the gridded array data providing the d
 variables required by each model:
 
 * The variables required for each model are described in the [model implementation
-  pages](../virtual_ecosystem/implementation/implementation.md#science-models).
+  pages](../virtual_ecosystem/implementation/how_it_works.md#science-models).
 * A complete list of variables can be found in the [variables description
   page](./variables/variables.md).
 * The model inputs page describes the [configuration of gridded data file
