@@ -37,7 +37,6 @@ subtrees:
             - file: virtual_ecosystem/implementation/hydrology_implementation
             - file: virtual_ecosystem/implementation/soil_implementation
             - file: virtual_ecosystem/implementation/plants_implementation
-            - file: virtual_ecosystem/implementation/main_simulation
 
       - file: using_the_ve/overview
         title: Users
