@@ -14,7 +14,7 @@ import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
-from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+from virtual_ecosystem.models.animal.animal_traits import DietType, VerticalOccupancy
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
@@ -1633,11 +1633,19 @@ class AnimalCohort:
     def get_prey(
         self,
         communities: dict[int, list[AnimalCohort]],
+        prey_diet: DietType,
     ) -> list[AnimalCohort]:
         """Collect suitable prey cohorts within the cohort's territory.
 
+        This method filters candidate prey by:
+        1) Spatial overlap (cohort territory),
+        2) Predation feasibility (`can_prey_on`),
+        3) Taxonomic category requested by `prey_diet` flags
+
         Args:
             communities: Dictionary mapping cell IDs to lists of animal cohorts.
+            prey_diet: Diet flags specifying which prey categories are allowed, e.g.
+                `DietType.VERTEBRATES`, `DietType.INVERTEBRATES`, or both.
 
         Returns:
             List of animal cohorts that can be preyed upon.
@@ -1646,7 +1654,16 @@ class AnimalCohort:
 
         for cell_id in self.territory:
             for prey_cohort in communities[cell_id]:
-                if self.can_prey_on(prey_cohort):
+                if not self.can_prey_on(prey_cohort):
+                    continue
+
+                prey_group = prey_cohort.functional_group
+                allows_invertebrates = bool(prey_diet & DietType.INVERTEBRATES)
+                allows_vertebrates = bool(prey_diet & DietType.VERTEBRATES)
+
+                if (allows_invertebrates and prey_group.is_invertebrate) or (
+                    allows_vertebrates and prey_group.is_vertebrate
+                ):
                     prey_list.append(prey_cohort)
 
         return prey_list

@@ -2048,7 +2048,6 @@ class TestAnimalModel:
         mocker,
     ):
         """Test that forage_cohort is called correctly."""
-
         from virtual_ecosystem.models.animal.animal_traits import DietType
 
         # Mock the methods for herbivore and predator cohorts using the mocker fixture
@@ -2064,7 +2063,9 @@ class TestAnimalModel:
         mock_get_prey = mocker.Mock(return_value=["prey"])
 
         # Set up herbivore cohort
-        herbivore_cohort_instance.functional_group.diet = DietType.HERBIVORE
+        herbivore_cohort_instance.functional_group.diet = DietType.parse(
+            "foliage_fruit"
+        )
         mocker.patch.object(
             herbivore_cohort_instance, "get_plant_resources", mock_get_plant_resources
         )
@@ -2084,7 +2085,7 @@ class TestAnimalModel:
         )
 
         # Set up predator cohort
-        predator_cohort_instance.functional_group.diet = DietType.VERTEBRATES
+        predator_cohort_instance.functional_group.diet = DietType.parse("vertebrates")
         mocker.patch.object(
             predator_cohort_instance, "get_plant_resources", mocker.Mock()
         )  # Should not be called for predators
@@ -2119,6 +2120,7 @@ class TestAnimalModel:
 
         # Optional: verify other _setup outputs exist; helps pinpoint where it failed.
         for name in (
+            "communities",
             "excrement_pools",
             "carcass_pools",
             "leaf_waste_pools",
@@ -2151,7 +2153,16 @@ class TestAnimalModel:
         )
 
         # Verify that predators forage prey and not plant resources
-        mock_get_prey.assert_called_once_with(animal_model_instance.communities)
+        expected_prey_flags = predator_cohort_instance.functional_group.diet & (
+            DietType.BLOOD
+            | DietType.INVERTEBRATES
+            | DietType.FISH
+            | DietType.VERTEBRATES
+        )
+        mock_get_prey.assert_called_once_with(
+            communities=animal_model_instance.communities,
+            prey_diet=expected_prey_flags,
+        )
         predator_cohort_instance.get_plant_resources.assert_not_called()
         mock_forage_predator.assert_called_once_with(
             plant_list=[],
