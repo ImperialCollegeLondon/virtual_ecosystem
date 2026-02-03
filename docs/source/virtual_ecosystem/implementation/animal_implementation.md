@@ -90,25 +90,6 @@ Key responsibilities:
 - **Spatial dynamics**: Tracks cohort occupancy across grid cells and handles migration.
 - **Community-level processes**: Foraging, mortality, birth, metamorphosis, and more.
 
-### Code Structure
-
-The `AnimalModel` is a subclass of `BaseModel`, integrating into the broader Virtual
-Ecosystem framework. It extends the base functionality to include animal-specific
-methods and attributes, ensuring compatibility with other ecosystem modules such as
-vegetation, litter, and soil.
-
-Key components:
-
-- **Initialization**: Sets up the grid structure for animal movement, functional groups,
-  and resource pools for excrement, carcasses, and leaf waste.
-- **Cohort-level methods**: Implements functions to handle cohort-specific processes
-  (e.g., `birth`, `metamorphose`, `forage`).
-- **Community-level methods**: Manages collective processes for all cohorts in a grid
-  cell (e.g., `migrate_community`, `metabolize_community`,
-  `remove_dead_cohort_community`).
-- **State updates**: Updates population densities, litter consumption, and nutrient
-  contributions to the soil.
-
 ## Sequence of Operations in the Animal Model
 
 The animal model follows a sequence of operations designed to simulate the dynamic
