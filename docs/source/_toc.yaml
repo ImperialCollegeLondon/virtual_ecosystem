@@ -60,6 +60,7 @@ subtrees:
             entries:
               - file: using_the_ve/data/notes_preprocessing
           - file: using_the_ve/variables/variables
+          - file: using_the_ve/variables/pft_configuration
 
       - file: development/contributing
         title: Developers
