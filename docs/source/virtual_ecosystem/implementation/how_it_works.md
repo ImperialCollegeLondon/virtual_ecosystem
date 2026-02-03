@@ -69,8 +69,8 @@ Ecosystem section to find out more.
 
 The Virtual Ecosystem uses several core components to validate and coordinate shared
 configuration settings and to initialise model structures. The components are listed
-below but also see the [core components overview](./core_components_overview.md) for
-more detail:
+below but also see the [description of how the simulation core
+works](./core_components_overview.md) for more detail:
 
 - The Config object, containing the validated configuration.
 - The Grid object, containing the shared spatial structure of the simulation.
