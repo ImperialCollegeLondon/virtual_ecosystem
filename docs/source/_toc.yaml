@@ -7,8 +7,8 @@ subtrees:
       - file: virtual_ecosystem/science
         title: Science
         entries:
-        - file: virtual_ecosystem/theory/theory
-          title: Theory
+        - file: virtual_ecosystem/theory/underlying_theory
+          title: Underlying theory
           entries:
             - file: virtual_ecosystem/theory/abiotic_theory
               entries:

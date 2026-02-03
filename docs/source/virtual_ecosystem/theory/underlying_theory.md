@@ -23,7 +23,7 @@ language_info:
   version: 3.11.9
 ---
 
-# The theory of the Virtual Ecosystem
+# Theory underlying the Virtual Ecosystem
 
 Ecosystems are complex systems that arise from the interplay between
 [animals](./animals/animal_theory.md),
@@ -67,6 +67,15 @@ The model aims to replicate ecosystem dynamics across four
 ecological domains: plants, animals, soil, and the abiotic environment. These domains are
 dynamically connected through the transfer of matter and energy.
 :::
+
+The ecological (or physical) theory underlying each of our core set of models are
+described in the following pages:
+
+* The [animal model](./animals/animal_theory.md).
+* The [plants model](./plant_theory.md).
+* The [abiotic models](./abiotic_theory.md) (i.e. `hydrology`, `abiotic` and
+  `abiotic_simple`)
+* The [soil models](./soil/summary.md) (i.e. `soil` and `litter`)
 
 :::{card}User Stories
 User stories serve as a project management tool that outlines the criteria for project

@@ -24,11 +24,13 @@ language_info:
   version: 3.11.9
 ---
 
-# Implementation of the Virtual Ecosystem
+# Virtual Ecosystem Science
 
-This section of the documentation covers the implementation of the Virtual Ecosystem
-simulation. It includes sections on:
+TODO - Rename the implementation section once I've decided on an approach there
 
-* the [project team](../project_team) developing the model,
-* the [scientific theories](./theory/theory.md) underpinning the model, and
+This section of the documentation covers the Science of the Virtual Ecosystem
+simulation. It consists of two sections
+
+* a section describing the [scientific theories](./theory/underlying_theory.md)
+  underlying the science models, and
 * details of the [code implementation](./implementation/implementation.md) of the model.
