@@ -156,8 +156,8 @@ A variable can be accessed from the `data` object using the variable name as a k
 the data is returned as a :class:`xarray.DataArray` object.
 
 Note that the `x` and `y` coordinates have been mapped onto the internal `cell_id`
-dimension used to label the different grid cells (see the
-[Grid](../../using_the_ve/configuration/grid.md) documentation for details).
+dimension used to label the different grid cells (see the [Grid](./grid.md)
+documentation for details).
 
 ```{code-cell} ipython3
 # Get the temperature data

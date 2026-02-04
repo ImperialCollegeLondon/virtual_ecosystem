@@ -43,7 +43,7 @@ doing any data preparation or configuration, you will need to decide on the spat
 temporal extents of the simulation. The configuration of these model properties are
 described in the [core configuration](./core_configuration.md) page, but in summary:
 
-* The [spatial grid](./configuration/grid.md) definition sets the number of grid cells
+* The [spatial grid](../development/design/grid.md) definition sets the number of grid cells
   in the simulation, the cell size and the spatial coordinates of the cell. The Virtual
   Ecosystem expects coordinates in metres, so you should choose a [projected coordinate
   system](https://en.wikipedia.org/wiki/Projected_coordinate_system) for your site of

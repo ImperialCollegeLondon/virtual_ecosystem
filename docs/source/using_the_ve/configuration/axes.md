@@ -29,12 +29,13 @@ The Virtual Ecosystem uses a set of **core axes** which have dimensions and poss
 coordinates set by the configuration of a simulation.
 
 * The **dimensions** of an axis set the shape of the axis. For example, a simulation
-  might use a square 10 by 10 [grid](grid.md), so spatial data might be expected to
-  have the same 10 by 10 shape along `x` and `y` dimensions.
+  might use a square 10 by 10 [grid](../../development/design/grid.md), so spatial data
+  might be expected to have the same 10 by 10 shape along `x` and `y` dimensions.
 
 * The **coordinates** of an axis set the values of the intervals along the dimension.
-  For example, a spatial grid might be configured with [offsets](grid.md#grid-origin)
-  to map data onto a projected coordinate system.
+  For example, a spatial grid might be configured with
+  [offsets](../../development/design/grid.md#grid-origin) to map data onto a projected
+  coordinate system.
 
 When data is loaded into the simulation as it is first converted into a
 {class}`~xarray.DataArray` object. These objects also provide _dimension names_ for each
@@ -64,10 +65,10 @@ before use.
 ```
 
 Within a simulation, the Virtual Ecosystem uses a single spatial dimension along the
-[grid](grid.md) cell ids, so a `cell_id` dimension can be used to directly map data onto
-the grid. However, spatial data is often provided using two dimensional `x` and `y`
-coordinates, which can then be used to map data onto polygon geometry of each of the
-grid cells. The `spatial` validators cover the following cases.
+[grid](../../development/design/grid.md) cell ids, so a `cell_id` dimension can be used
+to directly map data onto the grid. However, spatial data is often provided using two
+dimensional `x` and `y` coordinates, which can then be used to map data onto polygon
+geometry of each of the grid cells. The `spatial` validators cover the following cases.
 
 The data has a `cell_id` dimension without coordinates, any grid geometry.
 : The `cell_id` dimension must be of the same length as the number of cells in the
