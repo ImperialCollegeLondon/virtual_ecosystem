@@ -120,8 +120,8 @@ stated axes are what is on the data.
 Then for each variable you will need to compile appropriate data - given the axes
 required - and saved as NetCDF files, providing labelled dimensions and coordinates to
 match input data to the axes and coordinates of your model configuration . See the [data
-object](./data/data.md) page for more information on loading data and the [example
-data](./example_data.md) page for examples of NetCDF input files.
+object](../development/design/data.md) page for more information on loading data and the
+[example data](./example_data.md) page for examples of NetCDF input files.
 
 ### Configuring gridded data inputs
 

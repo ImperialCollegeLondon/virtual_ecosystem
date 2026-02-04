@@ -59,7 +59,7 @@ simulation. Validators may also standardise or subset input datasets to map them
 particular axis configuration.
 
 For more details on the different core axes and the alternative mappings applied by
-validators see the [core axis](../configuration/axes.md) documentation.
+validators see the [core axis](../../using_the_ve/configuration/axes.md) documentation.
 
 ## Creating a `Data` instance
 
@@ -157,7 +157,7 @@ the data is returned as a :class:`xarray.DataArray` object.
 
 Note that the `x` and `y` coordinates have been mapped onto the internal `cell_id`
 dimension used to label the different grid cells (see the
-[Grid](../configuration/grid.md) documentation for details).
+[Grid](../../using_the_ve/configuration/grid.md) documentation for details).
 
 ```{code-cell} ipython3
 # Get the temperature data

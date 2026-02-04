@@ -188,8 +188,9 @@ to the other models.
    configuration.
 
 These different scenarios are identified automatically when the simulation starts by
-comparing the different sets of required variables to what has been loaded into
-the [`Data` object](../data/data.md) from the configuration. In addition, note that:
+comparing the different sets of required variables to what has been loaded into the
+[`Data` object](../../development/design/data.md) from the configuration. In addition,
+note that:
 
 * Providing some but not all of the variables required in steps 2 or 3 above will result
   in an error.

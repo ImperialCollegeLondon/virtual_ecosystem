@@ -83,7 +83,7 @@ vertical layer structure. (click to zoom).
 ## Loading and validation of input data
 
 All of the variables required to initialise and run the simulation are then loaded into
-an internal [`Data` object](../../using_the_ve/data/data.md). The model configuration
+an internal [`Data` object](../../development/design/data.md). The model configuration
 provides the location of the file containing each required variables and the Data object
 is then used to load the data, checking that:
 

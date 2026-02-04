@@ -59,10 +59,7 @@ subtrees:
               - file: using_the_ve/configuration/axes
               - file: using_the_ve/configuration/grid
               - file: using_the_ve/configuration/constants
-          - file: using_the_ve/data/data
-            title: Adding data to the model
-            entries:
-              - file: using_the_ve/data/notes_preprocessing
+          - file: using_the_ve/data/notes_preprocessing
           - file: using_the_ve/variables/variables
           - file: using_the_ve/variables/pft_configuration
 
@@ -78,6 +75,7 @@ subtrees:
             entries:
               - file: development/design/core
               - file: development/design/defining_new_models
+              - file: development/design/data
           - file: development/documentation
             entries:
               - file: development/documentation/documentation
