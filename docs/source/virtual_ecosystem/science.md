@@ -33,3 +33,8 @@ simulation. It consists of two sections
   underlying the science models, and
 * a section describing [how the model actually works](./implementation/how_it_works.md)
   in practice.
+* a section describing [the project in general](../project_team.md)(i.e. who is working
+  on the project and who has funded the project up to this point).
+* a [glossary](../glossary.md) of key terms used through the documentation.
+* a [bibliography](../bibliography.md) providing references to the underlying theory
+  that the Virtual Ecosystem is based on.

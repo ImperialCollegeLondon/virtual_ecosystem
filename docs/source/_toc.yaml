@@ -37,6 +37,10 @@ subtrees:
             - file: virtual_ecosystem/implementation/hydrology_implementation
             - file: virtual_ecosystem/implementation/soil_implementation
             - file: virtual_ecosystem/implementation/plants_implementation
+        - file: project_team
+          title: About the Project
+        - file: glossary
+        - file: bibliography
 
       - file: using_the_ve/overview
         title: Users
@@ -225,13 +229,6 @@ subtrees:
                   - file: api/models/plants/plant_structures
                     title: The plant_structures submodule
           - file: api/example_data
-            title: The example_data submodule   
-      - file: project_team
-        title: About the Project
-      - file: reference
-        title: References
-        entries:
-          - file: glossary
-          - file: bibliography
-          - file: genindex
+            title: The example_data submodule
           - file: modindex
+          - file: genindex
