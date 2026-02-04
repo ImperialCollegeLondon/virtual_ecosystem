@@ -227,7 +227,7 @@ subtrees:
           - file: api/example_data
             title: The example_data submodule   
       - file: project_team
-        title: Project Team
+        title: About the Project
       - file: reference
         title: References
         entries:
