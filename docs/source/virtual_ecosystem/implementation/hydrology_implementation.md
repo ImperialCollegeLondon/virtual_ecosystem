@@ -194,7 +194,7 @@ added to the current soil moisture level and runoff is set to zero.
 
 ### Searchable resource
 
-Some of the water that land at the surface is stored in depressions as puddles or
+Some of the water that lands on the surface is stored in depressions as puddles or
 larger standing water that is a searchable resources for animals. This is currently not
 implemented.
 
@@ -375,7 +375,7 @@ depth of water produced from a drainage area during a particular time interval (
 
 The flow direction of water above and below ground is based on a digital elevation model
 which needs to be provided as a NetCDF file at the start of the simulation.
-Here an description of the steps that happen during the hydrology model
+Here is a description of the steps that happen during the hydrology model
 initialisation (plotting only for illustration):
 
 ```{code-cell} ipython3

@@ -141,7 +141,7 @@ revised in the future.
 
 7. **Mortality** Non-predation mortality is applied to cohorts using the
    `inflict_non_predation_mortality_community` method. Mortality may be caused by
-   starvation, disease, aging, or background mortality.
+   starvation, aging, or background mortality.
 
 8. **Remove Dead Cohorts** Cohorts that have no remaining individuals are removed from
    the simulation using the `remove_dead_cohort_community` method. Their biomass

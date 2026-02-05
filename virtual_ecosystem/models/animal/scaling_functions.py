@@ -92,7 +92,7 @@ def metabolic_rate(
         temperature: The temperature [Celsius] of the environment.
         terms: The tuple of metabolic rate terms used.
         metabolic_type: The metabolic type of the animal [ENDOTHERMIC or ECTOTHERMIC].
-        metabolic_scaling_coefficients: A tuple providing the $E_s, \sigma, E_a$
+        metabolic_scaling_coefficients: A tuple providing the :math:`E_s, \sigma, E_a`
             coefficients of the Madingley metabolic rate model (see
             :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants.metabolic_scaling_coefficients`)
         boltzmann_constant: The Boltzmann constant ($k_B$)

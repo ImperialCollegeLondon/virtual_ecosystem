@@ -119,7 +119,7 @@ as well as the exchange with the atmosphere above the canopy.
 The [hydrology](../../api/models/hydrology.md) model simulates the hydrological
 processes in the Virtual Ecosystem. We placed hydrology in a separate model to allow
 easy replacement with a different hydrology model. Also, this separation provides more
-flexibility in defining the order of models an/or processes in the overall Virtual
+flexibility in defining the order of models and/or processes in the overall Virtual
 Ecosystem workflow.
 
 ```{note}
@@ -141,8 +141,8 @@ The model is loosely based on the LISFLOOD model {cite}`van_der_knijff_lisflood_
 
 The second part of the hydrology model calculates the horizontal water movement across
 the full model grid including accumulated surface runoff and sub-surface flow, and river
-discharge rate, [see](../../api/models/hydrology/above_ground.md). The flow direction is
-based on a digital elevation model.
+discharge rate, see [above ground details](../../api/models/hydrology/above_ground.md).
+The flow direction is based on a digital elevation model.
 
 ## Plant Model
 
@@ -183,8 +183,8 @@ The Carbon cycle uses as its basic structure a recently described soil-pool mode
 the Millennial model {cite}`abramoff_millennial_2018`. This model splits carbon into
 five separate pools: particulate organic matter, low molecular weight carbon (LMWC),
 mineral associated organic matter, aggregates and microbial biomass. Though plant root
-exudates feed directly into the LMWC pool, most biomass input will less direct and occur
-via litter decomposition. Thus, we utilize a common set of litter pools
+exudates feed directly into the LMWC pool, most biomass input is direct less direct and
+occurs via litter decomposition. Thus, we utilize a common set of litter pools
 {cite}`kirschbaum_modelling_2002`, that are divided between above- and below-ground
 pools, and by biomass source (e.g. deadwood).
 

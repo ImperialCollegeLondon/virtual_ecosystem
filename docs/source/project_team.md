@@ -12,13 +12,26 @@ kernelspec:
   name: python3
 ---
 
-# Project Team
+# About the Virtual Ecosystem Project
 
 <!-- markdownlint-disable MD034 -->
 <!-- The :link: tag requires bare URLs and markdownlint autowraps them in <>
 unless this rule is disabled. Do not merge these comments - apparently markdownlint is
 fussy about the formatting within the disable comment.
 -->
+
+The research is based in the Department of Life Sciences at [Imperial College
+London](https://imperial.ac.uk/life-sciences) and is funded by a 2021 [Distinguished
+Scientist
+award](<https://nomisfoundation.ch/projects/a-virtual-rainforest-for-understanding-the-stability-resilience-and-sustainability-of-complex-ecosystems/>)
+from the [NOMIS Foundation](https://nomisfoundation.ch) to Professor Rob Ewers.
+
+The project team is an international group of research scientists and software
+developers, lead by [Professor Robert Ewers](https://profiles.imperial.ac.uk/r.ewers)
+(Imperial College London). The research team are supported by the Imperial College
+London [Research Software
+Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/service-offering/research-software-engineering/)
+team.
 
 ## Project leadership
 

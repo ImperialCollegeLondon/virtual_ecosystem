@@ -37,9 +37,9 @@ concentrations of a particular input are low, then a higher proportion of the in
 into slow decaying litter pools. This indirectly captures the impact of nitrogen and
 phosphorus chemistry on litter decay.
 
-The rest of this page gives provides details on the specific litter pools, the
-partitioning of organic matter input between them, the tracking of litter chemistry and
-the impacts animals have on litter accumulation and decay.
+The rest of this page provides details on the specific litter pools, the partitioning of
+organic matter input between them, the tracking of litter chemistry and the impacts
+animals have on litter accumulation and decay.
 
 ## Litter pools
 
