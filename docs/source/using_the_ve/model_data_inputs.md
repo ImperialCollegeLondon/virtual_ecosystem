@@ -109,7 +109,7 @@ moment have we the following critical dimensions within the VE:
 You will first need to look at the required variables for each science model that you
 want to include in the simulation and make a list of those variables. Details of the
 variables required by each model can be found in the [data
-variables](../virtual_ecosystem/implementation/variables.md) page.
+variables](./variables/variables.md) page.
 
 ```{warning}
 The `axis` field in that data is currently **not to be trusted** - we have

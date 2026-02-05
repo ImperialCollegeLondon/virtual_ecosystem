@@ -23,12 +23,11 @@ language_info:
   version: 3.10.14
 ---
 
-# Implementation of the core components
+# How the simulation core works
 
-The first stages in a simulation are the configuration and initialisation of the core
-components.
+The simulation starts by configuring and initialising the core components.
 
-## The configuration
+## Configuration
 
 The model core and each science model has a set of configuration options that set how
 the simulation is set up and how the science models run. These configuration options are
