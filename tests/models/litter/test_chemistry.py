@@ -5,10 +5,8 @@ This module tests the functionality of the litter chemistry module
 
 import numpy as np
 
-from virtual_ecosystem.models.litter.constants import LitterConsts
 
-
-def test_calculate_litter_chemistry_factor():
+def test_calculate_litter_chemistry_factor(fixture_litter_constants):
     """Test that litter chemistry effects on decomposition are calculated correctly."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_litter_chemistry_factor,
@@ -19,7 +17,7 @@ def test_calculate_litter_chemistry_factor():
     expected_factor = [0.95122942, 0.60653065, 0.08208499, 0.01831563]
 
     actual_factor = calculate_litter_chemistry_factor(
-        lignin_proportions, LitterConsts.lignin_inhibition_factor
+        lignin_proportions, fixture_litter_constants.lignin_inhibition_factor
     )
 
     assert np.allclose(actual_factor, expected_factor)
@@ -35,16 +33,16 @@ def test_calculate_new_pool_chemistries(
     """Test that function to calculate updated pool chemistries works correctly."""
 
     expected_chemistries = {
-        "lignin_above_structural": [0.49726312, 0.10113065, 0.67996749, 0.68136766],
+        "lignin_above_structural": [0.49765798, 0.10073481, 0.68181057, 0.68425001],
         "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
         "lignin_below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
-        "c_n_ratio_above_metabolic": [7.5450184, 8.9814418, 10.998779, 10.175958],
-        "c_n_ratio_above_structural": [37.6666294, 43.3945275, 49.4785666, 54.4562879],
+        "c_n_ratio_above_metabolic": [7.52594, 8.77113534, 10.94226, 10.01967],
+        "c_n_ratio_above_structural": [37.6558673, 43.2689945, 49.422539, 54.3682015],
         "c_n_ratio_woody": [55.57479, 63.250918, 47.44333, 59.08069],
         "c_n_ratio_below_metabolic": [10.90629, 11.42741, 15.21408, 13.02765],
         "c_n_ratio_below_structural": [50.96669, 56.78504, 73.33861, 72.76419],
-        "c_p_ratio_above_metabolic": [61.099543, 70.015298, 110.68070, 98.767703],
-        "c_p_ratio_above_structural": [340.38278, 473.84604, 456.99901, 579.00396],
+        "c_p_ratio_above_metabolic": [60.879182, 69.335744, 110.32534, 97.074293],
+        "c_p_ratio_above_structural": [340.26419, 473.943986, 456.481612, 578.114146],
         "c_p_ratio_woody": [558.58393, 762.474347, 847.96815, 599.98045],
         "c_p_ratio_below_metabolic": [314.40006, 404.09534, 315.06196, 360.38398],
         "c_p_ratio_below_structural": [558.1202, 607.2732, 775.4709, 759.5603],
@@ -74,7 +72,7 @@ def test_calculate_new_lignin_proportions(
     """Test that the function to calculate the lignin updates works as expected."""
 
     expected_lignin = {
-        "above_structural": [0.4972631215, 0.1011306546, 0.6799674901, 0.6813676608],
+        "above_structural": [0.49765798, 0.10073481, 0.68181057, 0.68425001],
         "woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
         "below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
     }
@@ -105,7 +103,7 @@ def test_calculate_updated_pool_nutrient_ratio(
         calculate_updated_pool_nutrient_ratio,
     )
 
-    expected_ratio = [7.5450184, 8.9814418, 10.998779, 10.175958]
+    expected_ratio = [7.52594014, 8.77113534, 10.94226006, 10.0196659]
 
     actual_ratio = calculate_updated_pool_nutrient_ratio(
         initial_carbon=post_consumption_pools["above_metabolic"],
@@ -132,7 +130,7 @@ def test_calculate_updated_pool_lignin_proportion(
         calculate_updated_pool_lignin_proportion,
     )
 
-    expected_lignin = [0.4972631215, 0.1011306546, 0.6799674901, 0.6813676608]
+    expected_lignin = [0.49765798, 0.10073481, 0.68181057, 0.68425001]
 
     actual_lignin = calculate_updated_pool_lignin_proportion(
         initial_carbon=post_consumption_pools["above_structural"],
@@ -159,8 +157,8 @@ def test_calculate_new_c_n_ratios(
     """Test that calculation of C:N ratio updates works properly."""
 
     expected_ratios = {
-        "above_metabolic": [7.5450184, 8.9814418, 10.998779, 10.175958],
-        "above_structural": [37.6666294, 43.3945275, 49.4785666, 54.4562879],
+        "above_metabolic": [7.52594014, 8.77113534, 10.94226006, 10.0196659],
+        "above_structural": [37.65586734, 43.2689945, 49.42253925, 54.36820152],
         "woody": [55.57479, 63.250918, 47.44333, 59.08069],
         "below_metabolic": [10.90629, 11.42741, 15.21408, 13.02765],
         "below_structural": [50.96669, 56.78504, 73.33861, 72.76419],
@@ -190,8 +188,8 @@ def test_calculate_new_c_p_ratios(
     """Test that calculation of C:P ratio updates works properly."""
 
     expected_change = {
-        "above_metabolic": [61.099543, 70.015298, 110.68070, 98.767703],
-        "above_structural": [340.38278, 473.84604, 456.99901, 579.00396],
+        "above_metabolic": [60.87918191, 69.33574418, 110.32533957, 97.07429283],
+        "above_structural": [340.26419032, 473.94398599, 456.48161162, 578.11414589],
         "woody": [558.58393, 762.474347, 847.96815, 599.98045],
         "below_metabolic": [314.40006, 404.09534, 315.06196, 360.38398],
         "below_structural": [558.1202, 607.2732, 775.4709, 759.5603],

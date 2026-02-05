@@ -8,9 +8,12 @@ TODO change temperatures to Kelvin
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
+
+from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.data import Data
 
 
 def calculate_molar_density_air(
@@ -151,14 +154,14 @@ def calculate_slope_of_saturated_pressure_curve(
 def calculate_actual_vapour_pressure(
     air_temperature: DataArray,
     relative_humidity: DataArray,
-    pyrealm_const: PyrealmConst,
+    pyrealm_core_constants: PyrealmCoreConst,
 ) -> DataArray:
     """Calculate actual vapour pressure, [kPa].
 
     Args:
         air_temperature: Air temperature, [C]
         relative_humidity: Relative humidity, [-]
-        pyrealm_const: Set of constants from pyrealm
+        pyrealm_core_constants: Set of constants from pyrealm
 
     Returns:
         actual vapour pressure, [kPa]
@@ -166,7 +169,7 @@ def calculate_actual_vapour_pressure(
 
     saturation_vapour_pressure_air = calc_vp_sat(
         ta=air_temperature.to_numpy(),
-        core_const=pyrealm_const(),
+        core_const=pyrealm_core_constants,
     )
     return saturation_vapour_pressure_air * relative_humidity / 100.0
 
@@ -234,7 +237,7 @@ def calculate_specific_humidity(
     relative_humidity: NDArray[np.floating],
     atmospheric_pressure: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
-    pyrealm_const: PyrealmConst,
+    pyrealm_core_constants: PyrealmCoreConst,
 ) -> NDArray[np.floating]:
     """Calculate specific humidity.
 
@@ -244,7 +247,7 @@ def calculate_specific_humidity(
         atmospheric_pressure: Atmospheric pressure, [kPa]
         molecular_weight_ratio_water_to_dry_air: The ratio of the molar mass of water
             vapour to the molar mass of dry air
-        pyrealm_const: Pyrealm constants
+        pyrealm_core_constants: Pyrealm core constants
 
     Returns:
         Specific humidity, [kg kg-1]
@@ -252,7 +255,7 @@ def calculate_specific_humidity(
     # Saturation vapor pressure
     saturation_vapour_pressure = calc_vp_sat(
         ta=air_temperature,
-        core_const=pyrealm_const,
+        core_const=pyrealm_core_constants,
     )
 
     # Actual vapor pressure (hPa)
@@ -267,3 +270,240 @@ def calculate_specific_humidity(
     )
 
     return specific_humidity
+
+
+def update_profile_from_reference(
+    layer_structure: LayerStructure,
+    mask_variable: DataArray,
+    variable_name: DataArray,
+    time_index: int,
+) -> DataArray:
+    """Update a layer-based profile for a given time index using a reference variable.
+
+    This function
+
+      - extracts a mask from air temperature to determine valid atmosphere layers
+      - reads the reference variable at the given time index
+      - applies the mask to keep only valid layers
+      - fills the profile template for those layers
+
+    Args:
+        layer_structure: LayerStructure object defining the layer setup
+        mask_variable: DataArray used to create the atmospheric mask
+        variable_name: Reference variable (e.g. data["atmospheric_pressure_ref"])
+        time_index: Index of the current time step
+
+    Returns:
+        Updated layer profile as a DataArray
+    """
+
+    # Create atmospheric mask for filling constant values
+    atm_mask = ~np.isnan(
+        mask_variable.isel(layers=layer_structure.index_filled_atmosphere)
+    )
+
+    # Mean atmospheric pressure profile, [kPa]
+    profile_out = layer_structure.from_template()
+    reference_values = variable_name.isel(time_index=time_index)
+    valid_values = reference_values.where(atm_mask)
+    profile_out[layer_structure.index_filled_atmosphere] = valid_values
+
+    return profile_out
+
+
+def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStructure):
+    """Calculate heights, thickness, layer tops, and midpoints for atmospheric layers.
+
+    Args:
+        data: Data object
+        layer_structure: LayerStructure object
+
+    Returns:
+        dict containing heights, thickness, layer_top, layer_midpoints
+    """
+
+    # Extract above-ground layer heights
+    heights = data["layer_heights"][layer_structure.index_filled_atmosphere].to_numpy()
+
+    # Compute thickness
+    thickness = compute_layer_thickness_for_varying_canopy(heights=heights)
+
+    # Compute cumulative thickness excluding current layer
+    layer_top = np.cumsum(thickness, axis=1) - thickness
+
+    # Compute midpoints
+    midpoints = layer_top + thickness / 2
+
+    return {
+        "heights": heights,
+        "thickness": thickness,
+        "layer_top": layer_top,
+        "layer_midpoints": midpoints,
+    }
+
+
+def generate_diurnal_cycle_from_monthly_data(
+    monthly_air_temperature: NDArray[np.floating],
+    monthly_shortwave_absorption: NDArray[np.floating],
+    monthly_relative_humidity: NDArray[np.floating],
+    monthly_evapotranspiration: NDArray[np.floating],
+    monthly_soil_evaporation: NDArray[np.floating],
+    latitude_deg: float,
+    month: int,
+    daily_temp_amplitude: float = 5.0,
+) -> dict[str, NDArray[np.floating]]:
+    """Generate synthetic hourly forcing for one day from monthly averages.
+
+    Args:
+        monthly_air_temperature: Monthly mean air temperature [C]
+        monthly_shortwave_absorption: Monthly mean daily shortwave absorption [W m-2]
+        monthly_relative_humidity: Monthly mean relative humidity [%]
+        monthly_evapotranspiration: Monthly total evapotranspiration [mm/month]
+        monthly_soil_evaporation: Monthly total soil evaporation [mm/month]
+        latitude_deg: Latitude for daylength calculation [deg]
+        month: Month number [1-12]
+        daily_temp_amplitude: typical diurnal temperature swing [C]
+
+    Returns:
+        dict of arrays air_temperature_hourly, shortwave_absorption_hourly,
+        relative_humidity_hourly, evapotranspiration_hourly, soil_evaporation_hourly
+    """
+
+    hours = np.arange(24)
+
+    # Air temperature (sine wave, max at 14:00), (24, cell)
+    air_temperature_hourly = monthly_air_temperature[
+        None, :
+    ] + daily_temp_amplitude * np.sin(2 * np.pi * (hours[:, None] - 8) / 24)
+
+    # Daylength (simple climatology)
+    daylength = 12 + 4 * np.cos((month - 1) * np.pi / 6) * np.cos(
+        np.radians(latitude_deg)
+    )
+    daylength = np.clip(daylength, 6.0, 18.0)
+
+    sunrise = 12 - daylength / 2
+    sunset = 12 + daylength / 2
+
+    # Shortwave radiation (half-sine over daylight)
+    hour_fraction = np.zeros(24)
+
+    for h in range(24):
+        if sunrise <= h <= sunset:
+            hour_fraction[h] = np.sin(np.pi * (h - sunrise) / daylength)
+
+    if hour_fraction.sum() > 0:
+        hour_fraction /= hour_fraction.sum()
+
+    # Shortwave absorption (distributed like radiation), (24, layer, cell)
+    shortwave_absorption_hourly = (
+        monthly_shortwave_absorption[None, :, :] * hour_fraction[:, None, None]
+    )
+
+    # Relative humidity (constant vapor pressure)
+    e_s_mean = calc_vp_sat(monthly_air_temperature)  # (cell,)
+    e_a = monthly_relative_humidity / 100.0 * e_s_mean  # (cell,)
+
+    e_s_hourly = calc_vp_sat(air_temperature_hourly)  # (24, cell)
+    relative_humidity_hourly = 100.0 * e_a[None, :] / e_s_hourly
+    relative_humidity_hourly = np.clip(relative_humidity_hourly, 0.0, 100.0)
+
+    # Evapotranspiration (distributed like radiation)
+    sw_sum = shortwave_absorption_hourly.sum(axis=0, keepdims=True)
+
+    evapotranspiration_hourly = np.where(
+        sw_sum > 0,
+        monthly_evapotranspiration[None, :, :] * shortwave_absorption_hourly / sw_sum,
+        monthly_evapotranspiration[None, :, :] / 24.0,
+    )
+
+    # Soil evaporation (distributed like radiation)
+    soil_evaporation_hourly = np.where(
+        shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :] > 0,
+        monthly_soil_evaporation[None, :]
+        * shortwave_absorption_hourly.sum(axis=1)
+        / shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :],
+        monthly_soil_evaporation[None, :] / 24.0,
+    )
+
+    return {
+        "air_temperature_hourly": air_temperature_hourly,
+        "relative_humidity_hourly": relative_humidity_hourly,
+        "shortwave_absorption_hourly": shortwave_absorption_hourly,
+        "evapotranspiration_hourly": evapotranspiration_hourly,
+        "soil_evaporation_hourly": soil_evaporation_hourly,
+    }
+
+
+def fill_layer_template(
+    layer_structure: LayerStructure,
+    assignments: list[tuple],
+) -> NDArray[np.floating]:
+    """Fill layer template with index values.
+
+    Args:
+        layer_structure: LayerStructure
+        assignments: list of variable names, indices and values
+
+    Returns:
+        array with updated indices
+    """
+    out = layer_structure.from_template().to_numpy()
+
+    for indices, values in assignments:
+        out[indices, :] = values
+
+    return out
+
+
+def record_hourly_output(
+    hour: int,
+    data_record: dict,
+    layer_structure: LayerStructure,
+    hourly_values: dict,
+):
+    """Record hourly data.
+
+    Args:
+        hour: Hour of the day
+        data_record: dict that contains all hourly data
+        layer_structure: LayerStructure object
+        hourly_values: Hourly values
+
+    Returns:
+        updated dict with hour values
+    """
+    for var, value in hourly_values.items():
+        if var not in data_record:
+            continue
+
+        # 1D (cells)
+        if isinstance(value, np.ndarray) and value.ndim == 1:
+            data_record[var][hour] = value
+
+        # 2D layered variable
+        else:
+            full = fill_layer_template(layer_structure, value)
+            data_record[var][hour] = full
+
+    return data_record
+
+
+def mean_to_layers(
+    var: str, index: list[int], data_record: dict, layer_structure: LayerStructure
+) -> DataArray:
+    """Return mean value over time for given variable and fill into layer structure.
+
+    Args:
+        var: Variable name
+        index: List of layer indices to fill
+        data_record: Data record dict
+        layer_structure: LayerStructure object
+
+    Returns:
+        DataArray with mean values filled into layer structure
+    """
+    out = layer_structure.from_template()
+    mean_vals = np.nanmean(data_record[var], axis=0)
+    out[index] = mean_vals[index]
+    return out

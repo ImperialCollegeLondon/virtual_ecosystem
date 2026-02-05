@@ -7,7 +7,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.1
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -30,4 +30,5 @@ language_info:
 .. automodule:: virtual_ecosystem.core.variables
     :autosummary:
     :members:
+    :exclude-members: model_config
 ```

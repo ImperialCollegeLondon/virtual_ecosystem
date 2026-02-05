@@ -13,9 +13,9 @@ from numpy import timedelta64
 import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
 from virtual_ecosystem.models.animal.cnp import CNP
-from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
@@ -25,6 +25,7 @@ from virtual_ecosystem.models.animal.decay import (
     find_decay_consumed_split,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.model_config import AnimalConstants
 from virtual_ecosystem.models.animal.protocols import Resource
 
 _T = TypeVar("_T")
@@ -41,7 +42,8 @@ class AnimalCohort:
         individuals: int,
         centroid_key: int,
         grid: Grid,
-        constants: AnimalConsts = AnimalConsts(),
+        constants: AnimalConstants = AnimalConstants(),
+        core_constants: CoreConstants = CoreConstants(),
     ) -> None:
         if age < 0:
             raise ValueError("Age must be a positive number.")
@@ -63,6 +65,8 @@ class AnimalCohort:
         """The the grid structure of the simulation."""
         self.constants = constants
         """Animal constants."""
+        self.core_constants = core_constants
+        """Core constants."""
         self.location_status: Literal["active", "migrated", "aquatic"] = "active"
         """Location status of the cohort, active means present and participating."""
         self.remaining_time_away: float = 0.0
@@ -120,6 +124,11 @@ class AnimalCohort:
             self.functional_group.diet.count_dietary_categories()
         )
         """The number of different diet categories consumed by the cohort."""
+        self.trophic_record: dict[tuple[str, str], dict[str, float]] = {}
+        """A record of the mass transfer from resource to consumer during the
+        timestep. tuple["kind", "id"] where kind is a str resource category and
+        id is a uuid or a cell_id. 
+        Value example: {"carbon": 1.2, "nitrogen": 0.08, "phosphorus": 0.01}"""
 
     @property
     def mass_current(self) -> float:
@@ -192,6 +201,49 @@ class AnimalCohort:
 
         self.territory = new_grid_cell_keys
 
+    def reset_trophic_record(self) -> None:
+        """Reset the trophic transfer record for a new timestep."""
+        self.trophic_record.clear()
+
+    def record_trophic_transfer(
+        self, resource_key: tuple[str, str], delta: CNP
+    ) -> None:
+        """Accumulate a trophic mass transfer for the current timestep.
+
+        Values are stored as a simple dict of floats for easy export.
+        This records the total CNP mass removed from a given resource by this cohort
+        during the current timestep.
+
+        Args:
+            resource_key: A tuple of (resource_kind, resource_id), where both elements
+                are strings.
+            delta: The CNP mass removed from the resource in a single feeding event.
+
+        Raises:
+            ValueError: If any element of `delta` is negative.
+        """
+        if delta.total == 0.0:
+            return
+
+        if delta.carbon < 0.0 or delta.nitrogen < 0.0 or delta.phosphorus < 0.0:
+            raise ValueError(
+                "Trophic transfer masses must be non-negative. "
+                f"Received carbon={delta.carbon}, nitrogen={delta.nitrogen}, "
+                f"phosphorus={delta.phosphorus}."
+            )
+
+        if resource_key not in self.trophic_record:
+            self.trophic_record[resource_key] = {
+                "carbon": 0.0,
+                "nitrogen": 0.0,
+                "phosphorus": 0.0,
+            }
+
+        entry = self.trophic_record[resource_key]
+        entry["carbon"] += delta.carbon
+        entry["nitrogen"] += delta.nitrogen
+        entry["phosphorus"] += delta.phosphorus
+
     def grow(self, resource_intake: dict[str, float]) -> dict[str, float]:
         """Handles growth based on resource intake, enforcing stoichiometry.
 
@@ -228,6 +280,18 @@ class AnimalCohort:
         resource_intake["nitrogen"] -= used_nitrogen
         resource_intake["phosphorus"] -= used_phosphorus
 
+        # Numerical safety: clamp tiny negatives to zero, but catch real bugs.
+        eps = 1e-12
+        for element in ("carbon", "nitrogen", "phosphorus"):
+            value = resource_intake[element]
+            if value < 0.0:
+                if value > -eps:
+                    resource_intake[element] = 0.0
+                else:
+                    raise ValueError(
+                        f"grow produced negative waste for {element}: {value}"
+                    )
+
         return resource_intake
 
     def metabolize(self, temperature: float, dt: timedelta64) -> dict[str, float]:
@@ -255,10 +319,12 @@ class AnimalCohort:
 
         # Calculate potential carbon metabolized (kg/day * number of days)
         potential_carbon_metabolized = sf.metabolic_rate(
-            self.mass_current,
-            temperature,
-            self.functional_group.metabolic_rate_terms,
-            self.functional_group.metabolic_type,
+            mass=self.mass_current,
+            temperature=temperature,
+            terms=self.functional_group.metabolic_rate_terms,
+            metabolic_type=self.functional_group.metabolic_type,
+            metabolic_scaling_coefficients=self.constants.metabolic_scaling_coefficients,
+            boltzmann_constant=self.core_constants.boltzmann_constant,
         ) * float(dt / timedelta64(1, "D"))
 
         # Ensure metabolized carbon does not exceed available carbon
@@ -443,12 +509,22 @@ class AnimalCohort:
         Raises:
             ValueError: If `number_of_deaths` is invalid or exceeds the cohort size.
         """
-        if number_of_deaths <= 0:
-            raise ValueError("Number of deaths must be a positive integer.")
+
+        # Zero deaths: nothing to do
+        if number_of_deaths == 0:
+            return
+
+        # Negative deaths are invalid
+        if number_of_deaths < 0:
+            raise ValueError(
+                f"Number of deaths must be non-negative, got {number_of_deaths}."
+            )
+
+        # Can't kill more individuals than exist
         if number_of_deaths > self.individuals:
             raise ValueError(
-                f"Number of deaths ({number_of_deaths}) exceeds the number of "
-                f"individuals in the cohort ({self.individuals})."
+                f"Number of deaths ({number_of_deaths}) exceeds cohort size "
+                f"({self.individuals})."
             )
 
         # Calculate total mass lost per element
@@ -546,9 +622,6 @@ class AnimalCohort:
         # Compute the maximum individuals that could be killed
         max_individuals_killed = ceil(potential_consumed_mass / individual_mass)
         actual_individuals_killed = min(max_individuals_killed, self.individuals)
-
-        print("Max Individuals That Could Be Killed:", max_individuals_killed)
-        print("Actual Individuals Removed:", actual_individuals_killed)
 
         # Compute total mass killed
         actual_mass_killed = actual_individuals_killed * individual_mass
@@ -821,6 +894,9 @@ class AnimalCohort:
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
+        TODO: check to see if there is a way to remove 0 indiv prey cohorts before this
+            step.
+
         Args:
             animal_list: A list of animal cohorts that can be consumed by the
                 predator.
@@ -838,6 +914,10 @@ class AnimalCohort:
         total_handling_t = self.calculate_total_handling_time_for_predation()
         N_i = self.individuals
         N_target = target_cohort.individuals
+
+        # If the prey cohort is empty, there is nothing to eat.
+        if N_target <= 0:
+            return 0.0
 
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
@@ -870,7 +950,7 @@ class AnimalCohort:
         consumed_mass = (
             target_cohort.mass_current
             * target_cohort.individuals
-            * (1 - exp(-(F * adjusted_dt)))
+            * (1 - exp(-(F * float(adjusted_dt / timedelta64(1, "D")))))
         )
 
         return consumed_mass
@@ -933,6 +1013,12 @@ class AnimalCohort:
             if actual_consumed_cnp is None:
                 raise ValueError(f"get_eaten() returned None for {prey_cohort}.")
 
+            # record resource → consumer transfer
+            self.record_trophic_transfer(
+                ("cohort", str(prey_cohort.id)),
+                CNP.from_dict(actual_consumed_cnp),
+            )
+
             # Update total consumed mass for each nutrient
             for element in total_consumed_mass:
                 total_consumed_mass[element] += actual_consumed_cnp[element]
@@ -956,7 +1042,10 @@ class AnimalCohort:
             Mass (kg) to consume from target.
         """
         F = self.F_i_k(resource_list, target)
-        return target.mass_current * (1.0 - exp(-F * adjusted_dt))
+
+        return target.mass_current * (
+            1.0 - exp(-F * float(adjusted_dt / timedelta64(1, "D")))
+        )
 
     def forage_resource_list(
         self,
@@ -965,6 +1054,7 @@ class AnimalCohort:
         calculate_consumed_mass: Callable[
             [list[Resource], Resource, timedelta64], float
         ],
+        resource_kind: str,
         herbivory_waste_pools: dict[int, HerbivoryWaste] | None = None,
     ) -> dict[str, float]:
         """Generic foraging function for all non-predation resources.
@@ -973,6 +1063,7 @@ class AnimalCohort:
             resources: List of foragable resources.
             adjusted_dt: Time available for foraging.
             calculate_consumed_mass: Function to compute requested biomass.
+            resource_kind: A string label of what kind of resource is being accessed.
             herbivory_waste_pools: Optional pool to deposit unassimilated biomass.
 
         Returns:
@@ -984,6 +1075,12 @@ class AnimalCohort:
             requested = calculate_consumed_mass(resources, resource, adjusted_dt)
 
             gain_cnp, litter_cnp = resource.get_eaten(requested, self)
+
+            # Record mass removed from this resource by this cohort
+            self.record_trophic_transfer(
+                (resource_kind, str(resource.cell_id)),
+                CNP.from_dict(gain_cnp),
+            )
 
             conv_eff = self.functional_group.conversion_efficiency
             for elem in total_gain:
@@ -1015,6 +1112,7 @@ class AnimalCohort:
             adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=herbivory_waste_pools,
+            resource_kind="plant_resource",
         )
 
     def delta_mass_detritivory(
@@ -1035,6 +1133,7 @@ class AnimalCohort:
             resources=litter_pools,
             adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self._consumed_resource_mass,
+            resource_kind="litter_pool",
         )
 
     def delta_mass_carcass_scavenging(
@@ -1055,6 +1154,7 @@ class AnimalCohort:
             resources=carcass_pools,
             adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self._consumed_resource_mass,
+            resource_kind="carcass_pool",
         )
 
     def delta_mass_excrement_scavenging(
@@ -1075,6 +1175,7 @@ class AnimalCohort:
             resources=excrement_pools,
             adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self._consumed_resource_mass,
+            resource_kind="excrement_pool",
         )
 
     def delta_mass_fruiting_fungivory(
@@ -1098,6 +1199,7 @@ class AnimalCohort:
             adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=herbivory_waste_pools,
+            resource_kind="fungal_fruit_pool",
         )
 
     def delta_mass_soil_fungivory(
@@ -1121,6 +1223,7 @@ class AnimalCohort:
             adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=None,
+            resource_kind="soil_fungi_pool",
         )
 
     def delta_mass_pomivory(
@@ -1142,6 +1245,7 @@ class AnimalCohort:
             adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=None,
+            resource_kind="pom_pool",
         )
 
     def delta_mass_bacteriophagy(
@@ -1163,6 +1267,7 @@ class AnimalCohort:
             adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=None,
+            resource_kind="bacteria_pool",
         )
 
     def forage_cohort(

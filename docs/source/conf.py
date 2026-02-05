@@ -26,7 +26,6 @@ from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
 import virtual_ecosystem as ve
-from virtual_ecosystem.core import variables
 
 # Silence sphinx 9 warnings.
 warnings.filterwarnings("ignore", category=RemovedInSphinx90Warning)
@@ -42,10 +41,6 @@ sys.path.append(str(Path(__file__).parent / "development/documentation"))
 
 version = ve.__version__
 release = version
-
-# Update the variables file
-varfile = Path(__file__).parent / "variables.rst"
-variables.output_known_variables(varfile)
 
 
 # -- Project information -----------------------------------------------------
@@ -84,6 +79,13 @@ extensions = [
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
+
+# autodoc_typehints = "description"
+autodoc_typehints_format = "short"
+python_use_unqualified_type_names = True
+# autodoc_type_aliases = {
+#   "FILEPATH_PLACEHOLDER": "virtual_ecosystem.core.configuration.FILEPATH_PLACEHOLDER",
+# }
 
 
 # Set up the external table of contents file path and configure
@@ -145,6 +147,7 @@ nitpick_ignore = [
     ("py:class", "Quantity"),
     ("py:class", "numpy._typing._array_like._ScalarType_co"),
     ("py:class", "numpy._typing._array_like._ScalarT"),
+    ("py:class", "xr.DataArray"),
     # God only knows why this is needed. We don't refer to pint.util.Quantity and it
     # isn't in the pint objects.inv, so why the hell is intersphinx trying to build
     # references to it.
@@ -166,7 +169,52 @@ nitpick_ignore = [
     ("py:class", "CoreConst"),
     ("py:class", "StemAllocation"),
     ("py:class", "StemStoichiometry"),
+    ("py:class", "pydantic.types.PathType"),
+    # Something about the pydantic annotated pattern generates a ton of peculiar
+    # intersphinx noise.
+    ("py:class", "pathlib.Annotated"),
+    ("py:class", "path_type=file"),
+    ("py:class", "file"),
+    ("py:class", "FieldInfo"),
+    ("py:class", "NoneType"),
+    ("py:class", "PosixPath"),
+    ("py:class", "virtual_ecosystem.core.configuration.placeholder_validator"),
+    ("py:class", "PydanticUndefined"),
+    # Actually just generally intersphinx is janky when it comes to pydantic
+    ("py:class", "annotated_types.Gt"),
+    ("py:class", "PositiveFloat"),
+    ("py:class", "PositiveInt"),
+    ("py:class", "annotated_types.Lt"),
+    ("py:class", "annotated_types.MinLen"),
+    ("py:class", "annotated_types.Gt"),
+    ("py:class", "annotated_types.Ge"),
+    ("py:class", "annotated_types.Le"),
+    ("py:class", "annotated_types.Ge"),
+    ("py:class", "annotated_types.Le"),
+    ("py:class", "NegativeFloat"),
+    ("py:class", "date"),
+    ("py:class", "_PydanticGeneralMetadata"),
+    # Sphinx seems to insist that pydantic model types are classes, when they can be
+    # global Literals
+    ("py:class", "SUBSTRATES"),
+    ("py:class", "REQUIRED_MICROBIAL_GROUPS"),
+    ("py:class", "HIGHER_TAXONOMIC_GROUPS"),
+    ("py:class", "dir"),
+    # FOR PITY'S SAKE, SPHINX - why can you not find DIRPATH_PLACEHOLDER when you _can_
+    # find FILEPATH_PLACEHOLDER, which is defined in the same way, in the same file and
+    # when both do actually appear in the API docs? It's right there.
+    ("py:class", "DIRPATH_PLACEHOLDER"),
+    ("py:class", "PyrealmCoreConst"),
+    # Typing on animal.model_config
+    ("py:class", "virtual_ecosystem.models.animal.animal_traits.Annotated"),
+    ("py:class", "virtual_ecosystem.models.animal.model_config.serialise_diet_type"),
+    ("py:class", "virtual_ecosystem.models.animal.model_config.deserialise_diet_type"),
+    ("py:class", "always"),
+    # This broke when pandas upgraded to 3.0. We should review this once we've upgraded
+    # to that major version
+    ("py:class", "pandas.core.frame.DataFrame"),
 ]
+
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
@@ -176,6 +224,7 @@ intersphinx_mapping = {
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
     "pyrealm": ("https://pyrealm.readthedocs.io/en/stable/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
 
 # Turn on figure numbering - this slows down build time a surprising amount!

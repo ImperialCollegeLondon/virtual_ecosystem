@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
-from virtual_ecosystem.models.animal.constants import AnimalConsts
+from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
 # from virtual_ecosystem.models.animal.decay import ExcrementPool
 from virtual_ecosystem.models.animal.protocols import Consumer
@@ -30,7 +30,7 @@ class PlantResources:
         constants: Animal-related constants, including plant energy density.
     """
 
-    def __init__(self, data: Data, cell_id: int, constants: AnimalConsts) -> None:
+    def __init__(self, data: Data, cell_id: int, constants: AnimalConstants) -> None:
         # Store the data and extract the appropriate plant data
         self.data = data
         """A reference to the core data object."""

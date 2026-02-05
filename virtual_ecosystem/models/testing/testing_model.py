@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.testing.model_config import TestingConfiguration
 
 
 class TestingModel(
@@ -26,8 +27,7 @@ class TestingModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        flora: A Flora instance of the plant functional types to be used in the model.
-        model_constants: Set of constants for the plants model.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
@@ -35,7 +35,6 @@ class TestingModel(
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
-        **kwargs: Any,
     ):
         """Plants init function.
 
@@ -43,22 +42,35 @@ class TestingModel(
         handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
+
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup()
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
     ) -> TestingModel:
         """Factory function to initialise a testing model from configuration.
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
-            config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: TestingConfiguration = configuration.get_subconfiguration(
+            "testing", TestingConfiguration
+        )
+
         # Load in the relevant constants
-        static = config["tesing"]["static"]
+        static = model_configuration.static
 
         # Create the instance
         inst = cls(
@@ -70,7 +82,7 @@ class TestingModel(
         LOGGER.info("Testing model instance generated from configuration.")
         return inst
 
-    def _setup(self, **kwargs: Any) -> None:
+    def _setup(self) -> None:
         """Placeholder function to setup the testing model."""
 
     def spinup(self) -> None:

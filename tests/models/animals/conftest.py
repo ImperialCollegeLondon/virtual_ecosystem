@@ -86,11 +86,16 @@ def animal_data_for_model_instance(fixture_core_components):
 
 
 @pytest.fixture
-def animal_fixture_core_components(animal_fixture_config):
+def animal_fixture_core_components(animal_fixture_configuration):
     """A CoreComponents instance for use in testing."""
-    from virtual_ecosystem.core.core_components import CoreComponents
 
-    core_components = CoreComponents(animal_fixture_config)
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.model_config import CoreConfiguration
+
+    core_cfg = animal_fixture_configuration.get_subconfiguration(
+        "core", CoreConfiguration
+    )
+    core_components = CoreComponents(core_cfg)
 
     # Setup three filled canopy layers
     canopy_array = np.full(
@@ -383,9 +388,9 @@ def animal_data_for_cohorts_instance(fixture_core_components):
 @pytest.fixture
 def constants_instance():
     """Fixture for an instance of animal constants."""
-    from virtual_ecosystem.models.animal.constants import AnimalConsts
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
-    return AnimalConsts(density_scaling_method="madingley")
+    return AnimalConstants(density_scaling_method="madingley")
 
 
 @pytest.fixture
@@ -402,13 +407,36 @@ def functional_group_list_instance(shared_datadir, constants_instance):
 
 
 @pytest.fixture
-def microbial_c_n_p_ratios(fixture_config):
+def microbial_c_n_p_ratios(fixture_configuration):
     """Fixture containing the microbial C:N:P ratios for use in animal model testing."""
-    from virtual_ecosystem.models.soil.microbial_groups import (
-        find_microbial_stoichiometries,
-    )
+    from virtual_ecosystem.models.animal.cnp import find_microbial_stoichiometries
 
-    return find_microbial_stoichiometries(config=fixture_config)
+    return find_microbial_stoichiometries(config=fixture_configuration)
+
+
+@pytest.fixture
+def dummy_animal_exporter():
+    """Provide a no-op exporter for AnimalModel tests.
+
+    Returns:
+        An object with a ``dump`` method matching the AnimalCohortDataExporter
+        interface but performing no output.
+    """
+
+    class DummyAnimalExporter:
+        """No-op stand-in for AnimalCohortDataExporter."""
+
+        def dump(self, cohorts, time, time_index):
+            """Ignore export calls in tests that do not check CSV output.
+
+            Args:
+                cohorts: Iterable of AnimalCohort objects.
+                time: Export timestamp.
+                time_index: Index of update.
+            """
+            return None
+
+    return DummyAnimalExporter()
 
 
 @pytest.fixture
@@ -417,11 +445,13 @@ def animal_model_instance(
     fixture_core_components,
     functional_group_list_instance,
     microbial_c_n_p_ratios,
+    dummy_animal_exporter,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
 
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
     # Make sure each call gets a fresh copy
     clean_data = deepcopy(dummy_animal_data)
@@ -429,7 +459,8 @@ def animal_model_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
-        density_scaling_method="madingley",
+        exporter=dummy_animal_exporter,
+        model_constants=AnimalConstants(density_scaling_method="madingley"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
@@ -441,11 +472,13 @@ def animal_model_damuth_instance(
     fixture_core_components,
     functional_group_list_instance,
     microbial_c_n_p_ratios,
+    dummy_animal_exporter,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
 
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
     # Make sure each call gets a fresh copy
     clean_data = deepcopy(dummy_animal_data)
@@ -453,7 +486,8 @@ def animal_model_damuth_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
-        density_scaling_method="damuth",
+        exporter=dummy_animal_exporter,
+        model_constants=AnimalConstants(density_scaling_method="damuth"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )

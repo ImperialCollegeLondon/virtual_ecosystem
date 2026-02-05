@@ -17,7 +17,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       # Build the package - this could use `poetry build` directly but pyproject.toml 
       # already has the build-system configured to use poetry so `pip` should pick that
@@ -31,7 +31,7 @@ jobs:
       # version numbers:
       # - virtual_ecosystem-x.y.z-py3-none-any.whl
       # - virtual_ecosystem-x.y.z.tar.gz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           path: dist/virtual_ecosystem*
 
@@ -60,7 +60,7 @@ jobs:
     steps:
       # Download the built package files from the job artifacts
       - name: Download sdist artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: artifact
           path: dist
@@ -90,7 +90,7 @@ jobs:
     steps:
       # Download the built package files from the job artifacts
       - name: Download sdist artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: artifact
           path: dist

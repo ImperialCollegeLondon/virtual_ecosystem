@@ -12,9 +12,9 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import convert_temperature
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.hydrology.hydrology_tools import (
     calculate_effective_saturation,
 )
@@ -22,7 +22,6 @@ from virtual_ecosystem.models.litter.env_factors import (
     average_temperature_over_microbially_active_layers,
     average_water_potential_over_microbially_active_layers,
 )
-from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
     calculate_denitrification_temperature_factor,
@@ -37,10 +36,10 @@ from virtual_ecosystem.models.soil.env_factors import (
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
     CarbonSupply,
-    EnzymeConstants,
     MicrobialGroupConstants,
     calculate_symbiotic_carbon_supply,
 )
+from virtual_ecosystem.models.soil.model_config import SoilConstants, SoilEnzymeClass
 from virtual_ecosystem.models.soil.uptake import calculate_nutrient_uptake_rates
 
 
@@ -129,7 +128,21 @@ class MicrobialChanges:
     """Phosphorus flow associated with necromass generation [kg P m^-3 day^-1]."""
 
     fruiting_body_production: NDArray[np.floating]
-    """Rate a which fungal fruiting bodies are being produced [kg C m^-3 day^-1]."""
+    """Rate at which fungal fruiting bodies are being produced [kg C m^-3 day^-1]."""
+
+    arbuscular_mycorrhiza_n_supply: NDArray[np.floating]
+    """Supply rate of nitrogen to plants by arbuscular mycorrhiza [kg N m^-3 day^-1]."""
+
+    arbuscular_mycorrhiza_p_supply: NDArray[np.floating]
+    """Supply rate of phosphorus to plants by arbuscular mycorrhiza [kg P m^-3 day^-1].
+    """
+
+    ectomycorrhiza_n_supply: NDArray[np.floating]
+    """Supply rate of nitrogen to plants by ectomycorrhiza [kg N m^-3 day^-1]."""
+
+    ectomycorrhiza_p_supply: NDArray[np.floating]
+    """Supply rate of phosphorus to plants by ectomycorrhiza [kg P m^-3 day^-1].
+    """
 
 
 @dataclass
@@ -362,6 +375,30 @@ class PoolData:
     new_fungal_fruiting_body_production: NDArray[np.floating]
     """Fungal fruiting biomass produced during simulation time step [kg C m^-3]."""
 
+    new_amf_n_supply: NDArray[np.floating]
+    """Nitrogen supplied to plants by arbuscular mycorrhiza over integration time.
+
+    Units of [kg N m^-3].
+    """
+
+    new_amf_p_supply: NDArray[np.floating]
+    """Phosphorus supplied to plants by arbuscular mycorrhiza over integration time.
+
+    Units of [kg P m^-3].
+    """
+
+    new_emf_n_supply: NDArray[np.floating]
+    """Nitrogen supplied to plants by ectomycorrhiza over integration time.
+
+    Units of [kg N m^-3].
+    """
+
+    new_emf_p_supply: NDArray[np.floating]
+    """Phosphorus supplied to plants by ectomycorrhiza over integration time.
+
+    Units of [kg P m^-3].
+    """
+
 
 class SoilPools:
     """This class collects all the various soil pools so that they can be updated.
@@ -376,10 +413,10 @@ class SoilPools:
         self,
         data: Data,
         pools: dict[str, NDArray[np.floating]],
-        model_constants: SoilConsts,
+        model_constants: SoilConstants,
         functional_groups: dict[str, MicrobialGroupConstants],
-        enzyme_classes: dict[str, EnzymeConstants],
-        core_constants: CoreConsts,
+        enzyme_classes: dict[str, SoilEnzymeClass],
+        core_constants: CoreConstants,
     ):
         self.data = data
         """The data object for the Virtual Ecosystem simulation."""
@@ -487,18 +524,6 @@ class SoilPools:
             microbial_groups=self.functional_groups,
             enzyme_classes=self.enzyme_classes,
             carbon_supply=carbon_supply,
-            plant_n_uptake_arbuscular=self.to_per_volume(
-                self.data["plant_n_uptake_arbuscular"].to_numpy()
-            ),
-            plant_p_uptake_arbuscular=self.to_per_volume(
-                self.data["plant_p_uptake_arbuscular"].to_numpy()
-            ),
-            plant_n_uptake_ecto=self.to_per_volume(
-                self.data["plant_n_uptake_ecto"].to_numpy()
-            ),
-            plant_p_uptake_ecto=self.to_per_volume(
-                self.data["plant_p_uptake_ecto"].to_numpy()
-            ),
         )
         # find changes driven by the enzyme pools
         enzyme_mediated = calculate_enzyme_mediated_rates(
@@ -659,6 +684,12 @@ class SoilPools:
             + maom_desorption_to_lmwc
             + necromass_decay_to_lmwc
             + fungal_fruiting_body_decay["carbon"]
+            + self.to_per_volume(
+                self.data["decomposed_excrement_cnp"].loc[:, "C"].to_numpy()
+            )
+            + self.to_per_volume(
+                self.data["decomposed_carcasses_cnp"].loc[:, "C"].to_numpy()
+            )
             - microbial_changes.lmwc_uptake
             - lmwc_sorption_to_maom
             - nutrient_removal_by_water.lmwc
@@ -711,12 +742,30 @@ class SoilPools:
         delta_pools_ordered["new_fungal_fruiting_body_production"] = (
             microbial_changes.fruiting_body_production
         )
+        delta_pools_ordered["new_amf_n_supply"] = (
+            microbial_changes.arbuscular_mycorrhiza_n_supply
+        )
+        delta_pools_ordered["new_amf_p_supply"] = (
+            microbial_changes.arbuscular_mycorrhiza_p_supply
+        )
+        delta_pools_ordered["new_emf_n_supply"] = (
+            microbial_changes.ectomycorrhiza_n_supply
+        )
+        delta_pools_ordered["new_emf_p_supply"] = (
+            microbial_changes.ectomycorrhiza_p_supply
+        )
         delta_pools_ordered["soil_n_pool_don"] = (
             litter_mineralisation_flux.don
             + pom_n_mineralisation
             + necromass_outflows["decay_nitrogen"]
             + nutrient_transfers_maom_to_lmwc["nitrogen"]
             + fungal_fruiting_body_decay["nitrogen"]
+            + self.to_per_volume(
+                self.data["decomposed_excrement_cnp"].loc[:, "N"].to_numpy()
+            )
+            + self.to_per_volume(
+                self.data["decomposed_carcasses_cnp"].loc[:, "N"].to_numpy()
+            )
             - microbial_changes.don_uptake
             - nutrient_removal_by_water.don
         )
@@ -760,6 +809,12 @@ class SoilPools:
             + necromass_outflows["decay_phosphorus"]
             + nutrient_transfers_maom_to_lmwc["phosphorus"]
             + fungal_fruiting_body_decay["phosphorus"]
+            + self.to_per_volume(
+                self.data["decomposed_excrement_cnp"].loc[:, "P"].to_numpy()
+            )
+            + self.to_per_volume(
+                self.data["decomposed_carcasses_cnp"].loc[:, "P"].to_numpy()
+            )
             - microbial_changes.dop_uptake
             - nutrient_removal_by_water.dop
         )
@@ -821,21 +876,18 @@ def calculate_microbial_changes(
     pools: PoolData,
     soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
-    constants: SoilConsts,
+    constants: SoilConstants,
     microbial_groups: dict[str, MicrobialGroupConstants],
-    enzyme_classes: dict[str, EnzymeConstants],
+    enzyme_classes: dict[str, SoilEnzymeClass],
     carbon_supply: CarbonSupply,
-    plant_n_uptake_arbuscular: NDArray[np.floating],
-    plant_p_uptake_arbuscular: NDArray[np.floating],
-    plant_n_uptake_ecto: NDArray[np.floating],
-    plant_p_uptake_ecto: NDArray[np.floating],
 ) -> MicrobialChanges:
     """Calculate the changes for the microbial biomass and enzyme pools.
 
     This function calculates the uptake of :term:`LMWC` and inorganic nutrients by the
     microbial biomass pool and uses this to calculate the net change in the pool. The
-    net change in each enzyme pool is found, and finally the total rate at which
-    necromass is created is found.
+    net change in each enzyme pool is found, as well as the total rate at which
+    necromass is created is found. Finally, production of fungal fruiting bodies and the
+    supply of nutrients to plants by mycorrhiza are found.
 
     Args:
         pools: Data class containing the various soil pools.
@@ -847,14 +899,6 @@ def calculate_microbial_changes(
         enzyme_classes: Details of the enzyme classes used by the soil model.
         carbon_supply: The carbon supply to each symbiotic microbial partner [kg C m^-3
             day^-1]
-        plant_n_uptake_arbuscular: The rate at which plants take up nitrogen from the
-            arbuscular mycorrhizal fungi [kg N m^-3 day^-1].
-        plant_p_uptake_arbuscular: The rate at which plants take up phosphorus from the
-            arbuscular mycorrhizal fungi [kg P m^-3 day^-1].
-        plant_n_uptake_ecto: The rate at which plants take up nitrogen from the
-            ectomycorrhizal fungi [kg N m^-3 day^-1].
-        plant_p_uptake_ecto: The rate at which plants take up phosphorus from the
-            ectomycorrhizal fungi [kg P m^-3 day^-1].
 
     Returns:
         A dataclass containing the rate at which microbes uptake LMWC, DON and DOP, and
@@ -871,8 +915,6 @@ def calculate_microbial_changes(
         soil_p_pool_labile=pools.soil_p_pool_labile,
         microbial_pool_size=pools.soil_c_pool_bacteria,
         external_carbon_supply=None,
-        nitrogen_exchange=None,
-        phosphorus_exchange=None,
         water_factor=env_factors.water,
         pH_factor=env_factors.pH,
         soil_temp=soil_temp,
@@ -889,8 +931,6 @@ def calculate_microbial_changes(
             soil_p_pool_labile=pools.soil_p_pool_labile,
             microbial_pool_size=pools.soil_c_pool_saprotrophic_fungi,
             external_carbon_supply=None,
-            nitrogen_exchange=None,
-            phosphorus_exchange=None,
             water_factor=env_factors.water,
             pH_factor=env_factors.pH,
             soil_temp=soil_temp,
@@ -908,8 +948,6 @@ def calculate_microbial_changes(
             soil_p_pool_labile=pools.soil_p_pool_labile,
             microbial_pool_size=pools.soil_c_pool_arbuscular_mycorrhiza,
             external_carbon_supply=carbon_supply.arbuscular_mycorrhiza,
-            nitrogen_exchange=plant_n_uptake_arbuscular,
-            phosphorus_exchange=plant_p_uptake_arbuscular,
             water_factor=env_factors.water,
             pH_factor=env_factors.pH,
             soil_temp=soil_temp,
@@ -926,8 +964,6 @@ def calculate_microbial_changes(
         soil_p_pool_labile=pools.soil_p_pool_labile,
         microbial_pool_size=pools.soil_c_pool_ectomycorrhiza,
         external_carbon_supply=carbon_supply.ectomycorrhiza,
-        nitrogen_exchange=plant_n_uptake_ecto,
-        phosphorus_exchange=plant_p_uptake_ecto,
         water_factor=env_factors.water,
         pH_factor=env_factors.pH,
         soil_temp=soil_temp,
@@ -974,6 +1010,26 @@ def calculate_microbial_changes(
     fungal_fruiting_body_production = calculate_fruiting_body_production(
         microbial_groups=microbial_groups, growth_rates=growth_rates
     )
+
+    # Calculate amount of nutrients supplied by mycorrhiza to symbiotic plant partners
+    arbuscular_mycorrhiza_n_supply = (
+        arbuscular_mycorrhizal_uptake.organic_nitrogen
+        + arbuscular_mycorrhizal_uptake.ammonium
+        + arbuscular_mycorrhizal_uptake.nitrate
+    ) * microbial_groups["arbuscular_mycorrhiza"].symbiote_nitrogen_uptake_fraction
+    arbuscular_mycorrhiza_p_supply = (
+        arbuscular_mycorrhizal_uptake.organic_phosphorus
+        + arbuscular_mycorrhizal_uptake.inorganic_phosphorus
+    ) * microbial_groups["arbuscular_mycorrhiza"].symbiote_phosphorus_uptake_fraction
+    ectomycorrhiza_n_supply = (
+        ectomycorrhizal_uptake.organic_nitrogen
+        + ectomycorrhizal_uptake.ammonium
+        + ectomycorrhizal_uptake.nitrate
+    ) * microbial_groups["ectomycorrhiza"].symbiote_nitrogen_uptake_fraction
+    ectomycorrhiza_p_supply = (
+        ectomycorrhizal_uptake.organic_phosphorus
+        + ectomycorrhizal_uptake.inorganic_phosphorus
+    ) * microbial_groups["ectomycorrhiza"].symbiote_phosphorus_uptake_fraction
 
     return MicrobialChanges(
         lmwc_uptake=bacterial_uptake.carbon
@@ -1027,6 +1083,10 @@ def calculate_microbial_changes(
         necromass_n_flow=necromass_n_flow,
         necromass_p_flow=necromass_p_flow,
         fruiting_body_production=fungal_fruiting_body_production,
+        arbuscular_mycorrhiza_n_supply=arbuscular_mycorrhiza_n_supply,
+        arbuscular_mycorrhiza_p_supply=arbuscular_mycorrhiza_p_supply,
+        ectomycorrhiza_n_supply=ectomycorrhiza_n_supply,
+        ectomycorrhiza_p_supply=ectomycorrhiza_p_supply,
     )
 
 
@@ -1062,7 +1122,7 @@ def calculate_enzyme_mediated_rates(
     pools: PoolData,
     soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
-    enzyme_classes: dict[str, EnzymeConstants],
+    enzyme_classes: dict[str, SoilEnzymeClass],
 ) -> EnzymeMediatedRates:
     """Calculate the rates of each enzyme mediated reaction.
 
@@ -1111,7 +1171,7 @@ def calculate_nutrient_removal_by_water(
     vertical_flow_rates: NDArray[np.floating],
     soil_moisture: NDArray[np.floating],
     layer_structure: LayerStructure,
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> WaterRemovalRates:
     """Calculate the rate a which each soluble nutrient pool is removed by water.
 
@@ -1191,7 +1251,7 @@ def calculate_nutrient_removal_by_water(
 def calculate_enzyme_changes(
     pools: PoolData,
     enzyme_production: dict[str, NDArray[np.floating]],
-    enzyme_classes: dict[str, EnzymeConstants],
+    enzyme_classes: dict[str, SoilEnzymeClass],
 ) -> EnzymePoolChanges:
     """Calculate the change in each of the soil enzyme pools.
 
@@ -1372,7 +1432,11 @@ def calculate_maintenance_biomass_synthesis(
         reference_temperature=microbial_group.reference_temperature,
     )
 
-    return microbial_group.turnover_rate * temp_factor * microbe_pool_size
+    return np.where(
+        microbe_pool_size >= 0.0,
+        microbial_group.turnover_rate * temp_factor * microbe_pool_size,
+        0.0,
+    )
 
 
 def calculate_enzyme_turnover(
@@ -1396,7 +1460,7 @@ def calculate_enzyme_mediated_decomposition(
     soil_enzyme: NDArray[np.floating],
     soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
-    enzyme_class: EnzymeConstants,
+    enzyme_class: SoilEnzymeClass,
 ) -> NDArray[np.floating]:
     """Calculate rate of a enzyme mediated decomposition process.
 
@@ -1519,7 +1583,7 @@ def calculate_litter_mineralisation_fluxes(
     litter_C_mineralisation_rate: NDArray[np.floating],
     litter_N_mineralisation_rate: NDArray[np.floating],
     litter_P_mineralisation_rate: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> LitterMineralisationFluxes:
     """Calculate the split of the litter mineralisation fluxes between soil pools.
 
@@ -1639,7 +1703,7 @@ def calculate_nutrient_flows_to_necromass(
     biomass_losses: BiomassLosses,
     enzyme_changes: EnzymePoolChanges,
     microbial_groups: dict[str, MicrobialGroupConstants],
-    enzyme_classes: dict[str, EnzymeConstants],
+    enzyme_classes: dict[str, SoilEnzymeClass],
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Calculate the rate at which nutrients flow into the necromass pool.
 
@@ -1795,7 +1859,7 @@ def calculate_rate_of_nitrification(
     soil_temp: NDArray[np.floating],
     effective_saturation: NDArray[np.floating],
     soil_n_pool_ammonium: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> NDArray[np.floating]:
     """Calculate the rate at which ammonium nitrifies to form nitrate.
 
@@ -1837,7 +1901,7 @@ def calculate_rate_of_denitrification(
     soil_temp: NDArray[np.floating],
     effective_saturation: NDArray[np.floating],
     soil_n_pool_nitrate: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> NDArray[np.floating]:
     """Calculate the rate at which nitrate denitrifies (and leaves the soil).
 
@@ -1876,7 +1940,7 @@ def calculate_rate_of_denitrification(
 def calculate_symbiotic_nitrogen_fixation(
     carbon_supply: NDArray[np.floating],
     soil_temp: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
 ) -> NDArray[np.floating]:
     """Calculate rate of nitrogen fixation by plant symbionts.
 

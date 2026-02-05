@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.1
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -103,7 +103,7 @@ settings:
 [soil]
 [hydrology]
 [plants]
-[abiotic_simple]
+[abiotic]
 ```
 
 The `[core]` element is optional as the Virtual Ecosystem core module is always
@@ -222,7 +222,7 @@ useful to set some models to keep their data in a static state. For example:
 To implement this, all models (except `core`) accept a boolean configuration option,
 `static`, that indicates if such the model data should held static. Changing the default
 configuration `static=false` to `static=true` puts a model into static mode. For an
-example of this in use, see [this tutorial](../virtual_ecosystem_in_static_mode.md).
+example of this in use, see [this tutorial](../virtual_ecosystem_in_static_mode.ipynb).
 
 However, even when the model is run in static mode the model constants and variables
 need to be populated, for use by any models that are not in static mode. Because of
@@ -274,10 +274,31 @@ the [`Data` object](../data/data.md) from the configuration. In addition, note t
 
 In summary,
 
-| Static | Setup data provided | First update data provided | Behaviour                |
-| ------ | ------ | ------- | ---------------------------------------------------------|
-| No     | ---    | ---     | Default model behaviour.                                 |
-| Yes    | No     | No      | Model sets up and runs first update from initial data    |
-| Yes    | Yes    | No      | Model skips setup and runs first update                  |
-| Yes    | Yes    | Yes     | Model skips setup and first update                       |
-| Yes    | No     | Yes     | Improper configuration, will not run.                    |
+```{list-table}
+:header-rows: 1
+
+* - Static
+  - Setup data provided
+  - First update data provided
+  - Behaviour
+* - No
+  - —
+  - —
+  - Default model behaviour
+* - Yes
+  - No
+  - No
+  - Model sets up and runs first update from initial data
+* - Yes
+  - Yes
+  - No
+  - Model skips setup and runs first update
+* - Yes
+  - Yes
+  - Yes
+  - Model skips setup and first update
+* - Yes
+  - No
+  - Yes
+  - Improper configuration, will not run
+```

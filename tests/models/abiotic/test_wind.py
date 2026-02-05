@@ -31,7 +31,7 @@ def test_calculate_roughness_length_momentum(dummy_climate_data_varying_canopy):
         canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
         leaf_area_index=np.array([np.nan, 0.0, 7, 0.0]),
         zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 0.0]),
-        substrate_surface_drag_coefficient=0.003,
+        substrate_surface_roughness_length=0.003,
         roughness_element_drag_coefficient=0.3,
         roughness_sublayer_depth_parameter=0.193,
         max_ratio_wind_to_friction_velocity=0.3,
@@ -205,23 +205,11 @@ def test_clamp_variable_within_limits():
     assert_allclose(variable.sum(axis=0), clamped_variable.sum(axis=0))
 
 
-def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_components):
+def test_mix_and_ventilate():
     """Test mixing and ventilation within bounds."""
 
-    from virtual_ecosystem.models.abiotic.abiotic_tools import (
-        compute_layer_thickness_for_varying_canopy,
-    )
     from virtual_ecosystem.models.abiotic.wind import (
         mix_and_ventilate,
-    )
-
-    lystr = fixture_core_components.layer_structure
-    data = dummy_climate_data_varying_canopy
-    atm_index = lystr.index_filled_atmosphere
-
-    heights = data["layer_heights"][atm_index].to_numpy()
-    above_ground_layer_thickness = compute_layer_thickness_for_varying_canopy(
-        heights=heights
     )
 
     mixing_coefficient = np.array(
@@ -238,7 +226,7 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     input_humidity = np.array(
         [
             [95.0, 95.0, 95.0, 95.0],
-            [100.0, 100.0, 100.0, np.nan],
+            [110.0, 100.0, 100.0, np.nan],
             [100.0, 100.0, np.nan, np.nan],
             [90.0, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
@@ -247,21 +235,19 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
 
     exp_result = np.array(
         [
-            [94.82, 94.82, 94.979866, 85.5],
-            [100.0, 100.0, 100.0, np.nan],
-            [99.64, 100.0, np.nan, np.nan],
-            [98.08080808, np.nan, np.nan, np.nan],
+            [104.925, 95.004995, 95.004995, 95.0],
+            [100.0, 99.990005, 99.990005, np.nan],
+            [100.0, 100, np.nan, np.nan],
+            [90.22, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
         ]
     )
 
     result = mix_and_ventilate(
         input_variable=input_humidity,
-        layer_thickness=above_ground_layer_thickness,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
         limits=(0, 100),
-        time_interval=3600.0,
     )
     assert_allclose(result, exp_result, rtol=1e-6, atol=1e-6)
 
@@ -321,3 +307,32 @@ def test_calculate_aerodynamic_resistance(
         von_karman_constant=0.4,
     )
     assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
+
+
+def calculate_aerodynamic_resistance_understorey():
+    """Test calculate aerodynamic resistance below canopy."""
+
+    from virtual_ecosystem.models.abiotic.wind import (
+        compute_aerodynamic_resistance_understorey,
+    )
+
+    min_ws = 0.1
+    coef = 33.0
+
+    # Case 1: normal wind speeds
+    ws = np.array([1.0, 2.0])
+    result = compute_aerodynamic_resistance_understorey(ws, min_ws, coef)
+    expected = coef / ws
+    assert np.allclose(result, expected)
+
+    # Case 2: wind speed below minimum → clipped
+    ws = np.array([0.01, 0.05])
+    result = compute_aerodynamic_resistance_understorey(ws, min_ws, coef)
+    expected = coef / min_ws
+    assert np.all(result == expected)
+
+    # Case 3: zero wind speed → clipped
+    ws = np.array([0.0])
+    result = compute_aerodynamic_resistance_understorey(ws, min_ws, coef)
+    expected = np.array([coef / min_ws])
+    assert np.allclose(result, expected)

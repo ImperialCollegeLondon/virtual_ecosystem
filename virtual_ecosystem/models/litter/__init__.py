@@ -17,8 +17,6 @@ Each of the litter sub-modules has its own API reference page:
   from each litter pool to the soil.
 * :mod:`~virtual_ecosystem.models.litter.env_factors` provides the functions
   capturing the impact of environmental factors on litter decay.
-* :mod:`~virtual_ecosystem.models.litter.constants` provides a set of dataclasses
-  containing the constants required by the broader litter model.
+* :mod:`~virtual_ecosystem.models.litter.model_config` submodule provides configuration
+  options for the model along with constants required by the broader litter model.
 """  # noqa: D205
-
-from virtual_ecosystem.models.litter.litter_model import LitterModel  # noqa: F401

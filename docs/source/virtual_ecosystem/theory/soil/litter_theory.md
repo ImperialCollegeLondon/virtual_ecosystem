@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.1
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -157,9 +157,9 @@ will only be satisfied when the sum of the nutrient input flows to the pools mat
 total input. At present, we allow $\rho$ to vary between nutrients but not between
 strata (above- vs below-ground). These values are set in
 {attr}`structural_to_metabolic_n_ratio
-<virtual_ecosystem.models.litter.constants.LitterConsts.structural_to_metabolic_n_ratio>`
+<virtual_ecosystem.models.litter.model_config.LitterConstants.structural_to_metabolic_n_ratio>`
 and {attr}`structural_to_metabolic_p_ratio
-<virtual_ecosystem.models.litter.constants.LitterConsts.structural_to_metabolic_p_ratio>`.
+<virtual_ecosystem.models.litter.model_config.LitterConstants.structural_to_metabolic_p_ratio>`.
 It is important to note, that the choice of these ratios will only affect the nitrogen
 and phosphorus mineralisation rates and not the broader litter decay dynamics. This is
 because the nitrogen and phosphorus concentrations do not directly affect pool decay

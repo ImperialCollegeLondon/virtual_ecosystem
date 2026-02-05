@@ -23,6 +23,9 @@ var_name = "mean_annual_temperature"
 [[core.data.variable]]
 file_path = "../data/example_climate_data.nc"
 var_name = "wind_speed_ref"
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "downward_longwave_radiation"
 
 # Elevation
 [[core.data.variable]]

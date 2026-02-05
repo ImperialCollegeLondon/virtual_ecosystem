@@ -68,16 +68,16 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             None,
             id="dataset_not_datarray",
         ),
-        pytest.param(  # Bad load - uses reserved dimension names
+        pytest.param(  # Bad load - uses x without y and does not match validator
             DataArray(
                 data=np.array(np.arange(9)),
                 coords={"x": np.arange(9)},
                 name="should_not_work",
             ),
-            "should_not_work",
+            "air_temperature",
             pytest.raises(ValueError),
             (
-                (INFO, "Adding data array for 'should_not_work'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (
                     CRITICAL,
                     "DataArray uses 'spatial' axis dimension names but does "
@@ -99,15 +99,15 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             [0, 1, 2, 3],
             id="valid_square_xy_coords",
         ),
-        pytest.param(  # Replacing previous load from square_xy_coords
+        pytest.param(  # Replacing pre-populated variable in fixture
             DataArray(
                 data=np.array([[4, 5], [6, 7]]),
                 coords={"y": [2, 1], "x": [1, 2]},
-                name="existing_var",
+                name="atmospheric_co2",
             ),
-            "existing_var",
+            "atmospheric_co2",
             does_not_raise(),
-            ((INFO, "Replacing data array for 'existing_var'"),),
+            ((INFO, "Replacing data array for 'atmospheric_co2'"),),
             [4, 5, 6, 7],
             id="replacing_data",
         ),
@@ -151,11 +151,11 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             DataArray(
                 data=np.array(np.arange(9)),
                 coords={"nope": np.arange(9)},
-                name="add_without_axis",
+                name="air_temperature",
             ),
-            "add_without_axis",
+            "air_temperature",
             does_not_raise(),
-            ((INFO, "Adding data array for 'add_without_axis'"),),
+            ((INFO, "Adding data array for 'air_temperature'"),),
             np.arange(9),
             id="add_without_axis",
         ),
@@ -180,7 +180,7 @@ def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_
     argnames=["var_name", "exp_err", "exp_msg", "exp_vals"],
     argvalues=[
         pytest.param(
-            "existing_var",
+            "atmospheric_co2",
             does_not_raise(),
             None,
             [1, 2, 3, 4],
@@ -190,7 +190,7 @@ def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_
             "not_existing_var",
             pytest.raises(KeyError),
             """"No variable named 'not_existing_var'. """
-            '''Did you mean one of ('existing_var',)?"''',
+            '''Variables on the dataset include ['atmospheric_co2']"''',
             None,
             id="should_not_get",
         ),
@@ -214,7 +214,7 @@ def test_Data_getitem(fixture_data, var_name, exp_err, exp_msg, exp_vals):
 @pytest.mark.parametrize(
     argnames=["var_name", "expected"],
     argvalues=[
-        pytest.param("existing_var", True),
+        pytest.param("atmospheric_co2", True),
         pytest.param("not_existing_var", False),
     ],
 )
@@ -232,18 +232,18 @@ def test_Data_contains(fixture_data, var_name, expected):
     argnames=["var_names", "exp_log"],
     argvalues=[
         pytest.param(
-            ["temp"],
+            ["air_temperature"],
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             id="simple_load",
         ),
         pytest.param(
-            ["elev"],
+            ["elevation"],
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Replacing data array for 'elev'"),
+                (INFO, "Replacing data array for 'elevation'"),
             ),
             id="load_and_replace",
         ),
@@ -271,7 +271,7 @@ def test_Data_load_to_dataarray_naming(caplog, shared_datadir, var_names, exp_lo
     data = Data(grid)
 
     # Create an existing variable to test replacement
-    data["elev"] = DataArray(np.arange(100), dims=("cell_id",))
+    data["elevation"] = DataArray(np.arange(100), dims=("cell_id",))
     caplog.clear()
 
     # Load the data from file
@@ -334,7 +334,7 @@ def fixture_load_data_grids(request):
             None,
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__cellid_dim_any",
@@ -346,7 +346,7 @@ def fixture_load_data_grids(request):
             "Grid defines 100 cells, data provides 60",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Grid defines 100 cells, data provides 60"),
             ),
             None,
@@ -359,7 +359,7 @@ def fixture_load_data_grids(request):
             "Grid defines 100 cells, data provides 200",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Grid defines 100 cells, data provides 200"),
             ),
             None,
@@ -372,7 +372,7 @@ def fixture_load_data_grids(request):
             None,
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__cellid_coords_any",
@@ -384,7 +384,7 @@ def fixture_load_data_grids(request):
             "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (
                     CRITICAL,
                     "The data cell ids do not provide a one-to-one map onto grid "
@@ -401,7 +401,7 @@ def fixture_load_data_grids(request):
             "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (
                     CRITICAL,
                     "The data cell ids do not provide a one-to-one map onto grid "
@@ -418,7 +418,7 @@ def fixture_load_data_grids(request):
             None,
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__xy_dim_square",
@@ -430,7 +430,7 @@ def fixture_load_data_grids(request):
             "Data XY dimensions do not match square grid",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Data XY dimensions do not match square grid"),
             ),
             None,
@@ -443,7 +443,7 @@ def fixture_load_data_grids(request):
             None,
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__xy_coords_square",
@@ -455,7 +455,7 @@ def fixture_load_data_grids(request):
             "Mapped points do not cover all cells.",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Mapped points do not cover all cells."),
             ),
             None,
@@ -468,7 +468,7 @@ def fixture_load_data_grids(request):
             "Mapped points fall outside grid.",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Mapped points fall outside grid."),
             ),
             None,
@@ -517,12 +517,12 @@ def test_Data_load_to_dataarray_data_handling(
     datafile = shared_datadir / filename
 
     with exp_error as err:
-        results = load_to_dataarray(file=datafile, var_names=["temp"])
-        data["temp"] = results["temp"]
+        results = load_to_dataarray(file=datafile, var_names=["air_temperature"])
+        data["air_temperature"] = results["air_temperature"]
 
         # Check the data is in fact loaded and that a simple sum of values matches
-        assert "temp" in data
-        assert data["temp"].sum() == exp_sum_val
+        assert "air_temperature" in data
+        assert data["air_temperature"].sum() == exp_sum_val
 
     if err:
         assert str(err.value) == exp_msg
@@ -531,37 +531,44 @@ def test_Data_load_to_dataarray_data_handling(
 
 
 @pytest.mark.parametrize(
-    argnames=["cfg_strings", "exp_error", "exp_msg", "exp_log"],
+    argnames=["cfg_data", "exp_error", "exp_msg", "exp_log"],
     argvalues=[
         pytest.param(
-            """[core]
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "temp"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "prec"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "elev"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "vapd"
-               """,
+            {
+                "core": {
+                    "data": {
+                        "variable": [
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "air_temperature",
+                            },
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "precipitation",
+                            },
+                            {"file_path": "cellid_coords.nc", "var_name": "elevation"},
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "vapour_pressure_deficit",
+                            },
+                        ]
+                    }
+                }
+            },
             does_not_raise(),
             None,
             (
                 (INFO, "Loading data from configuration"),
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
-                (INFO, "Adding data array for 'prec'"),
-                (INFO, "Adding data array for 'elev'"),
-                (INFO, "Adding data array for 'vapd'"),
+                (INFO, "Adding data array for 'air_temperature'"),
+                (INFO, "Adding data array for 'precipitation'"),
+                (INFO, "Adding data array for 'elevation'"),
+                (INFO, "Adding data array for 'vapour_pressure_deficit'"),
             ),
             id="valid config",
         ),
         pytest.param(
-            """[core]\n""",
+            {"core": {"data": {"variable": []}}},
             does_not_raise(),
             None,
             (
@@ -571,29 +578,33 @@ def test_Data_load_to_dataarray_data_handling(
             id="no data",
         ),
         pytest.param(
-            """[core]
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "temp"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "prec"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "elev"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "elev"
-               """,
+            {
+                "core": {
+                    "data": {
+                        "variable": [
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "air_temperature",
+                            },
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "precipitation",
+                            },
+                            {"file_path": "cellid_coords.nc", "var_name": "elevation"},
+                            {"file_path": "cellid_coords.nc", "var_name": "elevation"},
+                        ]
+                    }
+                }
+            },
             pytest.raises(ConfigurationError),
             "Data configuration did not load cleanly - check log",
             (
                 (INFO, "Loading data from configuration"),
                 (ERROR, "Duplicate variable names in data configuration"),
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
-                (INFO, "Adding data array for 'prec'"),
-                (INFO, "Adding data array for 'elev'"),
+                (INFO, "Adding data array for 'air_temperature'"),
+                (INFO, "Adding data array for 'precipitation'"),
+                (INFO, "Adding data array for 'elevation'"),
                 (CRITICAL, "Data configuration did not load cleanly - check log"),
             ),
             id="repeated names",
@@ -610,7 +621,7 @@ def test_Data_load_from_config(
     caplog,
     shared_datadir,
     fixture_load_data_grids,
-    cfg_strings,
+    cfg_data,
     exp_error,
     exp_msg,
     exp_log,
@@ -624,21 +635,27 @@ def test_Data_load_from_config(
 
     # Setup a Data instance to match the example files generated in tests/core/data
 
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        generate_configuration,
+    )
     from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.model_config import CoreConfiguration
+
+    # Update the paths to point to copies of actual files in shared_datadir
+    # This has to happen before generating the configuration, because the config
+    # BaseModel requires that files actually exist.
+    for each_var in cfg_data["core"]["data"]["variable"]:
+        each_var["file_path"] = shared_datadir / each_var["file_path"]
 
     data = Data(fixture_load_data_grids)
-    cfg = Config(cfg_strings=cfg_strings)
+    config = generate_configuration(cfg_data)
+
+    core_config = config.get_subconfiguration("core", CoreConfiguration)
+
     caplog.clear()
 
-    # Edit the paths loaded to point to copies in shared_datadir
-    # Note that the no data test gets the default empty dict for cfg["core"]["data"]
-    if "variable" in cfg["core"]["data"]:
-        for each_var in cfg["core"]["data"]["variable"]:
-            each_var["file_path"] = shared_datadir / each_var["file_path"]
-
     with exp_error as err:
-        data.load_data_config(config=cfg)
+        data.load_data_config(config=core_config)
 
     if err:
         assert str(err.value) == exp_msg
@@ -649,8 +666,8 @@ def test_Data_load_from_config(
 @pytest.mark.parametrize(
     argnames="vname, axname, result, err_ctxt, err_message",
     argvalues=[
-        ("temp", "spatial", True, does_not_raise(), None),
-        ("temp", "testing", False, does_not_raise(), None),
+        ("air_temperature", "spatial", True, does_not_raise(), None),
+        ("air_temperature", "testing", False, does_not_raise(), None),
         (
             "missing",
             "spatial",
@@ -666,7 +683,7 @@ def test_Data_load_from_config(
             "Missing variable validation data: incorrect",
         ),
         (
-            "temp",
+            "air_temperature",
             "missing",
             False,
             pytest.raises(ValueError),
@@ -681,7 +698,7 @@ def test_on_core_axis(
 
     # Add a data array properly
     da = DataArray([1, 2, 3, 4], dims=("cell_id",), name="temp")
-    fixture_data["temp"] = da
+    fixture_data["air_temperature"] = da
 
     # Add a data array _incorrectly_
     fixture_data.data["incorrect"] = da
@@ -740,6 +757,7 @@ def test_on_core_axis(
 def test_save_to_netcdf(
     shared_datadir,
     caplog,
+    fixture_core_components,
     dummy_litter_data,
     folder,
     file_name,
@@ -757,10 +775,15 @@ def test_save_to_netcdf(
     with raises:
         if save_specific:
             dummy_litter_data.save_to_netcdf(
-                out_path, variables_to_save=["litter_pool_woody"]
+                output_file_path=out_path,
+                timing=fixture_core_components.model_timing,
+                variables_to_save=["litter_pool_woody"],
             )
         else:
-            dummy_litter_data.save_to_netcdf(out_path)
+            dummy_litter_data.save_to_netcdf(
+                output_file_path=out_path,
+                timing=fixture_core_components.model_timing,
+            )
 
         # Load in netcdf data to check the contents
         saved_data = xr.open_dataset(out_path)
@@ -845,6 +868,7 @@ def test_save_timeslice_to_netcdf(
             out_path,
             variables_to_save=["litter_pool_woody", "soil_temperature"],
             time_index=1,
+            timestamp=np.datetime64("2000-01-01"),
         )
 
         # Load file, and then check that contents meet expectation
@@ -878,9 +902,11 @@ def test_save_timeslice_to_netcdf(
         )
 
         # Check that only expected variables were added
-        assert (
-            set(saved_data.keys()) - {"litter_pool_woody", "soil_temperature"} == set()
-        )
+        assert set(saved_data.keys()) == {
+            "litter_pool_woody",
+            "soil_temperature",
+            "timestamp",
+        }
         # Finally, close the dataset
         saved_data.close()
 
@@ -890,7 +916,7 @@ def test_save_timeslice_to_netcdf(
 
 
 def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
-    """Test reading from dictionary."""
+    """Test adding and replacing data from a dictionary."""
 
     from virtual_ecosystem.core.data import Data
 
@@ -901,11 +927,11 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="mean_annual_temperature",
         ),
-        "new_variable": DataArray(
+        "elevation": DataArray(
             np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
-            name="new_variable",
+            name="elevation",
         ),
     }
 
@@ -921,12 +947,12 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
         ),
     )
     xr.testing.assert_allclose(
-        dummy_climate_data["new_variable"],
+        dummy_climate_data["elevation"],
         DataArray(
             np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
-            name="new_variable",
+            name="elevation",
         ),
     )
 
@@ -940,9 +966,7 @@ def test_output_current_state(mocker, dummy_litter_data, time_index):
 
     register_module("virtual_ecosystem.models.litter")
 
-    data_options = {"out_folder_continuous": "."}
-
-    # Patch the relevant lower level function
+    # Patch the relevant lower level function so no actual files get saved.
     mock_save = mocker.patch("virtual_ecosystem.main.Data.save_timeslice_to_netcdf")
 
     # Extract model from registry and put into expected dictionary format
@@ -957,15 +981,18 @@ def test_output_current_state(mocker, dummy_litter_data, time_index):
 
     # Then call the top level function
     outpath = dummy_litter_data.output_current_state(
-        variables_to_save, data_options, time_index
+        variables_to_save=variables_to_save,
+        output_directory_path=Path("."),
+        time_index=time_index,
+        timestamp=np.datetime64("2000-01-01"),
     )
 
     # Check that the mocked function was called once with correct input (which is
     # calculated in the higher level function)
     mock_save.assert_called_once()
     assert mock_save.call_args == mocker.call(
-        Path(f"./continuous_state{time_index:05}.nc"),
-        [
+        output_file_path=Path(f"./continuous_state{time_index:05}.nc"),
+        variables_to_save=[
             "litter_pool_above_metabolic",
             "litter_pool_above_structural",
             "litter_pool_woody",
@@ -988,7 +1015,8 @@ def test_output_current_state(mocker, dummy_litter_data, time_index):
             "litter_N_mineralisation_rate",
             "litter_P_mineralisation_rate",
         ],
-        time_index,
+        time_index=time_index,
+        timestamp=np.datetime64("2000-01-01"),
     )
     assert outpath == Path(f"./continuous_state{time_index:05}.nc")
 
@@ -999,16 +1027,13 @@ def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["litter_pool_woody", "soil_temperature"]
-    data_options = {
-        "out_folder_continuous": str(shared_datadir),
-        "out_continuous_file_name": "all_continuous_data.nc",
-    }
 
     # Save first data file
     dummy_litter_data.save_timeslice_to_netcdf(
-        shared_datadir / "continuous_state1.nc",
-        variables_to_save,
-        1,
+        output_file_path=shared_datadir / "continuous_state1.nc",
+        variables_to_save=variables_to_save,
+        time_index=1,
+        timestamp=np.datetime64("2000-01-01"),
     )
 
     # Alter data so that files differ (slightly)
@@ -1019,18 +1044,20 @@ def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
 
     # Save second data file
     dummy_litter_data.save_timeslice_to_netcdf(
-        shared_datadir / "continuous_state2.nc",
-        variables_to_save,
-        2,
+        output_file_path=shared_datadir / "continuous_state2.nc",
+        variables_to_save=variables_to_save,
+        time_index=2,
+        timestamp=np.datetime64("2000-02-01"),
     )
 
-    continuous_files = [
-        shared_datadir / "continuous_state1.nc",
-        shared_datadir / "continuous_state2.nc",
-    ]
-
     # Merge data
-    merge_continuous_data_files(data_options, continuous_files)
+    merge_continuous_data_files(
+        merged_file_path=shared_datadir / "all_continuous_data.nc",
+        continuous_data_files=[
+            shared_datadir / "continuous_state1.nc",
+            shared_datadir / "continuous_state2.nc",
+        ],
+    )
 
     # Check that original two files have been deleted
     assert len(list(shared_datadir.rglob("continuous_state*.nc"))) == 0
@@ -1086,26 +1113,24 @@ def test_merge_continuous_file_already_exists(
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["litter_pool_woody", "soil_temperature"]
-    data_options = {
-        "out_folder_continuous": str(shared_datadir),
-        "out_continuous_file_name": "already_exists.nc",
-    }
 
     # Save first data file
     dummy_litter_data.save_timeslice_to_netcdf(
-        shared_datadir / "continuous_state1.nc",
-        variables_to_save,
-        1,
+        output_file_path=shared_datadir / "continuous_state1.nc",
+        variables_to_save=variables_to_save,
+        time_index=1,
+        timestamp=np.datetime64("2000-01-01"),
     )
-
-    continuous_files = [
-        shared_datadir / "continuous_state1.nc",
-        shared_datadir / "already_exists.nc",
-    ]
 
     with pytest.raises(ConfigurationError):
         # Merge data
-        merge_continuous_data_files(data_options, continuous_files)
+        merge_continuous_data_files(
+            shared_datadir / "already_exists.nc",
+            continuous_data_files=[
+                shared_datadir / "continuous_state1.nc",
+                shared_datadir / "already_exists.nc",
+            ],
+        )
 
     log_check(
         caplog,

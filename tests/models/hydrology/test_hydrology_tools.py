@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.hydrology.constants import HydroConsts
-
 
 def test_initialise_atmosphere_for_hydrology(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_hydrology_constants,
+    fixture_abiotic_constants,
+    fixture_core_constants,
 ):
     """Test initialisation of atmospheric variables for hydrology."""
 
@@ -22,15 +22,15 @@ def test_initialise_atmosphere_for_hydrology(
     layer_structure = fixture_core_components.layer_structure
     output = initialise_atmosphere_for_hydrology(
         data=data,
-        model_constants=HydroConsts,
-        abiotic_constants=AbioticConsts,
-        core_constants=CoreConsts,
+        model_constants=fixture_hydrology_constants,
+        abiotic_constants=fixture_abiotic_constants,
+        core_constants=fixture_core_constants,
         layer_structure=layer_structure,
     )
 
     # Check keys exist
     expected_keys = [
-        "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_soil",
         "aerodynamic_resistance_canopy",
         "stomatal_conductance",
         "density_air",
@@ -39,6 +39,26 @@ def test_initialise_atmosphere_for_hydrology(
     ]
     for key in expected_keys:
         assert key in output
+
+    bounds = {
+        "specific_heat_air": (0.9, 1.5),
+        "latent_heat_vapourisation": (2300, 2600),
+        "density_air": (0.9, 1.5),
+        "stomatal_conductance": (0.0, np.inf),
+        "aerodynamic_resistance_soil": (0.0, np.inf),
+    }
+
+    for var, (vmin, vmax) in bounds.items():
+        arr = output[var].to_numpy()
+        valid = ~np.isnan(arr)
+
+        assert np.all(arr[valid] > vmin)
+        assert np.all(arr[valid] < vmax)
+
+    ra_canopy = output["aerodynamic_resistance_canopy"].to_numpy()
+    valid_canopy = ~np.isnan(ra_canopy)
+
+    assert np.all(ra_canopy[valid_canopy] == 12.1)
 
 
 def test_setup_hydrology_input_current_timestep(
@@ -177,7 +197,7 @@ def test_check_precipitation_surface_raises_error():
         check_precipitation_surface(test_array)
 
 
-def test_calculate_effective_saturation():
+def test_calculate_effective_saturation(fixture_hydrology_constants):
     """Test that the calculation the effective saturation works correctly."""
     from virtual_ecosystem.models.hydrology.hydrology_tools import (
         calculate_effective_saturation,
@@ -189,8 +209,8 @@ def test_calculate_effective_saturation():
 
     actual_sats = calculate_effective_saturation(
         soil_moisture=soil_moistures,
-        soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
-        soil_moisture_residual=HydroConsts.soil_moisture_residual,
+        soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
+        soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
     )
 
     assert np.allclose(actual_sats, expected_sats)

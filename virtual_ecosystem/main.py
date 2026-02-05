@@ -13,13 +13,23 @@ from typing import Any
 
 from tqdm import tqdm
 
-from virtual_ecosystem.core import variables
-from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.base_model import BaseModel
+from virtual_ecosystem.core.config_builder import (
+    ConfigurationLoader,
+    generate_configuration,
+)
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
-from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER, add_file_logger, remove_file_logger
+from virtual_ecosystem.core.model_config import (
+    CoreConfiguration,
+)
+from virtual_ecosystem.core.variables import (
+    get_model_order,
+    setup_variables,
+)
 
 
 class Progress(IntEnum):
@@ -32,14 +42,15 @@ class Progress(IntEnum):
 
 
 def initialise_models(
-    config: Config,
+    configuration: CompiledConfiguration,
     data: Data,
     core_components: CoreComponents,
-    models: dict[str, Any],  # FIXME -> dict[str, Type[BaseModel]]
-) -> dict[str, Any]:  # FIXME -> dict[str, Type[BaseModel]]
+    models: dict[str, type[BaseModel]],
+) -> dict[str, BaseModel]:
     """Initialise a set of models for use in a `virtual_ecosystem` simulation.
 
     Args:
+        configuration: A validated Virtual Ecosystem model configuration object.
         config: A validated Virtual Ecosystem model configuration object.
         data: A Data instance.
         core_components: A CoreComponents instance.
@@ -56,7 +67,11 @@ def initialise_models(
     models_cfd = {}
     for model_name, model_class in models.items():
         try:
-            this_model = model_class.from_config(data, core_components, config)
+            this_model = model_class.from_config(
+                data=data,
+                configuration=configuration,
+                core_components=core_components,
+            )
             models_cfd[model_name] = this_model
         except (InitialisationError, ConfigurationError):
             failed_models.append(model_name)
@@ -75,7 +90,7 @@ def initialise_models(
 def ve_run(
     cfg_paths: str | Path | Sequence[str | Path] = [],
     cfg_strings: str | list[str] = [],
-    override_params: dict[str, Any] = {},
+    cli_config: dict[str, Any] = {},
     logfile: Path | None = None,
     progress: Progress = Progress.FULL,
 ) -> None:
@@ -89,7 +104,8 @@ def ve_run(
     Args:
         cfg_paths: Set of paths to configuration files
         cfg_strings: An alternate string providing TOML formatted configuration data
-        override_params: Extra parameters provided by the user
+        cli_config: Configuration settings provided by the user at the command line,
+            used to override configuration settings in files.
         logfile: An optional path to a log file, otherwise logging will print to the
             console.
         progress: A Progress enum instance setting the level of output to be printed to
@@ -112,75 +128,100 @@ def ve_run(
     if progress > Progress.MINIMAL:
         print("* Loading configuration")
 
-    variables.register_all_variables()
-    config = Config(
-        cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
+    # Load the configuration data
+    config_data: ConfigurationLoader = ConfigurationLoader(
+        cfg_paths=cfg_paths,
+        cfg_strings=cfg_strings,
+        cli_config=cli_config,
+    )
+
+    # Generate the compiled configuration for the simulation. This step also registers
+    # the models required to run the simulation.
+    configuration: CompiledConfiguration = generate_configuration(config_data.data)
+
+    # Get the core configuration class
+    core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+        "core", CoreConfiguration
     )
 
     # Save the merged config if requested
-    data_opt = config["core"]["data_output_options"]
-    if data_opt["save_merged_config"]:
-        outfile = Path(data_opt["out_path"]) / data_opt["out_merge_file_name"]
-        config.export_config(outfile)
+    if core_configuration.data_output_options.save_merged_config:
+        outfile = (
+            Path(core_configuration.data_output_options.out_path)
+            / core_configuration.data_output_options.out_merge_file_name
+        )
+        # Export the merged configuration
+        configuration.export_toml(outfile)
+
         if progress > Progress.MINIMAL:
             print(f"* Saved compiled configuration: {outfile}")
 
     # Build core elements
-    grid = Grid.from_config(config)
-    core_components = CoreComponents(config=config)
+    core_components = CoreComponents(config=core_configuration)
     if progress > Progress.MINIMAL:
         print("* Built core model components")
 
-    data = Data(grid)
-    data.load_data_config(config)
+    data = Data(grid=core_components.grid)
+    data.load_data_config(config=core_configuration)
     if progress > Progress.MINIMAL:
         print("* Initial data loaded")
 
     # Setup the variables for the requested modules and verify consistency
-    variables.setup_variables(
-        list(config.model_classes.values()), list(data.data.keys())
+    runtime_variables = setup_variables(
+        models=list(configuration._model_classes.values()),
+        data_vars=[str(v) for v in data.data],
+        known_variables=data.known_variables,
     )
 
-    # Verify that all variables have the correct axis
-    variables.verify_variables_axis()
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
     # Get the model initialisation sequence and initialise
     init_sequence = {
-        model_name: config.model_classes[model_name]
-        for model_name in variables.get_model_order("init")
+        model_name: configuration._model_classes[model_name]
+        for model_name in get_model_order(
+            stage="init", runtime_variables=runtime_variables
+        )
     }
 
     models_init = initialise_models(
-        config=config,
+        configuration=configuration,
         data=data,
         core_components=core_components,
         models=init_sequence,
     )
     if progress > Progress.MINIMAL:
-        print(f"* Models initialised: {', '.join(config.model_classes.keys())}")
+        print(f"* Models initialised: {', '.join(configuration._model_classes.keys())}")
 
     LOGGER.info("All models successfully initialised.")
 
     # TODO - A model spin up might be needed here in future
 
-    # Create output folder if it does not exist
-    out_path = Path(config["core"]["data_output_options"]["out_path"])
-    os.makedirs(out_path, exist_ok=True)
+    # Data output options
+    output_config = core_configuration.data_output_options
 
-    # Save the initial state of the model
-    if config["core"]["data_output_options"]["save_initial_state"]:
+    # Create output folder if it does not exist
+    os.makedirs(output_config.out_path, exist_ok=True)
+
+    # Save the initial state of the model - all input variables with no selection using
+    # variables_to_save.
+    if output_config.save_initial_state:
         data.save_to_netcdf(
-            out_path / config["core"]["data_output_options"]["out_initial_file_name"]
+            output_file_path=output_config.out_path
+            / output_config.out_initial_file_name,
+            timing=core_components.model_timing,
         )
         if progress > Progress.MINIMAL:
             print("* Saved model initial state")
 
     # If no path for saving continuous data is specified, fall back on using out_path
-    if "out_folder_continuous" not in config["core"]["data_output_options"]:
-        config["core"]["data_output_options"]["out_folder_continuous"] = str(out_path)
+    # TODO - this config section is silly, but fix this later
+    if output_config.out_folder_continuous == ".":
+        continuous_output_dir: Path = output_config.out_path
+    else:
+        continuous_output_dir = Path(output_config.out_folder_continuous)
 
     # Container to store paths to continuous data files
+
     continuous_data_files = []
 
     # Only variables in the data object that are updated by a model should be output
@@ -192,7 +233,9 @@ def ve_run(
     # sequence
     models_update = {
         model_name: models_init[model_name]
-        for model_name in variables.get_model_order("update")
+        for model_name in get_model_order(
+            stage="update", runtime_variables=runtime_variables
+        )
     }
     if progress > Progress.MINIMAL:
         print("* Starting simulation")
@@ -215,15 +258,31 @@ def ve_run(
         for model in models_update.values():
             model.update(time_index)
 
-        # With updates complete increment the time_index
-        time_index += 1
-
         # Append updated data to the continuous data file
-        if config["core"]["data_output_options"]["save_continuous_data"]:
+        if output_config.save_continuous_data:
             outfile_path = data.output_current_state(
-                variables_to_save, config["core"]["data_output_options"], time_index
+                variables_to_save=variables_to_save,
+                output_directory_path=continuous_output_dir,
+                time_index=time_index,
+                timestamp=core_components.model_timing.update_datestamps[time_index],
             )
             continuous_data_files.append(outfile_path)
+
+        # Handle the debug option to truncate the run
+        if (core_configuration.debug.truncate_run_at_update >= 0) & (
+            core_configuration.debug.truncate_run_at_update == time_index
+        ):
+            msg = (
+                f"Simulation truncated by core.debug.truncate_run_at_update at "
+                f"index {core_configuration.debug.truncate_run_at_update}"
+            )
+            LOGGER.warning(msg)
+            if progress > Progress.MINIMAL:
+                print("* " + msg)
+            break
+
+        # With updates complete increment the time_index
+        time_index += 1
 
         pbar.update(n=1)
 
@@ -233,17 +292,21 @@ def ve_run(
         print("* Simulation completed")
 
     # Merge all files together based on a list
-    if config["core"]["data_output_options"]["save_continuous_data"]:
+    if output_config.save_continuous_data:
         merge_continuous_data_files(
-            config["core"]["data_output_options"], continuous_data_files
+            merged_file_path=continuous_output_dir
+            / output_config.out_continuous_file_name,
+            continuous_data_files=continuous_data_files,
         )
         if progress > Progress.MINIMAL:
             print("* Merged time series data")
 
     # Save the final model state
-    if config["core"]["data_output_options"]["save_final_state"]:
+    if output_config.save_final_state:
         data.save_to_netcdf(
-            out_path / config["core"]["data_output_options"]["out_final_file_name"]
+            output_file_path=output_config.out_path / output_config.out_final_file_name,
+            variables_to_save=variables_to_save,
+            timing=core_components.model_timing,
         )
         if progress > Progress.MINIMAL:
             print("* Saved final model state")

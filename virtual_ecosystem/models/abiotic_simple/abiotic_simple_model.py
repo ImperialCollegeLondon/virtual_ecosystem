@@ -12,22 +12,22 @@ from __future__ import annotations
 
 from typing import Any
 
-from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple.constants import (
-    AbioticSimpleBounds,
-    AbioticSimpleConsts,
-)
+from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
     calculate_vapour_pressure_deficit,
     run_simple_microclimate,
+)
+from virtual_ecosystem.models.abiotic_simple.model_config import (
+    AbioticSimpleBounds,
+    AbioticSimpleConfiguration,
+    AbioticSimpleConstants,
 )
 
 
@@ -37,7 +37,14 @@ class AbioticSimpleModel(
     model_update_bounds=("1 day", "1 month"),
     vars_required_for_init=(
         "air_temperature_ref",
+        "atmospheric_co2_ref",
+        "atmospheric_pressure_ref",
+        "layer_heights",
+        "leaf_area_index",
+        "mean_annual_temperature",
         "relative_humidity_ref",
+        "shortwave_absorption",
+        "wind_speed_ref",
     ),
     vars_updated=(
         "air_temperature",
@@ -58,14 +65,14 @@ class AbioticSimpleModel(
         "wind_speed_ref",
         "leaf_area_index",
         "layer_heights",
+        "mean_annual_temperature",
+        "shortwave_absorption",
     ),
     vars_populated_by_init=(  # TODO move functionality from setup() to __init__
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
         "net_radiation",
-    ),
-    vars_populated_by_first_update=(
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",
@@ -73,21 +80,25 @@ class AbioticSimpleModel(
         "atmospheric_co2",
         "wind_speed",
     ),
+    vars_populated_by_first_update=tuple(),
 ):
     """A class describing the abiotic simple model.
 
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        model_constants: Set of constants for the abiotic_simple model.
+        model_configuration: Configuration object from the abiotic_simple model.
+        pyrealm_core_constants: Core constants for the pyrealm package.
+        static: Boolean flag indicating if the model should run in static mode.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
+        model_configuration: AbioticSimpleConfiguration = AbioticSimpleConfiguration(),
+        pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
         static: bool = False,
-        **kwargs: Any,
     ):
         """Abiotic simple init.
 
@@ -95,16 +106,75 @@ class AbioticSimpleModel(
         handled in :fun:`~virtual_ecosystem.abiotic_simple.abiotic_simple_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(data, core_components, static)
 
-        self.model_constants: AbioticSimpleConsts
+        self.model_constants: AbioticSimpleConstants
         """Set of constants for the abiotic simple model"""
         self.bounds: AbioticSimpleBounds
         """Upper and lower bounds for abiotic variables."""
+        self.pyrealm_core_constants: PyrealmCoreConst
+        """Core constants for the pyrealm package."""
+
+        # Run the setup if the model is not in deep static mode
+        if self._run_setup:
+            self._setup(
+                model_configuration=model_configuration,
+                pyrealm_core_constants=pyrealm_core_constants,
+            )
+
+    def _setup(
+        self,
+        model_configuration: AbioticSimpleConfiguration,
+        pyrealm_core_constants: PyrealmCoreConst,
+    ) -> None:
+        """Function to set up the abiotic simple model.
+
+        This function initializes soil temperature for all soil layers and calculates
+        the reference vapour pressure deficit for all time steps. Both variables are
+        added directly to the self.data object.
+
+        TODO - Unlike the abiotic model this init does not populate initial values for
+        the air temperatures. This is something that might need to be reconsidered in
+        future.
+
+        See __init__ for argument descriptions.
+        """
+        # Populate model attributes
+        self.model_constants = model_configuration.constants
+        self.bounds = model_configuration.bounds
+        self.pyrealm_core_constants = pyrealm_core_constants
+
+        # calculate vapour pressure deficit at reference height for all time steps
+        vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
+            temperature=self.data["air_temperature_ref"],
+            relative_humidity=self.data["relative_humidity_ref"],
+            pyrealm_core_constants=self.pyrealm_core_constants,
+        )
+        self.data["vapour_pressure_deficit_ref"] = vapour_pressure_and_deficit[
+            "vapour_pressure_deficit"
+        ]
+        self.data["vapour_pressure_ref"] = vapour_pressure_and_deficit[
+            "vapour_pressure"
+        ]
+
+        # This section performs a series of calculations to initialise atmospheric
+        # variables in the abiotic simple model which are then added to the data object.
+        output_variables = run_simple_microclimate(
+            data=self.data,
+            layer_structure=self.layer_structure,
+            time_index=0,
+            constants=self.model_constants,
+            core_constants=self.core_constants,
+            bounds=self.bounds,
+        )
+        self.data.add_from_dict(output_dict=output_variables)
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
     ) -> AbioticSimpleModel:
         """Factory function to initialise the abiotic simple model from configuration.
 
@@ -114,15 +184,22 @@ class AbioticSimpleModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
-            config: A validated Virtual Ecosystem model configuration object.
         """
 
-        # Load in the relevant constants
-        model_constants = load_constants(
-            config, "abiotic_simple", "AbioticSimpleConsts"
+        # Extract the validated model configuration from the complete compiled
+        # configuration
+        model_configuration: AbioticSimpleConfiguration = (
+            configuration.get_subconfiguration(
+                "abiotic_simple", AbioticSimpleConfiguration
+            )
         )
-        static = config["abiotic_simple"]["static"]
+
+        # Core configuration
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
 
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
@@ -131,45 +208,10 @@ class AbioticSimpleModel(
         return cls(
             data=data,
             core_components=core_components,
-            static=static,
-            model_constants=model_constants,
+            static=model_configuration.static,
+            model_configuration=model_configuration,
+            pyrealm_core_constants=core_configuration.pyrealm.core,
         )
-
-    def _setup(self, model_constants: AbioticSimpleConsts, **kwargs) -> None:
-        """Function to set up the abiotic simple model.
-
-        This function initializes soil temperature for all soil layers and calculates
-        the reference vapour pressure deficit for all time steps. Both variables are
-        added directly to the self.data object.
-
-        Args:
-            model_constants: Set of constants for the abiotic simple model.
-            **kwargs: Further arguments to the setup method.
-        """
-        self.model_constants = model_constants
-        self.bounds = AbioticSimpleBounds()
-
-        # create soil temperature array
-        self.data["soil_temperature"] = self.layer_structure.from_template()
-
-        # create net radiation array
-        self.data["net_radiation"] = self.layer_structure.from_template()
-        self.data["net_radiation"][self.layer_structure.index_flux_layers] = (
-            self.model_constants.initial_net_radiation
-        )
-
-        # calculate vapour pressure deficit at reference height for all time steps
-        vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
-            temperature=self.data["air_temperature_ref"],
-            relative_humidity=self.data["relative_humidity_ref"],
-            pyrealm_const=PyrealmConst(),
-        )
-        self.data["vapour_pressure_deficit_ref"] = vapour_pressure_and_deficit[
-            "vapour_pressure_deficit"
-        ]
-        self.data["vapour_pressure_ref"] = vapour_pressure_and_deficit[
-            "vapour_pressure"
-        ]
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
@@ -188,8 +230,7 @@ class AbioticSimpleModel(
             data=self.data,
             layer_structure=self.layer_structure,
             time_index=time_index,
-            simple_constants=self.model_constants,
-            abiotic_constants=AbioticConsts(),
+            constants=self.model_constants,
             core_constants=self.core_constants,
             bounds=self.bounds,
         )

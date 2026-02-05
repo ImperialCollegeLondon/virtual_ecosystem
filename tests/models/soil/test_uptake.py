@@ -1,11 +1,7 @@
 """Test module for uptake.py."""
 
-from logging import CRITICAL
-
 import numpy as np
 import pytest
-
-from tests.conftest import log_check
 
 
 @pytest.mark.parametrize(
@@ -60,18 +56,23 @@ from tests.conftest import log_check
         ),
         pytest.param(
             True,
-            [-0.00018997, -0.00548659, 0.0020494, 0.00104466],
+            [2.13058789e-5, 0.00080088219, 0.00174111524, 0.00090997921],
             {
-                "carbon": [-0.00040488, -0.01200351, 0.0, 0.0],
-                "organic_nitrogen": [9.48666511e-6, -2.62810472e-4, 2.50424214e-5, 0.0],
+                "carbon": [-0.00694823, -0.17300253, -0.00078973, -0.00128698],
+                "organic_nitrogen": [0.0, 0.0, 3.0129333e-5, 0.0],
                 "organic_phosphorus": [
-                    7.70669365e-9,
+                    9.48620026e-8,
                     4.33396110e-6,
-                    6.59081814e-6,
+                    6.87545767e-6,
                     4.47962952e-6,
                 ],
-                "ammonium": [2.48601084e-6, 0.0, 1.09579690e-4, 8.65898810e-5],
-                "nitrate": [8.17347789e-6, 0.0, 1.63588918e-5, 1.81221712e-5],
+                "ammonium": [
+                    4.45402048e-7,
+                    6.58564272e-5,
+                    1.09579690e-4,
+                    6.74509475e-5,
+                ],
+                "nitrate": [1.46438774e-6, 5.93205097e-6, 1.63588918e-5, 1.41166335e-5],
                 "inorganic_phosphorus": [
                     1.89216383e-7,
                     6.34446807e-6,
@@ -92,9 +93,9 @@ def test_calculate_nutrient_uptake_rates(
     symbiotic,
     expected_carbon_gain,
     expected_consumption_rates,
+    fixture_soil_constants,
 ):
     """Check microbial uptake function calculates correctly."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.uptake import (
         calculate_nutrient_uptake_rates,
     )
@@ -109,12 +110,10 @@ def test_calculate_nutrient_uptake_rates(
             soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
             microbial_pool_size=dummy_carbon_data["soil_c_pool_ectomycorrhiza"],
             external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
-            nitrogen_exchange=dummy_carbon_data["plant_n_uptake_ecto"],
-            phosphorus_exchange=dummy_carbon_data["plant_p_uptake_ecto"],
             water_factor=environmental_factors.water,
             pH_factor=environmental_factors.pH,
             soil_temp=averaged_soil_temp,
-            constants=SoilConsts,
+            constants=fixture_soil_constants,
             functional_group=functional_groups["ectomycorrhiza"],
         )
     else:
@@ -127,12 +126,10 @@ def test_calculate_nutrient_uptake_rates(
             soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
             microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
             external_carbon_supply=None,
-            nitrogen_exchange=None,
-            phosphorus_exchange=None,
             water_factor=environmental_factors.water,
             pH_factor=environmental_factors.pH,
             soil_temp=averaged_soil_temp,
-            constants=SoilConsts,
+            constants=fixture_soil_constants,
             functional_group=functional_groups["bacteria"],
         )
 
@@ -147,51 +144,6 @@ def test_calculate_nutrient_uptake_rates(
                 getattr(actual_consumption_rates, attr),
                 expected_consumption_rates[attr],
             )
-
-
-def test_calculate_nutrient_uptake_rates_errors(
-    caplog,
-    dummy_carbon_data,
-    averaged_soil_temp,
-    environmental_factors,
-    functional_groups,
-    carbon_supply_from_plants,
-):
-    """Check microbial uptake function returns sensible errors for bad input."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
-    from virtual_ecosystem.models.soil.uptake import (
-        calculate_nutrient_uptake_rates,
-    )
-
-    expected_log = (
-        (
-            CRITICAL,
-            "External carbon supply is provided, but nitrogen and phosphorus exchange "
-            "demands are not!",
-        ),
-    )
-
-    with pytest.raises(ValueError):
-        _, _ = calculate_nutrient_uptake_rates(
-            soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-            soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
-            soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
-            soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-            soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
-            soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-            microbial_pool_size=dummy_carbon_data["soil_c_pool_ectomycorrhiza"],
-            external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
-            nitrogen_exchange=None,
-            phosphorus_exchange=None,
-            water_factor=environmental_factors.water,
-            pH_factor=environmental_factors.pH,
-            soil_temp=averaged_soil_temp,
-            constants=SoilConsts,
-            functional_group=functional_groups["ectomycorrhiza"],
-        )
-
-    # Final check that expected logging entries are produced
-    log_check(caplog, expected_log)
 
 
 def test_calculate_maximum_uptake_rates(
@@ -233,14 +185,11 @@ def test_calculate_maximum_uptake_rates(
 
 
 def test_find_net_nutrient_consumptions_free_living(
-    carbon_use_efficiency,
-    functional_groups,
-    max_uptake_rates,
+    carbon_use_efficiency, functional_groups, max_uptake_rates, fixture_soil_constants
 ):
     """Test that the function to find the net nutrient consumptions works correctly."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.uptake import (
-        calculate_actual_carbon_gain_free_living,
+        calculate_actual_carbon_gain,
         find_net_nutrient_consumptions_free_living,
     )
 
@@ -253,8 +202,9 @@ def test_find_net_nutrient_consumptions_free_living(
         "inorganic_phosphorus": [2.3350107e-6, 1.1054755e-5, 4.3960799e-5, 4.944813e-7],
     }
 
-    actual_carbon_gain = calculate_actual_carbon_gain_free_living(
+    actual_carbon_gain = calculate_actual_carbon_gain(
         max_uptake_rates=max_uptake_rates,
+        external_carbon_supply=None,
         carbon_use_efficiency=carbon_use_efficiency,
         functional_group=functional_groups["bacteria"],
     )
@@ -263,7 +213,7 @@ def test_find_net_nutrient_consumptions_free_living(
         actual_carbon_gain=actual_carbon_gain,
         carbon_use_efficiency=carbon_use_efficiency,
         functional_group=functional_groups["bacteria"],
-        ammonium_mineralisation_proportion=SoilConsts.ammonium_mineralisation_proportion,
+        ammonium_mineralisation_proportion=fixture_soil_constants.ammonium_mineralisation_proportion,
     )
     for attr in dir(actual_consumptions):
         if not attr.startswith("_"):
@@ -275,7 +225,6 @@ def test_find_net_nutrient_consumptions_free_living(
 
 
 def test_find_net_nutrient_consumptions_symbiotic(
-    dummy_carbon_data,
     carbon_supply_from_plants,
     carbon_use_efficiency,
     functional_groups,
@@ -283,32 +232,29 @@ def test_find_net_nutrient_consumptions_symbiotic(
 ):
     """Test that the function to find the net nutrient consumptions works correctly."""
     from virtual_ecosystem.models.soil.uptake import (
-        calculate_actual_carbon_gain_symbiotic,
+        calculate_actual_carbon_gain,
         find_net_nutrient_consumptions_symbiotic,
     )
 
     expected_consumptions = {
-        "carbon": [0.0, -0.009922161, 0.0, 0.0],
-        "organic_nitrogen": [0.0, -0.000209957778, 0.0, 0.0],
-        "organic_phosphorus": [1.170653794e-6, 7.5515783e-6, 0.0, 1.18821599e-6],
-        "ammonium": [9.86548476e-6, 0.0, 1.31369206e-4, 3.70304315e-5],
-        "nitrate": [3.24356275e-5, 0.0, 1.96117969e-5, 7.75000277e-6],
-        "inorganic_phosphorus": [2.3350107e-6, 1.1054755e-5, 2.293023e-5, 2.0300866e-6],
+        "carbon": [-0.006361186511710, -0.171519566205653, 0.0, -0.002758694701697],
+        "organic_nitrogen": [0.0, 0.0, 0.0, 0.0],
+        "organic_phosphorus": [1.17063748e-6, 7.55159888e-6, 0.0, 1.18823064e-6],
+        "ammonium": [5.496450823e-6, 0.000114749835, 0.000159839234, 1.789149801e-5],
+        "nitrate": [1.807116782e-5, 1.033614942e-5, 2.386201976e-5, 3.744465115e-6],
+        "inorganic_phosphorus": [2.335011e-6, 1.105476e-5, 2.732529e-5, 2.030087e-6],
     }
 
-    actual_carbon_gain = calculate_actual_carbon_gain_symbiotic(
+    actual_carbon_gain = calculate_actual_carbon_gain(
         max_uptake_rates=max_uptake_rates,
         external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
         carbon_use_efficiency=carbon_use_efficiency,
-        nitrogen_exchange=dummy_carbon_data["plant_n_uptake_ecto"],
-        phosphorus_exchange=dummy_carbon_data["plant_p_uptake_ecto"],
         functional_group=functional_groups["ectomycorrhiza"],
     )
     actual_consumptions = find_net_nutrient_consumptions_symbiotic(
         max_uptake_rates=max_uptake_rates,
         actual_carbon_gain=actual_carbon_gain,
-        nitrogen_exchange=dummy_carbon_data["plant_n_uptake_ecto"],
-        phosphorus_exchange=dummy_carbon_data["plant_p_uptake_ecto"],
+        external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
         carbon_use_efficiency=carbon_use_efficiency,
         functional_group=functional_groups["ectomycorrhiza"],
     )
@@ -322,27 +268,31 @@ def test_find_net_nutrient_consumptions_symbiotic(
             )
 
 
-def test_calculate_actual_carbon_gain_free_living(
-    max_uptake_rates, functional_groups, carbon_use_efficiency
-):
-    """Check that function to determine the most limiting nutrient works."""
-    from virtual_ecosystem.models.soil.uptake import (
-        calculate_actual_carbon_gain_free_living,
-    )
-
-    expected_carbon_gain = [5.60903705e-5, 2.97701662e-4, 1.22219663e-3, 2.69233910e-05]
-
-    actual_carbon_gain = calculate_actual_carbon_gain_free_living(
-        max_uptake_rates=max_uptake_rates,
-        carbon_use_efficiency=carbon_use_efficiency,
-        functional_group=functional_groups["bacteria"],
-    )
-
-    assert np.allclose(actual_carbon_gain, expected_carbon_gain)
-
-
-def test_calculate_actual_carbon_gain_symbiotic(
-    dummy_carbon_data,
+@pytest.mark.parametrize(
+    argnames=[
+        "group_name",
+        "expected_carbon_gain",
+        "symbiotic",
+    ],
+    argvalues=[
+        pytest.param(
+            "bacteria",
+            [5.60903705e-5, 2.97701662e-4, 1.22219663e-3, 2.69233910e-05],
+            False,
+            id="free_living",
+        ),
+        pytest.param(
+            "ectomycorrhiza",
+            [0.00029973291768, 0.00159084325674, 0.0023363121075, 0.00027516612744],
+            True,
+            id="symbiotic",
+        ),
+    ],
+)
+def test_calculate_actual_carbon_gain(
+    group_name,
+    expected_carbon_gain,
+    symbiotic,
     max_uptake_rates,
     functional_groups,
     carbon_use_efficiency,
@@ -350,18 +300,19 @@ def test_calculate_actual_carbon_gain_symbiotic(
 ):
     """Check that function to determine the most limiting nutrient works."""
     from virtual_ecosystem.models.soil.uptake import (
-        calculate_actual_carbon_gain_symbiotic,
+        calculate_actual_carbon_gain,
     )
 
-    expected_carbon_gain = [0.00018443, -0.00453524, 0.00233631, 0.00023815]
+    if symbiotic:
+        external_carbon_supply = carbon_supply_from_plants.ectomycorrhiza
+    else:
+        external_carbon_supply = None
 
-    actual_carbon_gain = calculate_actual_carbon_gain_symbiotic(
+    actual_carbon_gain = calculate_actual_carbon_gain(
         max_uptake_rates=max_uptake_rates,
-        external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
-        nitrogen_exchange=dummy_carbon_data["plant_n_uptake_ecto"],
-        phosphorus_exchange=dummy_carbon_data["plant_p_uptake_ecto"],
+        external_carbon_supply=external_carbon_supply,
         carbon_use_efficiency=carbon_use_efficiency,
-        functional_group=functional_groups["ectomycorrhiza"],
+        functional_group=functional_groups[group_name],
     )
 
     assert np.allclose(actual_carbon_gain, expected_carbon_gain)

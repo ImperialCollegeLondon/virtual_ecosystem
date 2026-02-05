@@ -33,7 +33,7 @@ from xarray import DataArray, full_like
 
 from virtual_ecosystem.core.core_components import ModelTiming
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.models.plants.constants import PlantsConsts
+from virtual_ecosystem.models.plants.model_config import PlantsConstants
 
 
 @dataclass
@@ -55,7 +55,7 @@ class Nutrient:
         cls,
         tissue_name: str,
         element: str,
-        constants: PlantsConsts,
+        constants: PlantsConstants,
         masses: NDArray[np.floating],
     ) -> Nutrient:
         """Factory method for Nutrient instances from the ideal ratio in constants.
@@ -63,11 +63,11 @@ class Nutrient:
         Args:
             tissue_name: The tissue name used in the plant constants
             element: The element name
-            constants: A PlantConsts instance
+            constants: A PlantConstants instance
             masses: The carbon biomasses of cells for the tissue.
         """
 
-        ideal_ratio = getattr(PlantsConsts, f"{tissue_name}_c_{element}_ratio")
+        ideal_ratio = getattr(constants, f"{tissue_name}_c_{element}_ratio")
         return cls(name=element, ideal_ratio=ideal_ratio, masses=masses / ideal_ratio)
 
 
@@ -102,7 +102,7 @@ class SubcanopyBiomass:
         cls,
         tissue_name: str,
         elements: tuple[str, ...],
-        constants: PlantsConsts,
+        constants: PlantsConstants,
         masses: NDArray[np.floating],
     ) -> SubcanopyBiomass:
         """Factory method to generate a SubcanopyBiomass object from constants.
@@ -224,7 +224,7 @@ class Subcanopy:
 
     Args:
         data: The model Data instance
-        pmodel_core_constants: The PModel core constants for the simulation.
+        pyrealm_core_constants: The PModel core constants for the simulation.
         model_constants: The PlantModel constants for the simulation
         layer_index: The layer index of the surface layer in the vertical layer axis.
         model_timing: The core ModelTiming instance for the simulation.
@@ -236,15 +236,15 @@ class Subcanopy:
     def __init__(
         self,
         data: Data,
-        pmodel_core_constants: CoreConst,
-        model_constants: PlantsConsts,
+        pyrealm_core_constants: CoreConst,
+        model_constants: PlantsConstants,
         layer_index: int,
         model_timing: ModelTiming,
     ) -> None:
         # Init attributes
         self.data: Data = data
-        self.pmodel_core_constants: CoreConst = pmodel_core_constants
-        self.model_constants: PlantsConsts = model_constants
+        self.pyrealm_core_constants: CoreConst = pyrealm_core_constants
+        self.model_constants: PlantsConstants = model_constants
         self.model_timing: ModelTiming = model_timing
         self.layer_index: int = layer_index
 
@@ -276,6 +276,7 @@ class Subcanopy:
         lue: NDArray[np.floating],
         iwue: NDArray[np.floating],
         swd: NDArray[np.floating],
+        data_object_template: DataArray,
     ) -> None:
         r"""Estimate the dynamics of subcanopy vegetation.
 
@@ -353,7 +354,7 @@ class Subcanopy:
         # Transpiration and nutrient acquisition
         # - Calculate the transpiration associated with the GPP in moles
         self.subcanopy_transpiration = (
-            subcanopy_gpp / (self.pmodel_core_constants.k_c_molmass * 1e6)
+            subcanopy_gpp / (self.pyrealm_core_constants.k_c_molmass * 1e6)
         ) * iwue
 
         # Calculate the volume of water from µmol to m3 to convert soil water nutrient
@@ -446,12 +447,14 @@ class Subcanopy:
         }
 
         for var, biomass in biomasses.items():
-            self.data[f"{var}_biomass"] = DataArray(biomass.carbon_mass, coords=coords)
+            self.data[f"{var}_cnp"] = data_object_template.copy()
+
+            self.data[f"{var}_cnp"].loc[:, "C"] = biomass.carbon_mass
 
             for elem in self.elements:
-                self.data[f"{var}_c_{elem}_ratio"] = DataArray(
-                    biomass.c_x_ratio(elem), coords=coords
-                )
+                self.data[f"{var}_cnp"].loc[:, elem.upper()] = biomass.nutrients[
+                    elem
+                ].masses
 
         # Write lignin concentrations for litter components
         self.data["subcanopy_vegetation_litter_lignin"] = full_like(
@@ -461,14 +464,16 @@ class Subcanopy:
             self.data["cell_id"], self.model_constants.subcanopy_seedbank_lignin
         )
 
-        # Write nutrient uptakes and transpiration - one m3 is 1000 mm/m2
+        # Write nutrient uptakes
         for name, values in (
             ("subcanopy_ammonium_uptake", ammonium_uptake_kg),
             ("subcanopy_nitrate_uptake", nitrate_uptake_kg),
             ("subcanopy_phosphorus_uptake", phosphorus_uptake_kg),
-            ("subcanopy_transpiration", subcanopy_volume_m3 / 1000),
         ):
             self.data[name] = DataArray(values, coords=coords)
+
+        # Write transpiration
+        self.data["transpiration"][self.layer_index] = subcanopy_volume_m3 / 1000
 
     def set_light_capture(self, below_canopy_light_fraction: NDArray) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.

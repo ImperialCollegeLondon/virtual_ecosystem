@@ -20,10 +20,10 @@ from pyrealm.demography.canopy import Canopy, CohortCanopyData, CommunityCanopyD
 from pyrealm.demography.community import Cohorts
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 
-from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.communities import PlantCommunities
+from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
 
 class CommunityDataExporter:
@@ -77,6 +77,38 @@ class CommunityDataExporter:
     )
     """Connects the export data options to a tuple of standard output file and 
     internal path attribute names."""
+
+    available_attributes: ClassVar[dict[str, set[str]]] = {
+        "cohort_attributes": set(
+            [
+                "cell_id",
+                "time",
+                *StemAllometry.array_attrs,
+                *Cohorts.array_attrs,
+                *StemAllocation.array_attrs,
+            ]
+        ),
+        "community_canopy_attributes": set(
+            [
+                "canopy_layer_index",
+                "heights",
+                "cell_id",
+                "time",
+                *CommunityCanopyData.array_attrs,
+            ]
+        ),
+        "stem_canopy_attributes": set(
+            [
+                "canopy_layer_index",
+                "cohort_id",
+                "cell_id",
+                "time",
+                *CohortCanopyData.array_attrs,
+            ]
+        ),
+    }
+    """Class variable of the available attributes that can be exported for each export
+    option."""
 
     def __init__(
         self,
@@ -172,37 +204,7 @@ class CommunityDataExporter:
     def _check_attribute_subsets(self) -> None:
         """Check attribute subsets contain available fields."""
 
-        available_attributes = {
-            "cohort_attributes": set(
-                [
-                    "cell_id",
-                    "time",
-                    *StemAllometry.array_attrs,
-                    *Cohorts.array_attrs,
-                    StemAllocation.array_attrs,
-                ]
-            ),
-            "community_canopy_attributes": set(
-                [
-                    "canopy_layer_index",
-                    "heights",
-                    "cell_id",
-                    "time",
-                    *CommunityCanopyData.array_attrs,
-                ]
-            ),
-            "stem_canopy_attributes": set(
-                [
-                    "canopy_layer_index",
-                    "cohort_id",
-                    "cell_id",
-                    "time",
-                    *CohortCanopyData.array_attrs,
-                ]
-            ),
-        }
-
-        for subset_name, available in available_attributes.items():
+        for subset_name, available in self.available_attributes.items():
             subset = getattr(self, subset_name)
             # If subset is provided, check the values are all valid
             if not subset:
@@ -218,38 +220,29 @@ class CommunityDataExporter:
                 raise ConfigurationError(msg)
 
     @classmethod
-    def from_config(cls, config: Config) -> CommunityDataExporter:
-        """Factory class to create a CommunityDataExporter from a configuration.
+    def from_config(
+        cls, output_directory: Path, config: PlantsExportConfig
+    ) -> CommunityDataExporter:
+        """Factory class to create a CommunityDataExporter from configuration data.
 
-        The configuration requires that the following details are present in the plants
-        model section of the configuration;
+        See the documentation of
+        :class:`~virtual_ecosystem.models.plants.model_config.PlantsExportConfig`
+        for details of the configuration settings for this method.
 
-        .. code-block:: toml
+        Args:
+            output_directory: The path to the output directory for the files
+            config: An instance of ``PlantsExportConfig``
 
-            [plants.community_data_export]
-            required_data = ["cohorts", "community_canopy", "stem_canopy"]
-            cohort_attributes = []
-            community_canopy_attributes = []
-            stem_canopy_attributes = []
-
-        The ``required_data`` section specifies which community data files are to be
-        exported. If the "attributes" sections are empty arrays, then all attributes are
-        written to file, but specific fields may be named here to reduce the amount of
-        data exported.
         """
 
         # Try and build the arguments as a dictionary from the config, substituting
         # explicit None values for empty strings
         try:
-            out_path = config["core"]["data_output_options"]["out_path"]
-            xcfg = config["plants"]["community_data_export"]
-
-            # Get arguments and convert inputs
-            output_directory = Path(out_path)
-            required_data = set(xcfg["required_data"])
-            cohort_attributes = set(xcfg["cohort_attributes"])
-            community_canopy_attributes = set(xcfg["community_canopy_attributes"])
-            stem_canopy_attributes = set(xcfg["stem_canopy_attributes"])
+            # Get arguments and convert inputs - reduce Literals to plain strings.
+            required_data = set([str(x) for x in config.required_data])
+            cohort_attributes = set(config.cohort_attributes)
+            community_canopy_attributes = set(config.community_canopy_attributes)
+            stem_canopy_attributes = set(config.stem_canopy_attributes)
         except KeyError as excep:
             LOGGER.error(excep)
             raise
@@ -269,6 +262,7 @@ class CommunityDataExporter:
         canopies: dict[int, Canopy],
         stem_allocations: dict[int, StemAllocation],
         time: np.datetime64,
+        time_index: int,
     ) -> None:
         """Export plant community data to file.
 
@@ -280,6 +274,7 @@ class CommunityDataExporter:
             canopies: A dictionary of Canopy instances, keyed by cell id.
             stem_allocations: A dictionary of StemAllocations, also keyed by cell id
             time: A datetime to be used as a timestamp in the output files.
+            time_index: The index of the datatime within the model updates.
         """
 
         if not self._active:
@@ -291,15 +286,18 @@ class CommunityDataExporter:
             canopies=canopies,
             stem_allocations=stem_allocations,
             time=time,
+            time_index=time_index,
         )
         self._dump_community_canopy_data(
             canopies=canopies,
             time=time,
+            time_index=time_index,
         )
         self._dump_stem_canopy_data(
             communities=communities,
             canopies=canopies,
             time=time,
+            time_index=time_index,
         )
 
         # Update the output mode and header: all subsequent dump calls use append
@@ -312,6 +310,7 @@ class CommunityDataExporter:
         canopies: dict[int, Canopy],
         stem_allocations: dict[int, StemAllocation],
         time: np.datetime64,
+        time_index: int,
     ) -> None:
         """Dump plant cohort data to file.
 
@@ -320,6 +319,7 @@ class CommunityDataExporter:
             canopies: A dictionary of Canopy instances, keyed by cell id.
             stem_allocations: A dictionary of StemAllocations, also keyed by cell id
             time: A datetime to be used as a timestamp in the output files
+            time_index: The index of the datatime within the model updates.
         """
 
         # If the data has not been requested - so the path is None - then exit
@@ -361,6 +361,7 @@ class CommunityDataExporter:
         # Concatenate the cells by row and add time
         cohort_data_compiled = pd.concat(cohort_data)
         cohort_data_compiled["time"] = time
+        cohort_data_compiled["time_index"] = time_index
 
         # Reduce to requested attributes
         if self.cohort_attributes:
@@ -381,12 +382,14 @@ class CommunityDataExporter:
         self,
         canopies: dict[int, Canopy],
         time: np.datetime64,
+        time_index: int,
     ):
         """Dump community canopy data to file.
 
         Args:
             canopies: A dictionary of Canopy instances, keyed by cell id.
             time: A datetime to be used as a timestamp in the output files
+            time_index: The index of the datatime within the model updates.
         """
         # If the data has not been requested - so the path is None - then exit
         if self._community_canopy_path is None:
@@ -399,6 +402,8 @@ class CommunityDataExporter:
             data["heights"] = canopy.heights
             data["cell_id"] = cell_id
             data["time"] = time
+            data["time_index"] = time_index
+
             community_canopy_data.append(data)
 
         # Concatenate the cells into a single data frame
@@ -425,6 +430,7 @@ class CommunityDataExporter:
         communities: PlantCommunities,
         canopies: dict[int, Canopy],
         time: np.datetime64,
+        time_index: int,
     ) -> None:
         """Dump stem canopy data to file.
 
@@ -432,6 +438,7 @@ class CommunityDataExporter:
             communities: A PlantCommunities instance.
             canopies: A dictionary of Canopy instances, keyed by cell id.
             time: A datetime to be used as a timestamp in the output files
+            time_index: The index of the datatime within the model updates.
         """
         # If the data has not been requested - so the path is None - then exit
         if self._stem_canopy_path is None:
@@ -445,7 +452,9 @@ class CommunityDataExporter:
             data["cohort_id"] = np.repeat(
                 community.cohorts.cohort_id, len(canopy.heights)
             )
+
             data["time"] = time
+            data["time_index"] = time_index
             stem_canopy_data.append(data)
 
         # Concatenate the cells into a single data frame

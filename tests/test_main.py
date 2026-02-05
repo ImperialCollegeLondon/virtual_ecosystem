@@ -11,11 +11,10 @@ import pytest
 
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
-from .conftest import log_check
+from .conftest import log_check, record_found_in_log
 
 INITIALISATION_LOG = [
     (INFO, "Initialising models: litter"),
-    (INFO, "Initialised litter.LitterConsts from config"),
     (
         INFO,
         "Information required to initialise the litter model successfully extracted.",
@@ -101,22 +100,26 @@ def test_initialise_models(
 ):
     """Test the function that initialises the models."""
 
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.main import initialise_models
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
-    config = Config(cfg_strings=cfg_strings)
-    core_components = CoreComponents(config)
+    config_data = ConfigurationLoader(cfg_strings=cfg_strings)
+    configuration = generate_configuration(config_data.data)
+    core_components = CoreComponents(configuration.core)
     caplog.clear()
 
     with raises:
         models = initialise_models(
-            config=config,
+            configuration=configuration,
             data=dummy_litter_data,
             core_components=core_components,
-            models=config.model_classes,
+            models=configuration._model_classes,
         )
 
         if output is None:
@@ -149,7 +152,8 @@ def test_initialise_models(
             (
                 (
                     ERROR,
-                    "Invalid units for core.timing.update_interval: 0.5 martian days",
+                    "core.timing.update_interval = 0.5 martian days: Value error, "
+                    "Cannot parse value as time quantity: 0.5 martian days",
                 ),
             ),
             id="bad_config_data_one",
@@ -165,13 +169,10 @@ def test_ve_run_model_issues(caplog, config_content, expected_log_entries, mocke
     """
     from virtual_ecosystem.main import ve_run
 
-    # TODO: Once models are adapted, this can be removed
-    mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
-
     with pytest.raises(ConfigurationError):
         ve_run(cfg_strings=config_content)
 
-    log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
+    record_found_in_log(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
@@ -190,23 +191,28 @@ def test_ve_run_progress_reporting(capsys, tmp_path, progress_value, output_leng
     log out to a temporary file.
     """
 
-    from virtual_ecosystem.core import variables
     from virtual_ecosystem.core.logger import remove_file_logger
     from virtual_ecosystem.main import ve_run
 
-    # Need to remove any existing file log attached to LOGGER and clear the variables
-    # registry
+    # Need to remove any existing file log attached to LOGGER
     remove_file_logger()
-    variables.KNOWN_VARIABLES.clear()
+
+    # Make the output directory - need to make a decision about whether ve_run creates
+    # this.
+    out_dir = tmp_path / "out_dir"
+    out_dir.mkdir()
 
     # Run ve_run with just a minimal TestingModel used and don't save any outputs
     ve_run(
-        cfg_strings="""
+        cfg_strings=f"""
 [core.data_output_options]
 save_initial_state = false
 save_continuous_data = false
 save_final_state = false
 save_merged_config = false
+out_path='{out_dir!s}'
+[core.data]
+variable = []
 [testing]
 """,
         progress=progress_value,

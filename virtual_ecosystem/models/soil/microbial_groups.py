@@ -3,54 +3,16 @@ the different microbial functional groups used in the soil model.
 """  # noqa: D205
 
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 
-from virtual_ecosystem.core.config import Config, ConfigurationError
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.core.constants_loader import load_constants
-from virtual_ecosystem.core.logger import LOGGER
-
-
-@dataclass(frozen=True)
-class EnzymeConstants:
-    """Container for the set of constants associated with a specific enzyme."""
-
-    source: str
-    """The microbial group which produces the enzyme."""
-
-    substrate: str
-    """The substrate which the enzyme acts upon."""
-
-    maximum_rate: float
-    """The maximum rate of the enzyme at the reference temperature [day^-1]."""
-
-    half_saturation_constant: float
-    """The half saturation constant for the enzyme at the reference temperature.
-
-    Units of [kg C m^-3]."""
-
-    activation_energy_rate: float
-    """Activation energy for enzyme rate with temperature [J K^-1]."""
-
-    activation_energy_saturation: float
-    """Activation energy for enzyme saturation with temperature [J K^-1]."""
-
-    # TODO - This should change to Kelvin when we change the default units to Kelvin
-    reference_temperature: float
-    """The reference temperature that enzyme rate and saturation were measured at [C].
-    """
-
-    turnover_rate: float
-    """The turnover rate of the enzyme [day^-1]."""
-
-    c_n_ratio: float
-    """Ratio of carbon to nitrogen for the enzyme [unitless]."""
-
-    c_p_ratio: float
-    """Ratio of carbon to phosphorus for the enzyme [unitless]."""
+from virtual_ecosystem.core.model_config import CoreConstants
+from virtual_ecosystem.models.soil.model_config import (
+    SoilConfiguration,
+    SoilEnzymeClass,
+    SoilMicrobialGroup,
+)
 
 
 @dataclass(frozen=True)
@@ -130,6 +92,18 @@ class MicrobialGroupConstants:
     functional group will prevent the soil model from configuring.
     """
 
+    symbiote_nitrogen_uptake_fraction: float
+    """Fraction of nitrogen uptake that is supplied to symbiotic (plant) partners.
+    
+    [unitless]. This should only have a non-zero value for mycorrhizal fungi.
+    """
+
+    symbiote_phosphorus_uptake_fraction: float
+    """Fraction of phosphorus uptake that is supplied to symbiotic (plant) partners.
+    
+    [unitless]. This should only have a non-zero value for mycorrhizal fungi.
+    """
+
     synthesis_nutrient_ratios: dict[str, float]
     """Average carbon to nutrient ratios for the total synthesised biomass.
     
@@ -141,50 +115,26 @@ class MicrobialGroupConstants:
     @classmethod
     def build_microbial_group(
         cls,
-        group_config: dict[str, Any],
-        enzyme_classes: dict[str, EnzymeConstants],
-        core_constants: CoreConsts,
+        group_config: SoilMicrobialGroup,
+        enzyme_classes: dict[str, SoilEnzymeClass],
+        core_constants: CoreConstants,
     ):
         """Class method to build the microbial group including enzyme information.
 
         Args:
-            group_config: The config details for microbial group in question.
+            group_config: A SoilMicrobialGroup instance.
             enzyme_classes: Details of the enzyme classes used by the soil model.
             core_constants: Set of constants shared across the Virtual Ecosystem models.
-
-        Raises:
-            ValueError: If the taxonomic grouping provided isn't accepted.
         """
 
-        valid_taxonomic_groups = {"fungi", "bacteria"}
-
-        if group_config["taxonomic_group"] not in valid_taxonomic_groups:
-            msg = (
-                f"Taxonomic group {group_config['taxonomic_group']} not allowed. Must "
-                f"be one of {valid_taxonomic_groups}."
-            )
-            LOGGER.critical(msg)
-            raise ValueError(msg)
-
-        if (
-            group_config["taxonomic_group"] != "fungi"
-            and group_config["reproductive_allocation"] != 0.0
-        ):
-            msg = (
-                f"Only fungi allocate to fruiting bodies, "
-                f"{group_config['taxonomic_group']} cannot."
-            )
-            LOGGER.critical(msg)
-            raise ValueError(msg)
-
         return cls(
-            **group_config,
+            **group_config.model_dump(),
             synthesis_nutrient_ratios=calculate_new_biomass_average_nutrient_ratios(
-                taxonomic_group=group_config["taxonomic_group"],
-                c_n_ratio=group_config["c_n_ratio"],
-                c_p_ratio=group_config["c_p_ratio"],
-                enzyme_production=group_config["enzyme_production"],
-                reproductive_allocation=group_config["reproductive_allocation"],
+                taxonomic_group=group_config.taxonomic_group,
+                c_n_ratio=group_config.c_n_ratio,
+                c_p_ratio=group_config.c_p_ratio,
+                enzyme_production=group_config.enzyme_production,
+                reproductive_allocation=group_config.reproductive_allocation,
                 c_n_ratio_fruiting_bodies=core_constants.fungal_fruiting_bodies_c_n_ratio,
                 c_p_ratio_fruiting_bodies=core_constants.fungal_fruiting_bodies_c_p_ratio,
                 enzyme_classes=enzyme_classes,
@@ -209,7 +159,7 @@ def calculate_new_biomass_average_nutrient_ratios(
     reproductive_allocation: float,
     c_n_ratio_fruiting_bodies: float,
     c_p_ratio_fruiting_bodies: float,
-    enzyme_classes: dict[str, EnzymeConstants],
+    enzyme_classes: dict[str, SoilEnzymeClass],
 ) -> dict[str, float]:
     """Calculate average carbon nutrient ratios of the newly synthesised biomass.
 
@@ -267,162 +217,28 @@ def calculate_new_biomass_average_nutrient_ratios(
 
 
 def make_full_set_of_microbial_groups(
-    config: Config,
-    enzyme_classes: dict[str, EnzymeConstants],
-    core_constants: CoreConsts,
+    config: SoilConfiguration,
+    enzyme_classes: dict[str, SoilEnzymeClass],
+    core_constants: CoreConstants,
 ) -> dict[str, MicrobialGroupConstants]:
     """Make the full set of functional groups used in the soil model.
 
     Args:
-        config: The complete virtual ecosystem config.
+        config: A soil model configuration instance.
         enzyme_classes: Details of the enzyme classes used by the soil model.
         core_constants: Set of constants shared across the Virtual Ecosystem models.
 
-    Raises:
-        ConfigurationError: If the soil model configuration is missing, if expected
-            functional groups are not defined, or if unexpected functional groups are
-            defined.
-
     Returns:
-        A dictionary containing each functional group used in the soil model (currently
-        bacteria and fungi).
+        A dictionary containing each required functional group used in the soil model.
     """
 
-    if "soil" not in config:
-        msg = "Model configuration for soil model not found."
-        LOGGER.critical(msg)
-        raise ConfigurationError(msg)
-
-    expected_groups = {
-        "saprotrophic_fungi",
-        "ectomycorrhiza",
-        "arbuscular_mycorrhiza",
-        "bacteria",
-    }
-    defined_groups = {
-        group["name"] for group in config["soil"]["microbial_group_definition"]
-    }
-
-    undefined_groups = expected_groups.difference(defined_groups)
-    unexpected_groups = defined_groups.difference(expected_groups)
-    if undefined_groups:
-        msg = (
-            "The following expected soil microbial groups are not defined: "
-            f"{', '.join(undefined_groups)}"
-        )
-        LOGGER.critical(msg)
-    if unexpected_groups:
-        msg = (
-            "The following microbial groups are not valid: "
-            f"{', '.join(unexpected_groups)}"
-        )
-        LOGGER.critical(msg)
-    if undefined_groups or unexpected_groups:
-        raise ConfigurationError(
-            "The soil microbial group configuration contains errors. Please check the "
-            "log."
-        )
-
     return {
-        group_name: MicrobialGroupConstants.build_microbial_group(
-            group_config=next(
-                functional_group
-                for functional_group in config["soil"]["microbial_group_definition"]
-                if functional_group["name"] == group_name
-            ),
+        group.name: MicrobialGroupConstants.build_microbial_group(
+            group_config=group,
             core_constants=core_constants,
             enzyme_classes=enzyme_classes,
         )
-        for group_name in expected_groups
-    }
-
-
-def make_full_set_of_enzymes(
-    config: Config,
-) -> dict[str, EnzymeConstants]:
-    """Make the full set of enzyme classes used in the soil model.
-
-    Args:
-        config: The complete virtual ecosystem config.
-
-    Raises:
-        ConfigurationError: If the soil model configuration is missing, if expected
-            enzyme classes are not defined, or if unexpected enzyme classes are
-            defined.
-
-    Returns:
-        A dictionary containing each enzyme class used in the soil model.
-    """
-
-    if "soil" not in config:
-        msg = "Model configuration for soil model not found."
-        LOGGER.critical(msg)
-        raise ConfigurationError(msg)
-
-    expected_classes = {
-        ("fungi", "pom"),
-        ("fungi", "maom"),
-        ("bacteria", "pom"),
-        ("bacteria", "maom"),
-    }
-    defined_classes = {
-        (group["source"], group["substrate"])
-        for group in config["soil"]["enzyme_class_definition"]
-    }
-
-    undefined_classes = expected_classes.difference(defined_classes)
-    unexpected_classes = defined_classes.difference(expected_classes)
-    if undefined_classes:
-        msg = "The following expected enzyme classes are not defined: " + ", ".join(
-            f"{source}_{substrate}" for source, substrate in undefined_classes
-        )
-        LOGGER.critical(msg)
-    if unexpected_classes:
-        msg = "The following enzyme classes are not valid: " + ", ".join(
-            f"{source}_{substrate}" for source, substrate in unexpected_classes
-        )
-        LOGGER.critical(msg)
-    if undefined_classes or unexpected_classes:
-        raise ConfigurationError(
-            "The soil enzyme classes configuration contains errors. Please check the "
-            "log."
-        )
-
-    return {
-        f"{microbe}_{substrate}": EnzymeConstants(
-            **next(
-                enzyme_class
-                for enzyme_class in config["soil"]["enzyme_class_definition"]
-                if enzyme_class["source"] == microbe
-                and enzyme_class["substrate"] == substrate
-            )
-        )
-        for (microbe, substrate) in expected_classes
-    }
-
-
-def find_microbial_stoichiometries(config: Config) -> dict[str, dict[str, float]]:
-    """Find the stoichiometries of each microbial functional group.
-
-    This is a helper function for the animal model, as microbial stoichiometries need to
-    be known for soil consumption reasons.
-
-    Args:
-        config: The complete virtual ecosystem config.
-
-    Returns:
-        A dictionary containing the carbon to nutrient ratios of each microbial
-        functional group, for both nitrogen and phosphorus [unitless]
-    """
-    core_constants = load_constants(config, "core", "CoreConsts")
-    enzyme_classes = make_full_set_of_enzymes(config=config)
-    microbial_groups = make_full_set_of_microbial_groups(
-        config=config, enzyme_classes=enzyme_classes, core_constants=core_constants
-    )
-
-    return {
-        group: {"nitrogen": params.c_n_ratio, "phosphorus": params.c_p_ratio}
-        for (group, params) in microbial_groups.items()
+        for group in config.microbial_group_definition
     }
 
 
