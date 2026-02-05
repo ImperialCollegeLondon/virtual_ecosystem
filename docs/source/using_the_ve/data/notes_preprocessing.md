@@ -21,8 +21,8 @@ Please check the following:
 * **Does the input climate data match the model grid?**
 
   This match is necessary for the model to run and to have the effects of topography and
-  elevation incorporated that we described in the
-  [theory section](../../virtual_ecosystem/theory/microclimate_theory.md#factors-affecting-microclimate).
+  elevation incorporated that we described in the [theory
+  section](../../virtual_ecosystem/theory/microclimate_primer.md#factors-affecting-microclimate).
   This spatial downscaling step is not included in the Virtual Ecosystem.
 
 * **What is the reference height?**

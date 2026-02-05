@@ -13,7 +13,11 @@ subtrees:
             - file: virtual_ecosystem/theory/abiotic_theory
               entries:
                 - file: virtual_ecosystem/theory/microclimate_theory
+                  entries:
+                    - file: virtual_ecosystem/theory/microclimate_primer
                 - file: virtual_ecosystem/theory/hydrology_theory
+                  entries:
+                    - file: virtual_ecosystem/theory/hydrology_primer
             - file: virtual_ecosystem/theory/plant_theory
             - file: virtual_ecosystem/theory/soil/summary
               entries:
