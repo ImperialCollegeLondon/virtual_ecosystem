@@ -459,7 +459,9 @@ def k_i_j(alpha_i_j: float, N_i_t: float, A_cell: float, theta_i_j: float) -> fl
     return alpha_i_j * (N_i_t / A_cell) * theta_i_j
 
 
-def H_i_j(h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float) -> float:
+def H_i_j(
+    h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float, prey_mass: float
+) -> float:
     """Handling time of prey cohort j by cohort i.
 
     Time (days) for an individual of cohort i to handle 1 individual of cohort j.
@@ -475,13 +477,14 @@ def H_i_j(h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float) -> float:
         M_i_t: Current predator mass.
         b_pred: Exponent of the power-law function relating the handling time of
           prey to predator mass.
+        prey_mass: the mass of prey being handled.
 
     Returns:
         A float of the handling time (days).
 
     """
 
-    return h_pred_0 * ((M_ref / M_i_t) ** b_pred) * M_i_t
+    return h_pred_0 * ((M_ref / M_i_t) ** b_pred) * prey_mass
 
 
 def juvenile_dispersal_speed(

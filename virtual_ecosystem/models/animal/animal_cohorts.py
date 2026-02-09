@@ -875,7 +875,7 @@ class AnimalCohort:
         A_cell = 1.0  # temporary
         return sf.k_i_j(alpha, self.individuals, A_cell, theta_i_j)
 
-    def calculate_total_handling_time_for_predation(self) -> float:
+    def calculate_total_handling_time_for_predation(self, prey_mass: float) -> float:
         """Calculate the total handling time for preying on available animal cohorts.
 
         Returns:
@@ -887,6 +887,7 @@ class AnimalCohort:
             self.constants.M_pred_ref,
             self.mass_current,
             self.constants.b_pred,
+            prey_mass,
         )
 
     def F_i_j_individual(
@@ -911,7 +912,9 @@ class AnimalCohort:
         alpha = self.calculate_predation_search_rate(w_bar)
         theta_i_j = self.theta_i_j(animal_list)  # Assumes implementation of theta_i_j
         k_target = self.calculate_potential_prey_consumed(alpha, theta_i_j)
-        total_handling_t = self.calculate_total_handling_time_for_predation()
+        total_handling_t = self.calculate_total_handling_time_for_predation(
+            target_cohort.mass_current
+        )
         N_i = self.individuals
         N_target = target_cohort.individuals
 
