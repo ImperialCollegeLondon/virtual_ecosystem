@@ -22,7 +22,7 @@ be reported as one.
 from __future__ import annotations
 
 import uuid
-from math import ceil, sqrt
+from math import ceil, isnan, sqrt
 from random import choice
 from typing import Any, cast
 
@@ -525,21 +525,13 @@ class AnimalModel(
                 )
 
     def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
-        """Estimates the total number of individuals of a functional group.
-
-        Args:
-            functional_group: The specific functional group having its individuals
-                estimated.
-
-        Returns: The integer number of individuals of the group.
-
-        """
-
+        """Estimates the total number of individuals of a functional group."""
         total_area = self.data.grid.n_cells * self.data.grid.cell_area
 
-        if functional_group.density_individuals_m2 is not None:
+        density_override = functional_group.density_individuals_m2
+        if density_override is not None and not isnan(density_override):
             # User-provided empirical density overrides scaling laws
-            return int(functional_group.density_individuals_m2 * total_area)
+            return int(density_override * total_area)
 
         # No empirical density → use selected scaling method
         if self.density_scaling_method == "damuth":
