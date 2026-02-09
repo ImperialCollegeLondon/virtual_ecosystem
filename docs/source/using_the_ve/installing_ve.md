@@ -121,3 +121,31 @@ your system, and is generally recommended as good practice for computing with Py
 Creating a virtual environment is a moderately advanced topic and there is a good primer
 on [the Real Python
 website](https://realpython.com/python-virtual-environments-a-primer/).
+
+Once you have created a virtual environment, you can then activate it and install the
+Virtual Ecosystem into it using pip by running the following:
+
+`````{tab-set}
+:sync-group: operating_system
+
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} console
+$ python -m venv ve_testing
+$ source ve_testing/bin/activate
+(ve_testing) $ pip install virtual_ecosystem
+```
+````
+
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+python -m venv ve_testing
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\ve_testing\Scripts\activate
+pip install virtual_ecosystem
+```
+````
+`````
