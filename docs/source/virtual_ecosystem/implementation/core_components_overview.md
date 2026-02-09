@@ -55,7 +55,7 @@ documentation](../../using_the_ve/configuration/new_config.md).
 ## The grid
 
 Next, the spatial structure of the simulation is configured as a [`Grid`
-object](../../using_the_ve/configuration/grid.md) that defines the area, coordinate system
+object](../../development/design/grid.md) that defines the area, coordinate system
 and geometry of the individual cells that will be used in the simulation. The grid is
 also used to establish grid cell neighbours and connectivity across the spatial domain.
 
@@ -83,7 +83,7 @@ vertical layer structure. (click to zoom).
 ## Loading and validation of input data
 
 All of the variables required to initialise and run the simulation are then loaded into
-an internal [`Data` object](../../using_the_ve/data/data.md). The model configuration
+an internal [`Data` object](../../development/design/data.md). The model configuration
 provides the location of the file containing each required variables and the Data object
 is then used to load the data, checking that:
 
