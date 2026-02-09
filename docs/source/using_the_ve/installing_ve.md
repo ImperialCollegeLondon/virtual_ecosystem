@@ -121,17 +121,3 @@ your system, and is generally recommended as good practice for computing with Py
 Creating a virtual environment is a moderately advanced topic and there is a good primer
 on [the Real Python
 website](https://realpython.com/python-virtual-environments-a-primer/).
-
-## Altering the model code
-
-If you are interested in actually making changes to the code underlying the `ve_run`
-command and potentially developing extensions or alterations to the model, then we
-strongly recommend installing the package source code from GitHub using the `poetry`
-package manager. This will install the additional packages and tools used by the
-development team that are required for code development and quality assurance, code
-testing and building documentation.
-
-This is a much more complex installation - see this [overview of the developer
-setup](../development/contributing/overview.md) - but it will put you in a position to
-work with most recent changes to the model or contribute your own suggestions to the
-code.
