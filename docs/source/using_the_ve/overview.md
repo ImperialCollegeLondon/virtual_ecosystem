@@ -42,18 +42,10 @@ a step-by-step guide to getting up and running. The main sections are:
    you should be able to [run the example model](./virtual_ecosystem_in_use) to learn
    about how the model runs and learn about the model outputs.
 
-1. When it comes to running your own models, you will need to understand how to provide
-   the required inputs to the Virtual Ecosystem model for your own system. There are
-   three main parts to setting up your own model.
-
-   1. Defining the [configuration of the model core system](./core_configuration.md),
-      which establishes the spatial and temporal context of your simulation
-
-   1. [Configuring the science models](./science_model_configuration.md) that you want
-      to include in your simulation.
-
-   1. [Creating any data inputs](./model_data_inputs.md) required by your science models
-      and then adding those to your configuration files.
+1. When it comes to running your own models, you will need to understand [how to provide
+   the required inputs to the Virtual Ecosystem model for your own
+   system](./running_ve_with_your_own_data.md). There are three main parts to setting up
+   your own model.
 
 ## Advanced usage
 
