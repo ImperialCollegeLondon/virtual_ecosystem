@@ -72,5 +72,5 @@ Ecosystem we provide the following reference materials:
 * [A table containing the variables](./variables/variables.md) used by the Virtual
   Ecosystem, searchable based on the model that variables are used by, and how the
   variables are used by each model (e.g. generated during the setup process, etc).
-* A page containing an [explanation of how to configure plant functional
-  types](./variables/pft_configuration.md).
+* [Details needed to setup novel runs of specific Virtual Ecosystem
+  models](./model_details/overview.md)
