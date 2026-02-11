@@ -286,7 +286,7 @@ class AnimalModel(
             )
         )
 
-        # TODO - remove this
+        # TODO - remove this when plants implemented through array resources.
         self.plant_resources = {
             cell_id: [
                 PlantResources(

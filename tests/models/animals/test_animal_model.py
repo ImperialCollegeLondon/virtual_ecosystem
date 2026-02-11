@@ -89,6 +89,14 @@ class TestAnimalModel:
                         DEBUG,
                         "animal model: required var 'fungal_fruiting_bodies' checked",
                     ),
+                    (
+                        INFO,
+                        "Adding data array for 'subcanopy_vegetation_biomass_consumed'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'subcanopy_seedbank_biomass_consumed'",
+                    ),
                     (INFO, "Adding data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
                     (INFO, "Updating animal model"),
