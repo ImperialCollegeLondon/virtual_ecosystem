@@ -332,6 +332,28 @@ def dummy_animal_data(animal_fixture_core_components):
         np.zeros(data.grid.n_cells), dims="cell_id"
     )
 
+    # Array resource pools
+    pfts = np.array(["pioneer", "canopy", "emergent"])
+    cell_ids = np.arange(data.grid.n_cells)
+    elements = np.array(["C", "N", "P"])
+
+    leaf_mass = DataArray(
+        np.ones((data.grid.n_cells, elements.size, pfts.size)),
+        dims=("cell_id", "element", "pft"),
+        coords=dict(
+            cell_id=cell_ids,
+            element=elements,
+            pft=pfts,
+        ),
+    ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
+
+    data["subcanopy_vegetation_biomass"] = (
+        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
+    )
+    data["subcanopy_seedbank_biomass"] = (
+        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
+    )
+
     return data
 
 

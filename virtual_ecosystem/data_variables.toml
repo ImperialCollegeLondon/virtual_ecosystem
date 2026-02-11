@@ -1239,8 +1239,22 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Subcanopy vegetation biomass consumed by animals."
+name = "subcanopy_vegetation_biomass_consumed"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Carbon biomass of subcanopy seedbank."
 name = "subcanopy_seedbank_biomass"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Subcanopy seedbank biomass consumed by animals."
+name = "subcanopy_seedbank_biomass_consumed"
 unit = "kg C m^-2"
 variable_type = "float"
 

@@ -77,7 +77,7 @@ import xarray as xr
 from numpy.typing import NDArray
 
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+from virtual_ecosystem.models.animal.animal_traits import DietType, VerticalOccupancy
 from virtual_ecosystem.models.animal.protocols import Resource
 
 
@@ -94,6 +94,8 @@ class ArrayResourceDefinition:
     vertical_occupancy: VerticalOccupancy
     """A VerticalOccupancy enum value indicating the vertical availability of the
     resource to consumers."""
+    diet_type: DietType
+    """A definition of the diet type that can forage from this resource."""
     partition_by_pft: bool = False
     """Is the pool array partitioned along the plant functional type axis."""
 
@@ -129,6 +131,10 @@ class ArrayResource:
         self.vertical_occupancy: VerticalOccupancy = definition.vertical_occupancy
         """A VerticalOccupancy enum value indicating the vertical availability of the
         resource to consumers."""
+        self.diet_type: DietType = definition.diet_type
+        """A DietType enum value indicating the dietary availability of the resource to
+        consumers."""
+
         self.partition_by_pft: bool = definition.partition_by_pft
         """Should this resource array be partitioned into separate resource pools by
         PFT."""
@@ -181,11 +187,13 @@ ARRAY_RESOURCES = [
         pool_array="subcanopy_vegetation_biomass",
         consumed_array="subcanopy_vegetation_biomass_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
+        diet_type=DietType.HERBIVORE,
     ),
     ArrayResourceDefinition(
         pool_array="subcanopy_seedbank_biomass",
         consumed_array="subcanopy_seedbank_biomass_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
+        diet_type=DietType.HERBIVORE,
     ),
 ]
 """Definition of the set of ArrayResources available to the AnimalModel."""
@@ -265,6 +273,24 @@ class ResourcePool:
             self.data[self.resource.consumed_array].loc[:, :, self.pft] = (
                 consumed_elemental_masses
             )
+
+    def is_forageable(
+        self, diet: DietType, vertical_occupancy: VerticalOccupancy
+    ) -> bool:
+        """Utility function to test if a consumer can access the resource pool.
+
+        Args:
+            diet: The diet type of the potential consumer
+            vertical_occupancy: The vertical occupancy of the potential consumer.
+
+        Returns:
+            True if the resource pool is within both the diet and vertical occupancy of
+            the functional group, otherwise False.
+        """
+
+        return ((diet & self.resource.diet_type).value > 0) and (
+            (vertical_occupancy & self.resource.vertical_occupancy).value > 0
+        )
 
     def __getitem__(self, cell_id) -> CellResource:
         """Indexing onto cell_id within the ArrayResource.

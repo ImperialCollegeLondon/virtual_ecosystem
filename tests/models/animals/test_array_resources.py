@@ -15,7 +15,10 @@ def test_proof_of_concept_workflow():
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.core.variables import VariableMetadata
-    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.animal_traits import (
+        DietType,
+        VerticalOccupancy,
+    )
     from virtual_ecosystem.models.animal.array_resources import (
         ArrayResource,
         ArrayResourceDefinition,
@@ -66,11 +69,13 @@ def test_proof_of_concept_workflow():
             pool_array="leaf_mass",
             consumed_array="leaf_mass_consumed",
             vertical_occupancy=VerticalOccupancy.CANOPY,
+            diet_type=DietType.HERBIVORE,
             partition_by_pft=True,
         ),
         ArrayResourceDefinition(
             pool_array="subcanopy_mass",
             consumed_array="subcanopy_mass_consumed",
+            diet_type=DietType.HERBIVORE,
             vertical_occupancy=VerticalOccupancy.GROUND,
         ),
     ]
