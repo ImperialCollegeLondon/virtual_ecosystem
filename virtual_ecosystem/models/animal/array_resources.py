@@ -184,14 +184,14 @@ class ArrayResource:
 
 ARRAY_RESOURCES = [
     ArrayResourceDefinition(
-        pool_array="subcanopy_vegetation_biomass",
-        consumed_array="subcanopy_vegetation_biomass_consumed",
+        pool_array="subcanopy_vegetation_cnp",
+        consumed_array="subcanopy_vegetation_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.HERBIVORE,
     ),
     ArrayResourceDefinition(
-        pool_array="subcanopy_seedbank_biomass",
-        consumed_array="subcanopy_seedbank_biomass_consumed",
+        pool_array="subcanopy_seedbank_cnp",
+        consumed_array="subcanopy_seedbank_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.HERBIVORE,
     ),

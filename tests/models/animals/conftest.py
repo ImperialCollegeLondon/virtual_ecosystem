@@ -97,10 +97,10 @@ def animal_data_for_model_instance(fixture_core_components):
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
-    data["subcanopy_vegetation_biomass"] = (
+    data["subcanopy_vegetation_cnp"] = (
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
-    data["subcanopy_seedbank_biomass"] = (
+    data["subcanopy_seedbank_cnp"] = (
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
 
@@ -369,10 +369,10 @@ def dummy_animal_data(animal_fixture_core_components):
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
-    data["subcanopy_vegetation_biomass"] = (
+    data["subcanopy_vegetation_cnp"] = (
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
-    data["subcanopy_seedbank_biomass"] = (
+    data["subcanopy_seedbank_cnp"] = (
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
 
@@ -894,10 +894,10 @@ def litter_soil_data_instance(fixture_core_components):
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
-    data["subcanopy_vegetation_biomass"] = (
+    data["subcanopy_vegetation_cnp"] = (
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
-    data["subcanopy_seedbank_biomass"] = (
+    data["subcanopy_seedbank_cnp"] = (
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
 

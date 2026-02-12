@@ -1239,22 +1239,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Subcanopy vegetation biomass consumed by animals."
-name = "subcanopy_vegetation_biomass_consumed"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Carbon biomass of subcanopy seedbank."
 name = "subcanopy_seedbank_biomass"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Subcanopy seedbank biomass consumed by animals."
-name = "subcanopy_seedbank_biomass_consumed"
 unit = "kg C m^-2"
 variable_type = "float"
 
@@ -1330,9 +1316,23 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "C, N, and P masses of subcanopy vegetation consumed by animals."
+name = "subcanopy_vegetation_cnp_consumed"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "C, N, and P masses for the ground seedbank"
 name = "subcanopy_seedbank_litter_cnp"
 unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses of subcanopy seedbank consumed by animals."
+name = "subcanopy_seedbank_cnp_consumed"
+unit = "kg C m^-2"
 variable_type = "float"
 
 [[variable]]

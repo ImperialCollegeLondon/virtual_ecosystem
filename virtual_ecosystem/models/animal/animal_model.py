@@ -119,8 +119,8 @@ class AnimalModel(
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
         "decay_of_fungal_fruiting_bodies",
-        "subcanopy_vegetation_biomass_consumed",
-        "subcanopy_seedbank_biomass_consumed",
+        "subcanopy_vegetation_cnp_consumed",
+        "subcanopy_seedbank_cnp_consumed",
     ),
     vars_updated=(
         "decomposed_excrement_cnp",
@@ -142,8 +142,8 @@ class AnimalModel(
         "animal_arbuscular_mycorrhiza_consumption",
         "fungal_fruiting_bodies",
         "decay_of_fungal_fruiting_bodies",
-        "subcanopy_vegetation_biomass_consumed",
-        "subcanopy_seedbank_biomass_consumed",
+        "subcanopy_vegetation_cnp_consumed",
+        "subcanopy_seedbank_cnp_consumed",
     ),
 ):
     """A class describing the animal model.
