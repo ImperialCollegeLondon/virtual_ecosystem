@@ -27,3 +27,6 @@ Steps which already have pages to make use of:
 
 1. [Creating any data inputs](./model_data_inputs.md) required by your science models
     and then adding those to your configuration files.
+
+1. [Details of the spatial data axis.](./axes.md) This is unlikely to remain as a page,
+   but is useful content to merge into the tutorial
