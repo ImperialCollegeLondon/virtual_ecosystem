@@ -10,8 +10,8 @@ static mode. The ``model_name.model_config`` module can then include other
 :class:`Configuration` classes that are used as nested fields within the root
 configuration class.
 
-The basic details of how this system is used can be
-found :doc:`here </using_the_ve/configuration/config>`.
+The basic details of how this system is used can be found :doc:`here
+</using_the_ve/config>`.
 """  # noqa: D205
 
 from collections.abc import Callable
