@@ -48,7 +48,7 @@ The variables page build is a bit complex:
 
 The table below list all of the variables that are stored centrally within Virtual
 Ecosystem simulations. These variables are arrays of data that are structured using the
-[core axes of the simulation](../../using_the_ve/configuration/axes.md).
+[core axes of the simulation](../../using_the_ve/axes.md).
 
 Each science model declares which of these variables are used when the model runs. There
 are five different usage cases, identifying sets of variables that are:

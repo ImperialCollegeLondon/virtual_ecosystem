@@ -51,20 +51,25 @@ subtrees:
         entries:
           - file: using_the_ve/installing_ve
           - file: using_the_ve/example_data
-          - file: using_the_ve/core_configuration
-          - file: using_the_ve/science_model_configuration
           - file: using_the_ve/virtual_ecosystem_in_use
-          - file: using_the_ve/model_data_inputs
-          - file: using_the_ve/virtual_ecosystem_in_static_mode
-          - file: using_the_ve/configuration/config
-            title: Configuring your model
+          - file: using_the_ve/running_ve_with_your_own_data
+            title: Using your own data
             entries:
-              - file: using_the_ve/configuration/new_config
-              - file: using_the_ve/configuration/axes
-              - file: using_the_ve/configuration/constants
-          - file: using_the_ve/data/notes_preprocessing
+              - file: using_the_ve/core_configuration
+              - file: using_the_ve/science_model_configuration
+              - file: using_the_ve/config
+              - file: using_the_ve/model_data_inputs
+              - file: using_the_ve/axes
+          - file: using_the_ve/virtual_ecosystem_in_static_mode
           - file: using_the_ve/variables/variables
-          - file: using_the_ve/variables/pft_configuration
+          - file: using_the_ve/core_settings/overview
+            entries:
+              - file: using_the_ve/core_settings/static_models
+          - file: using_the_ve/model_details/overview
+            entries:
+              - file: using_the_ve/model_details/pft_configuration
+              - file: using_the_ve/model_details/notes_preprocessing
+              - file: using_the_ve/model_details/new_config
 
       - file: development/contributing
         title: Developers
