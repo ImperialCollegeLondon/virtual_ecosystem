@@ -409,7 +409,7 @@ into a time period
 The remaining class attributes all start with `vars_` and are used to define sets of
 variables that will be shared across models in a central data store (a `Data` object)
 for the simulation. The variables in this central data store are all arrays of data and
-are structured across the [core data axes](../../using_the_ve/configuration/axes.md) in
+are structured across the [core data axes](../../using_the_ve/axes.md) in
 the simulation.
 
 :::{admonition} New variables

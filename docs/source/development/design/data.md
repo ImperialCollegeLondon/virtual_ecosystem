@@ -59,7 +59,7 @@ simulation. Validators may also standardise or subset input datasets to map them
 particular axis configuration.
 
 For more details on the different core axes and the alternative mappings applied by
-validators see the [core axis](../../using_the_ve/configuration/axes.md) documentation.
+validators see the [core axis](../../using_the_ve/axes.md) documentation.
 
 ## Creating a `Data` instance
 

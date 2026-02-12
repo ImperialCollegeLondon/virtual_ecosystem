@@ -50,7 +50,7 @@ When a simulation starts, the Virtual Ecosystem:
   * Any required fields without defaults are not completed.
 
 Further details can be found in the [configuration
-documentation](../../using_the_ve/configuration/new_config.md).
+documentation](../../using_the_ve/model_details/new_config.md).
 
 ## The grid
 
@@ -90,7 +90,7 @@ is then used to load the data, checking that:
 * the input files are valid and can be read, and
 * that the data in files is congruent with the rest of the configuration, such as
   checking the dimensionality and shape of [core
-  axes](../../using_the_ve/configuration/axes.md) like the spatial grid.
+  axes](../../using_the_ve/axes.md) like the spatial grid.
 
 ## Simulation timescale
 

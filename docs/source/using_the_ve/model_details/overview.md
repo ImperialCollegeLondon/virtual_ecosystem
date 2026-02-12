@@ -20,3 +20,5 @@ significantly expanded in future, at present in contains:
   types](./pft_configuration.md).
 * A page containing [important notes about climate data
   pre-processing](./notes_preprocessing.md).
+* A page providing the [full set of config options](./new_config.md) for all models. At
+  some point this will be split into a page per model.
