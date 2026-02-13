@@ -1526,7 +1526,8 @@ class AnimalModel(
             carcass_pool_map = self.carcass_pools
 
             # Array resources
-            array_resource_list = cohort.get_array_resources(self.array_resource_pools)
+            # TODO - this needs to be wired into cohort.forage_cohort below
+            array_resource_list = cohort.get_array_resources(self.array_resource_pools)  # noqa: F841
 
             # Live plant resources
             if diet & (
