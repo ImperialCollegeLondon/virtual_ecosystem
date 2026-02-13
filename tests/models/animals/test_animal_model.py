@@ -91,11 +91,11 @@ class TestAnimalModel:
                     ),
                     (
                         INFO,
-                        "Adding data array for 'subcanopy_vegetation_biomass_consumed'",
+                        "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
                     ),
                     (
                         INFO,
-                        "Adding data array for 'subcanopy_seedbank_biomass_consumed'",
+                        "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
                     ),
                     (INFO, "Adding data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),

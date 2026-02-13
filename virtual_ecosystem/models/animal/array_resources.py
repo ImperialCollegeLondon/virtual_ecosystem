@@ -236,6 +236,9 @@ class ResourcePool:
         self.consumed_mass: NDArray[np.floating]
         """An array of total consumed biomass by cell_id."""
 
+        # Populate the initial state of the resources.
+        self.set_resources()
+
     def set_resources(self):
         """Resets the resource from the data object.
 
