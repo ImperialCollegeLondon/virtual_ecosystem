@@ -228,6 +228,7 @@ class Subcanopy:
         model_constants: The PlantModel constants for the simulation
         layer_index: The layer index of the surface layer in the vertical layer axis.
         model_timing: The core ModelTiming instance for the simulation.
+        data_object_template: A template for creating CNP element arrays.
     """
 
     elements: tuple[str, ...] = ("n", "p")
@@ -240,6 +241,7 @@ class Subcanopy:
         model_constants: PlantsConstants,
         layer_index: int,
         model_timing: ModelTiming,
+        data_object_template: DataArray,
     ) -> None:
         # Init attributes
         self.data: Data = data
@@ -247,9 +249,11 @@ class Subcanopy:
         self.model_constants: PlantsConstants = model_constants
         self.model_timing: ModelTiming = model_timing
         self.layer_index: int = layer_index
+        self.data_object_template: DataArray = data_object_template
 
-        # TODO: currently initialising from constants using ideal ratios but could load
-        #       nutrient masses from init data.
+        # TODO: Currently initialising from constants using ideal ratios but should load
+        #       nutrient masses from init data. See:
+        #       https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/1334
 
         # Stochiometry of vegetation and seedbank
         self.vegetation_biomass: SubcanopyBiomass = SubcanopyBiomass.from_constants(
@@ -266,6 +270,40 @@ class Subcanopy:
             constants=self.model_constants,
         )
 
+        # Write the initial values to data. This currently:
+        #
+        # * Assumes no initial litter from either pool
+        # * Duplicates code used in the update method (calculate_dynamics)
+        # * Uses a meaningless "ideal" ratio for litter
+        #
+        # But - both of those should be fixed in a more general refactor of this module
+        # to use the CNP array structure. That will likely change a lot of this code, so
+        # not currently adding a SubcanopyBiomass.to_data() method etc etc.
+        empty_litter = np.zeros_like(self.seedbank_biomass.carbon_mass)
+        initial_litter = SubcanopyBiomass(
+            carbon_mass=empty_litter.copy(),
+            nutrients={
+                "n": Nutrient(name="n", ideal_ratio=0, masses=empty_litter.copy()),
+                "p": Nutrient(name="p", ideal_ratio=0, masses=empty_litter.copy()),
+            },
+        )
+
+        # Write biomasses to Data
+        biomasses: dict[str, SubcanopyBiomass] = {
+            "subcanopy_vegetation": self.vegetation_biomass,
+            "subcanopy_seedbank": self.seedbank_biomass,
+            "subcanopy_vegetation_litter": initial_litter,
+            "subcanopy_seedbank_litter": initial_litter,
+        }
+
+        for var, biomass in biomasses.items():
+            biomass_array = self.data_object_template.copy()
+            biomass_array.loc[:, "C"] = biomass.carbon_mass
+            for elem in self.elements:
+                biomass_array.loc[:, elem.upper()] = biomass.nutrients[elem].masses
+
+            self.data[f"{var}_cnp"] = biomass_array
+
         # Type other attributes not populated at __init__
         self.lai: NDArray[np.floating]
         self.light_transmission: NDArray[np.floating]
@@ -276,7 +314,6 @@ class Subcanopy:
         lue: NDArray[np.floating],
         iwue: NDArray[np.floating],
         swd: NDArray[np.floating],
-        data_object_template: DataArray,
     ) -> None:
         r"""Estimate the dynamics of subcanopy vegetation.
 
@@ -440,14 +477,14 @@ class Subcanopy:
 
         # Write biomasses to Data
         biomasses: dict[str, SubcanopyBiomass] = {
-            "subcanopy_vegetation": self.seedbank_biomass,
+            "subcanopy_vegetation": self.vegetation_biomass,
             "subcanopy_seedbank": self.seedbank_biomass,
             "subcanopy_vegetation_litter": vegetation_turnover,
             "subcanopy_seedbank_litter": seedbank_turnover,
         }
 
         for var, biomass in biomasses.items():
-            self.data[f"{var}_cnp"] = data_object_template.copy()
+            self.data[f"{var}_cnp"] = self.data_object_template.copy()
 
             self.data[f"{var}_cnp"].loc[:, "C"] = biomass.carbon_mass
 

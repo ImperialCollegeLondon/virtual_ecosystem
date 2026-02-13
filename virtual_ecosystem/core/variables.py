@@ -444,8 +444,8 @@ def _collect_vars_populated_by_first_update(
                     else (v.vars_populated_by_first_update[0], "first update")
                 )
                 raise ValueError(
-                    f"Variable {var} initialised by {model.model_name} already "
-                    f"initialised during {init_stage} by {init_model}."
+                    f"Variable {var} initialised at first update by {model.model_name} "
+                    f"already initialised during {init_stage} by {init_model}."
                 )
 
             runtime_variables[var] = known_variables[var]
