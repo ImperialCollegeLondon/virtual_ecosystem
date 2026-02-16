@@ -43,7 +43,7 @@ class Progress(IntEnum):
 
 def check_added_variables(
     before: list[str], after: list[str], claimed: tuple[str, ...], model: str, attr: str
-) -> bool:
+) -> None:
     """Check the variables added to data during a model step.
 
     This function checks that the difference in the set of variable names added to data
@@ -57,28 +57,32 @@ def check_added_variables(
         model: The name of the model being checked
         attr: The variable attribute name being checked
 
-    Returns:
-        A boolean value: True if the changed variables matched the claimed variables,
-        otherwise False.
+    Raises:
+        InitialisationError: if the actual changed variables do matched the variables
+            configured in the model attributes.
     """
 
     actual_set = set(after) - set(before)
     claimed_set = set(claimed)
 
+    # If the update variables agree with the model definition then return
     if actual_set == claimed_set:
-        return True
+        return
 
-    LOGGER.warning(f"Mismatch between {model}.{attr} and variable changes in the data:")
+    # Otherwise log the mismatch and raise an error.
+    LOGGER.critical(
+        f"Mismatch between {model}.{attr} and variable changes in the data:"
+    )
 
     claimed_not_actual = claimed_set - actual_set
     if claimed_not_actual:
-        LOGGER.warning(f"Claimed but not populated: {','.join(claimed_not_actual)}")
+        LOGGER.critical(f"Claimed but not populated: {','.join(claimed_not_actual)}")
 
     actual_not_claimed = actual_set - claimed_set
     if actual_not_claimed:
-        LOGGER.warning(f"Populated but not claimed: {','.join(actual_not_claimed)}")
+        LOGGER.critical(f"Populated but not claimed: {','.join(actual_not_claimed)}")
 
-    return False
+    raise InitialisationError(f"Variable setup errors in {model} model: check log.")
 
 
 def initialise_models(
@@ -105,7 +109,6 @@ def initialise_models(
     # Use factory methods to configure the desired models
     failed_models = []
     models_cfd = {}
-    model_variables_ok = True
 
     for model_name, model_class in models.items():
         LOGGER.info(f"Initialising {model_name} model")
@@ -119,29 +122,24 @@ def initialise_models(
             )
             models_cfd[model_name] = this_model
             data_vars_after_init = [str(i) for i in data.data.data_vars]
+
+            # If there are mismatches in the variable specifications, fail.
+            check_added_variables(
+                before=data_vars_before_init,
+                after=data_vars_after_init,
+                claimed=model_class.vars_populated_by_init,
+                model=model_name,
+                attr="vars_populated_by_init",
+            )
+
         except (InitialisationError, ConfigurationError):
             failed_models.append(model_name)
-
-        # Check the model variables
-        model_variables_ok &= check_added_variables(
-            before=data_vars_before_init,
-            after=data_vars_after_init,
-            claimed=model_class.vars_populated_by_init,
-            model=model_name,
-            attr="vars_populated_by_init",
-        )
 
     # If any models fail to configure inform the user about it
     if failed_models:
         to_raise: Exception = InitialisationError(
             f"Configuration failed for models: {','.join(failed_models)}"
         )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    # If there are mismatches in the variable specifications, fail.
-    if not model_variables_ok:
-        to_raise = RuntimeError("Model variable definitions inaccurate: check log.")
         LOGGER.critical(to_raise)
         raise to_raise
 
@@ -326,7 +324,7 @@ def ve_run(
 
             # Check the variables added during the first update.
             if time_index == 0:
-                model_variables_ok &= check_added_variables(
+                check_added_variables(
                     before=data_vars_before_update,
                     after=data_vars_after_update,
                     claimed=model.vars_populated_by_first_update,
