@@ -61,9 +61,7 @@ The workflow of a Virtual Ecosystem simulation (click to zoom).
 
 The configuration files use the [`TOML`](https://toml.io/en/) format to provide all of
 the details for running a simulation: the spatial layout, the locations of the initial
-input data, everything. See the [configuration
-documentation](../../using_the_ve/config.md) in the Using the Virtual
-Ecosystem section to find out more.
+input data, everything.
 
 ## Core Components
 
