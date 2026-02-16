@@ -2015,13 +2015,13 @@ class TestAnimalCohort:
         assert result == {"carbon": 10, "nitrogen": 11, "phosphorus": 12}
 
     @pytest.mark.parametrize(
-        "cohort_instance, diet_type, plant_list, animal_list, fungal_fruit_list,"
+        "cohort_instance, diet_string, plant_list, animal_list, fungal_fruit_list,"
         "soil_fungi_list,pom_list, bacteria_list, expected_nutrient_gain,"
         "delta_mass_mock",
         [
             (
                 "herbivore_cohort_instance",
-                "HERBIVORE",
+                "foliage_fruit",
                 "plant_list_instance",
                 [],
                 [],
@@ -2033,7 +2033,7 @@ class TestAnimalCohort:
             ),
             (
                 "predator_cohort_instance",
-                "CARNIVORE",
+                "vertebrates_invertebrates_carcasses",
                 [],
                 "animal_list_instance",
                 [],
@@ -2045,7 +2045,7 @@ class TestAnimalCohort:
             ),
             (
                 "fungivore_cohort_instance",
-                "MUSHROOMS",
+                "mushrooms",
                 [],
                 [],
                 "fungal_fruit_list_instance",
@@ -2063,7 +2063,7 @@ class TestAnimalCohort:
         mocker,
         request,
         cohort_instance,
-        diet_type,
+        diet_string,
         plant_list,
         animal_list,
         fungal_fruit_list,
@@ -2087,7 +2087,7 @@ class TestAnimalCohort:
 
         # Resolve the cohort object and set its diet
         cohort = request.getfixturevalue(cohort_instance)
-        cohort.functional_group.diet = getattr(DietType, diet_type)
+        cohort.functional_group.diet = DietType.parse(diet_string)
 
         # Resolve lists from fixture names if provided as strings
         if isinstance(plant_list, str):
@@ -2103,15 +2103,13 @@ class TestAnimalCohort:
             for plant in plant_list_instance
         }
 
-        # Mock delta_mass_* method and eat method
+        # Mock delta_mass_* method
         mock_delta_mass = mocker.patch.object(
             cohort, delta_mass_mock, return_value=expected_nutrient_gain
         )
 
-        # Dummy values for untested inputs
         empty_list = []
 
-        # Call method under test
         cohort.forage_cohort(
             plant_list=plant_list,
             animal_list=animal_list,
@@ -2125,31 +2123,30 @@ class TestAnimalCohort:
             scavenge_carcass_pools=empty_list,
             scavenge_excrement_pools=empty_list,
             herbivory_waste_pools=herbivory_waste_pools
-            if diet_type == "HERBIVORE"
+            if diet_string == "foliage_fruit"
             else {},
             dt=30,
         )
 
-        # Validate delta_mass_* call
         mock_delta_mass.assert_called_once()
         kwargs = mock_delta_mass.call_args.kwargs
 
-        if diet_type == "HERBIVORE":
+        if diet_string == "foliage_fruit":
             assert kwargs["plant_list"] == plant_list_instance
             assert kwargs["herbivory_waste_pools"] == herbivory_waste_pools
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
-        elif diet_type == "CARNIVORE":
+        elif diet_string == "vertebrates_invertebrates_carcasses":
             assert kwargs["animal_list"] == animal_list_instance
             assert kwargs["carcass_pools"] == carcass_pools_by_cell_instance
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
-        elif diet_type == "MUSHROOMS":
+        elif diet_string == "mushrooms":
             assert kwargs["fungal_fruit_list"] == fungal_fruit_list_instance
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
         else:
-            assert False, f"Unhandled diet_type: {diet_type}"
+            assert False, f"Unhandled diet_string: {diet_string}"
 
     def test_forage_cohort_earthworm_multisoil(
         self,
@@ -2596,24 +2593,31 @@ class TestAnimalCohort:
         assert predator.can_prey_on(prey) is expected
 
     @pytest.mark.parametrize(
-        "territory, cell_prey_map, expected",
+        "territory, cell_prey_map, prey_diet, expected",
         [
-            # Single valid prey in one cell
-            ([1], {1: ["valid"]}, 1),
-            # Valid and invalid prey in different cells
-            ([1, 2], {1: ["valid"], 2: ["invalid"]}, 1),
-            # All prey invalid
-            ([1, 2], {1: ["invalid"], 2: ["invalid"]}, 0),
-            # Multiple valid prey
-            ([1, 2], {1: ["valid"], 2: ["valid"]}, 2),
-            # Mixed prey in one cell
-            ([1], {1: ["valid", "invalid"]}, 1),
+            # Single valid prey in one cell (vertebrate prey allowed)
+            ([1], {1: ["valid_vert"]}, "vertebrates", 1),
+            # Valid and invalid prey in different cells (only vertebrates allowed)
+            ([1, 2], {1: ["valid_vert"], 2: ["invalid_vert"]}, "vertebrates", 1),
+            # All prey invalid (only vertebrates allowed)
+            ([1, 2], {1: ["invalid_vert"], 2: ["invalid_vert"]}, "vertebrates", 0),
+            # Multiple valid prey (only vertebrates allowed)
+            ([1, 2], {1: ["valid_vert"], 2: ["valid_vert"]}, "vertebrates", 2),
+            # Mixed prey in one cell (only vertebrates allowed)
+            ([1], {1: ["valid_vert", "invalid_vert"]}, "vertebrates", 1),
+            # Invertebrates excluded when only vertebrates allowed
+            ([1], {1: ["valid_invert"]}, "vertebrates", 0),
+            # Vertebrates excluded when only invertebrates allowed
+            ([1], {1: ["valid_vert"]}, "invertebrates", 0),
+            # Both prey categories allowed
+            ([1], {1: ["valid_vert", "valid_invert"]}, "vertebrates_invertebrates", 2),
         ],
     )
     def test_get_prey(
         self,
         territory,
         cell_prey_map,
+        prey_diet,
         expected,
         functional_group_list_instance,
         constants_instance,
@@ -2621,6 +2625,7 @@ class TestAnimalCohort:
         """Parametrized test for get_prey."""
         from virtual_ecosystem.core.grid import Grid
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import DietType
         from virtual_ecosystem.models.animal.functional_group import (
             get_functional_group_by_name,
         )
@@ -2630,8 +2635,11 @@ class TestAnimalCohort:
         predator_group = get_functional_group_by_name(
             functional_group_list_instance, "carnivorous_mammal"
         )
-        prey_group = get_functional_group_by_name(
+        vertebrate_prey_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
+        )
+        invertebrate_prey_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_insect_iteroparous"
         )
 
         # Create predator and assign mock territory
@@ -2647,14 +2655,19 @@ class TestAnimalCohort:
         predator.territory = territory
 
         # Create mock prey cohorts
-        communities = {}
-        all_prey = []
+        communities: dict[int, list[AnimalCohort]] = {}
         for cell_id, prey_types in cell_prey_map.items():
-            cell_prey = []
+            cell_prey: list[AnimalCohort] = []
             for prey_type in prey_types:
+                if "invert" in prey_type:
+                    functional_group = invertebrate_prey_group
+                else:
+                    functional_group = vertebrate_prey_group
+
+                is_valid = prey_type.startswith("valid")
                 cohort = AnimalCohort(
-                    functional_group=prey_group,
-                    mass=10.0 if prey_type == "valid" else 2000.0,
+                    functional_group=functional_group,
+                    mass=10.0 if is_valid else 2000.0,
                     age=50.0,
                     individuals=5,
                     centroid_key=cell_id,
@@ -2662,14 +2675,14 @@ class TestAnimalCohort:
                     constants=constants_instance,
                 )
                 cell_prey.append(cohort)
-                all_prey.append(cohort)
             communities[cell_id] = cell_prey
 
         # Patch can_prey_on to return True for mass < 1000 only
         predator.can_prey_on = lambda prey: prey.mass_current < 1000.0
 
         # Run and assert
-        result = predator.get_prey(communities)
+        prey_flags = DietType.parse(prey_diet)
+        result = predator.get_prey(communities=communities, prey_diet=prey_flags)
         assert len(result) == expected
 
     @pytest.mark.parametrize(
