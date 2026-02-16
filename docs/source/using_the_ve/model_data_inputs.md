@@ -29,7 +29,7 @@ In order to run a Virtual Ecosystem model you will need to provide:
 
 * A configuration for the model, including both the [core
   configuration](./core_configuration.md) and [configuration for the science
-  models](./science_model_configuration.md) you want to include.
+  models](./model_details/science_model_configuration.md) you want to include.
 * Files providing data for all the variables needed to set the initial state of the
   simulation.
 
@@ -67,7 +67,7 @@ these values.
 The Virtual Ecosystem code is organised into distinct **models**, each of which is
 responsible for a different part of the simulation. Each model, including the central
 core model needs to be configured - see the [science model configuration
-page](./science_model_configuration.md)
+page](./model_details/science_model_configuration.md)
 
 Each model has its own configuration settings - which can be used to control particular
 options or paths to required extra files - but also a set of model specific constants.
@@ -128,8 +128,8 @@ object](../development/design/data.md) page for more information on loading data
 ```{tip}
 This section only covers the configuration of gridded data files. You will also need to
 configure the [model core settings](./core_configuration.md), the [science model
-settings](./science_model_configuration.md) for your simulation and the location of
-[other data input files](#other-data-inputs).
+settings](./model_details/science_model_configuration.md) for your simulation and the
+location of [other data input files](#other-data-inputs).
 ```
 
 Once you have your input data files, you will then need to add the data to your model
@@ -171,11 +171,11 @@ data will have specific model configuration settings. For example:
 * The plants model requires a set of defined plant functional types (PFTs). This is
   a CSV file defining a set required trait values for each PFT, and the path to this
   file is set in the [plants model configuration
-  options](./science_model_configuration.md#plant-functional-types)
+  options](./model_details/science_model_configuration.md#plant-functional-types)
 
 * The plant model also requires a defined initial cohort structure, which sets the
   initial cohorts present in each cell. This again is defined as a CSV file with the
   path set in the [plants model configuration
-  options](./science_model_configuration.md#plant-cohort-data)
+  options](./model_details/science_model_configuration.md#plant-cohort-data)
 
 * The animal model also requires a defined initial cohort structure.
