@@ -179,6 +179,7 @@ def test_subcanopy_vegetation_dynamics(
         model_constants=fixture_plants_constants,
         layer_index=fixture_core_components.layer_structure.index_surface_scalar,
         model_timing=fixture_core_components.model_timing,
+        data_object_template=cnp_template,
     )
 
     # Test initialisation sets the biomasses
@@ -194,7 +195,6 @@ def test_subcanopy_vegetation_dynamics(
         lue=np.ones(4),
         iwue=np.ones(4),
         swd=np.ones(4),
-        data_object_template=cnp_template,
     )
 
     # Assert that biomasses are either equal to zero or greater.

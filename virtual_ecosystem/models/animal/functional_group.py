@@ -123,6 +123,16 @@ class FunctionalGroup:
             self.taxa
         ]
         """The predator-prey mass ratio scaling relationship."""
+        # Taxonomic convenience flags
+        self.is_invertebrate: bool = self.taxa == TaxaType("invertebrate")
+        """Whether the functional group is an invertebrate."""
+
+        self.is_vertebrate: bool = self.taxa in {
+            TaxaType("bird"),
+            TaxaType("mammal"),
+            TaxaType("amphibian"),
+        }
+        """Whether the functional group is a vertebrate."""
 
 
 def import_functional_groups(
