@@ -22,7 +22,7 @@ be reported as one.
 from __future__ import annotations
 
 import uuid
-from math import ceil, sqrt
+from math import ceil, isnan, sqrt
 from random import choice
 from typing import Any, cast
 
@@ -525,21 +525,13 @@ class AnimalModel(
                 )
 
     def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
-        """Estimates the total number of individuals of a functional group.
-
-        Args:
-            functional_group: The specific functional group having its individuals
-                estimated.
-
-        Returns: The integer number of individuals of the group.
-
-        """
-
+        """Estimates the total number of individuals of a functional group."""
         total_area = self.data.grid.n_cells * self.data.grid.cell_area
 
-        if functional_group.density_individuals_m2 is not None:
+        density_override = functional_group.density_individuals_m2
+        if density_override is not None and not isnan(density_override):
             # User-provided empirical density overrides scaling laws
-            return int(functional_group.density_individuals_m2 * total_area)
+            return int(density_override * total_area)
 
         # No empirical density → use selected scaling method
         if self.density_scaling_method == "damuth":
@@ -1458,25 +1450,19 @@ class AnimalModel(
         Diet flags on a cohort determine which resource lists are assembled and
         forwarded to ``cohort.forage_cohort``:
 
-        * ``DietType.HERBIVORE``      → live plant resources
-        * ``DietType.CARNIVORE``      → live prey cohorts
-        * ``DietType.DETRITUS``       → plant-litter pools (detritivory)
-        * ``DietType.CARCASSES``      → carcass pools (scavenging)
-        * ``DietType.WASTE``          → excrement pools (coprophagy)
-        * ``DietType.MUSHROOMS``      → fungal fruiting bodies
-        * ``DietType.FUNGI``          → soil fungi (SoilPool['fungi'])
-        * ``DietType.POM``            → soil POM (SoilPool['pom'])
-        * ``DietType.BACTERIA``       → soil bacteria (SoilPool['bacteria'])
-
-        Deposition targets (``excrement_pools`` for faeces and ``carcass_pool_map``
-        for uneaten prey remains) are always supplied so trophic functions can
-        update them regardless of whether the cohort actively scavenges in the
-        same step.
+        * ``FOLIAGE`` / ``FRUIT`` / ``SEEDS`` → live plant resources
+        * ``VERTEBRATES`` / ``INVERTEBRATES`` → live prey cohorts
+        * ``DETRITUS``                        → plant-litter pools (detritivory)
+        * ``CARCASSES``                       → carcass pools (scavenging)
+        * ``WASTE``                           → excrement pools (coprophagy)
+        * ``MUSHROOMS``                       → fungal fruiting bodies
+        * ``FUNGI``                           → soil fungi
+        * ``POM``                             → soil POM
+        * ``BACTERIA``                        → soil bacteria
 
         Args:
             dt: Time step duration.
         """
-
         for cohort in list(self.active_cohorts.values()):
             # Safety check territory must be defined
             if cohort.territory is None:
@@ -1511,14 +1497,18 @@ class AnimalModel(
             ):
                 plant_list = cohort.get_plant_resources(self.plant_resources)
 
-            # Live prey
-            if diet & (
+            # Live prey (taxonomically filtered)
+            prey_flags = diet & (
                 DietType.BLOOD
                 | DietType.INVERTEBRATES
                 | DietType.FISH
                 | DietType.VERTEBRATES
-            ):
-                prey_list = cohort.get_prey(self.communities)
+            )
+            if prey_flags:
+                prey_list = cohort.get_prey(
+                    communities=self.communities,
+                    prey_diet=prey_flags,
+                )
 
             # Fruiting-body fungivory
             if diet & DietType.MUSHROOMS:
