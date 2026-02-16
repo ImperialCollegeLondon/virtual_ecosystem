@@ -558,7 +558,7 @@ class AnimalCohort:
         if C < 0 or N < 0 or P < 0:
             raise ValueError(
                 f"Carcass mass values must be non-negative. Provided: "
-                f"carbon={C}, N={N}, P={P}"
+                f"C={C}, N={N}, P={P}"
             )
 
         number_carcass_pools = len(carcass_pools)
