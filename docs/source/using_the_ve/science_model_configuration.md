@@ -55,11 +55,11 @@ you will need to configure the sources of the gridded array data providing the d
 variables required by each model:
 
 * The variables required for each model are described in the [model implementation
-  pages](../../virtual_ecosystem/implementation/how_it_works.md#science-models).
+  pages](../virtual_ecosystem/implementation/how_it_works.md#science-models).
 * A complete list of variables can be found in the [variables description
-  page](../variables/variables.md).
+  page](./variables/variables.md).
 * The model inputs page describes the [configuration of gridded data file
-  inputs](../model_data_inputs.md#configuring-gridded-data-inputs)
+  inputs](./model_data_inputs.md#configuring-gridded-data-inputs)
 
 ```
 
@@ -90,7 +90,7 @@ are a bit more technical but provide the a complete description of the model set
 
 ## Simple abiotic model
 
-[See also the [configuration details](../../api/models/abiotic_simple/model_config.md)]
+[See also the [configuration details](../api/models/abiotic_simple/model_config.md)]
 
 Configuration for the `abiotic_simple` model includes two sections:
 
@@ -155,7 +155,7 @@ model_config_to_deflist("abiotic.constants", config_object)
 
 ## Litter model
 
-[See also the [configuration details](../../api/models/litter/model_config.md)]
+[See also the [configuration details](../api/models/litter/model_config.md)]
 
 ```{eval-rst}
 ..
@@ -181,7 +181,7 @@ model_config_to_deflist("litter.constants", config_object)
 
 ## Hydrology model
 
-[See also the [configuration details](../../api/models/hydrology/model_config.md)]
+[See also the [configuration details](../api/models/hydrology/model_config.md)]
 
 The hydrology model requires two simple initialisation values and then a set of
 hydrology constants one configuration section:
@@ -202,7 +202,7 @@ model_config_to_deflist("hydrology", config_object)
 
 ## Soil model
 
-[See also the [configuration details](../../api/models/soil/model_config.md)]
+[See also the [configuration details](../api/models/soil/model_config.md)]
 
 ```{eval-rst}
 ..
@@ -288,7 +288,7 @@ model_config_to_deflist("soil.constants", config_object)
 
 ## Plants model
 
-[See also the [configuration details](../../api/models/plants/model_config.md)]
+[See also the [configuration details](../api/models/plants/model_config.md)]
 
 Configuration for the `plants` model includes four sections:
 
@@ -445,7 +445,7 @@ model_config_to_deflist("plants.constants", config_object)
 
 ## Animal model
 
-[See also the [configuration details](../../api/models/animal/model_config.md)]
+[See also the [configuration details](../api/models/animal/model_config.md)]
 
 ### Animal functional groups
 

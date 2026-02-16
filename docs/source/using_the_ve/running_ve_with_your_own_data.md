@@ -111,7 +111,7 @@ specific ones, and any for which you disagree with our choice of default values)
 constants that you don't provide values for will just use the default value. Details of
 all Virtual Ecosystem constants and their default values can be found in the
 [configuration options reference
-documentation](./model_details/science_model_configuration).
+documentation](./science_model_configuration).
 
 ## Further info
 
