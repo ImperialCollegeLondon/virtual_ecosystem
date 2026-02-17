@@ -25,61 +25,6 @@ language_info:
 
 # Model data inputs
 
-In order to run a Virtual Ecosystem model you will need to provide:
-
-* A configuration for the model, including both the [core
-  configuration](./core_configuration.md) and [configuration for the science
-  models](./science_model_configuration.md) you want to include.
-* Files providing data for all the variables needed to set the initial state of the
-  simulation.
-
-This page provides an overview of how to start thinking about preparing these model
-inputs and describes the formats and the validation carried out on them.
-
-## Defining your simulation site
-
-The simulation runs on discrete time steps within a grid of cells so, before you start
-doing any data preparation or configuration, you will need to decide on the spatial and
-temporal extents of the simulation. The configuration of these model properties are
-described in the [core configuration](./core_configuration.md) page, but in summary:
-
-* The [spatial grid](../development/design/grid.md) definition sets the number of grid cells
-  in the simulation, the cell size and the spatial coordinates of the cell. The Virtual
-  Ecosystem expects coordinates in metres, so you should choose a [projected coordinate
-  system](https://en.wikipedia.org/wiki/Projected_coordinate_system) for your site of
-  interest and define a set of grid cells to cover the area at a resolution appropriate
-  for your data.
-
-  ```{important}
-  Do not use a geographic coordinate system - you cannot use degree coordinates with the
-  Virtual Ecosystem.
-  ```
-
-* The Virtual Ecosystem updates the simulation state at discrete intervals. You need to
-  decide how long an interval to use and how many time steps to run.
-
-These details need to be consistent across all of the input data, so it may be useful to
-create a core site extents file that all your data preparation scripts can use to set
-these values.
-
-## Model configuration
-
-The Virtual Ecosystem code is organised into distinct **models**, each of which is
-responsible for a different part of the simulation. Each model, including the central
-core model needs to be configured - see the [science model configuration
-page](./science_model_configuration.md)
-
-Each model has its own configuration settings - which can be used to control particular
-options or paths to required extra files - but also a set of model specific constants.
-Both of these are controlled through the model configuration file: see the example
-configuration files in the [example data](./example_data.md) page.
-
-The configuration is validated automatically when it is loaded and the simulation will
-exit if there are validation issues with configuration data. The details of any issues
-are written to the simulation log file. The validation will vary by setting but is used
-to check, as examples, that configured input files actually exist or that numeric inputs
-are within a range of accepted values.
-
 ## Gridded model data inputs
 
 The simulation then also requires data to set the initial conditions of the grid cells,
@@ -155,12 +100,6 @@ var_name = "relative_humidity_ref"
 The `ve_run` command automatically checks the dimensions of model data variables when
 they are loaded from file and verifies that the dimension lengths and any coordinates
 (such as `x` and `y` locations) are congruent with the model configuration.
-
-### Model outputs
-
-The [data outputs section](./core_configuration.md#data-output-settings) in the core
-configuration controls which data are written out as the simulation progresses. The data
-will be written out in NetCDF files with the same axis structures as the inputs.
 
 ## Other data inputs
 

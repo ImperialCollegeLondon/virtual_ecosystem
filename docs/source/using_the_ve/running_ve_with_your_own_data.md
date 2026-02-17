@@ -54,8 +54,13 @@ size `cell_nx`).
 
 Note that **configuration setting cannot be repeated between files** as there is no way
 to establish which of two values (of e.g. `core.grid.cell_nx`) the user intended to
-provide. When settings are repeated, the configuration process will report a critical
-error and the simulation will terminate.
+provide. When settings are repeated, the validation of the configuration will fail.
+
+Validation occurs automatically when the configuration is loaded in. If any issues are
+found then the simulation will terminate, with the details of the issues being written
+to the simulation log file. The validation checks for a much broader range of things
+that just repeated settings, including that configured input files actually exist and
+that numeric inputs are within a range of accepted values.
 
 ### Selecting the models you want to run
 
@@ -120,13 +125,28 @@ There are a [large number of configuration options](./core_configuration.md) tha
 will need to decide on. However, to keep this tutorial to reasonable length we will
 focus on two of the most important, the spatial and temporal scales of the simulation.
 
-The spatial scales of the simulation are controlled by the settings under `[core.grid]`,
-and the temporal settings are controlled by the settings under `[core.timing]`. You need
-to **take real care** when setting these scales as the data you provide to the model
-**has to** be on the same scale, i.e. all data must be for the same grid size, shape and
-extent, and any time varying input data (e.g. climate inputs) has to span the same time
-period that you want your simulation to run for. These settings can be changed in the
-same way we previously changed constants, i.e.
+The spatial scales of the simulation are controlled by the settings under `[core.grid]`.
+The Virtual Ecosystem expects coordinates in metres, so you should choose a [projected
+coordinate system](https://en.wikipedia.org/wiki/Projected_coordinate_system) for your
+site of interest and define a set of grid cells to cover the area at a resolution
+appropriate for your data. You need to **take real care** when setting the spatial scale
+as the data you provide to the model **has to** be on the same scale, i.e. all input
+data must be for the same grid size, shape and extent.
+
+```{important}
+  Do not use a geographic coordinate system - you cannot use degree coordinates with the
+  Virtual Ecosystem.
+```
+
+The temporal settings are controlled by the settings under `[core.timing]`. The Virtual
+Ecosystem updates the simulation state at discrete intervals. You need to decide how
+long an interval to use and how many time steps to run. Again, you need to **take real
+care** when setting the temporal scale as any time varying input data (e.g. climate
+inputs) you provide to the model **has to** cover the time period that you want your
+simulation to run for.
+
+These core simulation settings can be changed in the same way we previously changed
+constants, i.e.
 
 ```toml
 [core.grid]
@@ -139,23 +159,35 @@ start_date = "2018-01-01" # Start date in YYYY-MM-DD format
 run_length = "5 years" # Run for 5 years with default update time step (1 month)
 ```
 
-## Further info
+```{important}
+  These details need to be consistent across all of the input data, so it may be useful
+  to create a core site extents file that all your data preparation scripts can use to
+  set these values.
+```
 
-TODO - Add a tutorial step for changing data source, this will probably have the
-following subsections
+## Loading in your data files
 
-1) Loading data as csv guide (i.e. plant and animal functional data)
-2) Loading data as netcdf (i.e. how most data comes in), this needs to involve a simple
-   explanation of what the data object is (probably including axes), then this needs to
-   be linked to at other appropriate points. This could be a page rather than just a
-   section on this page
+TODO - NEED A SECTION EXPLAIN WHAT THE DATA OBJECT IS.
+
+TODO - ONCE THIS SECTION IS COMPLETED I SHOULD POINT TO IT FROM OTHER PLACES IN THE USER
+DOCS
+
+TODO - Need to cite axes.md somewhere
+
+TODO - NEED TO MOVE RELEVANT CONTENT OUT OF "MODEL DATA INPUTS" TO HERE
+
+TODO - NEW SECTION: Loading data as netcdf (i.e. how most data comes in), this needs to
+   involve a simple explanation of what the data object is (probably including axes),
+   then this needs to be linked to at other appropriate points. This could be a page
+   rather than just a section on this page
+
+TODO - Add a loading data as csv guide (i.e. plant and animal functional data).
+Basically this is a wrapping up section, framed like "not all data comes in csv format"
+List is currently "plants_pft.csv", "example_plant_cohorts.csv",
+"animal_functional_groups.csv". TODO - Should double check this against the example data
+and check exactly what they are
 
 TODO - The below should be gradually deleted as the tutorial comes together.
 
-Steps which already have pages to make use of:
-
 1. [Creating any data inputs](./model_data_inputs.md) required by your science models
     and then adding those to your configuration files.
-
-1. [Details of the spatial data axis.](./axes.md) This is unlikely to remain as a page,
-   but is useful content to merge into the tutorial
