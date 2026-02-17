@@ -47,14 +47,14 @@ class PlantResources:
         self.is_alive = True
         """Indicating whether the plant cohort is alive [True] or dead [False]."""
         self.cnp_proportions: dict[str, float] = {
-            "carbon": 0.7,
-            "nitrogen": 0.2,
-            "phosphorus": 0.1,
+            "C": 0.7,
+            "N": 0.2,
+            "P": 0.1,
         }
         """Toy stoichiometric proportions of plants."""
         self.mass_stoich: dict[str, float] = {}
         """The mass of each stoichiometric element found in the plant resources,
-        {"carbon": value, "nitrogen": value, "phosphorus": value}."""
+        {"C": value, "N": value, "P": value}."""
 
         # Initialize stoichiometric masses
         self.update_stoichiometric_mass()
