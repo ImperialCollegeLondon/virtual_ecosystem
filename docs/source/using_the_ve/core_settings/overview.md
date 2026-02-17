@@ -16,5 +16,7 @@ jupyter:
 This section contains detailed explanation of the core simulation settings. It will be
 significantly expanded in future, at present in contains:
 
+* A detailed overview of the [core simulation configuration
+  options](../core_configuration.md) for the Virtual Ecosystem.
 * An explanation of the [different ways that static models can be
   setup](./static_models.md).
