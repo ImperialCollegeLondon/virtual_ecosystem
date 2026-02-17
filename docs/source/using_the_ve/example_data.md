@@ -180,10 +180,8 @@ model and then iterate over a time series.
 ### Array data
 
 Most of the data required by the Virtual Ecosystem is organised on well defined axes and
-so is imported into a central data store (see [the data
-object](../development/design/data.md) for details). These input data are typically
-stored in NetCDF format files, which is a format designed around array data on defined
-axes.
+so is imported into a central data store. These input data are typically stored in
+NetCDF format files, which is a format designed around array data on defined axes.
 
 The data in the files then needs to be linked into the variables required by the Virtual
 Ecosystem model. This is set in the configuration TOML files using the

@@ -58,8 +58,6 @@ variables required by each model:
   pages](../virtual_ecosystem/implementation/how_it_works.md#science-models).
 * A complete list of variables can be found in the [variables description
   page](./variables/variables.md).
-* The model inputs page describes the [configuration of gridded data file
-  inputs](./model_data_inputs.md#configuring-gridded-data-inputs)
 
 ```
 
