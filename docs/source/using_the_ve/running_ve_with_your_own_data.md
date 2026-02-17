@@ -165,21 +165,99 @@ run_length = "5 years" # Run for 5 years with default update time step (1 month)
   set these values.
 ```
 
-## Loading in your data files
+## Providing the data required to run your simulations
 
-TODO - NEED A SECTION EXPLAIN WHAT THE DATA OBJECT IS.
+The final step to setting up your simulations is adding the required data. This is both
+the data that defines the initial state of your study site and time series data for the
+forcing variables (e.g. climate data). This is a pretty complex step, so before we get
+into the details, we should briefly mention how the Virtual Ecosystem stores data.
 
-TODO - ONCE THIS SECTION IS COMPLETED I SHOULD POINT TO IT FROM OTHER PLACES IN THE USER
-DOCS
+The majority of variables in the Virtual ecosystem are stored in the `data` object (we
+will talk about the ones that aren't later in this section). The data stored in the data
+object are stored in a format similar to
+[`netCDF`](https://www.unidata.ucar.edu/software/netcdf). For this reason, any input
+data that needs to be added to the `data` object must be provided as `netCDF` files.
+There is no need for you to understand the specifics of how this `data` object works
+(though if you are interested you are welcome to read the [developer focused description
+of it](../development/design/data.md)). The reason you don't need to know the specifics
+is because you will **never** add data to the `data` object directly. Instead, all data
+will be added using the configuration system.
 
-TODO - Need to cite axes.md somewhere
+### Input data dimensions
 
-TODO - NEED TO MOVE RELEVANT CONTENT OUT OF "MODEL DATA INPUTS" TO HERE
+The `netCDF` files that you provide will be arrays of data, e.g. initial values for soil
+nitrogen concentrations or above canopy air temperatures over time. Many variables will
+be arrays over multiple different dimensions (e.g. space and time). The array data that
+you provide must use dimensions that the Virtual Ecosystem recognises. We provide
+[detailed description of these critical dimensions (or core axes) elsewhere](./axes.md),
+but in short the possible dimensions are:
 
-TODO - NEW SECTION: Loading data as netcdf (i.e. how most data comes in), this needs to
-   involve a simple explanation of what the data object is (probably including axes),
-   then this needs to be linked to at other appropriate points. This could be a page
-   rather than just a section on this page
+* `spatial`: This is actually a kind of aggregate dimension, because spatial data can
+  use `cell_id` or `x` and `y` coordinates - these two things map onto each other (see
+  the [core.grid](./core_configuration.md#the-spatial-grid) configuration settings for
+  details).
+
+* `time`: This dimension is used to index time steps along configured time extent for
+  the simulation. Some variables only need to set the initial conditions and do not need
+  a time axis, but other forcing variables (like temperature and precipitation) need to
+  supply a value for each cell at each time step.
+
+* `pft`: Some data requires values per plant functional type. An example is the initial
+  number of propagules per PFT in grid cells.
+
+* `layer`: Some data varies vertically by canopy layer (e.g. temperature), and this
+  dimension captures that variation. This dimension is primarily used for variables
+  generated during the model run, so you are unlikely to need to use it for input data
+  (unless you are running models in [`static` mode](./core_settings/static_models.md)).
+
+### Preparing your array data input files
+
+The first thing you need to do to prepare your files is to look at the required
+variables for each science model that you want to include in the simulation and make a
+list of those variables. Details of the variables required by each model can be found in
+the [data variables](./variables/variables.md) page.
+
+```{warning}
+The `axis` field in that data is currently **not to be trusted** - we have
+not systematically reviewed that data and there isn't any internal checking that the
+stated axes are what is on the data.
+```
+
+Then for each variable you will need to compile appropriate data - given the axes
+required - and saved as NetCDF files, providing labelled dimensions and coordinates to
+match input data to the axes and coordinates of your model configuration. The process
+for compiling this data varies dramatically by model, and you should refer to the [model
+specific setup documentation](./model_details/overview.md) to understand how to compile
+data for the specific models you are interested in. You can also consult the [example
+data](./example_data.md) page for examples of NetCDF input files.
+
+### Configuring array data inputs
+
+Once you have your input data files, you will then need to add the data to your model
+configuration. This is done using the `core.data.variable` configuration section: for
+each variable, you need to include a configuration section giving the variable name and
+then the data file in which the variable is found. Note that you can have multiple
+variables in a single NetCDF file.
+
+As an example, the following TOML gives the configuration for loading two climatic data
+variables stored in the same file:
+
+```toml
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "air_temperature_ref"
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "relative_humidity_ref"
+```
+
+All file paths that you provide **must** be valid paths to `netCDF` files. Configuration
+errors will also occur if any of the variable names (`var_name`) you provide are not
+found in the associated `netCDF` file. Finally, if the dimension lengths or any
+coordinates (such as `x` and `y` locations) of a variable are not compatible with the
+model configuration then a configuration error will occur.
+
+## Further details
 
 TODO - Add a loading data as csv guide (i.e. plant and animal functional data).
 Basically this is a wrapping up section, framed like "not all data comes in csv format"
@@ -188,6 +266,11 @@ List is currently "plants_pft.csv", "example_plant_cohorts.csv",
 and check exactly what they are
 
 TODO - The below should be gradually deleted as the tutorial comes together.
+
+TODO - NEED TO WORK OUT WHERE BEST TO ADDRESS #1209 "A step to "using own data" tutorial
+that explains what all the required data files are"
+THIS WILL BASICALLY BE A LIST WITH LINKS, BUT I PROBABLY SHOULD DECIDE ON THE BEST
+PLACEMENT ONCE EVERYTHING ELSE IS WRITTEN
 
 1. [Creating any data inputs](./model_data_inputs.md) required by your science models
     and then adding those to your configuration files.
