@@ -113,10 +113,33 @@ all Virtual Ecosystem constants and their default values can be found in the
 [configuration options reference
 documentation](./science_model_configuration).
 
-## Further info
+## Changing the core simulation setup
 
-TODO - Add a section about changing core configuration (i.e. grid size, location,
-simulation time run)
+The next thing that you need to provide are the core settings for your simulation runs.
+There are a [large number of configuration options](./core_configuration.md) that you
+will need to decide on. However, to keep this tutorial to reasonable length we will
+focus on two of the most important, the spatial and temporal scales of the simulation.
+
+The spatial scales of the simulation are controlled by the settings under `[core.grid]`,
+and the temporal settings are controlled by the settings under `[core.timing]`. You need
+to **take real care** when setting these scales as the data you provide to the model
+**has to** be on the same scale, i.e. all data must be for the same grid size, shape and
+extent, and any time varying input data (e.g. climate inputs) has to span the same time
+period that you want your simulation to run for. These settings can be changed in the
+same way we previously changed constants, i.e.
+
+```toml
+[core.grid]
+cell_area = 10000.0 # hectare grid cells (i.e. 10000.0 m^2)
+cell_nx = 100 # 100 grid cells in x direction
+cell_ny = 50 # 50 grid cells in y direction
+
+[core.timing]
+start_date = "2018-01-01" # Start date in YYYY-MM-DD format
+run_length = "5 years" # Run for 5 years with default update time step (1 month)
+```
+
+## Further info
 
 TODO - Add a tutorial step for changing data source, this will probably have the
 following subsections
@@ -130,9 +153,6 @@ following subsections
 TODO - The below should be gradually deleted as the tutorial comes together.
 
 Steps which already have pages to make use of:
-
-1. Defining the [configuration of the model core system](./core_configuration.md),
-    which establishes the spatial and temporal context of your simulation
 
 1. [Creating any data inputs](./model_data_inputs.md) required by your science models
     and then adding those to your configuration files.
