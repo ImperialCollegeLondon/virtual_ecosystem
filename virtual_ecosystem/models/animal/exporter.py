@@ -377,12 +377,12 @@ class AnimalCohortDataExporter:
             "territory": cohort.territory,
             "occupancy_proportion": cohort.occupancy_proportion,
             "largest_mass_achieved": cohort.largest_mass_achieved,
-            "mass_carbon": mass_cnp.carbon,
-            "mass_nitrogen": mass_cnp.nitrogen,
-            "mass_phosphorus": mass_cnp.phosphorus,
-            "reproductive_mass_carbon": repro_cnp.carbon,
-            "reproductive_mass_nitrogen": repro_cnp.nitrogen,
-            "reproductive_mass_phosphorus": repro_cnp.phosphorus,
+            "mass_carbon": mass_cnp.C,
+            "mass_nitrogen": mass_cnp.N,
+            "mass_phosphorus": mass_cnp.P,
+            "reproductive_mass_carbon": repro_cnp.C,
+            "reproductive_mass_nitrogen": repro_cnp.N,
+            "reproductive_mass_phosphorus": repro_cnp.P,
         }
 
     def _build_trophic_rows(
@@ -426,9 +426,9 @@ class AnimalCohortDataExporter:
                     "resource_id": resource_id,
                     "resource_cell_id": resource_cell_id,
                     "prey_territory": prey_territory,
-                    "carbon": cnp["carbon"],
-                    "nitrogen": cnp["nitrogen"],
-                    "phosphorus": cnp["phosphorus"],
+                    "C": cnp["C"],
+                    "N": cnp["N"],
+                    "P": cnp["P"],
                 }
             )
 
