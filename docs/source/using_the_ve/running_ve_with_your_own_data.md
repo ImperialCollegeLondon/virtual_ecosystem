@@ -257,20 +257,39 @@ found in the associated `netCDF` file. Finally, if the dimension lengths or any
 coordinates (such as `x` and `y` locations) of a variable are not compatible with the
 model configuration then a configuration error will occur.
 
+### Other data inputs
+
+Some initial model data does not use the main data loading system. This is typically
+where the data does not map neatly onto one of the core axes mentioned above. These
+data will have specific model configuration settings. For example:
+
+* The plants model requires a set of defined plant functional types (PFTs). This is
+  a CSV file defining a set required trait values for each PFT, and the path to this
+  file is set in the [plants model configuration
+  options](./science_model_configuration.md#plant-functional-types)
+
+* The plant model also requires a defined initial cohort structure, which sets the
+  initial cohorts present in each cell. This again is defined as a CSV file with the
+  path set in the [plants model configuration
+  options](./science_model_configuration.md#plant-cohort-data)
+
+* The animal model also requires a defined initial cohort structure.
+
+There is no generic system for reading in CSV data, instead a path to each file needs to
+be provided as part of the configuration of the relevant model, e.g.
+
+```toml
+[plants]
+cohort_data_path = "../data/example_plant_cohorts.csv"
+pft_definitions_path = "../data/plant_pfts.csv"
+
+[animal]
+functional_group_definitions_path = '../data/animal_functional_groups.csv'
+```
+
 ## Further details
-
-TODO - Add a loading data as csv guide (i.e. plant and animal functional data).
-Basically this is a wrapping up section, framed like "not all data comes in csv format"
-List is currently "plants_pft.csv", "example_plant_cohorts.csv",
-"animal_functional_groups.csv". TODO - Should double check this against the example data
-and check exactly what they are
-
-TODO - The below should be gradually deleted as the tutorial comes together.
 
 TODO - NEED TO WORK OUT WHERE BEST TO ADDRESS #1209 "A step to "using own data" tutorial
 that explains what all the required data files are"
 THIS WILL BASICALLY BE A LIST WITH LINKS, BUT I PROBABLY SHOULD DECIDE ON THE BEST
 PLACEMENT ONCE EVERYTHING ELSE IS WRITTEN
-
-1. [Creating any data inputs](./model_data_inputs.md) required by your science models
-    and then adding those to your configuration files.
