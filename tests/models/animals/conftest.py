@@ -742,8 +742,8 @@ def excrement_pool_instance():
     from virtual_ecosystem.models.animal.decay import ExcrementPool
 
     return ExcrementPool(
-        scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
-        decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
+        scavengeable_cnp=CNP(C=500.0, N=100.0, P=50.0),
+        decomposed_cnp=CNP(C=0.0, N=0.0, P=0.0),
     )
 
 
@@ -756,8 +756,8 @@ def excrement_pools_by_cell_instance():
     return {
         1: [
             ExcrementPool(
-                scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
-                decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
+                scavengeable_cnp=CNP(C=500.0, N=100.0, P=50.0),
+                decomposed_cnp=CNP(C=0.0, N=0.0, P=0.0),
             )
         ]
     }
@@ -816,8 +816,8 @@ def carcass_pool_instance():
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return CarcassPool(
-        scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
-        decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
+        scavengeable_cnp=CNP(C=500.0, N=100.0, P=50.0),
+        decomposed_cnp=CNP(C=0.0, N=0.0, P=0.0),
     )
 
 
@@ -830,8 +830,8 @@ def carcass_pools_by_cell_instance():
     return {
         cell_id: [
             CarcassPool(
-                scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
-                decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
+                scavengeable_cnp=CNP(C=500.0, N=100.0, P=50.0),
+                decomposed_cnp=CNP(C=0.0, N=0.0, P=0.0),
             )
         ]
         for cell_id in range(0, 9)  # Creates carcass pools for cells 0 to 8
@@ -1024,10 +1024,10 @@ def microbial_cnp_ratios() -> dict[str, dict[str, float]]:
     """
 
     return {
-        "bacteria": {"nitrogen": 5.0, "phosphorus": 30.0},
-        "saprotrophic_fungi": {"nitrogen": 10.0, "phosphorus": 80.0},
-        "arbuscular_mycorrhiza": {"nitrogen": 12.0, "phosphorus": 90.0},
-        "ectomycorrhiza": {"nitrogen": 8.0, "phosphorus": 70.0},
+        "bacteria": {"N": 5.0, "P": 30.0},
+        "saprotrophic_fungi": {"N": 10.0, "P": 80.0},
+        "arbuscular_mycorrhiza": {"N": 12.0, "P": 90.0},
+        "ectomycorrhiza": {"N": 8.0, "P": 70.0},
     }
 
 

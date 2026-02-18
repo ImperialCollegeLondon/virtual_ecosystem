@@ -199,10 +199,10 @@ class AnimalConstants(Configuration):
 
     cnp_proportion_terms: dict[TaxaType, dict[str, float]] = Field(
         default_factory=lambda: {
-            TaxaType.MAMMAL: {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
-            TaxaType.BIRD: {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
-            TaxaType.INVERTEBRATE: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
-            TaxaType.AMPHIBIAN: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
+            TaxaType.MAMMAL: {"C": 0.5, "N": 0.3, "P": 0.2},
+            TaxaType.BIRD: {"C": 0.4, "N": 0.3, "P": 0.3},
+            TaxaType.INVERTEBRATE: {"C": 0.4, "N": 0.2, "P": 0.4},
+            TaxaType.AMPHIBIAN: {"C": 0.4, "N": 0.2, "P": 0.4},
         }
     )
     """Stoichiometric proportions structured by taxon type."""
