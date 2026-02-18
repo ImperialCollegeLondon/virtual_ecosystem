@@ -2692,13 +2692,14 @@ class TestAnimalCohort:
     ):
         """Test can_forage_on plant resource."""
 
+        from virtual_ecosystem.models.animal.plant_resources import PlantResources
+
         from virtual_ecosystem.core.data import Data
         from virtual_ecosystem.core.grid import Grid
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.functional_group import (
             get_functional_group_by_name,
         )
-        from virtual_ecosystem.models.animal.plant_resources import PlantResources
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
@@ -2755,13 +2756,14 @@ class TestAnimalCohort:
     ):
         """Test get_plant_resources."""
 
+        from virtual_ecosystem.models.animal.plant_resources import PlantResources
+
         from virtual_ecosystem.core.data import Data
         from virtual_ecosystem.core.grid import Grid
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.functional_group import (
             get_functional_group_by_name,
         )
-        from virtual_ecosystem.models.animal.plant_resources import PlantResources
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
