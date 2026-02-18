@@ -287,9 +287,27 @@ pft_definitions_path = "../data/plant_pfts.csv"
 functional_group_definitions_path = '../data/animal_functional_groups.csv'
 ```
 
-## Further details
+## List of required data files
 
-TODO - NEED TO WORK OUT WHERE BEST TO ADDRESS #1209 "A step to "using own data" tutorial
-that explains what all the required data files are"
-THIS WILL BASICALLY BE A LIST WITH LINKS, BUT I PROBABLY SHOULD DECIDE ON THE BEST
-PLACEMENT ONCE EVERYTHING ELSE IS WRITTEN
+To close this tutorial, we will briefly recap the full set of files that you need to
+provide:
+
+* You must provide a folder of `toml` files containing the configuration settings for
+  Virtual Ecosystem. These files can be named whatever you like (though you should aim
+  to give them easy to understand names). You can split the configuration settings over
+  as many or as few files as you like (though you want to ensure that purpose of each
+  individual file is obvious). A path to this folder has to be provided when using
+  `ve_run`.
+* You must provide array data for every variable that is required to setup or update the
+  models you wish to run, **except** the ones that are populated by one of the other
+  models. To figure out what these variables are you should consult the [data
+  variables](./variables/variables.md) page. These variables can be provided over as
+  many or as few files as you wish, but again you need to make sure that the purpose of
+  each file is clear. For the example data we chose to split by model, but if a
+  different split makes more sense for your use case you should use that instead. Paths
+  to each of these files then need to be provided as part of the configuration.
+* You also need to provide three csv files. One defining plant functional types, one
+  giving the location and density of the plant cohorts, and one giving the location and
+  density of the animal cohorts. You can name these files whatever you like (again,
+  choose sensible names), but need to provide paths to each of them as part of the
+  configuration.
