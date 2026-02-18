@@ -1719,10 +1719,10 @@ class AnimalCohort:
         foraging capability (via `can_forage_on`).
 
         Args:
-            array_resources: A list of ArrayResource instances.
+            array_resources: A list of ResourcePool instances.
 
         Returns:
-            A list of ResourcePool objects that the cohort can forage on.
+            A list of CellResource objects that the cohort can forage on.
         """
 
         available_cell_array_resources: list[Resource] = []

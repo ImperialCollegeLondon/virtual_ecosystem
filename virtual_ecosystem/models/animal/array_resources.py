@@ -6,7 +6,7 @@ The module defines four classes:
 
 * The ``ArrayResourceDefinition`` is a simple dataclass that is used to define the array
   resources that should be created when the model runs. An array resource is a Virtual
-  Ecosystem data array that is structured by _at least_ cell id and element, providing
+  Ecosystem data array that is structured by *at least* cell id and element, providing
   available biomasses of each element (CNP) by cell. We currently support array
   resources that are further structured by plant functional type (PFT).
 

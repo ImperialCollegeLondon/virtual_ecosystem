@@ -24,7 +24,7 @@ language_info:
   version: 3.11.9
 ---
 
-# API for the {mod}`~virtual_ecosystem.models.animal.plant_resources` module
+# API for the {mod}`~virtual_ecosystem.models.animal.array_resources` module
 
 ```{eval-rst}
 .. automodule:: virtual_ecosystem.models.animal.array_resources

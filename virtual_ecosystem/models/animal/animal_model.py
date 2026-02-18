@@ -67,7 +67,6 @@ from virtual_ecosystem.models.animal.model_config import (
     AnimalConfiguration,
     AnimalConstants,
 )
-from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     damuths_law,
@@ -203,8 +202,6 @@ class AnimalModel(
         self.array_resource_pools: list[ResourcePool]
         """A list of the individual resource pools made available through array
         resources."""
-        self.plant_resources: dict[int, list[Resource]]
-        """The plant resource pools in the model with associated grid cell ids."""
         self.excrement_pools: dict[int, list[ExcrementPool]]
         """The excrement pools in the model with associated grid cell ids."""
         self.carcass_pools: dict[int, list[CarcassPool]]
@@ -284,16 +281,6 @@ class AnimalModel(
                 [res.get_pools(data=self.data) for res in self.array_resources]
             )
         )
-
-        # TODO - remove this when plants implemented through array resources.
-        self.plant_resources = {
-            cell_id: [
-                PlantResources(
-                    data=self.data, cell_id=cell_id, constants=self.model_constants
-                )
-            ]
-            for cell_id in self.data.grid.cell_id
-        }
 
         # TODO - In future, need to take in data on average size of excrement and
         # carcasses pools and their stoichiometries for the initial scavengeable pool
