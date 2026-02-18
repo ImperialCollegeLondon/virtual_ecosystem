@@ -28,7 +28,7 @@ The module defines four classes:
       across cells back to the Data object.
 
 * The ``CellResource`` class is used to manage actual consumption at the grid cell level
-  within the similation. It implements the ``Resource`` protocol, providing the
+  within the simulation. It implements the ``Resource`` protocol, providing the
   ``cell_id``, ``vertical_occupancy`` and ``current_mass`` attributes and the
   ``get_eaten`` method. The instance also contains a reference to the ``consumed_mass``
   array in the parent ``ResourcePool`` and adds consumed mass to the cell_id specific
