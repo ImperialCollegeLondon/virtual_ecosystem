@@ -15,7 +15,7 @@ from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import DietType, VerticalOccupancy
-from virtual_ecosystem.models.animal.array_resources import CellResource, ResourcePool
+from virtual_ecosystem.models.animal.array_resources import ResourcePool
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
@@ -1712,7 +1712,7 @@ class AnimalCohort:
 
     def get_array_resources(
         self, array_resources: list[ResourcePool]
-    ) -> list[CellResource]:
+    ) -> list[Resource]:
         """Return array resources accessible within this cohort's territory.
 
         This method filters the array resources by territory and the cohort's
@@ -1725,7 +1725,7 @@ class AnimalCohort:
             A list of ResourcePool objects that the cohort can forage on.
         """
 
-        available_cell_array_resources: list[CellResource] = []
+        available_cell_array_resources: list[Resource] = []
 
         # Loop over the array resources
         for resource in array_resources:

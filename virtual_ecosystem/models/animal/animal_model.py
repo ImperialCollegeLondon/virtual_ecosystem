@@ -46,7 +46,6 @@ from virtual_ecosystem.models.animal.animal_traits import (
 from virtual_ecosystem.models.animal.array_resources import (
     ARRAY_RESOURCES,
     ArrayResource,
-    CellResource,
     ResourcePool,
 )
 from virtual_ecosystem.models.animal.cnp import CNP, find_microbial_stoichiometries
@@ -1508,7 +1507,7 @@ class AnimalModel(
 
             # Build resource collections based on diet flags
             plant_list: list[Resource] = []
-            array_resource_list: list[CellResource] = []
+            # array_resource_list: list[Resource] = []
             prey_list: list[AnimalCohort] = []
             fungal_fruit_list: list[Resource] = []
             soil_fungi_list: list[Resource] = []
@@ -1524,7 +1523,8 @@ class AnimalModel(
 
             # Array resources
             # TODO - this needs to be wired into cohort.forage_cohort below
-            array_resource_list = cohort.get_array_resources(self.array_resource_pools)  # noqa: F841
+            # array_resource_list =
+            # cohort.get_array_resources(self.array_resource_pools)
 
             # Live plant resources
             if diet & (
@@ -1536,7 +1536,8 @@ class AnimalModel(
                 | DietType.NECTAR
                 | DietType.WOOD
             ):
-                plant_list = cohort.get_plant_resources(self.plant_resources)
+                plant_list = cohort.get_array_resources(self.array_resource_pools)
+                # plant_list = cohort.get_plant_resources(self.plant_resources)
 
             # Live prey (taxonomically filtered)
             prey_flags = diet & (
