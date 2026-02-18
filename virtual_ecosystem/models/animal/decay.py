@@ -30,7 +30,7 @@ class ScavengeableMixin:
             scavenger: The animal cohort consuming the material.
 
         Returns:
-            Dict with keys ``"carbon"``, ``"nitrogen"``, ``"phosphorus"`` giving
+            Dict with keys ``"C"``, ``"N"``, ``"P"`` giving
             the mass of each element actually ingested, and a second empty dict.
 
         Raises:
@@ -41,7 +41,7 @@ class ScavengeableMixin:
 
         available = self.scavengeable_cnp.total
         if available == 0.0:
-            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, {}
+            return {"C": 0.0, "N": 0.0, "P": 0.0}, {}
 
         taken_wet = min(consumed_mass, available)
 
@@ -49,26 +49,26 @@ class ScavengeableMixin:
         ingested_wet = taken_wet * mech_eff
         missed_wet = taken_wet * (1.0 - mech_eff)
 
-        frac_C = self.scavengeable_cnp.carbon / available
-        frac_N = self.scavengeable_cnp.nitrogen / available
-        frac_P = self.scavengeable_cnp.phosphorus / available
+        frac_C = self.scavengeable_cnp.C / available
+        frac_N = self.scavengeable_cnp.N / available
+        frac_P = self.scavengeable_cnp.P / available
 
         ingested_cnp = {
-            "carbon": ingested_wet * frac_C,
-            "nitrogen": ingested_wet * frac_N,
-            "phosphorus": ingested_wet * frac_P,
+            "C": ingested_wet * frac_C,
+            "N": ingested_wet * frac_N,
+            "P": ingested_wet * frac_P,
         }
 
         # Update pool states
         self.scavengeable_cnp.update(
-            carbon=-taken_wet * frac_C,
-            nitrogen=-taken_wet * frac_N,
-            phosphorus=-taken_wet * frac_P,
+            C=-taken_wet * frac_C,
+            N=-taken_wet * frac_N,
+            P=-taken_wet * frac_P,
         )
         self.decomposed_cnp.update(
-            carbon=missed_wet * frac_C,
-            nitrogen=missed_wet * frac_N,
-            phosphorus=missed_wet * frac_P,
+            C=missed_wet * frac_C,
+            N=missed_wet * frac_N,
+            P=missed_wet * frac_P,
         )
 
         return ingested_cnp, {}
@@ -78,14 +78,10 @@ class ScavengeableMixin:
 class CarcassPool(ScavengeableMixin):
     """This class stores information about the carcass biomass in each grid cell."""
 
-    scavengeable_cnp: CNP = field(
-        default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
-    )
+    scavengeable_cnp: CNP = field(default_factory=lambda: CNP(C=0.0, N=0.0, P=0.0))
     """A CNP object storing animal-accessible nutrients in the carcass pool."""
 
-    decomposed_cnp: CNP = field(
-        default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
-    )
+    decomposed_cnp: CNP = field(default_factory=lambda: CNP(C=0.0, N=0.0, P=0.0))
     """A CNP object storing decomposed nutrients in the carcass pool."""
     cell_id: int = -1
     """Grid position of carcass pool."""
@@ -114,34 +110,30 @@ class CarcassPool(ScavengeableMixin):
             float: The nutrient content of the decomposed carcasses on a per area basis
               [kg m^-2].
         """
-        if nutrient not in {"carbon", "nitrogen", "phosphorus"}:
+        if nutrient not in {"C", "N", "P"}:
             raise ValueError(
-                f"{nutrient} is not a valid nutrient. Valid options: 'carbon', "
-                f"'nitrogen', or 'phosphorus'."
+                f"{nutrient} is not a valid nutrient. Valid options: 'C', 'N', or 'P'."
             )
 
         return getattr(self.decomposed_cnp, nutrient) / grid_cell_area
 
-    def add_carcass(self, carbon: float, nitrogen: float, phosphorus: float) -> None:
+    def add_carcass(self, C: float, N: float, P: float) -> None:
         """Add carcass mass to the pool based on the provided mass.
 
         Args:
-            carbon (float): The mass of carbon to add.
-            nitrogen (float): The mass of nitrogen to add.
-            phosphorus (float): The mass of phosphorus to add.
+            C (float): The mass of carbon to add.
+            N (float): The mass of nitrogen to add.
+            P (float): The mass of phosphorus to add.
 
         Raises:
             ValueError: If any input mass is negative.
         """
-        if carbon < 0 or nitrogen < 0 or phosphorus < 0:
+        if C < 0 or N < 0 or P < 0:
             raise ValueError(
-                f"CNP values must be non-negative. Provided values: carbon={carbon}, "
-                f"nitrogen={nitrogen}, phosphorus={phosphorus}"
+                f"CNP values must be non-negative. Provided values: C={C}, N={N}, P={P}"
             )
 
-        self.scavengeable_cnp.update(
-            carbon=carbon, nitrogen=nitrogen, phosphorus=phosphorus
-        )
+        self.scavengeable_cnp.update(C=C, N=N, P=P)
 
     def reset(self) -> None:
         """Reset tracking of the nutrients associated with decomposed carcasses.
@@ -157,14 +149,10 @@ class CarcassPool(ScavengeableMixin):
 class ExcrementPool(ScavengeableMixin):
     """This class stores information about the amount of excrement in each grid cell."""
 
-    scavengeable_cnp: CNP = field(
-        default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
-    )
+    scavengeable_cnp: CNP = field(default_factory=lambda: CNP(C=0.0, N=0.0, P=0.0))
     """A CNP object storing animal-accessible nutrients in the excrement pool."""
 
-    decomposed_cnp: CNP = field(
-        default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
-    )
+    decomposed_cnp: CNP = field(default_factory=lambda: CNP(C=0.0, N=0.0, P=0.0))
     """A CNP object storing decomposed nutrients in the excrement pool."""
     cell_id: int = -1
     """Grid position of carcass pool."""
@@ -193,34 +181,30 @@ class ExcrementPool(ScavengeableMixin):
             float: The nutrient content of the decomposed excrement on a per area basis
               [kg m^-2].
         """
-        if nutrient not in {"carbon", "nitrogen", "phosphorus"}:
+        if nutrient not in {"C", "N", "P"}:
             raise ValueError(
-                f"{nutrient} is not a valid nutrient. Valid options: 'carbon',"
-                f"'nitrogen', or 'phosphorus'."
+                f"{nutrient} is not a valid nutrient. Valid options: 'C','N', or 'P'."
             )
 
         return getattr(self.decomposed_cnp, nutrient) / grid_cell_area
 
-    def add_excrement(self, carbon: float, nitrogen: float, phosphorus: float) -> None:
+    def add_excrement(self, C: float, N: float, P: float) -> None:
         """Add excrement mass to the pool based on the provided input mass.
 
         Args:
-            carbon (float): The mass of carbon to add.
-            nitrogen (float): The mass of nitrogen to add.
-            phosphorus (float): The mass of phosphorus to add.
+            C (float): The mass of carbon to add.
+            N (float): The mass of nitrogen to add.
+            P (float): The mass of phosphorus to add.
 
         Raises:
             ValueError: If any input mass is negative.
         """
-        if carbon < 0 or nitrogen < 0 or phosphorus < 0:
+        if C < 0 or N < 0 or P < 0:
             raise ValueError(
-                f"CNP values must be non-negative. Provided values: carbon={carbon}, "
-                f"nitrogen={nitrogen}, phosphorus={phosphorus}"
+                f"CNP values must be non-negative. Provided values: C={C}, N={N}, P={P}"
             )
 
-        self.scavengeable_cnp.update(
-            carbon=carbon, nitrogen=nitrogen, phosphorus=phosphorus
-        )
+        self.scavengeable_cnp.update(C=C, N=N, P=P)
 
     def reset(self) -> None:
         """Reset tracking of the nutrients associated with decomposed excrement.
@@ -229,7 +213,7 @@ class ExcrementPool(ScavengeableMixin):
         It should only be called after transfers to the soil model due to decomposition
         have been calculated.
         """
-        self.decomposed_cnp = CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
+        self.decomposed_cnp = CNP(C=0.0, N=0.0, P=0.0)
 
 
 def find_decay_consumed_split(
@@ -283,9 +267,9 @@ class FungalFruitPool:
         # Convert to absolute mass (kg) and build stoichiometry
         carbon_mass = carbon_stock * cell_area
         self.mass_cnp = CNP(
-            carbon=carbon_mass,
-            nitrogen=carbon_mass / self.c_n_ratio,
-            phosphorus=carbon_mass / self.c_p_ratio,
+            C=carbon_mass,
+            N=carbon_mass / self.c_n_ratio,
+            P=carbon_mass / self.c_p_ratio,
         )
 
         # Sanity-check
@@ -301,7 +285,7 @@ class FungalFruitPool:
     @property
     def mass_current(self) -> float:
         """Return current carbon mass in the pool [kg]."""
-        return self.mass_cnp.carbon
+        return self.mass_cnp.C
 
     def get_eaten(
         self,
@@ -317,8 +301,8 @@ class FungalFruitPool:
               efficiency.
 
         Returns:
-            Dictionary of element masses actually assimilated, keys ``carbon``,
-            ``nitrogen``, ``phosphorus`` (kg).
+            Dictionary of element masses actually assimilated, keys ``C``,
+            ``N``, ``P`` (kg).
         """
         if consumed_mass < 0:
             raise ValueError("consumed_mass must be non-negative")
@@ -327,21 +311,21 @@ class FungalFruitPool:
         mech_eff = detritivore.functional_group.mechanical_efficiency
         actual = min(consumed_mass, total_available) * mech_eff
 
-        frac_C = self.mass_cnp.carbon / total_available
-        frac_N = self.mass_cnp.nitrogen / total_available
-        frac_P = self.mass_cnp.phosphorus / total_available
+        frac_C = self.mass_cnp.C / total_available
+        frac_N = self.mass_cnp.N / total_available
+        frac_P = self.mass_cnp.P / total_available
 
         taken = {
-            "carbon": actual * frac_C,
-            "nitrogen": actual * frac_N,
-            "phosphorus": actual * frac_P,
+            "C": actual * frac_C,
+            "N": actual * frac_N,
+            "P": actual * frac_P,
         }
 
         # in-place update
         self.mass_cnp.update(
-            carbon=-taken["carbon"],
-            nitrogen=-taken["nitrogen"],
-            phosphorus=-taken["phosphorus"],
+            C=-taken["C"],
+            N=-taken["N"],
+            P=-taken["P"],
         )
         return taken, {}
 
@@ -358,12 +342,12 @@ class FungalFruitPool:
         """
 
         # Calculate total decay in carbon terms
-        total_decay = (1 - exp(-decay_constant * time_period)) * self.mass_cnp.carbon
+        total_decay = (1 - exp(-decay_constant * time_period)) * self.mass_cnp.C
         # And then update the pool masses based on this and the fixed stoichiometry
         self.mass_cnp.update(
-            carbon=-total_decay,
-            nitrogen=-total_decay / self.c_n_ratio,
-            phosphorus=-total_decay / self.c_p_ratio,
+            C=-total_decay,
+            N=-total_decay / self.c_n_ratio,
+            P=-total_decay / self.c_p_ratio,
         )
 
         return total_decay
@@ -404,9 +388,9 @@ class LitterPool:
         # Convert to absolute mass (kg) and build stoichiometry
         carbon_mass = carbon_stock * cell_area
         self.mass_cnp = CNP(
-            carbon=carbon_mass,
-            nitrogen=carbon_mass / self.c_n_ratio,
-            phosphorus=carbon_mass / self.c_p_ratio,
+            C=carbon_mass,
+            N=carbon_mass / self.c_n_ratio,
+            P=carbon_mass / self.c_p_ratio,
         )
 
         # Sanity-check
@@ -419,7 +403,7 @@ class LitterPool:
     @property
     def mass_current(self) -> float:
         """Return current carbon mass in the pool [kg]."""
-        return self.mass_cnp.carbon
+        return self.mass_cnp.C
 
     def get_eaten(
         self,
@@ -435,8 +419,8 @@ class LitterPool:
               efficiency.
 
         Returns:
-            Dictionary of element masses actually assimilated, keys ``carbon``,
-            ``nitrogen``, ``phosphorus`` (kg).
+            Dictionary of element masses actually assimilated, keys ``C``,
+            ``N``, ``P`` (kg).
         """
         if consumed_mass < 0:
             raise ValueError("consumed_mass must be non-negative")
@@ -445,21 +429,21 @@ class LitterPool:
         mech_eff = detritivore.functional_group.mechanical_efficiency
         actual = min(consumed_mass, total_available) * mech_eff
 
-        frac_C = self.mass_cnp.carbon / total_available
-        frac_N = self.mass_cnp.nitrogen / total_available
-        frac_P = self.mass_cnp.phosphorus / total_available
+        frac_C = self.mass_cnp.C / total_available
+        frac_N = self.mass_cnp.N / total_available
+        frac_P = self.mass_cnp.P / total_available
 
         taken = {
-            "carbon": actual * frac_C,
-            "nitrogen": actual * frac_N,
-            "phosphorus": actual * frac_P,
+            "C": actual * frac_C,
+            "N": actual * frac_N,
+            "P": actual * frac_P,
         }
 
         # in-place update
         self.mass_cnp.update(
-            carbon=-taken["carbon"],
-            nitrogen=-taken["nitrogen"],
-            phosphorus=-taken["phosphorus"],
+            C=-taken["C"],
+            N=-taken["N"],
+            P=-taken["P"],
         )
         return taken, {}
 
@@ -545,9 +529,7 @@ class SoilPool:
         nitrogen_mass = nitrogen_stock * self.cell_area * biotic_activity_depth
         phosphorus_mass = phosphorus_stock * self.cell_area * biotic_activity_depth
 
-        return CNP(
-            carbon=carbon_mass, nitrogen=nitrogen_mass, phosphorus=phosphorus_mass
-        )
+        return CNP(C=carbon_mass, N=nitrogen_mass, P=phosphorus_mass)
 
     def _extract_bacteria_cnp_mass(
         self,
@@ -576,12 +558,10 @@ class SoilPool:
         # Convert stock (kg m^-3) into mass by multiplying by grid square area and by
         # soil active depth
         carbon_mass = carbon_stock * self.cell_area * biotic_activity_depth
-        nitrogen_mass = carbon_mass / c_n_p_ratios_bacteria["nitrogen"]
-        phosphorus_mass = carbon_mass / c_n_p_ratios_bacteria["phosphorus"]
+        nitrogen_mass = carbon_mass / c_n_p_ratios_bacteria["N"]
+        phosphorus_mass = carbon_mass / c_n_p_ratios_bacteria["P"]
 
-        return CNP(
-            carbon=carbon_mass, nitrogen=nitrogen_mass, phosphorus=phosphorus_mass
-        )
+        return CNP(C=carbon_mass, N=nitrogen_mass, P=phosphorus_mass)
 
     def _extract_fungi_cnp_mass(
         self,
@@ -634,20 +614,20 @@ class SoilPool:
             saprotrophic_stock + arbuscular_mycorrhizal_stock + ectomycorrhizal_stock
         )
         nitrogen_stock = (
-            (saprotrophic_stock / c_n_p_ratios["saprotrophic_fungi"]["nitrogen"])
+            (saprotrophic_stock / c_n_p_ratios["saprotrophic_fungi"]["N"])
             + (
                 arbuscular_mycorrhizal_stock
-                / c_n_p_ratios["arbuscular_mycorrhiza"]["nitrogen"]
+                / c_n_p_ratios["arbuscular_mycorrhiza"]["N"]
             )
-            + (ectomycorrhizal_stock / c_n_p_ratios["ectomycorrhiza"]["nitrogen"])
+            + (ectomycorrhizal_stock / c_n_p_ratios["ectomycorrhiza"]["N"])
         )
         phosphorus_stock = (
-            (saprotrophic_stock / c_n_p_ratios["saprotrophic_fungi"]["phosphorus"])
+            (saprotrophic_stock / c_n_p_ratios["saprotrophic_fungi"]["P"])
             + (
                 arbuscular_mycorrhizal_stock
-                / c_n_p_ratios["arbuscular_mycorrhiza"]["phosphorus"]
+                / c_n_p_ratios["arbuscular_mycorrhiza"]["P"]
             )
-            + (ectomycorrhizal_stock / c_n_p_ratios["ectomycorrhiza"]["phosphorus"])
+            + (ectomycorrhizal_stock / c_n_p_ratios["ectomycorrhiza"]["P"])
         )
 
         # Convert stock (kg m^-3) into mass by multiplying by grid square area and by
@@ -656,14 +636,12 @@ class SoilPool:
         nitrogen_mass = nitrogen_stock * self.cell_area * biotic_activity_depth
         phosphorus_mass = phosphorus_stock * self.cell_area * biotic_activity_depth
 
-        return CNP(
-            carbon=carbon_mass, nitrogen=nitrogen_mass, phosphorus=phosphorus_mass
-        )
+        return CNP(C=carbon_mass, N=nitrogen_mass, P=phosphorus_mass)
 
     @property
     def mass_current(self) -> float:
         """Return current carbon mass in the pool [kg]."""
-        return self.mass_cnp.carbon
+        return self.mass_cnp.C
 
     def get_eaten(
         self,
@@ -682,8 +660,8 @@ class SoilPool:
                 same function signature as SoilPool case
 
         Returns:
-            Dictionary of element masses actually assimilated, keys ``carbon``,
-            ``nitrogen``, ``phosphorus`` (kg).
+            Dictionary of element masses actually assimilated, keys ``C``,
+            ``N``, ``P`` (kg).
         """
         if consumed_mass < 0:
             raise ValueError("consumed_mass must be non-negative")
@@ -692,21 +670,21 @@ class SoilPool:
         mech_eff = detritivore.functional_group.mechanical_efficiency
         actual = min(consumed_mass, total_available) * mech_eff
 
-        frac_C = self.mass_cnp.carbon / total_available
-        frac_N = self.mass_cnp.nitrogen / total_available
-        frac_P = self.mass_cnp.phosphorus / total_available
+        frac_C = self.mass_cnp.C / total_available
+        frac_N = self.mass_cnp.N / total_available
+        frac_P = self.mass_cnp.P / total_available
 
         taken = {
-            "carbon": actual * frac_C,
-            "nitrogen": actual * frac_N,
-            "phosphorus": actual * frac_P,
+            "C": actual * frac_C,
+            "N": actual * frac_N,
+            "P": actual * frac_P,
         }
 
         # in-place update
         self.mass_cnp.update(
-            carbon=-taken["carbon"],
-            nitrogen=-taken["nitrogen"],
-            phosphorus=-taken["phosphorus"],
+            C=-taken["C"],
+            N=-taken["N"],
+            P=-taken["P"],
         )
         return taken, {}
 
@@ -750,12 +728,12 @@ class HerbivoryWaste:
         """Type of plant matter this waste pool contains."""
 
         self.mass_cnp: dict[str, float] = {
-            "carbon": 0.0,
-            "nitrogen": 0.0,
-            "phosphorus": 0.0,
+            "C": 0.0,
+            "N": 0.0,
+            "P": 0.0,
         }
         """The mass of each stoichiometric element found in the plant resources,
-        {"carbon": value, "nitrogen": value, "phosphorus": value}."""
+        {"C": value, "N": value, "P": value}."""
 
         self.lignin_proportion = 0.25
         """Proportion of the herbivory waste pool carbon that is lignin [unitless]."""
@@ -765,14 +743,14 @@ class HerbivoryWaste:
 
         Args:
             input_mass_cnp: Dictionary specifying the mass of each element in the waste
-                {"carbon": value, "nitrogen": value, "phosphorus": value}.
+                {"C": value, "N": value, "P": value}.
 
         Raises:
             ValueError: If the input dictionary is missing required elements or contains
                 negative values.
         """
         # Validate input structure and content
-        required_keys = {"carbon", "nitrogen", "phosphorus"}
+        required_keys = {"C", "N", "P"}
         if not required_keys.issubset(input_mass_cnp.keys()):
             raise ValueError(
                 f"mass_cnp must contain all required keys {required_keys}. "
