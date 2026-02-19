@@ -764,25 +764,28 @@ def excrement_pools_by_cell_instance():
 
 
 @pytest.fixture
-def plant_instance(plant_data_instance, constants_instance):
-    """Fixture for a plant community used in tests."""
-    from virtual_ecosystem.models.animal.plant_resources import PlantResources
+def array_plant_list_instance():
+    """Return a list of CellResource objects usable as plant_list."""
+    import numpy as np
 
-    return PlantResources(
-        data=plant_data_instance, cell_id=4, constants=constants_instance
-    )
-
-
-@pytest.fixture
-def plant_list_instance(plant_data_instance, constants_instance):
-    """Fixture providing a list of plant resources."""
-    from virtual_ecosystem.models.animal.plant_resources import PlantResources
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.array_resources import CellResource
 
     return [
-        PlantResources(
-            data=plant_data_instance, cell_id=4, constants=constants_instance
-        )
-        for idx in range(3)
+        CellResource(
+            resource=object(),
+            available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
+            consumed_total_mass=np.zeros(3, dtype=float),
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            cell_id=0,
+        ),
+        CellResource(
+            resource=object(),
+            available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
+            consumed_total_mass=np.zeros(3, dtype=float),
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            cell_id=1,
+        ),
     ]
 
 
