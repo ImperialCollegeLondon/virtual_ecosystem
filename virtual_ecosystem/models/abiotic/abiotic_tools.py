@@ -307,6 +307,9 @@ def update_profile_from_reference(
 def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStructure):
     """Calculate heights, thickness, layer tops, and midpoints for atmospheric layers.
 
+    The layer top and midpoint values are distances in metres below the above canopy
+    reference height for each cell.
+
     Args:
         data: Data object
         layer_structure: LayerStructure object
@@ -321,10 +324,11 @@ def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStruc
     # Compute thickness
     thickness = compute_layer_thickness_for_varying_canopy(heights=heights)
 
-    # Compute cumulative thickness excluding current layer
-    layer_top = np.cumsum(thickness, axis=1) - thickness
+    # Compute the top of each layer below the above canopy reference height
+    layer_top = np.abs(heights - heights[0, :])
 
-    # Compute midpoints
+    # Compute the midpoint of each layer as the distance below the above canopy
+    # reference height
     midpoints = layer_top + thickness / 2
 
     return {
