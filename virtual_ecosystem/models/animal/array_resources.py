@@ -187,13 +187,13 @@ ARRAY_RESOURCES = [
         pool_array="subcanopy_vegetation_cnp",
         consumed_array="subcanopy_vegetation_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
-        diet_type=DietType.HERBIVORE,
+        diet_type=DietType.FOLIAGE,
     ),
     ArrayResourceDefinition(
         pool_array="subcanopy_seedbank_cnp",
         consumed_array="subcanopy_seedbank_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
-        diet_type=DietType.HERBIVORE,
+        diet_type=DietType.SEEDS,
     ),
 ]
 """Definition of the set of ArrayResources available to the AnimalModel."""
