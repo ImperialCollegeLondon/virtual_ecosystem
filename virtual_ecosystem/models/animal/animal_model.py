@@ -22,7 +22,7 @@ be reported as one.
 from __future__ import annotations
 
 import uuid
-from math import ceil, sqrt
+from math import ceil, isnan, sqrt
 from random import choice
 from typing import Any, cast
 
@@ -525,21 +525,13 @@ class AnimalModel(
                 )
 
     def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
-        """Estimates the total number of individuals of a functional group.
-
-        Args:
-            functional_group: The specific functional group having its individuals
-                estimated.
-
-        Returns: The integer number of individuals of the group.
-
-        """
-
+        """Estimates the total number of individuals of a functional group."""
         total_area = self.data.grid.n_cells * self.data.grid.cell_area
 
-        if functional_group.density_individuals_m2 is not None:
+        density_override = functional_group.density_individuals_m2
+        if density_override is not None and not isnan(density_override):
             # User-provided empirical density overrides scaling laws
-            return int(functional_group.density_individuals_m2 * total_area)
+            return int(density_override * total_area)
 
         # No empirical density → use selected scaling method
         if self.density_scaling_method == "damuth":
@@ -905,7 +897,7 @@ class AnimalModel(
             and the proportion of input carbon that is lignin [unitless].
         """
 
-        nutrients = ["carbon", "nitrogen", "phosphorus"]
+        nutrients = ["C", "N", "P"]
 
         leaf_cnp = stack(
             [
@@ -927,9 +919,9 @@ class AnimalModel(
 
         # Reset all of the herbivory waste pools to zero
         for waste in self.leaf_waste_pools.values():
-            waste.mass_cnp["carbon"] = 0.0
-            waste.mass_cnp["nitrogen"] = 0.0
-            waste.mass_cnp["phosphorus"] = 0.0
+            waste.mass_cnp["C"] = 0.0
+            waste.mass_cnp["N"] = 0.0
+            waste.mass_cnp["P"] = 0.0
 
         return {
             "herbivory_waste_leaf_cnp": DataArray(
@@ -964,9 +956,9 @@ class AnimalModel(
                 * self.update_interval_in_days
             )
             fungal_fruiting_bodies_pool.mass_cnp.update(
-                carbon=+production,
-                nitrogen=+production / fungal_fruiting_bodies_pool.c_n_ratio,
-                phosphorus=+production / fungal_fruiting_bodies_pool.c_p_ratio,
+                C=+production,
+                N=+production / fungal_fruiting_bodies_pool.c_n_ratio,
+                P=+production / fungal_fruiting_bodies_pool.c_p_ratio,
             )
 
         total_decay = [
@@ -988,7 +980,7 @@ class AnimalModel(
     def calculate_soil_additions(self) -> dict[str, DataArray]:
         """Calculate how much animal matter should be transferred to the soil."""
 
-        nutrients = ["carbon", "nitrogen", "phosphorus"]
+        nutrients = ["C", "N", "P"]
 
         # Find the size of all decomposed excrement and carcass pools, by cell_id
         decomposed_excrement = {
@@ -1026,9 +1018,9 @@ class AnimalModel(
             "decomposed_excrement_cnp": DataArray(
                 data=stack(
                     (
-                        self.to_per_day(array(decomposed_excrement["carbon"])),
-                        self.to_per_day(array(decomposed_excrement["nitrogen"])),
-                        self.to_per_day(array(decomposed_excrement["phosphorus"])),
+                        self.to_per_day(array(decomposed_excrement["C"])),
+                        self.to_per_day(array(decomposed_excrement["N"])),
+                        self.to_per_day(array(decomposed_excrement["P"])),
                     ),
                     axis=1,
                 ),
@@ -1037,9 +1029,9 @@ class AnimalModel(
             "decomposed_carcasses_cnp": DataArray(
                 data=stack(
                     (
-                        self.to_per_day(array(decomposed_carcasses["carbon"])),
-                        self.to_per_day(array(decomposed_carcasses["nitrogen"])),
-                        self.to_per_day(array(decomposed_carcasses["phosphorus"])),
+                        self.to_per_day(array(decomposed_carcasses["C"])),
+                        self.to_per_day(array(decomposed_carcasses["N"])),
+                        self.to_per_day(array(decomposed_carcasses["P"])),
                     ),
                     axis=1,
                 ),
@@ -1057,8 +1049,7 @@ class AnimalModel(
 
         for cell_id, fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.items():
             self.data["fungal_fruiting_bodies"].loc[{"cell_id": cell_id}] = (
-                fungal_fruiting_bodies_pool.mass_cnp["carbon"]
-                / self.data.grid.cell_area
+                fungal_fruiting_bodies_pool.mass_cnp["C"] / self.data.grid.cell_area
             )
 
     def to_per_day(self, change: NDArray[float32]) -> NDArray[float32]:
@@ -1278,16 +1269,14 @@ class AnimalModel(
             parent: The parent cohort.
 
         Returns:
-            Reproductive mass for carbon, nitrogen, phosphorus (kg).
+            Reproductive mass for C, N, P (kg).
         """
         semelparous_loss = self.calculate_semelparous_mass_loss(parent)
 
         return {
-            "carbon": parent.reproductive_mass_cnp.carbon + semelparous_loss["carbon"],
-            "nitrogen": parent.reproductive_mass_cnp.nitrogen
-            + semelparous_loss["nitrogen"],
-            "phosphorus": parent.reproductive_mass_cnp.phosphorus
-            + semelparous_loss["phosphorus"],
+            "C": parent.reproductive_mass_cnp.C + semelparous_loss["C"],
+            "N": parent.reproductive_mass_cnp.N + semelparous_loss["N"],
+            "P": parent.reproductive_mass_cnp.P + semelparous_loss["P"],
         }
 
     def calculate_offspring_count(
@@ -1310,9 +1299,9 @@ class AnimalModel(
 
         # Find the limiting element — how many offspring can be made from each element?
         max_per_parent = min(
-            reproductive_mass["carbon"] / birth_c,
-            reproductive_mass["nitrogen"] / birth_n,
-            reproductive_mass["phosphorus"] / birth_p,
+            reproductive_mass["C"] / birth_c,
+            reproductive_mass["N"] / birth_n,
+            reproductive_mass["P"] / birth_p,
         )
         # Total offspring is limited offspring per parent times the number of parents
         return int(max_per_parent * parent.individuals)
@@ -1340,9 +1329,9 @@ class AnimalModel(
 
         # TODO: double check that total_c can't be more than available mass
         parent.reproductive_mass_cnp.update(
-            carbon=-min(total_c, parent.reproductive_mass_cnp.carbon),
-            nitrogen=-min(total_n, parent.reproductive_mass_cnp.nitrogen),
-            phosphorus=-min(total_p, parent.reproductive_mass_cnp.phosphorus),
+            C=-min(total_c, parent.reproductive_mass_cnp.C),
+            N=-min(total_n, parent.reproductive_mass_cnp.N),
+            P=-min(total_p, parent.reproductive_mass_cnp.P),
         )
 
         if parent.functional_group.reproductive_type == "semelparous":
@@ -1363,9 +1352,9 @@ class AnimalModel(
         loss = self.calculate_semelparous_mass_loss(parent)
 
         parent.mass_cnp.update(
-            carbon=-loss["carbon"],
-            nitrogen=-loss["nitrogen"],
-            phosphorus=-loss["phosphorus"],
+            C=-loss["C"],
+            N=-loss["N"],
+            P=-loss["P"],
         )
         parent.is_alive = False
         self.remove_dead_cohort(parent)
@@ -1382,14 +1371,14 @@ class AnimalModel(
             Dictionary of mass loss (C, N, P).
         """
         if parent.functional_group.reproductive_type != "semelparous":
-            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
+            return {"C": 0.0, "N": 0.0, "P": 0.0}
 
         loss_fraction = parent.constants.semelparity_mass_loss
 
         return {
-            "carbon": parent.mass_cnp.carbon * loss_fraction,
-            "nitrogen": parent.mass_cnp.nitrogen * loss_fraction,
-            "phosphorus": parent.mass_cnp.phosphorus * loss_fraction,
+            "C": parent.mass_cnp.C * loss_fraction,
+            "N": parent.mass_cnp.N * loss_fraction,
+            "P": parent.mass_cnp.P * loss_fraction,
         }
 
     def calculate_birth_mass_cnp(
@@ -1406,9 +1395,9 @@ class AnimalModel(
         """
         proportions = parent.cnp_proportions
         return (
-            birth_mass * proportions["carbon"],
-            birth_mass * proportions["nitrogen"],
-            birth_mass * proportions["phosphorus"],
+            birth_mass * proportions["C"],
+            birth_mass * proportions["N"],
+            birth_mass * proportions["P"],
         )
 
     def create_offspring(
@@ -1458,25 +1447,19 @@ class AnimalModel(
         Diet flags on a cohort determine which resource lists are assembled and
         forwarded to ``cohort.forage_cohort``:
 
-        * ``DietType.HERBIVORE``      → live plant resources
-        * ``DietType.CARNIVORE``      → live prey cohorts
-        * ``DietType.DETRITUS``       → plant-litter pools (detritivory)
-        * ``DietType.CARCASSES``      → carcass pools (scavenging)
-        * ``DietType.WASTE``          → excrement pools (coprophagy)
-        * ``DietType.MUSHROOMS``      → fungal fruiting bodies
-        * ``DietType.FUNGI``          → soil fungi (SoilPool['fungi'])
-        * ``DietType.POM``            → soil POM (SoilPool['pom'])
-        * ``DietType.BACTERIA``       → soil bacteria (SoilPool['bacteria'])
-
-        Deposition targets (``excrement_pools`` for faeces and ``carcass_pool_map``
-        for uneaten prey remains) are always supplied so trophic functions can
-        update them regardless of whether the cohort actively scavenges in the
-        same step.
+        * ``FOLIAGE`` / ``FRUIT`` / ``SEEDS`` → live plant resources
+        * ``VERTEBRATES`` / ``INVERTEBRATES`` → live prey cohorts
+        * ``DETRITUS``                        → plant-litter pools (detritivory)
+        * ``CARCASSES``                       → carcass pools (scavenging)
+        * ``WASTE``                           → excrement pools (coprophagy)
+        * ``MUSHROOMS``                       → fungal fruiting bodies
+        * ``FUNGI``                           → soil fungi
+        * ``POM``                             → soil POM
+        * ``BACTERIA``                        → soil bacteria
 
         Args:
             dt: Time step duration.
         """
-
         for cohort in list(self.active_cohorts.values()):
             # Safety check territory must be defined
             if cohort.territory is None:
@@ -1511,14 +1494,18 @@ class AnimalModel(
             ):
                 plant_list = cohort.get_plant_resources(self.plant_resources)
 
-            # Live prey
-            if diet & (
+            # Live prey (taxonomically filtered)
+            prey_flags = diet & (
                 DietType.BLOOD
                 | DietType.INVERTEBRATES
                 | DietType.FISH
                 | DietType.VERTEBRATES
-            ):
-                prey_list = cohort.get_prey(self.communities)
+            )
+            if prey_flags:
+                prey_list = cohort.get_prey(
+                    communities=self.communities,
+                    prey_diet=prey_flags,
+                )
 
             # Fruiting-body fungivory
             if diet & DietType.MUSHROOMS:

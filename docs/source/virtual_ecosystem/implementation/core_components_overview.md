@@ -23,12 +23,11 @@ language_info:
   version: 3.10.14
 ---
 
-# Implementation of the core components
+# How the simulation core works
 
-The first stages in a simulation are the configuration and initialisation of the core
-components.
+The simulation starts by configuring and initialising the core components.
 
-## The configuration
+## Configuration
 
 The model core and each science model has a set of configuration options that set how
 the simulation is set up and how the science models run. These configuration options are
@@ -51,12 +50,12 @@ When a simulation starts, the Virtual Ecosystem:
   * Any required fields without defaults are not completed.
 
 Further details can be found in the [configuration
-documentation](../../using_the_ve/configuration/new_config.md).
+documentation](../../using_the_ve/model_details/new_config.md).
 
 ## The grid
 
 Next, the spatial structure of the simulation is configured as a [`Grid`
-object](../../using_the_ve/configuration/grid.md) that defines the area, coordinate system
+object](../../development/design/grid.md) that defines the area, coordinate system
 and geometry of the individual cells that will be used in the simulation. The grid is
 also used to establish grid cell neighbours and connectivity across the spatial domain.
 
@@ -84,14 +83,14 @@ vertical layer structure. (click to zoom).
 ## Loading and validation of input data
 
 All of the variables required to initialise and run the simulation are then loaded into
-an internal [`Data` object](../../using_the_ve/data/data.md). The model configuration
+an internal [`Data` object](../../development/design/data.md). The model configuration
 provides the location of the file containing each required variables and the Data object
 is then used to load the data, checking that:
 
 * the input files are valid and can be read, and
 * that the data in files is congruent with the rest of the configuration, such as
   checking the dimensionality and shape of [core
-  axes](../../using_the_ve/configuration/axes.md) like the spatial grid.
+  axes](../../using_the_ve/axes.md) like the spatial grid.
 
 ## Simulation timescale
 

@@ -4,18 +4,20 @@ subtrees:
     maxdepth: 0
     caption: The Virtual Ecosystem
     entries:
-      - file: virtual_ecosystem/implementation
-        title: Implementation
+      - file: virtual_ecosystem/science
+        title: Science
         entries:
-        - file: project_team
-          title: The Project Team
-        - file: virtual_ecosystem/theory/theory
-          title: Theory
+        - file: virtual_ecosystem/theory/underlying_theory
+          title: Underlying theory
           entries:
             - file: virtual_ecosystem/theory/abiotic_theory
               entries:
                 - file: virtual_ecosystem/theory/microclimate_theory
+                  entries:
+                    - file: virtual_ecosystem/theory/microclimate_primer
                 - file: virtual_ecosystem/theory/hydrology_theory
+                  entries:
+                    - file: virtual_ecosystem/theory/hydrology_primer
             - file: virtual_ecosystem/theory/plant_theory
             - file: virtual_ecosystem/theory/soil/summary
               entries:
@@ -27,8 +29,8 @@ subtrees:
             - file: virtual_ecosystem/theory/animals/animal_theory
               entries:
                 - file: virtual_ecosystem/theory/animals/carcasses_and_excrement
-        - file: virtual_ecosystem/implementation/implementation
-          title: Implementation
+        - file: virtual_ecosystem/implementation/how_it_works
+          title: How it works
           entries:
             - file: virtual_ecosystem/implementation/science_model_overview
             - file: virtual_ecosystem/implementation/core_components_overview
@@ -39,30 +41,35 @@ subtrees:
             - file: virtual_ecosystem/implementation/hydrology_implementation
             - file: virtual_ecosystem/implementation/soil_implementation
             - file: virtual_ecosystem/implementation/plants_implementation
-            - file: virtual_ecosystem/implementation/main_simulation
-            - file: virtual_ecosystem/implementation/variables
+        - file: project_team
+          title: About the Project
+        - file: glossary
+        - file: bibliography
 
       - file: using_the_ve/overview
         title: Users
         entries:
           - file: using_the_ve/installing_ve
           - file: using_the_ve/example_data
-          - file: using_the_ve/core_configuration
-          - file: using_the_ve/science_model_configuration
           - file: using_the_ve/virtual_ecosystem_in_use
-          - file: using_the_ve/model_data_inputs
+          - file: using_the_ve/running_ve_with_your_own_data
+            title: Using your own data
+            entries:
+              - file: using_the_ve/core_configuration
+              - file: using_the_ve/science_model_configuration
+              - file: using_the_ve/config
+              - file: using_the_ve/model_data_inputs
+              - file: using_the_ve/axes
           - file: using_the_ve/virtual_ecosystem_in_static_mode
-          - file: using_the_ve/configuration/config
-            title: Configuring your model
+          - file: using_the_ve/variables/variables
+          - file: using_the_ve/core_settings/overview
             entries:
-              - file: using_the_ve/configuration/new_config
-              - file: using_the_ve/configuration/axes
-              - file: using_the_ve/configuration/grid
-              - file: using_the_ve/configuration/constants
-          - file: using_the_ve/data/data
-            title: Adding data to the model
+              - file: using_the_ve/core_settings/static_models
+          - file: using_the_ve/model_details/overview
             entries:
-              - file: using_the_ve/data/notes_preprocessing
+              - file: using_the_ve/model_details/pft_configuration
+              - file: using_the_ve/model_details/notes_preprocessing
+              - file: using_the_ve/model_details/new_config
 
       - file: development/contributing
         title: Developers
@@ -76,6 +83,8 @@ subtrees:
             entries:
               - file: development/design/core
               - file: development/design/defining_new_models
+              - file: development/design/data
+              - file: development/design/grid
           - file: development/documentation
             entries:
               - file: development/documentation/documentation
@@ -234,11 +243,5 @@ subtrees:
                     title: The plant_structures submodule
           - file: api/example_data
             title: The example_data submodule
-
-      - file: reference
-        title: References
-        entries:
-          - file: glossary
-          - file: bibliography
-          - file: genindex
           - file: modindex
+          - file: genindex

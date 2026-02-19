@@ -31,12 +31,11 @@ markdownlint is fussy about the formatting within the disable comment.
 
 ::::{grid} 1 1 2 2
 
-:::{grid-item-card} {fas}`microscope;fa-xl` Theory
+:::{grid-item-card} {fas}`microscope;fa-xl` Science
 :margin: 2 2 0 0
-:link: ./virtual_ecosystem/implementation.html
+:link: ./virtual_ecosystem/science.html
 
-Read more about the scientific theories and implementation underlying the Virtual
-Ecosystem.
+Read more about the scientific theory underlying the Virtual Ecosystem.
 
 :::
 

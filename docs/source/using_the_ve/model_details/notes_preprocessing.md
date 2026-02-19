@@ -21,8 +21,8 @@ Please check the following:
 * **Does the input climate data match the model grid?**
 
   This match is necessary for the model to run and to have the effects of topography and
-  elevation incorporated that we described in the
-  [theory section](../../virtual_ecosystem/theory/microclimate_theory.md#factors-affecting-microclimate).
+  elevation incorporated that we described in the [theory
+  section](../../virtual_ecosystem/theory/microclimate_primer.md#factors-affecting-microclimate).
   This spatial downscaling step is not included in the Virtual Ecosystem.
 
 * **What is the reference height?**
@@ -37,8 +37,8 @@ Please check the following:
 * **What are the expected units?**
 
   Make sure that the units of the required input variables match those of the [required
-  variables](../../virtual_ecosystem/implementation/variables.md), e.g.
-  temperatures in Celsius, pressure in kPa, etc.
+  variables](../variables/variables), e.g. temperatures in Celsius, pressure in kPa,
+  etc.
 
 * **What are the variables names?**
 

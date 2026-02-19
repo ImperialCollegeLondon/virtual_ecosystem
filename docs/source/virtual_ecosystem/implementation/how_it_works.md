@@ -23,7 +23,7 @@ language_info:
   version: 3.11.9
 ---
 
-# The implementation of the Virtual Ecosystem
+# How the Virtual Ecosystem works
 
 The main workflow of the Virtual Ecosystem ({numref}`fig_simulation_flow`) has the
 following steps:
@@ -62,15 +62,15 @@ The workflow of a Virtual Ecosystem simulation (click to zoom).
 The configuration files use the [`TOML`](https://toml.io/en/) format to provide all of
 the details for running a simulation: the spatial layout, the locations of the initial
 input data, everything. See the [configuration
-documentation](../../using_the_ve/configuration/config.md) in the Using the Virtual
+documentation](../../using_the_ve/config.md) in the Using the Virtual
 Ecosystem section to find out more.
 
 ## Core Components
 
 The Virtual Ecosystem uses several core components to validate and coordinate shared
 configuration settings and to initialise model structures. The components are listed
-below but also see the [core components overview](./core_components_overview.md) for
-more detail:
+below but also see the [description of how the simulation core
+works](./core_components_overview.md) for more detail:
 
 - The Config object, containing the validated configuration.
 - The Grid object, containing the shared spatial structure of the simulation.
@@ -93,14 +93,10 @@ to work with but the datasets in the Virtual Ecosystem are commonly multi-dimens
 arrays (e.g. space and time), and the NetCDF format supports this kind of data, as well
 as providing critical metadata for data validation.
 
-<!-- TODO: fix this link to the variables.rst file
-when the variables system gets merged -->
-
-The Virtual Ecosystem has a long list of the
-[variables](../../../../virtual_ecosystem/data_variables.toml) that are used to set up
-the simulation and then update the model state through time. The configuration files
-need to provide the locations of the variables required to initialise each science
-model.
+The Virtual Ecosystem has a large number of variables
+[variables](../../using_the_ve/variables/variables.md) that are used to set up the
+simulation and then update the model state through time. The configuration files need to
+provide the locations of the variables required to initialise each science model.
 
 ## Science models
 

@@ -5,7 +5,7 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.14
+    rev: v0.15.1
     hooks:
       - id: ruff-check   #  Run the linter.
         args: [--fix, --exit-non-zero-on-fix]
@@ -31,7 +31,7 @@ repos:
             ^docs/source/genindex.md|
             ^docs/source/modindex.md|
             ^docs/source/using_the_ve/[a-z_]+.py|
-            ^docs/source/virtual_ecosystem/implementation/[a-z_]+.py
+            ^docs/source/using_the_ve/variables/[a-z_]+.py
         )
       additional_dependencies:
         - black==24.4.2 # Matches hook

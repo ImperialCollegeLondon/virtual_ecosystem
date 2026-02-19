@@ -43,7 +43,7 @@ doing any data preparation or configuration, you will need to decide on the spat
 temporal extents of the simulation. The configuration of these model properties are
 described in the [core configuration](./core_configuration.md) page, but in summary:
 
-* The [spatial grid](./configuration/grid.md) definition sets the number of grid cells
+* The [spatial grid](../development/design/grid.md) definition sets the number of grid cells
   in the simulation, the cell size and the spatial coordinates of the cell. The Virtual
   Ecosystem expects coordinates in metres, so you should choose a [projected coordinate
   system](https://en.wikipedia.org/wiki/Projected_coordinate_system) for your site of
@@ -109,7 +109,7 @@ moment have we the following critical dimensions within the VE:
 You will first need to look at the required variables for each science model that you
 want to include in the simulation and make a list of those variables. Details of the
 variables required by each model can be found in the [data
-variables](../virtual_ecosystem/implementation/variables.md) page.
+variables](./variables/variables.md) page.
 
 ```{warning}
 The `axis` field in that data is currently **not to be trusted** - we have
@@ -120,8 +120,8 @@ stated axes are what is on the data.
 Then for each variable you will need to compile appropriate data - given the axes
 required - and saved as NetCDF files, providing labelled dimensions and coordinates to
 match input data to the axes and coordinates of your model configuration . See the [data
-object](./data/data.md) page for more information on loading data and the [example
-data](./example_data.md) page for examples of NetCDF input files.
+object](../development/design/data.md) page for more information on loading data and the
+[example data](./example_data.md) page for examples of NetCDF input files.
 
 ### Configuring gridded data inputs
 

@@ -341,7 +341,7 @@ def add_datatable_to_variables_page(app, page_name, template_name, context, doct
         match.
     """
 
-    if page_name == "virtual_ecosystem/implementation/variables":
+    if page_name == "using_the_ve/variables/variables":
         # Add Datatables JS links and local custom table setup
         # - dataTables.min.js is the main DataTables framework
         # - dataTables.responsive.min.js adds responsive wrapping of row contents, which

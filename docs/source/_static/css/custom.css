@@ -47,3 +47,10 @@ h5.card-header {
 div.btn-group>button.btn {
     opacity: 1.0;
 }
+
+/* Override the pydata-sphinx-theme default bright blue background in anchors */
+
+img.bg-primary,
+a.bg-primary {
+    background-color: white !important;
+}
