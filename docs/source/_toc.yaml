@@ -97,6 +97,7 @@ subtrees:
               entries:
                 - file: development/calibration/litter_validation
                 - file: development/calibration/litter_validation_fixed
+            - file: development/calibration/debugging
 
       - file: api/virtual_ecosystem
         title: API
