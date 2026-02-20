@@ -13,8 +13,10 @@ jupyter:
 
 # Identifying bugs in the `virtual_ecosystem`
 
-The notebooks below, originally developed by Lingda Lu, show the process for identifying
-bugs in the simulation based on the output to the
+This section is intended to help you if you are running the Virtual Ecosystem without
+crashes, but are coming across output values that make no apparent sense. It consists of
+two notebooks, originally developed by Lingda Lu, demonstrating the process for
+identifying bugs in the simulation based on the output to the
 {class}`~virtual_ecosystem.core.data.Data` object. The [first
 notebook](./litter_validation.ipynb) shows the process of identifying the bug. The
 [second notebook](./litter_validation_fixed.ipynb) shows the process of verifying that

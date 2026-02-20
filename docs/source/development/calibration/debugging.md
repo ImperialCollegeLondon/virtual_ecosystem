@@ -13,13 +13,7 @@ jupyter:
 
 # Debugging the Virtual Ecosystem
 
-If you are trying to understand unexpected values in outputs or crashes from running the
-Virtual Ecosystem then the first place to look is at the log, which should give specific
-information about what went wrong. Often that may point towards an input that has
-unexpected values and where fixing the inputs will resolve the problem.
-
-However, if the cause is not obvious you may need to debug the model - watch it running
-and see what variables change when and how these might lead to errors.
+This guide will walk you through the process of debugging the Virtual Ecosystem.
 
 ```{important}
 
