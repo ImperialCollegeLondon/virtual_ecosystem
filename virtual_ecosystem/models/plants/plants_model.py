@@ -1319,9 +1319,6 @@ class PlantsModel(
         self.data["senesced_leaf_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.senesced_leaf_lignin
         )
-        self.data["leaf_lignin"] = xr.full_like(
-            self.data["elevation"], self.model_constants.leaf_lignin
-        )
         self.data["plant_reproductive_tissue_lignin"] = xr.full_like(
             self.data["elevation"],
             self.model_constants.plant_reproductive_tissue_lignin,

@@ -406,7 +406,6 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
         consts.plant_reproductive_tissue_lignin,
     )
     assert np.allclose(fxt_plants_model.data["root_lignin"], consts.root_lignin)
-    assert np.allclose(fxt_plants_model.data["leaf_lignin"], consts.leaf_lignin)
 
 
 def test_PlantsModel_calculate_turnover_constant_override(
@@ -420,7 +419,7 @@ def test_PlantsModel_calculate_turnover_constant_override(
     from virtual_ecosystem.models.plants.plants_model import PlantsModel
 
     # Force setting of new value on frozen pydantic configuration class.
-    fixture_configuration.plants.constants.__dict__["leaf_lignin"] = 100.0
+    fixture_configuration.plants.constants.__dict__["senesced_leaf_lignin"] = 100.0
 
     plants_model = PlantsModel.from_config(
         data=plants_data,
@@ -431,7 +430,7 @@ def test_PlantsModel_calculate_turnover_constant_override(
     plants_model.reset_update_vars()
     plants_model.calculate_turnover()
 
-    assert np.allclose(plants_model.data["leaf_lignin"], 100.0)
+    assert np.allclose(plants_model.data["senesced_leaf_lignin"], 100.0)
 
 
 def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
