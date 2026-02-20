@@ -1326,9 +1326,6 @@ class PlantsModel(
         self.data["root_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_lignin
         )
-        self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
-            self.data["elevation"], 0.01
-        )
 
     def calculate_nutrient_uptake(self) -> None:
         """Calculate uptake of soil nutrients by the plant community.
