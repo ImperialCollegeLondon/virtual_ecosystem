@@ -354,6 +354,20 @@ def test_calculate_atmospheric_layer_geometry(
         result["thickness"], exp_thickness, rtol=1e-04, atol=1e-04
     )
 
+    exp_midpoints = np.array(
+        [
+            [1.0, 1.0, 1.0, 15.95],
+            [7.0, 7.0, 16.95, np.nan],
+            [17, 21.95, np.nan, np.nan],
+            [26.95, np.nan, np.nan, np.nan],
+            [31.95, 31.95, 31.95, 31.95],
+        ]
+    )
+
+    np.testing.assert_allclose(
+        result["layer_midpoints"], exp_midpoints, rtol=1e-04, atol=1e-04
+    )
+
 
 def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_canopy):
     """Test generation of a single-day diurnal cycle from monthly means."""
