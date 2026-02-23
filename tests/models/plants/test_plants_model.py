@@ -338,6 +338,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     )
 
     transpiration_by_layer_benchmark = fxt_plants_model.layer_structure.from_template()
+    transpiration_by_layer_benchmark[:] = 0
     transpiration_by_layer_benchmark[1:5] = [
         [2.79799283e-01, 2.79797581e-01, 2.79807565e-01, 2.85515398e-01],
         [1.17089904e-01, 1.17116145e-01, 1.14312706e-01, 7.40514285e-06],

@@ -876,8 +876,8 @@ class PlantsModel(
         # Get the canopy top PPFD per grid cell for this time index
         canopy_top_ppfd = self.canopy_top_radiation * self.model_constants.dsr_to_ppfd
 
-        # Initialise transpiration array to collect per grid cell values
-        transpiration = self.layer_structure.from_template("transpiration")
+        # Reset the transpiration data
+        self.data["transpiration"][:] = np.nan
 
         # Now calculate the gross primary productivity and transpiration across cohorts
         # and canopy layers over the time period.
@@ -953,19 +953,14 @@ class PlantsModel(
 
             # Calculate and store total stem transpiration in mm per stem and total
             # grid cell transpiration in mm m-2 since last update
-            self.per_stem_transpiration[cell_id] = per_layer_transpiration_mm.sum(
-                axis=0
+            self.per_stem_transpiration[cell_id] = np.nansum(
+                per_layer_transpiration_mm, axis=0
             )
 
             # Calculate the total transpiration per layer in m2 in mm
-            transpiration[:, cell_id] = (
+            self.data["transpiration"][:, cell_id] = (
                 community.cohorts.n_individuals * per_layer_transpiration_mm
             ).sum(axis=1)
-
-        # Write canopy layers to transpiration data array
-        self.data["transpiration"][self.layer_structure.index_filled_canopy] = (
-            transpiration[self.layer_structure.index_filled_canopy]
-        )
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
