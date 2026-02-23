@@ -42,13 +42,13 @@ by end users. See below for more information on how this option works.
 
 ## Generate the code commit to be released
 
-The release process for new versions of the `virtual_ecosystem` package is managed using
-pull requests to the `develop` branch to create a specific commit that will be released.
-The steps of the process are:
+The release process for new versions of the `virtual_ecosystem` package is managed by
+making a pull request and merging it into the `develop` branch, in order to create a
+specific commit that will be released. The steps of the process are:
 
-1. Update the `pyproject.toml` file to use the expected release versions number and
-   commit that change. You can use `poetry version` command to increment the major,
-   minor and patch version but it is almost as easy to edit the file by hand.
+1. In a new PR, update the `pyproject.toml` file to use the expected release versions
+   number and commit that change. You can use `poetry version` command to increment the
+   major, minor and patch version but it is almost as easy to edit the file by hand.
 
 1. **The CI testing obviously needs to pass**. Any issues need to be resolved in this
    PR.
@@ -69,6 +69,12 @@ The steps of the process are:
    test. So, before releasing you should check that the model runs successfully with the
    example data (we provide [instructions for how to do
    this](../../using_the_ve/example_data.md)).
+
+1. Some of the documentation consists of Jupyter note books that are stored in an
+   executed form in order to reduce documentation build times. However, these need to be
+   updated with each new release to ensure that the steps contained in them have not
+   become outdated. This can be done for all relevant notebooks at once, by navigating
+   to `docs/source` and running the `update_notebooks.sh` script.
 
 1. Once everything on the list above is working merge this PR into `develop`.
 
