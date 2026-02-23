@@ -96,7 +96,6 @@ class AbioticModel(
         "vapour_pressure_deficit_ref",
         "air_temperature",
         "relative_humidity",
-        "vapour_pressure",
         "vapour_pressure_deficit",
         "wind_speed",
         "atmospheric_pressure",
@@ -110,6 +109,7 @@ class AbioticModel(
     vars_populated_by_first_update=(
         "longwave_emission",
         "conductive_flux_understorey",
+        "vapour_pressure",
     ),
 ):
     """A class describing the abiotic model.
