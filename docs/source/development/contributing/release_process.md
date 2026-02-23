@@ -50,12 +50,10 @@ The steps of the process are:
    commit that change. You can use `poetry version` command to increment the major,
    minor and patch version but it is almost as easy to edit the file by hand.
 
-1. Merge this change into `develop`.
+1. **The CI testing obviously needs to pass**. Any issues need to be resolved in this
+   PR.
 
-1. **The CI testing obviously needs to pass**. Any issues need to be resolved by
-  PRs onto the `develop` branch.
-
-1. That commit should set the standard `ci.yaml` actions going, which includes
+1. Making the PR should set the standard `ci.yaml` actions going, which includes
    code QA, testing and docs building. However, you should also check the documentation
    builds on Read The Docs.
 
@@ -64,8 +62,15 @@ The steps of the process are:
    and wait for it to build. Check the Builds tab to see that it has built successfully!
    If it has built successfully, do check pages to make sure that page code has executed
    successfully, and then go back to the Versions tab and deactivate and hide the
-   branch. If the release branch needs any changes, do come back and check that those
+   branch. If any changes are needed before releasing, do come back and check that those
    changes have also built successfully.
+
+1. The tests run as part of the CI are unit tests, we do not run an extended integration
+   test. So, before releasing you should check that the model runs successfully with the
+   example data (we provide [instructions for how to do
+   this](../../using_the_ve/example_data.md)).
+
+1. Once everything on the list above is working merge this PR into `develop`.
 
 ## Create the GitHub release
 
