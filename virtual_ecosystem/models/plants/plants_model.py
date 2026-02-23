@@ -827,10 +827,13 @@ class PlantsModel(
         # Estimate the light use efficiency of leaves within each canopy layer within
         # each grid cell. The LUE is set purely by the environmental conditions, which
         # are shared across cohorts so we can calculate all layers in all cells.
+        #
+        # The pressure and VPD variables are saved as kPa and so need to be scaled here
+        # for use with pyrealm.
         pmodel_env = PModelEnvironment(
             tc=self.data["air_temperature"].to_numpy(),
-            vpd=self.data["vapour_pressure_deficit"].to_numpy(),
-            patm=self.data["atmospheric_pressure"].to_numpy(),
+            vpd=self.data["vapour_pressure_deficit"].to_numpy() * 1000,
+            patm=self.data["atmospheric_pressure"].to_numpy() * 1000,
             co2=self.data["atmospheric_co2"].to_numpy(),
             core_const=self.pyrealm_core_consts,
             pmodel_const=self.pyrealm_pmodel_consts,
@@ -888,6 +891,14 @@ class PlantsModel(
             canopy = self.canopies[cell_id]
             community = self.communities[cell_id]
 
+            # Get cohort data into vertical structure
+            n_layers_below_canopy = (
+                self.layer_structure.n_layers - len(canopy.heights) - 1
+            )
+            padding = ((1, n_layers_below_canopy), (0, 0))
+            fapar = np.pad(canopy.cohort_data.fapar, padding)
+            stem_leaf_area = np.pad(canopy.cohort_data.stem_leaf_area, padding)
+
             # Generate subsetting to match the layer structure to the cohort canopy
             # layers, whose dimensions vary between grid cells
             active_layers = np.where(self.filled_canopy_mask[:, cell_id])[0]
@@ -909,12 +920,18 @@ class PlantsModel(
             #    g C mol-1 * (-) * µmol m-2 s-1 * m2 * s = µg C
 
             per_layer_gpp = (
-                self.pmodel.lue[active_layers, :][:, [cell_id]]  # gC mol-1
-                * canopy.cohort_data.fapar  # unitless
+                self.pmodel.lue[:, [cell_id]]  # gC mol-1
+                * fapar  # unitless
                 * canopy_top_ppfd[cell_id]  # µmol m-1 s-1
-                * canopy.cohort_data.stem_leaf_area  # m2
+                * stem_leaf_area  # m2
                 * self.model_timing.update_interval_seconds  # second
             )
+
+            # Mask all nans with zero. This includes all unoccupied canopy layers, but
+            # also patches canopy conditions where GPP is not estimable using the P
+            # Model (where m <= c*, see
+            # https://pyrealm.readthedocs.io/en/stable/api/pmodel_api.html#pyrealm.pmodel.jmax_limitation.JmaxLimitationWang17)
+            per_layer_gpp = np.nan_to_num(per_layer_gpp)
 
             # Calculate and store whole stem GPP in kg C
             self.per_stem_gpp[cell_id] = per_layer_gpp.sum(axis=0) * 1e-9
@@ -927,18 +944,18 @@ class PlantsModel(
             #    mol C  * µmol H2O mol C -1 = µmol H2O
             per_layer_transpiration_micromolar = (
                 per_layer_gpp / (self.pyrealm_core_consts.k_c_molmass * 1e6)
-            ) * self.pmodel.iwue[active_layers, :][:, [cell_id]]
+            ) * self.pmodel.iwue[:, [cell_id]]
 
             # Convert to mm
             per_layer_transpiration_mm = convert_water_moles_to_mm(
                 water_moles=per_layer_transpiration_micromolar * 1e-6,
                 tc=np.repeat(
-                    self.pmodel.env.tc[active_layers, :][:, [cell_id]],
+                    self.pmodel.env.tc[:, [cell_id]],
                     canopy.n_cohorts,
                     axis=1,
                 ),
                 patm=np.repeat(
-                    self.pmodel.env.patm[active_layers, :][:, [cell_id]],
+                    self.pmodel.env.patm[:, [cell_id]],
                     canopy.n_cohorts,
                     axis=1,
                 ),
@@ -952,7 +969,7 @@ class PlantsModel(
             )
 
             # Calculate the total transpiration per layer in m2 in mm
-            transpiration[active_layers, cell_id] = (
+            transpiration[:, cell_id] = (
                 community.cohorts.n_individuals * per_layer_transpiration_mm
             ).sum(axis=1)
 
