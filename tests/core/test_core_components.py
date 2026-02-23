@@ -452,7 +452,7 @@ def test_LayerStructure_set_filled_canopy():
             update_interval = "30 days"
             run_length = "1 years"
             """,
-            {"run_at": [5, 10, 15]},
+            {"run_at": [5, 10, 13]},
             [],
             pytest.raises(ValueError),
             id="custom indices - fail",
