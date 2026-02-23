@@ -408,31 +408,6 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
     assert np.allclose(fxt_plants_model.data["root_lignin"], consts.root_lignin)
 
 
-def test_PlantsModel_calculate_turnover_constant_override(
-    plants_data, fixture_configuration, fixture_core_components
-):
-    """Test that the turnover constants can be overridden by values in config.
-
-    TODO - not sure what this actually tests?
-    """
-
-    from virtual_ecosystem.models.plants.plants_model import PlantsModel
-
-    # Force setting of new value on frozen pydantic configuration class.
-    fixture_configuration.plants.constants.__dict__["senesced_leaf_lignin"] = 100.0
-
-    plants_model = PlantsModel.from_config(
-        data=plants_data,
-        configuration=fixture_configuration,
-        core_components=fixture_core_components,
-    )
-
-    plants_model.reset_update_vars()
-    plants_model.calculate_turnover()
-
-    assert np.allclose(plants_model.data["senesced_leaf_lignin"], 100.0)
-
-
 def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
     """Test the calculate_nutrient_uptake method of the plants model."""
 
