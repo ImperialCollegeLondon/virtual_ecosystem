@@ -15,6 +15,7 @@ from .conftest import log_check, record_found_in_log
 
 INITIALISATION_LOG = [
     (INFO, "Initialising models: litter"),
+    (INFO, "Initialising litter model"),
     (
         INFO,
         "Information required to initialise the litter model successfully extracted.",
@@ -169,9 +170,6 @@ def test_ve_run_model_issues(caplog, config_content, expected_log_entries, mocke
     """
     from virtual_ecosystem.main import ve_run
 
-    # TODO: Once models are adapted, this can be removed
-    mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
-
     with pytest.raises(ConfigurationError):
         ve_run(cfg_strings=config_content)
 
@@ -194,14 +192,11 @@ def test_ve_run_progress_reporting(capsys, tmp_path, progress_value, output_leng
     log out to a temporary file.
     """
 
-    from virtual_ecosystem.core import variables
     from virtual_ecosystem.core.logger import remove_file_logger
     from virtual_ecosystem.main import ve_run
 
-    # Need to remove any existing file log attached to LOGGER and clear the variables
-    # registry
+    # Need to remove any existing file log attached to LOGGER
     remove_file_logger()
-    variables.KNOWN_VARIABLES.clear()
 
     # Make the output directory - need to make a decision about whether ve_run creates
     # this.

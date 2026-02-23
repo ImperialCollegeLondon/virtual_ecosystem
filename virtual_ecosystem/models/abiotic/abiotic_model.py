@@ -108,6 +108,7 @@ class AbioticModel(
         "net_radiation",
         "longwave_emission",
         "conductive_flux_understorey",
+        "vapour_pressure",
     ),
     vars_populated_by_first_update=(),
 ):

@@ -24,7 +24,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 name = "virtual_ecosystem"
 readme = "README.md"
-version = "0.1.1a14"
+version = "0.1.1a15"
 
 requires-python = ">=3.11"
 
@@ -43,6 +43,7 @@ dependencies = [
   "xarray (>2024.6)",
   "types-tabulate (>0.9)",
   "pydantic (>=2.12.0,<3.0.0)",
+  "bottleneck (>=1.6.0,<2.0.0)",
 ]
 
 [project.scripts]
@@ -58,10 +59,10 @@ requires-poetry = ">=2.0"
 [tool.poetry.group.types.dependencies]
 types-dataclasses = "^0.6.6"
 types-jsonschema = "^4.26.0"
-types-tqdm = "^4.67.0.20250809"
+types-tqdm = "^4.67.3.20260205"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.150.3"
+hypothesis = "^6.151.9"
 pytest = ">=7.1.2,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
@@ -70,19 +71,19 @@ pytest-xdist = {extras = ["psutil"], version = "^3.8.0"}
 
 [tool.poetry.group.devenv.dependencies]
 codespell = "^2.4.1"
-ipykernel = "^7.1.0"
-ipython = "^9.9.0"
-isort = ">=5.12,<8.0"
-jupyterlab = "^4.5.3"
+ipykernel = "^7.2.0"
+ipython = "^9.10.0"
+isort = ">=5.12,<9.0"
+jupyterlab = "^4.5.4"
 jupyterlab-myst = "^2.6.0"
-jupytext = "^1.19.0"
+jupytext = "^1.19.1"
 matplotlib = "^3.10.8"
 mdformat = "^0.7.14"
 mdformat_frontmatter = ">=0.4.1,<2.1.0"
 mdformat_tables = ">=0.4.1,<1.1.0"
 mypy = "^1.19.1"
 pre-commit = ">=3,<5"
-ruff = ">=0.9.1,<0.15.0"
+ruff = ">=0.9.1,<0.16.0"
 
 [tool.poetry.group.docs.dependencies]
 autodocsumm = "^0.2.8"

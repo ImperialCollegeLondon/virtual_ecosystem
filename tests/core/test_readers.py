@@ -87,21 +87,21 @@ def test_file_format_loader(caplog, file_types, expected_log):
         ),
         pytest.param(
             "xy_dim.nc",
-            ["temp"],
+            ["air_temperature"],
             does_not_raise(),
             (),
             id="all_good_single_var",
         ),
         pytest.param(
             "cellid_coords.nc",
-            ["temp", "prec", "elev"],
+            ["air_temperature", "precipitation", "elevation"],
             does_not_raise(),
             (),
             id="all_good_multi_var",
         ),
         pytest.param(
             "cellid_coords.nc",
-            ["temp", "prec", "elves"],
+            ["air_temperature", "precipitation", "elves_station"],
             pytest.raises(KeyError),
             ((CRITICAL, "Data variables not found in"),),
             id="missing_multi_var",
@@ -305,11 +305,11 @@ def test_load_to_dataarray(
     datafile = shared_datadir / filename
 
     with exp_error as err:
-        results = load_to_dataarray(file=datafile, var_names=["temp"])
+        results = load_to_dataarray(file=datafile, var_names=["air_temperature"])
 
         # Check the data is in fact loaded and that a simple sum of values matches
-        assert "temp" in results
-        assert results["temp"].sum() == exp_sum_val
+        assert "air_temperature" in results
+        assert results["air_temperature"].sum() == exp_sum_val
 
     if err:
         assert str(err.value) == exp_msg

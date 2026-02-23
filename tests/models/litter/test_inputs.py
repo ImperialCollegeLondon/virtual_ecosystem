@@ -174,50 +174,29 @@ def test_split_pool_into_metabolic_and_structural_litter(
 
 
 @pytest.mark.parametrize(
-    "c_n_ratios,expected_log",
+    "lignin_proportions",
     [
         pytest.param(
-            np.array([34.2, 55.5, 37.1, 400.7]),
-            (
-                (
-                    ERROR,
-                    "Fraction of input biomass going to metabolic pool has dropped "
-                    "below zero!",
-                ),
-            ),
-            id="negative_metabolic_flow",
+            np.array([-0.5, 0.4, 0.35, 0.23]),
+            id="negative_lignin",
         ),
         pytest.param(
-            np.array([34.2, 55.5, 37.1, 3.7]),
-            (
-                (
-                    ERROR,
-                    "Fraction of input biomass going to structural biomass is less than"
-                    " the lignin fraction!",
-                ),
-            ),
-            id="less_than_lignin",
+            np.array([0.5, 1.4, 0.35, 0.23]),
+            id="lignin_above_one",
         ),
     ],
 )
 def test_split_pool_into_metabolic_and_structural_litter_bad_data(
-    caplog, fixture_litter_constants, c_n_ratios, expected_log, request
+    caplog, fixture_litter_constants, lignin_proportions
 ):
     """Check that pool split functions raises an error if out of bounds data is used."""
-
-    if request.node.callspec.id == "negative_metabolic_flow":
-        pytest.skip(
-            "Current implementation does not raise an error here. This will be"
-            " fixed in Issue #1010."
-        )
 
     from virtual_ecosystem.models.litter.inputs import (
         split_pool_into_metabolic_and_structural_litter,
     )
 
-    # C:N ratio of >400 is far too high for the function to behave sensibly
-    lignin_proportions = np.array([0.5, 0.4, 0.35, 0.23])
-    c_p_ratios = np.array([[415.0, 327.4, 554.5, 145.0]])
+    c_n_ratios = np.array([34.2, 55.5, 37.1, 3.7])
+    c_p_ratios = np.array([415.0, 327.4, 554.5, 145.0])
 
     with pytest.raises(ValueError):
         split_pool_into_metabolic_and_structural_litter(
@@ -228,6 +207,8 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
             split_sensitivity_nitrogen=fixture_litter_constants.metabolic_split_nitrogen_sensitivity,
             split_sensitivity_phosphorus=fixture_litter_constants.metabolic_split_phosphorus_sensitivity,
         )
+
+    expected_log = ((ERROR, "Lignin proportion not between 0 and 1 (inclusive)!"),)
 
     # Check the error reports
     log_check(caplog, expected_log)

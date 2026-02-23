@@ -101,7 +101,9 @@ All model modules must register these components when they are imported: see the
 
 from __future__ import annotations
 
+import pkgutil
 from abc import ABC, abstractmethod
+from importlib import import_module
 from typing import Any
 
 import pint
@@ -765,3 +767,45 @@ class BaseModel(ABC):
             )
             LOGGER.error(error)
             raise error
+
+
+def to_camel_case(snake_str: str) -> str:
+    """Convert a snake_case string to CamelCase.
+
+    Args:
+        snake_str: The snake case string to convert.
+
+    Returns:
+        The camel case string.
+    """
+    return "".join(x.capitalize() for x in snake_str.lower().split("_"))
+
+
+def _discover_models() -> list[type[BaseModel]]:
+    """Discover all the models in Virtual Ecosystem."""
+    import virtual_ecosystem.models as models
+
+    models_found = []
+    for mod in pkgutil.iter_modules(models.__path__):
+        if not mod.ispkg:
+            continue
+
+        try:
+            module = import_module(f"{models.__name__}.{mod.name}.{mod.name}_model")
+        except ImportError:
+            LOGGER.warning(
+                f"No model file found for model {models.__name__}.{mod.name}."
+            )
+            continue
+
+        mod_class_name = to_camel_case(mod.name) + "Model"
+        if hasattr(module, mod_class_name):
+            models_found.append(getattr(module, mod_class_name))
+        else:
+            LOGGER.warning(
+                f"No model class '{mod_class_name}' found in module "
+                f"'{models.__name__}.{mod.name}.{mod.name}_model'."
+            )
+            continue
+
+    return models_found

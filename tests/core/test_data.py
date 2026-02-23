@@ -68,16 +68,16 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             None,
             id="dataset_not_datarray",
         ),
-        pytest.param(  # Bad load - uses reserved dimension names
+        pytest.param(  # Bad load - uses x without y and does not match validator
             DataArray(
                 data=np.array(np.arange(9)),
                 coords={"x": np.arange(9)},
                 name="should_not_work",
             ),
-            "should_not_work",
+            "air_temperature",
             pytest.raises(ValueError),
             (
-                (INFO, "Adding data array for 'should_not_work'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (
                     CRITICAL,
                     "DataArray uses 'spatial' axis dimension names but does "
@@ -99,15 +99,15 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             [0, 1, 2, 3],
             id="valid_square_xy_coords",
         ),
-        pytest.param(  # Replacing previous load from square_xy_coords
+        pytest.param(  # Replacing pre-populated variable in fixture
             DataArray(
                 data=np.array([[4, 5], [6, 7]]),
                 coords={"y": [2, 1], "x": [1, 2]},
-                name="existing_var",
+                name="atmospheric_co2",
             ),
-            "existing_var",
+            "atmospheric_co2",
             does_not_raise(),
-            ((INFO, "Replacing data array for 'existing_var'"),),
+            ((INFO, "Replacing data array for 'atmospheric_co2'"),),
             [4, 5, 6, 7],
             id="replacing_data",
         ),
@@ -151,11 +151,11 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             DataArray(
                 data=np.array(np.arange(9)),
                 coords={"nope": np.arange(9)},
-                name="add_without_axis",
+                name="air_temperature",
             ),
-            "add_without_axis",
+            "air_temperature",
             does_not_raise(),
-            ((INFO, "Adding data array for 'add_without_axis'"),),
+            ((INFO, "Adding data array for 'air_temperature'"),),
             np.arange(9),
             id="add_without_axis",
         ),
@@ -180,7 +180,7 @@ def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_
     argnames=["var_name", "exp_err", "exp_msg", "exp_vals"],
     argvalues=[
         pytest.param(
-            "existing_var",
+            "atmospheric_co2",
             does_not_raise(),
             None,
             [1, 2, 3, 4],
@@ -190,7 +190,7 @@ def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_
             "not_existing_var",
             pytest.raises(KeyError),
             """"No variable named 'not_existing_var'. """
-            '''Did you mean one of ('existing_var',)?"''',
+            '''Variables on the dataset include ['atmospheric_co2']"''',
             None,
             id="should_not_get",
         ),
@@ -214,7 +214,7 @@ def test_Data_getitem(fixture_data, var_name, exp_err, exp_msg, exp_vals):
 @pytest.mark.parametrize(
     argnames=["var_name", "expected"],
     argvalues=[
-        pytest.param("existing_var", True),
+        pytest.param("atmospheric_co2", True),
         pytest.param("not_existing_var", False),
     ],
 )
@@ -232,18 +232,18 @@ def test_Data_contains(fixture_data, var_name, expected):
     argnames=["var_names", "exp_log"],
     argvalues=[
         pytest.param(
-            ["temp"],
+            ["air_temperature"],
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             id="simple_load",
         ),
         pytest.param(
-            ["elev"],
+            ["elevation"],
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Replacing data array for 'elev'"),
+                (INFO, "Replacing data array for 'elevation'"),
             ),
             id="load_and_replace",
         ),
@@ -271,7 +271,7 @@ def test_Data_load_to_dataarray_naming(caplog, shared_datadir, var_names, exp_lo
     data = Data(grid)
 
     # Create an existing variable to test replacement
-    data["elev"] = DataArray(np.arange(100), dims=("cell_id",))
+    data["elevation"] = DataArray(np.arange(100), dims=("cell_id",))
     caplog.clear()
 
     # Load the data from file
@@ -334,7 +334,7 @@ def fixture_load_data_grids(request):
             None,
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__cellid_dim_any",
@@ -346,7 +346,7 @@ def fixture_load_data_grids(request):
             "Grid defines 100 cells, data provides 60",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Grid defines 100 cells, data provides 60"),
             ),
             None,
@@ -359,7 +359,7 @@ def fixture_load_data_grids(request):
             "Grid defines 100 cells, data provides 200",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Grid defines 100 cells, data provides 200"),
             ),
             None,
@@ -372,7 +372,7 @@ def fixture_load_data_grids(request):
             None,
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__cellid_coords_any",
@@ -384,7 +384,7 @@ def fixture_load_data_grids(request):
             "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (
                     CRITICAL,
                     "The data cell ids do not provide a one-to-one map onto grid "
@@ -401,7 +401,7 @@ def fixture_load_data_grids(request):
             "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (
                     CRITICAL,
                     "The data cell ids do not provide a one-to-one map onto grid "
@@ -418,7 +418,7 @@ def fixture_load_data_grids(request):
             None,
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__xy_dim_square",
@@ -430,7 +430,7 @@ def fixture_load_data_grids(request):
             "Data XY dimensions do not match square grid",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Data XY dimensions do not match square grid"),
             ),
             None,
@@ -443,7 +443,7 @@ def fixture_load_data_grids(request):
             None,
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__xy_coords_square",
@@ -455,7 +455,7 @@ def fixture_load_data_grids(request):
             "Mapped points do not cover all cells.",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Mapped points do not cover all cells."),
             ),
             None,
@@ -468,7 +468,7 @@ def fixture_load_data_grids(request):
             "Mapped points fall outside grid.",
             (
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Mapped points fall outside grid."),
             ),
             None,
@@ -517,12 +517,12 @@ def test_Data_load_to_dataarray_data_handling(
     datafile = shared_datadir / filename
 
     with exp_error as err:
-        results = load_to_dataarray(file=datafile, var_names=["temp"])
-        data["temp"] = results["temp"]
+        results = load_to_dataarray(file=datafile, var_names=["air_temperature"])
+        data["air_temperature"] = results["air_temperature"]
 
         # Check the data is in fact loaded and that a simple sum of values matches
-        assert "temp" in data
-        assert data["temp"].sum() == exp_sum_val
+        assert "air_temperature" in data
+        assert data["air_temperature"].sum() == exp_sum_val
 
     if err:
         assert str(err.value) == exp_msg
@@ -538,10 +538,19 @@ def test_Data_load_to_dataarray_data_handling(
                 "core": {
                     "data": {
                         "variable": [
-                            {"file_path": "cellid_coords.nc", "var_name": "temp"},
-                            {"file_path": "cellid_coords.nc", "var_name": "prec"},
-                            {"file_path": "cellid_coords.nc", "var_name": "elev"},
-                            {"file_path": "cellid_coords.nc", "var_name": "vapd"},
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "air_temperature",
+                            },
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "precipitation",
+                            },
+                            {"file_path": "cellid_coords.nc", "var_name": "elevation"},
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "vapour_pressure_deficit",
+                            },
                         ]
                     }
                 }
@@ -551,10 +560,10 @@ def test_Data_load_to_dataarray_data_handling(
             (
                 (INFO, "Loading data from configuration"),
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
-                (INFO, "Adding data array for 'prec'"),
-                (INFO, "Adding data array for 'elev'"),
-                (INFO, "Adding data array for 'vapd'"),
+                (INFO, "Adding data array for 'air_temperature'"),
+                (INFO, "Adding data array for 'precipitation'"),
+                (INFO, "Adding data array for 'elevation'"),
+                (INFO, "Adding data array for 'vapour_pressure_deficit'"),
             ),
             id="valid config",
         ),
@@ -573,10 +582,16 @@ def test_Data_load_to_dataarray_data_handling(
                 "core": {
                     "data": {
                         "variable": [
-                            {"file_path": "cellid_coords.nc", "var_name": "temp"},
-                            {"file_path": "cellid_coords.nc", "var_name": "prec"},
-                            {"file_path": "cellid_coords.nc", "var_name": "elev"},
-                            {"file_path": "cellid_coords.nc", "var_name": "elev"},
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "air_temperature",
+                            },
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "precipitation",
+                            },
+                            {"file_path": "cellid_coords.nc", "var_name": "elevation"},
+                            {"file_path": "cellid_coords.nc", "var_name": "elevation"},
                         ]
                     }
                 }
@@ -587,9 +602,9 @@ def test_Data_load_to_dataarray_data_handling(
                 (INFO, "Loading data from configuration"),
                 (ERROR, "Duplicate variable names in data configuration"),
                 (INFO, "Loading variables from file"),
-                (INFO, "Adding data array for 'temp'"),
-                (INFO, "Adding data array for 'prec'"),
-                (INFO, "Adding data array for 'elev'"),
+                (INFO, "Adding data array for 'air_temperature'"),
+                (INFO, "Adding data array for 'precipitation'"),
+                (INFO, "Adding data array for 'elevation'"),
                 (CRITICAL, "Data configuration did not load cleanly - check log"),
             ),
             id="repeated names",
@@ -651,8 +666,8 @@ def test_Data_load_from_config(
 @pytest.mark.parametrize(
     argnames="vname, axname, result, err_ctxt, err_message",
     argvalues=[
-        ("temp", "spatial", True, does_not_raise(), None),
-        ("temp", "testing", False, does_not_raise(), None),
+        ("air_temperature", "spatial", True, does_not_raise(), None),
+        ("air_temperature", "testing", False, does_not_raise(), None),
         (
             "missing",
             "spatial",
@@ -668,7 +683,7 @@ def test_Data_load_from_config(
             "Missing variable validation data: incorrect",
         ),
         (
-            "temp",
+            "air_temperature",
             "missing",
             False,
             pytest.raises(ValueError),
@@ -683,7 +698,7 @@ def test_on_core_axis(
 
     # Add a data array properly
     da = DataArray([1, 2, 3, 4], dims=("cell_id",), name="temp")
-    fixture_data["temp"] = da
+    fixture_data["air_temperature"] = da
 
     # Add a data array _incorrectly_
     fixture_data.data["incorrect"] = da
@@ -901,7 +916,7 @@ def test_save_timeslice_to_netcdf(
 
 
 def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
-    """Test reading from dictionary."""
+    """Test adding and replacing data from a dictionary."""
 
     from virtual_ecosystem.core.data import Data
 
@@ -912,11 +927,11 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="mean_annual_temperature",
         ),
-        "new_variable": DataArray(
+        "elevation": DataArray(
             np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
-            name="new_variable",
+            name="elevation",
         ),
     }
 
@@ -932,12 +947,12 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
         ),
     )
     xr.testing.assert_allclose(
-        dummy_climate_data["new_variable"],
+        dummy_climate_data["elevation"],
         DataArray(
             np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
-            name="new_variable",
+            name="elevation",
         ),
     )
 

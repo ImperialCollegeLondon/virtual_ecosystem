@@ -102,7 +102,7 @@ class FunctionalGroup:
         """The broad trophic category, herbivore, carnivore, omnivore."""
         self.cnp_proportions = self.constants.cnp_proportion_terms[self.taxa]
         """The proportions of carbon/nitrogen/phosphorus in the functional group,
-            example {"carbon": 0.8, "nitrogen": 0.15, "phosphorus": 0.05}."""
+            example {"C": 0.8, "N": 0.15, "P": 0.05}."""
         self.metabolic_rate_terms = self.constants.metabolic_rate_terms[
             self.metabolic_type
         ]
@@ -123,6 +123,16 @@ class FunctionalGroup:
             self.taxa
         ]
         """The predator-prey mass ratio scaling relationship."""
+        # Taxonomic convenience flags
+        self.is_invertebrate: bool = self.taxa == TaxaType("invertebrate")
+        """Whether the functional group is an invertebrate."""
+
+        self.is_vertebrate: bool = self.taxa in {
+            TaxaType("bird"),
+            TaxaType("mammal"),
+            TaxaType("amphibian"),
+        }
+        """Whether the functional group is a vertebrate."""
 
 
 def import_functional_groups(

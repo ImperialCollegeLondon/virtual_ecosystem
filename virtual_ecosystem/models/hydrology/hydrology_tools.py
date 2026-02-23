@@ -88,7 +88,7 @@ def initialise_atmosphere_for_hydrology(
     specific_heat_air = calc_specific_heat(tc=air_temp)
     specific_heat_air_layer = layer_structure.from_template()
     specific_heat_air_layer[layer_structure.index_filled_atmosphere] = specific_heat_air
-    output["specific_heat_air"] = specific_heat_air_layer
+    output["specific_heat_air"] = specific_heat_air_layer / 1000.0
 
     # Latent heat of vapourisation
     latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(

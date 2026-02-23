@@ -62,6 +62,18 @@ class PlantsModel(
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "shortwave_absorption",
+        "subcanopy_seedbank_litter_cnp",
+        "subcanopy_vegetation_litter_cnp",
+        "subcanopy_vegetation_cnp",
+        "subcanopy_seedbank_cnp",
+        "fallen_seeds_cnp",
+        "fallen_fruit_cnp",
+        "fallen_seeds_per_fruit",
+        "fallen_fruit_n",
+        "canopy_seeds_cnp",
+        "canopy_fruit_cnp",
+        "canopy_seeds_per_fruit",
+        "canopy_fruit_n",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -127,18 +139,11 @@ class PlantsModel(
         "stem_turnover_cnp",
         "foliage_turnover_cnp",
         "root_turnover_cnp",
-        "canopy_fruit_n",
-        "canopy_fruit_cnp",
-        "canopy_seeds_per_fruit",
-        "canopy_seeds_cnp",
-        "fallen_fruit_n",
-        "fallen_fruit_cnp",
-        "fallen_seeds_per_fruit",
-        "fallen_seeds_cnp",
-        "subcanopy_seedbank_litter_cnp",
-        "subcanopy_vegetation_litter_cnp",
-        "subcanopy_vegetation_cnp",
-        "subcanopy_seedbank_cnp",
+        "fallen_n_propagules",
+        "nitrogen_fixation_carbon_supply",
+        "canopy_n_propagules",
+        "leaf_lignin",
+        "canopy_non_propagule_c_mass",
         "fallen_non_propagule_c_mass",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
@@ -463,6 +468,7 @@ class PlantsModel(
             model_constants=self.model_constants,
             layer_index=self.layer_structure.index_surface_scalar,
             model_timing=self.model_timing,
+            data_object_template=self.data_object_templates["cnp"],
         )
 
         # Get the canopy top shortwave downwelling radiation for the first time slice
@@ -664,7 +670,6 @@ class PlantsModel(
             lue=self.pmodel.lue[self.layer_structure.index_surface_scalar, :],
             iwue=self.pmodel.iwue[self.layer_structure.index_surface_scalar, :],
             swd=self.canopy_top_radiation,
-            data_object_template=self.data_object_templates["cnp"],
         )
 
         # Run the community data exporter
