@@ -44,7 +44,8 @@ by end users. See below for more information on how this option works.
 
 The release process for new versions of the `virtual_ecosystem` package is managed by
 making a pull request and merging it into the `develop` branch, in order to create a
-specific commit that will be released. The steps of the process are:
+specific commit that will be released. The steps of the process (which are also provided
+as a checklist in the release PR template) are:
 
 1. In a new PR, update the `pyproject.toml` file to use the expected release versions
    number and commit that change. You can use `poetry version` command to increment the
