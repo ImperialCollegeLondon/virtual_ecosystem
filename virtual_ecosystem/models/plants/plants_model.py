@@ -140,9 +140,7 @@ class PlantsModel(
         "foliage_turnover_cnp",
         "root_turnover_cnp",
         "fallen_n_propagules",
-        "nitrogen_fixation_carbon_supply",
         "canopy_n_propagules",
-        "leaf_lignin",
         "canopy_non_propagule_c_mass",
         "fallen_non_propagule_c_mass",
         "plant_ammonium_uptake",
@@ -1324,18 +1322,12 @@ class PlantsModel(
         self.data["senesced_leaf_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.senesced_leaf_lignin
         )
-        self.data["leaf_lignin"] = xr.full_like(
-            self.data["elevation"], self.model_constants.leaf_lignin
-        )
         self.data["plant_reproductive_tissue_lignin"] = xr.full_like(
             self.data["elevation"],
             self.model_constants.plant_reproductive_tissue_lignin,
         )
         self.data["root_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_lignin
-        )
-        self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
-            self.data["elevation"], 0.01
         )
 
     def calculate_nutrient_uptake(self) -> None:
