@@ -617,3 +617,56 @@ class LayerStructure:
     def index_surface_scalar(self) -> int:
         """Layer indices for the surface layer."""
         return self._role_indices_scalar["surface"]
+
+
+class DisturbanceTiming:
+    """Implement the timing for disturbance models."""
+
+    def __init__(
+        self,
+        model_timing: ModelTiming,
+        run_first: int = 0,
+        run_once: bool = True,
+        then_run_every: int = 1,
+        run_at: list[int] | None = None,
+    ) -> None:
+        """Constructor for the DisturbanceTiming class.
+
+        Args:
+            model_timing: The timing for the models.
+            run_first: Time index of the first run of the disturbance (defaults to 0).
+            run_once: Flag indicating if the disturbance must be run only once
+                (defaults to True).
+            then_run_every: If it is run more than once, it is do so every this number
+                of time steps (defaults to 1).
+            run_at: A list of time indices where the disturbance is to run. If provided,
+                it takes precedence over the other arguments.
+        """
+
+        if run_at is None:
+            if run_once:
+                run_at = [
+                    run_first,
+                ]
+            else:
+                run_at = list(range(run_first, model_timing.n_updates, then_run_every))
+        else:
+            run_at = sorted(run_at)
+            if run_at[0] < 0 or run_at[-1] >= model_timing.n_updates:
+                raise ValueError(
+                    "Invalid disturbance timing: 'run_at' values must be between 0 and"
+                    f" {model_timing.n_updates - 1}"
+                )
+
+        self._run_at = run_at
+
+    def check_run(self, time_index) -> bool:
+        """Check if the disturbance needs to be run.
+
+        Args:
+            time_index: The index of the time to check.
+
+        Return:
+            True if the disturbance must be run, False otherwise.
+        """
+        return True if time_index in self._run_at else False
