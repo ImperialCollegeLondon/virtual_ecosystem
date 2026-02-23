@@ -6,6 +6,7 @@ TODO cross-check with pyrealm for duplication/ different implementation
 TODO change temperatures to Kelvin
 """  # noqa: D205
 
+import bottleneck as bn
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
@@ -198,8 +199,9 @@ def compute_layer_thickness_for_varying_canopy(
     """Calculate layer thickness for varying canopy layers.
 
     Calculate layer thickness by subtracting from the next valid layer below (skipping
-    NaNs), and for the last valid layer in each column subtract from zero (ground level)
-    .
+    NaNs), and for the last valid layer in each column subtract from zero (ground
+    level).
+
 
     Args:
         heights: 2D array of layer heights, [m]
@@ -207,27 +209,18 @@ def compute_layer_thickness_for_varying_canopy(
     Returns:
         2D array of layer thickness, [m], same shape as input
     """
-    n_layers, n_cols = heights.shape
-    thickness = np.full_like(heights, np.nan)
 
-    for col in range(n_cols):
-        for row in range(n_layers):
-            current = heights[row, col]
-            if np.isnan(current):
-                continue
+    # Fill np.nan values from the bottom up along the 0 axis
+    nan_filled_heights = np.flipud(bn.push(np.flipud(heights), axis=0))
 
-            # Find next valid (non-NaN) layer below
-            next_valid_found = False
-            for lower_row in range(row + 1, n_layers):
-                below = heights[lower_row, col]
-                if not np.isnan(below):
-                    thickness[row, col] = current - below
-                    next_valid_found = True
-                    break
+    # Find the differences down through the canopy to the surface and swap sign
+    canopy_thickness = -np.diff(nan_filled_heights, axis=0)
 
-            # If no valid lower layer found, thickness = current - 0 (ground)
-            if not next_valid_found:
-                thickness[row, col] = current - 0.0
+    # Add the surface layer heights down to zero
+    thickness = np.concat([canopy_thickness, heights[[-1], :]])
+
+    # Mask out the filled layers - should all be zero and match the original np.nans
+    thickness = np.where(np.isnan(heights), np.nan, thickness)
 
     return thickness
 
@@ -314,6 +307,9 @@ def update_profile_from_reference(
 def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStructure):
     """Calculate heights, thickness, layer tops, and midpoints for atmospheric layers.
 
+    The layer top and midpoint values are distances in metres below the above canopy
+    reference height for each cell.
+
     Args:
         data: Data object
         layer_structure: LayerStructure object
@@ -328,10 +324,11 @@ def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStruc
     # Compute thickness
     thickness = compute_layer_thickness_for_varying_canopy(heights=heights)
 
-    # Compute cumulative thickness excluding current layer
-    layer_top = np.cumsum(thickness, axis=1) - thickness
+    # Compute the top of each layer below the above canopy reference height
+    layer_top = np.abs(heights - heights[0, :])
 
-    # Compute midpoints
+    # Compute the midpoint of each layer as the distance below the above canopy
+    # reference height
     midpoints = layer_top + thickness / 2
 
     return {
