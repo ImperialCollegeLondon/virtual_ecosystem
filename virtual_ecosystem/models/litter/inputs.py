@@ -381,7 +381,7 @@ def split_pool_into_metabolic_and_structural_litter(
 
     Raises:
         ValueError: If any values of lignin proportion are not between zero and one
-        (which breaks the logic of this function)
+            (which breaks the logic of this function)
 
     Returns:
         The fraction of the biomass that goes to the metabolic pool [unitless]
