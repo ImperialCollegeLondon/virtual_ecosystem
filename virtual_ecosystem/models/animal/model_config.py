@@ -199,10 +199,10 @@ class AnimalConstants(Configuration):
 
     cnp_proportion_terms: dict[TaxaType, dict[str, float]] = Field(
         default_factory=lambda: {
-            TaxaType.MAMMAL: {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
-            TaxaType.BIRD: {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
-            TaxaType.INVERTEBRATE: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
-            TaxaType.AMPHIBIAN: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
+            TaxaType.MAMMAL: {"C": 0.5, "N": 0.3, "P": 0.2},
+            TaxaType.BIRD: {"C": 0.4, "N": 0.3, "P": 0.3},
+            TaxaType.INVERTEBRATE: {"C": 0.4, "N": 0.2, "P": 0.4},
+            TaxaType.AMPHIBIAN: {"C": 0.4, "N": 0.2, "P": 0.4},
         }
     )
     """Stoichiometric proportions structured by taxon type."""
@@ -244,9 +244,7 @@ class AnimalConstants(Configuration):
 
     M_herb_ref: float = 1.0  # M_herb_ref [Madingley] g
     """Reference mass for herbivore handling time."""
-    M_herb_0: float = 0.7  # M_herb_0 [Madingley] (days)
-    """Time that it would take a herbivore of body mass equal to the reference mass,
-    to handle one gram of autotroph biomass."""
+
     h_herb_0: float = 0.7  # h_pred_0 [Madingley]
     """Time that it would take a herbivore of body mass equal to the reference mass,
     to handle one gram of autotroph biomass"""

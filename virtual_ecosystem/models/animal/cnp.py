@@ -19,14 +19,14 @@ class CNP:
     manipulations, stoichiometric calculations, and ratio/proportion retrieval.
 
     Attributes:
-        carbon (float): The mass of carbon in the entity [kg].
-        nitrogen (float): The mass of nitrogen in the entity [kg].
-        phosphorus (float): The mass of phosphorus in the entity [kg].
+        C (float): The mass of carbon in the entity [kg].
+        N (float): The mass of nitrogen in the entity [kg].
+        P (float): The mass of phosphorus in the entity [kg].
     """
 
-    carbon: float
-    nitrogen: float
-    phosphorus: float
+    C: float
+    N: float
+    P: float
 
     @property
     def total(self) -> float:
@@ -35,13 +35,13 @@ class CNP:
         Returns:
             float: The sum of carbon, nitrogen, and phosphorus mass.
         """
-        return self.carbon + self.nitrogen + self.phosphorus
+        return self.C + self.N + self.P
 
     def __getitem__(self, key: str) -> float:
         """Allow dictionary-style access to C, N, and P values.
 
         Args:
-            key (str): One of 'carbon', 'nitrogen', or 'phosphorus'.
+            key (str): One of 'C', 'N', or 'P'.
 
         Returns:
             float: The corresponding element's mass.
@@ -49,42 +49,38 @@ class CNP:
         Raises:
             KeyError: If the key is not one of the three valid elements.
         """
-        if key not in {"carbon", "nitrogen", "phosphorus"}:
-            raise KeyError(
-                f"Invalid key: {key}. Must be 'carbon', 'nitrogen', or 'phosphorus'."
-            )
+        if key not in {"C", "N", "P"}:
+            raise KeyError(f"Invalid key: {key}. Must be 'C', 'N', or 'P'.")
         return getattr(self, key)
 
     def _validate_non_negative(self) -> None:
         """Ensure that no element becomes negative after an update.
 
         Raises:
-            ValueError: If carbon, nitrogen, or phosphorus is negative.
+            ValueError: If C, N, or P is negative.
         """
         for name, value in asdict(self).items():
             if value < 0:
                 raise ValueError(
                     f"{name.capitalize()} mass cannot be negative. Current values: "
-                    f"carbon={self.carbon}, nitrogen={self.nitrogen},"
-                    f"phosphorus={self.phosphorus}."
+                    f"C={self.C}, N={self.N},"
+                    f"P={self.P}."
                 )
 
-    def update(
-        self, *, carbon: float = 0.0, nitrogen: float = 0.0, phosphorus: float = 0.0
-    ) -> None:
+    def update(self, *, C: float = 0.0, N: float = 0.0, P: float = 0.0) -> None:
         """Update C, N, and P values. Positive values add; negative values subtract.
 
         Args:
-            carbon: Amount of carbon to adjust. Defaults to 0.0.
-            nitrogen: Amount of nitrogen to adjust. Defaults to 0.0.
-            phosphorus: Amount of phosphorus to adjust. Defaults
+            C: Amount of carbon to adjust. Defaults to 0.0.
+            N: Amount of nitrogen to adjust. Defaults to 0.0.
+            P: Amount of phosphorus to adjust. Defaults
              to 0.0.
 
         """
 
-        self.carbon += carbon
-        self.nitrogen += nitrogen
-        self.phosphorus += phosphorus
+        self.C += C
+        self.N += N
+        self.P += P
         self._validate_non_negative()
 
     @classmethod
@@ -92,16 +88,16 @@ class CNP:
         """Create a CNP instance from a dictionary.
 
         Args:
-            data (dict[str, float]): A dictionary containing 'carbon', 'nitrogen', and
-                'phosphorus' as keys.
+            data (dict[str, float]): A dictionary containing 'C', 'N', and
+                'P' as keys.
 
         Returns:
             CNP: A new CNP instance with the values from the dictionary.
         """
         return cls(
-            carbon=data.get("carbon", 0.0),
-            nitrogen=data.get("nitrogen", 0.0),
-            phosphorus=data.get("phosphorus", 0.0),
+            C=data.get("C", 0.0),
+            N=data.get("N", 0.0),
+            P=data.get("P", 0.0),
         )
 
     def get_ratios(self) -> dict[str, float]:
@@ -115,8 +111,8 @@ class CNP:
                 - "C:P" (float): Carbon-to-phosphorus ratio
         """
         return {
-            "C:N": self.carbon / self.nitrogen if self.nitrogen > 0 else 0.0,
-            "C:P": self.carbon / self.phosphorus if self.phosphorus > 0 else 0.0,
+            "C:N": self.C / self.N if self.N > 0 else 0.0,
+            "C:P": self.C / self.P if self.P > 0 else 0.0,
         }
 
     def get_proportions(self) -> dict[str, float]:
@@ -126,15 +122,15 @@ class CNP:
 
         Returns:
             dict[str, float]: A dictionary containing:
-                - "carbon" (float): Proportion of carbon in total mass.
-                - "nitrogen" (float): Proportion of nitrogen in total mass.
-                - "phosphorus" (float): Proportion of phosphorus in total mass.
+                - "C" (float): Proportion of carbon in total mass.
+                - "N" (float): Proportion of nitrogen in total mass.
+                - "P" (float): Proportion of phosphorus in total mass.
         """
         total_mass = self.total
         return {
-            "carbon": self.carbon / total_mass if total_mass > 0 else 0.0,
-            "nitrogen": self.nitrogen / total_mass if total_mass > 0 else 0.0,
-            "phosphorus": self.phosphorus / total_mass if total_mass > 0 else 0.0,
+            "C": self.C / total_mass if total_mass > 0 else 0.0,
+            "N": self.N / total_mass if total_mass > 0 else 0.0,
+            "P": self.P / total_mass if total_mass > 0 else 0.0,
         }
 
 
@@ -159,6 +155,6 @@ def find_microbial_stoichiometries(
     )
 
     return {
-        group.name: {"nitrogen": group.c_n_ratio, "phosphorus": group.c_p_ratio}
+        group.name: {"N": group.c_n_ratio, "P": group.c_p_ratio}
         for group in soil_config.microbial_group_definition
     }
