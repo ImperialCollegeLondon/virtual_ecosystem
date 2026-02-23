@@ -14,12 +14,12 @@ kernelspec:
 
 # Package release process
 
-The package release process has four stages. The last two steps are automated:
+The package release process has three stages. The last step is automated:
 
-* Make a PR to `develop` that increments the version number changes with `poetry`
+* Make a PR to `develop` that increments the version number using `poetry` and updates
+  any notebooks that are stored in an executed format.
 * Publish a release on GitHub - this is basically just a specific tagged commit on
   `develop` that has some associated release notes.
-* Publish the code on Zenodo.
 * Publish the built code packages to PyPI - this is the packaged version of the code
   that users will install and use. The `virtual_ecosystem` package uses the trusted
   publishing mechanism to make it easy to add new release to PyPI.
