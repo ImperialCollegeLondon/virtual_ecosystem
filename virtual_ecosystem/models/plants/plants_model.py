@@ -899,32 +899,21 @@ class PlantsModel(
             fapar = np.pad(canopy.cohort_data.fapar, padding)
             stem_leaf_area = np.pad(canopy.cohort_data.stem_leaf_area, padding)
 
-            # Generate subsetting to match the layer structure to the cohort canopy
-            # layers, whose dimensions vary between grid cells
-            active_layers = np.where(self.filled_canopy_mask[:, cell_id])[0]
-
-            # HACK? Need to consider empty cells - not done systematically at the moment
-            #       and there is an issue with identifying cells with a single canopy
-            #       layer. I think this line might be right to handle the empty cell,
-            #       but is currently a sticking plaster for wider problems.
-            if active_layers.size == 0:
-                continue
-
-            # GPP for each later is estimated as (value, dimensions, units):
-            #    LUE                (n_active_layers, 1)          [gC mol-1]
-            #    * cohort fAPAR     (n_active_layers, n_cohorts)  [-]
-            #    * canopy top PPFD  scalar                        [µmol m-2 s-1]
-            #    * stem leaf area   (n_active_layers, n_cohorts)  [m2]
-            #    * time elapsed     scalar                        [s]
+            # GPP for each layer is estimated as (value, dimensions, units):
+            #    LUE                (n_layers, 1)           [gC mol-1]
+            #    * cohort fAPAR     (n_layers, n_cohorts)   [-]
+            #    * canopy top PPFD  scalar                  [µmol m-2 s-1]
+            #    * stem leaf area   (n__layers, n_cohorts)  [m2]
+            #    * time elapsed     scalar                  [s]
             # Units:
             #    g C mol-1 * (-) * µmol m-2 s-1 * m2 * s = µg C
 
             per_layer_gpp = (
-                self.pmodel.lue[:, [cell_id]]  # gC mol-1
-                * fapar  # unitless
-                * canopy_top_ppfd[cell_id]  # µmol m-1 s-1
-                * stem_leaf_area  # m2
-                * self.model_timing.update_interval_seconds  # second
+                self.pmodel.lue[:, [cell_id]]
+                * fapar
+                * canopy_top_ppfd[cell_id]
+                * stem_leaf_area
+                * self.model_timing.update_interval_seconds
             )
 
             # Mask all nans with zero. This includes all unoccupied canopy layers, but
