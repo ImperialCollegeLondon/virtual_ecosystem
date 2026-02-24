@@ -962,8 +962,8 @@ class PlantsModel(
 
             # Calculate and store total stem transpiration in mm per stem and total
             # grid cell transpiration in mm m-2 since last update
-            self.per_stem_transpiration[cell_id] = per_layer_transpiration_mm.sum(
-                axis=0
+            self.per_stem_transpiration[cell_id] = np.nansum(
+                per_layer_transpiration_mm, axis=0
             )
 
             # Calculate the total transpiration per layer in m2 in mm, replacing
