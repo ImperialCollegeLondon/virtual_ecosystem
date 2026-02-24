@@ -380,13 +380,19 @@ def split_pool_into_metabolic_and_structural_litter(
             changing lignin and phosphorus contents [unitless]
 
     Raises:
-        ValueError: If any of the metabolic fractions drop below zero, or if any
-            structural fraction is less than the lignin proportion (which would push the
-            lignin proportion of the structural litter input above 100%).
+        ValueError: If any values of lignin proportion are not between zero and one
+            (which breaks the logic of this function)
 
     Returns:
         The fraction of the biomass that goes to the metabolic pool [unitless]
     """
+
+    # First check that lignin proportions are between zero and one (if they aren't that
+    # screws up the logic)
+    if np.any((lignin_proportion < 0.0) | (lignin_proportion > 1.0)):
+        to_raise = ValueError("Lignin proportion not between 0 and 1 (inclusive)!")
+        LOGGER.error(to_raise)
+        raise to_raise
 
     metabolic_fraction = max_metabolic_fraction - lignin_proportion * (
         split_sensitivity_nitrogen * carbon_nitrogen_ratio
@@ -396,23 +402,16 @@ def split_pool_into_metabolic_and_structural_litter(
     # This is a naive prevention of negative metabolic fraction rates.
     # TODO: full solution in Issue #1010.
     metabolic_fraction = np.where(metabolic_fraction < 0, 0.0, metabolic_fraction)
+    # Another naive prevention of metabolic fractions that are so large that all lignin
+    # cannot flow to the structural pool
+    # TODO: full solution again in Issue #1010.
+    metabolic_fraction = np.where(
+        metabolic_fraction > 1 - lignin_proportion,
+        1 - lignin_proportion,
+        metabolic_fraction,
+    )
 
-    if np.any(metabolic_fraction < 0.0):
-        to_raise = ValueError(
-            "Fraction of input biomass going to metabolic pool has dropped below zero!"
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    elif np.any(1 - metabolic_fraction < lignin_proportion):
-        to_raise = ValueError(
-            "Fraction of input biomass going to structural biomass is less than the "
-            "lignin fraction!"
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-    else:
-        return metabolic_fraction
+    return metabolic_fraction
 
 
 def merge_input_lignin_proportions(
