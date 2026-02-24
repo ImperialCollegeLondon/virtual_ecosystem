@@ -383,17 +383,14 @@ class PlantsModel(
         self.stoichiometries = {}
 
         for cell_id in self.communities.keys():
-            self.stoichiometries[cell_id] = {}
-            self.stoichiometries[cell_id]["N"] = StemStoichiometry.default_init(
-                self.communities[cell_id],
-                extra_pft_traits=self.extra_pft_traits,
-                element="N",
-            )
-            self.stoichiometries[cell_id]["P"] = StemStoichiometry.default_init(
-                self.communities[cell_id],
-                extra_pft_traits=self.extra_pft_traits,
-                element="P",
-            )
+            self.stoichiometries[cell_id] = {
+                element: StemStoichiometry.default_init(
+                    self.communities[cell_id],
+                    extra_pft_traits=self.extra_pft_traits,
+                    element=element,
+                )
+                for element in ["N", "P"]
+            }
 
         self.data_object_templates = {
             "cnp_pft": xr.DataArray(
