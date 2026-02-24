@@ -41,7 +41,12 @@ from virtual_ecosystem.models.plants.model_config import (
     PlantsConstants,
 )
 from virtual_ecosystem.models.plants.stoichiometry import (
+    FoliageTissue,
+    ReproductiveTissue,
+    RootTissue,
     StemStoichiometry,
+    TissueABC,
+    WoodTissue,
 )
 from virtual_ecosystem.models.plants.subcanopy import Subcanopy
 
@@ -351,6 +356,18 @@ class PlantsModel(
             cohort_data=cohort_data, flora=self.flora, grid=self.grid
         )
 
+        # Define the set of tissues to be used in the model
+        tissues: list[type[TissueABC]] = [
+            FoliageTissue,
+            ReproductiveTissue,
+            WoodTissue,
+            RootTissue,
+        ]
+
+        # Record the per stem biomasses of stochiometric tissues for each cohort.
+
+        # >>>>>>>>> BIOMASS STUFF GOES IN HERE <<<<<<<<
+
         # Check the pft propagules data
         # Some development notes:
         # - This _could_ be an optional __init__ variable that defaults to zero, but we
@@ -387,6 +404,7 @@ class PlantsModel(
                 element: StemStoichiometry.default_init(
                     self.communities[cell_id],
                     extra_pft_traits=self.extra_pft_traits,
+                    tissues=tissues,
                     element=element,
                 )
                 for element in ["N", "P"]
@@ -1121,20 +1139,20 @@ class PlantsModel(
                 self.data["foliage_turnover_cnp"].loc[cell_id, element] += np.sum(
                     cohorts.n_individuals
                     * stoichiometries[element]
-                    .get_tissue("FoliageTissue")
+                    .get_tissue("foliage")
                     .element_turnover(stem_allocation)
                 )
                 self.data["root_turnover_cnp"].loc[cell_id, element] += np.sum(
                     cohorts.n_individuals
                     * stoichiometries[element]
-                    .get_tissue("RootTissue")
+                    .get_tissue("root")
                     .element_turnover(stem_allocation)
                 )
                 self.data[f"plant_rt_turnover_{element.lower()}_mass"][cell_id] = (
                     np.sum(
                         cohorts.n_individuals
                         * stoichiometries[element]
-                        .get_tissue("ReproductiveTissue")
+                        .get_tissue("reproductive")
                         .element_turnover(stem_allocation)
                     )
                 )
@@ -1211,21 +1229,21 @@ class PlantsModel(
                 self.data["stem_turnover_cnp"].loc[cell_id, element] = np.sum(
                     mortality
                     * self.stoichiometries[cell_id][element]
-                    .get_tissue("WoodTissue")
+                    .get_tissue("wood")
                     .actual_element_mass
                 )
 
                 self.data["foliage_turnover_cnp"].loc[cell_id, element] += np.sum(
                     mortality
                     * self.stoichiometries[cell_id][element]
-                    .get_tissue("FoliageTissue")
+                    .get_tissue("foliage")
                     .actual_element_mass
                 )
 
                 self.data["root_turnover_cnp"].loc[cell_id, element] += np.sum(
                     mortality
                     * self.stoichiometries[cell_id][element]
-                    .get_tissue("RootTissue")
+                    .get_tissue("root")
                     .actual_element_mass
                 )
 
@@ -1233,7 +1251,7 @@ class PlantsModel(
                     np.sum(
                         mortality
                         * self.stoichiometries[cell_id][element]
-                        .get_tissue("ReproductiveTissue")
+                        .get_tissue("reproductive")
                         .actual_element_mass
                     )
                 )
