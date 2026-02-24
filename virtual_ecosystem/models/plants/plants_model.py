@@ -891,11 +891,17 @@ class PlantsModel(
             canopy = self.canopies[cell_id]
             community = self.communities[cell_id]
 
-            # Get cohort data into vertical structure
+            # Get cohort data into vertical structure - the cohort canopy data only
+            # contains occupied layers - so for example a block of 3 canopy layers by 4
+            # cohorts. For the multiplication by the cell_id column array, we need it to
+            #  match the vertical array structure. So we zero pad the array along the
+            #  vertical axis with one above for the above canopy layer and then
+            #  n_layers_below_canopy gives the remaining number of layers below.
             n_layers_below_canopy = (
                 self.layer_structure.n_layers - len(canopy.heights) - 1
             )
             padding = ((1, n_layers_below_canopy), (0, 0))
+            # Pad fapar and stem leaf area along vertical (first) axis.
             fapar = np.pad(canopy.cohort_data.fapar, padding)
             stem_leaf_area = np.pad(canopy.cohort_data.stem_leaf_area, padding)
 
@@ -953,14 +959,20 @@ class PlantsModel(
 
             # Calculate and store total stem transpiration in mm per stem and total
             # grid cell transpiration in mm m-2 since last update
-            self.per_stem_transpiration[cell_id] = np.nansum(
-                per_layer_transpiration_mm, axis=0
+            self.per_stem_transpiration[cell_id] = per_layer_transpiration_mm.sum(
+                axis=0
             )
 
-            # Calculate the total transpiration per layer in m2 in mm
-            self.data["transpiration"][:, cell_id] = (
-                community.cohorts.n_individuals * per_layer_transpiration_mm
-            ).sum(axis=1)
+            # Calculate the total transpiration per layer in m2 in mm, replacing
+            # unfilled canopy cells with np.nan. Note that this does not replace
+            # non-estimable GPP with np.nan: those stay as zero.
+            self.data["transpiration"][:, cell_id] = np.where(
+                self.filled_canopy_mask[:, cell_id],
+                (community.cohorts.n_individuals * per_layer_transpiration_mm).sum(
+                    axis=1
+                ),
+                np.nan,
+            )
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
