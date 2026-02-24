@@ -66,6 +66,14 @@ class PlantsModel(
         "subcanopy_vegetation_litter_cnp",
         "subcanopy_vegetation_cnp",
         "subcanopy_seedbank_cnp",
+        "fallen_seeds_cnp",
+        "fallen_fruit_cnp",
+        "fallen_seeds_per_fruit",
+        "fallen_fruit_n",
+        "canopy_seeds_cnp",
+        "canopy_fruit_cnp",
+        "canopy_seeds_per_fruit",
+        "canopy_fruit_n",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -131,14 +139,9 @@ class PlantsModel(
         "stem_turnover_cnp",
         "foliage_turnover_cnp",
         "root_turnover_cnp",
-        "canopy_fruit_n",
-        "canopy_fruit_cnp",
-        "canopy_seeds_per_fruit",
-        "canopy_seeds_cnp",
-        "fallen_fruit_n",
-        "fallen_fruit_cnp",
-        "fallen_seeds_per_fruit",
-        "fallen_seeds_cnp",
+        "fallen_n_propagules",
+        "canopy_n_propagules",
+        "canopy_non_propagule_c_mass",
         "fallen_non_propagule_c_mass",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
@@ -1332,18 +1335,12 @@ class PlantsModel(
         self.data["senesced_leaf_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.senesced_leaf_lignin
         )
-        self.data["leaf_lignin"] = xr.full_like(
-            self.data["elevation"], self.model_constants.leaf_lignin
-        )
         self.data["plant_reproductive_tissue_lignin"] = xr.full_like(
             self.data["elevation"],
             self.model_constants.plant_reproductive_tissue_lignin,
         )
         self.data["root_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_lignin
-        )
-        self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
-            self.data["elevation"], 0.01
         )
 
     def calculate_nutrient_uptake(self) -> None:
