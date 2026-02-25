@@ -22,7 +22,7 @@ Please check the following:
 
   This match is necessary for the model to run and to have the effects of topography and
   elevation incorporated that we described in the [theory
-  section](../../virtual_ecosystem/theory/microclimate_primer.md#factors-affecting-microclimate).
+  section](../../../virtual_ecosystem/theory/microclimate_primer.md#factors-affecting-microclimate).
   This spatial downscaling step is not included in the Virtual Ecosystem.
 
 * **What is the reference height?**
@@ -37,14 +37,14 @@ Please check the following:
 * **What are the expected units?**
 
   Make sure that the units of the required input variables match those of the [required
-  variables](../variables/variables), e.g. temperatures in Celsius, pressure in kPa,
+  variables](../../variables/variables), e.g. temperatures in Celsius, pressure in kPa,
   etc.
 
 * **What are the variables names?**
 
   Check the input data variable names match the Virtual Ecosystem naming convention
   as listed for
-  [abiotic](../../virtual_ecosystem/implementation/abiotic_implementation.md#required-variables)
+  [abiotic](../../../virtual_ecosystem/implementation/abiotic_implementation.md#required-variables)
   and
-  [hydrology](../../virtual_ecosystem/implementation/hydrology_implementation.md#required-variables)
+  [hydrology](../../../virtual_ecosystem/implementation/hydrology_implementation.md#required-variables)
   models.

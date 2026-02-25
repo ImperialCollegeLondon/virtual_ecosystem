@@ -35,7 +35,7 @@ take the model development forward.
 
 The tables below show the variables that are required to initialise the abiotic model
 and then update it at each time step. Please check also the [notes on climate data
-pre-processing](../../using_the_ve/model_details/notes_preprocessing.md).
+pre-processing](../../using_the_ve/model_details/abiotic/notes_preprocessing.md).
 
 <!-- markdownlint-disable-next-line MD033-->
 - <a

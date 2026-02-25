@@ -116,14 +116,15 @@ specific ones, and any for which you disagree with our choice of default values)
 constants that you don't provide values for will just use the default value. Details of
 all Virtual Ecosystem constants and their default values can be found in the
 [configuration options reference
-documentation](./science_model_configuration).
+documentation](./model_details/science_model_configuration).
 
 ## Changing the core simulation setup
 
 The next thing that you need to provide are the core settings for your simulation runs.
-There are a [large number of configuration options](./core_configuration.md) that you
-will need to decide on. However, to keep this tutorial to reasonable length we will
-focus on two of the most important, the spatial and temporal scales of the simulation.
+There are a [large number of configuration
+options](./core_settings/core_configuration.md) that you will need to decide on.
+However, to keep this tutorial to reasonable length we will focus on two of the most
+important, the spatial and temporal scales of the simulation.
 
 The spatial scales of the simulation are controlled by the settings under `[core.grid]`.
 The Virtual Ecosystem expects coordinates in metres, so you should choose a [projected
@@ -194,8 +195,8 @@ but in short the possible dimensions are:
 
 * `spatial`: This is actually a kind of aggregate dimension, because spatial data can
   use `cell_id` or `x` and `y` coordinates - these two things map onto each other (see
-  the [core.grid](./core_configuration.md#the-spatial-grid) configuration settings for
-  details).
+  the [core.grid](./core_settings/core_configuration.md#the-spatial-grid) configuration
+  settings for details).
 
 * `time`: This dimension is used to index time steps along configured time extent for
   the simulation. Some variables only need to set the initial conditions and do not need
@@ -266,12 +267,12 @@ data will have specific model configuration settings. For example:
 * The plants model requires a set of defined plant functional types (PFTs). This is
   a CSV file defining a set required trait values for each PFT, and the path to this
   file is set in the [plants model configuration
-  options](./science_model_configuration.md#plant-functional-types)
+  options](./model_details/science_model_configuration.md#plant-functional-types)
 
 * The plant model also requires a defined initial cohort structure, which sets the
   initial cohorts present in each cell. This again is defined as a CSV file with the
   path set in the [plants model configuration
-  options](./science_model_configuration.md#plant-cohort-data)
+  options](./model_details/science_model_configuration.md#plant-cohort-data)
 
 * The animal model also requires a defined initial cohort structure.
 

@@ -32,7 +32,7 @@ model.
 
 The abiotic_simple model requires a timeseries of the following variables to initialise
 and update the model. Please check also the [notes on climate data
-pre-processing](../../using_the_ve/model_details/notes_preprocessing.md).
+pre-processing](../../using_the_ve/model_details/abiotic/notes_preprocessing.md).
 
 <!-- markdownlint-disable-next-line MD033-->
 * <a

@@ -31,12 +31,8 @@ mystnb:
 :tags: [remove-input]
 
 import tomli_w
-import json
-from config_display import (
-    dump_config_toml,
-    model_config_to_deflist,
-)
 from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.docutils import dump_config_toml, model_config_to_deflist
 from virtual_ecosystem.core.registry import get_model_configuration_class
 from IPython.display import display, Markdown, HTML
 from importlib import import_module
@@ -55,9 +51,9 @@ you will need to configure the sources of the gridded array data providing the d
 variables required by each model:
 
 * The variables required for each model are described in the [model implementation
-  pages](../virtual_ecosystem/implementation/how_it_works.md#science-models).
+  pages](../../virtual_ecosystem/implementation/how_it_works.md#science-models).
 * A complete list of variables can be found in the [variables description
-  page](./variables/variables.md).
+  page](../variables/variables.md).
 
 ```
 
@@ -86,74 +82,9 @@ described in the documentation of the model configuration. These are linked in e
 section below - these pages are part of the API (application programming interface) so
 are a bit more technical but provide the a complete description of the model settings.
 
-## Simple abiotic model
-
-[See also the [configuration details](../api/models/abiotic_simple/model_config.md)]
-
-Configuration for the `abiotic_simple` model includes two sections:
-
-* A small set of constants values (`[abiotic_simple.constants]`), and
-* A set of upper and lower bounds on the predicted microclimate variables
-  (`[abiotic_simple.bounds]`).
-
-In both cases, these default configuration will probably be enough to get an initial
-configuration running for your simulation but may then need to be adjusted for your
-study system.
-
-### Abiotic simple constants
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleConstants
-
-config_object = AbioticSimpleConstants()
-dump_config_toml("abiotic_simple.constants", config_object)
-model_config_to_deflist("abiotic_simple.constants", config_object)
-```
-
-### Abiotic simple bounds
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
-
-config_object = AbioticSimpleBounds()
-dump_config_toml("abiotic_simple.constants", config_object)
-model_config_to_deflist("abiotic_simple.constants", config_object)
-```
-
-## Abiotic model
-
-Configuration for the `abiotic` model includes three sections:
-
-* An expanded set of constants values (`[abiotic.constants]`).
-* A set of upper and lower bounds on the predicted microclimate variables
-  (`[abiotic.bounds]`). This uses the same defaults as the simple abiotic model.
-* The abiotic model uses the simple abiotic model to initialise the system state and
-  also requires the simple constants used by that model (`[abiotic.simple_constants`).
-
-The last two sections are defined identically to the abiotic simple above and so follow
-the structure for the [bounds](#abiotic-simple-bounds) and [simple
-constants](#abiotic-simple-constants) shown above. The only difference is that the
-should use the section names for the abiotic model.
-
-### Abiotic constants
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
-
-config_object = AbioticConstants()
-dump_config_toml("abiotic.constants", config_object)
-model_config_to_deflist("abiotic.constants", config_object)
-```
-
 ## Litter model
 
-[See also the [configuration details](../api/models/litter/model_config.md)]
+[See also the [configuration details](../../api/models/litter/model_config.md)]
 
 ```{eval-rst}
 ..
@@ -177,30 +108,9 @@ dump_config_toml("litter.constants", config_object)
 model_config_to_deflist("litter.constants", config_object)
 ```
 
-## Hydrology model
-
-[See also the [configuration details](../api/models/hydrology/model_config.md)]
-
-The hydrology model requires two simple initialisation values and then a set of
-hydrology constants one configuration section:
-
-* the initial soil moisture,
-* the initial groundwater saturation, and
-* the hydrology model constants (`[hydrology.constants]`)
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.hydrology.model_config import HydrologyConfiguration
-
-config_object = HydrologyConfiguration()
-dump_config_toml("hydrology", config_object)
-model_config_to_deflist("hydrology", config_object)
-```
-
 ## Soil model
 
-[See also the [configuration details](../api/models/soil/model_config.md)]
+[See also the [configuration details](../../api/models/soil/model_config.md)]
 
 ```{eval-rst}
 ..
@@ -286,7 +196,7 @@ model_config_to_deflist("soil.constants", config_object)
 
 ## Plants model
 
-[See also the [configuration details](../api/models/plants/model_config.md)]
+[See also the [configuration details](../../api/models/plants/model_config.md)]
 
 Configuration for the `plants` model includes four sections:
 
@@ -443,7 +353,7 @@ model_config_to_deflist("plants.constants", config_object)
 
 ## Animal model
 
-[See also the [configuration details](../api/models/animal/model_config.md)]
+[See also the [configuration details](../../api/models/animal/model_config.md)]
 
 ### Animal functional groups
 

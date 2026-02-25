@@ -17,7 +17,7 @@ This section contains detailed explanation of the core simulation settings. It w
 significantly expanded in future, at present in contains:
 
 * A detailed overview of the [core simulation configuration
-  options](../core_configuration.md) for the Virtual Ecosystem.
+  options](./core_configuration.md) for the Virtual Ecosystem.
 * A detailed description of the [axes used by the data object](../axes.md).
 * An explanation of the [different ways that static models can be
   setup](./static_models.md).
