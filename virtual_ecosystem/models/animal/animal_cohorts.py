@@ -15,6 +15,7 @@ from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import DietType, VerticalOccupancy
+from virtual_ecosystem.models.animal.array_resources import ResourcePool
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
@@ -1708,6 +1709,37 @@ class AnimalCohort:
             result.extend(items)
 
         return result
+
+    def get_array_resources(
+        self, array_resources: list[ResourcePool]
+    ) -> list[Resource]:
+        """Return array resources accessible within this cohort's territory.
+
+        This method filters the array resources by territory and the cohort's
+        foraging capability (via `can_forage_on`).
+
+        Args:
+            array_resources: A list of ResourcePool instances.
+
+        Returns:
+            A list of CellResource objects that the cohort can forage on.
+        """
+
+        available_cell_array_resources: list[Resource] = []
+
+        # Loop over the array resources
+        for resource in array_resources:
+            # If the resource is forage-able, extend the list of resources with the
+            # resource for every cell in the territory.
+            if resource.is_forageable(
+                diet=self.functional_group.diet,
+                vertical_occupancy=self.functional_group.vertical_occupancy,
+            ):
+                available_cell_array_resources.extend(
+                    [resource[cell_id] for cell_id in self.territory]
+                )
+
+        return available_cell_array_resources
 
     def get_plant_resources(
         self, plant_resources: dict[int, list[Resource]]
