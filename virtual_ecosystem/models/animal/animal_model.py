@@ -80,7 +80,12 @@ class AnimalModel(
     model_name="animal",
     model_update_bounds=("1 day", "1 month"),
     vars_required_for_init=("fungal_fruiting_bodies",),
-    vars_populated_by_init=("total_animal_respiration", "population_densities"),
+    vars_populated_by_init=(
+        "total_animal_respiration",
+        "population_densities",
+        "subcanopy_vegetation_cnp_consumed",
+        "subcanopy_seedbank_cnp_consumed",
+    ),
     vars_required_for_update=(
         "litter_pool_above_metabolic",
         "litter_pool_above_structural",
@@ -117,8 +122,6 @@ class AnimalModel(
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
         "decay_of_fungal_fruiting_bodies",
-        "subcanopy_vegetation_cnp_consumed",
-        "subcanopy_seedbank_cnp_consumed",
     ),
     vars_updated=(
         "decomposed_excrement_cnp",
