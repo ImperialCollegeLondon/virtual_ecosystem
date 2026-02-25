@@ -244,9 +244,7 @@ class AnimalConstants(Configuration):
 
     M_herb_ref: float = 1.0  # M_herb_ref [Madingley] g
     """Reference mass for herbivore handling time."""
-    M_herb_0: float = 0.7  # M_herb_0 [Madingley] (days)
-    """Time that it would take a herbivore of body mass equal to the reference mass,
-    to handle one gram of autotroph biomass."""
+
     h_herb_0: float = 0.7  # h_pred_0 [Madingley]
     """Time that it would take a herbivore of body mass equal to the reference mass,
     to handle one gram of autotroph biomass"""

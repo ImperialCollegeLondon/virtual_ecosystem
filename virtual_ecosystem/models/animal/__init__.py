@@ -21,7 +21,7 @@ Each of the animal sub-modules has its own API reference page:
 * The :mod:`~virtual_ecosystem.models.animal.decay` provides a model for carcasses
   created by animal mortality, animal excrement and the litter available for animals to
   consume.
-* The :mod:`~virtual_ecosystem.models.animal.plant_resources` provides the
-  :class:`~virtual_ecosystem.models.animal.plant_resources.PlantResources` class,
+* The :mod:`~virtual_ecosystem.models.animal.array_resources` provides the
+  :class:`~virtual_ecosystem.models.animal.array_resources.ArrayResource` class,
   which provides an API for exposing plant model data via the animal model protocols.
 """  # noqa: D205

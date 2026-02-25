@@ -5,6 +5,7 @@ from contextlib import nullcontext as does_not_raise
 import numpy as np
 import pytest
 import xarray
+from numpy.testing import assert_allclose
 
 from virtual_ecosystem.core.exceptions import InitialisationError
 
@@ -281,12 +282,11 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     fxt_plants_model.calculate_light_use_efficiency()
     fxt_plants_model.estimate_gpp(time_index=0)
 
-    # TODO - currently no actual validation of values, only of structure
-    #      - maybe mock lue and iwue to get easier values rather than current obscure
-    #        ones
-    #      - Actually, with the separation of the PModel fit into
-    #        calculate_light_use_efficiency, we can now overwrite the calculated GPP to
-    #        generate easier test values?
+    # TODO - Validation below uses benchmark values to detect changing code behaviour
+    #        rather than some kind of a priori expectation.
+    #      - Could mock input values to get a simple logical test, but lots of moving
+    #        parts to mock. We could simple overwrite the calculated GPP to generate
+    #        easier test values?
 
     # Check stem_gpp and stem_transpiration structure
     exp_stem_struct = {
@@ -298,15 +298,55 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
         cid: len(vals) for cid, vals in fxt_plants_model.per_stem_gpp.items()
     }
 
+    # Benchmark values to detect code behaviour change
+    stem_gpp_bench = {
+        0: np.array([8.67847759e00, 4.90893691e-02, 5.77414069e-04]),
+        1: np.array([11.04221644, 0.11727063]),
+        2: np.array([1.46971037e01, 3.29750358e-03]),
+        3: np.array([2.06201547e01, 6.69970391e-01, 7.07433216e-03]),
+    }
+
+    assert {
+        assert_allclose(fxt_plants_model.per_stem_gpp[cid], stem_gpp_bench[cid])
+        for cid in stem_gpp_bench
+    }
+
+    # Are the stem properties dictionaries of arrays with the right length
     assert exp_stem_struct == {
         cid: len(vals) for cid, vals in fxt_plants_model.per_stem_transpiration.items()
     }
 
-    # Check the transpiration shape
+    # Benchmark values to detect code behaviour change
+    stem_transpiration_bench = {
+        0: np.array([1.16348784e-03, 6.58121003e-06, 7.74115319e-08]),
+        1: np.array([1.48038459e-03, 1.57219912e-05]),
+        2: np.array([1.97038031e-03, 4.42082757e-07]),
+        3: np.array([2.76445942e-03, 8.98201777e-05, 9.48426648e-07]),
+    }
 
+    assert {
+        assert_allclose(
+            fxt_plants_model.per_stem_transpiration[cid], stem_transpiration_bench[cid]
+        )
+        for cid in stem_gpp_bench
+    }
+
+    # Check the transpiration data array shape
     assert fxt_plants_model.data["transpiration"].shape == (
         fxt_plants_model.layer_structure.n_layers,
         fxt_plants_model.grid.n_cells,
+    )
+
+    transpiration_by_layer_benchmark = fxt_plants_model.layer_structure.from_template()
+    transpiration_by_layer_benchmark[1:5] = [
+        [2.79799283e-01, 2.79797581e-01, 2.79807565e-01, 2.85515398e-01],
+        [1.17089904e-01, 1.17116145e-01, 1.14312706e-01, 7.40514285e-06],
+        [4.89879711e-02, 4.87738507e-02, np.nan, np.nan],
+        [2.01838383e-02, np.nan, np.nan, np.nan],
+    ]
+
+    assert_allclose(
+        fxt_plants_model.data["transpiration"], transpiration_by_layer_benchmark
     )
 
 
@@ -406,32 +446,6 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
         consts.plant_reproductive_tissue_lignin,
     )
     assert np.allclose(fxt_plants_model.data["root_lignin"], consts.root_lignin)
-    assert np.allclose(fxt_plants_model.data["leaf_lignin"], consts.leaf_lignin)
-
-
-def test_PlantsModel_calculate_turnover_constant_override(
-    plants_data, fixture_configuration, fixture_core_components
-):
-    """Test that the turnover constants can be overridden by values in config.
-
-    TODO - not sure what this actually tests?
-    """
-
-    from virtual_ecosystem.models.plants.plants_model import PlantsModel
-
-    # Force setting of new value on frozen pydantic configuration class.
-    fixture_configuration.plants.constants.__dict__["leaf_lignin"] = 100.0
-
-    plants_model = PlantsModel.from_config(
-        data=plants_data,
-        configuration=fixture_configuration,
-        core_components=fixture_core_components,
-    )
-
-    plants_model.reset_update_vars()
-    plants_model.calculate_turnover()
-
-    assert np.allclose(plants_model.data["leaf_lignin"], 100.0)
 
 
 def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):

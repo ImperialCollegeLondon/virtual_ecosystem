@@ -41,6 +41,50 @@ class Progress(IntEnum):
     FULL = 3
 
 
+def check_added_variables(
+    before: list[str], after: list[str], claimed: tuple[str, ...], model: str, attr: str
+) -> None:
+    """Check the variables added to data during a model step.
+
+    This function checks that the difference in the set of variable names added to data
+    during a model step match the set of variables that the model `var_` attributes
+    claims for the model.
+
+    Args:
+        before: A list of data variable names from before the model method ran.
+        after: A list of data variable names from after the model method ran.
+        claimed: The model attribute describing the claimed set of variables added.
+        model: The name of the model being checked
+        attr: The variable attribute name being checked
+
+    Raises:
+        InitialisationError: if the actual changed variables do matched the variables
+            configured in the model attributes.
+    """
+
+    actual_set = set(after) - set(before)
+    claimed_set = set(claimed)
+
+    # If the update variables agree with the model definition then return
+    if actual_set == claimed_set:
+        return
+
+    # Otherwise log the mismatch and raise an error.
+    LOGGER.critical(
+        f"Mismatch between {model}.{attr} and variable changes in the data:"
+    )
+
+    claimed_not_actual = claimed_set - actual_set
+    if claimed_not_actual:
+        LOGGER.critical(f"Claimed but not populated: {','.join(claimed_not_actual)}")
+
+    actual_not_claimed = actual_set - claimed_set
+    if actual_not_claimed:
+        LOGGER.critical(f"Populated but not claimed: {','.join(actual_not_claimed)}")
+
+    raise InitialisationError(f"Variable setup errors in {model} model: check log.")
+
+
 def initialise_models(
     configuration: CompiledConfiguration,
     data: Data,
@@ -65,20 +109,35 @@ def initialise_models(
     # Use factory methods to configure the desired models
     failed_models = []
     models_cfd = {}
+
     for model_name, model_class in models.items():
+        LOGGER.info(f"Initialising {model_name} model")
+
         try:
+            data_vars_before_init = [str(i) for i in data.data.data_vars]
             this_model = model_class.from_config(
                 data=data,
                 configuration=configuration,
                 core_components=core_components,
             )
             models_cfd[model_name] = this_model
+            data_vars_after_init = [str(i) for i in data.data.data_vars]
+
+            # If there are mismatches in the variable specifications, fail.
+            check_added_variables(
+                before=data_vars_before_init,
+                after=data_vars_after_init,
+                claimed=model_class.vars_populated_by_init,
+                model=model_name,
+                attr="vars_populated_by_init",
+            )
+
         except (InitialisationError, ConfigurationError):
             failed_models.append(model_name)
 
     # If any models fail to configure inform the user about it
     if failed_models:
-        to_raise = InitialisationError(
+        to_raise: Exception = InitialisationError(
             f"Configuration failed for models: {','.join(failed_models)}"
         )
         LOGGER.critical(to_raise)
@@ -254,9 +313,30 @@ def ve_run(
 
         current_time += core_components.model_timing.update_interval
 
+        # Canary variable for model variable spec issues
+        model_variables_ok = True
+
         # Run update() method for every model
         for model in models_update.values():
+            data_vars_before_update = [str(i) for i in data.data.data_vars]
             model.update(time_index)
+            data_vars_after_update = [str(i) for i in data.data.data_vars]
+
+            # Check the variables added during the first update.
+            if time_index == 0:
+                check_added_variables(
+                    before=data_vars_before_update,
+                    after=data_vars_after_update,
+                    claimed=model.vars_populated_by_first_update,
+                    model=model.model_name,
+                    attr="vars_populated_by_first_update",
+                )
+
+        # If there are mismatches in the variable specifications, fail.
+        if not model_variables_ok:
+            to_raise = RuntimeError("Model variable definitions inaccurate: check log.")
+            LOGGER.critical(to_raise)
+            raise to_raise
 
         # Append updated data to the continuous data file
         if output_config.save_continuous_data:

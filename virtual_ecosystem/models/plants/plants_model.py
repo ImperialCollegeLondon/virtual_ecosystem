@@ -71,6 +71,14 @@ class PlantsModel(
         "subcanopy_vegetation_litter_cnp",
         "subcanopy_vegetation_cnp",
         "subcanopy_seedbank_cnp",
+        "fallen_seeds_cnp",
+        "fallen_fruit_cnp",
+        "fallen_seeds_per_fruit",
+        "fallen_fruit_n",
+        "canopy_seeds_cnp",
+        "canopy_fruit_cnp",
+        "canopy_seeds_per_fruit",
+        "canopy_fruit_n",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -136,14 +144,9 @@ class PlantsModel(
         "stem_turnover_cnp",
         "foliage_turnover_cnp",
         "root_turnover_cnp",
-        "canopy_fruit_n",
-        "canopy_fruit_cnp",
-        "canopy_seeds_per_fruit",
-        "canopy_seeds_cnp",
-        "fallen_fruit_n",
-        "fallen_fruit_cnp",
-        "fallen_seeds_per_fruit",
-        "fallen_seeds_cnp",
+        "fallen_n_propagules",
+        "canopy_n_propagules",
+        "canopy_non_propagule_c_mass",
         "fallen_non_propagule_c_mass",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
@@ -842,10 +845,13 @@ class PlantsModel(
         # Estimate the light use efficiency of leaves within each canopy layer within
         # each grid cell. The LUE is set purely by the environmental conditions, which
         # are shared across cohorts so we can calculate all layers in all cells.
+        #
+        # The pressure and VPD variables are saved as kPa and so need to be scaled here
+        # for use with pyrealm.
         pmodel_env = PModelEnvironment(
             tc=self.data["air_temperature"].to_numpy(),
-            vpd=self.data["vapour_pressure_deficit"].to_numpy(),
-            patm=self.data["atmospheric_pressure"].to_numpy(),
+            vpd=self.data["vapour_pressure_deficit"].to_numpy() * 1000,
+            patm=self.data["atmospheric_pressure"].to_numpy() * 1000,
             co2=self.data["atmospheric_co2"].to_numpy(),
             core_const=self.pyrealm_core_consts,
             pmodel_const=self.pyrealm_pmodel_consts,
@@ -888,8 +894,8 @@ class PlantsModel(
         # Get the canopy top PPFD per grid cell for this time index
         canopy_top_ppfd = self.canopy_top_radiation * self.model_constants.dsr_to_ppfd
 
-        # Initialise transpiration array to collect per grid cell values
-        transpiration = self.layer_structure.from_template("transpiration")
+        # Reset the transpiration data
+        self.data["transpiration"][:] = np.nan
 
         # Now calculate the gross primary productivity and transpiration across cohorts
         # and canopy layers over the time period.
@@ -903,33 +909,42 @@ class PlantsModel(
             canopy = self.canopies[cell_id]
             community = self.communities[cell_id]
 
-            # Generate subsetting to match the layer structure to the cohort canopy
-            # layers, whose dimensions vary between grid cells
-            active_layers = np.where(self.filled_canopy_mask[:, cell_id])[0]
+            # Get cohort data into vertical structure - the cohort canopy data only
+            # contains occupied layers - so for example a block of 3 canopy layers by 4
+            # cohorts. For the multiplication by the cell_id column array, we need it to
+            #  match the vertical array structure. So we zero pad the array along the
+            #  vertical axis with one above for the above canopy layer and then
+            #  n_layers_below_canopy gives the remaining number of layers below.
+            n_layers_below_canopy = (
+                self.layer_structure.n_layers - len(canopy.heights) - 1
+            )
+            padding = ((1, n_layers_below_canopy), (0, 0))
+            # Pad fapar and stem leaf area along vertical (first) axis.
+            fapar = np.pad(canopy.cohort_data.fapar, padding)
+            stem_leaf_area = np.pad(canopy.cohort_data.stem_leaf_area, padding)
 
-            # HACK? Need to consider empty cells - not done systematically at the moment
-            #       and there is an issue with identifying cells with a single canopy
-            #       layer. I think this line might be right to handle the empty cell,
-            #       but is currently a sticking plaster for wider problems.
-            if active_layers.size == 0:
-                continue
-
-            # GPP for each later is estimated as (value, dimensions, units):
-            #    LUE                (n_active_layers, 1)          [gC mol-1]
-            #    * cohort fAPAR     (n_active_layers, n_cohorts)  [-]
-            #    * canopy top PPFD  scalar                        [µmol m-2 s-1]
-            #    * stem leaf area   (n_active_layers, n_cohorts)  [m2]
-            #    * time elapsed     scalar                        [s]
+            # GPP for each layer is estimated as (value, dimensions, units):
+            #    LUE                (n_layers, 1)           [gC mol-1]
+            #    * cohort fAPAR     (n_layers, n_cohorts)   [-]
+            #    * canopy top PPFD  scalar                  [µmol m-2 s-1]
+            #    * stem leaf area   (n__layers, n_cohorts)  [m2]
+            #    * time elapsed     scalar                  [s]
             # Units:
             #    g C mol-1 * (-) * µmol m-2 s-1 * m2 * s = µg C
 
             per_layer_gpp = (
-                self.pmodel.lue[active_layers, :][:, [cell_id]]  # gC mol-1
-                * canopy.cohort_data.fapar  # unitless
-                * canopy_top_ppfd[cell_id]  # µmol m-1 s-1
-                * canopy.cohort_data.stem_leaf_area  # m2
-                * self.model_timing.update_interval_seconds  # second
+                self.pmodel.lue[:, [cell_id]]
+                * fapar
+                * canopy_top_ppfd[cell_id]
+                * stem_leaf_area
+                * self.model_timing.update_interval_seconds
             )
+
+            # Mask all nans with zero. This includes all unoccupied canopy layers, but
+            # also patches canopy conditions where GPP is not estimable using the P
+            # Model (where m <= c*, see
+            # https://pyrealm.readthedocs.io/en/stable/api/pmodel_api.html#pyrealm.pmodel.jmax_limitation.JmaxLimitationWang17)
+            per_layer_gpp = np.nan_to_num(per_layer_gpp)
 
             # Calculate and store whole stem GPP in kg C
             self.per_stem_gpp[cell_id] = per_layer_gpp.sum(axis=0) * 1e-9
@@ -942,18 +957,18 @@ class PlantsModel(
             #    mol C  * µmol H2O mol C -1 = µmol H2O
             per_layer_transpiration_micromolar = (
                 per_layer_gpp / (self.pyrealm_core_consts.k_c_molmass * 1e6)
-            ) * self.pmodel.iwue[active_layers, :][:, [cell_id]]
+            ) * self.pmodel.iwue[:, [cell_id]]
 
             # Convert to mm
             per_layer_transpiration_mm = convert_water_moles_to_mm(
                 water_moles=per_layer_transpiration_micromolar * 1e-6,
                 tc=np.repeat(
-                    self.pmodel.env.tc[active_layers, :][:, [cell_id]],
+                    self.pmodel.env.tc[:, [cell_id]],
                     canopy.n_cohorts,
                     axis=1,
                 ),
                 patm=np.repeat(
-                    self.pmodel.env.patm[active_layers, :][:, [cell_id]],
+                    self.pmodel.env.patm[:, [cell_id]],
                     canopy.n_cohorts,
                     axis=1,
                 ),
@@ -962,19 +977,20 @@ class PlantsModel(
 
             # Calculate and store total stem transpiration in mm per stem and total
             # grid cell transpiration in mm m-2 since last update
-            self.per_stem_transpiration[cell_id] = per_layer_transpiration_mm.sum(
-                axis=0
+            self.per_stem_transpiration[cell_id] = np.nansum(
+                per_layer_transpiration_mm, axis=0
             )
 
-            # Calculate the total transpiration per layer in m2 in mm
-            transpiration[active_layers, cell_id] = (
-                community.cohorts.n_individuals * per_layer_transpiration_mm
-            ).sum(axis=1)
-
-        # Write canopy layers to transpiration data array
-        self.data["transpiration"][self.layer_structure.index_filled_canopy] = (
-            transpiration[self.layer_structure.index_filled_canopy]
-        )
+            # Calculate the total transpiration per layer in m2 in mm, replacing
+            # unfilled canopy cells with np.nan. Note that this does not replace
+            # non-estimable GPP with np.nan: those stay as zero.
+            self.data["transpiration"][:, cell_id] = np.where(
+                self.filled_canopy_mask[:, cell_id],
+                (community.cohorts.n_individuals * per_layer_transpiration_mm).sum(
+                    axis=1
+                ),
+                np.nan,
+            )
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
@@ -1334,18 +1350,12 @@ class PlantsModel(
         self.data["senesced_leaf_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.senesced_leaf_lignin
         )
-        self.data["leaf_lignin"] = xr.full_like(
-            self.data["elevation"], self.model_constants.leaf_lignin
-        )
         self.data["plant_reproductive_tissue_lignin"] = xr.full_like(
             self.data["elevation"],
             self.model_constants.plant_reproductive_tissue_lignin,
         )
         self.data["root_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_lignin
-        )
-        self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
-            self.data["elevation"], 0.01
         )
 
     def calculate_nutrient_uptake(self) -> None:

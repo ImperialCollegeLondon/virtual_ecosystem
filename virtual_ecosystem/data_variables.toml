@@ -1316,9 +1316,23 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "C, N, and P masses of subcanopy vegetation consumed by animals."
+name = "subcanopy_vegetation_cnp_consumed"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "C, N, and P masses for the ground seedbank"
 name = "subcanopy_seedbank_litter_cnp"
 unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses of subcanopy seedbank consumed by animals."
+name = "subcanopy_seedbank_cnp_consumed"
+unit = "kg C m^-2"
 variable_type = "float"
 
 [[variable]]
@@ -1405,69 +1419,6 @@ variable_type = "float"
 axis = ["spatial"]
 description = "NEEDS DESCRIPTION"
 name = "canopy_non_propagule_c_mass"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "leaf_lignin"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "nitrogen_fixation_carbon_supply"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "new_fungal_fruiting_body_production"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "new_amf_n_supply"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "new_amf_p_supply"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "new_emf_n_supply"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "new_emf_p_supply"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "soil_c_pool_microbe"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "root_turnover_c_p_ratio"
 unit = "NEEDS UNIT"
 variable_type = "float"
 

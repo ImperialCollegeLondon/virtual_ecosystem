@@ -370,8 +370,11 @@ class Subcanopy:
         #    * time elapsed      scalar           [s]
         # Units:
         #    gC mol-1 * µmol m-2 s-1  * (-) * (-) * s = µg C m-2
+        #
+        # This calculation handles non-estimable LUE from the P Model by setting np.nan
+        # values to zero.
         subcanopy_gpp = (
-            lue
+            np.nan_to_num(lue)
             * swd
             * self.fapar
             * self.model_constants.dsr_to_ppfd
