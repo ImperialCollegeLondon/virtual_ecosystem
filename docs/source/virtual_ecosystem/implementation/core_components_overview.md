@@ -49,8 +49,8 @@ When a simulation starts, the Virtual Ecosystem:
   * Any configuration settings are not valid, given the rules in the model schema.
   * Any required fields without defaults are not completed.
 
-Further details can be found in the [configuration
-documentation](../../using_the_ve/model_details/new_config.md).
+Further details can be found in the [model configuration details
+documentation](../../using_the_ve/model_details/overview.md).
 
 ## The grid
 
