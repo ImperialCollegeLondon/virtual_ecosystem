@@ -1425,69 +1425,6 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "NEEDS DESCRIPTION"
-name = "leaf_lignin"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "nitrogen_fixation_carbon_supply"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "new_fungal_fruiting_body_production"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "new_amf_n_supply"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "new_amf_p_supply"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "new_emf_n_supply"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "new_emf_p_supply"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "soil_c_pool_microbe"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
-name = "root_turnover_c_p_ratio"
-unit = "NEEDS UNIT"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "NEEDS DESCRIPTION"
 name = "sensible_heat_flux_topofcanopy"
 unit = "NEEDS UNIT"
 variable_type = "float"
