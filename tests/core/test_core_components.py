@@ -408,7 +408,7 @@ def test_LayerStructure_set_filled_canopy():
             update_interval = "30 days"
             run_length = "1 years"
             """,
-            {"run_first": 5},
+            {"run_at": 5},
             [5],
             does_not_raise(),
             id="run once",
@@ -419,10 +419,21 @@ def test_LayerStructure_set_filled_canopy():
             update_interval = "30 days"
             run_length = "1 years"
             """,
-            {"run_first": 5, "run_once": False},
+            {"run_at": [5, 6, 8, 9]},
+            [5, 6, 8, 9],
+            does_not_raise(),
+            id="run several",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_every": (5,)},
             [5, 6, 7, 8, 9, 10, 11, 12],
             does_not_raise(),
-            id="run more than once, default stride",
+            id="run several, default step",
         ),
         pytest.param(
             """[core.timing]
@@ -430,10 +441,10 @@ def test_LayerStructure_set_filled_canopy():
             update_interval = "30 days"
             run_length = "1 years"
             """,
-            {"run_first": 5, "run_once": False, "then_run_every": 3},
+            {"run_every": (5, 3)},
             [5, 8, 11],
             does_not_raise(),
-            id="run more than once, custom stride",
+            id="run several, custom step",
         ),
         pytest.param(
             """[core.timing]
@@ -441,10 +452,36 @@ def test_LayerStructure_set_filled_canopy():
             update_interval = "30 days"
             run_length = "1 years"
             """,
-            {"run_at": [5, 7, 9]},
-            [5, 7, 9],
+            {"run_every": (5, 3, 10)},
+            [5, 8],
             does_not_raise(),
-            id="custom indices - pass",
+            id="run several, custom step and stop",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {},
+            [],
+            pytest.raises(
+                ValueError, match=r"either 'run_at' or 'run_every' must be provided."
+            ),
+            id="invalid input",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_every": (1, 2, 3, 4)},
+            [],
+            pytest.raises(
+                ValueError, match=r"'run_every' must have 1, 2 or 3 elements"
+            ),
+            id="wrong elements",
         ),
         pytest.param(
             """[core.timing]
@@ -454,8 +491,8 @@ def test_LayerStructure_set_filled_canopy():
             """,
             {"run_at": [5, 10, 13]},
             [],
-            pytest.raises(ValueError),
-            id="custom indices - fail",
+            pytest.raises(ValueError, match=r"'run_at' values must be between 0 and"),
+            id="invalid indices",
         ),
     ],
 )

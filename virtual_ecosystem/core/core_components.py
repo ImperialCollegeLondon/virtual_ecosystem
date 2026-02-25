@@ -625,40 +625,57 @@ class DisturbanceTiming:
     def __init__(
         self,
         model_timing: ModelTiming,
-        run_first: int = 0,
-        run_once: bool = True,
-        then_run_every: int = 1,
-        run_at: list[int] | None = None,
+        run_at: int | list[int] | None = None,
+        run_every: tuple[int, ...] | None = None,
     ) -> None:
         """Constructor for the DisturbanceTiming class.
 
+        At least 'run_at' or 'run_every' need to be provided. 'run_at' takes precedence.
+
         Args:
             model_timing: The timing for the models.
-            run_first: Time index of the first run of the disturbance (defaults to 0).
-            run_once: Flag indicating if the disturbance must be run only once
-                (defaults to True).
-            then_run_every: If it is run more than once, it is do so every this number
-                of time steps (defaults to 1).
-            run_at: A list of time indices where the disturbance is to run. If provided,
-                it takes precedence over the other arguments.
+            run_at: Either a single integer or a list of integers indicating the time
+                indices when the disturbance is to run.
+            run_every: A tuple of integers indicating (start), or (start, step), or
+                (start, step, stop), from where a list of integers indicating the time
+                indices when the disturbance is to run can be constructed. If not
+                provided, 'step' defaults to 1 and 'stop' defaults to the last time
+                index. 'start' must always be provided.
+
         """
 
-        if run_at is None:
-            if run_once:
-                run_at = [
-                    run_first,
-                ]
-            else:
-                run_at = list(range(run_first, model_timing.n_updates, then_run_every))
-        else:
-            run_at = sorted(run_at)
-            if run_at[0] < 0 or run_at[-1] >= model_timing.n_updates:
-                raise ValueError(
-                    "Invalid disturbance timing: 'run_at' values must be between 0 and"
-                    f" {model_timing.n_updates - 1}"
-                )
+        if run_at is not None:
+            self._run_at = sorted(run_at) if isinstance(run_at, list) else [run_at]
 
-        self._run_at = run_at
+        elif run_every is not None:
+            match len(run_every):
+                case 1:
+                    start = run_every[0]
+                    step = 1
+                    stop = model_timing.n_updates
+                case 2:
+                    start, step = run_every
+                    stop = model_timing.n_updates
+                case 3:
+                    start, step, stop = run_every
+                case _:
+                    raise ValueError(
+                        "Invalid disturbance timing: 'run_every' must have 1, 2 or 3 "
+                        f"elements. {len(run_every)} found."
+                    )
+            self._run_at = list(range(start, stop, step))
+
+        else:
+            raise ValueError(
+                "Invalid disturbance timing: either 'run_at' or 'run_every' must be "
+                "provided."
+            )
+
+        if self._run_at[0] < 0 or self._run_at[-1] >= model_timing.n_updates:
+            raise ValueError(
+                "Invalid disturbance timing: 'run_at' values must be between 0 and"
+                f" {model_timing.n_updates - 1}"
+            )
 
     def check_run(self, time_index) -> bool:
         """Check if the disturbance needs to be run.
