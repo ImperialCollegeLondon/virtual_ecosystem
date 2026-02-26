@@ -60,11 +60,10 @@ topographic surface.
 
 ## Example: Maliau Basin
 
-For the Maliau Basin configuration, elevation preprocessing is performed using a 30 m
-Shuttle Radar Topography Mission (SRTM) DEM
-{cite:p}`farr_shuttle_2007,earth_resources_observation_and_science_eros_center_shuttle_2000`.
-The DEM covers the SAFE Project region (4°N 116°E to 5°N 117°E), is reprojected to UTM
-Zone 50N (EPSG:32650), [and can be downloaded from
+For the Maliau Basin configuration, elevation preprocessing is performed using a [30 m
+Shuttle Radar Topography Mission (SRTM) DEM](https://doi.org/10.1029/2005rg000183)
+{cite:p}`farr_shuttle_2007`. The DEM covers the SAFE Project region (4°N 116°E to 5°N
+117°E), is reprojected to UTM Zone 50N (EPSG:32650), [and can be downloaded from
 Zenodo](https://zenodo.org/records/3490488). The VE hydrological module requires
 elevation input aligned to a resolution of 90 m grid, whereas the original SRTM product
 is provided at approximately 30 m resolution. To reconcile this difference, the
