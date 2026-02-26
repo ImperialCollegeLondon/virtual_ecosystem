@@ -826,9 +826,21 @@ def test_to_camel_case():
 
 
 def test_discover_models():
-    """Test the discover_all_variables_usage function."""
+    """Test the discover_models function."""
     from virtual_ecosystem.core.base_model import BaseModel, discover_models
 
     models = discover_models()
     assert len(models) > 0
     assert all(issubclass(x, BaseModel) for x in models)
+
+
+def test_discover_disturbances():
+    """Test the discover_disturbances function.
+
+    TODO: Update when there are disturbance models implemented.
+    """
+    from virtual_ecosystem.core.base_model import BaseDisturbance, discover_disturbances
+
+    models = discover_disturbances()
+    assert len(models) == 0
+    assert all(issubclass(x, BaseDisturbance) for x in models)

@@ -941,3 +941,10 @@ class BaseDisturbance(ABC):
         Args:
             time_index: The index of the current timestep.
         """
+
+
+def discover_disturbances() -> list[type[BaseDisturbance]]:
+    """Discover all the disturbances in Virtual Ecosystem."""
+    import virtual_ecosystem.disturbances as disturbances
+
+    return _discover_models(disturbances, BaseDisturbance)  # type: ignore[type-abstract]
