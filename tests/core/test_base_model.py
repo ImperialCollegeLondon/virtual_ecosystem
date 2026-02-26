@@ -827,8 +827,8 @@ def test_to_camel_case():
 
 def test_discover_models():
     """Test the discover_all_variables_usage function."""
-    from virtual_ecosystem.core.base_model import BaseModel, _discover_models
+    from virtual_ecosystem.core.base_model import BaseModel, discover_models
 
-    models = _discover_models()
+    models = discover_models()
     assert len(models) > 0
     assert all(issubclass(x, BaseModel) for x in models)

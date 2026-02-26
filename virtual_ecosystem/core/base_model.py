@@ -104,7 +104,8 @@ from __future__ import annotations
 import pkgutil
 from abc import ABC, abstractmethod
 from importlib import import_module
-from typing import Any
+from types import ModuleType
+from typing import Any, TypeVar
 
 import pint
 
@@ -782,9 +783,11 @@ def to_camel_case(snake_str: str) -> str:
     return "".join(x.capitalize() for x in snake_str.lower().split("_"))
 
 
-def _discover_models() -> list[type[BaseModel]]:
+T = TypeVar("T")
+
+
+def _discover_models(models: ModuleType, of_type: type[T]) -> list[type[T]]:
     """Discover all the models in Virtual Ecosystem."""
-    import virtual_ecosystem.models as models
 
     models_found = []
     for mod in pkgutil.iter_modules(models.__path__):
@@ -800,16 +803,25 @@ def _discover_models() -> list[type[BaseModel]]:
             continue
 
         mod_class_name = to_camel_case(mod.name) + "Model"
-        if hasattr(module, mod_class_name):
+        if hasattr(module, mod_class_name) and issubclass(
+            getattr(module, mod_class_name), of_type
+        ):
             models_found.append(getattr(module, mod_class_name))
         else:
             LOGGER.warning(
-                f"No model class '{mod_class_name}' found in module "
-                f"'{models.__name__}.{mod.name}.{mod.name}_model'."
+                f"No model class '{mod_class_name}' of type `{of_type}` found in module"
+                f" '{models.__name__}.{mod.name}.{mod.name}_model'."
             )
             continue
 
     return models_found
+
+
+def discover_models() -> list[type[BaseModel]]:
+    """Discover all the models in Virtual Ecosystem."""
+    import virtual_ecosystem.models as models
+
+    return _discover_models(models, BaseModel)  # type: ignore[type-abstract]
 
 
 class BaseDisturbance(ABC):
