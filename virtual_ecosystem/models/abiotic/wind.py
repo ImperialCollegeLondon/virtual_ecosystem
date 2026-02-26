@@ -266,12 +266,12 @@ def calculate_mixing_coefficients_canopy(
     Returns:
         turbulent mixing coefficients, [m2 s-1]
     """
-    heights = np.clip(layer_midpoints, 1e-3, canopy_height - 1e-3)  # avoid zero/edge
+
     mixing_coefficients = (
         von_karman_constant
         * friction_velocity
-        * heights
-        * (1 - heights / canopy_height) ** 2
+        * layer_midpoints
+        * (1 - layer_midpoints / canopy_height) ** 2
     )
     return mixing_coefficients
 
