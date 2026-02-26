@@ -39,9 +39,6 @@ class PlantsConstants(Configuration):
     senesced_leaf_lignin: float = 0.05
     """Fraction of senesced leaf biomass that is lignin."""
 
-    leaf_lignin: float = 0.10
-    """Fraction of leaf biomass that is lignin."""
-
     plant_reproductive_tissue_lignin: float = 0.01
     """Fraction of plant reproductive tissue biomass that is lignin."""
 

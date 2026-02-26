@@ -22,6 +22,7 @@ be reported as one.
 from __future__ import annotations
 
 import uuid
+from itertools import chain
 from math import ceil, isnan, sqrt
 from random import choice
 from typing import Any, cast
@@ -42,6 +43,11 @@ from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     ReproductiveEnvironment,
 )
+from virtual_ecosystem.models.animal.array_resources import (
+    ARRAY_RESOURCES,
+    ArrayResource,
+    ResourcePool,
+)
 from virtual_ecosystem.models.animal.cnp import CNP, find_microbial_stoichiometries
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
@@ -61,7 +67,6 @@ from virtual_ecosystem.models.animal.model_config import (
     AnimalConfiguration,
     AnimalConstants,
 )
-from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     damuths_law,
@@ -75,7 +80,12 @@ class AnimalModel(
     model_name="animal",
     model_update_bounds=("1 day", "1 month"),
     vars_required_for_init=("fungal_fruiting_bodies",),
-    vars_populated_by_init=("total_animal_respiration", "population_densities"),
+    vars_populated_by_init=(
+        "total_animal_respiration",
+        "population_densities",
+        "subcanopy_vegetation_cnp_consumed",
+        "subcanopy_seedbank_cnp_consumed",
+    ),
     vars_required_for_update=(
         "litter_pool_above_metabolic",
         "litter_pool_above_structural",
@@ -133,6 +143,8 @@ class AnimalModel(
         "animal_arbuscular_mycorrhiza_consumption",
         "fungal_fruiting_bodies",
         "decay_of_fungal_fruiting_bodies",
+        "subcanopy_vegetation_cnp_consumed",
+        "subcanopy_seedbank_cnp_consumed",
     ),
 ):
     """A class describing the animal model.
@@ -188,8 +200,11 @@ class AnimalModel(
         """Convert pint update_interval to timedelta64 once during initialization."""
         self.functional_groups: list[FunctionalGroup]
         """List of functional groups in the model."""
-        self.plant_resources: dict[int, list[Resource]]
-        """The plant resource pools in the model with associated grid cell ids."""
+        self.array_resources: list[ArrayResource]
+        """A list of array resources providing pools for foraging."""
+        self.array_resource_pools: list[ResourcePool]
+        """A list of the individual resource pools made available through array
+        resources."""
         self.excrement_pools: dict[int, list[ExcrementPool]]
         """The excrement pools in the model with associated grid cell ids."""
         self.carcass_pools: dict[int, list[CarcassPool]]
@@ -242,28 +257,33 @@ class AnimalModel(
         """
 
         self.model_constants = model_constants
-        """Animal constants."""
-        self.density_scaling_method = self.model_constants.density_scaling_method
-        """Which density scaling equations are used, "damuth" or "madingley"."""
 
+        # Which density scaling equations are used, "damuth" or "madingley"
+        self.density_scaling_method = self.model_constants.density_scaling_method
+
+        # Store update interval as a number of days.
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
         self.update_interval_in_days = days_as_float
-        """Store update interval as a number of days."""
-        self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
-        """Convert pint update_interval to timedelta64 once during initialization."""
 
+        # Convert pint update_interval to timedelta64 once during initialization.
+        self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
+
+        # Determine grid square adjacency
         self._setup_grid_neighbours()
-        """Determine grid square adjacency."""
+
         self.functional_groups = functional_groups
-        self.model_constants = self.model_constants
-        self.plant_resources = {
-            cell_id: [
-                PlantResources(
-                    data=self.data, cell_id=cell_id, constants=self.model_constants
-                )
-            ]
-            for cell_id in self.data.grid.cell_id
-        }
+
+        # Initialise the array resources for the model and then the resulting resource
+        # pools from those arrays (one resource can provide multiple pools)
+        self.array_resources = [
+            ArrayResource(definition=defn, data=self.data) for defn in ARRAY_RESOURCES
+        ]
+
+        self.array_resource_pools = list(
+            chain.from_iterable(
+                [res.get_pools(data=self.data) for res in self.array_resources]
+            )
+        )
 
         # TODO - In future, need to take in data on average size of excrement and
         # carcasses pools and their stoichiometries for the initial scavengeable pool
@@ -448,6 +468,10 @@ class AnimalModel(
         # and the rate of decay
         fruiting_bodies_decay = self.update_fungal_fruiting_bodies()
 
+        # Populate the array resource pools
+        for pool in self.array_resource_pools:
+            pool.set_resources()
+
         self.reset_trophic_records()
         self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
@@ -478,6 +502,10 @@ class AnimalModel(
             | litter_consumption
             | litter_additions
         )
+
+        # Export the consumed masses from the array resource pools
+        for pool in self.array_resource_pools:
+            pool.write_consumption()
 
         # Update population densities
         self.update_population_densities()
@@ -1469,6 +1497,7 @@ class AnimalModel(
 
             # Build resource collections based on diet flags
             plant_list: list[Resource] = []
+            # array_resource_list: list[Resource] = []
             prey_list: list[AnimalCohort] = []
             fungal_fruit_list: list[Resource] = []
             soil_fungi_list: list[Resource] = []
@@ -1482,6 +1511,11 @@ class AnimalModel(
             excrement_pools = cohort.get_excrement_pools(self.excrement_pools)
             carcass_pool_map = self.carcass_pools
 
+            # Array resources
+            # TODO - this needs to be wired into cohort.forage_cohort below
+            # array_resource_list =
+            # cohort.get_array_resources(self.array_resource_pools)
+
             # Live plant resources
             if diet & (
                 DietType.ALGAE
@@ -1492,7 +1526,8 @@ class AnimalModel(
                 | DietType.NECTAR
                 | DietType.WOOD
             ):
-                plant_list = cohort.get_plant_resources(self.plant_resources)
+                plant_list = cohort.get_array_resources(self.array_resource_pools)
+                # plant_list = cohort.get_plant_resources(self.plant_resources)
 
             # Live prey (taxonomically filtered)
             prey_flags = diet & (
