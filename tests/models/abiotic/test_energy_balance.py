@@ -255,10 +255,10 @@ def test_energy_balance_return_fluxes(
         absorbed_shortwave_radiation=data["shortwave_absorption"][
             canopy_index
         ].to_numpy(),
-        absorbed_longwave_radiation=data["downward_longwave_radiation"]
-        .isel(time_index=0)
-        .to_numpy()
-        * fixture_abiotic_constants.leaf_emissivity,
+        absorbed_longwave_radiation=data["shortwave_absorption"][
+            canopy_index
+        ].to_numpy()
+        * 0.5,
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
@@ -275,9 +275,9 @@ def test_energy_balance_return_fluxes(
 
     assert isinstance(result, dict)
     expected_keys = {
-        "longwave_emission_canopy",
-        "sensible_heat_flux_canopy",
-        "latent_heat_flux_canopy",
+        "longwave_emission",
+        "sensible_heat_flux",
+        "latent_heat_flux",
         "energy_balance_residual",
     }
     assert set(result.keys()) == expected_keys
@@ -313,10 +313,10 @@ def test_solve_canopy_temperature(
             absorbed_shortwave_radiation=data["shortwave_absorption"][
                 canopy_index
             ].to_numpy(),
-            absorbed_longwave_radiation=data["downward_longwave_radiation"]
-            .isel(time_index=0)
-            .to_numpy()
-            * fixture_abiotic_constants.leaf_emissivity,
+            absorbed_longwave_radiation=data["shortwave_absorption"][
+                canopy_index
+            ].to_numpy()
+            * 0.5,
             specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
             density_air=data["density_air"][canopy_index].to_numpy(),
             aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
@@ -370,13 +370,14 @@ def test_update_air_temperature(
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
         mixing_layer_thickness=above_ground_layer_thickness[1:-1],
+        time_interval=3600.0,
     )
 
     # Mask valid values
     valid = ~np.isnan(result)
 
-    assert np.all(result[valid] > 20.0)
-    assert np.all(result[valid] < 30.0)
+    assert np.all(result[valid] > 10.0)
+    assert np.all(result[valid] < 45.0)
 
 
 def test_update_humidity_vpd(

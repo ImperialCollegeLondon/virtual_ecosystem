@@ -356,9 +356,9 @@ def calculate_energy_balance_residual(
 
     if return_fluxes:
         energy_balance = {
-            "longwave_emission_canopy": longwave_emission_canopy,
-            "sensible_heat_flux_canopy": sensible_heat_flux_canopy,
-            "latent_heat_flux_canopy": latent_heat_flux_canopy,
+            "longwave_emission": longwave_emission_canopy,
+            "sensible_heat_flux": sensible_heat_flux_canopy,
+            "latent_heat_flux": latent_heat_flux_canopy,
             "energy_balance_residual": energy_balance_residual,
         }
         return energy_balance
@@ -480,7 +480,7 @@ def solve_canopy_temperature(
                         [[absorbed_shortwave_radiation[i, j]]], dtype=np.float64
                     ),
                     absorbed_longwave_radiation=np.array(
-                        [[absorbed_longwave_radiation[i]]], dtype=np.float64
+                        [[absorbed_longwave_radiation[i, j]]], dtype=np.float64
                     ),
                     specific_heat_air=np.array(
                         [[specific_heat_air[i, j]]], dtype=np.float64
@@ -564,6 +564,7 @@ def update_air_temperature(
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
     mixing_layer_thickness: NDArray[np.floating],
+    time_interval: float,
 ) -> NDArray[np.floating]:
     r"""Update air temperature in steady state.
 
@@ -576,7 +577,7 @@ def update_air_temperature(
     and
 
     .. math::
-        T_{a}^{new} = T_{a}^{old} + \frac{H}{\rho_a c_p z}
+        T_{a}^{new} = T_{a}^{old} + \frac{H}{\rho_a c_p z} \cdot \Delta t
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
@@ -589,14 +590,20 @@ def update_air_temperature(
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         mixing_layer_thickness: thickness of the air layer we are updating, [m]
+        time_interval: Time interval, [s]
 
     Returns:
         updated air temperatures, [C]
     """
 
     # Update air temperature over a layer of height z (e.g., canopy height)
-    new_air_temperature = air_temperature + (
-        sensible_heat_flux / (density_air * specific_heat_air * mixing_layer_thickness)
+    new_air_temperature = (
+        air_temperature
+        + (
+            sensible_heat_flux
+            / (density_air * specific_heat_air * mixing_layer_thickness)
+        )
+        * time_interval
     )
     return new_air_temperature
 
