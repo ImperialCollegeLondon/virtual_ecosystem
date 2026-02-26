@@ -24,4 +24,6 @@ want to include a model of hydrological processes, for which
 ## Preparing the input data for the abiotic models
 
 The first thing you should do before you start preparing your input data is read [these
-important notes about climate data pre-processing](./notes_preprocessing.md).
+important notes about climate data pre-processing](./notes_preprocessing.md). After that
+you should look at the guides for pre-processing [elevation
+data](./elevation_data_guide.md) and climate data.
