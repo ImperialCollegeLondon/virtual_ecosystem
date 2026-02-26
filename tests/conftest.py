@@ -2,14 +2,20 @@
 
 from logging import DEBUG
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 from xarray import DataArray
 
 # An import of LOGGER is required for INFO logging events to be visible to tests
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic import abiotic_tools
+from virtual_ecosystem.models.abiotic.microclim import (
+    compute_weights_from_absorbed_radiation,
+)
 
 # Class uses DEBUG
 LOGGER.setLevel(DEBUG)
@@ -799,3 +805,90 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     dummy_climate_data["transpiration"][lyr_str.index_surface_scalar] = 20.0
 
     return dummy_climate_data
+
+
+@pytest.fixture
+def fixture_abiotic_indices(
+    dummy_climate_data_varying_canopy, fixture_core_components
+) -> SimpleNamespace:
+    """Build indices for different layers and variables for easier access."""
+
+    layer_structure = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
+
+    return SimpleNamespace(
+        above=layer_structure.index_above,
+        canopy=layer_structure.index_filled_canopy,
+        surface=layer_structure.index_surface_scalar,
+        atm=layer_structure.index_filled_atmosphere,
+        flux=layer_structure.index_flux_layers,
+        soil=layer_structure.index_all_soil,
+        topsoil=layer_structure.index_topsoil_scalar,
+        layers=layer_structure.n_layers,
+        cell_id=data.grid.n_cells,
+    )
+
+
+@pytest.fixture
+def fixture_static_inputs(
+    dummy_climate_data_varying_canopy,
+    fixture_abiotic_indices,
+    fixture_core_components,
+    fixture_abiotic_constants,
+) -> dict[str, NDArray[np.floating]]:
+    """Prepare static inputs for microclimate model."""
+
+    data = dummy_climate_data_varying_canopy
+    indices = fixture_abiotic_indices
+    layer_structure = fixture_core_components.layer_structure
+    abiotic_constants = fixture_abiotic_constants
+    time_index = 0
+
+    canopy_height = np.nan_to_num(data["layer_heights"][1].to_numpy())
+
+    leaf_area_index_sum = np.nan_to_num(
+        np.nansum(data["leaf_area_index"][indices.canopy].to_numpy(), axis=0)
+    )
+
+    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+
+    atmospheric_pressure = abiotic_tools.update_profile_from_reference(
+        layer_structure=layer_structure,
+        mask_variable=data["air_temperature"],
+        variable_name=data["atmospheric_pressure_ref"],
+        time_index=time_index,
+    )
+    atmospheric_pressure_true = atmospheric_pressure[indices.atm].to_numpy()
+
+    atmospheric_co2 = abiotic_tools.update_profile_from_reference(
+        layer_structure=layer_structure,
+        mask_variable=data["air_temperature"],
+        variable_name=data["atmospheric_co2_ref"],
+        time_index=time_index,
+    )
+    atmospheric_co2_true = atmospheric_co2[indices.atm].to_numpy()
+
+    atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
+        data=data,
+        layer_structure=layer_structure,
+    )
+
+    # Absorbed longwave radiation by canopy, [W m-2]
+    weights = compute_weights_from_absorbed_radiation(
+        radiation=data["shortwave_absorption"].to_numpy(),
+    )
+    absorbed_longwave_radiation = (
+        data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
+        * weights
+        * abiotic_constants.leaf_emissivity  # TODO needs to be soil too
+    )
+
+    return {
+        "canopy_height": canopy_height,
+        "lai_sum": leaf_area_index_sum,
+        "evapotranspiration": evapotranspiration,
+        "atmospheric_pressure": atmospheric_pressure_true,
+        "atmospheric_co2": atmospheric_co2_true,
+        "geometry": atmospheric_layer_geometry,
+        "absorbed_longwave_radiation": absorbed_longwave_radiation,
+    }
