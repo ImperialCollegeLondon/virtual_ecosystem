@@ -9,16 +9,11 @@ import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_specific_heat, calc_vp_sat
-from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance, wind
-from virtual_ecosystem.models.abiotic.energy_balance import (
-    calculate_conductive_flux_understorey,
-)
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
@@ -293,14 +288,12 @@ def _generate_hourly_forcing(
 def _initialize_state(
     data: Data,
     idx: SimpleNamespace,
-    time_index: int,
 ) -> dict[str, Any]:
     """Initialize state variables for microclimate model.
 
     Args:
         data: Data object
         idx: Indices for different layer types
-        time_index: Time index
 
     Returns:
         Dictionary with initialized state variables
@@ -314,6 +307,7 @@ def _initialize_state(
         "understorey_temperature": data["air_temperature"][idx.surface].to_numpy(),
         "soil_temperature": data["soil_temperature"][idx.soil].to_numpy(),
         "relative_humidity": data["relative_humidity"][idx.atm].to_numpy(),
+        "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
     }
 
 
@@ -412,6 +406,7 @@ def _calculate_thermodynamics(
     Args:
         state: Current state variables for microclimate model
         wind_state: Calculated wind profiles for microclimate model
+        static: Prepared static inputs for microclimate model
         hourly_forcing: Generated hourly profiles for atmospheric forcing variables
         hour: Current hour index
         n_cells: Number of grid cells in the model
@@ -451,7 +446,7 @@ def _calculate_thermodynamics(
         aerodynamic_resistance_canopy = np.repeat(
             abiotic_constants.aerodynamic_resistance_canopy_day, n_cells
         )
-        aerodynamic_resistance_soil = static["aerodynamic_resistance_soil"]
+        aerodynamic_resistance_soil = state["aerodynamic_resistance_soil"]
 
     else:
         aerodynamic_resistance_canopy = np.repeat(
@@ -480,10 +475,11 @@ def _calculate_thermodynamics(
 
 def calculate_vegetation_temperature(
     state: dict[str, Any],
-    thermodynamics: dict[str, Any],
     static: dict[str, Any],
+    thermodynamics: dict[str, Any],
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
+    idx: SimpleNamespace,
 ) -> NDArray[np.floating]:
     """Calculate canopy and understorey temperature for microclimate model.
 
@@ -493,10 +489,11 @@ def calculate_vegetation_temperature(
 
     Args:
         state: Current state variables for microclimate model
-        thermodynamics: Calculated thermodynamic variables for microclimate model
         static: Prepared static inputs for microclimate model
+        thermodynamics: Calculated thermodynamic variables for microclimate model
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
+        idx: SimpleNamespace with layer indices
 
     Returns:
         new vegetation temperature
@@ -508,6 +505,7 @@ def calculate_vegetation_temperature(
     vegetation_air_temperature = np.concatenate(
         [state["canopy_air_temperature"], [state["surface_air_temperature"]]], axis=0
     )
+
     evapotranspiration = np.concatenate(
         [state["evapotranspiration_canopy"], [state["evapotranspiration_understorey"]]],
         axis=0,
@@ -519,15 +517,21 @@ def calculate_vegetation_temperature(
         ],
         axis=0,
     )
+    absorbed_longwave_radiation = np.concatenate(
+        [
+            static["absorbed_longwave_radiation"][idx.canopy],
+            [static["absorbed_longwave_radiation"][idx.surface]],
+            [static["absorbed_longwave_radiation"][idx.topsoil]],
+        ],
+        axis=0,
+    )
 
     return energy_balance.solve_canopy_temperature(
         canopy_temperature_initial=vegetation_temperature,
         air_temperature=vegetation_air_temperature,
         evapotranspiration=evapotranspiration,
         absorbed_shortwave_radiation=shortwave_absorption,
-        absorbed_longwave_radiation=static["absorbed_longwave_radiation"][
-            1:-3
-        ],  # TODO this is a bit hacky, need to check indices
+        absorbed_longwave_radiation=absorbed_longwave_radiation,
         specific_heat_air=thermodynamics["specific_heat_air"][1:],
         density_air=thermodynamics["density_air"][1:],
         aerodynamic_resistance=thermodynamics["aerodynamic_resistance_canopy"],
@@ -548,7 +552,7 @@ def calculate_vegetation_fluxes(
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
     idx: SimpleNamespace,
-) -> dict[str, NDArray[np.floating]]:
+) -> dict[str, Any]:
     """Calculate vegetation fluxes for microclimate model.
 
     Args:
@@ -606,11 +610,6 @@ def calculate_vegetation_fluxes(
         seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=True,
     )
-
-    # if not isinstance(fluxes, dict):
-    #     to_raise = ValueError("The energy balance has not returned any fluxes!")
-    #     LOGGER.error(to_raise)
-    #     raise to_raise
 
     return fluxes
 
@@ -730,64 +729,71 @@ def update_air_temperature(
     all_air_temperature = np.copy(state["all_air_temperature"])
     all_air_temperature[1 : len(canopy_air_temperature) + 1] = canopy_air_temperature
     all_air_temperature[-1] = surface_air_temperature
-
     all_air_temperature = wind.mix_and_ventilate(
         input_variable=all_air_temperature,
         ventilation_rate=wind_state["ventilation_rate"],
-        mixing_coefficient=static["mixing_coefficient"],
+        mixing_coefficient=wind_state["mixing_coefficient"],
         limits=abiotic_bounds.air_temperature[:2],
     )
 
     return all_air_temperature
 
 
-# TODO
-# def update_atmospheric_humidity():
-#     """Update atmospheric humidity profiles based on calculated fluxes and wind mixing."""
+def update_atmospheric_humidity(
+    state: dict[str, Any],
+    static: dict[str, Any],
+    thermodynamics: dict[str, Any],
+    wind_state: dict[str, Any],
+    pyrealm_core_constants: PyrealmCoreConst,
+    core_constants: CoreConstants,
+    abiotic_constants: AbioticConstants,
+    cell_area: float,
+    time_interval: float,
+) -> dict[str, Any]:
+    """Update atmospheric humidity profiles based on fluxes and wind mixing."""
 
-#     # Saturated vapour pressure of air, [kPa]
-#     saturated_vapour_pressure_air = calc_vp_sat(
-#             ta=all_air_temperature,
-#             core_const=pyrealm_core_constants,
-#         )
+    # Saturated vapour pressure of air, [kPa]
+    saturated_vapour_pressure_air = calc_vp_sat(
+        ta=state["all_air_temperature"],
+        core_const=pyrealm_core_constants,
+    )
 
-#     # Specific humidity of air, [kg kg-1]
-#     specific_humidity_air = abiotic_tools.calculate_specific_humidity(
-#             air_temperature=all_air_temperature,
-#             relative_humidity=relative_humidity,
-#             atmospheric_pressure=atmospheric_pressure_true,
-#             molecular_weight_ratio_water_to_dry_air=(
-#                 core_constants.molecular_weight_ratio_water_to_dry_air
-#             ),
-#             pyrealm_core_constants=pyrealm_core_constants,
-#     )
+    # Specific humidity of air, [kg kg-1]
+    specific_humidity_air = abiotic_tools.calculate_specific_humidity(
+        air_temperature=state["all_air_temperature"],
+        relative_humidity=state["relative_humidity"],
+        atmospheric_pressure=state["atmospheric_pressure"],
+        molecular_weight_ratio_water_to_dry_air=(
+            core_constants.molecular_weight_ratio_water_to_dry_air
+        ),
+        pyrealm_core_constants=pyrealm_core_constants,
+    )
 
-#     # Calculate specific humidity at saturation
-#     mixing_ratio_saturation = (
-#             core_constants.molecular_weight_ratio_water_to_dry_air
-#             * saturated_vapour_pressure_air
-#             / (atmospheric_pressure_true - saturated_vapour_pressure_air)
-#         )
-#     max_specific_humidity = mixing_ratio_saturation / (1 + mixing_ratio_saturation)
+    # Calculate specific humidity at saturation
+    mixing_ratio_saturation = (
+        core_constants.molecular_weight_ratio_water_to_dry_air
+        * saturated_vapour_pressure_air
+        / (state["atmospheric_pressure"] - saturated_vapour_pressure_air)
+    )
+    max_specific_humidity = mixing_ratio_saturation / (1 + mixing_ratio_saturation)
 
-#     # Update atmospheric humidity variables, integration interval 1 hour
-#     new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
-#             canopy_evapotranspiration=evapotranspiration_canopy,
-#             understorey_evapotranspiration=evapotranspiration_understorey,
-#             soil_evaporation=soil_evaporation,
-#             saturated_vapour_pressure=saturated_vapour_pressure_air,
-#             specific_humidity=specific_humidity_air,
-#             layer_thickness=atmospheric_layer_geometry["thickness"],
-#             atmospheric_pressure=atmospheric_pressure_true,
-#             density_air=density_air,
-#             mixing_coefficient=mixing_coefficient,
-#             ventilation_rate=ventilation_rate,
-#             molecular_weight_ratio_water_to_dry_air=(
-#                 core_constants.molecular_weight_ratio_water_to_dry_air
-#             ),
-#             dry_air_factor=abiotic_constants.dry_air_factor,
-#             cell_area=cell_area,
-#             limits=(0, max_specific_humidity[0]),  # TODO make layer specific
-#             time_interval=core_constants.seconds_to_hour,
-#         )
-#     relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]
+    # Update atmospheric humidity variables, integration interval 1 hour
+    return energy_balance.update_humidity_vpd(
+        canopy_evapotranspiration=state["evapotranspiration_canopy"],
+        understorey_evapotranspiration=state["evapotranspiration_understorey"],
+        soil_evaporation=state["soil_evaporation"],
+        saturated_vapour_pressure=saturated_vapour_pressure_air,
+        specific_humidity=specific_humidity_air,
+        layer_thickness=static["geometry"]["thickness"],
+        atmospheric_pressure=state["atmospheric_pressure"],
+        density_air=thermodynamics["density_air"],
+        mixing_coefficient=thermodynamics["mixing_coefficient"],
+        ventilation_rate=wind_state["ventilation_rate"],
+        molecular_weight_ratio_water_to_dry_air=(
+            core_constants.molecular_weight_ratio_water_to_dry_air
+        ),
+        dry_air_factor=abiotic_constants.dry_air_factor,
+        cell_area=cell_area,
+        limits=(0, max_specific_humidity[0]),  # TODO make layer specific
+        time_interval=time_interval,
+    )

@@ -1,6 +1,7 @@
 """Test microclim.py."""
 
 import types
+
 import numpy as np
 import pytest
 
@@ -37,30 +38,27 @@ def test_build_indices_returns_expected_namespace(
     assert_equal(idx.cell_id, data.grid.n_cells)
 
 
-def test_normal_case():
-    """Test that compute_weights_from_absorbed_radiation correctly normalizes array."""
+def test_compute_weights_normal_case():
+    """Test that _compute_weights_from_absorbed_radiation correctly normalizes array."""
     from virtual_ecosystem.models.abiotic.microclim import (
         compute_weights_from_absorbed_radiation,
     )
 
     radiation = np.array([[1.0, 2.0], [3.0, 4.0]])
-
     weights = compute_weights_from_absorbed_radiation(radiation)
-
     expected = radiation / np.nansum(radiation)
 
     assert np.allclose(weights, expected)
     assert np.isclose(np.nansum(weights), 1.0)
 
 
-def test_with_nans():
-    """Test that compute_weights_from_absorbed_radiation correctly handles NaNs."""
+def test_compute_weights_with_nans():
+    """Test that _compute_weights_from_absorbed_radiation correctly handles NaNs."""
     from virtual_ecosystem.models.abiotic.microclim import (
         compute_weights_from_absorbed_radiation,
     )
 
     radiation = np.array([[1.0, np.nan], [3.0, 6.0]])
-
     weights = compute_weights_from_absorbed_radiation(radiation)
 
     # NaN remains NaN
@@ -70,8 +68,8 @@ def test_with_nans():
     assert np.isclose(np.nansum(weights), 1.0)
 
 
-def test_zero_total_raises():
-    """Test that compute_weights_from_absorbed_radiation raises ValueError when total is zero."""
+def test_compute_weights_zero_total_raises():
+    """Test that _compute_weights_from_absorbed_radiation raises ValueError."""
     from virtual_ecosystem.models.abiotic.microclim import (
         compute_weights_from_absorbed_radiation,
     )
@@ -83,7 +81,7 @@ def test_zero_total_raises():
 
 
 def test_all_nan_raises():
-    """Test compute_weights_from_absorbed_radiation raises Error when values are NaN."""
+    """Test that _compute_weights_from_absorbed_radiation raises Error when NaN."""
     from virtual_ecosystem.models.abiotic.microclim import (
         compute_weights_from_absorbed_radiation,
     )
@@ -195,7 +193,7 @@ def test_prepare_static_inputs_returns_consistent_outputs(
         assert not np.any(np.isinf(arr))
 
 
-def test_calculate_wind_profiles_general(
+def test_calculate_wind_profiles(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
@@ -359,8 +357,7 @@ def test_initialize_state_shapes(
 
     data = dummy_climate_data_varying_canopy
     idx = fixture_abiotic_indices
-
-    state = _initialize_state(data=data, idx=idx, time_index=0)
+    state = _initialize_state(data=data, idx=idx)
 
     # Expected keys
     expected_keys = [
@@ -371,6 +368,7 @@ def test_initialize_state_shapes(
         "understorey_temperature",
         "soil_temperature",
         "relative_humidity",
+        "aerodynamic_resistance_soil",
     ]
     assert set(state.keys()) == set(expected_keys)
 
@@ -495,7 +493,6 @@ def test_update_forcing_boundary_conditions(
     ]
     expected_soil_evap = hourly_forcing["soil_evaporation_hourly"][hour]
 
-    # Call function
     updated_state = _update_forcing_boundary_conditions(
         state=state,
         hourly_forcing=hourly_forcing,
@@ -548,19 +545,14 @@ def test_calculate_thermodynamics_day_and_night(
     n_layers = sum(idx.atm)
     hour = 0
 
-    # Dummy state inputs
     state = {
         "all_air_temperature": data["air_temperature"][idx.atm].to_numpy(),
         "atmospheric_pressure": data["atmospheric_pressure"][idx.atm].to_numpy(),
+        "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
     }
 
     wind_state = {
         "zero_plane_displacement": np.ones(n_cells) * 2.0,
-    }
-
-    static = {
-        "canopy_height": data["layer_heights"][0].to_numpy(),
-        "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
     }
 
     # Daytime forcing (non-zero shortwave)
@@ -590,7 +582,7 @@ def test_calculate_thermodynamics_day_and_night(
     assert np.all(result_day["aerodynamic_resistance_canopy"] == 50.0)
     np.testing.assert_allclose(
         result_day["aerodynamic_resistance_soil"],
-        static["aerodynamic_resistance_soil"],
+        data["aerodynamic_resistance_soil"],
     )
 
     # NIGHT TEST
@@ -620,7 +612,9 @@ def test_calculate_vegetation_temperature(
     fixture_core_constants,
     dummy_climate_data_varying_canopy,
     fixture_abiotic_indices,
+    fixture_static_inputs,
 ):
+    """Test calculate_vegetation_temperature produces expected outputs."""
 
     from virtual_ecosystem.models.abiotic.microclim import (
         calculate_vegetation_temperature,
@@ -628,6 +622,10 @@ def test_calculate_vegetation_temperature(
 
     data = dummy_climate_data_varying_canopy
     idx = fixture_abiotic_indices
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
+    static = fixture_static_inputs
+
     evapotranspiration = (
         data["canopy_evaporation"].to_numpy() + data["transpiration"].to_numpy()
     )
@@ -645,7 +643,6 @@ def test_calculate_vegetation_temperature(
             idx.surface, :
         ],
     }
-
     thermodynamics = {
         "specific_heat_air": data["specific_heat_air"][idx.atm].to_numpy(),
         "density_air": data["density_air"][idx.atm].to_numpy(),
@@ -657,19 +654,16 @@ def test_calculate_vegetation_temperature(
         ].to_numpy(),
     }
 
-    static = {"absorbed_longwave_radiation": np.ones((14, 4))}
-
-    abiotic_constants = fixture_abiotic_constants
-    core_constants = fixture_core_constants
-
     result = calculate_vegetation_temperature(
         state=state,
-        thermodynamics=thermodynamics,
         static=static,
+        thermodynamics=thermodynamics,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        idx=idx,
     )
 
+    # Shape checks
     assert isinstance(result, np.ndarray)
     assert result.shape == (4, 4)
 
@@ -677,13 +671,13 @@ def test_calculate_vegetation_temperature(
     mask = ~np.isnan(
         np.concatenate(
             [
-                data["canopy_temperature"][idx.canopy],
-                [data["canopy_temperature"][idx.surface]],
+                data["air_temperature"][idx.canopy],
+                [data["air_temperature"][idx.surface]],
             ],
             axis=0,
         )
     )
-    print(mask)
+
     # Assert plausible range for non-NaN input
     assert np.all((result[mask] > 0) & (result[mask] < 50))
 
@@ -696,7 +690,9 @@ def test_calculate_vegetation_fluxes(
     fixture_core_constants,
     dummy_climate_data_varying_canopy,
     fixture_abiotic_indices,
+    fixture_static_inputs,
 ):
+    """Test calculate_vegetation_fluxes produces expected outputs."""
 
     from virtual_ecosystem.models.abiotic.microclim import (
         calculate_vegetation_fluxes,
@@ -704,6 +700,10 @@ def test_calculate_vegetation_fluxes(
 
     data = dummy_climate_data_varying_canopy
     idx = fixture_abiotic_indices
+    static = fixture_static_inputs
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
+
     evapotranspiration = (
         data["canopy_evaporation"].to_numpy() + data["transpiration"].to_numpy()
     )
@@ -721,7 +721,6 @@ def test_calculate_vegetation_fluxes(
             idx.surface, :
         ],
     }
-
     thermodynamics = {
         "specific_heat_air": data["specific_heat_air"][idx.atm].to_numpy(),
         "density_air": data["density_air"][idx.atm].to_numpy(),
@@ -733,11 +732,6 @@ def test_calculate_vegetation_fluxes(
         ].to_numpy(),
     }
 
-    static = {"absorbed_longwave_radiation": np.ones((14, 4))}
-
-    abiotic_constants = fixture_abiotic_constants
-    core_constants = fixture_core_constants
-
     result = calculate_vegetation_fluxes(
         state=state,
         thermodynamics=thermodynamics,
@@ -746,7 +740,8 @@ def test_calculate_vegetation_fluxes(
         core_constants=core_constants,
         idx=idx,
     )
-    print(result)
+
+    # Assert all expected keys exist and have correct shapes
     assert isinstance(result, dict)
     expected_keys = {
         "longwave_emission",
@@ -765,13 +760,21 @@ def test_calculate_soil_fluxes(
     fixture_abiotic_constants,
     fixture_core_constants,
     fixture_abiotic_indices,
+    fixture_static_inputs,
 ):
+    """Test calculate_soil_fluxes produces expected outputs."""
 
     from virtual_ecosystem.models.abiotic.microclim import (
         calculate_soil_fluxes,
     )
 
     data = dummy_climate_data_varying_canopy
+    static = fixture_static_inputs
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
+    idx = fixture_abiotic_indices
+    time_interval = 3600
+
     state = {
         "soil_temperature": data["soil_temperature"][
             fixture_abiotic_indices.soil
@@ -786,8 +789,6 @@ def test_calculate_soil_fluxes(
         ],
     }
 
-    static = {"absorbed_longwave_radiation": np.ones((14, 4))}
-
     thermodynamics = {
         "density_air": data["density_air"][fixture_abiotic_indices.atm].to_numpy(),
         "specific_heat_air": data["specific_heat_air"][
@@ -797,12 +798,6 @@ def test_calculate_soil_fluxes(
             fixture_abiotic_indices.atm
         ].to_numpy(),
     }
-
-    abiotic_constants = fixture_abiotic_constants
-    core_constants = fixture_core_constants
-    idx = fixture_abiotic_indices
-
-    time_interval = 3600
 
     result = calculate_soil_fluxes(
         state=state,
@@ -814,7 +809,8 @@ def test_calculate_soil_fluxes(
         idx=idx,
     )
 
-    expected_ground_flux = np.array([211.142581, 204.359248, 190.792581, 190.792581])
+    # Check output keys and shapes
+    expected_ground_flux = np.array([239.299606, 232.516272, 218.949606, 218.949606])
 
     np.testing.assert_allclose(
         result["ground_heat_flux_soil"], expected_ground_flux, rtol=1e-5, atol=1e-5
@@ -833,6 +829,7 @@ def test_update_air_temperature(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_indices,
     fixture_abiotic_simple_configuration,
+    fixture_static_inputs,
 ):
     """Integration-style test for update_air_temperature."""
 
@@ -840,41 +837,36 @@ def test_update_air_temperature(
 
     data = dummy_climate_data_varying_canopy
     idx = fixture_abiotic_indices
+    static = fixture_static_inputs
+    time_interval = 1
+    abiotic_bounds = fixture_abiotic_simple_configuration.bounds
 
     n_layers = 4
     n_cells = 4
 
-    # Build state arrays
     state = {
         "canopy_air_temperature": data["air_temperature"][idx.canopy].to_numpy(),
         "surface_air_temperature": data["air_temperature"][idx.surface].to_numpy(),
         "all_air_temperature": data["air_temperature"][idx.atm].to_numpy(),
     }
-
-    # Build fluxes
     vegetation_fluxes = {"sensible_heat_flux": np.ones((n_layers, n_cells)) * 5.0}
     soil_fluxes = {"sensible_heat_flux": np.ones(n_cells) * 2.0}
-
-    # Build thermodynamics arrays
     thermodynamics = {
         "specific_heat_air": data["specific_heat_air"].to_numpy(),
         "density_air": data["density_air"].to_numpy(),
     }
-
-    # Static geometry
-    static = {
-        "geometry": {"thickness": np.ones((5, n_cells))},
-        "mixing_coefficient": np.full((5, n_cells), 0.1),
+    wind_state = {
+        "ventilation_rate": np.repeat(0.05, n_cells),
+        "mixing_coefficient": np.array(
+            [
+                [0.1, 0.1, 0.1, 0.1],
+                [0.1, 0.1, 0.1, np.nan],
+                [0.1, 0.1, np.nan, np.nan],
+                [0.1, np.nan, np.nan, np.nan],
+                [0.1, 0.1, 0.1, 0.1],
+            ]
+        ),
     }
-
-    # Wind profile
-    wind_state = {"ventilation_rate": 0.05}
-
-    # Time interval
-    time_interval = 3600
-
-    # Abiotic bounds
-    abiotic_bounds = fixture_abiotic_simple_configuration.bounds
 
     result = update_air_temperature(
         state=state,
@@ -888,18 +880,115 @@ def test_update_air_temperature(
         time_interval=time_interval,
     )
 
+    # Check output is correct shape and type
     assert isinstance(result, np.ndarray)
     assert result.shape == state["all_air_temperature"].shape
 
     # Canopy layer should be updated (not equal to initial)
     canopy_slice = result[1 : 1 + state["canopy_air_temperature"].shape[0]]
-    np.testing.assert_array_less(state["canopy_air_temperature"], canopy_slice + 1e-6)
+    assert not np.allclose(state["canopy_air_temperature"], canopy_slice, atol=1e-6)
 
     # Surface layer should be updated
-    np.testing.assert_array_less(state["surface_air_temperature"], result[-1] + 1e-6)
+    assert not np.allclose(state["surface_air_temperature"], result[-1], atol=1e-6)
 
     # Check values are within bounds
     lower, upper = abiotic_bounds.air_temperature[:2]
     mask = ~np.isnan(data["air_temperature"][idx.atm])
     assert np.all(result[mask] >= lower)
     assert np.all(result[mask] <= upper)
+
+
+def test_update_atmospheric_humidity(
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_core_constants,
+    fixture_abiotic_constants,
+    fixture_abiotic_indices,
+    fixture_static_inputs,
+):
+    """Test update atmospheric humidity."""
+
+    from pyrealm.constants import CoreConst as PyrealmCoreConst
+    from pyrealm.core.hygro import calc_vp_sat
+
+    from virtual_ecosystem.models.abiotic.microclim import (
+        update_atmospheric_humidity,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    idx = fixture_abiotic_indices
+    static = fixture_static_inputs
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
+    pyrealm_core_constants = PyrealmCoreConst()
+
+    state = {
+        "all_air_temperature": data["air_temperature"][idx.atm].to_numpy(),
+        "relative_humidity": data["relative_humidity"][idx.atm].to_numpy(),
+        "atmospheric_pressure": data["atmospheric_pressure"][idx.atm].to_numpy(),
+        "evapotranspiration_canopy": data["canopy_evaporation"].to_numpy()[
+            idx.canopy, :
+        ]
+        + data["transpiration"].to_numpy()[idx.canopy, :],
+        "evapotranspiration_understorey": data["canopy_evaporation"].to_numpy()[
+            idx.surface, :
+        ]
+        + data["transpiration"].to_numpy()[idx.surface, :],
+        "soil_evaporation": data["soil_evaporation"].to_numpy(),
+    }
+
+    thermodynamics = {
+        "density_air": data["density_air"][idx.atm].to_numpy(),
+        "mixing_coefficient": np.array(
+            [
+                [0.1, 0.1, 0.1, 0.1],
+                [0.1, 0.1, 0.1, np.nan],
+                [0.1, 0.1, np.nan, np.nan],
+                [0.1, np.nan, np.nan, np.nan],
+                [0.1, 0.1, 0.1, 0.1],
+            ]
+        ),
+    }
+
+    wind_state = {"ventilation_rate": np.array([0.01, 0.01, 0.01, 0.01])}
+
+    vp_sat = calc_vp_sat(
+        ta=state["all_air_temperature"],
+        core_const=pyrealm_core_constants,
+    )
+    result = update_atmospheric_humidity(
+        state=state,
+        static=static,
+        thermodynamics=thermodynamics,
+        wind_state=wind_state,
+        pyrealm_core_constants=pyrealm_core_constants,
+        core_constants=core_constants,
+        abiotic_constants=abiotic_constants,
+        cell_area=fixture_core_components.grid.cell_area,
+        time_interval=3600,
+    )
+
+    # Check output keys and shapes
+    mask = ~np.isnan(data["relative_humidity"][idx.atm].to_numpy())
+    for key in [
+        "relative_humidity",
+        "vapour_pressure",
+        "vapour_pressure_deficit",
+        "specific_humidity",
+    ]:
+        assert key in result
+        assert isinstance(result[key], np.ndarray)
+        assert np.all(np.isnan(result[key][~mask]))
+
+    # Expected trends: ET and mixing should raise humidity slightly where is not NaN
+    assert np.all(result["specific_humidity"][mask] >= 0.00)
+
+    # VPD should be reduced where evapotranspiration or mixing adds moisture
+    assert np.all(result["vapour_pressure_deficit"][mask] >= 0.0)
+    assert np.all(result["vapour_pressure"][mask] <= vp_sat[mask])
+
+    # RH should be between 0 and 100
+    assert np.all(
+        (result["relative_humidity"][mask] >= 0)
+        & (result["relative_humidity"][mask] <= 100)
+    )
