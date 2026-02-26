@@ -12,7 +12,7 @@ function, which is used to populate the registry with the components of a given 
 
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Any
+from typing import Any, TypeVar
 
 from virtual_ecosystem.core.base_model import to_camel_case
 from virtual_ecosystem.core.configuration import Configuration
@@ -80,11 +80,43 @@ def register_module(module_name: str) -> None:
             :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
         Exception: other exceptions can occur when loading the JSON schema fails.
     """
+    from virtual_ecosystem.core.base_model import BaseModel
+
+    _register_module(
+        module_name,
+        MODULE_REGISTRY,
+        BaseModel,  # type: ignore[type-abstract]
+    )
+
+
+_T = TypeVar("_T")
+
+
+def _register_module(
+    module_name: str,
+    registry: dict[str, ModuleInfo],
+    of_type: type[_T],
+) -> None:
+    """Internal function to register models and disturbances.
+
+    Args:
+        module_name: The full name of the module to be registered (e.g.
+            'virtual_ecosystem.model.animal').
+        registry: The registry to use to register this module.
+        of_type: The type of the model that should be expected within the module
+            (e.g. BaseModel).
+
+    Raises:
+        RuntimeError: if the requested module cannot be found or where a module does not
+            provide a single subclass of the
+            :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
+        Exception: other exceptions can occur when loading the JSON schema fails.
+    """
 
     # Extract the last component of the module name to act as unique short name
     module_name_short = module_name.rpartition(".")[-1]
 
-    if module_name_short in MODULE_REGISTRY:
+    if module_name_short in registry:
         LOGGER.warning(f"Module already registered: {module_name}")
         return
 
@@ -94,23 +126,27 @@ def register_module(module_name: str) -> None:
         model = None
     else:
         is_core = False
-        model = get_model(module_name, module_name_short)
+        model = _get_model(module_name, module_name_short, of_type)
 
     # Find and register the model configuration
-    model_config_class = get_model_configuration_class(
+    model_config_class = _get_model_configuration_class(
         module_name=module_name, module_name_short=module_name_short
     )
 
     LOGGER.info("Configuration class registered for %s", module_name)
 
-    MODULE_REGISTRY[module_name_short] = ModuleInfo(
+    registry[module_name_short] = ModuleInfo(
         model=model,
         config=model_config_class,
         is_core=is_core,
     )
 
 
-def get_model(module_name: str, module_name_short: str):
+def _get_model(
+    module_name: str,
+    module_name_short: str,
+    of_type: type[_T],
+):
     """Get the main model class for a model.
 
     Model classes are discovered by name, following the pattern below:
@@ -122,9 +158,9 @@ def get_model(module_name: str, module_name_short: str):
     Args:
         module_name: The full module name (e.g. ``virtual_ecosystem.models.plants``)
         module_name_short: The short module name (e.g ``plants``)
+        of_type: The type of the model that should be expected within the module
+            (e.g. BaseModel).
     """
-
-    from virtual_ecosystem.core.base_model import BaseModel
 
     # Try and import the submodule containing the model
     model_submodule_name = module_name + f".{module_name_short}_model"
@@ -145,7 +181,7 @@ def get_model(module_name: str, module_name_short: str):
         )
 
     # Raises a runtime error if the retrieved class is not a Configuration.
-    if not issubclass(model, BaseModel):
+    if not issubclass(model, of_type):
         raise RuntimeError(f"Model is not a BaseModel subclass: {expected_model_name}")
 
     # Trap models that do not follow the requirement that the BaseModel.model_name
@@ -163,7 +199,7 @@ def get_model(module_name: str, module_name_short: str):
     return model
 
 
-def get_model_configuration_class(module_name: str, module_name_short: str):
+def _get_model_configuration_class(module_name: str, module_name_short: str):
     """Get the root configuration class for a model.
 
     Discovery is name based, with the function attempting to retrieve a class based on
