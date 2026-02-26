@@ -23,20 +23,22 @@ from virtual_ecosystem.core.logger import LOGGER
 class ModuleInfo:
     """Dataclass for module information.
 
-    This dataclass holds references to BaseModel subclass and configuration class for a
-    model and is used to hold that information with  the
-    data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY`. Note that the
-    :mod:`virtual_ecosystem.core` module does not have an associated BaseModel subclass
-    and the ``model`` attribute for the ``core`` module will be None.
+    This dataclass holds references to Base subclasses and configuration class for a
+    model or disturbance and is used to hold that information with the corresponding
+    registry. Note that the :mod:`virtual_ecosystem.core` module does not have an
+    associated BaseModel subclass and the ``model`` attribute for the ``core`` module
+    will be None.
     """
 
     # FIXME The typing below for model should be `None | type[BaseModel]`, but this is
     # circular. When core.base_model is imported, that imports core.config.Config, which
     # imports core.registry, which would then need to import core.base_model to use this
     # type. Not sure how to break out of this one, so for the moment, leaving as Any.
+    #
+    # Actually, model can be a BaseModel or a BaseDisturbance, so probably Any is OK.
 
     model: Any
-    """The BaseModel subclass associated with the module."""
+    """The Base subclass associated with the module."""
     config: type[Configuration]
     """A Configuration subclass that provides a pydantic model to populate and validate
     the model configuration."""
@@ -50,6 +52,15 @@ MODULE_REGISTRY: dict[str, ModuleInfo] = {}
 
 As each module is registered using
 :func:`~virtual_ecosystem.core.registry.register_module`, a
+:class:`~virtual_ecosystem.core.registry.ModuleInfo` dataclass will be added to this
+registry using the short name of the module being registered.
+"""
+
+DISTURBANCE_REGISTRY: dict[str, ModuleInfo] = {}
+"""The global disturbance module registry.
+
+As each module is registered using
+:func:`~virtual_ecosystem.core.registry.register_disturbance`, a
 :class:`~virtual_ecosystem.core.registry.ModuleInfo` dataclass will be added to this
 registry using the short name of the module being registered.
 """
@@ -72,7 +83,7 @@ def register_module(module_name: str) -> None:
 
     Args:
         module_name: The full name of the module to be registered (e.g.
-            'virtual_ecosystem.model.animal').
+            'virtual_ecosystem.models.animal').
 
     Raises:
         RuntimeError: if the requested module cannot be found or where a module does not
@@ -86,6 +97,40 @@ def register_module(module_name: str) -> None:
         module_name,
         MODULE_REGISTRY,
         BaseModel,  # type: ignore[type-abstract]
+    )
+
+
+def register_disturbance(module_name: str) -> None:
+    """Register module components.
+
+    This function loads the :func:`~virtual_ecosystem.core.base_model.BaseDisturbance`
+    subclass for a module and its root configuration object. It then adds a
+    :class:`~virtual_ecosystem.core.registry.ModuleInfo` dataclass instance to the
+    :data:`~virtual_ecosystem.core.registry.DISTURBANCE_REGISTRY` containing references
+    to those classes. The :mod:`~virtual_ecosystem.core` module does not have an
+    associated module.
+
+    This function is primarily used within the
+    :meth:`~virtual_ecosystem.core.config_builder.generate_configuration` method to
+    register the components required to validate and setup the model configuration for a
+    particular simulation.
+
+    Args:
+        module_name: The full name of the module to be registered (e.g.
+            'virtual_ecosystem.disturbances.logging').
+
+    Raises:
+        RuntimeError: if the requested module cannot be found or where a module does not
+            provide a single subclass of the
+            :class:`~virtual_ecosystem.core.base_model.BaseDisturbance` class.
+        Exception: other exceptions can occur when loading the JSON schema fails.
+    """
+    from virtual_ecosystem.core.base_model import BaseDisturbance
+
+    _register_module(
+        module_name,
+        DISTURBANCE_REGISTRY,
+        BaseDisturbance,  # type: ignore[type-abstract]
     )
 
 
@@ -108,8 +153,7 @@ def _register_module(
 
     Raises:
         RuntimeError: if the requested module cannot be found or where a module does not
-            provide a single subclass of the
-            :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
+            provide a single subclass of the required parent class.
         Exception: other exceptions can occur when loading the JSON schema fails.
     """
 
