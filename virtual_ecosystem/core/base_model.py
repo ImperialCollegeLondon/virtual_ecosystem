@@ -111,6 +111,7 @@ import pint
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import (
     CoreComponents,
+    DisturbanceTiming,
     LayerStructure,
     ModelTiming,
 )
@@ -809,3 +810,122 @@ def _discover_models() -> list[type[BaseModel]]:
             continue
 
     return models_found
+
+
+class BaseDisturbance(ABC):
+    """A superclass for all Virtual Ecosystem disturbance models.
+
+    This abstract base class defines the shared common methods and attributes used as an
+    API across all Virtual Ecosystem disturbance models. This includes functions to
+    setup and run the specific model.
+
+    The base class defines the core abstract methods that must be defined in subclasses
+    as well as shared helper functions.
+
+    Args:
+        data: A :class:`~virtual_ecosystem.core.data.Data` instance containing
+            variables to be used in the model.
+        core_components: A
+            :class:`~virtual_ecosystem.core.core_components.CoreComponents`
+            instance containing shared core elements used throughout models.
+    """
+
+    disturbance_name: str
+    """The model name.
+
+    This class attribute sets the name used to refer to identify the disturbance class
+    in the disturbance registry, within the configuration settings and in logging
+    messages.
+    """
+
+    disturbed_models: list[str]
+    """A list of model names that this disturbance will affect.
+    
+    This list will be used to validate the configuration - check that all the models
+    to disturb are available in the simulation - as well at runtime to select those 
+    models when creating an instance of the disturbance."""
+
+    data_variables_disturbed: list[str]
+    """A list of data variables that will be updated.
+    
+    This list will be used to validate the configuration and ensure that all the
+    variables to be disturbed will be available in the simulation. Disturbance models
+    do not create new variables.
+    """
+
+    def __init__(
+        self,
+        data: Data,
+        models: dict[str, BaseModel],
+        disturbance_timing: DisturbanceTiming,
+        **kwargs,
+    ):
+        """Performs core initialization for BaseModel subclasses.
+
+        This method **must** be called in the ``__init__`` method of all subclasses.
+
+        * ``data``: the provided :class:`~virtual_ecosystem.core.data.Data` instance.
+        * ``models``: dictionary of
+          :class:`~virtual_ecosystem.core.base_model.BaseModel` instances of the models
+          available in the simulation.
+        * ``disturbance_timing``: the
+          :class:`~virtual_ecosystem.core.core_components.DisturbanceTiming` instance.
+        """
+        self.data = data
+        """A Data instance providing access to the shared simulation data."""
+        self.timing = disturbance_timing
+        """The DisturbanceTiming details used in the model."""
+
+        missing = set(self.disturbed_models).difference(models.keys())
+        if missing:
+            raise ConfigurationError(
+                f"Models {missing} required by disturbance {self.disturbance_name}"
+                "not available."
+            )
+        self.models = {
+            name: model
+            for name, model in models.items()
+            if name in self.disturbed_models
+        }
+        """The models this disturbance will disturb."""
+
+    def __init_subclass__(self, disturbance_name: str, disturbed_models: list[str]):
+        """Checks the disturbed models and variables are all known.
+
+        If so, it adds the disturbance to the registry.
+
+        TODO: Complete when the registry is implemented in #1368.
+        """
+
+    @classmethod
+    @abstractmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        models: dict[str, BaseModel],
+    ) -> BaseDisturbance:
+        """Factory function to unpack config and initialise a model instance."""
+
+    def disturb(self, time_index: int) -> None:
+        """Run the disturbance, updating the self.data and/or self.models as needed.
+
+        First, the timing is checked, returning if the disturbance shall not be run
+        at this timestep. Otherwise, it calls the inner _disturb method where the actual
+        disturbance is executed.
+
+        Args:
+            time_index: The index of the current timestep.
+        """
+        if not self.timing.check_run(time_index):
+            return
+        self._disturb(time_index)
+
+    @abstractmethod
+    def _disturb(self, time_index: int) -> None:
+        """Run the disturbance, updating the self.data and/or self.models as needed.
+
+        Args:
+            time_index: The index of the current timestep.
+        """
