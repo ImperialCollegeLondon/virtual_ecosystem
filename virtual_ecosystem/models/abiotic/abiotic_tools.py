@@ -10,7 +10,7 @@ import bottleneck as bn
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calc_vp_sat
+from pyrealm.core.hygro import calculate_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -168,7 +168,7 @@ def calculate_actual_vapour_pressure(
         actual vapour pressure, [kPa]
     """
 
-    saturation_vapour_pressure_air = calc_vp_sat(
+    saturation_vapour_pressure_air = calculate_vp_sat(
         ta=air_temperature.to_numpy(),
         core_const=pyrealm_core_constants,
     )
@@ -246,7 +246,7 @@ def calculate_specific_humidity(
         Specific humidity, [kg kg-1]
     """
     # Saturation vapor pressure
-    saturation_vapour_pressure = calc_vp_sat(
+    saturation_vapour_pressure = calculate_vp_sat(
         ta=air_temperature,
         core_const=pyrealm_core_constants,
     )
@@ -393,10 +393,10 @@ def generate_diurnal_cycle_from_monthly_data(
     )
 
     # Relative humidity (constant vapor pressure)
-    e_s_mean = calc_vp_sat(monthly_air_temperature)  # (cell,)
+    e_s_mean = calculate_vp_sat(monthly_air_temperature)  # (cell,)
     e_a = monthly_relative_humidity / 100.0 * e_s_mean  # (cell,)
 
-    e_s_hourly = calc_vp_sat(air_temperature_hourly)  # (24, cell)
+    e_s_hourly = calculate_vp_sat(air_temperature_hourly)  # (24, cell)
     relative_humidity_hourly = 100.0 * e_a[None, :] / e_s_hourly
     relative_humidity_hourly = np.clip(relative_humidity_hourly, 0.0, 100.0)
 

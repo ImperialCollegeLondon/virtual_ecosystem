@@ -4,7 +4,7 @@ balance in the Virtual Ecosystem.
 
 import numpy as np
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calc_specific_heat, calc_vp_sat
+from pyrealm.core.hygro import calculate_specific_heat, calculate_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -237,7 +237,7 @@ def run_microclimate(
     )
 
     # Specific heat capacity of air, [J kg-1 K-1]
-    specific_heat_air = calc_specific_heat(
+    specific_heat_air = calculate_specific_heat(
         tc=all_air_temperature,
     )
 
@@ -462,7 +462,7 @@ def run_microclimate(
 
     # Update atmospheric humidity/VPD
     # Saturated vapour pressure of air, [kPa]
-    saturated_vapour_pressure_air = calc_vp_sat(
+    saturated_vapour_pressure_air = calculate_vp_sat(
         ta=all_air_temperature,
         core_const=pyrealm_core_constants,
     )

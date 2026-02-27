@@ -361,10 +361,10 @@ class PlantsModel(
 
         # Define the set of tissues to be used in the model
         tissues: list[type[TissueABC]] = [
-            FoliageTissue,
-            ReproductiveTissue,
-            WoodTissue,
-            RootTissue,
+            FoliageTissue,  # foliage mass
+            ReproductiveTissue,  # reproductive mass
+            WoodTissue,  # stem mass
+            RootTissue,  # not a pyrealm allometry attribute
         ]
 
         # Record the per stem biomasses of stochiometric tissues for each cohort.
