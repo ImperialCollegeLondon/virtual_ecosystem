@@ -1,28 +1,51 @@
 ---
-jupyter:
-  jupytext:
-    cell_metadata_filter: all,-trusted
-    main_language: python
-    notebook_metadata_filter: settings,mystnb,language_info,execution
-    text_representation:
-      extension: .md
-      format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.19.1
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.19.1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
+mystnb:
+  render_markdown_format: myst
 ---
 
-# Running the Virtual Ecosystem for your site
+# Running the Virtual Ecosystem for your location
 
-This page is intended to guide you through the process of setting up the Virtual
-Ecosystem simulations for your site of interest. Doing this successfully requires large
-quantities of both data and effort, far exceeding what could be covered in a single
-tutorial. As such, this tutorial aims to cover the general process of changing model
-configuration settings and loading in new data. You will then have to read the
-documentation for the [core settings](./core_settings/overview.md) and the [model
-specific setup details](./model_details/overview.md) in detail to be able to fully setup
-your site. Given this complexity, this we strongly recommend that you try [setting up
-and running the example simulation](./virtual_ecosystem_in_use.ipynb) before attempting
-to setup up the Virtual Ecosystem for a new site.
+This page guides you through setting up Virtual Ecosystem simulations for your location.
+The complete setup requires extensive data and effort, so this tutorial focuses on the
+general process of changing model settings and loading new data. For the full setup,
+consult the [core settings](./core_settings/overview.md) and [model-specific setup
+details](./model_details/overview.md). We strongly recommend [running the example
+simulation](./virtual_ecosystem_in_use.ipynb) before configuring a new site.
+
+To run a Virtual Ecosystem simulation for your own location you will need to:
+
+1. [Select the set of models you want to run](#selecting-the-models-you-want-to-run)
+1. [Provide any location specific constant values (as well as any constants that you
+  disagree with our choice of default value for)](#changing-model-constants)
+1. [Provide the core details of the experiment you want to run, e.g. grid size, grid
+   resolution, simulation length, etc](#changing-the-core-simulation-setup)
+1. [Provide NetCDF input data that matches the spatial (and in some cases temporal)
+   dimensions of your experimental
+   area](#providing-the-data-required-to-run-your-simulations)
+1. [Provide data on the plant functional types and animal functional groups included in
+   the simulation (as csv inputs)](#other-data-inputs)
 
 ## Configuration system overview
 
@@ -56,11 +79,11 @@ Note that **configuration setting cannot be repeated between files** as there is
 to establish which of two values (of e.g. `core.grid.cell_nx`) the user intended to
 provide. When settings are repeated, the validation of the configuration will fail.
 
-Validation occurs automatically when the configuration is loaded in. If any issues are
-found then the simulation will terminate, with the details of the issues being written
-to the simulation log file. The validation checks for a much broader range of things
-that just repeated settings, including that configured input files actually exist and
-that numeric inputs are within a range of accepted values.
+Validation occurs automatically when the simulation starts. If any issues are found then
+the simulation will terminate, with the details of the issues being written to the
+simulation log file. The validation checks for a much broader range of things that just
+repeated settings, including that configured input files actually exist and that numeric
+inputs are within a range of accepted values.
 
 ### Selecting the models you want to run
 
@@ -120,11 +143,10 @@ documentation](./model_details/science_model_configuration).
 
 ## Changing the core simulation setup
 
-The next thing that you need to provide are the core settings for your simulation runs.
-There are a [large number of configuration
-options](./core_settings/core_configuration.md) that you will need to decide on.
-However, to keep this tutorial to reasonable length we will focus on two of the most
-important, the spatial and temporal scales of the simulation.
+Next, you need to provide are the core settings for your simulation runs. There are a
+[large number of configuration options](./core_settings/core_configuration.md) that you
+will need to decide on. However, to keep this tutorial to reasonable length we will
+focus on two of the most important, the spatial and temporal scales of the simulation.
 
 The spatial scales of the simulation are controlled by the settings under `[core.grid]`.
 The Virtual Ecosystem expects coordinates in metres, so you should choose a [projected
@@ -174,15 +196,40 @@ forcing variables (e.g. climate data). This is a pretty complex step, so before 
 into the details, we should briefly mention how the Virtual Ecosystem stores data.
 
 The majority of variables in the Virtual ecosystem are stored in the `data` object (we
-will talk about the ones that aren't later in this section). The data stored in the data
-object are stored in a format similar to
-[`netCDF`](https://www.unidata.ucar.edu/software/netcdf). For this reason, any input
-data that needs to be added to the `data` object must be provided as `netCDF` files.
-There is no need for you to understand the specifics of how this `data` object works
-(though if you are interested you are welcome to read the [developer focused description
-of it](../development/design/data.md)). The reason you don't need to know the specifics
-is because you will **never** add data to the `data` object directly. Instead, all data
-will be added using the configuration system.
+will talk about the ones that aren't later). Data is stored in the data object object in
+a format similar to [`netCDF`](https://www.unidata.ucar.edu/software/netcdf), i.e. this
+is what the {term}`LMWC` soil variable looks like in the example data:
+
+```{code-cell} ipython3
+:tags: [remove-cell]
+
+%%bash
+# Remove any existing ve_example installations from the temporary directory
+if [ -d /tmp/ve_example ]; then
+  rm -r /tmp/ve_example
+fi
+
+# Install the example data directory from the Virtual Ecosystem package
+ve_run --install-example /tmp/
+```
+
+```{code-cell} ipython3
+:tags: [remove-cell]
+
+import xarray
+
+# Example: load or define your datasets
+ve_example_data = xarray.load_dataset("/tmp/ve_example/data/example_soil_data.nc")
+```
+
+```{code-cell} ipython3
+:tags: [hide-input]
+
+ve_example_data["soil_c_pool_lmwc"]
+```
+
+Because the formats are so similar, input data must be provided as `netCDF` files, which
+are then added to the `data` object as part of the configuration process.
 
 ### Input data dimensions
 

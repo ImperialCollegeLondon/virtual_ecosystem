@@ -15,6 +15,7 @@ from .conftest import log_check, record_found_in_log
 
 INITIALISATION_LOG = [
     (INFO, "Initialising models: litter"),
+    (INFO, "Initialising litter model"),
     (
         INFO,
         "Information required to initialise the litter model successfully extracted.",

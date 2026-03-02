@@ -66,11 +66,6 @@ def dummy_carbon_data(fixture_core_components):
         "animal_ectomycorrhiza_consumption": [9.52e-4, 3.84e-4, 3.77e-4, 9.43e-4],
         "animal_arbuscular_mycorrhiza_consumption": [3.43e-4, 4.29e-4, 6.0e-4, 2.30e-4],
         "decay_of_fungal_fruiting_bodies": [2.2499e-4, 5.8168e-4, 3.2185e-4, 2.5871e-3],
-        "new_fungal_fruiting_body_production": [0.0, 0.0, 0.0, 0.0],
-        "new_amf_n_supply": [0.0, 0.0, 0.0, 0.0],
-        "new_amf_p_supply": [0.0, 0.0, 0.0, 0.0],
-        "new_emf_n_supply": [0.0, 0.0, 0.0, 0.0],
-        "new_emf_p_supply": [0.0, 0.0, 0.0, 0.0],
     }
 
     for var_name, var_values in data_values.items():
@@ -239,18 +234,26 @@ def soil_pool_data(dummy_carbon_data):
     from virtual_ecosystem.models.soil.pools import PoolData
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
+    # As well as the values stored in the data object, the temporary arrays should be
+    # added to the pool data
+    refreshed_variables = [
+        "new_fungal_fruiting_body_production",
+        "new_amf_n_supply",
+        "new_amf_p_supply",
+        "new_emf_n_supply",
+        "new_emf_p_supply",
+    ]
+
     pools = {
-        var: pool
-        for var, pool in dummy_carbon_data.data.items()
-        if var in SoilModel.vars_updated
-        or var
-        in [
-            "new_fungal_fruiting_body_production",
-            "new_amf_n_supply",
-            "new_amf_p_supply",
-            "new_emf_n_supply",
-            "new_emf_p_supply",
-        ]
+        **{
+            var: pool
+            for var, pool in dummy_carbon_data.data.items()
+            if var in SoilModel.vars_updated
+        },
+        **{
+            name: np.zeros_like(dummy_carbon_data["soil_c_pool_lmwc"])
+            for name in refreshed_variables
+        },
     }
 
     return PoolData(**pools)

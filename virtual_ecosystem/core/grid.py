@@ -19,8 +19,8 @@ from typing import Any, TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
+from shapely import GeometryCollection, Point, Polygon, STRtree  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
-from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
@@ -238,6 +238,9 @@ class Grid:
         self.centroids: np.ndarray
         """A list of the centroid of each cell as shapely.geometry.Point objects, in
         cell_id order."""
+        self._strtree: STRtree
+        """An STRtree object of the grid polygons, used for searching coordinates
+        matches in loading data."""
 
         # Retrieve the creator function from the grid registry and handle unknowns
         creator = GRID_REGISTRY.get(self.grid_type, None)
@@ -264,6 +267,9 @@ class Grid:
         # Get the centroids as a numpy array
         centroids = [cell.centroid for cell in self.polygons]
         self.centroids = np.array([(gm.xy[0][0], gm.xy[1][0]) for gm in centroids])
+
+        #  Populate the STRtree
+        self._strtree = STRtree(self.polygons)
 
         # Get the bounds as a 4 tuple
         self.bounds: GeometryCollection = GeometryCollection(self.polygons).bounds
@@ -510,7 +516,7 @@ class Grid:
         #    object https://shapely.readthedocs.io/en/latest/strtree.html
 
         return [
-            [id for id, ply in zip(self.cell_id, self.polygons) if ply.intersects(pt)]
+            self._strtree.query(geometry=pt, predicate="intersects").tolist()
             for pt in xyp
         ]
 
