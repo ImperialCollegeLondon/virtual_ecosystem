@@ -11,18 +11,14 @@ jupyter:
       jupytext_version: 1.19.1
 ---
 
-# Running the Virtual Ecosystem for your site
+# Running the Virtual Ecosystem for your location
 
-This page is intended to guide you through the process of setting up the Virtual
-Ecosystem simulations for your site of interest. Doing this successfully requires large
-quantities of both data and effort, far exceeding what could be covered in a single
-tutorial. As such, this tutorial aims to cover the general process of changing model
-configuration settings and loading in new data. You will then have to read the
-documentation for the [core settings](./core_settings/overview.md) and the [model
-specific setup details](./model_details/overview.md) in detail to be able to fully setup
-your site. Given this complexity, this we strongly recommend that you try [setting up
-and running the example simulation](./virtual_ecosystem_in_use.ipynb) before attempting
-to setup up the Virtual Ecosystem for a new site.
+This page guides you through setting up Virtual Ecosystem simulations for your location.
+The complete setup requires extensive data and effort, so this tutorial focuses on the
+general process of changing model settings and loading new data. For the full setup,
+consult the [core settings](./core_settings/overview.md) and [model-specific setup
+details](./model_details/overview.md). We strongly recommend [running the example
+simulation](./virtual_ecosystem_in_use.ipynb) before configuring a new site.
 
 ## Configuration system overview
 
@@ -56,11 +52,11 @@ Note that **configuration setting cannot be repeated between files** as there is
 to establish which of two values (of e.g. `core.grid.cell_nx`) the user intended to
 provide. When settings are repeated, the validation of the configuration will fail.
 
-Validation occurs automatically when the configuration is loaded in. If any issues are
-found then the simulation will terminate, with the details of the issues being written
-to the simulation log file. The validation checks for a much broader range of things
-that just repeated settings, including that configured input files actually exist and
-that numeric inputs are within a range of accepted values.
+Validation occurs automatically when the simulation starts. If any issues are found then
+the simulation will terminate, with the details of the issues being written to the
+simulation log file. The validation checks for a much broader range of things that just
+repeated settings, including that configured input files actually exist and that numeric
+inputs are within a range of accepted values.
 
 ### Selecting the models you want to run
 
@@ -120,10 +116,10 @@ documentation](./science_model_configuration).
 
 ## Changing the core simulation setup
 
-The next thing that you need to provide are the core settings for your simulation runs.
-There are a [large number of configuration options](./core_configuration.md) that you
-will need to decide on. However, to keep this tutorial to reasonable length we will
-focus on two of the most important, the spatial and temporal scales of the simulation.
+Next, you need to provide are the core settings for your simulation runs. There are a
+[large number of configuration options](./core_configuration.md) that you will need to
+decide on. However, to keep this tutorial to reasonable length we will focus on two of
+the most important, the spatial and temporal scales of the simulation.
 
 The spatial scales of the simulation are controlled by the settings under `[core.grid]`.
 The Virtual Ecosystem expects coordinates in metres, so you should choose a [projected
