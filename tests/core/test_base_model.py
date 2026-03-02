@@ -842,5 +842,5 @@ def test_discover_disturbances():
     from virtual_ecosystem.core.base_model import BaseDisturbance, discover_disturbances
 
     models = discover_disturbances()
-    assert len(models) == 0
+    assert len(models) > 0
     assert all(issubclass(x, BaseDisturbance) for x in models)

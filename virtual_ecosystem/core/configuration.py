@@ -14,6 +14,8 @@ The basic details of how this system is used can be
 found :doc:`here </using_the_ve/configuration/config>`.
 """  # noqa: D205
 
+from __future__ import annotations
+
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any, ClassVar, TypeAlias, TypeVar
@@ -26,6 +28,7 @@ from pydantic import (
     DirectoryPath,
     Field,
     FilePath,
+    model_validator,
 )
 from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
@@ -171,6 +174,45 @@ class ModelConfigurationRoot(Configuration):
 
     static: bool = False
     """The model static mode setting."""
+
+
+class DisturbanceConfigurationRoot(Configuration):
+    """Root configuration class for disturbance Virtual Ecosystem models.
+
+    This model provides a common Pydantic base class that must be used to define
+    the root configuration class of a Virtual Ecosystem disturbance model. Each
+    disturbance must define an object ``model_name.model_config.ModelConfiguration``
+    that inherits from :class:`DisturbanceConfigurationRoot`. The
+    ``model_name.model_config`` module can then include other :class:`Configuration`
+    classes that are used as nested fields within the root configuration but can be only
+    one :class:`ModelConfigurationRoot` class per model. This base model sets common
+    shared attributes across models: currently just the timing options.
+
+    It also validates the timing fields to ensure that at least one of them is set.
+    """
+
+    run_at: int | list[int] | None = None
+    """Define time indices to run at specific times.
+    
+    Either a single integer or a list of integers indicating the time indices when the
+    disturbance is to run.
+    """
+    run_every: tuple[int, ...] | None = None
+    """Define a range of indices to run the disturbance.
+    
+    A tuple of integers indicating (start), or (start, step), or (start, step, stop),
+    from where a list of integers indicating the time indices when the disturbance is to
+    run can be constructed. If not provided, 'step' defaults to 1 and 'stop' defaults to
+    the last time index. 'start' must always be provided."""
+
+    @model_validator(mode="after")
+    def timing_options_are_not_both_none(self) -> DisturbanceConfigurationRoot:
+        """Validate the timing options of the configuration."""
+        if self.run_at is None and self.run_every is None:
+            raise ValueError(
+                "Timing options 'run_at' and 'run_every' cannot be both None."
+            )
+        return self
 
 
 def model_config_to_html(

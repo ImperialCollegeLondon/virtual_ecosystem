@@ -842,7 +842,7 @@ class BaseDisturbance(ABC):
             instance containing shared core elements used throughout models.
     """
 
-    disturbance_name: str
+    model_name: str
     """The model name.
 
     This class attribute sets the name used to refer to identify the disturbance class
@@ -850,14 +850,14 @@ class BaseDisturbance(ABC):
     messages.
     """
 
-    disturbed_models: list[str]
+    disturbed_models: tuple[str, ...]
     """A list of model names that this disturbance will affect.
     
     This list will be used to validate the configuration - check that all the models
     to disturb are available in the simulation - as well at runtime to select those 
     models when creating an instance of the disturbance."""
 
-    data_variables_disturbed: list[str]
+    data_variables_disturbed: tuple[str, ...]
     """A list of data variables that will be updated.
     
     This list will be used to validate the configuration and ensure that all the
@@ -891,7 +891,7 @@ class BaseDisturbance(ABC):
         missing = set(self.disturbed_models).difference(models.keys())
         if missing:
             raise ConfigurationError(
-                f"Models {missing} required by disturbance {self.disturbance_name}"
+                f"Models {missing} required by disturbance {self.model_name}"
                 "not available."
             )
         self.models = {
@@ -901,13 +901,22 @@ class BaseDisturbance(ABC):
         }
         """The models this disturbance will disturb."""
 
-    def __init_subclass__(self, disturbance_name: str, disturbed_models: list[str]):
+    @classmethod
+    def __init_subclass__(
+        cls,
+        model_name: str,
+        disturbed_models: tuple[str, ...],
+        data_variables_disturbed: tuple[str, ...],
+    ):
         """Checks the disturbed models and variables are all known.
 
         If so, it adds the disturbance to the registry.
 
         TODO: Complete when the registry is implemented in #1368.
         """
+        cls.model_name = model_name
+        cls.disturbed_models = disturbed_models
+        cls.data_variables_disturbed = data_variables_disturbed
 
     @classmethod
     @abstractmethod
