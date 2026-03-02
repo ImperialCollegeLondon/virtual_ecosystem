@@ -20,6 +20,19 @@ consult the [core settings](./core_settings/overview.md) and [model-specific set
 details](./model_details/overview.md). We strongly recommend [running the example
 simulation](./virtual_ecosystem_in_use.ipynb) before configuring a new site.
 
+To run a Virtual Ecosystem simulation for your own location you will need to:
+
+1. [Select the set of models you want to run](#selecting-the-models-you-want-to-run)
+1. [Provide any location specific constant values (as well as any constants that you
+  disagree with our choice of default value for)](#changing-model-constants)
+1. [Provide the core details of the experiment you want to run, e.g. grid size, grid
+   resolution, simulation length, etc](#changing-the-core-simulation-setup)
+1. [Provide NetCDF input data that matches the spatial (and in some cases temporal)
+   dimensions of your experimental
+   area](#providing-the-data-required-to-run-your-simulations)
+1. [Provide data on the plant functional types and animal functional groups included in
+   the simulation (as csv inputs)](#other-data-inputs)
+
 ## Configuration system overview
 
 All the changes you will need to make to setup the Virtual Ecosystem will involve making
