@@ -82,6 +82,44 @@ ELEMENTS = ("N", "P")
 #     )
 
 
+@pytest.mark.parametrize(
+    argnames="tissue_name,mass_attribute",
+    argvalues=(
+        ("FoliageTissue", "foliage_mass"),
+        ("RootTissue", "fine_root_mass"),
+        ("WoodTissue", "stem_mass"),
+        ("ReproductiveTissue", "reproductive_tissue_mass"),
+    ),
+)
+def test_Tissue_from_pft_default_ratios(
+    fixture_community, extra_pft_traits, tissue_name, mass_attribute
+):
+    """Test the default factory method generates a tissue with the correct masses."""
+
+    import virtual_ecosystem.models.plants.biomasses as biomasses
+
+    TissueClass = getattr(biomasses, tissue_name)
+
+    tissue = TissueClass.from_pft_default_ratios(
+        community=fixture_community,
+        extra_pft_traits=extra_pft_traits,
+        with_elements=ELEMENTS,
+    )
+
+    # Check carbon mass is equal to the appropriate mass attribute in the original
+    # allometry.
+    assert np.allclose(
+        tissue.carbon_mass, getattr(fixture_community.stem_allometry, mass_attribute)
+    )
+
+    # Check that the generated element masses are at their ideal ratios.
+    for ky in ELEMENTS:
+        assert np.allclose(
+            tissue.element_masses[ky].actual_element_mass,
+            tissue.carbon_mass * (1 / tissue.element_masses[ky].ideal_ratio),
+        )
+
+
 def test_FoliageTissue_functions(fixture_community, fixture_stem_allocation):
     """Test the FoliageTissue class functions."""
 
@@ -265,6 +303,30 @@ def test_RootTissue_functions(fixture_community, fixture_stem_allocation):
         ]
     )
     assert np.allclose(tissue.element_turnover(DUMMY_ALLOC), expected_turnover)
+
+
+def test_RootTissue_from_pft_default_ratios(fixture_community, extra_pft_traits):
+    """Test the default factory method generates a tissue with the correct masses."""
+
+    from virtual_ecosystem.models.plants.biomasses import RootTissue
+
+    tissue = RootTissue.from_pft_default_ratios(
+        community=fixture_community,
+        extra_pft_traits=extra_pft_traits,
+        with_elements=ELEMENTS,
+    )
+
+    # carbon mass = foliage mass
+    assert np.allclose(
+        tissue.carbon_mass, fixture_community.stem_allometry.fine_root_mass
+    )
+
+    # element masses at ideal ratios
+    for ky in ELEMENTS:
+        assert np.allclose(
+            tissue.element_masses[ky].actual_element_mass,
+            tissue.carbon_mass * (1 / tissue.element_masses[ky].ideal_ratio),
+        )
 
 
 def test_wood_tissue_functions():

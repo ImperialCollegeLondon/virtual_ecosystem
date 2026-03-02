@@ -32,11 +32,11 @@ class Element:
 
     name: str
     """The element name."""
-    ideal_ratio: NDArray[np.float64]
+    ideal_ratio: NDArray[np.floating]
     """The ideal ratio of the element for the tissue type."""
-    actual_element_mass: NDArray[np.float64]
+    actual_element_mass: NDArray[np.floating]
     """The actual mass of the element for the tissue type."""
-    turnover_ratio: NDArray[np.float64]
+    turnover_ratio: NDArray[np.floating]
     """What to do with this on non-reclaiming tissues."""
 
 
@@ -72,7 +72,7 @@ class TissueABC(ABC):
         """Create a default instance of Tissue based on the PFT traits."""
 
     @property
-    def deficit(self) -> dict[str, NDArray[np.float64]]:
+    def deficit(self) -> dict[str, NDArray[np.floating]]:
         """Calculate the element deficit (ideal mass - actual mass) for the tissue.
 
         Returns:
@@ -84,8 +84,8 @@ class TissueABC(ABC):
         }
 
     @property
-    def elemental_masses(self) -> dict[str, NDArray[np.float64]]:
-        """Return the current element masses for the tissue.
+    def get_elemental_masses(self) -> dict[str, NDArray[np.floating]]:
+        """Get the current element masses for the tissue.
 
         Returns:
             The element deficit for the specified tissue.
@@ -94,8 +94,23 @@ class TissueABC(ABC):
             ky: elem.actual_element_mass for ky, elem in self.element_masses.items()
         }
 
+    def add_elemental_masses(self, masses: dict[str, NDArray[np.floating]]) -> None:
+        """Return the current element masses for the tissue.
+
+        Returns:
+            The element deficit for the specified tissue.
+        """
+
+        try:
+            for ky, elem in self.element_masses.items():
+                elem.actual_element_mass += masses[ky]
+        except KeyError:
+            raise ValueError("add_elemental_masses missing required element.")
+        except ValueError:
+            raise ValueError("Error adding elements mass - incomptible shapes.")
+
     @property
-    def Cx_ratio(self) -> dict[str, NDArray[np.float64]]:
+    def Cx_ratio(self) -> dict[str, NDArray[np.floating]]:
         """Get the carbon to element ratio for the tissue type.
 
         Returns:
@@ -109,28 +124,31 @@ class TissueABC(ABC):
     @abstractmethod
     def elements_needed_for_growth(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the elements needed for growth for the tissue type."""
 
     @abstractmethod
     def tissue_turnover(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element lost to turnover for the tissue type.
 
-        TODO - possibly retire this?
-        Do we ever need to know what the element loss would
-        be without removing the masses?
+        TODO - possibly retire this in favour of extract turnover? Do we ever need to
+               know what the element loss would be _without_ removing the masses?
         """
 
     @abstractmethod
     def extract_turnover(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Extract the tissue elemental masses associated with turnover.
 
         This method should return a dictionary of elemental masses from turnover and
         reduce the tissue instance by those masses.
+
+        TODO: this returns Carbon too - do we want to have te return value different.
+              Could return an array slice, for example, ready for insertion into an
+              array.
         """
 
     # @abstractmethod
@@ -204,7 +222,7 @@ class FoliageTissue(TissueABC):
 
     def elements_needed_for_growth(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element quantity needed for growth for foliage tissue.
 
         Returns:
@@ -217,7 +235,7 @@ class FoliageTissue(TissueABC):
 
     def tissue_turnover(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element mass lost to turnover for foliage tissue.
 
         Returns:
@@ -232,7 +250,7 @@ class FoliageTissue(TissueABC):
 
     def extract_turnover(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element mass lost to turnover for foliage tissue.
 
         Returns:
@@ -305,30 +323,31 @@ class ReproductiveTissue(TissueABC):
             ideal_ratio = np.array(
                 [
                     extra_pft_traits.traits[name][
-                        f"plant_reproductive_tissue_turnover_c_{elem}_ratio"
+                        f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
                     ]
                     for name in pft_names
                 ]
             )
-            # No associated turnover ratio
-            turnover_ratio = np.zeros_like(ideal_ratio)
+            # Turnover ratio is identical to ideal ratio
+            turnover_ratio = ideal_ratio
 
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.foliage_mass / ideal_ratio,
+                actual_element_mass=community.stem_allometry.reproductive_tissue_mass
+                / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
         return cls(
-            carbon_mass=community.stem_allometry.foliage_mass,
+            carbon_mass=community.stem_allometry.reproductive_tissue_mass,
             community=community,
             element_masses=element_masses,
         )
 
-    def element_needed_for_growth(
+    def elements_needed_for_growth(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element quantity needed for growth for foliage tissue.
 
         Returns:
@@ -343,9 +362,9 @@ class ReproductiveTissue(TissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-    def element_turnover(
+    def tissue_turnover(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element mass lost to turnover for foliage tissue.
 
         Returns:
@@ -364,6 +383,24 @@ class ReproductiveTissue(TissueABC):
             ).squeeze()
             for ky, elem in self.element_masses.items()
         }
+
+    def extract_turnover(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Calculate the element mass lost to turnover for foliage tissue.
+
+        Returns:
+            The element quantity lost to turnover for foliage tissue.
+        """
+
+        elemental_turnovers = self.tissue_turnover(allocation=allocation)
+
+        self.carbon_mass -= allocation.reproductive_tissue_turnover
+
+        for ky, elem in self.element_masses.items():
+            elem.actual_element_mass -= elemental_turnovers[ky]
+
+        return {"C": allocation.reproductive_tissue_turnover, **elemental_turnovers}
 
     # def add_cohort(
     #     self,
@@ -408,7 +445,7 @@ class WoodTissue(TissueABC):
         extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
-        """Create a default instance of FoliageTissue based on the PFT traits."""
+        """Create a default instance of WoodTissue based on the PFT traits."""
         pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
@@ -416,7 +453,7 @@ class WoodTissue(TissueABC):
         for elem in with_elements:
             ideal_ratio = np.array(
                 [
-                    extra_pft_traits.traits[name][f"deadwood_c_{elem}_ratio"]
+                    extra_pft_traits.traits[name][f"deadwood_c_{elem.lower()}_ratio"]
                     for name in pft_names
                 ]
             )
@@ -435,9 +472,9 @@ class WoodTissue(TissueABC):
             element_masses=element_masses,
         )
 
-    def element_needed_for_growth(
+    def elements_needed_for_growth(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element quantity needed for growth for foliage tissue.
 
         Returns:
@@ -448,15 +485,30 @@ class WoodTissue(TissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-    def element_turnover(
+    def tissue_turnover(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element mass lost to turnover for foliage tissue.
 
         Returns:
             The element quantity lost to turnover for foliage tissue.
         """
         return {ky: np.zeros_like(elem) for ky, elem in self.element_masses.items()}
+
+    def extract_turnover(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Calculate the element mass lost to turnover for stem tissue.
+
+        There is no turnover in stem tissue through time.
+
+        Returns:
+            The element quantities lost to turnover from stem tissue.
+        """
+
+        elemental_turnovers = self.tissue_turnover(allocation=allocation)
+
+        return {"C": np.zeros_like(self.carbon_mass), **elemental_turnovers}
 
     # def add_cohort(
     #     self,
@@ -509,7 +561,9 @@ class RootTissue(TissueABC):
         for elem in with_elements:
             ideal_ratio = np.array(
                 [
-                    extra_pft_traits.traits[name][f"root_turnover_c_{elem}_ratio"]
+                    extra_pft_traits.traits[name][
+                        f"root_turnover_c_{elem.lower()}_ratio"
+                    ]
                     for name in pft_names
                 ]
             )
@@ -518,7 +572,8 @@ class RootTissue(TissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.foliage_mass / ideal_ratio,
+                actual_element_mass=community.stem_allometry.fine_root_mass
+                / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
@@ -528,9 +583,9 @@ class RootTissue(TissueABC):
             element_masses=element_masses,
         )
 
-    def element_needed_for_growth(
+    def elements_needed_for_growth(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element quantity needed for growth for foliage tissue.
 
         Returns:
@@ -546,9 +601,9 @@ class RootTissue(TissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-    def element_turnover(
+    def tissue_turnover(
         self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.float64]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element mass lost to turnover for foliage tissue.
 
         Returns:
@@ -563,6 +618,24 @@ class RootTissue(TissueABC):
             ).squeeze()
             for ky, elem in self.element_masses.items()
         }
+
+    def extract_turnover(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Calculate the element mass lost to turnover for fine root tissue.
+
+        Returns:
+            The element quantities lost to turnover from fine root tissue.
+        """
+
+        elemental_turnovers = self.tissue_turnover(allocation=allocation)
+
+        self.carbon_mass -= allocation.fine_root_turnover
+
+        for ky, elem in self.element_masses.items():
+            elem.actual_element_mass -= elemental_turnovers[ky]
+
+        return {"C": allocation.fine_root_turnover, **elemental_turnovers}
 
     # def add_cohort(
     #     self,
@@ -613,7 +686,7 @@ class StemBiomasses(CohortMethods, PandasExporter):
     """Tissues for the associated cohorts."""
     community: Community
     """The community object that the stoichiometry is associated with."""
-    element_surpluses: dict[str, NDArray[np.float64]] = field(init=False)
+    element_surpluses: dict[str, NDArray[np.floating]] = field(init=False)
     """The surplus of the element per cohort."""
     extra_pft_traits: ExtraTraitsPFT
     """Additional traits specific to the plant functional types."""
@@ -639,7 +712,7 @@ class StemBiomasses(CohortMethods, PandasExporter):
 
         # Populate the surpluses
         self.element_surplus = {
-            elem: np.zeros(self.community.n_cohorts, dtype=np.float64)
+            elem: np.zeros(self.community.n_cohorts, dtype=np.floating)
             for elem in self.elements
         }
 
@@ -714,17 +787,17 @@ class StemBiomasses(CohortMethods, PandasExporter):
     #         self.element_surplus = np.append(self.element_surplus, 0.0)
 
     @property
-    def total_element_mass(self) -> dict[str, NDArray[np.float64]]:
+    def total_element_mass(self) -> dict[str, NDArray[np.floating]]:
         """Calculate the total element mass for each cohort.
 
         Returns:
             The total element mass for each cohort.
         """
-        masses = [t.elemental_masses for t in self.tissues]
+        masses = [t.get_elemental_masses for t in self.tissues]
         return {ky: np.add.reduce([m[ky] for m in masses]) for ky in self.elements}
 
     @property
-    def tissue_deficit(self) -> dict[str, NDArray[np.float64]]:
+    def tissue_deficit(self) -> dict[str, NDArray[np.floating]]:
         """Calculate the total element deficits for each cohort.
 
         Returns:
@@ -732,6 +805,16 @@ class StemBiomasses(CohortMethods, PandasExporter):
         """
         deficits = [t.deficit for t in self.tissues]
         return {ky: np.add.reduce([d[ky] for d in deficits]) for ky in self.elements}
+
+    def _adjust_surpluses(
+        self, masses: dict[str, NDArray[np.floating]], increase: bool = True
+    ) -> None:
+        """Adjust the element surpluses in the biomass object."""
+        for ky, surplus in self.element_surpluses.items():
+            if increase:
+                surplus += masses[ky]
+            else:
+                surplus -= masses[ky]
 
     def account_for_growth(self, allocation: StemAllocation) -> None:
         """Distribute the element needed for growth to each tissue type.
@@ -743,13 +826,10 @@ class StemBiomasses(CohortMethods, PandasExporter):
             allocation: The allocation object containing the growth allocation data.
         """
 
-        needed_for_growth = [
-            t.elements_needed_for_growth(allocation) for t in self.tissues
-        ]
-
         for tissue in self.tissues:
-            tissue.actual_element_mass += tissue.element_needed_for_growth(allocation)
-            self.element_surplus -= tissue.element_needed_for_growth(allocation)
+            needed = tissue.elements_needed_for_growth(allocation)
+            tissue.add_elemental_masses(needed)
+            self._adjust_surpluses(needed, increase=False)
 
     def account_for_element_loss_turnover(self, allocation: StemAllocation) -> None:
         """Calculate the total element lost to turnover for each cohort.
@@ -759,16 +839,18 @@ class StemBiomasses(CohortMethods, PandasExporter):
         process, the element is allocated from the surplus store in the same quantity
         as turnover. This uses current ratios so that the C:x ratios are maintained.
 
-        NOTE: these values are not subtracted from the element mass itself, as we assume
-        that the tree regrows the lost tissue in the same timestep. This means that the
-        element mass SHOULD stay the same, however the plant must have enough surplus to
-        cover the loss - hence only subtracting from the element surplus.
+        .. NOTE:
+
+            These values are not subtracted from the element mass itself, as we assume
+            that the tree regrows the lost tissue in the same timestep. This means that
+            the element mass SHOULD stay the same, however the plant must have enough
+            surplus to cover the loss - hence only subtracting from the element surplus.
 
         Returns:
             The total element lost to turnover for each cohort.
         """
         for tissue in self.tissues:
-            self.element_surplus -= tissue.element_turnover(allocation)
+            self._adjust_surpluses(tissue.tissue_turnover(allocation), increase=False)
 
     def distribute_deficit(self, cohort: int) -> None:
         """Distribute the element deficit across the tissue types.
