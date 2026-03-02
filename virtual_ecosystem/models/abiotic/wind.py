@@ -232,6 +232,7 @@ def calculate_mixing_coefficients_canopy(
     canopy_height: NDArray[np.floating],
     friction_velocity: NDArray[np.floating],
     von_karman_constant: float,
+    max_mixing_coefficient: float,
 ) -> NDArray[np.floating]:
     r"""Calculate turbulent mixing coefficients within canopy.
 
@@ -262,6 +263,7 @@ def calculate_mixing_coefficients_canopy(
         von_karman_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
+        max_mixing_coefficient: Maximum mixing coefficient
 
     Returns:
         turbulent mixing coefficients, [m2 s-1]
@@ -273,7 +275,11 @@ def calculate_mixing_coefficients_canopy(
         * layer_midpoints
         * (1 - layer_midpoints / canopy_height) ** 2
     )
-    return mixing_coefficients
+    return np.where(
+        mixing_coefficients > max_mixing_coefficient,
+        max_mixing_coefficient,
+        mixing_coefficients,
+    )
 
 
 def clamp_variable_within_limits(

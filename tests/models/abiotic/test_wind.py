@@ -154,7 +154,11 @@ def test_calculate_mixing_coefficients():
     expected = np.array([[0.00972, 0.015, 0.00108], [0.01536, 0.01152, 0.00384]])
 
     result = calculate_mixing_coefficients_canopy(
-        layer_midpoints, canopy_height, friction_velocity, k
+        layer_midpoints=layer_midpoints,
+        canopy_height=canopy_height,
+        friction_velocity=friction_velocity,
+        von_karman_constant=k,
+        max_mixing_coefficient=1000.0,
     )
 
     assert result.shape == layer_midpoints.shape
