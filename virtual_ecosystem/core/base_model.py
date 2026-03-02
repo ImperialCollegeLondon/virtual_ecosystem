@@ -911,12 +911,65 @@ class BaseDisturbance(ABC):
         """Checks the disturbed models and variables are all known.
 
         If so, it adds the disturbance to the registry.
-
-        TODO: Complete when the registry is implemented in #1368.
         """
-        cls.model_name = model_name
-        cls.disturbed_models = disturbed_models
-        cls.data_variables_disturbed = data_variables_disturbed
+        cls.model_name = cls._check_model_name(model_name)
+        cls.disturbed_models = cls._check_attributes(disturbed_models)
+        cls.data_variables_disturbed = cls._check_attributes(data_variables_disturbed)
+
+    @classmethod
+    def _check_model_name(cls, model_name: str) -> str:
+        """Check the model_name attribute is valid.
+
+        Args:
+            model_name: The
+                :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_name`
+                attribute to be used for a subclass.
+
+        Raises:
+            ValueError: the model_name is not a string.
+
+        Returns:
+            The provided ``model_name`` if valid
+        """
+
+        if not isinstance(model_name, str):
+            excep = TypeError(
+                f"Class attribute model_name in {cls.__name__} is not a string"
+            )
+            LOGGER.error(excep)
+            raise excep
+
+        return model_name
+
+    @classmethod
+    def _check_attributes(cls, attribute_value: tuple[str, ...]) -> tuple[str, ...]:
+        """Check that disturbance variables and models attributes are valid.
+
+        They both need to be tuples of strings, so we make sure that is the case
+        when creating the class.
+
+        Args:
+            attribute_value: The provided value for the attribute
+
+        Raises:
+            TypeError: the value of the model attribute has the wrong type structure.
+
+        Returns:
+            The validated variables attribute value
+        """
+
+        # Check the structure
+        if isinstance(attribute_value, tuple) and all(
+            isinstance(vname, str) for vname in attribute_value
+        ):
+            return attribute_value
+
+        to_raise = TypeError(
+            f"Class attribute {attribute_value} has the wrong "
+            f"structure in {cls.__name__}"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
 
     @classmethod
     @abstractmethod
