@@ -1,14 +1,28 @@
 ---
-jupyter:
-  jupytext:
-    cell_metadata_filter: all,-trusted
-    main_language: python
-    notebook_metadata_filter: settings,mystnb,language_info,execution
-    text_representation:
-      extension: .md
-      format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.19.1
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.19.1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
+mystnb:
+  render_markdown_format: myst
 ---
 
 # Running the Virtual Ecosystem for your location
@@ -182,15 +196,40 @@ forcing variables (e.g. climate data). This is a pretty complex step, so before 
 into the details, we should briefly mention how the Virtual Ecosystem stores data.
 
 The majority of variables in the Virtual ecosystem are stored in the `data` object (we
-will talk about the ones that aren't later in this section). The data stored in the data
-object are stored in a format similar to
-[`netCDF`](https://www.unidata.ucar.edu/software/netcdf). For this reason, any input
-data that needs to be added to the `data` object must be provided as `netCDF` files.
-There is no need for you to understand the specifics of how this `data` object works
-(though if you are interested you are welcome to read the [developer focused description
-of it](../development/design/data.md)). The reason you don't need to know the specifics
-is because you will **never** add data to the `data` object directly. Instead, all data
-will be added using the configuration system.
+will talk about the ones that aren't later). Data is stored in the data object object in
+a format similar to [`netCDF`](https://www.unidata.ucar.edu/software/netcdf), i.e. this
+is what the {term}`LMWC` soil variable looks like in the example data:
+
+```{code-cell} ipython3
+:tags: [remove-cell]
+
+%%bash
+# Remove any existing ve_example installations from the temporary directory
+if [ -d /tmp/ve_example ]; then
+  rm -r /tmp/ve_example
+fi
+
+# Install the example data directory from the Virtual Ecosystem package
+ve_run --install-example /tmp/
+```
+
+```{code-cell} ipython3
+:tags: [remove-cell]
+
+import xarray
+
+# Example: load or define your datasets
+ve_example_data = xarray.load_dataset("/tmp/ve_example/data/example_soil_data.nc")
+```
+
+```{code-cell} ipython3
+:tags: [hide-input]
+
+ve_example_data["soil_c_pool_lmwc"]
+```
+
+Because the formats are so similar, input data must be provided as `netCDF` files, which
+are then added to the `data` object as part of the configuration process.
 
 ### Input data dimensions
 
