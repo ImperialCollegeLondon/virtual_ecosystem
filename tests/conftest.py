@@ -882,7 +882,7 @@ def fixture_static_inputs(
         * weights
         * abiotic_constants.leaf_emissivity  # TODO needs to be soil too
     )
-
+    cell_area = data.grid.cell_area
     return {
         "canopy_height": canopy_height,
         "lai_sum": leaf_area_index_sum,
@@ -891,4 +891,5 @@ def fixture_static_inputs(
         "atmospheric_co2": atmospheric_co2_true,
         "geometry": atmospheric_layer_geometry,
         "absorbed_longwave_radiation": absorbed_longwave_radiation,
+        "cell_area": cell_area,
     }
