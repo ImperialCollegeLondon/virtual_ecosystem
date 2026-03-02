@@ -6,40 +6,8 @@ import numpy as np
 import pytest
 
 
-def test_build_indices_returns_expected_namespace(
-    dummy_climate_data_varying_canopy, fixture_core_components
-):
-    """Test that _build_indices correctly maps attributes."""
-
-    from virtual_ecosystem.models.abiotic.microclim import _build_indices
-
-    layer_structure = fixture_core_components.layer_structure
-    data = dummy_climate_data_varying_canopy
-
-    idx = _build_indices(data=data, layer_structure=layer_structure)
-
-    # Check expected keys exist
-    assert isinstance(idx, types.SimpleNamespace)
-
-    def assert_equal(a, b):
-        if isinstance(a, np.ndarray):
-            np.testing.assert_array_equal(a, b)
-        else:
-            assert a == b
-
-    assert_equal(idx.above, layer_structure.index_above)
-    assert_equal(idx.canopy, layer_structure.index_filled_canopy)
-    assert_equal(idx.surface, layer_structure.index_surface_scalar)
-    assert_equal(idx.atm, layer_structure.index_filled_atmosphere)
-    assert_equal(idx.flux, layer_structure.index_flux_layers)
-    assert_equal(idx.soil, layer_structure.index_all_soil)
-    assert_equal(idx.topsoil, layer_structure.index_topsoil_scalar)
-    assert_equal(idx.layers, layer_structure.n_layers)
-    assert_equal(idx.cell_id, data.grid.n_cells)
-
-
 def test_compute_weights_normal_case():
-    """Test that _compute_weights_from_absorbed_radiation correctly normalizes array."""
+    """Test that compute_weights_from_absorbed_radiation correctly normalizes array."""
     from virtual_ecosystem.models.abiotic.microclim import (
         compute_weights_from_absorbed_radiation,
     )
@@ -53,7 +21,7 @@ def test_compute_weights_normal_case():
 
 
 def test_compute_weights_with_nans():
-    """Test that _compute_weights_from_absorbed_radiation correctly handles NaNs."""
+    """Test that compute_weights_from_absorbed_radiation correctly handles NaNs."""
     from virtual_ecosystem.models.abiotic.microclim import (
         compute_weights_from_absorbed_radiation,
     )
@@ -69,7 +37,7 @@ def test_compute_weights_with_nans():
 
 
 def test_compute_weights_zero_total_raises():
-    """Test that _compute_weights_from_absorbed_radiation raises ValueError."""
+    """Test that compute_weights_from_absorbed_radiation raises ValueError."""
     from virtual_ecosystem.models.abiotic.microclim import (
         compute_weights_from_absorbed_radiation,
     )
@@ -81,7 +49,7 @@ def test_compute_weights_zero_total_raises():
 
 
 def test_all_nan_raises():
-    """Test that _compute_weights_from_absorbed_radiation raises Error when NaN."""
+    """Test that compute_weights_from_absorbed_radiation raises Error when NaN."""
     from virtual_ecosystem.models.abiotic.microclim import (
         compute_weights_from_absorbed_radiation,
     )
@@ -98,16 +66,16 @@ def test_prepare_static_inputs_returns_consistent_outputs(
     fixture_abiotic_indices,
     fixture_abiotic_constants,
 ):
-    """Test _prepare_static_inputs returns sensible and consistent outputs."""
+    """Test prepare_static_inputs returns sensible and consistent outputs."""
 
-    from virtual_ecosystem.models.abiotic.microclim import _prepare_static_inputs
+    from virtual_ecosystem.models.abiotic.microclim import prepare_static_inputs
 
     data = dummy_climate_data_varying_canopy
     layer_structure = fixture_core_components.layer_structure
     idx = fixture_abiotic_indices
     abiotic_constants = fixture_abiotic_constants
 
-    result = _prepare_static_inputs(
+    result = prepare_static_inputs(
         data=data,
         idx=idx,
         time_index=0,
@@ -124,6 +92,7 @@ def test_prepare_static_inputs_returns_consistent_outputs(
         "atmospheric_co2",
         "geometry",
         "absorbed_longwave_radiation",
+        "cell_area",
     }
 
     assert set(result.keys()) == expected_keys
@@ -202,14 +171,14 @@ def test_calculate_wind_profiles(
 ):
     """Test wind profile calculations for physical plausibility and consistency."""
 
-    from virtual_ecosystem.models.abiotic.microclim import _calculate_wind_profiles
+    from virtual_ecosystem.models.abiotic.microclim import calculate_wind_profiles
 
     data = dummy_climate_data_varying_canopy
     static_inputs = fixture_static_inputs
     idx = fixture_abiotic_indices
     time_index = 0
 
-    result = _calculate_wind_profiles(
+    result = calculate_wind_profiles(
         static=static_inputs,
         data=data,
         time_index=time_index,
@@ -278,9 +247,9 @@ def test_generate_hourly_forcing(
     fixture_static_inputs,
     fixture_core_components,
 ):
-    """Test _generate_hourly_forcing with prepared static inputs."""
+    """Test generate_hourly_forcing with prepared static inputs."""
 
-    from virtual_ecosystem.models.abiotic.microclim import _generate_hourly_forcing
+    from virtual_ecosystem.models.abiotic.microclim import generate_hourly_forcing
 
     data = dummy_climate_data_varying_canopy
     static_inputs = fixture_static_inputs
@@ -288,7 +257,7 @@ def test_generate_hourly_forcing(
     month = 2
     latitude = 0.0
 
-    forcing = _generate_hourly_forcing(
+    forcing = generate_hourly_forcing(
         data=data,
         static=static_inputs,
         time_index=time_index,
@@ -351,13 +320,13 @@ def test_generate_hourly_forcing(
 def test_initialize_state_shapes(
     dummy_climate_data_varying_canopy, fixture_abiotic_indices
 ):
-    """Test _initialize_state returns all expected state variables."""
+    """Test initialize_state returns all expected state variables."""
 
-    from virtual_ecosystem.models.abiotic.microclim import _initialize_state
+    from virtual_ecosystem.models.abiotic.microclim import initialize_state
 
     data = dummy_climate_data_varying_canopy
     idx = fixture_abiotic_indices
-    state = _initialize_state(data=data, idx=idx)
+    state = initialize_state(data=data, idx=idx)
 
     # Expected keys
     expected_keys = [
@@ -399,7 +368,7 @@ def test_initialize_hourly_record(
 ):
     """Test _initialize_hourly_record creates arrays of correct shape and type."""
 
-    from virtual_ecosystem.models.abiotic.microclim import _initialize_hourly_record
+    from virtual_ecosystem.models.abiotic.microclim import initialize_hourly_record
 
     data = dummy_climate_data_varying_canopy
     layer_structure = fixture_core_components.layer_structure
@@ -408,7 +377,7 @@ def test_initialize_hourly_record(
     vars_updated = ("air_temperature", "soil_moisture")
 
     # Initialize hourly record for 24 hours
-    hourly_record = _initialize_hourly_record(
+    hourly_record = initialize_hourly_record(
         data=data,
         vars_updated=vars_updated,
         time_dim=24,
@@ -440,7 +409,7 @@ def test_update_forcing_boundary_conditions(
     """Test update forcingcorrectly updates state with hourly forcing."""
 
     from virtual_ecosystem.models.abiotic.microclim import (
-        _update_forcing_boundary_conditions,
+        update_forcing_boundary_conditions,
     )
 
     # Dimensions
@@ -493,7 +462,7 @@ def test_update_forcing_boundary_conditions(
     ]
     expected_soil_evap = hourly_forcing["soil_evaporation_hourly"][hour]
 
-    updated_state = _update_forcing_boundary_conditions(
+    updated_state = update_forcing_boundary_conditions(
         state=state,
         hourly_forcing=hourly_forcing,
         hour=hour,
@@ -532,7 +501,7 @@ def test_calculate_thermodynamics_day_and_night(
     """Test _calculate_thermodynamics produces expected outputs for day and night."""
 
     from virtual_ecosystem.models.abiotic.microclim import (
-        _calculate_thermodynamics,
+        calculate_thermodynamics,
     )
 
     data = dummy_climate_data_varying_canopy
@@ -543,15 +512,12 @@ def test_calculate_thermodynamics_day_and_night(
 
     n_cells = data.grid.n_cells
     n_layers = sum(idx.atm)
-    hour = 0
+    hour = 12
 
     state = {
         "all_air_temperature": data["air_temperature"][idx.atm].to_numpy(),
         "atmospheric_pressure": data["atmospheric_pressure"][idx.atm].to_numpy(),
         "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
-    }
-
-    wind_state = {
         "zero_plane_displacement": np.ones(n_cells) * 2.0,
     }
 
@@ -566,9 +532,8 @@ def test_calculate_thermodynamics_day_and_night(
     }
 
     # DAY TEST
-    result_day = _calculate_thermodynamics(
+    result_day = calculate_thermodynamics(
         state=state,
-        wind_state=wind_state,
         static=static,
         hourly_forcing=hourly_forcing_day,
         hour=hour,
@@ -586,9 +551,8 @@ def test_calculate_thermodynamics_day_and_night(
     )
 
     # NIGHT TEST
-    result_night = _calculate_thermodynamics(
+    result_night = calculate_thermodynamics(
         state=state,
-        wind_state=wind_state,
         static=static,
         hourly_forcing=hourly_forcing_night,
         hour=hour,
@@ -642,8 +606,6 @@ def test_calculate_vegetation_temperature(
         "shortwave_absorption_understorey": data["shortwave_absorption"].to_numpy()[
             idx.surface, :
         ],
-    }
-    thermodynamics = {
         "specific_heat_air": data["specific_heat_air"][idx.atm].to_numpy(),
         "density_air": data["density_air"][idx.atm].to_numpy(),
         "aerodynamic_resistance_canopy": data[
@@ -657,7 +619,6 @@ def test_calculate_vegetation_temperature(
     result = calculate_vegetation_temperature(
         state=state,
         static=static,
-        thermodynamics=thermodynamics,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
         idx=idx,
@@ -720,8 +681,6 @@ def test_calculate_vegetation_fluxes(
         "shortwave_absorption_understorey": data["shortwave_absorption"].to_numpy()[
             idx.surface, :
         ],
-    }
-    thermodynamics = {
         "specific_heat_air": data["specific_heat_air"][idx.atm].to_numpy(),
         "density_air": data["density_air"][idx.atm].to_numpy(),
         "aerodynamic_resistance_canopy": data[
@@ -734,7 +693,6 @@ def test_calculate_vegetation_fluxes(
 
     result = calculate_vegetation_fluxes(
         state=state,
-        thermodynamics=thermodynamics,
         static=static,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
@@ -784,12 +742,9 @@ def test_calculate_soil_fluxes(
         ].to_numpy(),
         "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
         "soil_evaporation": data["soil_evaporation"].to_numpy(),
-        "absorbed_shortwave_radiation_soil": data["shortwave_absorption"].to_numpy()[
+        "shortwave_absorption_soil": data["shortwave_absorption"].to_numpy()[
             fixture_abiotic_indices.topsoil, :
         ],
-    }
-
-    thermodynamics = {
         "density_air": data["density_air"][fixture_abiotic_indices.atm].to_numpy(),
         "specific_heat_air": data["specific_heat_air"][
             fixture_abiotic_indices.atm
@@ -802,7 +757,6 @@ def test_calculate_soil_fluxes(
     result = calculate_soil_fluxes(
         state=state,
         static=static,
-        thermodynamics=thermodynamics,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
         time_interval=time_interval,
@@ -848,14 +802,10 @@ def test_update_air_temperature(
         "canopy_air_temperature": data["air_temperature"][idx.canopy].to_numpy(),
         "surface_air_temperature": data["air_temperature"][idx.surface].to_numpy(),
         "all_air_temperature": data["air_temperature"][idx.atm].to_numpy(),
-    }
-    vegetation_fluxes = {"sensible_heat_flux": np.ones((n_layers, n_cells)) * 5.0}
-    soil_fluxes = {"sensible_heat_flux": np.ones(n_cells) * 2.0}
-    thermodynamics = {
-        "specific_heat_air": data["specific_heat_air"].to_numpy(),
-        "density_air": data["density_air"].to_numpy(),
-    }
-    wind_state = {
+        "sensible_heat_flux": np.ones((n_layers, n_cells)) * 5.0,
+        "sensible_heat_flux_soil": np.ones(n_cells) * 2.0,
+        "specific_heat_air": data["specific_heat_air"][idx.atm].to_numpy(),
+        "density_air": data["density_air"][idx.atm].to_numpy(),
         "ventilation_rate": np.repeat(0.05, n_cells),
         "mixing_coefficient": np.array(
             [
@@ -870,13 +820,8 @@ def test_update_air_temperature(
 
     result = update_air_temperature(
         state=state,
-        vegetation_fluxes=vegetation_fluxes,
-        soil_fluxes=soil_fluxes,
         static=static,
-        thermodynamics=thermodynamics,
-        wind_state=wind_state,
         abiotic_bounds=abiotic_bounds,
-        idx=idx,
         time_interval=time_interval,
     )
 
@@ -900,7 +845,6 @@ def test_update_air_temperature(
 
 def test_update_atmospheric_humidity(
     dummy_climate_data_varying_canopy,
-    fixture_core_components,
     fixture_core_constants,
     fixture_abiotic_constants,
     fixture_abiotic_indices,
@@ -935,9 +879,6 @@ def test_update_atmospheric_humidity(
         ]
         + data["transpiration"].to_numpy()[idx.surface, :],
         "soil_evaporation": data["soil_evaporation"].to_numpy(),
-    }
-
-    thermodynamics = {
         "density_air": data["density_air"][idx.atm].to_numpy(),
         "mixing_coefficient": np.array(
             [
@@ -948,9 +889,8 @@ def test_update_atmospheric_humidity(
                 [0.1, 0.1, 0.1, 0.1],
             ]
         ),
+        "ventilation_rate": np.array([0.01, 0.01, 0.01, 0.01]),
     }
-
-    wind_state = {"ventilation_rate": np.array([0.01, 0.01, 0.01, 0.01])}
 
     vp_sat = calc_vp_sat(
         ta=state["all_air_temperature"],
@@ -959,12 +899,9 @@ def test_update_atmospheric_humidity(
     result = update_atmospheric_humidity(
         state=state,
         static=static,
-        thermodynamics=thermodynamics,
-        wind_state=wind_state,
         pyrealm_core_constants=pyrealm_core_constants,
         core_constants=core_constants,
         abiotic_constants=abiotic_constants,
-        cell_area=fixture_core_components.grid.cell_area,
         time_interval=3600,
     )
 
@@ -992,3 +929,179 @@ def test_update_atmospheric_humidity(
         (result["relative_humidity"][mask] >= 0)
         & (result["relative_humidity"][mask] <= 100)
     )
+
+
+def test_run_hour_step_orchestration(
+    dummy_climate_data_varying_canopy,
+    fixture_abiotic_indices,
+    fixture_abiotic_constants,
+    fixture_core_constants,
+    fixture_static_inputs,
+):
+    """Test hourly loop."""
+    from pyrealm.constants import CoreConst as PyrealmCoreConst
+
+    from virtual_ecosystem.models.abiotic.microclim import (
+        calculate_wind_profiles,
+        generate_hourly_forcing,
+        initialize_state,
+        run_hour_step,
+    )
+    from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
+
+    # Set up
+    data = dummy_climate_data_varying_canopy
+    idx = fixture_abiotic_indices
+    hour = 12
+    time_interval = 3600
+    time_index = 0
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
+    pyrealm_constants = PyrealmCoreConst()
+    abiotic_bounds = AbioticSimpleBounds()
+
+    # get inputs
+    state = state = initialize_state(
+        data=data,
+        idx=idx,
+    )
+    static = fixture_static_inputs
+    hourly_forcing = generate_hourly_forcing(
+        data=data,
+        static=static,
+        time_index=time_index,
+        month=1,
+        latitude=0,
+    )
+    wind = calculate_wind_profiles(
+        static=static,
+        data=data,
+        time_index=time_index,
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
+    )
+    state.update(wind)
+
+    result = run_hour_step(
+        state=state,
+        static=static,
+        hourly_forcing=hourly_forcing,
+        hour=hour,
+        idx=idx,
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
+        pyrealm_constants=pyrealm_constants,
+        abiotic_bounds=abiotic_bounds,
+        time_interval=time_interval,
+    )
+
+    # Shape checks
+    expected_shapes = {
+        "all_air_temperature": (5, 4),
+        "canopy_air_temperature": (3, 4),
+        "canopy_temperature": (3, 4),
+        "surface_air_temperature": (4,),
+        "understorey_temperature": (4,),
+        "soil_temperature": (2, 4),
+        "relative_humidity": (5, 4),
+        "aerodynamic_resistance_soil": (4,),
+        "zero_plane_displacement": (4,),
+        "roughness_length": (4,),
+        "friction_velocity": (4,),
+        "wind_profile": (5, 4),
+        "mixing_coefficient": (5, 4),
+        "shortwave_absorption_canopy": (3, 4),
+        "shortwave_absorption_understorey": (4,),
+        "shortwave_absorption_soil": (4,),
+        "evapotranspiration_canopy": (3, 4),
+        "evapotranspiration_understorey": (4,),
+        "soil_evaporation": (4,),
+        "density_air": (5, 4),
+        "specific_heat_air": (5, 4),
+        "latent_heat_vapourisation": (5, 4),
+        "aerodynamic_resistance_canopy": (4,),
+        "ventilation_rate": (4,),
+        "vegetation_temperature": (4, 4),
+        "longwave_emission": (4, 4),
+        "sensible_heat_flux": (4, 4),
+        "latent_heat_flux": (4, 4),
+        "energy_balance_residual": (4, 4),
+        "longwave_emission_soil": (4,),
+        "sensible_heat_flux_soil": (4,),
+        "latent_heat_flux_soil": (4,),
+        "ground_heat_flux_soil": (4,),
+        "air_temperature": (5, 4),
+        "vapour_pressure": (5, 4),
+        "vapour_pressure_deficit": (5, 4),
+        "specific_humidity": (5, 4),
+    }
+
+    for key, shape in expected_shapes.items():
+        arr = result.get(key)
+        assert arr is not None, f"{key} missing from output"
+        assert arr.shape == shape, f"{key} shape mismatch: {arr.shape} != {shape}"
+
+    # Physical sanity checks
+    def finite_and_within(arr, min_val, max_val, name):
+        valid = arr[~np.isnan(arr)]
+        assert np.all(np.isfinite(valid)), f"{name} contains non-finite values"
+        assert np.all(valid >= min_val), f"{name} below physical minimum {min_val}"
+        assert np.all(valid <= max_val), f"{name} above physical maximum {max_val}"
+
+    # Temperatures in Celsius
+    for key in [
+        "all_air_temperature",
+        "canopy_air_temperature",
+        "canopy_temperature",
+        "surface_air_temperature",
+        "understorey_temperature",
+        "soil_temperature",
+        "vegetation_temperature",
+    ]:
+        finite_and_within(result[key], -50, 60, key)
+
+    # Relative humidity (%)
+    finite_and_within(result["relative_humidity"], 0, 100, "relative_humidity")
+
+    # Vapour pressure (kPa) and deficit
+    finite_and_within(result["vapour_pressure"], 0, 10, "vapour_pressure")
+    finite_and_within(
+        result["vapour_pressure_deficit"], 0, 10, "vapour_pressure_deficit"
+    )
+
+    # Specific humidity (kg/kg)
+    finite_and_within(result["specific_humidity"], 0, 0.05, "specific_humidity")
+
+    # Fluxes (W/m²), rough ranges
+    finite_and_within(result["longwave_emission"], 0, 5000, "longwave_emission")
+    finite_and_within(result["sensible_heat_flux"], -1000, 1000, "sensible_heat_flux")
+    finite_and_within(result["latent_heat_flux"], 0, 500, "latent_heat_flux")
+    finite_and_within(
+        result["ground_heat_flux_soil"], -1000, 1000, "ground_heat_flux_soil"
+    )
+
+    # Mixing coefficient sanity
+    finite_and_within(result["mixing_coefficient"], 0, 1e3, "mixing_coefficient")
+
+    # Wind speed
+    finite_and_within(result["wind_profile"], 0, 50, "wind_profile")
+
+    # Aerodynamic resistances
+    finite_and_within(
+        result["aerodynamic_resistance_canopy"],
+        0,
+        1000,
+        "aerodynamic_resistance_canopy",
+    )
+    finite_and_within(
+        result["aerodynamic_resistance_soil"], 0, 1000, "aerodynamic_resistance_soil"
+    )
+
+    # Evapotranspiration (kg/m² per hour)
+    finite_and_within(
+        result["evapotranspiration_canopy"], 0, 5, "evapotranspiration_canopy"
+    )
+    finite_and_within(
+        result["evapotranspiration_understorey"], 0, 5, "evapotranspiration_understorey"
+    )
+    finite_and_within(result["soil_evaporation"], 0, 5, "soil_evaporation")
