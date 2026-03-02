@@ -7,6 +7,7 @@ TODO change temperatures to Kelvin
 """  # noqa: D205
 
 from collections.abc import Iterable
+from types import SimpleNamespace
 
 import bottleneck as bn
 import numpy as np
@@ -17,6 +18,30 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+
+
+def build_indices(data: Data, layer_structure: LayerStructure) -> SimpleNamespace:
+    """Build indices for different layers and variables for easier access.
+
+    Args:
+        data: Data object
+        layer_structure: Layer structure object
+
+    Returns:
+        SimpleNamespace with indices for different layers and variables
+    """
+
+    return SimpleNamespace(
+        above=layer_structure.index_above,
+        canopy=layer_structure.index_filled_canopy,
+        surface=layer_structure.index_surface_scalar,
+        atm=layer_structure.index_filled_atmosphere,
+        flux=layer_structure.index_flux_layers,
+        soil=layer_structure.index_all_soil,
+        topsoil=layer_structure.index_topsoil_scalar,
+        layers=layer_structure.n_layers,
+        cell_id=data.grid.n_cells,
+    )
 
 
 def calculate_molar_density_air(

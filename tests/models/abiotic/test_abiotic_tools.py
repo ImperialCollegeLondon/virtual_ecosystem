@@ -1,8 +1,42 @@
 """Test abiotic_tools.py."""
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 from xarray import DataArray
+
+
+def test_build_indices_returns_expected_namespace(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test that _build_indices correctly maps attributes."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import build_indices
+
+    layer_structure = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
+
+    idx = build_indices(data=data, layer_structure=layer_structure)
+
+    # Check expected keys exist
+    assert isinstance(idx, SimpleNamespace)
+
+    def assert_equal(a, b):
+        if isinstance(a, np.ndarray):
+            np.testing.assert_array_equal(a, b)
+        else:
+            assert a == b
+
+    assert_equal(idx.above, layer_structure.index_above)
+    assert_equal(idx.canopy, layer_structure.index_filled_canopy)
+    assert_equal(idx.surface, layer_structure.index_surface_scalar)
+    assert_equal(idx.atm, layer_structure.index_filled_atmosphere)
+    assert_equal(idx.flux, layer_structure.index_flux_layers)
+    assert_equal(idx.soil, layer_structure.index_all_soil)
+    assert_equal(idx.topsoil, layer_structure.index_topsoil_scalar)
+    assert_equal(idx.layers, layer_structure.n_layers)
+    assert_equal(idx.cell_id, data.grid.n_cells)
 
 
 def test_calculate_molar_density_air(
