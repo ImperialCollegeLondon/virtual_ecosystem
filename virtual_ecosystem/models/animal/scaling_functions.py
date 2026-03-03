@@ -367,7 +367,7 @@ def theta_opt_i(
     Args:
         theta_opt_min_f: The minimum optimal prey-predator body mass ratio.
         theta_opt_f: The mean optimal prey-predator body mass ratio, from which actual
-          cohort optima are drawn.
+            cohort optima are drawn.
         sigma_opt_f: The standard deviation of optimal predator-prey mass ratios among
           cohorts.
 
