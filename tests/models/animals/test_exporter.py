@@ -553,8 +553,8 @@ class TestAnimalCohortDataExporter:
         fg.diet = "foliage"
         fg.reproductive_environment = "terrestrial"
 
-        mass_cnp = mocker.Mock(carbon=1.0, nitrogen=2.0, phosphorus=3.0)
-        repro_cnp = mocker.Mock(carbon=0.1, nitrogen=0.2, phosphorus=0.3)
+        mass_cnp = mocker.Mock(C=1.0, N=2.0, P=3.0)
+        repro_cnp = mocker.Mock(C=0.1, N=0.2, P=0.3)
 
         cohort = mocker.Mock()
         cohort.id = "abc"
@@ -603,8 +603,8 @@ class TestAnimalCohortDataExporter:
         cohort.territory = [1, 2]
 
         cohort.trophic_record = {
-            ("cohort", "prey-1"): {"carbon": 1.0, "nitrogen": 2.0, "phosphorus": 3.0},
-            ("carcass_pool", "60"): {"carbon": 4.0, "nitrogen": 5.0, "phosphorus": 6.0},
+            ("cohort", "prey-1"): {"C": 1.0, "N": 2.0, "P": 3.0},
+            ("carcass_pool", "60"): {"C": 4.0, "N": 5.0, "P": 6.0},
         }
         territory_by_id = {"prey-1": [9]}
 
@@ -624,13 +624,13 @@ class TestAnimalCohortDataExporter:
         assert cohort_row["consumer_cohort_id"] == "pred"
         assert cohort_row["prey_territory"] == [9]
         assert cohort_row["resource_cell_id"] is None
-        assert cohort_row["carbon"] == 1.0
+        assert cohort_row["C"] == 1.0
 
         pool_row = next(r for r in rows if r["resource_kind"] == "carcass_pool")
         assert pool_row["resource_id"] == "60"
         assert pool_row["resource_cell_id"] == 60
         assert pool_row["prey_territory"] is None
-        assert pool_row["phosphorus"] == 6.0
+        assert pool_row["P"] == 6.0
 
     def test_dump_cohorts_writes_file_and_flips_cohort_state(self, tmp_path, mocker):
         """Test _dump_cohorts writes cohort CSV and flips cohort write state.
@@ -656,10 +656,8 @@ class TestAnimalCohortDataExporter:
         cohort.functional_group = mocker.Mock(
             name="X", development_type="d", diet="e", reproductive_environment="r"
         )
-        cohort.mass_cnp = mocker.Mock(carbon=1.0, nitrogen=1.0, phosphorus=1.0)
-        cohort.reproductive_mass_cnp = mocker.Mock(
-            carbon=0.0, nitrogen=0.0, phosphorus=0.0
-        )
+        cohort.mass_cnp = mocker.Mock(C=1.0, N=1.0, P=1.0)
+        cohort.reproductive_mass_cnp = mocker.Mock(C=0.0, N=0.0, P=0.0)
         cohort.age = 0
         cohort.individuals = 1
         cohort.is_alive = True
@@ -713,9 +711,7 @@ class TestAnimalCohortDataExporter:
         cohort = mocker.Mock()
         cohort.id = "c1"
         cohort.territory = [10]
-        cohort.trophic_record = {
-            ("carcass_pool", "60"): {"carbon": 1.0, "nitrogen": 2.0, "phosphorus": 3.0}
-        }
+        cohort.trophic_record = {("carcass_pool", "60"): {"C": 1.0, "N": 2.0, "P": 3.0}}
 
         assert exporter._trophic_output_mode == "w"
         assert exporter._write_trophic_header is True
@@ -739,9 +735,9 @@ class TestAnimalCohortDataExporter:
             "resource_kind",
             "resource_id",
             "resource_cell_id",
-            "carbon",
-            "nitrogen",
-            "phosphorus",
+            "C",
+            "N",
+            "P",
         }
 
         assert exporter._trophic_output_mode == "a"

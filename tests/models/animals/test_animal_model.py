@@ -89,6 +89,14 @@ class TestAnimalModel:
                         DEBUG,
                         "animal model: required var 'fungal_fruiting_bodies' checked",
                     ),
+                    (
+                        INFO,
+                        "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
+                    ),
                     (INFO, "Adding data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
                     (INFO, "Updating animal model"),
@@ -476,8 +484,8 @@ class TestAnimalModel:
                     expected_p = expected_carbon / c_p_ratio.values[cell_id]
 
                     assert np.isclose(pool.mass_current, expected_carbon)
-                    assert np.isclose(pool.mass_cnp.nitrogen, expected_n)
-                    assert np.isclose(pool.mass_cnp.phosphorus, expected_p)
+                    assert np.isclose(pool.mass_cnp.N, expected_n)
+                    assert np.isclose(pool.mass_cnp.P, expected_p)
 
     def test_populate_soil_pools(self, animal_model_instance):
         """Test that populating of the soil resource pools works as expected."""
@@ -508,10 +516,10 @@ class TestAnimalModel:
                     pool.mass_current, expected_carbon[pool_name][cell_id]
                 )
                 assert np.isclose(
-                    pool.mass_cnp.nitrogen, expected_nitrogen[pool_name][cell_id]
+                    pool.mass_cnp.N, expected_nitrogen[pool_name][cell_id]
                 )
                 assert np.isclose(
-                    pool.mass_cnp.phosphorus,
+                    pool.mass_cnp.P,
                     expected_phosphorus[pool_name][cell_id],
                 )
 
@@ -526,8 +534,8 @@ class TestAnimalModel:
 
         for cell_id, pool in fungal_fruiting_bodies.items():
             assert np.isclose(pool.mass_current, expected_carbon[cell_id])
-            assert np.isclose(pool.mass_cnp.nitrogen, expected_nitrogen[cell_id])
-            assert np.isclose(pool.mass_cnp.phosphorus, expected_phosphorus[cell_id])
+            assert np.isclose(pool.mass_cnp.N, expected_nitrogen[cell_id])
+            assert np.isclose(pool.mass_cnp.P, expected_phosphorus[cell_id])
 
     def test_populate_soil_pools_negative(self, animal_model_instance):
         """Test that trying to populate a negative soil pool causes an error."""
@@ -799,11 +807,11 @@ class TestAnimalModel:
             for cell_id in model.fungal_fruiting_bodies
         ]
         actual_new_nitrogen_mass = [
-            model.fungal_fruiting_bodies[cell_id].mass_cnp["nitrogen"]
+            model.fungal_fruiting_bodies[cell_id].mass_cnp["N"]
             for cell_id in model.fungal_fruiting_bodies
         ]
         actual_new_phosphorus_mass = [
-            model.fungal_fruiting_bodies[cell_id].mass_cnp["phosphorus"]
+            model.fungal_fruiting_bodies[cell_id].mass_cnp["P"]
             for cell_id in model.fungal_fruiting_bodies
         ]
 
@@ -1362,20 +1370,20 @@ class TestAnimalModel:
         # Set up mock cohort with dynamic mass and age values
         cohort = herbivore_cohort_instance
         cohort.age = age
-        cohort.mass_cnp.carbon = (
+        cohort.mass_cnp.C = (
             cohort.functional_group.adult_mass
             * mass_ratio
-            * cohort.cnp_proportions["carbon"]
+            * cohort.cnp_proportions["C"]
         )
-        cohort.mass_cnp.nitrogen = (
+        cohort.mass_cnp.N = (
             cohort.functional_group.adult_mass
             * mass_ratio
-            * cohort.cnp_proportions["nitrogen"]
+            * cohort.cnp_proportions["N"]
         )
-        cohort.mass_cnp.phosphorus = (
+        cohort.mass_cnp.P = (
             cohort.functional_group.adult_mass
             * mass_ratio
-            * cohort.cnp_proportions["phosphorus"]
+            * cohort.cnp_proportions["P"]
         )
 
         cohort_id = cohort.id
@@ -1550,9 +1558,9 @@ class TestAnimalModel:
 
         # Set return values for helpers
         mock_calculate_mass.return_value = {
-            "carbon": 1.0,
-            "nitrogen": 0.1,
-            "phosphorus": 0.05,
+            "C": 1.0,
+            "N": 0.1,
+            "P": 0.05,
         }
         mock_calculate_count.return_value = offspring_count
 
@@ -1581,15 +1589,15 @@ class TestAnimalModel:
         [
             # Case 1: No semelparous loss (iteroparous species)
             (
-                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
-                {"carbon": 0.5, "nitrogen": 0.1, "phosphorus": 0.05},
-                {"carbon": 0.5, "nitrogen": 0.1, "phosphorus": 0.05},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                {"C": 0.5, "N": 0.1, "P": 0.05},
+                {"C": 0.5, "N": 0.1, "P": 0.05},
             ),
             # Case 2: Semelparous species with mass loss contribution
             (
-                {"carbon": 0.2, "nitrogen": 0.05, "phosphorus": 0.01},
-                {"carbon": 0.5, "nitrogen": 0.1, "phosphorus": 0.05},
-                {"carbon": 0.7, "nitrogen": 0.15, "phosphorus": 0.06},
+                {"C": 0.2, "N": 0.05, "P": 0.01},
+                {"C": 0.5, "N": 0.1, "P": 0.05},
+                {"C": 0.7, "N": 0.15, "P": 0.06},
             ),
         ],
     )
@@ -1623,48 +1631,48 @@ class TestAnimalModel:
         )
 
         # Check result using pytest.approx for floats
-        assert result["carbon"] == pytest.approx(expected_total_mass["carbon"])
-        assert result["nitrogen"] == pytest.approx(expected_total_mass["nitrogen"])
-        assert result["phosphorus"] == pytest.approx(expected_total_mass["phosphorus"])
+        assert result["C"] == pytest.approx(expected_total_mass["C"])
+        assert result["N"] == pytest.approx(expected_total_mass["N"])
+        assert result["P"] == pytest.approx(expected_total_mass["P"])
 
     @pytest.mark.parametrize(
         "birth_mass_cnp, reproductive_mass, individuals, expected_offspring",
         [
             # Case 1: Exactly 1 offspring per parent
             (
-                {"carbon": 0.5, "nitrogen": 0.1, "phosphorus": 0.05},
-                {"carbon": 0.5, "nitrogen": 0.1, "phosphorus": 0.05},
+                {"C": 0.5, "N": 0.1, "P": 0.05},
+                {"C": 0.5, "N": 0.1, "P": 0.05},
                 1,
                 1,
             ),
             # Case 2: Exactly 2 offspring per parent
             (
-                {"carbon": 0.5, "nitrogen": 0.1, "phosphorus": 0.05},
-                {"carbon": 1.0, "nitrogen": 0.2, "phosphorus": 0.1},
+                {"C": 0.5, "N": 0.1, "P": 0.05},
+                {"C": 1.0, "N": 0.2, "P": 0.1},
                 1,
                 2,
             ),
             # Case 3: Not enough for any offspring
             (
-                {"carbon": 0.5, "nitrogen": 0.1, "phosphorus": 0.05},
-                {"carbon": 0.2, "nitrogen": 0.05, "phosphorus": 0.02},
+                {"C": 0.5, "N": 0.1, "P": 0.05},
+                {"C": 0.2, "N": 0.05, "P": 0.02},
                 1,
                 0,
             ),
             # Case 4: Multiple parents, each able to make 2 offspring
             (
-                {"carbon": 0.5, "nitrogen": 0.1, "phosphorus": 0.05},
-                {"carbon": 1.0, "nitrogen": 0.2, "phosphorus": 0.1},
+                {"C": 0.5, "N": 0.1, "P": 0.05},
+                {"C": 1.0, "N": 0.2, "P": 0.1},
                 2,
                 4,
             ),
             # Limiting nutrient - phosphorus
             (
-                {"carbon": 0.5, "nitrogen": 0.1, "phosphorus": 0.05},
+                {"C": 0.5, "N": 0.1, "P": 0.05},
                 {
-                    "carbon": 10.0,
-                    "nitrogen": 10.0,
-                    "phosphorus": 0.1,
+                    "C": 10.0,
+                    "N": 10.0,
+                    "P": 0.1,
                 },  # 1 parent, P limits to 2 offspring
                 1,
                 2,
@@ -1690,9 +1698,9 @@ class TestAnimalModel:
             animal_model_instance,
             "calculate_birth_mass_cnp",
             return_value=(
-                birth_mass_cnp["carbon"],
-                birth_mass_cnp["nitrogen"],
-                birth_mass_cnp["phosphorus"],
+                birth_mass_cnp["C"],
+                birth_mass_cnp["N"],
+                birth_mass_cnp["P"],
             ),
         )
 
@@ -1711,37 +1719,37 @@ class TestAnimalModel:
             # Iteroparous parent - reproductive mass reduces but parent survives
             (
                 "iteroparous",
-                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2},
+                {"C": 2.0, "N": 0.5, "P": 0.2},
                 2,
                 (0.5, 0.1, 0.05),  # Per offspring birth mass C, N, P
-                {"carbon": 1.0, "nitrogen": 0.3, "phosphorus": 0.1},
+                {"C": 1.0, "N": 0.3, "P": 0.1},
                 False,
             ),
             # Semelparous parent - reproductive mass reduces and parent dies
             (
                 "semelparous",
-                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2},
+                {"C": 2.0, "N": 0.5, "P": 0.2},
                 2,
                 (0.5, 0.1, 0.05),
-                {"carbon": 1.0, "nitrogen": 0.3, "phosphorus": 0.1},
+                {"C": 1.0, "N": 0.3, "P": 0.1},
                 True,
             ),
             # More offspring than available reproductive mass - cap at available mass
             (
                 "iteroparous",
-                {"carbon": 0.5, "nitrogen": 0.2, "phosphorus": 0.1},
+                {"C": 0.5, "N": 0.2, "P": 0.1},
                 5,
                 (0.5, 0.1, 0.05),
-                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
                 False,
             ),
             # No offspring at all - nothing should change
             (
                 "iteroparous",
-                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2},
+                {"C": 2.0, "N": 0.5, "P": 0.2},
                 0,
                 (0.5, 0.1, 0.05),  # Doesn't matter since 0 offspring
-                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2},
+                {"C": 2.0, "N": 0.5, "P": 0.2},
                 False,
             ),
         ],
@@ -1785,16 +1793,14 @@ class TestAnimalModel:
         )
 
         # Check that the reproductive mass was correctly updated (with float tolerance)
-        assert herbivore_cohort_instance.reproductive_mass_cnp.carbon == pytest.approx(
-            expected_remaining_mass["carbon"]
+        assert herbivore_cohort_instance.reproductive_mass_cnp.C == pytest.approx(
+            expected_remaining_mass["C"]
         )
-        assert (
-            herbivore_cohort_instance.reproductive_mass_cnp.nitrogen
-            == pytest.approx(expected_remaining_mass["nitrogen"])
+        assert herbivore_cohort_instance.reproductive_mass_cnp.N == pytest.approx(
+            expected_remaining_mass["N"]
         )
-        assert (
-            herbivore_cohort_instance.reproductive_mass_cnp.phosphorus
-            == pytest.approx(expected_remaining_mass["phosphorus"])
+        assert herbivore_cohort_instance.reproductive_mass_cnp.P == pytest.approx(
+            expected_remaining_mass["P"]
         )
 
         # Check if semelparous death was correctly triggered or skipped
@@ -1810,12 +1816,10 @@ class TestAnimalModel:
         from virtual_ecosystem.models.animal.cnp import CNP
 
         # Set initial CNP mass (arbitrary non-zero starting mass)
-        herbivore_cohort_instance.mass_cnp = CNP(
-            carbon=5.0, nitrogen=1.0, phosphorus=0.5
-        )
+        herbivore_cohort_instance.mass_cnp = CNP(C=5.0, N=1.0, P=0.5)
 
         # Mock the loss from calculate_semelparous_mass_loss
-        semelparous_loss = {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2}
+        semelparous_loss = {"C": 2.0, "N": 0.5, "P": 0.2}
         mocker.patch.object(
             animal_model_instance,
             "calculate_semelparous_mass_loss",
@@ -1831,9 +1835,9 @@ class TestAnimalModel:
         animal_model_instance.handle_semelparous_parent_death(herbivore_cohort_instance)
 
         # Check mass was reduced correctly
-        assert herbivore_cohort_instance.mass_cnp.carbon == pytest.approx(3.0)
-        assert herbivore_cohort_instance.mass_cnp.nitrogen == pytest.approx(0.5)
-        assert herbivore_cohort_instance.mass_cnp.phosphorus == pytest.approx(0.3)
+        assert herbivore_cohort_instance.mass_cnp.C == pytest.approx(3.0)
+        assert herbivore_cohort_instance.mass_cnp.N == pytest.approx(0.5)
+        assert herbivore_cohort_instance.mass_cnp.P == pytest.approx(0.3)
 
         # Check parent marked as dead
         assert herbivore_cohort_instance.is_alive is False
@@ -1847,14 +1851,14 @@ class TestAnimalModel:
             # Case 1: Semelparous species with 50% loss applied
             (
                 "semelparous",
-                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
-                {"carbon": 5.0, "nitrogen": 1.0, "phosphorus": 0.5},
+                {"C": 10.0, "N": 2.0, "P": 1.0},
+                {"C": 5.0, "N": 1.0, "P": 0.5},
             ),
             # Case 2: Iteroparous species (no loss applied)
             (
                 "iteroparous",
-                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
-                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                {"C": 10.0, "N": 2.0, "P": 1.0},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
             ),
         ],
     )
@@ -1879,9 +1883,9 @@ class TestAnimalModel:
         )
 
         # Check result matches expected loss (with float tolerance)
-        assert result["carbon"] == pytest.approx(expected_loss["carbon"])
-        assert result["nitrogen"] == pytest.approx(expected_loss["nitrogen"])
-        assert result["phosphorus"] == pytest.approx(expected_loss["phosphorus"])
+        assert result["C"] == pytest.approx(expected_loss["C"])
+        assert result["N"] == pytest.approx(expected_loss["N"])
+        assert result["P"] == pytest.approx(expected_loss["P"])
 
     @pytest.mark.parametrize(
         "birth_mass, cnp_proportions, expected_birth_cnp",
@@ -1889,19 +1893,19 @@ class TestAnimalModel:
             # Standard balanced case
             (
                 1.0,
-                {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
+                {"C": 0.5, "N": 0.3, "P": 0.2},
                 (0.5, 0.3, 0.2),
             ),
             # Larger birth mass
             (
                 10.0,
-                {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
+                {"C": 0.5, "N": 0.3, "P": 0.2},
                 (5.0, 3.0, 2.0),
             ),
             # Zero birth mass (should return all zeros)
             (
                 0.0,
-                {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
+                {"C": 0.5, "N": 0.3, "P": 0.2},
                 (0.0, 0.0, 0.0),
             ),
         ],
@@ -2048,6 +2052,8 @@ class TestAnimalModel:
         mocker,
     ):
         """Test that forage_cohort is called correctly."""
+        from numpy import timedelta64
+
         from virtual_ecosystem.models.animal.animal_traits import DietType
 
         # Mock the methods for herbivore and predator cohorts using the mocker fixture
@@ -2059,7 +2065,7 @@ class TestAnimalModel:
         mock_get_excrement_pools_predator = mocker.Mock(
             return_value=["excrement_pools_predator"]
         )
-        mock_get_plant_resources = mocker.Mock(return_value=["plant_resources"])
+        mock_get_array_resources = mocker.Mock(return_value=["array_resources"])
         mock_get_prey = mocker.Mock(return_value=["prey"])
 
         # Set up herbivore cohort
@@ -2067,11 +2073,9 @@ class TestAnimalModel:
             "foliage_fruit"
         )
         mocker.patch.object(
-            herbivore_cohort_instance, "get_plant_resources", mock_get_plant_resources
+            herbivore_cohort_instance, "get_array_resources", mock_get_array_resources
         )
-        mocker.patch.object(
-            herbivore_cohort_instance, "get_prey", mocker.Mock()
-        )  # Should not be called for herbivores
+        mocker.patch.object(herbivore_cohort_instance, "get_prey", mocker.Mock())
         mocker.patch.object(
             herbivore_cohort_instance,
             "get_excrement_pools",
@@ -2088,7 +2092,7 @@ class TestAnimalModel:
         predator_cohort_instance.functional_group.diet = DietType.parse("vertebrates")
         mocker.patch.object(
             predator_cohort_instance, "get_plant_resources", mocker.Mock()
-        )  # Should not be called for predators
+        )
         mocker.patch.object(predator_cohort_instance, "get_prey", mock_get_prey)
         mocker.patch.object(
             predator_cohort_instance,
@@ -2110,15 +2114,14 @@ class TestAnimalModel:
 
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
-        # Comment: make failures descriptive and short to read in pytest output.
-        assert hasattr(animal_model_instance, "plant_resources"), (
-            "plant_resources missing. "
+        # Guard updated to match new wiring
+        assert hasattr(animal_model_instance, "array_resource_pools"), (
+            "array_resource_pools missing. "
             f"_setup defined at: {inspect.getsourcefile(AnimalModel._setup)}:"
             f"{inspect.getsourcelines(AnimalModel._setup)[1]} | "
             f"attrs={sorted(vars(animal_model_instance))}"
         )
 
-        # Optional: verify other _setup outputs exist; helps pinpoint where it failed.
         for name in (
             "communities",
             "excrement_pools",
@@ -2129,15 +2132,16 @@ class TestAnimalModel:
             assert hasattr(animal_model_instance, name), f"Missing {name}"
 
         # Run the forage_community method
-        animal_model_instance.forage_community(dt=30)
+        dt = timedelta64(30, "D")
+        animal_model_instance.forage_community(dt=dt)
 
-        # Verify that herbivores forage plant resources and not animal prey
-        mock_get_plant_resources.assert_called_once_with(
-            animal_model_instance.plant_resources
+        # Herbivore: uses array resources, not prey
+        mock_get_array_resources.assert_called_once_with(
+            animal_model_instance.array_resource_pools
         )
         herbivore_cohort_instance.get_prey.assert_not_called()
         mock_forage_herbivore.assert_called_once_with(
-            plant_list=["plant_resources"],
+            plant_list=["array_resources"],
             animal_list=[],
             fungal_fruit_list=[],
             soil_fungi_list=[],
@@ -2149,10 +2153,10 @@ class TestAnimalModel:
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
-            dt=30,
+            dt=dt,
         )
 
-        # Verify that predators forage prey and not plant resources
+        # Predator: uses prey, not plant resources
         expected_prey_flags = predator_cohort_instance.functional_group.diet & (
             DietType.BLOOD
             | DietType.INVERTEBRATES
@@ -2177,7 +2181,7 @@ class TestAnimalModel:
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
-            dt=30,
+            dt=dt,
         )
 
     def test_metabolize_community(
