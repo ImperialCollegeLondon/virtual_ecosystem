@@ -21,7 +21,7 @@ amount of the setup process will be shared. The four types of models are as foll
   and `hydrology`)
 * The animal model
 * The plants model
-* The decay models (`litter` and `soil`)
+* The [decay models](./decay/overview.md) (`litter` and `soil`)
 
 There's still a large amount of loose content that needs to be integrated with the above
 structure. It consists of:
