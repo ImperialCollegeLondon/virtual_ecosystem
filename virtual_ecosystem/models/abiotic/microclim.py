@@ -1097,3 +1097,4 @@ def run_microclimate(
 # check that hourly values are recorded
 # make sure assembly works
 # check variable names
+# fix temperature dimension issue with aero resistance
