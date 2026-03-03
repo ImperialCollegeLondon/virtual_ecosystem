@@ -75,6 +75,7 @@ subtrees:
                 entries:
                   - file: using_the_ve/model_details/decay/litter_config
                   - file: using_the_ve/model_details/decay/soil_config
+                  - file: using_the_ve/model_details/decay/default_microbial_params
               - file: using_the_ve/model_details/pft_configuration
               - file: using_the_ve/model_details/science_model_configuration
 

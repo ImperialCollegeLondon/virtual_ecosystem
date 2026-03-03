@@ -25,7 +25,7 @@ mystnb:
   render_markdown_format: myst
 ---
 
-# Litter model
+# Litter model configuration
 
 [See also the [configuration details](../../../api/models/litter/model_config.md)]
 

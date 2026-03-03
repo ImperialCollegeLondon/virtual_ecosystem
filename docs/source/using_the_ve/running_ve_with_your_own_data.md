@@ -323,6 +323,11 @@ data will have specific model configuration settings. For example:
 
 * The animal model also requires a defined initial cohort structure.
 
+* The soil model requires [parameter estimates for the microbial functional groups and
+  enzyme classes](./model_details/decay/default_microbial_params.md) that it uses.
+  However, they are added as part of the configuration (in a similar manner to model
+  constants) rather than in a data file.
+
 There is no generic system for reading in CSV data, instead a path to each file needs to
 be provided as part of the configuration of the relevant model, e.g.
 

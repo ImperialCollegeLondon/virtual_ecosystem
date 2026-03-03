@@ -22,5 +22,15 @@ will need to include **both** models.
 
 ## Preparing the input data for the decay models
 
-TODO - DECIDE WHAT I'M DOING ABOUT THE MICROBIAL CONSTANTS
-TODO - WHEN I'VE DONE THIS I'LL NEED TO ADD LINKS AND TEXT HERE
+Input data preparation for the `litter` model is (relatively) straightforward as it only
+requires array data (the specific variables required can be found in the [variables
+table](../../variables/variables.md)).
+
+The `soil` model also requires a large number of array variables (again consult the
+[variables table](../../variables/variables.md)). However, in this case you also need to
+provide parametrisation for the [soil microbial
+groups](./soil_config.md#soil-microbial-groups) included in the model, as well as the
+[enzymes they produce](./soil_config.md#soil-enzyme-classes). These should be provided
+in a configuration (`.toml`) file. [We provide baseline estimates for these parameters,
+along with comments describing the source of each
+estimate.](./default_microbial_params.md)

@@ -25,7 +25,7 @@ mystnb:
   render_markdown_format: myst
 ---
 
-# Soil model
+# Soil model configuration
 
 [See also the [configuration details](../../../api/models/soil/model_config.md)]
 
