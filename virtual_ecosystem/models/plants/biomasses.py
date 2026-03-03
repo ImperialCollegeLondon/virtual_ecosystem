@@ -9,6 +9,50 @@ as a comparison in the case of any nutrient deficit. Senesced leaves also have f
 and CP ratios, which are used for leaf turnover.
 
 In the future, the ideal CN and CP ratios will be PFT traits.
+
+FoliageTissue:
+    # Has different ratios in turnover mass
+
+    biomass: foliage_mass
+    turnover_biomass: foliage_turnover
+    growth_biomass: delta_foliage_mass
+
+    ideal_ratio: foliage_c_{elem.lower()}_ratio
+    turnover_ratio: leaf_turnover_c_{elem.lower()}_ratio
+
+    TODO - check to make sure turnover foliage doesn't get relatively _enriched_ if the
+           plant is severely nutrient depleted.
+
+ReproductiveTissue:
+    # Same ratios; has turnover
+
+    biomass: reproductive_tissue_mass
+    turnover_biomass: reproductive_tissue_turnover
+    growth_biomass: foliage_tissue * p_foliage_for_reproductive_tissue
+
+    ideal_ratio: not defined - identical to turnover ratio
+    turnover_ratio: plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio
+
+RootTissue:
+    # Same ratios; has turnover
+
+    biomass: fine_root_mass
+    turnover_biomass: fine_root_turnover
+    growth_biomass: delta_foliage_mass * zeta * sla
+
+    ideal_ratio: not defined - identical to turnover ratio
+    turnover_ratio: root_turnover_c_{elem.lower()}_ratio
+
+WoodTissue
+    # No turnover at present, so same ratios doesn't really make sense, but it does.
+
+    biomass: stem_mass
+    turnover_biomass: not defined, no stem turnover
+    growth_biomass: delta_stem_mass
+
+    ideal_ratio: deadwood_c_{elem.lower()}_ratio
+    turnover_ratio: not defined (because there is no turnover)
+
 """  # noqa: D205
 
 from __future__ import annotations
