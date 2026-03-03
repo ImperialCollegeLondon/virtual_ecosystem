@@ -49,7 +49,6 @@ def fixture_stem_allocation():
 
 ELEMENTS = ("N", "P")
 
-
 # @pytest.fixture
 # def stem_stoichiometry():
 #     """Helper function to create a StemStoichiometry instance with all tissues."""
@@ -125,15 +124,145 @@ def test_Tissue_from_pft_default_ratios(
 #        switch/case at the end, but would remove a lot of overlap.
 
 
+# @pytest.mark.parametrize(
+#     argnames="tissue_name,mass_attribute",
+#     argvalues=(
+#         ("FoliageTissue", "foliage_mass"),
+#         # ("RootTissue", "fine_root_mass"),
+#         # ("WoodTissue", "stem_mass"),
+#         # ("ReproductiveTissue", "reproductive_tissue_mass"),
+#     ),
+# )
+# def test_Tissue_methods(
+#     fixture_community, tissue_name, mass_attribute
+# ):  # fixture_community, fixture_stem_allocation):
+#     """Test the FoliageTissue class functions."""
+
+#     import virtual_ecosystem.models.plants.biomasses as biomasses
+#     from virtual_ecosystem.models.plants.biomasses import Element
+
+#     # Get the test-specific tissue class
+#     TissueClass = getattr(biomasses, tissue_name)
+
+#     initial_element_masses = np.array([10.0, 20.0])
+#     initial_carbon_mass = np.array([50.0, 80.0])
+#     growth_carbon_mass = np.array([20.0, 10.0])
+#     turnover_carbon_mass = np.array([30.0, 15.0])
+
+#     ideal_ratio = np.array([5.0, 6.0])
+#     turnover_ratio = np.array([10.0, 12.0])
+
+#     tissue = TissueClass(
+#         community=fixture_community,
+#         carbon_mass=initial_carbon_mass.copy(),
+#         element_masses={
+#             "N": Element(
+#                 name="n",
+#                 ideal_ratio=ideal_ratio,
+#                 actual_element_mass=initial_element_masses.copy(),
+#                 turnover_ratio=turnover_ratio,
+#             ),
+#             "P": Element(
+#                 name="p",
+#                 ideal_ratio=ideal_ratio,
+#                 actual_element_mass=initial_element_masses.copy(),
+#                 turnover_ratio=turnover_ratio,
+#             ),
+#         },
+#     )
+
+#     # carbon mass = foliage mass
+#     assert np.allclose(tissue.carbon_mass, initial_carbon_mass)
+
+#     # deficit = element - (C / CN)
+#     expected_deficit = {
+#         ky: tissue.carbon_mass / elem.ideal_ratio - elem.actual_element_mass
+#         for ky, elem in tissue.element_masses.items()
+#     }
+
+#     calculated_deficits = tissue.deficit
+#     assert calculated_deficits.keys() == expected_deficit.keys()
+#     for ky in calculated_deficits:
+#         assert np.allclose(calculated_deficits[ky], expected_deficit[ky])
+
+#     # Cx ratio = C / element
+#     expected_cx = {
+#         ky: tissue.carbon_mass / elem.actual_element_mass
+#         for ky, elem in tissue.element_masses.items()
+#     }
+
+#     calculated_cx = tissue.Cx_ratio
+#     assert calculated_cx.keys() == expected_cx.keys()
+#     for ky in calculated_cx:
+#         assert np.allclose(tissue.Cx_ratio[ky], expected_cx[ky])
+
+#     # growth = ΔC / CN
+#     expected_growth = {
+#         ky: growth_carbon_mass / elem.ideal_ratio
+#         for ky, elem in tissue.element_masses.items()
+#     }
+
+#     calculated_growth = tissue.elements_needed_for_growth(fixture_stem_allocation)
+#     assert calculated_growth.keys() == expected_growth.keys()
+#     for ky in calculated_growth:
+#         assert np.allclose(calculated_growth[ky], expected_growth[ky])
+
+#     # turnover = turnover * (1 / turnover Cx)
+#     expected_turnover = {
+#         ky: turnover_carbon_mass / elem.turnover_ratio
+#         for ky, elem in tissue.element_masses.items()
+#     }
+
+#     calculated_turnover = tissue.tissue_turnover(fixture_stem_allocation)
+#     assert calculated_turnover.keys() == expected_turnover.keys()
+#     for ky in calculated_turnover:
+#         assert np.allclose(calculated_turnover[ky], expected_turnover[ky])
+
+#     # Extract turnover
+#     extracted_turnover = tissue.extract_turnover(fixture_stem_allocation)
+
+#     # Check tissue masses have been decreased
+#     assert np.allclose(tissue.carbon_mass, initial_carbon_mass - turnover_carbon_mass)
+
+#     for ky in calculated_turnover:
+#         assert np.allclose(
+#             tissue.element_masses[ky].actual_element_mass,
+#             initial_element_masses - expected_turnover[ky],
+#         )
+
+#     # Check returned elemental masses
+#     expected_turnover["C"] = turnover_carbon_mass
+#     assert expected_turnover.keys() == extracted_turnover.keys()
+#     for ky in extracted_turnover:
+#         assert np.allclose(
+#             expected_turnover[ky],
+#             extracted_turnover[ky],
+#         )
+
+#     # Foliage specific checks
+#     # - the turnover Cx ratios match the expected turnover ratios
+#     for ky, values in calculated_turnover.items():
+#         assert np.allclose(
+#             fixture_stem_allocation.foliage_turnover / values,
+#             tissue.element_masses[ky].turnover_ratio,
+#         )
+
+#     # - The remaining tissue will be relatively enriched (smaller Cx ratios) compared
+#     #   to the pre-turnover Cx ratios.
+#     #   50/10, 80/20  --> 30/3, 15/1.25 + 20/7, 65/18.75
+#     for ky, values in tissue.Cx_ratio.items():
+#         assert np.all(np.less(values, calculated_cx[ky]))
+
+
 def test_FoliageTissue_functions(fixture_community, fixture_stem_allocation):
     """Test the FoliageTissue class functions."""
 
     from virtual_ecosystem.models.plants.biomasses import Element, FoliageTissue
 
     initial_element_masses = np.array([10.0, 20.0])
-    initial_foliage_mass = np.array([50.0, 80.0])
-    delta_foliage_mass = np.array([20.0, 10.0])
-    foliage_turnover = np.array([30.0, 15.0])
+    # initial_foliage_mass = np.array([50.0, 80.0])
+    # delta_foliage_mass = np.array([20.0, 10.0])
+    # foliage_turnover = np.array([30.0, 15.0])
     ideal_ratio = np.array([5.0, 6.0])
     turnover_ratio = np.array([10.0, 12.0])
 
@@ -195,6 +324,8 @@ def test_FoliageTissue_functions(fixture_community, fixture_stem_allocation):
         assert np.allclose(calculated_growth[ky], expected_growth[ky])
 
     # turnover = turnover * (1 / turnover Cx)
+    # NOTE - TISSUE SPECIFIC DIFFERENCE - turnover tissue uses turnover Cx not
+    #        current Cx
     expected_turnover = {
         ky: fixture_stem_allocation.foliage_turnover / elem.turnover_ratio
         for ky, elem in tissue.element_masses.items()
@@ -230,7 +361,7 @@ def test_FoliageTissue_functions(fixture_community, fixture_stem_allocation):
             extracted_turnover[ky],
         )
 
-    # Foliage specific
+    # Foliage specific checks
     # - the turnover Cx ratios match the expected turnover ratios
     for ky, values in calculated_turnover.items():
         assert np.allclose(
@@ -250,139 +381,338 @@ def test_RootTissue_functions(fixture_community, fixture_stem_allocation):
 
     from virtual_ecosystem.models.plants.biomasses import Element, RootTissue
 
-    initial_element_masses = np.array([5.0, 20.0])
+    initial_element_masses = np.array([10.0, 20.0])
+    # initial_foliage_mass = np.array([50.0, 80.0])
+    # delta_foliage_mass = np.array([20.0, 10.0])
+    # foliage_turnover = np.array([30.0, 15.0])
+    ideal_ratio = np.array([5.0, 6.0])
+    turnover_ratio = ideal_ratio
 
     tissue = RootTissue(
         community=fixture_community,
-        carbon_mass=fixture_community.stem_allometry.foliage_mass.copy(),
+        carbon_mass=fixture_community.stem_allometry.fine_root_mass.copy(),
         element_masses={
             "N": Element(
                 name="n",
-                ideal_ratio=np.array([5.0, 7.0]),
-                actual_element_mass=np.array([10.0, 25.0]),
-                turnover_ratio=np.array([10.0, 12.0]),
+                ideal_ratio=ideal_ratio,
+                actual_element_mass=initial_element_masses.copy(),
+                turnover_ratio=turnover_ratio,
             ),
             "P": Element(
                 name="p",
-                ideal_ratio=np.array([5.0, 7.0]),
-                actual_element_mass=np.array([10.0, 25.0]),
-                turnover_ratio=np.array([10.0, 12.0]),
+                ideal_ratio=ideal_ratio,
+                actual_element_mass=initial_element_masses.copy(),
+                turnover_ratio=turnover_ratio,
             ),
         },
     )
 
-    # carbon mass = fine_root_mass
-    expected_carbon = fixture_community.stem_allometry.fine_root_mass
-    assert np.allclose(tissue.carbon_mass, expected_carbon)
+    # carbon mass = fine root mass
+    assert np.allclose(
+        tissue.carbon_mass, fixture_community.stem_allometry.fine_root_mass
+    )
 
     # deficit = element - (C / CN)
-    expected_deficit = np.array(
-        [
-            (expected_carbon[0] / 5.0) - 10.0,
-            (expected_carbon[1] / 7.0) - 25.0,
-        ]
-    )
-    assert np.allclose(tissue.deficit, expected_deficit)
+    expected_deficit = {
+        ky: tissue.carbon_mass / elem.ideal_ratio - elem.actual_element_mass
+        for ky, elem in tissue.element_masses.items()
+    }
+
+    calculated_deficits = tissue.deficit
+    assert calculated_deficits.keys() == expected_deficit.keys()
+    for ky in calculated_deficits:
+        assert np.allclose(calculated_deficits[ky], expected_deficit[ky])
 
     # Cx ratio = C / element
-    expected_cx = expected_carbon / np.array([10.0, 25.0])
-    assert np.allclose(tissue.Cx_ratio, expected_cx)
+    expected_cx = {
+        ky: tissue.carbon_mass / elem.actual_element_mass
+        for ky, elem in tissue.element_masses.items()
+    }
 
-    # growth = Δ foliage * zeta * SLA / CN
-    expected_growth = np.array(
-        [
-            (20.0 * 0.1 * 2.0) / 5.0,
-            (10.0 * 0.1 * 2.0) / 7.0,
-        ]
+    calculated_cx = tissue.Cx_ratio
+    assert calculated_cx.keys() == expected_cx.keys()
+    for ky in calculated_cx:
+        assert np.allclose(tissue.Cx_ratio[ky], expected_cx[ky])
+
+    # growth = ΔC / CN
+    expected_growth = {
+        ky: (
+            fixture_stem_allocation.delta_foliage_mass
+            * fixture_community.stem_traits.zeta
+            * fixture_community.stem_traits.sla
+        )
+        / elem.ideal_ratio
+        for ky, elem in tissue.element_masses.items()
+    }
+
+    calculated_growth = tissue.elements_needed_for_growth(fixture_stem_allocation)
+    assert calculated_growth.keys() == expected_growth.keys()
+    for ky in calculated_growth:
+        assert np.allclose(calculated_growth[ky], expected_growth[ky])
+
+    # turnover = turnover * (1 / actual Cx ratio)
+    ### NOTE TISSUE SPECIFIC DIFFERENCE - turnover tissue just has the _current_ ratios
+    expected_turnover = {
+        ky: fixture_stem_allocation.fine_root_turnover / expected_cx[ky]
+        for ky, elem in tissue.element_masses.items()
+    }
+
+    calculated_turnover = tissue.tissue_turnover(fixture_stem_allocation)
+    assert calculated_turnover.keys() == expected_turnover.keys()
+    for ky in calculated_turnover:
+        assert np.allclose(calculated_turnover[ky], expected_turnover[ky])
+
+    # Extract turnover
+    extracted_turnover = tissue.extract_turnover(fixture_stem_allocation)
+
+    # Check tissue masses have been decreased
+    assert np.allclose(
+        tissue.carbon_mass,
+        fixture_community.stem_allometry.fine_root_mass
+        - fixture_stem_allocation.fine_root_turnover,
     )
-    assert np.allclose(tissue.element_needed_for_growth(DUMMY_ALLOC), expected_growth)
 
-    # turnover = turnover * (1 / Cx)
-    expected_turnover = np.array(
-        [
-            3.0 * (1 / expected_cx[0]),
-            1.5 * (1 / expected_cx[1]),
-        ]
+    for ky in calculated_turnover:
+        assert np.allclose(
+            tissue.element_masses[ky].actual_element_mass,
+            initial_element_masses - expected_turnover[ky],
+        )
+
+    # Check returned elemental masses
+    expected_turnover["C"] = fixture_stem_allocation.fine_root_turnover
+    assert expected_turnover.keys() == extracted_turnover.keys()
+    for ky in extracted_turnover:
+        assert np.allclose(
+            expected_turnover[ky],
+            extracted_turnover[ky],
+        )
+
+    # Root specific checks
+    # - Original Cx ratios maintained in remaining tissue after turnover.
+    new_cx_ratios = tissue.Cx_ratio
+    for ky, new_ratio in new_cx_ratios.items():
+        assert np.allclose(new_ratio, calculated_cx[ky])
+
+
+def test_ReproductiveTissue_functions(fixture_community, fixture_stem_allocation):
+    """Test the ReproductiveTissue class functions."""
+
+    from virtual_ecosystem.models.plants.biomasses import Element, ReproductiveTissue
+
+    initial_element_masses = np.array([10.0, 20.0])
+    # initial_foliage_mass = np.array([50.0, 80.0])
+    # delta_foliage_mass = np.array([20.0, 10.0])
+    # foliage_turnover = np.array([30.0, 15.0])
+    ideal_ratio = np.array([5.0, 6.0])
+    turnover_ratio = ideal_ratio
+
+    tissue = ReproductiveTissue(
+        community=fixture_community,
+        carbon_mass=fixture_community.stem_allometry.reproductive_tissue_mass.copy(),
+        element_masses={
+            "N": Element(
+                name="n",
+                ideal_ratio=ideal_ratio,
+                actual_element_mass=initial_element_masses.copy(),
+                turnover_ratio=turnover_ratio,
+            ),
+            "P": Element(
+                name="p",
+                ideal_ratio=ideal_ratio,
+                actual_element_mass=initial_element_masses.copy(),
+                turnover_ratio=turnover_ratio,
+            ),
+        },
     )
-    assert np.allclose(tissue.element_turnover(DUMMY_ALLOC), expected_turnover)
+
+    # carbon mass = reproductive tissuemass
+    assert np.allclose(
+        tissue.carbon_mass, fixture_community.stem_allometry.reproductive_tissue_mass
+    )
+
+    # deficit = element - (C / CN)
+    expected_deficit = {
+        ky: tissue.carbon_mass / elem.ideal_ratio - elem.actual_element_mass
+        for ky, elem in tissue.element_masses.items()
+    }
+
+    calculated_deficits = tissue.deficit
+    assert calculated_deficits.keys() == expected_deficit.keys()
+    for ky in calculated_deficits:
+        assert np.allclose(calculated_deficits[ky], expected_deficit[ky])
+
+    # Cx ratio = C / element
+    expected_cx = {
+        ky: tissue.carbon_mass / elem.actual_element_mass
+        for ky, elem in tissue.element_masses.items()
+    }
+
+    calculated_cx = tissue.Cx_ratio
+    assert calculated_cx.keys() == expected_cx.keys()
+    for ky in calculated_cx:
+        assert np.allclose(tissue.Cx_ratio[ky], expected_cx[ky])
+
+    # growth = ΔC / CN
+    expected_growth = {
+        ky: (
+            fixture_stem_allocation.delta_foliage_mass
+            * fixture_community.stem_traits.p_foliage_for_reproductive_tissue
+        )
+        / elem.ideal_ratio
+        for ky, elem in tissue.element_masses.items()
+    }
+
+    calculated_growth = tissue.elements_needed_for_growth(fixture_stem_allocation)
+    assert calculated_growth.keys() == expected_growth.keys()
+    for ky in calculated_growth:
+        assert np.allclose(calculated_growth[ky], expected_growth[ky])
+
+    # turnover = turnover * (1 / actual Cx ratio)
+    ### NOTE TISSUE SPECIFIC DIFFERENCE - turnover tissue just has the _current_ ratios
+    expected_turnover = {
+        ky: fixture_stem_allocation.reproductive_tissue_turnover / expected_cx[ky]
+        for ky, elem in tissue.element_masses.items()
+    }
+
+    calculated_turnover = tissue.tissue_turnover(fixture_stem_allocation)
+    assert calculated_turnover.keys() == expected_turnover.keys()
+    for ky in calculated_turnover:
+        assert np.allclose(calculated_turnover[ky], expected_turnover[ky])
+
+    # Extract turnover
+    extracted_turnover = tissue.extract_turnover(fixture_stem_allocation)
+
+    # Check tissue masses have been decreased
+    assert np.allclose(
+        tissue.carbon_mass,
+        fixture_community.stem_allometry.reproductive_tissue_mass
+        - fixture_stem_allocation.reproductive_tissue_turnover,
+    )
+
+    for ky in calculated_turnover:
+        assert np.allclose(
+            tissue.element_masses[ky].actual_element_mass,
+            initial_element_masses - expected_turnover[ky],
+        )
+
+    # Check returned elemental masses
+    expected_turnover["C"] = fixture_stem_allocation.reproductive_tissue_turnover
+    assert expected_turnover.keys() == extracted_turnover.keys()
+    for ky in extracted_turnover:
+        assert np.allclose(
+            expected_turnover[ky],
+            extracted_turnover[ky],
+        )
+
+    # Root specific checks
+    # - Original Cx ratios maintained in remaining tissue after turnover.
+    new_cx_ratios = tissue.Cx_ratio
+    for ky, new_ratio in new_cx_ratios.items():
+        assert np.allclose(new_ratio, calculated_cx[ky])
 
 
-def test_wood_tissue_functions():
+def test_WoodTissue_functions(fixture_community, fixture_stem_allocation):
     """Test the WoodTissue class functions."""
 
+    from virtual_ecosystem.models.plants.biomasses import Element, WoodTissue
+
+    initial_element_masses = np.array([10.0, 20.0])
+    # initial_foliage_mass = np.array([50.0, 80.0])
+    # delta_foliage_mass = np.array([20.0, 10.0])
+    # foliage_turnover = np.array([30.0, 15.0])
+    ideal_ratio = np.array([5.0, 6.0])
+    turnover_ratio = ideal_ratio
+
     tissue = WoodTissue(
-        community=DUMMY_COMMUNITY,
-        ideal_ratio=np.array([10.0, 8.0]),
-        actual_element_mass=np.array([5.0, 30.0]),
+        community=fixture_community,
+        carbon_mass=fixture_community.stem_allometry.stem_mass.copy(),
+        element_masses={
+            "N": Element(
+                name="n",
+                ideal_ratio=ideal_ratio,
+                actual_element_mass=initial_element_masses.copy(),
+                turnover_ratio=turnover_ratio,
+            ),
+            "P": Element(
+                name="p",
+                ideal_ratio=ideal_ratio,
+                actual_element_mass=initial_element_masses.copy(),
+                turnover_ratio=turnover_ratio,
+            ),
+        },
     )
 
     # carbon mass = stem mass
-    assert np.allclose(tissue.carbon_mass, [100.0, 150.0])
+    assert np.allclose(tissue.carbon_mass, fixture_community.stem_allometry.stem_mass)
 
     # deficit = element - (C / CN)
-    expected_deficit = np.array(
-        [
-            (100.0 / 10.0) - 5.0,
-            (150.0 / 8.0) - 30.0,
-        ]
-    )
-    assert np.allclose(tissue.deficit, expected_deficit)
+    expected_deficit = {
+        ky: tissue.carbon_mass / elem.ideal_ratio - elem.actual_element_mass
+        for ky, elem in tissue.element_masses.items()
+    }
 
-    # growth = Δ stem / CN
-    expected_growth = np.array(
-        [
-            10.0 / 10.0,
-            5.0 / 8.0,
-        ]
-    )
-    assert np.allclose(tissue.element_needed_for_growth(DUMMY_ALLOC), expected_growth)
-
-    # turnover = always 0
-    assert np.allclose(tissue.element_turnover(DUMMY_ALLOC), [0.0, 0.0])
-
-
-def test_reproductive_tissue_functions():
-    """Test the ReproductiveTissue class functions."""
-
-    tissue = ReproductiveTissue(
-        community=DUMMY_COMMUNITY,
-        ideal_ratio=np.array([4.0, 5.0]),
-        actual_element_mass=np.array([8.0, 12.0]),
-    )
-
-    # carbon mass = reproductive tissue mass
-    assert np.allclose(tissue.carbon_mass, [20.0, 40.0])
-
-    # deficit = element - (C / CN)
-    expected_deficit = np.array(
-        [
-            (20.0 / 4.0) - 8.0,
-            (40.0 / 5.0) - 12.0,
-        ]
-    )
-    assert np.allclose(tissue.deficit, expected_deficit)
+    calculated_deficits = tissue.deficit
+    assert calculated_deficits.keys() == expected_deficit.keys()
+    for ky in calculated_deficits:
+        assert np.allclose(calculated_deficits[ky], expected_deficit[ky])
 
     # Cx ratio = C / element
-    expected_cx = np.array([20.0 / 8.0, 40.0 / 12.0])
-    assert np.allclose(tissue.Cx_ratio, expected_cx)
+    expected_cx = {
+        ky: tissue.carbon_mass / elem.actual_element_mass
+        for ky, elem in tissue.element_masses.items()
+    }
 
-    # growth = Δ foliage * p_foliage_for_rep / CN
-    expected_growth = np.array(
-        [
-            (20.0 * 0.5) / 4.0,
-            (10.0 * 0.5) / 5.0,
-        ]
-    )
-    assert np.allclose(tissue.element_needed_for_growth(DUMMY_ALLOC), expected_growth)
+    calculated_cx = tissue.Cx_ratio
+    assert calculated_cx.keys() == expected_cx.keys()
+    for ky in calculated_cx:
+        assert np.allclose(tissue.Cx_ratio[ky], expected_cx[ky])
 
-    # turnover = turnover * (1 / Cx)
-    expected_turnover = np.array(
-        [
-            5.0 * (1 / expected_cx[0]),
-            2.0 * (1 / expected_cx[1]),
-        ]
+    # growth = ΔC / CN
+    expected_growth = {
+        ky: fixture_stem_allocation.delta_stem_mass / elem.ideal_ratio
+        for ky, elem in tissue.element_masses.items()
+    }
+
+    calculated_growth = tissue.elements_needed_for_growth(fixture_stem_allocation)
+    assert calculated_growth.keys() == expected_growth.keys()
+    for ky in calculated_growth:
+        assert np.allclose(calculated_growth[ky], expected_growth[ky])
+
+    # turnover = zero
+    ### NOTE TISSUE SPECIFIC DIFFERENCE - turnover tissue just has the _current_ ratios
+    expected_turnover = {
+        ky: np.zeros_like(expected_cx[ky]) for ky, elem in tissue.element_masses.items()
+    }
+
+    calculated_turnover = tissue.tissue_turnover(fixture_stem_allocation)
+    assert calculated_turnover.keys() == expected_turnover.keys()
+    for ky in calculated_turnover:
+        assert np.allclose(calculated_turnover[ky], expected_turnover[ky])
+
+    # Extract turnover
+    extracted_turnover = tissue.extract_turnover(fixture_stem_allocation)
+
+    # Check tissue masses has not been decreased
+    ### NOTE TISSUE SPECIFIC DIFFERENCE -
+    assert np.allclose(
+        tissue.carbon_mass,
+        fixture_community.stem_allometry.stem_mass,
     )
-    assert np.allclose(tissue.element_turnover(DUMMY_ALLOC), expected_turnover)
+
+    for ky in calculated_turnover:
+        assert np.allclose(
+            tissue.element_masses[ky].actual_element_mass,
+            initial_element_masses,
+        )
+
+    # Check returned elemental masses
+    expected_turnover["C"] = np.zeros_like(fixture_community.stem_allometry.stem_mass)
+    assert expected_turnover.keys() == extracted_turnover.keys()
+    for ky in extracted_turnover:
+        assert np.allclose(
+            expected_turnover[ky],
+            extracted_turnover[ky],
+        )
 
 
 # def test_total_element_mass_and_deficit(stem_stoichiometry):
@@ -410,7 +740,8 @@ def test_reproductive_tissue_functions():
 # def test_account_for_growth_updates_element_masses_and_surplus(
 #     stem_stoichiometry,
 # ):
-#     """Test that accounting for growth updates element masses and surplus correctly."""
+#     """Test that accounting for growth updates element masses and surplus
+#     correctly."""
 
 #     before = [t.actual_element_mass.copy() for t in stem_stoichiometry.tissues]
 #     stem_stoichiometry.account_for_growth(DUMMY_ALLOC)
@@ -441,7 +772,8 @@ def test_reproductive_tissue_functions():
 
 
 # def test_distribute_deficit(stem_stoichiometry):
-#     """Test the distribution of a negative element surplus (deficit) across tissues."""
+#     """Test the distribution of a negative element surplus (deficit) across
+#     tissues."""
 
 #     cohort = 0
 
@@ -543,7 +875,9 @@ def test_reproductive_tissue_functions():
 #         t.actual_element_mass[:] *= 0.1
 
 #     cohort = 1
-#     initial_deficits = np.array([t.deficit[cohort] for t in stem_stoichiometry.tissues])
+#     initial_deficits = np.array(
+#           [t.deficit[cohort] for t in stem_stoichiometry.tissues]
+#     )
 #     total_deficit = initial_deficits.sum()
 
 #     # give more than enough surplus to cover all deficits

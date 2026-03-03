@@ -53,6 +53,25 @@ WoodTissue
     ideal_ratio: deadwood_c_{elem.lower()}_ratio
     turnover_ratio: not defined (because there is no turnover)
 
+
+    Biomass
+    - __init__(carbon_mass, elements)
+    base methods
+        - deficit()
+        - get_elemental_masses()
+        - add_elemental_masses(masses)
+        - Cx_ratios()
+        - elements_needed_for_growth(growth_mass)
+        - tissue_turnover(turnover_mass)
+        - extract_turnover(turnover_mass)
+        - init_from_defaults(community, epft, with_elements)
+    abstract_methods
+        - get_ratios(element, community, constants, epft)
+        - get_carbon_mass(community)
+        - get_turnover_mass(allocation)
+        - get_growth_mass(allocation)
+
+
 """  # noqa: D205
 
 from __future__ import annotations
@@ -151,7 +170,7 @@ class TissueABC(ABC):
         except KeyError:
             raise ValueError("add_elemental_masses missing required element.")
         except ValueError:
-            raise ValueError("Error adding elements mass - incomptible shapes.")
+            raise ValueError("Error adding elements mass - incompatible shapes.")
 
     @property
     def Cx_ratio(self) -> dict[str, NDArray[np.floating]]:
@@ -190,9 +209,9 @@ class TissueABC(ABC):
         This method should return a dictionary of elemental masses from turnover and
         reduce the tissue instance by those masses.
 
-        TODO: this returns Carbon too - do we want to have te return value different.
-              Could return an array slice, for example, ready for insertion into an
-              array.
+        TODO: this returns Carbon too - do we want to have the return value in a
+              different format. Could return an array slice, for example, ready for
+              insertion into an array.
         """
 
     # @abstractmethod
@@ -341,7 +360,9 @@ class FoliageTissue(TissueABC):
     #     )
     #     self.ideal_ratio = np.append(
     #         self.ideal_ratio,
-    #         extra_pft_traits.traits[new_pft_name][f"foliage_c_{element.lower()}_ratio"],
+    #         extra_pft_traits.traits[new_pft_name][
+    #               f"foliage_c_{element.lower()}_ratio"
+    #         ],
     #     )
 
 
@@ -466,7 +487,8 @@ class ReproductiveTissue(TissueABC):
     #         stem_traits: The stem traits for the cohort.
     #     """
     #     self.actual_element_mass = np.append(
-    #         self.actual_element_mass, stem_allometry.reproductive_tissue_mass[0][cohort]
+    #         self.actual_element_mass,
+    #         stem_allometry.reproductive_tissue_mass[0][cohort],
     #     )
     #     self.ideal_ratio = np.append(
     #         self.ideal_ratio,
@@ -537,7 +559,10 @@ class WoodTissue(TissueABC):
         Returns:
             The element quantity lost to turnover for foliage tissue.
         """
-        return {ky: np.zeros_like(elem) for ky, elem in self.element_masses.items()}
+        return {
+            ky: np.zeros_like(self.carbon_mass)
+            for ky, elem in self.element_masses.items()
+        }
 
     def extract_turnover(
         self, allocation: StemAllocation
@@ -807,7 +832,8 @@ class StemBiomasses(CohortMethods, PandasExporter):
     #     """Add a set of new cohorts to the stochiometry model.
 
     #     Args:
-    #         new_cohort_data: Cohort object containing information about the new cohort.
+    #         new_cohort_data: Cohort object containing information about the new
+    #             cohort.
     #         flora: The flora object providing stem traits for the new cohort.
     #         element: The name of the element (e.g., "N" for nitrogen).
     #     """
