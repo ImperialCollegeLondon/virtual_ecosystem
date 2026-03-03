@@ -858,7 +858,7 @@ def fixture_static_inputs(
         variable_name=data["atmospheric_pressure_ref"],
         time_index=time_index,
     )
-    atmospheric_pressure_true = atmospheric_pressure[indices.atm].to_numpy()
+    atmospheric_pressure_true = atmospheric_pressure.to_numpy()
 
     atmospheric_co2 = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
@@ -866,7 +866,7 @@ def fixture_static_inputs(
         variable_name=data["atmospheric_co2_ref"],
         time_index=time_index,
     )
-    atmospheric_co2_true = atmospheric_co2[indices.atm].to_numpy()
+    atmospheric_co2_true = atmospheric_co2.to_numpy()
 
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,

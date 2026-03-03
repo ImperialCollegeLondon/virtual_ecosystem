@@ -9,6 +9,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_specific_heat, calc_vp_sat
+from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
@@ -81,7 +82,7 @@ def prepare_static_inputs(
         variable_name=data["atmospheric_pressure_ref"],
         time_index=time_index,
     )
-    atmospheric_pressure_true = atmospheric_pressure[idx.atm].to_numpy()
+    atmospheric_pressure_true = atmospheric_pressure.to_numpy()
 
     # Atmospheric CO2 profile set to reference value, [kPa]
     atmospheric_co2 = abiotic_tools.update_profile_from_reference(
@@ -90,7 +91,7 @@ def prepare_static_inputs(
         variable_name=data["atmospheric_co2_ref"],
         time_index=time_index,
     )
-    atmospheric_co2_true = atmospheric_co2[idx.atm].to_numpy()
+    atmospheric_co2_true = atmospheric_co2.to_numpy()
 
     # Calculate atmospheric layer geometry
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
@@ -189,7 +190,7 @@ def calculate_wind_profiles(
     )
     reference_wind_speed = data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
 
-    wind_profile = wind.calculate_wind_profile(
+    wind_speed = wind.calculate_wind_profile(
         reference_wind_speed=reference_wind_speed,
         reference_height=wind_reference_height,
         wind_heights=static["geometry"]["heights"],
@@ -220,7 +221,7 @@ def calculate_wind_profiles(
         "zero_plane_displacement": np.nan_to_num(zero_plane_displacement, nan=0.0),
         "roughness_length": np.nan_to_num(roughness_length, nan=0.0),
         "friction_velocity": np.nan_to_num(friction_velocity, nan=0.0),
-        "wind_profile": wind_profile,
+        "wind_speed": wind_speed,
         "mixing_coefficient": np.nan_to_num(mixing_coefficient, nan=0.0),
     }
 
@@ -266,26 +267,21 @@ def generate_hourly_forcing(
 
 def initialize_state(
     data: Data,
-    idx: SimpleNamespace,
 ) -> dict[str, Any]:
     """Initialize state variables for microclimate model.
 
     Args:
         data: Data object
-        idx: Indices for different layer types
 
     Returns:
         Dictionary with initialized state variables
     """
 
     return {
-        "all_air_temperature": data["air_temperature"][idx.atm].to_numpy(),
-        "canopy_air_temperature": data["air_temperature"][idx.canopy].to_numpy(),
-        "canopy_temperature": data["canopy_temperature"][idx.canopy].to_numpy(),
-        "surface_air_temperature": data["air_temperature"][idx.surface].to_numpy(),
-        "understorey_temperature": data["air_temperature"][idx.surface].to_numpy(),
-        "soil_temperature": data["soil_temperature"][idx.soil].to_numpy(),
-        "relative_humidity": data["relative_humidity"][idx.atm].to_numpy(),
+        "air_temperature": data["air_temperature"].to_numpy(),
+        "canopy_temperature": data["canopy_temperature"].to_numpy(),
+        "soil_temperature": data["soil_temperature"].to_numpy(),
+        "relative_humidity": data["relative_humidity"].to_numpy(),
         "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
     }
 
@@ -322,7 +318,6 @@ def update_forcing_boundary_conditions(
     state: dict[str, Any],
     hourly_forcing: dict[str, Any],
     hour: int,
-    idx: SimpleNamespace,
 ) -> dict[str, Any]:
     """Update forcing boundary conditions for microclimate model.
 
@@ -333,34 +328,24 @@ def update_forcing_boundary_conditions(
         state: Current state variables for microclimate model
         hourly_forcing: Generated hourly profiles for atmospheric forcing variables
         hour: Current hour index
-        idx: SimpleNamespace with layer indices
 
     Returns:
         Updated state variables with new boundary conditions
     """
 
     # Replace atmospheric air temperature and humidity above canopy
-    state["all_air_temperature"][0] = hourly_forcing["air_temperature_hourly"][hour, :]
+    state["air_temperature"][0] = hourly_forcing["air_temperature_hourly"][hour, :]
     state["relative_humidity"][0] = hourly_forcing["relative_humidity_hourly"][hour, :]
 
     # Select shortwave absorption profiles
-    state["shortwave_absorption_canopy"] = hourly_forcing[
-        "shortwave_absorption_hourly"
-    ][hour, idx.canopy, :]
-    state["shortwave_absorption_understorey"] = hourly_forcing[
-        "shortwave_absorption_hourly"
-    ][hour, idx.surface, :]
-    state["shortwave_absorption_soil"] = hourly_forcing["shortwave_absorption_hourly"][
-        hour, idx.topsoil, :
+    state["shortwave_absorption"] = hourly_forcing["shortwave_absorption_hourly"][
+        hour, :, :
     ]
 
     # Select evapotranspiration and soil evaporation
-    state["evapotranspiration_canopy"] = hourly_forcing["evapotranspiration_hourly"][
-        hour, idx.canopy, :
+    state["evapotranspiration"] = hourly_forcing["evapotranspiration_hourly"][
+        hour, :, :
     ]
-    state["evapotranspiration_understorey"] = hourly_forcing[
-        "evapotranspiration_hourly"
-    ][hour, idx.surface, :]
     state["soil_evaporation"] = hourly_forcing["soil_evaporation_hourly"][hour, :]
 
     return state
@@ -399,7 +384,7 @@ def calculate_thermodynamics(
 
     # Density of air, [kg m-3]
     density_air = abiotic_tools.calculate_air_density(
-        air_temperature=state["all_air_temperature"],
+        air_temperature=state["air_temperature"],
         atmospheric_pressure=static["atmospheric_pressure"],
         specific_gas_constant_dry_air=core_constants.specific_gas_constant_dry_air,
         celsius_to_kelvin=core_constants.zero_Celsius,
@@ -407,12 +392,12 @@ def calculate_thermodynamics(
 
     # Specific heat capacity of air, [J kg-1 K-1]
     specific_heat_air = calc_specific_heat(
-        tc=state["all_air_temperature"],
+        tc=state["air_temperature"],
     )
 
     #   Latent heat of vapourisation, [kJ kg-1]
     latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
-        temperature=state["all_air_temperature"],
+        temperature=state["air_temperature"],
         celsius_to_kelvin=core_constants.zero_Celsius,
         latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
     )
@@ -455,7 +440,6 @@ def calculate_vegetation_temperature(
     static: dict[str, Any],
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
-    idx: SimpleNamespace,
 ) -> NDArray[np.floating]:
     """Calculate canopy and understorey temperature for microclimate model.
 
@@ -468,49 +452,21 @@ def calculate_vegetation_temperature(
         static: Prepared static inputs for microclimate model
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
-        idx: SimpleNamespace with layer indices
 
     Returns:
         new vegetation temperature
     """
 
-    vegetation_temperature = np.concatenate(
-        [state["canopy_temperature"], [state["understorey_temperature"]]], axis=0
-    )
-    vegetation_air_temperature = np.concatenate(
-        [state["canopy_air_temperature"], [state["surface_air_temperature"]]], axis=0
-    )
-
-    evapotranspiration = np.concatenate(
-        [state["evapotranspiration_canopy"], [state["evapotranspiration_understorey"]]],
-        axis=0,
-    )
-    shortwave_absorption = np.concatenate(
-        [
-            state["shortwave_absorption_canopy"],
-            [state["shortwave_absorption_understorey"]],
-        ],
-        axis=0,
-    )
-    absorbed_longwave_radiation = np.concatenate(
-        [
-            static["absorbed_longwave_radiation"][idx.canopy],
-            [static["absorbed_longwave_radiation"][idx.surface]],
-            [static["absorbed_longwave_radiation"][idx.topsoil]],
-        ],
-        axis=0,
-    )
-
     return energy_balance.solve_canopy_temperature(
-        canopy_temperature_initial=vegetation_temperature,
-        air_temperature=vegetation_air_temperature,
-        evapotranspiration=evapotranspiration,
-        absorbed_shortwave_radiation=shortwave_absorption,
-        absorbed_longwave_radiation=absorbed_longwave_radiation,
-        specific_heat_air=state["specific_heat_air"][1:],
-        density_air=state["density_air"][1:],
+        canopy_temperature_initial=state["canopy_temperature"],
+        air_temperature=state["air_temperature"],
+        evapotranspiration=state["evapotranspiration"],
+        absorbed_shortwave_radiation=state["shortwave_absorption"],
+        absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
+        specific_heat_air=state["specific_heat_air"],
+        density_air=state["density_air"],
         aerodynamic_resistance=state["aerodynamic_resistance_canopy"],
-        latent_heat_vapourisation=state["latent_heat_vapourisation"][1:],
+        latent_heat_vapourisation=state["latent_heat_vapourisation"],
         emissivity_leaf=abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
@@ -525,7 +481,6 @@ def calculate_vegetation_fluxes(
     static: dict[str, Any],
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
-    idx: SimpleNamespace,
 ) -> dict[str, Any]:
     """Calculate vegetation fluxes for microclimate model.
 
@@ -535,49 +490,22 @@ def calculate_vegetation_fluxes(
         hourly_forcing: Generated hourly profiles for atmospheric forcing variables
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
-        idx: SimpleNamespace with layer indices
 
     Returns:
         Dictionary with vegetation fluxes
     """
 
-    vegetation_temperature = np.concatenate(
-        [state["canopy_temperature"], [state["understorey_temperature"]]], axis=0
-    )
-    vegetation_air_temperature = np.concatenate(
-        [state["canopy_air_temperature"], [state["surface_air_temperature"]]], axis=0
-    )
-    evapotranspiration = np.concatenate(
-        [state["evapotranspiration_canopy"], [state["evapotranspiration_understorey"]]],
-        axis=0,
-    )
-    shortwave_absorption = np.concatenate(
-        [
-            state["shortwave_absorption_canopy"],
-            [state["shortwave_absorption_understorey"]],
-        ],
-        axis=0,
-    )
-
-    absorbed_longwave_radiation = np.concatenate(
-        [
-            static["absorbed_longwave_radiation"][idx.canopy],
-            [static["absorbed_longwave_radiation"][idx.surface]],
-        ],
-        axis=0,
-    )
-
     fluxes = energy_balance.calculate_energy_balance_residual(
-        canopy_temperature_initial=vegetation_temperature,
-        air_temperature=vegetation_air_temperature,
-        evapotranspiration=evapotranspiration,
-        absorbed_shortwave_radiation=shortwave_absorption,
-        absorbed_longwave_radiation=absorbed_longwave_radiation,
+        canopy_temperature_initial=state["canopy_temperature"],
+        air_temperature=state["air_temperature"],
+        evapotranspiration=state["evapotranspiration"],
+        absorbed_shortwave_radiation=state["shortwave_absorption"],
+        absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
         leaf_emissivity=abiotic_constants.leaf_emissivity,
-        specific_heat_air=state["specific_heat_air"][1:],
-        density_air=state["density_air"][1:],
+        specific_heat_air=state["specific_heat_air"],
+        density_air=state["density_air"],
         aerodynamic_resistance=state["aerodynamic_resistance_canopy"],
-        latent_heat_vapourisation=state["latent_heat_vapourisation"][1:],
+        latent_heat_vapourisation=state["latent_heat_vapourisation"],
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
@@ -614,30 +542,30 @@ def calculate_soil_fluxes(
 
     # longwave emission from topsoil, [W m-2]
     out["longwave_emission_soil"] = energy_balance.calculate_longwave_emission(
-        temperature=state["soil_temperature"][0],
+        temperature=state["soil_temperature"][idx.topsoil],
         emissivity=abiotic_constants.soil_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
     #  Sensible heat flux from topsoil, [W m-2]
     out["sensible_heat_flux_soil"] = energy_balance.calculate_sensible_heat_flux(
-        density_air=state["density_air"][-1],
-        specific_heat_air=state["specific_heat_air"][-1],
-        air_temperature=state["surface_air_temperature"],
-        surface_temperature=state["soil_temperature"][0],
+        density_air=state["density_air"][idx.surface],
+        specific_heat_air=state["specific_heat_air"][idx.surface],
+        air_temperature=state["air_temperature"][idx.surface],
+        surface_temperature=state["soil_temperature"][idx.topsoil],
         aerodynamic_resistance=state["aerodynamic_resistance_soil"],
     )
 
     # Latent heat flux topsoil, [W m-2]
     out["latent_heat_flux_soil"] = energy_balance.calculate_latent_heat_flux(
         evapotranspiration=state["soil_evaporation"],
-        latent_heat_vapourisation=state["latent_heat_vapourisation"][-1],
+        latent_heat_vapourisation=state["latent_heat_vapourisation"][idx.surface],
         time_interval=time_interval,
     )
 
     # Ground heat flux, [W m-2]
-    out["ground_heat_flux_soil"] = (
-        state["shortwave_absorption_soil"]
+    out["ground_heat_flux"] = (
+        state["shortwave_absorption"][idx.topsoil, :]
         - out["longwave_emission_soil"]
         - out["latent_heat_flux_soil"]
         - out["sensible_heat_flux_soil"]
@@ -651,6 +579,7 @@ def update_air_temperature(
     state: dict[str, Any],
     static: dict[str, Any],
     abiotic_bounds: AbioticSimpleBounds,
+    idx: SimpleNamespace,
     time_interval: float,
 ) -> NDArray[np.floating]:
     """Update air temperature profiles based on calculated fluxes and wind mixing.
@@ -659,6 +588,7 @@ def update_air_temperature(
         state: Current state variables for microclimate model
         static: Prepared static inputs for microclimate model
         abiotic_bounds: Bounds for air temperature to ensure physical realism
+        idx: Indices for different layer types
         time_interval: Time interval for flux calculations, [s]
 
     Returns:
@@ -667,37 +597,37 @@ def update_air_temperature(
 
     # Update canopy air temperatures, [C]
     canopy_air_temperature = energy_balance.update_air_temperature(
-        air_temperature=state["canopy_air_temperature"],
-        sensible_heat_flux=state["sensible_heat_flux"][0:-1],
-        specific_heat_air=state["specific_heat_air"][1:-1],
-        density_air=state["density_air"][1:-1],
+        air_temperature=state["air_temperature"][idx.canopy],
+        sensible_heat_flux=state["sensible_heat_flux"][idx.canopy],
+        specific_heat_air=state["specific_heat_air"][idx.canopy],
+        density_air=state["density_air"][idx.canopy],
         mixing_layer_thickness=static["geometry"]["thickness"][1:-1],
         time_interval=time_interval,
     )
 
     # Update surface air temperatures, [C]
     surface_air_temperature = energy_balance.update_air_temperature(
-        air_temperature=state["surface_air_temperature"],
-        sensible_heat_flux=state["sensible_heat_flux"][-1]
+        air_temperature=state["air_temperature"][idx.surface],
+        sensible_heat_flux=state["sensible_heat_flux"][idx.surface]
         + state["sensible_heat_flux_soil"],
-        specific_heat_air=state["specific_heat_air"][-1],
-        density_air=state["density_air"][-1],
+        specific_heat_air=state["specific_heat_air"][idx.surface],
+        density_air=state["density_air"][idx.surface],
         mixing_layer_thickness=static["geometry"]["thickness"][-1],
         time_interval=time_interval,
     )
 
     # Update all air temperatures, [C]
-    all_air_temperature = np.copy(state["all_air_temperature"])
-    all_air_temperature[1 : len(canopy_air_temperature) + 1] = canopy_air_temperature
-    all_air_temperature[-1] = surface_air_temperature
-    all_air_temperature = wind.mix_and_ventilate(
-        input_variable=all_air_temperature,
+    air_temperature = np.copy(state["air_temperature"])
+    air_temperature[1 : len(canopy_air_temperature) + 1] = canopy_air_temperature
+    air_temperature[-1] = surface_air_temperature
+    air_temperature = wind.mix_and_ventilate(
+        input_variable=air_temperature,
         ventilation_rate=state["ventilation_rate"],
         mixing_coefficient=state["mixing_coefficient"],
         limits=abiotic_bounds.air_temperature[:2],
     )
 
-    return all_air_temperature
+    return air_temperature
 
 
 def update_atmospheric_humidity(
@@ -706,19 +636,33 @@ def update_atmospheric_humidity(
     pyrealm_core_constants: PyrealmCoreConst,
     core_constants: CoreConstants,
     abiotic_constants: AbioticConstants,
+    idx: SimpleNamespace,
     time_interval: float,
 ) -> dict[str, Any]:
-    """Update atmospheric humidity profiles based on fluxes and wind mixing."""
+    """Update atmospheric humidity profiles based on fluxes and wind mixing.
+
+    Args:
+        state: Current state variables for microclimate model
+        static: Prepared static inputs for microclimate model
+        pyrealm_constants: Set of constants from pyrealm core that are used in
+        core_constants: Set of constants that are shared across all models
+        abiotic_constants: Set of constants for abiotic model
+        idx: SimpleNamespace with layer indices
+        time_interval: Time interval for flux calculations, [s]
+
+    Returns:
+        dict with atmospheric humidity, vapour pressure deficit
+    """
 
     # Saturated vapour pressure of air, [kPa]
     saturated_vapour_pressure_air = calc_vp_sat(
-        ta=state["all_air_temperature"],
+        ta=state["air_temperature"],
         core_const=pyrealm_core_constants,
     )
 
     # Specific humidity of air, [kg kg-1]
     specific_humidity_air = abiotic_tools.calculate_specific_humidity(
-        air_temperature=state["all_air_temperature"],
+        air_temperature=state["air_temperature"],
         relative_humidity=state["relative_humidity"],
         atmospheric_pressure=static["atmospheric_pressure"],
         molecular_weight_ratio_water_to_dry_air=(
@@ -737,8 +681,8 @@ def update_atmospheric_humidity(
 
     # Update atmospheric humidity variables, integration interval 1 hour
     return energy_balance.update_humidity_vpd(
-        canopy_evapotranspiration=state["evapotranspiration_canopy"],
-        understorey_evapotranspiration=state["evapotranspiration_understorey"],
+        canopy_evapotranspiration=state["evapotranspiration"][idx.canopy],
+        understorey_evapotranspiration=state["evapotranspiration"][idx.surface],
         soil_evaporation=state["soil_evaporation"],
         saturated_vapour_pressure=saturated_vapour_pressure_air,
         specific_humidity=specific_humidity_air,
@@ -757,7 +701,6 @@ def update_atmospheric_humidity(
     )
 
 
-# def Run loop for each hour
 def run_hour_step(
     state: dict[str, Any],
     static: dict[str, Any],
@@ -793,7 +736,7 @@ def run_hour_step(
     """
     # Update forcing boundary conditions for the current hour
     update_forcing_boundary_conditions(
-        state=state, hourly_forcing=hourly_forcing, hour=hour, idx=idx
+        state=state, hourly_forcing=hourly_forcing, hour=hour
     )
 
     # Update tehermodynamics
@@ -809,24 +752,22 @@ def run_hour_step(
     state.update(thermo)
 
     # Update vegetation temperature
-    vegetation_temperature = calculate_vegetation_temperature(
+    canopy_temperature = calculate_vegetation_temperature(
         state=state,
         static=static,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
-        idx=idx,
     )
-    state["vegetation_temperature"] = vegetation_temperature
+    state["canopy_temperature"] = canopy_temperature
 
     # Calculate vegetation fluxes
-    vegetation_fluxes = calculate_vegetation_fluxes(
+    canopy_fluxes = calculate_vegetation_fluxes(
         state=state,
         static=static,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
-        idx=idx,
     )
-    state.update(vegetation_fluxes)
+    state.update(canopy_fluxes)
 
     # Calculate soil fluxes
     soil_fluxes = calculate_soil_fluxes(
@@ -841,7 +782,7 @@ def run_hour_step(
 
     # Calculate soil temperature
     soil_temperature = energy_balance.update_soil_temperature(
-        ground_heat_flux=state["ground_heat_flux_soil"],
+        ground_heat_flux=state["ground_heat_flux"],
         soil_temperature=state["soil_temperature"],
         soil_layer_thickness=static["geometry"]["thickness"][-1],
         soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
@@ -856,6 +797,7 @@ def run_hour_step(
         state=state,
         static=static,
         abiotic_bounds=abiotic_bounds,
+        idx=idx,
         time_interval=1,  # core_constants.seconds_to_hour,
     )
     state["air_temperature"] = air_temperature
@@ -867,135 +809,291 @@ def run_hour_step(
         pyrealm_core_constants=pyrealm_constants,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        idx=idx,
         time_interval=time_interval,
     )
     state.update(air_humidity)
-    print(state["mixing_coefficient"])
     return state
 
 
-# def run_microclimate(
-#     data: Data,
-#     vars_updated: tuple[str, ...],
-#     time_index: int,
-#     time_dim: int,
-#     time_interval: float,
-#     month: int,
-#     latitude: float,
-#     layer_structure: LayerStructure,
-#     abiotic_constants: AbioticConstants,
-#     core_constants: CoreConstants,
-#     abiotic_bounds: AbioticSimpleBounds,
-# ) -> dict[str, Any]:
-#     """Run the microclimate model for one day, iterating through hourly time steps.
+def build_output_from_record(
+    data_record: dict[str, Any],
+    static: dict[str, Any],
+    state: dict[str, Any],
+    layer_structure,
+    idx,
+    variable: str | None = None,
+) -> dict[str, DataArray]:
+    """Build model output from hourly record and static/state variables.
 
-#     This function prepares static inputs, calculates wind profiles, generates hourly
-#     forcing, initializes state and record variables, and then iteratively updates the
-#     state variables based on calculated fluxes and thermodynamics for each hour.
+    Handles:
+        - Static atmospheric layered variables
+        - 2D (time, cell) → mean over time
+        - 3D (time, layer, cell) → mean over time
 
-#     Args:
-#         data: Data object containing all model variables and grid information
-#         vars_updated: Tuple containing strings of all variables that are updated by
-#             abiotic model
-#         time_index: Time index for the current day in the data
-#         time_dim: Number of time steps in the hourly record (e.g., 24 for a full day)
-#         time_interval: Time interval for flux calculations, [s]
-#         month: Current month (1-12) for generating diurnal cycle
-#         latitude: Latitude of the location, [degrees]
-#         layer_structure: Layer structure object with information on number of layers
-#             and their indices
-#         abiotic_constants: Set of constants for abiotic model
-#         core_constants: Set of constants that are shared across all models
-#         abiotic_bounds: Bounds for air temperature to ensure physical realism
+    Args:
+        data_record: Hourly data record
+        static: Static inputs
+        state: Current state variables
+        layer_structure: LayerStructure object
+        idx: Layer index namespace
+        variable: Optional variable name to extract only one variable
 
-#     Returns:
-#         Dictionary with updated state variables and hourly record for the day
-#     """
+    Returns:
+        Dictionary of DataArray outputs
+    """
 
-#     # Select indices for different layer types
-#     idx = build_indices(data=data, layer_structure=layer_structure)
+    output: dict[str, DataArray] = {}
 
-#     # Initialise state dict
-#     state = initialize_state(
-#         data=data,
-#         idx=idx,
-#     )
+    # --------------------------------------------------
+    # Static atmospheric layered variables
+    # --------------------------------------------------
+    static_layered = {
+        "density_air": state.get("density_air"),
+        "specific_heat_air": state.get("specific_heat_air"),
+        "wind_speed": state.get("wind_speed"),
+        "atmospheric_pressure": static.get("atmospheric_pressure"),
+        "atmospheric_co2": static.get("atmospheric_co2"),
+    }
 
-#     # Prepare static inputs for microclimate model
-#     static = prepare_static_inputs(
-#         data=data,
-#         idx=idx,
-#         time_index=time_index,
-#         layer_structure=layer_structure,
-#         abiotic_constants=abiotic_constants,
-#     )
+    for name, value in static_layered.items():
+        if value is None:
+            continue
 
-#     # Calculate wind profiles for microclimate model
-#     wind_state = calculate_wind_profiles(
-#         static=static,
-#         abiotic_constants=abiotic_constants,
-#         core_constants=core_constants,
-#         data=data,
-#         time_index=time_index,
-#     )
-#     state.update(wind_state)
+        if variable is not None and name != variable:
+            continue
 
-#     # Generate hourly forcing for microclimate model
-#     forcing = generate_hourly_forcing(
-#         data=data,
-#         static=static,
-#         time_index=time_index,
-#         month=month,
-#         latitude=latitude,
-#     )
+        temp = layer_structure.from_template()
+        temp[idx.atm] = value
 
-#     # Initialize hourly record for microclimate model
-#     data_record = initialize_hourly_record(
-#         data=data,
-#         vars_updated=abiotic_constants.vars_updated,
-#         time_dim=time_dim,
-#         layer_structure=layer_structure,
-#     )
+        output[name] = temp
 
-#     for hour in range(time_dim):
-#         state = run_hour_step(
-#             data=data,
-#             state=state,
-#             static=static,
-#             hourly_forcing=forcing,
-#             hour=hour,
-#             idx=idx,
-#             abiotic_constants=abiotic_constants,
-#             core_constants=core_constants,
-#             pyrealm_constants=core_constants,
-#             time_interval=time_interval,
-#             time_index=time_index,
-#         )
+    # --------------------------------------------------
+    # Hourly recorded variables
+    # --------------------------------------------------
+    for var, values in data_record.items():
+        if variable is not None and var != variable:
+            continue
 
-#         # Check that all vars are updated
-#         abiotic_tools.validate_variables(
-#             names=vars_updated,
-#             values=state,
-#             exclude=("density_air", "specific_heat_air", "wind_speed"),
-#         )
+        if values.ndim == 2:
+            # (time, cell)
+            output[var] = DataArray(
+                np.nanmean(values, axis=0),
+                dims="cell_id",
+            )
 
-#         # Record this hour
-#         abiotic_tools.record_hourly_output(
-#             hour=hour,
-#             data_record=data_record,
-#             layer_structure=layer_structure,
-#             hourly_values=state,
-#         )
+        elif values.ndim == 3:
+            # (time, layer, cell)
+            output[var] = DataArray(
+                np.nanmean(values, axis=0),
+                dims=["layers", "cell_id"],
+            )
 
-#     return assemble_output(
-#         data=data,
-#         data_record=data_record,
-#         layer_structure=layer_structure,
-#     )
+        else:
+            raise ValueError(
+                f"Unsupported dimensions for variable '{var}': {values.shape}"
+            )
 
-# # TODO
-# # def Write to hourly record
-# # selection of variables to write to hourly record with correct indices
+    return output
 
 
-# def combine output to write to data
+def run_microclimate(
+    data: Data,
+    vars_updated: tuple[str, ...],
+    time_index: int,
+    time_dim: int,
+    time_interval: float,
+    month: int,
+    latitude: float,
+    layer_structure: LayerStructure,
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
+    pyrealm_constants: PyrealmCoreConst,
+    abiotic_bounds: AbioticSimpleBounds,
+) -> dict[str, Any]:
+    """Run the microclimate model for one day, iterating through hourly time steps.
+
+    This function prepares static inputs, calculates wind profiles, generates hourly
+    forcing, initializes state and record variables, and then iteratively updates the
+    state variables based on calculated fluxes and thermodynamics for each hour.
+
+    Args:
+        data: Data object containing all model variables and grid information
+        vars_updated: Tuple containing strings of all variables that are updated by
+            abiotic model
+        time_index: Time index for the current day in the data
+        time_dim: Number of time steps in the hourly record (e.g., 24 for a full day)
+        time_interval: Time interval for flux calculations, [s]
+        month: Current month (1-12) for generating diurnal cycle
+        latitude: Latitude of the location, [degrees]
+        layer_structure: Layer structure object with information on number of layers
+            and their indices
+        abiotic_constants: Set of constants for abiotic model
+        core_constants: Set of constants that are shared across all models
+        pyrealm_constants: Set of constants from pyrealm
+        abiotic_bounds: Bounds for air temperature to ensure physical realism
+
+    Returns:
+        Dictionary with updated state variables and hourly record for the day
+    """
+
+    # Select indices for different layer types
+    idx = abiotic_tools.build_indices(data=data, layer_structure=layer_structure)
+
+    # Initialise state dict
+    state = initialize_state(
+        data=data,
+    )
+
+    # Prepare static inputs for microclimate model
+    static = prepare_static_inputs(
+        data=data,
+        idx=idx,
+        time_index=time_index,
+        layer_structure=layer_structure,
+        abiotic_constants=abiotic_constants,
+    )
+
+    # Calculate wind profiles for microclimate model
+    wind_state = calculate_wind_profiles(
+        static=static,
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
+        data=data,
+        time_index=time_index,
+    )
+    state.update(wind_state)
+
+    # Generate hourly forcing for microclimate model
+    forcing = generate_hourly_forcing(
+        data=data,
+        static=static,
+        time_index=time_index,
+        month=month,
+        latitude=latitude,
+    )
+
+    # Initialize hourly record for microclimate model
+    data_record = initialize_hourly_record(
+        data=data,
+        vars_updated=vars_updated,
+        time_dim=time_dim,
+        layer_structure=layer_structure,
+    )
+
+    # Update microclimate date for 24 hours (time_dim)
+    for hour in range(time_dim):
+        state = run_hour_step(
+            state=state,
+            static=static,
+            hourly_forcing=forcing,  # ??
+            hour=hour,
+            idx=idx,
+            abiotic_constants=abiotic_constants,
+            core_constants=core_constants,
+            pyrealm_constants=pyrealm_constants,
+            time_interval=time_interval,
+            abiotic_bounds=abiotic_bounds,
+        )
+
+        # Record data
+        hourly_values = {
+            # 1D arrays
+            "ground_heat_flux": state["ground_heat_flux"],
+            # TODO aero resistance needs averaging
+            "aerodynamic_resistance_canopy": state["aerodynamic_resistance_canopy"],
+            # 2D layered arrays
+            "longwave_emission": [
+                (idx.canopy, state["longwave_emission"][0:-1]),
+                (idx.surface, state["longwave_emission"][-1]),
+                (idx.topsoil, state["longwave_emission_soil"]),
+            ],
+            "sensible_heat_flux": [
+                (idx.canopy, state["sensible_heat_flux"][0:-1]),
+                (idx.surface, state["sensible_heat_flux"][-1]),
+                (idx.topsoil, state["sensible_heat_flux_soil"]),
+            ],
+            "latent_heat_flux": [
+                (idx.canopy, state["latent_heat_flux"][0:-1]),
+                (idx.surface, state["latent_heat_flux"][-1]),
+                (idx.topsoil, state["latent_heat_flux_soil"]),
+            ],
+            "soil_temperature": [
+                (idx.soil, state["soil_temperature"]),
+            ],
+            "air_temperature": [
+                (idx.atm, state["air_temperature"]),
+            ],
+            "latent_heat_vapourisation": [
+                (idx.atm, state["latent_heat_vapourisation"]),
+            ],
+            "relative_humidity": [
+                (idx.atm, state["relative_humidity"]),
+            ],
+            "vapour_pressure_deficit": [
+                (idx.atm, state["vapour_pressure_deficit"]),
+            ],
+            "canopy_temperature": [
+                (idx.canopy, state["vegetation_temperature"][0:-1]),
+                (idx.surface, state["vegetation_temperature"][-1]),
+            ],
+        }
+
+        # Check that all vars are updated
+        # TODO update this list and potentially variable names
+        abiotic_tools.validate_variables(
+            names=vars_updated,
+            values=state,
+            exclude=(
+                "density_air",
+                "specific_heat_air",
+                "wind_speed",
+                "aerodynamic_resistance_soil",
+                "air_temperature",
+                "canopy_air_temperature",
+                "energy_balance_residual",
+                "evapotranspiration_canopy",
+                "evapotranspiration_understorey",
+                "friction_velocity",
+                "latent_heat_flux_soil",
+                "longwave_emission_soil",
+                "mixing_coefficient",
+                "roughness_length",
+                "sensible_heat_flux_soil",
+                "shortwave_absorption_canopy",
+                "shortwave_absorption_soil",
+                "shortwave_absorption_understorey",
+                "soil_evaporation",
+                "specific_humidity",
+                "surface_air_temperature",
+                "understorey_temperature",
+                "vapour_pressure",
+                "vegetation_temperature",
+                "ventilation_rate",
+                "zero_plane_displacement",
+            ),
+        )
+
+        # Record this hour
+        abiotic_tools.record_hourly_output(
+            hour=hour,
+            data_record=data_record,
+            layer_structure=layer_structure,
+            hourly_values=hourly_values,
+        )
+
+    output = build_output_from_record(
+        data_record=data_record,
+        static=static,
+        state=state,
+        layer_structure=layer_structure,
+        idx=idx,
+    )
+
+    print(output)
+    return output
+
+
+# check that hourly values are recorded
+# make sure assembly works
+# check variable names
