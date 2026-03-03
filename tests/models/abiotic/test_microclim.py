@@ -4,9 +4,9 @@ import types
 
 import numpy as np
 import pytest
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 from xarray import DataArray
 
-from pyrealm.constants import CoreConst as PyrealmCoreConst
 from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
 
