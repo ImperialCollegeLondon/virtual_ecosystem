@@ -16,7 +16,7 @@ found :doc:`here </using_the_ve/configuration/config>`.
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, TypeAlias, TypeVar
+from typing import Annotated, Any, ClassVar, TypeVar
 
 import tomli_w
 from pydantic import (
@@ -61,7 +61,7 @@ def placeholder_validator(path: str) -> str:
 #       from the text elements from the Annotated pattern. Currently tackled using
 #       nitpick ignore.
 
-FILEPATH_PLACEHOLDER: TypeAlias = Annotated[
+type FILEPATH_PLACEHOLDER = Annotated[
     FilePath,
     Field(default=Path("<FILEPATH_PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),
@@ -75,7 +75,7 @@ default.
 """
 
 
-DIRPATH_PLACEHOLDER: TypeAlias = Annotated[
+type DIRPATH_PLACEHOLDER = Annotated[
     DirectoryPath,
     Field(default=Path("<DIRPATH_PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),

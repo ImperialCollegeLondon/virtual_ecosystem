@@ -26,7 +26,7 @@ name = "virtual_ecosystem"
 readme = "README.md"
 version = "0.1.1a15"
 
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 
 dependencies = [
   "Shapely (>2.0)",
@@ -118,7 +118,7 @@ python_files = 'test_*.py'
 testpaths = ['tests']
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 # Enable all `pydocstyle` rules, limiting to those that adhere to the
