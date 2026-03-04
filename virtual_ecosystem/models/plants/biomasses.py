@@ -740,8 +740,8 @@ class RootTissue(TissueABC):
 
 
 @dataclass
-class StemBiomasses(CohortMethods, PandasExporter):
-    """A class holding elemental weights for a set of plant cohorts and tissues.
+class Biomasses(CohortMethods, PandasExporter):
+    """A class holding biomasses for a set of plant cohorts and tissues.
 
     This class holds the current ratios across tissue type for a community object, which
     in essence is a series of cohorts. It acts in parallel with StemAllometry, a class
@@ -761,14 +761,14 @@ class StemBiomasses(CohortMethods, PandasExporter):
     """Additional traits specific to the plant functional types."""
     tissue_names: list[str] = field(init=False)
     """A list giving the name of each tissue."""
-    elements: list[str] = field(init=False)
+    elements: tuple[str, ...] = field(init=False)
     """A list of the elements recorded in each tissue."""
 
     def __post_init__(self) -> None:
         """Initialize the element surplus for each cohort."""
 
         # Check the elements being used
-        elements = {list(tissue.element_masses.keys()) for tissue in self.tissues}
+        elements = {tuple(tissue.element_masses.keys()) for tissue in self.tissues}
 
         if len(elements) > 1:
             raise ValueError(
@@ -779,10 +779,10 @@ class StemBiomasses(CohortMethods, PandasExporter):
         self.tissue_names = [t.tissue_name for t in self.tissues]
         self.elements = elements.pop()
 
-        # Populate the surpluses
+        # Populate the whole individual elemental surpluses
+        # TODO - should this populate from the tissues themselves.
         self.element_surplus = {
-            elem: np.zeros(self.community.n_cohorts, dtype=np.floating)
-            for elem in self.elements
+            elem: np.zeros(self.community.n_cohorts) for elem in self.elements
         }
 
     @classmethod
@@ -817,7 +817,6 @@ class StemBiomasses(CohortMethods, PandasExporter):
         ]
 
         return cls(
-            with_elements=with_elements,
             tissues=default_tissues,
             community=community,
             extra_pft_traits=extra_pft_traits,
