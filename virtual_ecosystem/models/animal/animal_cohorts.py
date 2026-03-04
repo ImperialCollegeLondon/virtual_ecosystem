@@ -878,7 +878,7 @@ class AnimalCohort:
         Args:
             animal_list: All prey cohorts available to the predator.
             theta_opt: The predator's optimum prey-predator mass ratio for this
-            encounter, drawn once in F_i_j_individual.
+              encounter, drawn once in F_i_j_individual.
 
         Returns:
             A float value of total handling time in days.
