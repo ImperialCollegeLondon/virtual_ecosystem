@@ -295,11 +295,11 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
 
     Args:
         alpha_0_herb: Effective rate per unit body mass at which a herbivore searches
-          its environment.
-        mass: The current body mass of the foraging herbivore.
+          its environment in m2/(day*g).
+        mass: The current body mass of the foraging herbivore in g.
 
     Returns:
-        A float of the effective search rate in [ha/day]
+        A float of the effective search rate in [m2/day].
 
     """
 
