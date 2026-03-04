@@ -682,7 +682,7 @@ class AnimalCohort:
         TODO: update name
 
         Returns:
-            A float representing the search efficiency rate in [ha/(day*g)].
+            A float representing the search efficiency rate in [m2/(day*g)].
         """
 
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
@@ -840,7 +840,7 @@ class AnimalCohort:
             w_bar: Probability of successfully capturing prey.
 
         Returns:
-            A float value of the search rate in ha/day
+            A float value of the search rate in m2/day
 
         """
         return sf.alpha_i_j(self.constants.alpha_0_pred, self.mass_current, w_bar)
