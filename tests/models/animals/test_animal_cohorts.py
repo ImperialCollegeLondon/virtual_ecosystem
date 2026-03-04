@@ -1074,7 +1074,7 @@ class TestAnimalCohort:
 
         # Extract functional group parameter
         phi_herb_t = herbivore_cohort_instance.functional_group.constants.phi_herb_t
-        A_cell = 1.0  # Temporary placeholder
+        A_cell = herbivore_cohort_instance.grid.cell_area
 
         if should_raise_error:
             # Ensure the correct error is raised
@@ -1313,7 +1313,7 @@ class TestAnimalCohort:
         mock_k_i_j.assert_called_once_with(
             alpha,
             herbivore_cohort_instance.individuals,
-            1.0,
+            herbivore_cohort_instance.grid.cell_area,
             theta_i_j,
         )
 
@@ -1406,7 +1406,7 @@ class TestAnimalCohort:
     def test_theta_i_j(self, predator_cohort_instance, animal_list_instance):
         """Test theta_i_j."""
         # TODO change this A_cell to call it from its real plant in the data
-        A_cell = 1.0  # Define A_cell value used in method implementation
+        A_cell = predator_cohort_instance.grid.cell_area
 
         # Execute the method under test
         theta = predator_cohort_instance.theta_i_j(animal_list_instance)
@@ -2316,7 +2316,7 @@ class TestAnimalCohort:
         # Assign test-specific values to the cohort instance
         cohort = herbivore_cohort_instance
 
-        # ✅ Mock `mass_current` properly as a property on the class
+        # Mock `mass_current` properly as a property on the class
         mocker.patch.object(
             type(cohort),
             "mass_current",
@@ -2324,28 +2324,28 @@ class TestAnimalCohort:
             return_value=mass_current,
         )
 
-        # ✅ Mock `constants`
+        # Mock `constants`
         cohort.constants = mocker.MagicMock(
             V_disp=V_disp, M_disp_ref=M_disp_ref, o_disp=o_disp
         )
 
-        # ✅ Mock `juvenile_dispersal_speed`
+        # Mock `juvenile_dispersal_speed`
         mocked_velocity = V_disp * (mass_current / M_disp_ref) ** o_disp
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.juvenile_dispersal_speed",
             return_value=mocked_velocity,
         )
 
-        # ✅ Calculate expected probability
-        A_cell = 1.0
+        # Calculate expected probability
+        A_cell = herbivore_cohort_instance.grid.cell_area
         grid_side = sqrt(A_cell)
         calculated_probability = mocked_velocity / grid_side
         expected_probability = min(calculated_probability, 1.0)  # Cap at 1.0
 
-        # ✅ Call the method under test
+        # Call the method under test
         probability_of_dispersal = cohort.migrate_juvenile_probability()
 
-        # ✅ Assertion to check if the method returns the correct probability
+        # Assertion to check if the method returns the correct probability
         assert probability_of_dispersal == expected_probability, (
             f"Expected {expected_probability}, but got {probability_of_dispersal}."
         )

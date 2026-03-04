@@ -369,7 +369,7 @@ class CellResource(Resource):
 
         # Handle zero or invalid request fast.
         if actual <= 0:
-            zero = dict(c=0, n=0, p=0)
+            zero = dict(C=0, N=0, P=0)
             return zero, zero
 
         # Remove from the pool (this also refreshes CNP split).
