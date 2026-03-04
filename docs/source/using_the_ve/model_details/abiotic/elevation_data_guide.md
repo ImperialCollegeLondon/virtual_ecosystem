@@ -65,12 +65,18 @@ Shuttle Radar Topography Mission (SRTM) DEM](https://doi.org/10.1029/2005rg00018
 {cite:p}`farr_shuttle_2007`. The DEM covers the SAFE Project region (4°N 116°E to 5°N
 117°E), is reprojected to UTM Zone 50N (EPSG:32650), [and can be downloaded from
 Zenodo](https://zenodo.org/records/3490488). The VE hydrological module requires
-elevation input aligned to a resolution of 90 m grid, whereas the original SRTM product
+elevation input aligned to a resolution of 100 m grid, whereas the original SRTM product
 is provided at approximately 30 m resolution. To reconcile this difference, the
 elevation data is resampled to the target 90 m grid using bilinear aggregation, which
 smooths fine-scale terrain while preserving broad-scale topographic patterns. This
 ensures consistency with the VE spatial resolution. In future, terrain-preserving or
 hydrologically explicit resampling approaches could also be explored.
+
+```{note}
+The process shown below was originally written for 90 m resolution. However, it can be
+adjusted to any desired grid resolution (e.g., 100 m) by changing the scenario
+configuration.
+```
 
 The first thing to do is load the dependencies needed for this workflow.
 
