@@ -186,8 +186,8 @@ cdsapi_era5_downloader(
 ```
 
 With this file downloaded as `era5_monthly_2010_2020_maliau.nc`, we now want to load in
-the site definition file, and use it to set the shape and resolution the dataset we are
-going to populate.
+the [site definition file](../../core_settings/site_definition_guide.md), and use it to
+set the shape and resolution the dataset we are going to populate.
 
 ```{code-block} python
 # Load the destination grid details

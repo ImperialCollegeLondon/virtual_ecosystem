@@ -67,7 +67,7 @@ Shuttle Radar Topography Mission (SRTM) DEM](https://doi.org/10.1029/2005rg00018
 Zenodo](https://zenodo.org/records/3490488). The VE hydrological module requires
 elevation input aligned to a resolution of 100 m grid, whereas the original SRTM product
 is provided at approximately 30 m resolution. To reconcile this difference, the
-elevation data is resampled to the target 90 m grid using bilinear aggregation, which
+elevation data is resampled to the target 100 m grid using bilinear aggregation, which
 smooths fine-scale terrain while preserving broad-scale topographic patterns. This
 ensures consistency with the VE spatial resolution. In future, terrain-preserving or
 hydrologically explicit resampling approaches could also be explored.
@@ -75,7 +75,8 @@ hydrologically explicit resampling approaches could also be explored.
 ```{note}
 The process shown below was originally written for 90 m resolution. However, it can be
 adjusted to any desired grid resolution (e.g., 100 m) by changing the scenario
-configuration.
+configuration (e.g. by changing the [site definition
+file](../../core_settings/site_definition_guide.md)).
 ```
 
 The first thing to do is load the dependencies needed for this workflow.
@@ -94,10 +95,11 @@ from scipy import ndimage
 
 As different types of input data will share the same grid definitions, we recommend that
 you store your grid definition within a `toml` file, which can then be used across
-preprocessing scripts. In our case, we have called this file
-`maliau_grid_definition_90m.toml`. We will now load it in and extract UTM eastings and
-northings,  projection information (EPSG code) and target resolution of our desired grid
-from it.
+preprocessing scripts. [This guide](../../core_settings/site_definition_guide.md) walks
+you through the process of creating a file of this type. In our case, we have called
+this file `maliau_grid_definition_90m.toml`. We will now load it in and extract UTM
+eastings and northings,  projection information (EPSG code) and target resolution of our
+desired grid from it.
 
 ```{code-block} python
 with open("../../../sites/maliau_grid_definition_90m.toml", "rb") as f:
