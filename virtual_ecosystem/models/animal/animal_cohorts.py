@@ -864,18 +864,49 @@ class AnimalCohort:
         A_cell = self.grid.cell_area
         return sf.k_i_j(alpha, self.individuals, A_cell, theta_i_j)
 
-    def calculate_total_handling_time_for_predation(self) -> float:
+    def calculate_total_handling_time_for_predation(
+        self, animal_list: list[AnimalCohort], theta_opt: float
+    ) -> float:
         """Calculate the total handling time for preying on available animal cohorts.
 
-        Returns:
-            A float value of handling time in days.
+        Sums H_i_j * k_i_j across all prey cohorts, forming the denominator term
+        for the Holling type II functional response used in F_i_j_individual.
+        Mirrors the structure of calculate_total_handling_time_for_herbivory.
 
+        Args:
+            animal_list: All prey cohorts available to the predator.
+            theta_opt: The predator's optimum prey-predator mass ratio for this
+              encounter, drawn once in F_i_j_individual.
+
+        Returns:
+            A float value of total handling time in days.
         """
-        return sf.H_i_j(
-            self.constants.h_pred_0,
-            self.constants.M_pred_ref,
-            self.mass_current,
-            self.constants.b_pred,
+        A_cell = 1.0  # temporary
+        theta_i_j = self.theta_i_j(animal_list)
+        return sum(
+            sf.H_i_j(
+                self.constants.h_pred_0,
+                self.constants.M_pred_ref,
+                self.mass_current,
+                self.constants.b_pred,
+                prey.mass_current,
+            )
+            * sf.k_i_j(
+                sf.alpha_i_j(
+                    self.constants.alpha_0_pred,
+                    self.mass_current,
+                    sf.w_bar_i_j(
+                        self.mass_current,
+                        prey.mass_current,
+                        theta_opt,
+                        self.constants.sigma_opt_pred_prey,
+                    ),
+                ),
+                self.individuals,
+                A_cell,
+                theta_i_j,
+            )
+            for prey in animal_list
         )
 
     def F_i_j_individual(
@@ -883,32 +914,42 @@ class AnimalCohort:
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
+        Implements the Holling type II functional response for predation. The
+        predator-specific optimum prey-predator mass ratio (theta_opt) is drawn
+        once per call and passed to both the numerator (k_target) and denominator
+        (total_handling_t) to ensure consistency across the functional response,
+        since calculate_theta_opt_i is stochastic.
+
         TODO: check to see if there is a way to remove 0 indiv prey cohorts before this
             step.
 
         Args:
-            animal_list: A list of animal cohorts that can be consumed by the
-                predator.
+            animal_list: A list of animal cohorts that can be consumed by the predator.
             target_cohort: The prey cohort from which mass will be consumed.
 
         Returns:
             Float fraction of target cohort consumed per day.
-
-
         """
-        w_bar = self.calculate_predation_success_probability(target_cohort.mass_current)
-        alpha = self.calculate_predation_search_rate(w_bar)
-        theta_i_j = self.theta_i_j(animal_list)  # Assumes implementation of theta_i_j
-        k_target = self.calculate_potential_prey_consumed(alpha, theta_i_j)
-        total_handling_t = self.calculate_total_handling_time_for_predation()
-        N_i = self.individuals
         N_target = target_cohort.individuals
-
-        # If the prey cohort is empty, there is nothing to eat.
         if N_target <= 0:
             return 0.0
 
-        return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
+        theta_opt = self.calculate_theta_opt_i()  # stochastic: one draw per encounter
+
+        w_bar = sf.w_bar_i_j(
+            self.mass_current,
+            target_cohort.mass_current,
+            theta_opt,
+            self.constants.sigma_opt_pred_prey,
+        )
+        alpha = self.calculate_predation_search_rate(w_bar)
+        theta_i_j = self.theta_i_j(animal_list)
+        k_target = self.calculate_potential_prey_consumed(alpha, theta_i_j)
+        total_handling_t = self.calculate_total_handling_time_for_predation(
+            animal_list, theta_opt
+        )
+
+        return self.individuals * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
     def calculate_consumed_mass_predation(
         self,
