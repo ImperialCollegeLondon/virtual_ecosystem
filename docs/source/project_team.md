@@ -223,7 +223,7 @@ currently based at SEARRP in Kota Kinabalu (Malaysia).
 
 Hao Ran is a (mostly plant) community ecologist who works on forest dynamics, functional
 traits and statistical modelling. He helps with the soil models of Virtual Ecosystem and
-is currently based in Aotearoa New Zealand.
+is currently based in Kuala Lumpur, Malaysia.
 :::
 
 :::{grid-item-card} Dr. Nicholas Wei Cheng Tan
