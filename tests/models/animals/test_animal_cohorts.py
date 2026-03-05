@@ -1320,88 +1320,145 @@ class TestAnimalCohort:
         # Asserting the result matches the mocked return value
         assert result == 15.0, "Expected potential prey consumed not returned."
 
+    @pytest.mark.parametrize(
+        "prey_masses, expected_call_count, expected_result",
+        [
+            pytest.param([], 0, 0.0, id="empty_prey_list"),
+            pytest.param([1.0], 1, 6.0, id="single_prey"),
+            pytest.param([1.0, 5.0], 2, 12.0, id="two_prey_different_masses"),
+        ],
+    )
     def test_calculate_total_handling_time_for_predation(
-        self, mocker, herbivore_cohort_instance
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        prey_masses,
+        expected_call_count,
+        expected_result,
     ):
-        """Test total handling time calculation for predation."""
+        """Test total handling time sums H_i_j * k_i_j correctly across prey cohorts."""
+        animal_list = [mocker.MagicMock(mass_current=m) for m in prey_masses]
+        theta_opt = 0.5
 
         mock_H_i_j = mocker.patch(
-            "virtual_ecosystem.models.animal.scaling_functions.H_i_j", return_value=2.5
+            "virtual_ecosystem.models.animal.scaling_functions.H_i_j",
+            return_value=2.0,
         )
-
-        result = herbivore_cohort_instance.calculate_total_handling_time_for_predation()
-
-        # Verify that H_i_j was called with the correct parameters
-        mock_H_i_j.assert_called_once_with(
-            herbivore_cohort_instance.constants.h_pred_0,
-            herbivore_cohort_instance.constants.M_pred_ref,
-            herbivore_cohort_instance.mass_current,
-            herbivore_cohort_instance.constants.b_pred,
+        mock_k_i_j = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.k_i_j",
+            return_value=3.0,
         )
-
-        # Asserting the result matches the mocked return value
-        assert result == 2.5, "Expected total handling time for predation not returned."
-
-    def test_F_i_j_individual(
-        self, mocker, predator_cohort_instance, animal_list_instance
-    ):
-        """Test instantaneous predation rate calculation on a selected target cohort."""
-
-        target_animal = animal_list_instance[0]
-
-        # Mock methods using the mocker fixture
-        mock_success_prob = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_predation_success_probability"
-            ),
-            return_value=0.5,
-        )
-        mock_search_rate = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_predation_search_rate"
-            ),
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.w_bar_i_j",
             return_value=0.8,
         )
-        mock_theta_i_j = mocker.patch(
-            ("virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.theta_i_j"),
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.alpha_i_j",
+            return_value=1.5,
+        )
+        mocker.patch.object(herbivore_cohort_instance, "theta_i_j", return_value=0.4)
+
+        result = herbivore_cohort_instance.calculate_total_handling_time_for_predation(
+            animal_list, theta_opt
+        )
+
+        assert mock_H_i_j.call_count == expected_call_count
+        assert mock_k_i_j.call_count == expected_call_count
+        assert result == expected_result
+
+        if animal_list:
+            # theta_i_j always computed exactly once regardless of prey count
+            herbivore_cohort_instance.theta_i_j.assert_called_once_with(animal_list)
+
+            # verify the last call used the correct prey mass for that cohort
+            last_prey_mass = prey_masses[-1]
+            mock_H_i_j.assert_called_with(
+                herbivore_cohort_instance.constants.h_pred_0,
+                herbivore_cohort_instance.constants.M_pred_ref,
+                herbivore_cohort_instance.mass_current,
+                herbivore_cohort_instance.constants.b_pred,
+                last_prey_mass,
+            )
+
+    @pytest.mark.parametrize(
+        "n_target, expected_early_return",
+        [
+            pytest.param(0, True, id="zero_individuals_returns_zero"),
+            pytest.param(10, False, id="normal_predation_rate"),
+        ],
+    )
+    def test_F_i_j_individual(
+        self,
+        mocker,
+        predator_cohort_instance,
+        animal_list_instance,
+        n_target,
+        expected_early_return,
+    ):
+        """Test instantaneous predation rate calculation on a selected target cohort."""
+        target_animal = animal_list_instance[0]
+        target_animal.individuals = n_target
+
+        theta_opt = 0.5
+
+        mock_theta_opt = mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_theta_opt_i",
+            return_value=theta_opt,
+        )
+        mock_w_bar = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.w_bar_i_j",
+            return_value=0.8,
+        )
+        mock_search_rate = mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_predation_search_rate",
+            return_value=0.8,
+        )
+        mock_theta_i_j = mocker.patch.object(
+            predator_cohort_instance,
+            "theta_i_j",
             return_value=0.7,
         )
-        mock_potential_prey = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_potential_prey_consumed"
-            ),
+        mock_potential_prey = mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_potential_prey_consumed",
             return_value=10,
         )
-        mock_total_handling = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_total_handling_time_for_predation"
-            ),
+        mock_total_handling = mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_total_handling_time_for_predation",
             return_value=2,
         )
 
-        # Execute the method under test
         rate = predator_cohort_instance.F_i_j_individual(
             animal_list_instance, target_animal
         )
 
-        # Verify each mocked method was called with expected arguments
-        mock_success_prob.assert_called_once_with(target_animal.mass_current)
-        mock_search_rate.assert_called_once_with(0.5)
+        if expected_early_return:
+            assert rate == 0.0
+            mock_theta_opt.assert_not_called()
+            mock_total_handling.assert_not_called()
+            return
+
+        # theta_opt drawn exactly once and passed into both w_bar and handling time
+        mock_theta_opt.assert_called_once()
+        mock_w_bar.assert_called_once_with(
+            predator_cohort_instance.mass_current,
+            target_animal.mass_current,
+            theta_opt,
+            predator_cohort_instance.constants.sigma_opt_pred_prey,
+        )
+        mock_search_rate.assert_called_once_with(0.8)
         mock_theta_i_j.assert_called_once_with(animal_list_instance)
         mock_potential_prey.assert_called_once_with(0.8, 0.7)
-        mock_total_handling.assert_called_once()
 
-        # Calculate the expected rate based on the mocked return values and assert
+        # theta_opt threaded through to handling time denominator
+        mock_total_handling.assert_called_once_with(animal_list_instance, theta_opt)
+
         N_i = predator_cohort_instance.individuals
-        N_target = target_animal.individuals
-        expected_rate = N_i * (10 / (1 + 2)) * (1 / N_target)
-        assert rate == pytest.approx(expected_rate), (
-            "F_i_j_individual did not return the expected predation rate."
-        )
+        expected_rate = N_i * (10 / (1 + 2)) * (1 / n_target)
+        assert rate == pytest.approx(expected_rate)
 
     def test_theta_i_j(self, predator_cohort_instance, animal_list_instance):
         """Test theta_i_j."""
