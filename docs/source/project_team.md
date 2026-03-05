@@ -237,8 +237,8 @@ is currently based in Kuala Lumpur, Malaysia.
 
 Nicholas is an animal ecologist with interests in phenotypic evolution and the effects
 of climate and land use change on biodiversity. He is one of the data scientists for the
-Virtual Ecosystem, with a focus on the animal model. Nicholas is currently based in
-Johannesburg, South Africa.
+Virtual Ecosystem, with a focus on the animal model. Nicholas is currently based at
+SEARRP in Kota Kinabalu, Malaysia.
 :::
 
 :::{grid-item-card} Dr. Arne Scheire
