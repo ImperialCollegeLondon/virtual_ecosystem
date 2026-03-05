@@ -34,7 +34,12 @@ from pydantic import ValidationError, create_model
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
+from virtual_ecosystem.core.registry import (
+    DISTURBANCE_REGISTRY,
+    MODULE_REGISTRY,
+    register_disturbance,
+    register_module,
+)
 
 
 def merge_configuration_dicts(
@@ -494,7 +499,7 @@ class ConfigurationLoader:
 
 
 def build_configuration_model(
-    requested_modules: list[str],
+    requested_modules: list[str], requested_disturbances: list[str] | None = None
 ) -> type[CompiledConfiguration]:
     """Build a configuration model for a simulation.
 
@@ -516,6 +521,9 @@ def build_configuration_model(
     if "core" not in requested_modules:
         requested_modules = ["core", *requested_modules]
 
+    # If there are no disturbances, it should be an empty list
+    requested_disturbances = requested_disturbances or []
+
     # Register the requested modules, which handles unknown module names. This step is
     # required to populate the module registry with the details of the requested modules
     for module in requested_modules:
@@ -526,9 +534,22 @@ def build_configuration_model(
         )
         register_module(module)
 
+    # Register requested disturbances in the same way
+    for disturbance in requested_disturbances:
+        disturbance = f"virtual_ecosystem.disturbances.{disturbance}"
+        register_disturbance(disturbance)
+
     # Create a list of submodels in the configuration.
-    submodels = (
+    submodels = [
         (module, MODULE_REGISTRY[module].config) for module in requested_modules
+    ]
+
+    # Extend with the disturbances
+    submodels.extend(
+        [
+            (disturbance, DISTURBANCE_REGISTRY[disturbance].config)
+            for disturbance in requested_disturbances
+        ]
     )
 
     # Use pydantic create_model to dynamically generate a model with a field for each
@@ -545,6 +566,11 @@ def build_configuration_model(
     # BaseModel science models by requested model name.
     combined_model._model_classes = {
         m: MODULE_REGISTRY[m].model for m in requested_modules if m != "core"
+    }
+
+    # And do the same with the disturbances
+    combined_model._disturbance_classes = {
+        m: DISTURBANCE_REGISTRY[m].model for m in requested_disturbances
     }
 
     return combined_model
@@ -568,17 +594,28 @@ def generate_configuration(data: dict[str, Any] = {}) -> CompiledConfiguration:
     Args:
         data: A dictionary of unvalidated configuration data.
     """
+    # Extract the disturbances, if any
+    disturbances = data.pop("disturbance", {})
 
     # Build the configuration model from the compiled configuration
     try:
         ConfigurationModel = build_configuration_model(
-            requested_modules=list(data.keys())
+            requested_modules=list(data.keys()),
+            requested_disturbances=list(disturbances.keys()),
         )
     except (ModuleNotFoundError, RuntimeError) as err:
         LOGGER.critical(str(err))
         raise
 
     LOGGER.info("Configuration model built.")
+
+    # Flatten the configuration to have it at the same level as other models
+    # First we check that there are common names
+    duplicates = set(data.keys()).intersection(disturbances.keys())
+    if duplicates:
+        LOGGER.error(f"Names for disturbances also found in models: {duplicates}")
+        raise ConfigurationError("Validation errors in configuration data - check log.")
+    data.update(disturbances)
 
     try:
         configuration = ConfigurationModel().model_validate(data)

@@ -121,6 +121,10 @@ class CompiledConfiguration(Configuration):
     """A dictionary of the requested modules in the simulation and their
     VirtualEcosystem BaseModel classes."""
 
+    _disturbance_classes: ClassVar[dict[str, Any]]  # FIXME - VEBaseDisturbance
+    """A dictionary of the requested disturbances in the simulation and their
+    VirtualEcosystem BaseDisturbance classes."""
+
     def get_subconfiguration(self, name: str, _: Callable[..., T]) -> T:
         """Get a named subconfiguration object from a compiled configuration.
 
