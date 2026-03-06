@@ -1296,9 +1296,9 @@ class TestAnimalCohort:
 
     def test_calculate_potential_prey_consumed(self, mocker, herbivore_cohort_instance):
         """Test calculation of potential number of prey consumed."""
-
-        alpha = 0.8  # Example search rate
-        theta_i_j = 0.7  # Example predation parameter
+        alpha = 0.8
+        theta_i_j = 0.7
+        intersection_area = 5000.0
 
         mock_k_i_j = mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.k_i_j",
@@ -1306,18 +1306,15 @@ class TestAnimalCohort:
         )
 
         result = herbivore_cohort_instance.calculate_potential_prey_consumed(
-            alpha, theta_i_j
+            alpha, theta_i_j, intersection_area
         )
 
-        # Verify that k_i_j was called with the correct parameters
         mock_k_i_j.assert_called_once_with(
             alpha,
             herbivore_cohort_instance.individuals,
-            herbivore_cohort_instance.grid.cell_area,
+            intersection_area,
             theta_i_j,
         )
-
-        # Asserting the result matches the mocked return value
         assert result == 15.0, "Expected potential prey consumed not returned."
 
     @pytest.mark.parametrize(
