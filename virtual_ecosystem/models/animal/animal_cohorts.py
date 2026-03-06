@@ -881,7 +881,7 @@ class AnimalCohort:
         Returns:
             A float value of total handling time in days.
         """
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
         theta_i_j = self.theta_i_j(animal_list)
         return sum(
             sf.H_i_j(
@@ -1466,16 +1466,13 @@ class AnimalCohort:
         TODO: update name
 
         Args:
-            animal_list: A list of animal cohorts that can be consumed by the
-                         predator.
+            animal_list: A list of animal cohorts that can be consumed by the predator.
 
         Returns:
             The float value of theta.
         """
-        A_cell = self.grid.cell_area
-
         return sum(
-            cohort.individuals / A_cell
+            cohort.individuals / self.get_territory_intersection(cohort)[1]
             for cohort in animal_list
             if self.mass_current == cohort.mass_current
         )
@@ -1678,8 +1675,8 @@ class AnimalCohort:
         Returns:
             List of animal cohorts that can be preyed upon.
         """
-        prey_list: list[AnimalCohort] = []
 
+        prey_set: set[AnimalCohort] = set()
         for cell_id in self.territory:
             for prey_cohort in communities[cell_id]:
                 if not self.can_prey_on(prey_cohort):
@@ -1692,9 +1689,8 @@ class AnimalCohort:
                 if (allows_invertebrates and prey_group.is_invertebrate) or (
                     allows_vertebrates and prey_group.is_vertebrate
                 ):
-                    prey_list.append(prey_cohort)
-
-        return prey_list
+                    prey_set.add(prey_cohort)
+        return list(prey_set)
 
     def can_forage_on(self, resource: Resource) -> bool:
         """Check if the cohort can forage on a given non-cohort resource pool.

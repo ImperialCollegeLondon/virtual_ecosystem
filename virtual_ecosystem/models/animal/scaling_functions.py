@@ -86,6 +86,7 @@ def metabolic_rate(
     mass and an exponential relationship with temperature.
 
     TODO: Implement activity windows to properly parameterize sigma.
+    TODO: double check unit alignment
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
@@ -395,7 +396,7 @@ def w_bar_i_j(
         mass_predator: Current mass of the predator..
         mass_prey: Current mass of the prey.
         theta_opt_i: The optimum predator-prey mass ratio.
-        sigma_opt_pred_prey: The standard deviation of the mass ration.
+        sigma_opt_pred_prey: The standard deviation of the mass ratio.
 
     Returns:
         A float probability [0.0-1.0] that a predation encounter is successful.
