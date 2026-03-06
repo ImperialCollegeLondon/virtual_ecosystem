@@ -787,7 +787,13 @@ T = TypeVar("T")
 
 
 def _discover_models(models: ModuleType, of_type: type[T]) -> list[type[T]]:
-    """Discover all the models in Virtual Ecosystem."""
+    """Discover all the models in Virtual Ecosystem.
+
+    We use the generic T type to ensure that the types of the inputs and the
+    outputs are linked together. In practice, T will be either
+    :attr:`~virtual_ecosystem.core.base_model.BaseModel` or
+    :attr:`~virtual_ecosystem.core.base_model.BaseDisturbance`.
+    """
 
     models_found = []
     for mod in pkgutil.iter_modules(models.__path__):
