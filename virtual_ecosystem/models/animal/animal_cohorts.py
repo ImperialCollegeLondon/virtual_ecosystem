@@ -655,7 +655,7 @@ class AnimalCohort:
 
         # Find the intersection of prey and predator territories
         intersection_carcass_pools = self.find_intersecting_carcass_pools(
-            predator.territory, carcass_pools
+            predator, carcass_pools
         )
 
         # Update the carcass pool with the carcass mass
@@ -1905,25 +1905,40 @@ class AnimalCohort:
         )
         return cast(list[Resource], pools_list)
 
-    def find_intersecting_carcass_pools(
-        self,
-        prey_territory: list[int],
-        carcass_pools: dict[int, list[CarcassPool]],
-    ) -> list[CarcassPool]:
-        """Find the carcass pools of the intersection of two territories.
+    def get_territory_intersection(
+        self, other_cohort: AnimalCohort
+    ) -> tuple[set[int], float]:
+        """Find the overlapping cells and area between this cohort and another cohort.
 
         Args:
-            prey_territory: Another AnimalTerritory to find the intersection with.
+            other_cohort: The prey cohort to find the territorial overlap with.
+
+        Returns:
+            A tuple of the set of overlapping cell IDs and the total intersection
+            area in m2.
+        """
+        intersection_cells = set(self.territory) & set(other_cohort.territory)
+        intersection_area = len(intersection_cells) * self.grid.cell_area
+        return intersection_cells, intersection_area
+
+    def find_intersecting_carcass_pools(
+        self,
+        other_cohort: AnimalCohort,
+        carcass_pools: dict[int, list[CarcassPool]],
+    ) -> list[CarcassPool]:
+        """Find the carcass pools in the territorial overlap with another cohort.
+
+        Args:
+            other_cohort: The other cohort to find the territorial intersection with.
             carcass_pools: A dictionary mapping cell IDs to CarcassPool objects.
 
         Returns:
             A list of CarcassPools in the intersecting grid cells.
         """
-        intersecting_keys = set(self.territory) & set(prey_territory)
-        intersecting_carcass_pools: list[CarcassPool] = []
-        for cell_id in intersecting_keys:
-            intersecting_carcass_pools.extend(carcass_pools[cell_id])
-        return intersecting_carcass_pools
+        intersection_cells, _ = self.get_territory_intersection(other_cohort)
+        return [
+            pool for cell_id in intersection_cells for pool in carcass_pools[cell_id]
+        ]
 
     def get_herbivory_waste_pools(
         self, plant_waste: dict[int, HerbivoryWaste]
