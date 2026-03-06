@@ -682,7 +682,7 @@ class AnimalCohort:
         TODO: update name
 
         Returns:
-            A float representing the search efficiency rate in [ha/(day*g)].
+            A float representing the search efficiency rate in [m2/(day*g)].
         """
 
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
@@ -728,7 +728,7 @@ class AnimalCohort:
             raise ValueError(f"alpha must be positive. Got {alpha}.")
 
         phi = self.functional_group.constants.phi_herb_t
-        A_cell = 1.0  # Temporary value
+        A_cell = self.grid.cell_area
 
         return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
 
@@ -741,7 +741,6 @@ class AnimalCohort:
         list, incorporating the search efficiency and other scaling factors to compute
         the total handling time required by the cohort.
 
-        TODO: give A_cell a grid size reference.
         TODO: MGO - rework for territories
 
         Args:
@@ -755,7 +754,7 @@ class AnimalCohort:
         """
 
         phi = self.functional_group.constants.phi_herb_t
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
         return sum(
             sf.k_i_k(alpha, phi, plant.mass_current, A_cell)
             + sf.H_i_k(
@@ -841,7 +840,7 @@ class AnimalCohort:
             w_bar: Probability of successfully capturing prey.
 
         Returns:
-            A float value of the search rate in ha/day
+            A float value of the search rate in m2/day
 
         """
         return sf.alpha_i_j(self.constants.alpha_0_pred, self.mass_current, w_bar)
@@ -851,7 +850,6 @@ class AnimalCohort:
     ) -> float:
         """Calculate the potential number of prey consumed.
 
-        TODO: give A_cell a grid size reference
         TODO: MGO - rework for territories
 
         Args:
@@ -863,7 +861,7 @@ class AnimalCohort:
             The potential number of prey items consumed.
 
         """
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
         return sf.k_i_j(alpha, self.individuals, A_cell, theta_i_j)
 
     def calculate_total_handling_time_for_predation(
@@ -1465,7 +1463,6 @@ class AnimalCohort:
         Madingley
 
         TODO: current mass bin format makes no sense, dig up the details in the supp
-        TODO: update A_cell with real reference to grid size
         TODO: update name
 
         Args:
@@ -1475,7 +1472,7 @@ class AnimalCohort:
         Returns:
             The float value of theta.
         """
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
 
         return sum(
             cohort.individuals / A_cell
@@ -1549,7 +1546,6 @@ class AnimalCohort:
         """The probability that a juvenile cohort will migrate to a new grid cell.
 
         TODO: This does not hold for diagonal moves or non-square grids.
-        TODO: update A_cell to grid size reference
 
         Following Madingley's assumption that the probability of juvenile dispersal is
         equal to the proportion of the cohort individuals that would arrive in the
@@ -1575,7 +1571,7 @@ class AnimalCohort:
 
         """
 
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
         grid_side = sqrt(A_cell)
         velocity = sf.juvenile_dispersal_speed(
             self.mass_current,
