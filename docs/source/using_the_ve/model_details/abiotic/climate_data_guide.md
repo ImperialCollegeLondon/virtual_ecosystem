@@ -49,6 +49,14 @@ To ensure consistency across all VE modules, climate datasets must:
 * Be converted to appropriate physical units
 * Be formatted into a VE-compatible NetCDF structure
 
+```{note}
+Different data sources provide data at different vertical levels and with different
+underlying assumptions, which lead to biases in the model output. For example, the
+reference height can be 1.5 m or 2 m, above ground or above the canopy, measured or
+interpolated. In the Virtual Ecosystem, the reference height is assumed to be 2 m above
+the top of the canopy (2 m above the ground in absence of vegetation).
+```
+
 Climate preprocessing typically involves two stages:
 
 1. Data Download

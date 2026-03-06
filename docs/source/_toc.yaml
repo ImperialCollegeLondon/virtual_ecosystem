@@ -69,7 +69,6 @@ subtrees:
                   - file: using_the_ve/model_details/abiotic/abiotic_config
                   - file: using_the_ve/model_details/abiotic/abiotic_simple_config
                   - file: using_the_ve/model_details/abiotic/hydrology_config
-                  - file: using_the_ve/model_details/abiotic/notes_preprocessing
                   - file: using_the_ve/model_details/abiotic/elevation_data_guide
                   - file: using_the_ve/model_details/abiotic/climate_data_guide
               - file: using_the_ve/model_details/pft_configuration
