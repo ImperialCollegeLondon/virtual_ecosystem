@@ -670,34 +670,44 @@ def test_ConfigurationLoader_load_configuration_data(
 
 
 @pytest.mark.parametrize(
-    argnames="requested, outcome, expected",
+    argnames="requested, disturbances, outcome, expected",
     argvalues=(
         pytest.param(
             ["core", "plants"],
+            [],
             does_not_raise(),
             ["core", "plants"],
             id="core present",
         ),
         pytest.param(
             ["plants"],
+            [],
             does_not_raise(),
             ["core", "plants"],
             id="core added",
         ),
         pytest.param(
             ["planets"],
+            [],
             pytest.raises(ModuleNotFoundError),
             None,
             id="unknown model",
         ),
+        pytest.param(
+            ["plants"],
+            ["disturbance_testing"],
+            does_not_raise(),
+            ["core", "plants", "disturbance_testing"],
+            id="disturbance added",
+        ),
     ),
 )
-def test_build_configuration_model(requested, outcome, expected):
+def test_build_configuration_model(requested, disturbances, outcome, expected):
     """Tests build_configuration_model."""
     from virtual_ecosystem.core.config_builder import build_configuration_model
 
     with outcome:
-        model = build_configuration_model(requested)
+        model = build_configuration_model(requested, disturbances)
 
         assert issubclass(model, BaseModel)
         assert set(expected) == set(model.model_fields.keys())
@@ -735,6 +745,18 @@ def test_build_configuration_model(requested, outcome, expected):
                 (CRITICAL, "Configuration validation failed. See errors above."),
             ),
             id="core_plants_bad_type",
+        ),
+        pytest.param(
+            {
+                "core": {"grid": {"cell_nx": 10}},
+                "disturbance": {
+                    "disturbance_testing": {"run_at": 42},
+                },
+            },
+            does_not_raise(),
+            (("core.grid.cell_nx", 10), ("disturbance_testing.run_at", 42)),
+            ((INFO, "Configuration validated."),),
+            id="core_disturbance",
         ),
     ),
 )
@@ -792,6 +814,16 @@ def test_generate_configuration(
                 (CRITICAL, "Configuration validation failed. See errors above."),
             ),
             id="core_plants_bad_type",
+        ),
+        pytest.param(
+            [
+                "[core]\n[core.grid]\ncell_nx =  10\n",
+                "[disturbance.disturbance_testing]\nrun_at = 42",
+            ],
+            does_not_raise(),
+            (("core.grid.cell_nx", 10), ("disturbance_testing.run_at", 42)),
+            ((INFO, "Configuration validated."),),
+            id="core_disturbance",
         ),
     ),
 )
