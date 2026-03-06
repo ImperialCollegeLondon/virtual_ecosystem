@@ -610,7 +610,7 @@ def generate_configuration(data: dict[str, Any] = {}) -> CompiledConfiguration:
     LOGGER.info("Configuration model built.")
 
     # Flatten the configuration to have it at the same level as other models
-    # First we check that there are common names
+    # First we check that there are no common names
     duplicates = set(data.keys()).intersection(disturbances.keys())
     if duplicates:
         LOGGER.error(f"Names for disturbances also found in models: {duplicates}")

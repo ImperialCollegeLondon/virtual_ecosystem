@@ -195,13 +195,13 @@ class DisturbanceConfigurationRoot(Configuration):
     It also validates the timing fields to ensure that at least one of them is set.
     """
 
-    run_at: int | list[int] | None = None
+    run_at: int | tuple[int, ...] = ()
     """Define time indices to run at specific times.
     
     Either a single integer or a list of integers indicating the time indices when the
     disturbance is to run.
     """
-    run_every: tuple[int, ...] | None = None
+    run_every: tuple[int, ...] = ()
     """Define a range of indices to run the disturbance.
     
     A tuple of integers indicating (start), or (start, step), or (start, step, stop),
@@ -210,11 +210,11 @@ class DisturbanceConfigurationRoot(Configuration):
     the last time index. 'start' must always be provided."""
 
     @model_validator(mode="after")
-    def timing_options_are_not_both_none(self) -> DisturbanceConfigurationRoot:
+    def timing_options_are_not_both_empty(self) -> DisturbanceConfigurationRoot:
         """Validate the timing options of the configuration."""
-        if self.run_at is None and self.run_every is None:
+        if self.run_at == () and self.run_every == ():
             raise ValueError(
-                "Timing options 'run_at' and 'run_every' cannot be both None."
+                "Timing options 'run_at' and 'run_every' cannot be both ()."
             )
         return self
 
