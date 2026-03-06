@@ -110,6 +110,12 @@ the coordinate boundaries are awkward. What we want is a grid in UTM50N that use
 is pretty good). To do this we round down the lower left corner to neat meter
 coordinates and add a cell to maintain the approximate limits of the original grid.
 
+```{note}
+The process shown below was originally written for a 90 m grid resolution (i.e.
+`res = 90`). However, it can be adjusted to any desired grid resolution (e.g., 100 m) by
+modifying the `res` parameter.
+```
+
 ```{code-cell} ipython3
 ll_x_utm50N = 494300
 ll_y_utm50N = 521300
