@@ -2474,7 +2474,7 @@ class TestAnimalCohort:
         cohort.time_since_maturity = t_since_maturity
         cohort.functional_group.adult_mass = mass_max
 
-        # ✅ Mock `mass_current` properly as a property on the class
+        # Mock `mass_current` properly as a property on the class
         mocker.patch.object(
             type(cohort),
             "mass_current",
@@ -2482,7 +2482,7 @@ class TestAnimalCohort:
             return_value=mass_current,
         )
 
-        # ✅ Mocking the mortality functions to return predefined values
+        # Mocking the mortality functions to return predefined values
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.background_mortality",
             return_value=u_bg,
@@ -3498,3 +3498,65 @@ class TestAnimalCohort:
         pool_a.__getitem__.assert_any_call(1)
         pool_a.__getitem__.assert_any_call(2)
         pool_b.__getitem__.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "self_territory, other_territory, expected_cells, expected_cell_count",
+        [
+            pytest.param([0, 1, 2], [1, 2, 3], {1, 2}, 2, id="partial_overlap"),
+            pytest.param([0, 1], [2, 3], set(), 0, id="no_overlap"),
+        ],
+    )
+    def test_get_territory_intersection(
+        self,
+        herbivore_cohort_instance,
+        predator_cohort_instance,
+        self_territory,
+        other_territory,
+        expected_cells,
+        expected_cell_count,
+    ):
+        """Test get_territory_intersection."""
+        herbivore_cohort_instance.territory = self_territory
+        predator_cohort_instance.territory = other_territory
+
+        intersection_cells, intersection_area = (
+            herbivore_cohort_instance.get_territory_intersection(
+                predator_cohort_instance
+            )
+        )
+
+        assert intersection_cells == expected_cells
+        assert intersection_area == pytest.approx(
+            expected_cell_count * herbivore_cohort_instance.grid.cell_area
+        )
+
+    @pytest.mark.parametrize(
+        "self_territory, other_territory, expected_cell_ids",
+        [
+            pytest.param([0, 1, 2], [1, 2, 3], {1, 2}, id="partial_overlap"),
+            pytest.param([0, 1], [2, 3], set(), id="no_overlap"),
+        ],
+    )
+    def test_find_intersecting_carcass_pools(
+        self,
+        herbivore_cohort_instance,
+        predator_cohort_instance,
+        carcass_pools_by_cell_instance,
+        self_territory,
+        other_territory,
+        expected_cell_ids,
+    ):
+        """Test find_intersecting_carcass_pools."""
+        herbivore_cohort_instance.territory = self_territory
+        predator_cohort_instance.territory = other_territory
+
+        result = herbivore_cohort_instance.find_intersecting_carcass_pools(
+            predator_cohort_instance, carcass_pools_by_cell_instance
+        )
+
+        expected = [
+            pool
+            for cell_id in expected_cell_ids
+            for pool in carcass_pools_by_cell_instance[cell_id]
+        ]
+        assert result == expected
