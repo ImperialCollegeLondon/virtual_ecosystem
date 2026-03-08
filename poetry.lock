@@ -640,14 +640,14 @@ files = [
 
 [[package]]
 name = "codespell"
-version = "2.4.1"
+version = "2.4.2"
 description = "Fix common misspellings in text files"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["devenv"]
 files = [
-    {file = "codespell-2.4.1-py3-none-any.whl", hash = "sha256:3dadafa67df7e4a3dbf51e0d7315061b80d265f9552ebd699b3dd6834b47e425"},
-    {file = "codespell-2.4.1.tar.gz", hash = "sha256:299fcdcb09d23e81e35a671bbe746d5ad7e8385972e65dbb833a2eaac33c01e5"},
+    {file = "codespell-2.4.2-py3-none-any.whl", hash = "sha256:97e0c1060cf46bd1d5db89a936c98db8c2b804e1fdd4b5c645e82a1ec6b1f886"},
+    {file = "codespell-2.4.2.tar.gz", hash = "sha256:3c33be9ae34543807f088aeb4832dfad8cb2dae38da61cac0a7045dd376cfdf3"},
 ]
 
 [package.extras]
@@ -2734,14 +2734,14 @@ files = [
 
 [[package]]
 name = "myst-nb"
-version = "1.3.0"
+version = "1.4.0"
 description = "A Jupyter Notebook Sphinx reader built on top of the MyST markdown parser."
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["docs"]
 files = [
-    {file = "myst_nb-1.3.0-py3-none-any.whl", hash = "sha256:1f36af3c19964960ec4e51ac30949b6ed6df220356ffa8d60dd410885e132d7d"},
-    {file = "myst_nb-1.3.0.tar.gz", hash = "sha256:df3cd4680f51a5af673fd46b38b562be3559aef1475e906ed0f2e66e4587ce4b"},
+    {file = "myst_nb-1.4.0-py3-none-any.whl", hash = "sha256:0e2c86e7d3b82c3aa51383f82d6268f7714f3b772c23a796ab09538a8e68b4e4"},
+    {file = "myst_nb-1.4.0.tar.gz", hash = "sha256:c145598de62446a6fd009773dd071a40d3b76106ace780de1abdfc6961f614c2"},
 ]
 
 [package.dependencies]
@@ -2759,7 +2759,7 @@ typing-extensions = "*"
 [package.extras]
 code-style = ["pre-commit"]
 rtd = ["alabaster", "altair", "bokeh", "coconut (>=1.4.3)", "ipykernel (>=5.5)", "ipywidgets", "jupytext (>=1.11.2)", "matplotlib", "numpy", "pandas", "plotly", "sphinx-autodoc-typehints", "sphinx-book-theme (>=0.3)", "sphinx-copybutton", "sphinx-design", "sphinxcontrib-bibtex", "sympy"]
-testing = ["beautifulsoup4", "coverage (>=6.4)", "ipykernel (>=5.5)", "ipython (!=8.1.0)", "ipywidgets (>=8)", "jupytext (>=1.11.2)", "matplotlib (==3.7.*)", "nbdime", "numpy", "pandas", "pyarrow", "pytest", "pytest-cov (>=3)", "pytest-param-files", "pytest-regressions", "sympy (>=1.10.1)"]
+testing = ["beautifulsoup4", "coverage (>=6.4)", "ipykernel (>=5.5)", "ipython (!=8.1.0)", "ipywidgets (>=8)", "jupytext (>=1.11.2)", "matplotlib (==3.10.7)", "nbdime", "numpy", "pandas", "pyarrow", "pytest", "pytest-cov (>=3)", "pytest-param-files", "pytest-regressions", "sympy (>=1.10.1)"]
 
 [[package]]
 name = "myst-parser"
@@ -4477,30 +4477,30 @@ files = [
 
 [[package]]
 name = "ruff"
-version = "0.15.4"
+version = "0.15.5"
 description = "An extremely fast Python linter and code formatter, written in Rust."
 optional = false
 python-versions = ">=3.7"
 groups = ["devenv"]
 files = [
-    {file = "ruff-0.15.4-py3-none-linux_armv6l.whl", hash = "sha256:a1810931c41606c686bae8b5b9a8072adac2f611bb433c0ba476acba17a332e0"},
-    {file = "ruff-0.15.4-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:5a1632c66672b8b4d3e1d1782859e98d6e0b4e70829530666644286600a33992"},
-    {file = "ruff-0.15.4-py3-none-macosx_11_0_arm64.whl", hash = "sha256:a4386ba2cd6c0f4ff75252845906acc7c7c8e1ac567b7bc3d373686ac8c222ba"},
-    {file = "ruff-0.15.4-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b2496488bdfd3732747558b6f95ae427ff066d1fcd054daf75f5a50674411e75"},
-    {file = "ruff-0.15.4-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:3f1c4893841ff2d54cbda1b2860fa3260173df5ddd7b95d370186f8a5e66a4ac"},
-    {file = "ruff-0.15.4-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:820b8766bd65503b6c30aaa6331e8ef3a6e564f7999c844e9a547c40179e440a"},
-    {file = "ruff-0.15.4-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:c9fb74bab47139c1751f900f857fa503987253c3ef89129b24ed375e72873e85"},
-    {file = "ruff-0.15.4-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:f80c98765949c518142b3a50a5db89343aa90f2c2bf7799de9986498ae6176db"},
-    {file = "ruff-0.15.4-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:451a2e224151729b3b6c9ffb36aed9091b2996fe4bdbd11f47e27d8f2e8888ec"},
-    {file = "ruff-0.15.4-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:a8f157f2e583c513c4f5f896163a93198297371f34c04220daf40d133fdd4f7f"},
-    {file = "ruff-0.15.4-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:917cc68503357021f541e69b35361c99387cdbbf99bd0ea4aa6f28ca99ff5338"},
-    {file = "ruff-0.15.4-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:e9737c8161da79fd7cfec19f1e35620375bd8b2a50c3e77fa3d2c16f574105cc"},
-    {file = "ruff-0.15.4-py3-none-musllinux_1_2_i686.whl", hash = "sha256:291258c917539e18f6ba40482fe31d6f5ac023994ee11d7bdafd716f2aab8a68"},
-    {file = "ruff-0.15.4-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:3f83c45911da6f2cd5936c436cf86b9f09f09165f033a99dcf7477e34041cbc3"},
-    {file = "ruff-0.15.4-py3-none-win32.whl", hash = "sha256:65594a2d557d4ee9f02834fcdf0a28daa8b3b9f6cb2cb93846025a36db47ef22"},
-    {file = "ruff-0.15.4-py3-none-win_amd64.whl", hash = "sha256:04196ad44f0df220c2ece5b0e959c2f37c777375ec744397d21d15b50a75264f"},
-    {file = "ruff-0.15.4-py3-none-win_arm64.whl", hash = "sha256:60d5177e8cfc70e51b9c5fad936c634872a74209f934c1e79107d11787ad5453"},
-    {file = "ruff-0.15.4.tar.gz", hash = "sha256:3412195319e42d634470cc97aa9803d07e9d5c9223b99bcb1518f0c725f26ae1"},
+    {file = "ruff-0.15.5-py3-none-linux_armv6l.whl", hash = "sha256:4ae44c42281f42e3b06b988e442d344a5b9b72450ff3c892e30d11b29a96a57c"},
+    {file = "ruff-0.15.5-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:6edd3792d408ebcf61adabc01822da687579a1a023f297618ac27a5b51ef0080"},
+    {file = "ruff-0.15.5-py3-none-macosx_11_0_arm64.whl", hash = "sha256:89f463f7c8205a9f8dea9d658d59eff49db05f88f89cc3047fb1a02d9f344010"},
+    {file = "ruff-0.15.5-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ba786a8295c6574c1116704cf0b9e6563de3432ac888d8f83685654fe528fd65"},
+    {file = "ruff-0.15.5-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:fd4b801e57955fe9f02b31d20375ab3a5c4415f2e5105b79fb94cf2642c91440"},
+    {file = "ruff-0.15.5-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:391f7c73388f3d8c11b794dbbc2959a5b5afe66642c142a6effa90b45f6f5204"},
+    {file = "ruff-0.15.5-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:8dc18f30302e379fe1e998548b0f5e9f4dff907f52f73ad6da419ea9c19d66c8"},
+    {file = "ruff-0.15.5-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:1cc6e7f90087e2d27f98dc34ed1b3ab7c8f0d273cc5431415454e22c0bd2a681"},
+    {file = "ruff-0.15.5-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c1cb7169f53c1ddb06e71a9aebd7e98fc0fea936b39afb36d8e86d36ecc2636a"},
+    {file = "ruff-0.15.5-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:9b037924500a31ee17389b5c8c4d88874cc6ea8e42f12e9c61a3d754ff72f1ca"},
+    {file = "ruff-0.15.5-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:65bb414e5b4eadd95a8c1e4804f6772bbe8995889f203a01f77ddf2d790929dd"},
+    {file = "ruff-0.15.5-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:d20aa469ae3b57033519c559e9bc9cd9e782842e39be05b50e852c7c981fa01d"},
+    {file = "ruff-0.15.5-py3-none-musllinux_1_2_i686.whl", hash = "sha256:15388dd28c9161cdb8eda68993533acc870aa4e646a0a277aa166de9ad5a8752"},
+    {file = "ruff-0.15.5-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:b30da330cbd03bed0c21420b6b953158f60c74c54c5f4c1dabbdf3a57bf355d2"},
+    {file = "ruff-0.15.5-py3-none-win32.whl", hash = "sha256:732e5ee1f98ba5b3679029989a06ca39a950cced52143a0ea82a2102cb592b74"},
+    {file = "ruff-0.15.5-py3-none-win_amd64.whl", hash = "sha256:821d41c5fa9e19117616c35eaa3f4b75046ec76c65e7ae20a333e9a8696bc7fe"},
+    {file = "ruff-0.15.5-py3-none-win_arm64.whl", hash = "sha256:b498d1c60d2fe5c10c45ec3f698901065772730b411f164ae270bb6bfcc4740b"},
+    {file = "ruff-0.15.5.tar.gz", hash = "sha256:7c3601d3b6d76dce18c5c824fc8d06f4eef33d6df0c21ec7799510cde0f159a2"},
 ]
 
 [[package]]
@@ -5382,14 +5382,14 @@ files = [
 
 [[package]]
 name = "types-tqdm"
-version = "4.67.3.20260205"
+version = "4.67.3.20260303"
 description = "Typing stubs for tqdm"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["types"]
 files = [
-    {file = "types_tqdm-4.67.3.20260205-py3-none-any.whl", hash = "sha256:85c31731e81dc3c5cecc34c6c8b2e5166fafa722468f58840c2b5ac6a8c5c173"},
-    {file = "types_tqdm-4.67.3.20260205.tar.gz", hash = "sha256:f3023682d4aa3bbbf908c8c6bb35f35692d319460d9bbd3e646e8852f3dd9f85"},
+    {file = "types_tqdm-4.67.3.20260303-py3-none-any.whl", hash = "sha256:459decf677e4b05cef36f9012ef8d6e20578edefb6b78c15bd0b546247eda62d"},
+    {file = "types_tqdm-4.67.3.20260303.tar.gz", hash = "sha256:7bfddb506a75aedb4030fabf4f05c5638c9a3bbdf900d54ec6c82be9034bfb96"},
 ]
 
 [package.dependencies]
@@ -5608,4 +5608,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "fa371841277323ccb0146ed5dc2d7924eca2314ea362450182c9753e5b9bb56f"
+content-hash = "a7db8b7816ed05e90d5834771266808c0ff582829a1140843ff61e123d236d65"
