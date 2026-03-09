@@ -482,68 +482,73 @@ def test_fill_layer_template(fixture_core_components):
     assert np.all(np.isnan(out[0]))
 
 
-def test_record_hourly_output(fixture_core_components):
-    """Test record hourly input."""
+def test_record_hourly_output(fixture_core_components, fixture_abiotic_indices):
+    """Test recording hourly 1D and layered variables."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import record_hourly_output
 
-    hours = 24
-    layers = 14
-    cells = 4
-    hour = 5
-
     layer_structure = fixture_core_components.layer_structure
+    hours, layers, cells = 24, 14, 4
+    hour = 5
+    idx = fixture_abiotic_indices
 
     # Initialise data_record
     data_record = {
-        # 1D variable
         "ground_heat_flux": np.full((hours, cells), np.nan),
-        # 2D layered variable
         "longwave_emission": np.full((hours, layers, cells), np.nan),
+        "sensible_heat_flux": np.full((hours, layers, cells), np.nan),
+        "latent_heat_flux": np.full((hours, layers, cells), np.nan),
     }
 
-    # Hourly inputs
-    ground_heat_flux = np.array([1.0, 2.0, 3.0, 4.0])
-
-    canopy_index = layer_structure.index_filled_canopy
-    surface_index = layer_structure.index_surface_scalar
-
-    longwave_canopy = np.array([[10.0, 20.0, 30.0, 20.0]] * 3)
-    longwave_surface = np.array([5.0, 5.0, 5.0, 5.0])
-
+    # Hourly values
     hourly_values = {
-        "ground_heat_flux": ground_heat_flux,
-        "longwave_emission": [
-            (canopy_index, longwave_canopy),
-            (surface_index, longwave_surface),
-        ],
-        "unknown_var": np.array([999.0, 999.0, 999.0, 999.0]),  # ignored
+        "ground_heat_flux": np.array([1.0, 2.0, 3.0, 4.0]),
+        "longwave_emission": np.arange(layers * cells).reshape(layers, cells),
+        "longwave_emission_soil": np.array([999.0, 999.0, 999.0, 999.0]),  # 1D
+        "sensible_heat_flux": np.arange(layers * cells).reshape(layers, cells),
+        "sensible_heat_flux_soil": np.array([888.0, 888.0, 888.0, 888.0]),  # 1D
+        "latent_heat_flux": np.arange(layers * cells).reshape(layers, cells),
+        "latent_heat_flux_soil": np.array([777.0, 777.0, 777.0, 777.0]),  # 1D
+        "unknown_var": np.array([0, 0, 0, 0]),  # should be ignored
     }
 
     updated = record_hourly_output(
         hour=hour,
         data_record=data_record,
+        idx=idx,
         layer_structure=layer_structure,
         hourly_values=hourly_values,
     )
 
-    # 1D variable recorded correctly
-    assert np.allclose(updated["ground_heat_flux"][hour], ground_heat_flux)
-
-    # 2D layered variable recorded correctly
-    assert np.allclose(updated["longwave_emission"][hour, 1], longwave_canopy[0])
-    assert np.allclose(updated["longwave_emission"][hour, 11], longwave_surface[0])
-
-    # Unfilled layers remain NaN
-    assert np.all(np.isnan(updated["longwave_emission"][hour, 0]))
-    assert np.all(np.isnan(updated["longwave_emission"][hour, 5]))
+    # 1D variable
+    np.testing.assert_allclose(
+        updated["ground_heat_flux"][hour], hourly_values["ground_heat_flux"]
+    )
+    # Check layered variables
+    for var in ["longwave_emission", "sensible_heat_flux", "latent_heat_flux"]:
+        # canopy rows
+        canopy_rows = idx.canopy
+        np.testing.assert_allclose(
+            updated[var][hour, canopy_rows], hourly_values[var][canopy_rows]
+        )
+        # surface row
+        np.testing.assert_allclose(
+            updated[var][hour, idx.surface], hourly_values[var][idx.surface]
+        )
+        # topsoil row
+        np.testing.assert_allclose(
+            updated[var][hour, idx.topsoil], hourly_values[f"{var}_soil"]
+        )
 
     # Other hours untouched
-    assert np.all(np.isnan(updated["ground_heat_flux"][:hour]))
-    assert np.all(np.isnan(updated["ground_heat_flux"][hour + 1 :]))
-
-    assert np.all(np.isnan(updated["longwave_emission"][:hour]))
-    assert np.all(np.isnan(updated["longwave_emission"][hour + 1 :]))
+    for var in data_record:
+        # All hours before current hour
+        assert np.all(np.isnan(updated[var][:hour]))
+        # The next hour specifically
+        assert np.all(np.isnan(updated[var][hour + 1]))
+        # All hours after next hour
+        if hour + 2 < hours:
+            assert np.all(np.isnan(updated[var][hour + 2 :]))
 
 
 def test_mean_to_layers(fixture_core_components):
@@ -655,3 +660,59 @@ def test_validate_variables_with_exclude(names, values, exclude, should_raise):
             validate_variables(names, values, exclude=exclude)
     else:
         validate_variables(names, values, exclude=exclude)
+
+
+def test_all_finite_within_bounds():
+    """Test all finite within blunds."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import finite_and_within
+
+    arr = np.array([10, 20, 30])
+    # should not raise
+    finite_and_within(arr, 0, 40, "test_var")
+
+
+def test_some_values_out_of_bounds():
+    """Test some values out of bounds."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import finite_and_within
+
+    arr = np.array([10, 50, 30])
+    with pytest.raises(AssertionError, match="above 40"):
+        finite_and_within(arr, 0, 40, "test_var")
+
+    arr = np.array([-5, 20, 10])
+    with pytest.raises(AssertionError, match="below 0"):
+        finite_and_within(arr, 0, 40, "test_var")
+
+
+def test_nan_values_ignored():
+    """Test nan values ignored."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import finite_and_within
+
+    arr = np.array([10, np.nan, 20])
+    # min=10, max=20, within bounds → should pass
+    finite_and_within(arr, 0, 30, "test_var")
+
+
+def test_no_finite_values_raises():
+    """Test no finite raises error."""
+    from virtual_ecosystem.models.abiotic.abiotic_tools import finite_and_within
+
+    arr = np.array([np.nan, np.nan])
+    with pytest.raises(AssertionError, match="has no finite values"):
+        finite_and_within(arr, 0, 10, "test_var")
+
+
+def test_multidimensional_array():
+    """Test multidimensional array."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import finite_and_within
+
+    arr = np.array([[10, 20], [30, 40]])
+    finite_and_within(arr, 0, 50, "test_var")
+
+    arr = np.array([[10, 60], [30, 40]])
+    with pytest.raises(AssertionError, match="above 50"):
+        finite_and_within(arr, 0, 50, "test_var")

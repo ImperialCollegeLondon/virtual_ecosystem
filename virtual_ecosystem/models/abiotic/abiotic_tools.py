@@ -487,6 +487,7 @@ def fill_layer_template(
 def record_hourly_output(
     hour: int,
     data_record: dict,
+    idx: SimpleNamespace,
     layer_structure: LayerStructure,
     hourly_values: dict,
 ):
@@ -495,25 +496,58 @@ def record_hourly_output(
     Args:
         hour: Hour of the day
         data_record: dict that contains all hourly data
+        idx: Indices
         layer_structure: LayerStructure object
         hourly_values: Hourly values
 
     Returns:
         updated dict with hour values
     """
+
+    # Flux variables that need layered assignments
+    flux_names = ["longwave_emission", "sensible_heat_flux", "latent_heat_flux"]
+    fluxes = {}
+
+    for name in flux_names:
+        # Convert boolean masks or scalars to integer arrays
+        canopy_idx = (
+            np.nonzero(np.atleast_1d(idx.canopy))[0]
+            if np.atleast_1d(idx.canopy).dtype == bool
+            else np.atleast_1d(idx.canopy)
+        )
+        surface_idx = (
+            np.nonzero(np.atleast_1d(idx.surface))[0]
+            if np.atleast_1d(idx.surface).dtype == bool
+            else np.atleast_1d(idx.surface)
+        )
+        topsoil_idx = (
+            np.nonzero(np.atleast_1d(idx.topsoil))[0]
+            if np.atleast_1d(idx.topsoil).dtype == bool
+            else np.atleast_1d(idx.topsoil)
+        )
+
+        # Topsoil as 1D
+        topsoil_values = hourly_values.get(
+            f"{name}_soil", hourly_values[name][topsoil_idx]
+        )
+
+        fluxes[name] = [
+            (canopy_idx, hourly_values[name][canopy_idx]),
+            (surface_idx, hourly_values[name][surface_idx]),
+            (topsoil_idx, topsoil_values),
+        ]
+
+    # Assign values to data_record
     for var, value in hourly_values.items():
         if var not in data_record:
             continue
 
-        # 1D (cells)
-        if isinstance(value, np.ndarray) and value.ndim == 1:
-            data_record[var][hour] = value
-
-        # 2D layered variable
-        else:
-            full = fill_layer_template(layer_structure, value)
+        if var in fluxes:
+            full = fill_layer_template(layer_structure, fluxes[var])
             data_record[var][hour] = full
 
+        else:
+            data_record[var][hour] = value
     return data_record
 
 
@@ -606,3 +640,19 @@ def validate_variables(
             f"Missing: {sorted(missing)}\n"
             f"Extra: {sorted(extra)}"
         )
+
+
+def finite_and_within(arr, low, high, name):
+    """Test that values are finite and within bounds."""
+
+    values = np.asarray(arr)
+
+    finite = np.isfinite(values)
+    assert finite.any(), f"{name} has no finite values"
+
+    # ignore NaNs
+    min_val = np.nanmin(values)
+    max_val = np.nanmax(values)
+
+    assert min_val >= low, f"{name} below {low}"
+    assert max_val <= high, f"{name} above {high}"
