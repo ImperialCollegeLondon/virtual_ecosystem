@@ -1334,6 +1334,7 @@ class TestAnimalCohort:
         expected_result,
     ):
         """Test total handling time sums H_i_j * k_i_j correctly across prey cohorts."""
+        intersection_area = 5000.0
         animal_list = [mocker.MagicMock(mass_current=m) for m in prey_masses]
         theta_opt = 0.5
 
@@ -1353,6 +1354,11 @@ class TestAnimalCohort:
             "virtual_ecosystem.models.animal.scaling_functions.alpha_i_j",
             return_value=1.5,
         )
+        mocker.patch.object(
+            herbivore_cohort_instance,
+            "get_territory_intersection",
+            return_value=({0, 1}, intersection_area),
+        )
         mocker.patch.object(herbivore_cohort_instance, "theta_i_j", return_value=0.4)
 
         result = herbivore_cohort_instance.calculate_total_handling_time_for_predation(
@@ -1364,10 +1370,13 @@ class TestAnimalCohort:
         assert result == expected_result
 
         if animal_list:
-            # theta_i_j always computed exactly once regardless of prey count
-            herbivore_cohort_instance.theta_i_j.assert_called_once_with(animal_list)
+            # theta_i_j and get_territory_intersection called once per prey cohort
+            assert herbivore_cohort_instance.theta_i_j.call_count == expected_call_count
+            assert (
+                herbivore_cohort_instance.get_territory_intersection.call_count
+                == expected_call_count
+            )
 
-            # verify the last call used the correct prey mass for that cohort
             last_prey_mass = prey_masses[-1]
             mock_H_i_j.assert_called_with(
                 herbivore_cohort_instance.constants.h_pred_0,
@@ -1375,6 +1384,12 @@ class TestAnimalCohort:
                 herbivore_cohort_instance.mass_current,
                 herbivore_cohort_instance.constants.b_pred,
                 last_prey_mass,
+            )
+            mock_k_i_j.assert_called_with(
+                1.5,
+                herbivore_cohort_instance.individuals,
+                intersection_area,
+                0.4,
             )
 
     @pytest.mark.parametrize(
@@ -1395,9 +1410,9 @@ class TestAnimalCohort:
         """Test instantaneous predation rate calculation on a selected target cohort."""
         target_animal = animal_list_instance[0]
         target_animal.individuals = n_target
+        intersection_area = 5000.0
 
         theta_opt = 0.5
-
         mock_theta_opt = mocker.patch.object(
             predator_cohort_instance,
             "calculate_theta_opt_i",
@@ -1429,7 +1444,7 @@ class TestAnimalCohort:
         )
 
         rate = predator_cohort_instance.F_i_j_individual(
-            animal_list_instance, target_animal
+            animal_list_instance, target_animal, intersection_area
         )
 
         if expected_early_return:
@@ -1438,7 +1453,6 @@ class TestAnimalCohort:
             mock_total_handling.assert_not_called()
             return
 
-        # theta_opt drawn exactly once and passed into both w_bar and handling time
         mock_theta_opt.assert_called_once()
         mock_w_bar.assert_called_once_with(
             predator_cohort_instance.mass_current,
@@ -1448,31 +1462,29 @@ class TestAnimalCohort:
         )
         mock_search_rate.assert_called_once_with(0.8)
         mock_theta_i_j.assert_called_once_with(animal_list_instance)
-        mock_potential_prey.assert_called_once_with(0.8, 0.7)
-
-        # theta_opt threaded through to handling time denominator
+        mock_potential_prey.assert_called_once_with(0.8, 0.7, intersection_area)
         mock_total_handling.assert_called_once_with(animal_list_instance, theta_opt)
 
         N_i = predator_cohort_instance.individuals
         expected_rate = N_i * (10 / (1 + 2)) * (1 / n_target)
         assert rate == pytest.approx(expected_rate)
 
-    def test_theta_i_j(self, predator_cohort_instance, animal_list_instance):
+    def test_theta_i_j(self, mocker, predator_cohort_instance, animal_list_instance):
         """Test theta_i_j."""
-        # TODO change this A_cell to call it from its real plant in the data
-        A_cell = predator_cohort_instance.grid.cell_area
+        intersection_area = 5000.0
 
-        # Execute the method under test
+        mocker.patch.object(
+            predator_cohort_instance,
+            "get_territory_intersection",
+            return_value=({0, 1}, intersection_area),
+        )
+
         theta = predator_cohort_instance.theta_i_j(animal_list_instance)
 
-        # Calculate expected theta value considering A_cell
-        expected_theta = (
-            sum(
-                cohort.individuals
-                for cohort in animal_list_instance
-                if cohort.mass_current == predator_cohort_instance.mass_current
-            )
-            / A_cell
+        expected_theta = sum(
+            cohort.individuals / intersection_area
+            for cohort in animal_list_instance
+            if cohort.mass_current == predator_cohort_instance.mass_current
         )
 
         assert theta == expected_theta
@@ -1486,15 +1498,14 @@ class TestAnimalCohort:
         from numpy import timedelta64
 
         predator = predator_cohort_instance
+        intersection_area = 5000.0
 
         prey = mocker.Mock()
         prey.mass_current = 10.0
         prey.individuals = 5
 
-        # Use a day-based timedelta64, matching model usage
         adjusted_dt = timedelta64(10, "D")
-
-        prey_list = []  # Empty list, so target is not present
+        prey_list = []
 
         mocker.patch.object(predator, "F_i_j_individual", return_value=0.05)
 
@@ -1502,6 +1513,7 @@ class TestAnimalCohort:
             prey_list,
             prey,
             adjusted_dt,
+            intersection_area,
         )
 
         # No error expected — default formula still works, prey list isn't validated
@@ -1533,38 +1545,32 @@ class TestAnimalCohort:
         from numpy import timedelta64
 
         predator = predator_cohort_instance
+        intersection_area = 5000.0
 
-        # Mock prey cohort
         prey = mocker.Mock()
         prey.mass_current = mass_current
         prey.individuals = individuals
         prey_list = [prey]
 
-        # Use an integer-day timedelta64 and derive dt_days the same way the
-        # model does internally.
         adjusted_dt = timedelta64(8, "D")
         dt_days = float(adjusted_dt / timedelta64(1, "D"))
 
-        # Patch predation rate method to return fixed value
         mocker.patch.object(predator, "F_i_j_individual", return_value=F_value)
 
-        # Run method under test
         result = predator.calculate_consumed_mass_predation(
             prey_list,
             prey,
             adjusted_dt,
+            intersection_area,
         )
 
         if expected_behavior == "formula":
             expected = mass_current * individuals * (1.0 - exp(-F_value * dt_days))
             assert isclose(result, expected, rel_tol=1e-9)
-
         elif expected_behavior == "max":
             expected = mass_current * individuals
             assert isclose(result, expected, rel_tol=1e-3)
-
         else:
-            # Zero F, zero individuals, or zero mass → zero consumption
             assert result == expected_behavior
 
     @pytest.mark.parametrize(
@@ -1655,18 +1661,19 @@ class TestAnimalCohort:
         mock_actual_cnp,
         expected_total,
     ):
-        """Test `delta_mass_predation` for normal and error cases.."""
+        """Test `delta_mass_predation` for normal and error cases."""
 
-        # Import inside the method
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.decay import CarcassPool
 
-        # Mock the animal cohorts and carcass pools
+        intersection_area = 5000.0
+
         if animal_list:
             animal_list = [mocker.MagicMock(spec=AnimalCohort) for _ in animal_list]
             for prey in animal_list:
                 prey.id = uuid.uuid4()
                 mocker.patch.object(prey, "get_eaten", return_value=mock_actual_cnp)
+
         if carcass_pools:
             carcass_pools = {
                 k: [mocker.MagicMock(spec=CarcassPool) for _ in v]
@@ -1675,14 +1682,19 @@ class TestAnimalCohort:
 
         adjusted_dt = 10
 
-        # Mock `calculate_consumed_mass_predation`
+        # Mock get_territory_intersection to return a non-zero area for all prey
+        mocker.patch.object(
+            herbivore_cohort_instance,
+            "get_territory_intersection",
+            return_value=({0, 1}, intersection_area),
+        )
+
         mock_calculate = mocker.patch.object(
             herbivore_cohort_instance,
             "calculate_consumed_mass_predation",
             return_value=mock_consumed_mass,
         )
 
-        # Mock `get_eaten` on all prey cohorts
         for prey in animal_list or []:
             mocker.patch.object(prey, "get_eaten", return_value=mock_actual_cnp)
 
@@ -1692,21 +1704,20 @@ class TestAnimalCohort:
                     animal_list, carcass_pools, adjusted_dt=10
                 )
         else:
-            # Call method
             result = herbivore_cohort_instance.delta_mass_predation(
                 animal_list, carcass_pools, adjusted_dt
             )
 
-            # Ensure correct mass summation
             assert result == expected_total, (
                 f"Expected {expected_total}, but got {result}"
             )
 
-            # Ensure `calculate_consumed_mass_predation` was called for each prey
             assert mock_calculate.call_count == len(animal_list)
 
-            # Ensure `get_eaten` was called for each prey
             for prey in animal_list:
+                mock_calculate.assert_any_call(
+                    animal_list, prey, adjusted_dt, intersection_area
+                )
                 prey.get_eaten.assert_called_once_with(
                     mock_consumed_mass, herbivore_cohort_instance, carcass_pools
                 )
