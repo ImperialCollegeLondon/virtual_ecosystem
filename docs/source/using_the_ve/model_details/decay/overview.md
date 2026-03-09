@@ -18,7 +18,7 @@ The Virtual Ecosystem includes two models that capture the decay of organic matt
 plant matter decay, and the [`soil` model](./soil_config.md) is a much more complex
 model that captures the subsequent stages that occur within the soil. These models are
 **not** alternative implementations, so for standard runs of the Virtual Ecosystem you
-will need to include **both** models.
+will need to include **both** models in the config file.
 
 ## Preparing the input data for the decay models
 
