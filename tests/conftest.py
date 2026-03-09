@@ -461,7 +461,6 @@ def dummy_litter_data(fixture_core_components):
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
         "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
-        "root_turnover_c_p_ratio": [656.7, 450.6, 437.3, 371.9],
         "litter_consumption_above_metabolic": [0.019785, 0.011631, 0.016129, 0.023456],
         "litter_consumption_above_structural": [0.02097, 0.01609, 0.01019, 0.00988],
         "litter_consumption_woody": [0.4773833, 0.385701, 0.373456, 0.162192],

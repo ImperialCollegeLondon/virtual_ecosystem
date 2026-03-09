@@ -342,8 +342,19 @@ def test_calculate_atmospheric_layer_geometry(
         layer_structure=lyr_str,
     )
 
-    for var in ["heights", "thickness", "layer_top", "layer_midpoints"]:
+    for var in ["heights", "thickness", "layer_midpoints"]:
         assert var in result
+
+    exp_heights = np.array(
+        [
+            [32.0, 32.0, 32.0, 32.0],
+            [30.0, 30.0, 30.0, np.nan],
+            [20.0, 20.0, np.nan, np.nan],
+            [10.0, np.nan, np.nan, np.nan],
+            [0.1, 0.1, 0.1, 0.1],
+        ]
+    )
+    np.testing.assert_allclose(result["heights"], exp_heights, rtol=1e-04, atol=1e-04)
 
     exp_thickness = np.array(
         [
@@ -360,11 +371,11 @@ def test_calculate_atmospheric_layer_geometry(
 
     exp_midpoints = np.array(
         [
-            [1.0, 1.0, 1.0, 15.95],
-            [7.0, 7.0, 16.95, np.nan],
-            [17, 21.95, np.nan, np.nan],
-            [26.95, np.nan, np.nan, np.nan],
-            [31.95, 31.95, 31.95, 31.95],
+            [31.0, 31.0, 31.0, 16.05],
+            [25.0, 25.0, 15.05, np.nan],
+            [15.0, 10.05, np.nan, np.nan],
+            [5.05, np.nan, np.nan, np.nan],
+            [0.05, 0.05, 0.05, 0.05],
         ]
     )
 

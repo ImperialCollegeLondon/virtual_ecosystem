@@ -439,24 +439,21 @@ def test_alpha_i_k(alpha_0_herb, mass, expected_search_rate):
 
 
 @pytest.mark.parametrize(
-    "alpha_i_k, phi_herb_t, B_k_t, A_cell, expected_biomass",
+    "alpha_i_k, B_k_t, A_cell, expected_biomass",
     [
-        pytest.param(0.1, 0.5, 1000, 1, 25000.0, id="standard_scenario"),
-        pytest.param(0.2, 0.5, 1000, 1, 50000.0, id="increased_search_rate"),
-        pytest.param(0.1, 1, 1000, 1, 100000.0, id="all_plant_stock_available"),
-        pytest.param(0.1, 0.5, 2000, 1, 100000.0, id="increased_plant_biomass"),
-        pytest.param(0.1, 0.5, 1000, 2, 6250.0, id="increased_cell_area"),
-        pytest.param(0, 0.5, 1000, 1, 0.0, id="zero_search_rate"),
-        pytest.param(0.1, 0, 1000, 1, 0.0, id="no_plant_stock_available"),
-        pytest.param(0.1, 0.5, 0, 1, 0.0, id="zero_plant_biomass"),
+        pytest.param(0.1, 1000, 1, 100000.0, id="standard_scenario"),
+        pytest.param(0.2, 1000, 1, 200000.0, id="increased_search_rate"),
+        pytest.param(0.1, 2000, 1, 400000.0, id="increased_plant_biomass"),
+        pytest.param(0.1, 1000, 2, 25000.0, id="increased_cell_area"),
+        pytest.param(0, 1000, 1, 0.0, id="zero_search_rate"),
+        pytest.param(0.1, 0, 1, 0.0, id="zero_plant_biomass"),
     ],
 )
-def test_k_i_k(alpha_i_k, phi_herb_t, B_k_t, A_cell, expected_biomass):
+def test_k_i_k(alpha_i_k, B_k_t, A_cell, expected_biomass):
     """Testing the potential biomass eaten calculation for various scenarios."""
-
     from virtual_ecosystem.models.animal.scaling_functions import k_i_k
 
-    calculated_biomass = k_i_k(alpha_i_k, phi_herb_t, B_k_t, A_cell)
+    calculated_biomass = k_i_k(alpha_i_k, B_k_t, A_cell)
     assert calculated_biomass == pytest.approx(expected_biomass, rel=1e-6)
 
 
@@ -601,30 +598,33 @@ def test_k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output):
 
 
 @pytest.mark.parametrize(
-    "h_pred_0, M_ref, M_i_t, b_pred, expected_handling_time",
+    "h_pred_0, M_ref, M_i_t, b_pred, prey_mass, expected_handling_time",
     [
-        pytest.param(1.0, 10.0, 10.0, 0.75, 10.0, id="basic_scenario"),
-        pytest.param(1.0, 10.0, 5.0, 0.75, 8.4089641, id="M_i_t_half_of_M_ref"),
-        pytest.param(1.0, 10.0, 20.0, 0.75, 11.892071, id="M_i_t_double_of_M_ref"),
-        pytest.param(2.0, 10.0, 10.0, 0.75, 20.0, id="increased_h_pred_0"),
-        pytest.param(1.0, 10.0, 10.0, 1.0, 10.0, id="increased_b_pred"),
-        pytest.param(1.0, 10.0, 0.0, 0.75, float("inf"), id="zero_M_i_t_expect_inf"),
-        pytest.param(1.0, 0.0, 10.0, 0.75, 0.0, id="zero_M_ref_leads_to_zero"),
+        pytest.param(1.0, 10.0, 10.0, 0.75, 1.0, 1.0, id="basic_scenario"),
+        pytest.param(1.0, 10.0, 5.0, 0.75, 1.0, 1.6817928, id="M_i_t_half_of_M_ref"),
+        pytest.param(1.0, 10.0, 20.0, 0.75, 1.0, 0.5946036, id="M_i_t_double_of_M_ref"),
+        pytest.param(2.0, 10.0, 10.0, 0.75, 1.0, 2.0, id="increased_h_pred_0"),
+        pytest.param(1.0, 10.0, 10.0, 1.0, 1.0, 1.0, id="increased_b_pred"),
+        pytest.param(
+            1.0, 10.0, 10.0, 0.75, 5.0, 5.0, id="larger_prey_mass_scales_linearly"
+        ),
+        pytest.param(1.0, 10.0, 10.0, 0.75, 0.0, 0.0, id="zero_prey_mass_returns_zero"),
+        pytest.param(1.0, 0.0, 10.0, 0.75, 1.0, 0.0, id="zero_M_ref_leads_to_zero"),
+        pytest.param(
+            1.0, 10.0, 0.0, 0.75, 1.0, float("inf"), id="zero_M_i_t_expect_inf"
+        ),
     ],
 )
-def test_H_i_j(h_pred_0, M_ref, M_i_t, b_pred, expected_handling_time):
-    """Testing the handling time calculation for various predator-prey interactions."""
+def test_H_i_j(h_pred_0, M_ref, M_i_t, b_pred, prey_mass, expected_handling_time):
+    """Test handling time calculation for various predator mass and prey mass inputs."""
     from virtual_ecosystem.models.animal.scaling_functions import H_i_j
 
-    # Handle special case where division by zero might occur
     if M_i_t == 0:
         with pytest.raises(ZeroDivisionError):
-            H_i_j(h_pred_0, M_ref, M_i_t, b_pred)
+            H_i_j(h_pred_0, M_ref, M_i_t, b_pred, prey_mass)
     else:
-        calculated_handling_time = H_i_j(h_pred_0, M_ref, M_i_t, b_pred)
-        assert calculated_handling_time == pytest.approx(
-            expected_handling_time, rel=1e-6
-        )
+        result = H_i_j(h_pred_0, M_ref, M_i_t, b_pred, prey_mass)
+        assert result == pytest.approx(expected_handling_time, rel=1e-6)
 
 
 @pytest.mark.parametrize(

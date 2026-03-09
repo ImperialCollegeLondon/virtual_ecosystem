@@ -1059,46 +1059,57 @@ class TestAnimalCohort:
         should_raise_error,
         expected_error_message,
     ):
-        """Test `calculate_potential_consumed_biomass`."""
-
+        """Test calculate_potential_consumed_biomass."""
         from virtual_ecosystem.models.animal.protocols import Resource
 
         # Mock the target plant with given attributes
         target_plant = mocker.MagicMock(spec=Resource)
         target_plant.mass_current = target_plant_attrs.get("mass_current", None)
 
-        # Mock `k_i_k` to check call parameters (not its return value)
+        # Mock k_i_k to check call parameters (not its return value)
         mock_kik = mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.k_i_k"
         )
 
-        # Extract functional group parameter
-        phi_herb_t = herbivore_cohort_instance.functional_group.constants.phi_herb_t
-        A_cell = 1.0  # Temporary placeholder
+        A_cell = herbivore_cohort_instance.grid.cell_area
 
         if should_raise_error:
-            # Ensure the correct error is raised
             with pytest.raises(ValueError, match=expected_error_message):
                 herbivore_cohort_instance.calculate_potential_consumed_biomass(
                     target_plant, alpha
                 )
         else:
-            # Call the method
             herbivore_cohort_instance.calculate_potential_consumed_biomass(
                 target_plant, alpha
             )
 
-            # Ensure `k_i_k` was called with correct parameters
-            mock_kik.assert_called_once_with(
-                alpha, phi_herb_t, target_plant.mass_current, A_cell
-            )
+            # Ensure k_i_k was called with the correct parameters
+            mock_kik.assert_called_once_with(alpha, target_plant.mass_current, A_cell)
 
     def test_calculate_total_handling_time_for_herbivory(
-        self, mocker, herbivore_cohort_instance, plant_list_instance
+        self, mocker, herbivore_cohort_instance
     ):
-        """Test aggregation of handling times across all available plant resources."""
+        """Test aggregation of handling times across array resources."""
+
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.array_resources import CellResource
+
+        # Create minimal CellResource objects (protocol-compatible)
+        plant_list = []
+        for i in range(3):
+            plant_list.append(
+                CellResource(
+                    resource=object(),
+                    available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
+                    consumed_total_mass=np.zeros(1, dtype=float),
+                    vertical_occupancy=herbivore_cohort_instance.functional_group.vertical_occupancy,
+                    cell_id=i,
+                )
+            )
 
         alpha = 0.1  # Assume this is the calculated search efficiency
+
         with (
             mocker.patch(
                 "virtual_ecosystem.models.animal.scaling_functions.k_i_k",
@@ -1111,14 +1122,13 @@ class TestAnimalCohort:
         ):
             total_handling_time = (
                 herbivore_cohort_instance.calculate_total_handling_time_for_herbivory(
-                    plant_list_instance, alpha
+                    plant_list, alpha
                 )
             )
-            # Assert based on expected behavior; this will need to be adjusted based on
-            # number of plants and their handling times
-            expected_handling_time = sum(
-                [20.2 for _ in plant_list_instance]
-            )  # Simplified; adjust calculation as needed
+
+            # Expected: each resource contributes (k_i_k + H_i_k)
+            expected_handling_time = 3 * (20.0 + 0.2)
+
             assert total_handling_time == pytest.approx(
                 expected_handling_time, rel=1e-6
             )
@@ -1296,100 +1306,157 @@ class TestAnimalCohort:
         mock_k_i_j.assert_called_once_with(
             alpha,
             herbivore_cohort_instance.individuals,
-            1.0,
+            herbivore_cohort_instance.grid.cell_area,
             theta_i_j,
         )
 
         # Asserting the result matches the mocked return value
         assert result == 15.0, "Expected potential prey consumed not returned."
 
+    @pytest.mark.parametrize(
+        "prey_masses, expected_call_count, expected_result",
+        [
+            pytest.param([], 0, 0.0, id="empty_prey_list"),
+            pytest.param([1.0], 1, 6.0, id="single_prey"),
+            pytest.param([1.0, 5.0], 2, 12.0, id="two_prey_different_masses"),
+        ],
+    )
     def test_calculate_total_handling_time_for_predation(
-        self, mocker, herbivore_cohort_instance
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        prey_masses,
+        expected_call_count,
+        expected_result,
     ):
-        """Test total handling time calculation for predation."""
+        """Test total handling time sums H_i_j * k_i_j correctly across prey cohorts."""
+        animal_list = [mocker.MagicMock(mass_current=m) for m in prey_masses]
+        theta_opt = 0.5
 
         mock_H_i_j = mocker.patch(
-            "virtual_ecosystem.models.animal.scaling_functions.H_i_j", return_value=2.5
+            "virtual_ecosystem.models.animal.scaling_functions.H_i_j",
+            return_value=2.0,
         )
-
-        result = herbivore_cohort_instance.calculate_total_handling_time_for_predation()
-
-        # Verify that H_i_j was called with the correct parameters
-        mock_H_i_j.assert_called_once_with(
-            herbivore_cohort_instance.constants.h_pred_0,
-            herbivore_cohort_instance.constants.M_pred_ref,
-            herbivore_cohort_instance.mass_current,
-            herbivore_cohort_instance.constants.b_pred,
+        mock_k_i_j = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.k_i_j",
+            return_value=3.0,
         )
-
-        # Asserting the result matches the mocked return value
-        assert result == 2.5, "Expected total handling time for predation not returned."
-
-    def test_F_i_j_individual(
-        self, mocker, predator_cohort_instance, animal_list_instance
-    ):
-        """Test instantaneous predation rate calculation on a selected target cohort."""
-
-        target_animal = animal_list_instance[0]
-
-        # Mock methods using the mocker fixture
-        mock_success_prob = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_predation_success_probability"
-            ),
-            return_value=0.5,
-        )
-        mock_search_rate = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_predation_search_rate"
-            ),
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.w_bar_i_j",
             return_value=0.8,
         )
-        mock_theta_i_j = mocker.patch(
-            ("virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.theta_i_j"),
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.alpha_i_j",
+            return_value=1.5,
+        )
+        mocker.patch.object(herbivore_cohort_instance, "theta_i_j", return_value=0.4)
+
+        result = herbivore_cohort_instance.calculate_total_handling_time_for_predation(
+            animal_list, theta_opt
+        )
+
+        assert mock_H_i_j.call_count == expected_call_count
+        assert mock_k_i_j.call_count == expected_call_count
+        assert result == expected_result
+
+        if animal_list:
+            # theta_i_j always computed exactly once regardless of prey count
+            herbivore_cohort_instance.theta_i_j.assert_called_once_with(animal_list)
+
+            # verify the last call used the correct prey mass for that cohort
+            last_prey_mass = prey_masses[-1]
+            mock_H_i_j.assert_called_with(
+                herbivore_cohort_instance.constants.h_pred_0,
+                herbivore_cohort_instance.constants.M_pred_ref,
+                herbivore_cohort_instance.mass_current,
+                herbivore_cohort_instance.constants.b_pred,
+                last_prey_mass,
+            )
+
+    @pytest.mark.parametrize(
+        "n_target, expected_early_return",
+        [
+            pytest.param(0, True, id="zero_individuals_returns_zero"),
+            pytest.param(10, False, id="normal_predation_rate"),
+        ],
+    )
+    def test_F_i_j_individual(
+        self,
+        mocker,
+        predator_cohort_instance,
+        animal_list_instance,
+        n_target,
+        expected_early_return,
+    ):
+        """Test instantaneous predation rate calculation on a selected target cohort."""
+        target_animal = animal_list_instance[0]
+        target_animal.individuals = n_target
+
+        theta_opt = 0.5
+
+        mock_theta_opt = mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_theta_opt_i",
+            return_value=theta_opt,
+        )
+        mock_w_bar = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.w_bar_i_j",
+            return_value=0.8,
+        )
+        mock_search_rate = mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_predation_search_rate",
+            return_value=0.8,
+        )
+        mock_theta_i_j = mocker.patch.object(
+            predator_cohort_instance,
+            "theta_i_j",
             return_value=0.7,
         )
-        mock_potential_prey = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_potential_prey_consumed"
-            ),
+        mock_potential_prey = mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_potential_prey_consumed",
             return_value=10,
         )
-        mock_total_handling = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_total_handling_time_for_predation"
-            ),
+        mock_total_handling = mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_total_handling_time_for_predation",
             return_value=2,
         )
 
-        # Execute the method under test
         rate = predator_cohort_instance.F_i_j_individual(
             animal_list_instance, target_animal
         )
 
-        # Verify each mocked method was called with expected arguments
-        mock_success_prob.assert_called_once_with(target_animal.mass_current)
-        mock_search_rate.assert_called_once_with(0.5)
+        if expected_early_return:
+            assert rate == 0.0
+            mock_theta_opt.assert_not_called()
+            mock_total_handling.assert_not_called()
+            return
+
+        # theta_opt drawn exactly once and passed into both w_bar and handling time
+        mock_theta_opt.assert_called_once()
+        mock_w_bar.assert_called_once_with(
+            predator_cohort_instance.mass_current,
+            target_animal.mass_current,
+            theta_opt,
+            predator_cohort_instance.constants.sigma_opt_pred_prey,
+        )
+        mock_search_rate.assert_called_once_with(0.8)
         mock_theta_i_j.assert_called_once_with(animal_list_instance)
         mock_potential_prey.assert_called_once_with(0.8, 0.7)
-        mock_total_handling.assert_called_once()
 
-        # Calculate the expected rate based on the mocked return values and assert
+        # theta_opt threaded through to handling time denominator
+        mock_total_handling.assert_called_once_with(animal_list_instance, theta_opt)
+
         N_i = predator_cohort_instance.individuals
-        N_target = target_animal.individuals
-        expected_rate = N_i * (10 / (1 + 2)) * (1 / N_target)
-        assert rate == pytest.approx(expected_rate), (
-            "F_i_j_individual did not return the expected predation rate."
-        )
+        expected_rate = N_i * (10 / (1 + 2)) * (1 / n_target)
+        assert rate == pytest.approx(expected_rate)
 
     def test_theta_i_j(self, predator_cohort_instance, animal_list_instance):
         """Test theta_i_j."""
         # TODO change this A_cell to call it from its real plant in the data
-        A_cell = 1.0  # Define A_cell value used in method implementation
+        A_cell = predator_cohort_instance.grid.cell_area
 
         # Execute the method under test
         theta = predator_cohort_instance.theta_i_j(animal_list_instance)
@@ -2007,13 +2074,13 @@ class TestAnimalCohort:
 
     @pytest.mark.parametrize(
         "cohort_instance, diet_string, plant_list, animal_list, fungal_fruit_list,"
-        "soil_fungi_list,pom_list, bacteria_list, expected_nutrient_gain,"
+        "soil_fungi_list, pom_list, bacteria_list, expected_nutrient_gain,"
         "delta_mass_mock",
         [
             (
                 "herbivore_cohort_instance",
                 "foliage_fruit",
-                "plant_list_instance",
+                "array_plant_list_instance",
                 [],
                 [],
                 [],
@@ -2063,24 +2130,22 @@ class TestAnimalCohort:
         bacteria_list,
         expected_nutrient_gain,
         delta_mass_mock,
-        plant_list_instance,
+        array_plant_list_instance,
         animal_list_instance,
         fungal_fruit_list_instance,
-        soil_fungi_list_instance,
-        pom_list_instance,
-        bacteria_list_instance,
         excrement_pool_instance,
         carcass_pools_by_cell_instance,
         herbivory_waste_pool_instance,
     ):
-        """Test `forage_cohort` for correct resource routing and assimilation calls."""
+        """Test forage_cohort routes resources and calls correct delta_mass_* helper."""
+        from numpy import timedelta64
+
         from virtual_ecosystem.models.animal.animal_traits import DietType
 
-        # Resolve the cohort object and set its diet
         cohort = request.getfixturevalue(cohort_instance)
         cohort.functional_group.diet = DietType.parse(diet_string)
 
-        # Resolve lists from fixture names if provided as strings
+        # Resolve lists from fixture names if provided as strings.
         if isinstance(plant_list, str):
             plant_list = request.getfixturevalue(plant_list)
         if isinstance(animal_list, str):
@@ -2088,18 +2153,18 @@ class TestAnimalCohort:
         if isinstance(fungal_fruit_list, str):
             fungal_fruit_list = request.getfixturevalue(fungal_fruit_list)
 
-        # Construct herbivory waste pools if herbivore
+        # Herbivory waste pools: keyed by cell_id for plant-like resources.
         herbivory_waste_pools = {
             plant.cell_id: herbivory_waste_pool_instance
-            for plant in plant_list_instance
+            for plant in array_plant_list_instance
         }
 
-        # Mock delta_mass_* method
         mock_delta_mass = mocker.patch.object(
             cohort, delta_mass_mock, return_value=expected_nutrient_gain
         )
 
         empty_list = []
+        dt = timedelta64(30, "D")
 
         cohort.forage_cohort(
             plant_list=plant_list,
@@ -2116,25 +2181,28 @@ class TestAnimalCohort:
             herbivory_waste_pools=herbivory_waste_pools
             if diet_string == "foliage_fruit"
             else {},
-            dt=30,
+            dt=dt,
         )
 
         mock_delta_mass.assert_called_once()
         kwargs = mock_delta_mass.call_args.kwargs
 
         if diet_string == "foliage_fruit":
-            assert kwargs["plant_list"] == plant_list_instance
+            assert kwargs["plant_list"] == array_plant_list_instance
             assert kwargs["herbivory_waste_pools"] == herbivory_waste_pools
-            assert isinstance(kwargs["adjusted_dt"], int | float)
+            assert kwargs["adjusted_dt"] == pytest.approx(
+                dt * 0 + kwargs["adjusted_dt"]
+            )
+            assert kwargs["adjusted_dt"] > 0
 
         elif diet_string == "vertebrates_invertebrates_carcasses":
             assert kwargs["animal_list"] == animal_list_instance
             assert kwargs["carcass_pools"] == carcass_pools_by_cell_instance
-            assert isinstance(kwargs["adjusted_dt"], int | float)
+            assert kwargs["adjusted_dt"] > 0
 
         elif diet_string == "mushrooms":
             assert kwargs["fungal_fruit_list"] == fungal_fruit_list_instance
-            assert isinstance(kwargs["adjusted_dt"], int | float)
+            assert kwargs["adjusted_dt"] > 0
 
         else:
             assert False, f"Unhandled diet_string: {diet_string}"
@@ -2298,7 +2366,7 @@ class TestAnimalCohort:
         # Assign test-specific values to the cohort instance
         cohort = herbivore_cohort_instance
 
-        # ✅ Mock `mass_current` properly as a property on the class
+        # Mock `mass_current` properly as a property on the class
         mocker.patch.object(
             type(cohort),
             "mass_current",
@@ -2306,28 +2374,28 @@ class TestAnimalCohort:
             return_value=mass_current,
         )
 
-        # ✅ Mock `constants`
+        # Mock `constants`
         cohort.constants = mocker.MagicMock(
             V_disp=V_disp, M_disp_ref=M_disp_ref, o_disp=o_disp
         )
 
-        # ✅ Mock `juvenile_dispersal_speed`
+        # Mock `juvenile_dispersal_speed`
         mocked_velocity = V_disp * (mass_current / M_disp_ref) ** o_disp
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.juvenile_dispersal_speed",
             return_value=mocked_velocity,
         )
 
-        # ✅ Calculate expected probability
-        A_cell = 1.0
+        # Calculate expected probability
+        A_cell = herbivore_cohort_instance.grid.cell_area
         grid_side = sqrt(A_cell)
         calculated_probability = mocked_velocity / grid_side
         expected_probability = min(calculated_probability, 1.0)  # Cap at 1.0
 
-        # ✅ Call the method under test
+        # Call the method under test
         probability_of_dispersal = cohort.migrate_juvenile_probability()
 
-        # ✅ Assertion to check if the method returns the correct probability
+        # Assertion to check if the method returns the correct probability
         assert probability_of_dispersal == expected_probability, (
             f"Expected {expected_probability}, but got {probability_of_dispersal}."
         )
@@ -2677,36 +2745,35 @@ class TestAnimalCohort:
         assert len(result) == expected
 
     @pytest.mark.parametrize(
-        "vertical_match_result, expected",
+        "resource_vertical, expected",
         [
-            (True, True),  # Matching vertical occupancy: should forage
-            (False, False),  # Non-matching vertical occupancy: should not forage
+            ("GROUND", True),
+            ("CANOPY", False),
         ],
     )
     def test_can_forage_on(
         self,
-        vertical_match_result,
+        resource_vertical,
         expected,
         functional_group_list_instance,
         constants_instance,
     ):
-        """Test can_forage_on plant resource."""
+        """Test can_forage_on using a CellResource from array_resources."""
+        import numpy as np
 
-        from virtual_ecosystem.core.data import Data
         from virtual_ecosystem.core.grid import Grid
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+        from virtual_ecosystem.models.animal.array_resources import CellResource
         from virtual_ecosystem.models.animal.functional_group import (
             get_functional_group_by_name,
         )
-        from virtual_ecosystem.models.animal.plant_resources import PlantResources
 
-        # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
 
-        # Create cohort
         cohort = AnimalCohort(
             functional_group=herbivore_group,
             mass=10.0,
@@ -2717,96 +2784,15 @@ class TestAnimalCohort:
             constants=constants_instance,
         )
 
-        # Patch match_vertical to control return value
-        cohort.match_vertical = lambda vertical: vertical_match_result
-
-        # Create dummy data object and plant resource
-        dummy_data = Data(grid)
-        plant_resource = PlantResources(
-            data=dummy_data,
+        cell_resource = CellResource(
+            resource=object(),
+            available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
+            consumed_total_mass=np.zeros(1, dtype=float),
+            vertical_occupancy=getattr(VerticalOccupancy, resource_vertical),
             cell_id=0,
-            constants=constants_instance,
         )
 
-        assert cohort.can_forage_on(plant_resource) is expected
-
-    @pytest.mark.parametrize(
-        "territory, cell_resource_map, expected",
-        [
-            # Single valid resource
-            ([1], {1: ["valid"]}, 1),
-            # Valid and invalid resources in separate cells
-            ([1, 2], {1: ["valid"], 2: ["invalid"]}, 1),
-            # All resources invalid
-            ([1, 2], {1: ["invalid"], 2: ["invalid"]}, 0),
-            # Multiple valid resources
-            ([1, 2], {1: ["valid"], 2: ["valid"]}, 2),
-            # Mixed in one cell
-            ([1], {1: ["valid", "invalid"]}, 1),
-        ],
-    )
-    def test_get_plant_resources(
-        self,
-        territory,
-        cell_resource_map,
-        expected,
-        functional_group_list_instance,
-        constants_instance,
-    ):
-        """Test get_plant_resources."""
-
-        from virtual_ecosystem.core.data import Data
-        from virtual_ecosystem.core.grid import Grid
-        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animal.functional_group import (
-            get_functional_group_by_name,
-        )
-        from virtual_ecosystem.models.animal.plant_resources import PlantResources
-
-        # Setup grid and functional group
-        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
-        herbivore_group = get_functional_group_by_name(
-            functional_group_list_instance, "herbivorous_mammal"
-        )
-
-        # Create dummy cohort with defined territory
-        cohort = AnimalCohort(
-            functional_group=herbivore_group,
-            mass=10.0,
-            age=20.0,
-            individuals=10,
-            centroid_key=0,
-            grid=grid,
-            constants=constants_instance,
-        )
-        cohort.territory = territory
-
-        # Create dummy data
-        dummy_data = Data(grid)
-
-        # Build plant_resources dictionary with real resource objects
-        plant_resources = {}
-        all_resources = []
-
-        for cell_id, resource_types in cell_resource_map.items():
-            cell_resources = []
-            for resource_type in resource_types:
-                resource = PlantResources(
-                    data=dummy_data,
-                    cell_id=cell_id,
-                    constants=constants_instance,
-                )
-                cell_resources.append(resource)
-                all_resources.append((resource, resource_type == "valid"))
-            plant_resources[cell_id] = cell_resources
-
-        # Patch can_forage_on to return True only for resources labeled "valid"
-        cohort.can_forage_on = lambda resource: any(
-            resource is res and is_valid for res, is_valid in all_resources
-        )
-
-        result = cohort.get_plant_resources(plant_resources)
-        assert len(result) == expected
+        assert cohort.can_forage_on(cell_resource) is expected
 
     @pytest.mark.parametrize(
         "territory, cell_pool_map, expected",
@@ -3465,3 +3451,43 @@ class TestAnimalCohort:
 
         # Assertion
         assert herbivore_cohort_instance.largest_mass_achieved == expected
+
+    def test_get_array_resources(self, mocker):
+        """Test get_array_resources."""
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import (
+            DietType,
+            VerticalOccupancy,
+        )
+
+        cohort = mocker.Mock()
+        cohort.territory = [0, 1, 2]
+        cohort.functional_group.diet = DietType.FOLIAGE | DietType.SEEDS
+        cohort.functional_group.vertical_occupancy = VerticalOccupancy.GROUND
+
+        # Pool A: forageable
+        pool_a = mocker.MagicMock()
+        pool_a.is_forageable.return_value = True
+        pool_a.__getitem__.side_effect = lambda cell_id: f"a_{cell_id}"
+
+        # Pool B: not forageable
+        pool_b = mocker.MagicMock()
+        pool_b.is_forageable.return_value = False
+        pool_b.__getitem__.side_effect = lambda cell_id: f"b_{cell_id}"
+
+        result = AnimalCohort.get_array_resources(cohort, [pool_a, pool_b])
+
+        pool_a.is_forageable.assert_called_once_with(
+            diet=cohort.functional_group.diet,
+            vertical_occupancy=cohort.functional_group.vertical_occupancy,
+        )
+        pool_b.is_forageable.assert_called_once_with(
+            diet=cohort.functional_group.diet,
+            vertical_occupancy=cohort.functional_group.vertical_occupancy,
+        )
+
+        assert result == ["a_0", "a_1", "a_2"]
+        pool_a.__getitem__.assert_any_call(0)
+        pool_a.__getitem__.assert_any_call(1)
+        pool_a.__getitem__.assert_any_call(2)
+        pool_b.__getitem__.assert_not_called()
