@@ -114,9 +114,7 @@ class AnimalModel(
         "litter_consumption_woody",
         "litter_consumption_below_metabolic",
         "litter_consumption_below_structural",
-        "animal_pom_consumption_carbon",
-        "animal_pom_consumption_nitrogen",
-        "animal_pom_consumption_phosphorus",
+        "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
@@ -134,9 +132,7 @@ class AnimalModel(
         "litter_consumption_woody",
         "litter_consumption_below_metabolic",
         "litter_consumption_below_structural",
-        "animal_pom_consumption_carbon",
-        "animal_pom_consumption_nitrogen",
-        "animal_pom_consumption_phosphorus",
+        "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
@@ -834,6 +830,17 @@ class AnimalModel(
         pom_consumption_nitrogen = pom_consumption_carbon / pom_c_n_ratios
         pom_consumption_phosphorus = pom_consumption_carbon / pom_c_p_ratios
 
+        # Combine into the single object that the data object expects (and convert to
+        # rate units)
+        pom_consumption_cnp = stack(
+            [
+                self.to_per_day(pom_consumption_carbon),
+                self.to_per_day(pom_consumption_nitrogen),
+                self.to_per_day(pom_consumption_phosphorus),
+            ],
+            axis=1,
+        )
+
         bacteria_initial_stock = self.data["soil_c_pool_bacteria"].to_numpy()
 
         bacteria_final_stock = array(
@@ -890,14 +897,9 @@ class AnimalModel(
         )
 
         return {
-            "animal_pom_consumption_carbon": DataArray(
-                self.to_per_day(pom_consumption_carbon), dims="cell_id"
-            ),
-            "animal_pom_consumption_nitrogen": DataArray(
-                self.to_per_day(pom_consumption_nitrogen), dims="cell_id"
-            ),
-            "animal_pom_consumption_phosphorus": DataArray(
-                self.to_per_day(pom_consumption_phosphorus), dims="cell_id"
+            "animal_pom_consumption_cnp": DataArray(
+                data=pom_consumption_cnp,
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
             "animal_bacteria_consumption": DataArray(
                 self.to_per_day(bacteria_consumption), dims="cell_id"

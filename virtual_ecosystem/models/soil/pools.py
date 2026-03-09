@@ -720,7 +720,7 @@ class SoilPools:
         delta_pools_ordered["soil_c_pool_pom"] = (
             litter_mineralisation_flux.pom
             - enzyme_mediated.pom_to_lmwc
-            - self.data["animal_pom_consumption_carbon"].to_numpy()
+            - self.data["animal_pom_consumption_cnp"].loc[:, "C"].to_numpy()
         )
         delta_pools_ordered["soil_c_pool_necromass"] = (
             microbial_changes.necromass_generation
@@ -772,7 +772,7 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_particulate"] = (
             litter_mineralisation_flux.particulate_n
             - pom_n_mineralisation
-            - self.data["animal_pom_consumption_nitrogen"].to_numpy()
+            - self.data["animal_pom_consumption_cnp"].loc[:, "N"].to_numpy()
         )
         delta_pools_ordered["soil_n_pool_necromass"] = (
             microbial_changes.necromass_n_flow
@@ -821,7 +821,7 @@ class SoilPools:
         delta_pools_ordered["soil_p_pool_particulate"] = (
             litter_mineralisation_flux.particulate_p
             - pom_p_mineralisation
-            - self.data["animal_pom_consumption_phosphorus"].to_numpy()
+            - self.data["animal_pom_consumption_cnp"].loc[:, "P"].to_numpy()
         )
         delta_pools_ordered["soil_p_pool_necromass"] = (
             microbial_changes.necromass_p_flow

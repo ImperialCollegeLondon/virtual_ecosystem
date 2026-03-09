@@ -103,18 +103,7 @@ class TestAnimalModel:
                     (INFO, "Adding data array for 'decay_of_fungal_fruiting_bodies'"),
                     (INFO, "Adding data array for 'decomposed_excrement_cnp'"),
                     (INFO, "Adding data array for 'decomposed_carcasses_cnp'"),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_pom_consumption_carbon'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_pom_consumption_nitrogen'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_pom_consumption_phosphorus'",
-                    ),
+                    (INFO, "Adding data array for 'animal_pom_consumption_cnp'"),
                     (INFO, "Adding data array for 'animal_bacteria_consumption'"),
                     (
                         INFO,
@@ -744,14 +733,15 @@ class TestAnimalModel:
 
         # Validate consumption matches expected loss per cell
         for consumption_type, expected_consumption in [
-            ("animal_pom_consumption_carbon", np.full(4, 0.002142857)),
             (
-                "animal_pom_consumption_nitrogen",
-                np.array([0.000153061, 1.530536e-6, 8.746347e-6, 8.746353e-5]),
-            ),
-            (
-                "animal_pom_consumption_phosphorus",
-                np.array([6.122143e-7, 6.122443e-7, 3.498539e-7, 3.498541e-6]),
+                "animal_pom_consumption_cnp",
+                np.array(
+                    [
+                        np.full(4, 0.002142857),
+                        np.array([0.000153061, 1.530536e-6, 8.746347e-6, 8.746353e-5]),
+                        np.array([6.122143e-7, 6.122443e-7, 3.498539e-7, 3.498541e-6]),
+                    ]
+                ).transpose(),
             ),
             ("animal_bacteria_consumption", np.full(4, 0.03928571)),
             (
