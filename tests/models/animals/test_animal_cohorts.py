@@ -1059,39 +1059,32 @@ class TestAnimalCohort:
         should_raise_error,
         expected_error_message,
     ):
-        """Test `calculate_potential_consumed_biomass`."""
-
+        """Test calculate_potential_consumed_biomass."""
         from virtual_ecosystem.models.animal.protocols import Resource
 
         # Mock the target plant with given attributes
         target_plant = mocker.MagicMock(spec=Resource)
         target_plant.mass_current = target_plant_attrs.get("mass_current", None)
 
-        # Mock `k_i_k` to check call parameters (not its return value)
+        # Mock k_i_k to check call parameters (not its return value)
         mock_kik = mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.k_i_k"
         )
 
-        # Extract functional group parameter
-        phi_herb_t = herbivore_cohort_instance.functional_group.constants.phi_herb_t
         A_cell = herbivore_cohort_instance.grid.cell_area
 
         if should_raise_error:
-            # Ensure the correct error is raised
             with pytest.raises(ValueError, match=expected_error_message):
                 herbivore_cohort_instance.calculate_potential_consumed_biomass(
                     target_plant, alpha
                 )
         else:
-            # Call the method
             herbivore_cohort_instance.calculate_potential_consumed_biomass(
                 target_plant, alpha
             )
 
-            # Ensure `k_i_k` was called with correct parameters
-            mock_kik.assert_called_once_with(
-                alpha, phi_herb_t, target_plant.mass_current, A_cell
-            )
+            # Ensure k_i_k was called with the correct parameters
+            mock_kik.assert_called_once_with(alpha, target_plant.mass_current, A_cell)
 
     def test_calculate_total_handling_time_for_herbivory(
         self, mocker, herbivore_cohort_instance

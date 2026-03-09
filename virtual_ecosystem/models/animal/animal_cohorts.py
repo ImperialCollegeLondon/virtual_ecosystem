@@ -727,10 +727,9 @@ class AnimalCohort:
         if alpha <= 0:
             raise ValueError(f"alpha must be positive. Got {alpha}.")
 
-        phi = self.functional_group.constants.phi_herb_t
         A_cell = self.grid.cell_area
 
-        return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
+        return sf.k_i_k(alpha, target_plant.mass_current, A_cell)
 
     def calculate_total_handling_time_for_herbivory(
         self, plant_list: list[Resource], alpha: float
@@ -753,10 +752,9 @@ class AnimalCohort:
             for all available plant resources.
         """
 
-        phi = self.functional_group.constants.phi_herb_t
         A_cell = self.grid.cell_area
         return sum(
-            sf.k_i_k(alpha, phi, plant.mass_current, A_cell)
+            sf.k_i_k(alpha, plant.mass_current, A_cell)
             + sf.H_i_k(
                 self.constants.h_herb_0,
                 self.constants.M_herb_ref,
