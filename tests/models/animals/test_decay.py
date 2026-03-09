@@ -334,14 +334,16 @@ class TestLitterPool:
         pool_name = "above_metabolic"
         cell_id = 2
         cell_area = 100.0
-        litter_mass = np.array([0.5, 0.7, 1.0])
+        litter_mass = np.stack(
+            [[0.5, 0.7, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], axis=1
+        )
         c_n_ratio = np.array([20.0, 25.0, 30.0])
         c_p_ratio = np.array([100.0, 120.0, 140.0])
 
         # Inline mock chain for sel(cell_id=...).item()
         mock_data.__getitem__.side_effect = lambda key: {
-            f"litter_pool_{pool_name}": mocker.Mock(
-                sel=lambda **kwargs: mocker.Mock(item=lambda: litter_mass[cell_id])
+            f"litter_pool_{pool_name}_cnp": mocker.Mock(
+                sel=lambda **kwargs: mocker.Mock(item=lambda: litter_mass[cell_id, 0])
             ),
             f"c_n_ratio_{pool_name}": mocker.Mock(
                 sel=lambda **kwargs: mocker.Mock(item=lambda: c_n_ratio[cell_id])
@@ -353,7 +355,7 @@ class TestLitterPool:
 
         litter_pool = LitterPool(pool_name, cell_id, mock_data, cell_area)
 
-        c_mass = litter_mass[cell_id] * cell_area
+        c_mass = litter_mass[cell_id, 0] * cell_area
         n_mass = c_mass / c_n_ratio[cell_id]
         p_mass = c_mass / c_p_ratio[cell_id]
 
@@ -385,13 +387,15 @@ class TestLitterPool:
         pool_name = "test_pool"
         cell_area = 1.0
         cell_id = 1
-        litter_mass = np.array([100.0, 200.0, 300.0])
+        litter_mass = np.stack(
+            [[0.5, 0.7, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], axis=1
+        )
         c_n_ratio = np.array([10.0, 20.0, 30.0])
         c_p_ratio = np.array([40.0, 50.0, 60.0])
 
         mock_data.__getitem__.side_effect = lambda key: {
-            f"litter_pool_{pool_name}": mocker.Mock(
-                sel=lambda **kwargs: mocker.Mock(item=lambda: litter_mass[cell_id])
+            f"litter_pool_{pool_name}_cnp": mocker.Mock(
+                sel=lambda **kwargs: mocker.Mock(item=lambda: litter_mass[cell_id, 0])
             ),
             f"c_n_ratio_{pool_name}": mocker.Mock(
                 sel=lambda **kwargs: mocker.Mock(item=lambda: c_n_ratio[cell_id])

@@ -59,14 +59,16 @@ class LitterModel(
     model_name="litter",
     model_update_bounds=("30 minutes", "3 months"),
     vars_required_for_init=(
-        "litter_pool_above_metabolic",
-        "litter_pool_above_structural",
-        "litter_pool_woody",
-        "litter_pool_below_metabolic",
-        "litter_pool_below_structural",
+        "litter_pool_above_metabolic_cnp",
+        "litter_pool_above_structural_cnp",
+        "litter_pool_woody_cnp",
+        "litter_pool_below_metabolic_cnp",
+        "litter_pool_below_structural_cnp",
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
+        # TODO - THE BELOW ARE ONLY RETAINED AS A WORK ON THIS PR, AND SHOULD BE DELETED
+        # AT THE END
         "c_n_ratio_above_metabolic",
         "c_n_ratio_above_structural",
         "c_n_ratio_woody",
@@ -80,11 +82,11 @@ class LitterModel(
     ),
     vars_populated_by_init=(),
     vars_required_for_update=(
-        "litter_pool_above_metabolic",
-        "litter_pool_above_structural",
-        "litter_pool_woody",
-        "litter_pool_below_metabolic",
-        "litter_pool_below_structural",
+        "litter_pool_above_metabolic_cnp",
+        "litter_pool_above_structural_cnp",
+        "litter_pool_woody_cnp",
+        "litter_pool_below_metabolic_cnp",
+        "litter_pool_below_structural_cnp",
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
@@ -116,11 +118,11 @@ class LitterModel(
         "matric_potential",
     ),
     vars_updated=(
-        "litter_pool_above_metabolic",
-        "litter_pool_above_structural",
-        "litter_pool_woody",
-        "litter_pool_below_metabolic",
-        "litter_pool_below_structural",
+        "litter_pool_above_metabolic_cnp",
+        "litter_pool_above_structural_cnp",
+        "litter_pool_woody_cnp",
+        "litter_pool_below_metabolic_cnp",
+        "litter_pool_below_structural_cnp",
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
@@ -188,11 +190,11 @@ class LitterModel(
 
         # Check that no litter pool is negative
         all_pools = [
-            "litter_pool_above_metabolic",
-            "litter_pool_above_structural",
-            "litter_pool_woody",
-            "litter_pool_below_metabolic",
-            "litter_pool_below_structural",
+            "litter_pool_above_metabolic_cnp",
+            "litter_pool_above_structural_cnp",
+            "litter_pool_woody_cnp",
+            "litter_pool_below_metabolic_cnp",
+            "litter_pool_below_structural_cnp",
         ]
         negative_pools = []
         for pool in all_pools:
@@ -305,14 +307,23 @@ class LitterModel(
             **kwargs: Further arguments to the update method.
         """
 
+        # TODO - THIS STEP SHOULD USE THE ARRAY RESOURCES IMPLEMENTATION
         # Calculate the pool sizes after animal consumption has occurred, which then get
         # used then for subsequent calculations
         consumed_pools = calculate_post_consumption_pools(
-            above_metabolic=self.data["litter_pool_above_metabolic"].to_numpy(),
-            above_structural=self.data["litter_pool_above_structural"].to_numpy(),
-            woody=self.data["litter_pool_woody"].to_numpy(),
-            below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
-            below_structural=self.data["litter_pool_below_structural"].to_numpy(),
+            above_metabolic=self.data["litter_pool_above_metabolic_cnp"]
+            .loc[:, "C"]
+            .to_numpy(),
+            above_structural=self.data["litter_pool_above_structural_cnp"]
+            .loc[:, "C"]
+            .to_numpy(),
+            woody=self.data["litter_pool_woody_cnp"].loc[:, "C"].to_numpy(),
+            below_metabolic=self.data["litter_pool_below_metabolic_cnp"]
+            .loc[:, "C"]
+            .to_numpy(),
+            below_structural=self.data["litter_pool_below_structural_cnp"]
+            .loc[:, "C"]
+            .to_numpy(),
             consumption_above_metabolic=self.data[
                 "litter_consumption_above_metabolic"
             ].to_numpy(),
@@ -399,18 +410,60 @@ class LitterModel(
 
         # Construct dictionary of data arrays to return
         updated_litter_variables = {
-            "litter_pool_above_metabolic": DataArray(
-                updated_pools["above_metabolic"], dims="cell_id"
+            "litter_pool_above_metabolic_cnp": DataArray(
+                np.stack(
+                    [
+                        updated_pools["above_metabolic"],
+                        np.zeros_like(updated_pools["above_metabolic"]),
+                        np.zeros_like(updated_pools["above_metabolic"]),
+                    ],
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
-            "litter_pool_above_structural": DataArray(
-                updated_pools["above_structural"], dims="cell_id"
+            "litter_pool_above_structural_cnp": DataArray(
+                np.stack(
+                    [
+                        updated_pools["above_structural"],
+                        np.zeros_like(updated_pools["above_structural"]),
+                        np.zeros_like(updated_pools["above_structural"]),
+                    ],
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
-            "litter_pool_woody": DataArray(updated_pools["woody"], dims="cell_id"),
-            "litter_pool_below_metabolic": DataArray(
-                updated_pools["below_metabolic"], dims="cell_id"
+            "litter_pool_woody_cnp": DataArray(
+                np.stack(
+                    [
+                        updated_pools["woody"],
+                        np.zeros_like(updated_pools["woody"]),
+                        np.zeros_like(updated_pools["woody"]),
+                    ],
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
-            "litter_pool_below_structural": DataArray(
-                updated_pools["below_structural"], dims="cell_id"
+            "litter_pool_below_metabolic_cnp": DataArray(
+                np.stack(
+                    [
+                        updated_pools["below_metabolic"],
+                        np.zeros_like(updated_pools["below_metabolic"]),
+                        np.zeros_like(updated_pools["below_metabolic"]),
+                    ],
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
+            ),
+            "litter_pool_below_structural_cnp": DataArray(
+                np.stack(
+                    [
+                        updated_pools["below_structural"],
+                        np.zeros_like(updated_pools["below_structural"]),
+                        np.zeros_like(updated_pools["below_structural"]),
+                    ],
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
             "lignin_above_structural": DataArray(
                 updated_chemistries["lignin_above_structural"], dims="cell_id"

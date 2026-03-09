@@ -430,11 +430,6 @@ def dummy_litter_data(fixture_core_components):
     # manner. The repeated fourth value is simply to adapt three hand validated examples
     # to the shared fixture core components grid
     pool_values = {
-        "litter_pool_above_metabolic": [0.319785, 0.161631, 0.086129, 0.093456],
-        "litter_pool_above_structural": [0.52097, 0.26609, 0.10019, 0.09988],
-        "litter_pool_woody": [5.1773833, 12.185701, 7.673456, 7.462192],
-        "litter_pool_below_metabolic": [0.410373, 0.375794, 0.080181, 0.083494],
-        "litter_pool_below_structural": [0.613547, 0.321674, 0.032738, 0.029168],
         "lignin_above_structural": [0.5, 0.1, 0.7, 0.7],
         "lignin_woody": [0.5, 0.8, 0.35, 0.35],
         "lignin_below_structural": [0.5, 0.25, 0.75, 0.75],
@@ -481,6 +476,67 @@ def dummy_litter_data(fixture_core_components):
     data["air_temperature"][lyr_strct.index_filled_atmosphere] = np.array(
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
+
+    # Stoichiometric variables
+    data["litter_pool_above_metabolic_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.319785, 0.161631, 0.086129, 0.093456],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_pool_above_structural_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.52097, 0.26609, 0.10019, 0.09988],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_pool_woody_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [5.1773833, 12.185701, 7.673456, 7.462192],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_pool_below_metabolic_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.410373, 0.375794, 0.080181, 0.083494],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_pool_below_structural_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.613547, 0.321674, 0.032738, 0.029168],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     data["stem_turnover_cnp"] = DataArray(
         data=[

@@ -375,7 +375,9 @@ class LitterPool:
         self.cell_area = cell_area
 
         carbon_stock = (
-            data[f"litter_pool_{pool_name}"].sel(cell_id=cell_id).item()
+            data[f"litter_pool_{pool_name}_cnp"]
+            .sel(cell_id=cell_id, element="C")
+            .item()
         )  # kg C m⁻²
         self.c_n_ratio = data[f"c_n_ratio_{pool_name}"].sel(cell_id=cell_id).item()
         self.c_p_ratio = data[f"c_p_ratio_{pool_name}"].sel(cell_id=cell_id).item()

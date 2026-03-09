@@ -322,11 +322,6 @@ def dummy_animal_data(animal_fixture_core_components):
     litter_ratios = DataArray(
         np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
     )
-    data["litter_pool_above_metabolic"] = litter_pools
-    data["litter_pool_above_structural"] = litter_pools
-    data["litter_pool_woody"] = litter_pools
-    data["litter_pool_below_metabolic"] = litter_pools
-    data["litter_pool_below_structural"] = litter_pools
     data["c_n_ratio_above_metabolic"] = litter_ratios
     data["c_n_ratio_above_structural"] = litter_ratios
     data["c_n_ratio_woody"] = litter_ratios
@@ -358,6 +353,25 @@ def dummy_animal_data(animal_fixture_core_components):
     pfts = np.array(["pioneer", "canopy", "emergent"])
     cell_ids = np.arange(data.grid.n_cells)
     elements = np.array(["C", "N", "P"])
+
+    litter_cnp_template = DataArray(
+        np.stack(
+            [
+                litter_pools,
+                litter_pools / litter_ratios,
+                litter_pools / litter_ratios,
+            ],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
+
+    data["litter_pool_above_metabolic_cnp"] = litter_cnp_template
+    data["litter_pool_above_structural_cnp"] = litter_cnp_template
+    data["litter_pool_woody_cnp"] = litter_cnp_template
+    data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
+    data["litter_pool_below_structural_cnp"] = litter_cnp_template
 
     leaf_mass = DataArray(
         np.ones((data.grid.n_cells, elements.size, pfts.size)),
@@ -853,11 +867,6 @@ def litter_soil_data_instance(fixture_core_components):
     # The required data is now added. This is basically the 5 litter pool sizes and
     # stoichiometric ratios
     data_values = {
-        "litter_pool_above_metabolic": [0.3, 0.15, 0.07, 0.07],
-        "litter_pool_above_structural": [0.5, 0.25, 0.09, 0.09],
-        "litter_pool_woody": [4.7, 11.8, 7.3, 7.3],
-        "litter_pool_below_metabolic": [0.4, 0.37, 0.07, 0.07],
-        "litter_pool_below_structural": [0.6, 0.31, 0.02, 0.02],
         "c_n_ratio_above_metabolic": [7.3, 8.7, 10.1, 9.8],
         "c_n_ratio_above_structural": [37.5, 43.2, 45.8, 50.2],
         "c_n_ratio_woody": [55.5, 63.3, 47.3, 59.1],
@@ -902,6 +911,51 @@ def litter_soil_data_instance(fixture_core_components):
     )
     data["subcanopy_seedbank_cnp"] = (
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
+    )
+
+    data["litter_pool_above_metabolic_cnp"] = DataArray(
+        np.stack(
+            [[0.3, 0.15, 0.07, 0.07], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
+
+    data["litter_pool_above_structural_cnp"] = DataArray(
+        np.stack(
+            [[0.5, 0.25, 0.09, 0.09], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
+
+    data["litter_pool_woody_cnp"] = DataArray(
+        np.stack(
+            [[4.7, 11.8, 7.3, 7.3], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
+
+    data["litter_pool_below_metabolic_cnp"] = DataArray(
+        np.stack(
+            [[0.4, 0.37, 0.07, 0.07], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
+
+    data["litter_pool_below_structural_cnp"] = DataArray(
+        np.stack(
+            [[0.6, 0.31, 0.02, 0.02], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
     )
 
     return data

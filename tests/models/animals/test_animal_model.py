@@ -451,7 +451,9 @@ class TestAnimalModel:
             "below_structural",
         ]
         for name in pool_names:
-            animal_model_instance.data[f"litter_pool_{name}"] = density_values
+            animal_model_instance.data[f"litter_pool_{name}_cnp"].loc[:, "C"] = (
+                density_values
+            )
             animal_model_instance.data[f"c_n_ratio_{name}"] = c_n_ratio
             animal_model_instance.data[f"c_p_ratio_{name}"] = c_p_ratio
 
@@ -568,20 +570,24 @@ class TestAnimalModel:
 
         # Copy data and simulate biomass loss from each litter pool
         new_data = deepcopy(litter_soil_data_instance)
-        new_data["litter_pool_above_metabolic"] = (
-            litter_soil_data_instance["litter_pool_above_metabolic"] - 0.03
+        new_data["litter_pool_above_metabolic_cnp"].loc[:, "C"] = (
+            litter_soil_data_instance["litter_pool_above_metabolic_cnp"].loc[:, "C"]
+            - 0.03
         )
-        new_data["litter_pool_above_structural"] = (
-            litter_soil_data_instance["litter_pool_above_structural"] - 0.04
+        new_data["litter_pool_above_structural_cnp"].loc[:, "C"] = (
+            litter_soil_data_instance["litter_pool_above_structural_cnp"].loc[:, "C"]
+            - 0.04
         )
-        new_data["litter_pool_woody"] = (
-            litter_soil_data_instance["litter_pool_woody"] - 1.2
+        new_data["litter_pool_woody_cnp"].loc[:, "C"] = (
+            litter_soil_data_instance["litter_pool_woody_cnp"].loc[:, "C"] - 1.2
         )
-        new_data["litter_pool_below_metabolic"] = (
-            litter_soil_data_instance["litter_pool_below_metabolic"] - 0.06
+        new_data["litter_pool_below_metabolic_cnp"].loc[:, "C"] = (
+            litter_soil_data_instance["litter_pool_below_metabolic_cnp"].loc[:, "C"]
+            - 0.06
         )
-        new_data["litter_pool_below_structural"] = (
-            litter_soil_data_instance["litter_pool_below_structural"] - 0.01
+        new_data["litter_pool_below_structural_cnp"].loc[:, "C"] = (
+            litter_soil_data_instance["litter_pool_below_structural_cnp"].loc[:, "C"]
+            - 0.01
         )
 
         pool_names = [
@@ -735,13 +741,14 @@ class TestAnimalModel:
         for consumption_type, expected_consumption in [
             (
                 "animal_pom_consumption_cnp",
-                np.array(
+                np.stack(
                     [
                         np.full(4, 0.002142857),
                         np.array([0.000153061, 1.530536e-6, 8.746347e-6, 8.746353e-5]),
                         np.array([6.122143e-7, 6.122443e-7, 3.498539e-7, 3.498541e-6]),
-                    ]
-                ).transpose(),
+                    ],
+                    axis=1,
+                ),
             ),
             ("animal_bacteria_consumption", np.full(4, 0.03928571)),
             (

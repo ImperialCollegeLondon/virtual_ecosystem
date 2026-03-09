@@ -87,11 +87,11 @@ class AnimalModel(
         "subcanopy_seedbank_cnp_consumed",
     ),
     vars_required_for_update=(
-        "litter_pool_above_metabolic",
-        "litter_pool_above_structural",
-        "litter_pool_woody",
-        "litter_pool_below_metabolic",
-        "litter_pool_below_structural",
+        "litter_pool_above_metabolic_cnp",
+        "litter_pool_above_structural_cnp",
+        "litter_pool_woody_cnp",
+        "litter_pool_below_metabolic_cnp",
+        "litter_pool_below_structural_cnp",
         "c_n_ratio_above_metabolic",
         "c_n_ratio_above_structural",
         "c_n_ratio_woody",
@@ -771,7 +771,7 @@ class AnimalModel(
 
         for pool in litter_types:
             # Original stock at the start of the step (kg C m⁻²)
-            start_stock = self.data[f"litter_pool_{pool}"].to_numpy()
+            start_stock = self.data[f"litter_pool_{pool}_cnp"].loc[:, "C"].to_numpy()
 
             # Current stock after detritivore feeding (kg C m⁻²)
             end_stock = array(

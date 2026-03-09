@@ -38,11 +38,19 @@ def test_calculate_post_consumption_pools(dummy_litter_data):
     }
 
     actual_pools = calculate_post_consumption_pools(
-        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
-        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
-        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
-        below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
-        below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        above_metabolic=dummy_litter_data["litter_pool_above_metabolic_cnp"]
+        .loc[:, "C"]
+        .to_numpy(),
+        above_structural=dummy_litter_data["litter_pool_above_structural_cnp"]
+        .loc[:, "C"]
+        .to_numpy(),
+        woody=dummy_litter_data["litter_pool_woody_cnp"].loc[:, "C"].to_numpy(),
+        below_metabolic=dummy_litter_data["litter_pool_below_metabolic_cnp"]
+        .loc[:, "C"]
+        .to_numpy(),
+        below_structural=dummy_litter_data["litter_pool_below_structural_cnp"]
+        .loc[:, "C"]
+        .to_numpy(),
         consumption_above_metabolic=dummy_litter_data[
             "litter_consumption_above_metabolic"
         ].to_numpy(),

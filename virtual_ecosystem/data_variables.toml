@@ -742,37 +742,37 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Above ground metabolic litter pool"
-name = "litter_pool_above_metabolic"
-unit = "kg C m^-2"
+description = "Above ground metabolic litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_above_metabolic_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Above ground structural litter pool"
-name = "litter_pool_above_structural"
-unit = "kg C m^-2"
+description = "Above ground structural litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_above_structural_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Woody litter pool"
-name = "litter_pool_woody"
-unit = "kg C m^-2"
+description = "Woody litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_woody_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Below ground metabolic litter pool"
-name = "litter_pool_below_metabolic"
-unit = "kg C m^-2"
+description = "Below ground metabolic litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_below_metabolic_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Below ground structural litter pool"
-name = "litter_pool_below_structural"
-unit = "kg C m^-2"
+description = "Below ground structural litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_below_structural_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]

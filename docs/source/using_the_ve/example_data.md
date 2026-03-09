@@ -192,7 +192,7 @@ variable. For example:
 ```toml
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_above_metabolic"
+var_name = "litter_pool_above_metabolic_cnp"
 ```
 
 The configuration setting needs to be provided which for every variable required by
@@ -319,24 +319,24 @@ The `example_litter_data.nc` file provides:
   - Unit
   - Dims
 * - above ground metabolic litter pools
-  - `litter_pool_above_metabolic`
-  - kg C $\textrm{m}^{-2}$
+  - `litter_pool_above_metabolic_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - above ground structural litter pools
-  - `litter_pool_above_structural`
-  - kg C $\textrm{m}^{-2}$
+  - `litter_pool_above_structural_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - woody litter pools
-  - `litter_pool_woody`
-  - kg C $\textrm{m}^{-2}$
+  - `litter_pool_woody_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - below ground metabolic litter pools
-  - `litter_pool_below_metabolic`
-  - kg C $\textrm{m}^{-2}$
+  - `litter_pool_below_metabolic_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - below ground structural litter pools
-  - `litter_pool_below_structural`
-  - kg C $\textrm{m}^{-2}$
+  - `litter_pool_below_structural_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - lignin proportion of above ground structural litter
   - `lignin_above_structural`
