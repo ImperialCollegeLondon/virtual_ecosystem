@@ -190,7 +190,6 @@ def test_update_soil_temperature(g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_te
 
 def test_energy_balance_residual_only(
     dummy_climate_data_varying_canopy,
-    fixture_core_components,
     fixture_abiotic_constants,
     fixture_core_constants,
 ):
@@ -200,27 +199,22 @@ def test_energy_balance_residual_only(
     )
 
     data = dummy_climate_data_varying_canopy
-    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    aerodynamic_resistance_2d = np.tile(data["aerodynamic_resistance_canopy"], (14, 1))
 
     result = calculate_energy_balance_residual(
-        canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
-        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-        evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
-        absorbed_shortwave_radiation=data["shortwave_absorption"][
-            canopy_index
-        ].to_numpy(),
+        canopy_temperature_initial=data["canopy_temperature"].to_numpy(),
+        air_temperature=data["air_temperature"].to_numpy(),
+        evapotranspiration=evapotranspiration.to_numpy(),
+        absorbed_shortwave_radiation=data["shortwave_absorption"].to_numpy(),
         absorbed_longwave_radiation=data["downward_longwave_radiation"]
         .isel(time_index=0)
         .to_numpy()
         * fixture_abiotic_constants.leaf_emissivity,
-        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
-        density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
-        latent_heat_vapourisation=data["latent_heat_vapourisation"][
-            canopy_index
-        ].to_numpy()
-        * 1000,
+        specific_heat_air=data["specific_heat_air"].to_numpy(),
+        density_air=data["density_air"].to_numpy(),
+        aerodynamic_resistance=aerodynamic_resistance_2d,
+        latent_heat_vapourisation=data["latent_heat_vapourisation"].to_numpy() * 1000,
         leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
@@ -229,13 +223,13 @@ def test_energy_balance_residual_only(
     )
 
     assert isinstance(result, np.ndarray)
-    assert result.shape == (3, 4)
-    assert np.isfinite(result[0, 0])
+    assert result.shape == (14, 4)
+    mask = ~np.isnan(evapotranspiration)
+    assert np.all(np.isfinite(result[mask]))
 
 
 def test_energy_balance_return_fluxes(
     dummy_climate_data_varying_canopy,
-    fixture_core_components,
     fixture_abiotic_constants,
     fixture_core_constants,
 ):
@@ -245,27 +239,19 @@ def test_energy_balance_return_fluxes(
     )
 
     data = dummy_climate_data_varying_canopy
-    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    aerodynamic_resistance_2d = np.tile(data["aerodynamic_resistance_canopy"], (14, 1))
 
     result = calculate_energy_balance_residual(
-        canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
-        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-        evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
-        absorbed_shortwave_radiation=data["shortwave_absorption"][
-            canopy_index
-        ].to_numpy(),
-        absorbed_longwave_radiation=data["shortwave_absorption"][
-            canopy_index
-        ].to_numpy()
-        * 0.5,
-        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
-        density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
-        latent_heat_vapourisation=data["latent_heat_vapourisation"][
-            canopy_index
-        ].to_numpy()
-        * 1000,
+        canopy_temperature_initial=data["canopy_temperature"].to_numpy(),
+        air_temperature=data["air_temperature"].to_numpy(),
+        evapotranspiration=evapotranspiration.to_numpy(),
+        absorbed_shortwave_radiation=data["shortwave_absorption"].to_numpy(),
+        absorbed_longwave_radiation=data["shortwave_absorption"].to_numpy() * 0.5,
+        specific_heat_air=data["specific_heat_air"].to_numpy(),
+        density_air=data["density_air"].to_numpy(),
+        aerodynamic_resistance=aerodynamic_resistance_2d,
+        latent_heat_vapourisation=data["latent_heat_vapourisation"].to_numpy() * 1000,
         leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
@@ -280,17 +266,18 @@ def test_energy_balance_return_fluxes(
         "latent_heat_flux",
         "energy_balance_residual",
     }
+    mask = ~np.isnan(evapotranspiration)
+
     assert set(result.keys()) == expected_keys
     for key in expected_keys:
         assert isinstance(result[key], np.ndarray)
-        assert result[key].shape == (3, 4)
+        assert result[key].shape == (14, 4)
+        assert np.all(np.isfinite(result[key][mask]))
 
 
 def test_solve_canopy_temperature(
     dummy_climate_data_varying_canopy,
-    fixture_core_components,
     fixture_core_constants,
-    fixture_abiotic_constants,
     caplog,
 ):
     """Test solving canopy temperature with Newton method."""
@@ -300,29 +287,20 @@ def test_solve_canopy_temperature(
     )
 
     data = dummy_climate_data_varying_canopy
-    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    aerodynamic_resistance_2d = np.tile(data["aerodynamic_resistance_canopy"], (14, 1))
 
     with caplog.at_level(LOGGER.level):
         result = solve_canopy_temperature(
-            canopy_temperature_initial=data["canopy_temperature"][
-                canopy_index
-            ].to_numpy(),
-            air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-            evapotranspiration=evapotranspiration[canopy_index].to_numpy() / (24 * 30),
-            absorbed_shortwave_radiation=data["shortwave_absorption"][
-                canopy_index
-            ].to_numpy(),
-            absorbed_longwave_radiation=data["shortwave_absorption"][
-                canopy_index
-            ].to_numpy()
-            * 0.5,
-            specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
-            density_air=data["density_air"][canopy_index].to_numpy(),
-            aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
-            latent_heat_vapourisation=data["latent_heat_vapourisation"][
-                canopy_index
-            ].to_numpy()
+            canopy_temperature_initial=data["canopy_temperature"].to_numpy(),
+            air_temperature=data["air_temperature"].to_numpy(),
+            evapotranspiration=evapotranspiration.to_numpy() / (24 * 30),
+            absorbed_shortwave_radiation=data["shortwave_absorption"].to_numpy(),
+            absorbed_longwave_radiation=data["shortwave_absorption"] * 0.5,
+            specific_heat_air=data["specific_heat_air"].to_numpy(),
+            density_air=data["density_air"].to_numpy(),
+            aerodynamic_resistance=aerodynamic_resistance_2d,
+            latent_heat_vapourisation=data["latent_heat_vapourisation"].to_numpy()
             * 1000,
             emissivity_leaf=0.96,
             stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
@@ -336,10 +314,10 @@ def test_solve_canopy_temperature(
     assert any("converge" in msg for msg in messages)
 
     assert isinstance(result, np.ndarray)
-    assert result.shape == data["canopy_temperature"][canopy_index].shape
+    assert result.shape == data["canopy_temperature"].shape
 
     # Mask where input is not NaN
-    mask = ~np.isnan(data["canopy_temperature"][canopy_index])
+    mask = ~np.isnan(data["canopy_temperature"])
 
     # Assert plausible range for non-NaN input
     assert np.all((result[mask] > 0) & (result[mask] < 50))
