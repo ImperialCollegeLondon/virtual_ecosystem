@@ -632,9 +632,14 @@ def dummy_climate_data(fixture_core_components):
         [90.0, 91.0, 93.0, 96.0, 98.0]
     )[:, None]
 
+    data["vapour_pressure"] = from_template()
+    data["vapour_pressure"][lyr_str.index_filled_atmosphere] = np.array(
+        [3.82, 3.82, 3.70, 3.46, 2.59]
+    )[:, None]
+
     data["vapour_pressure_deficit"] = from_template()
     data["vapour_pressure_deficit"][lyr_str.index_filled_atmosphere] = np.array(
-        [0.14, 0.16, 0.18, 0.20, 0.22]
+        [0.42, 0.37, 0.27, 0.14, 0.05]
     )[:, None]
 
     data["shortwave_absorption"] = from_template()
@@ -751,13 +756,19 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [450.0, 450.0, np.nan, np.nan],
         [450.0, np.nan, np.nan, np.nan],
     ]
-
+    dummy_climate_data["vapour_pressure"][index_filled_atmosphere] = [
+        [3.82, 3.82, 3.82, 3.82],
+        [3.82, 3.82, 3.82, np.nan],
+        [3.7, 3.7, np.nan, np.nan],
+        [3.46, np.nan, np.nan, np.nan],
+        [2.59, 2.59, 2.59, 2.59],
+    ]
     dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
-        [0.14, 0.14, 0.14, 0.14],
-        [0.16, 0.16, 0.16, np.nan],
-        [0.18, 0.18, np.nan, np.nan],
-        [0.20, np.nan, np.nan, np.nan],
-        [0.22, 0.22, 0.22, 0.22],
+        [0.42, 0.42, 0.42, 0.42],
+        [0.37, 0.37, 0.37, np.nan],
+        [0.27, 0.27, np.nan, np.nan],
+        [0.14, np.nan, np.nan, np.nan],
+        [0.05, 0.05, 0.05, 0.05],
     ]
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
         [25.0, 25.0, 25.0, np.nan],
@@ -883,6 +894,21 @@ def fixture_static_inputs(
         * abiotic_constants.leaf_emissivity  # TODO needs to be soil too
     )
     cell_area = data.grid.cell_area
+
+    mixing_coefficient = fixture_core_components.layer_structure.from_template()
+    mixing_coefficient[indices.atm] = np.array(
+        [
+            [0.1, 0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.1, np.nan],
+            [0.1, 0.1, np.nan, np.nan],
+            [0.1, np.nan, np.nan, np.nan],
+            [0.1, 0.1, 0.1, 0.1],
+        ]
+    )
+    zero_plane_displacement = np.ones(data.grid.n_cells) * 2.0
+    ventilation_rate = np.ones(data.grid.n_cells) * 2.0
+    wind_speed = data["wind_speed"].to_numpy()
+
     return {
         "canopy_height": canopy_height,
         "lai_sum": leaf_area_index_sum,
@@ -892,4 +918,44 @@ def fixture_static_inputs(
         "geometry": atmospheric_layer_geometry,
         "absorbed_longwave_radiation": absorbed_longwave_radiation,
         "cell_area": cell_area,
+        "mixing_coefficient": mixing_coefficient,
+        "zero_plane_displacement": zero_plane_displacement,
+        "wind_speed": wind_speed,
+        "ventialtion_rate": ventilation_rate,
+    }
+
+
+@pytest.fixture
+def fixture_state_inputs(
+    dummy_climate_data_varying_canopy,
+) -> dict[str, NDArray[np.floating]]:
+    """Prepare static inputs for microclimate model."""
+
+    data = dummy_climate_data_varying_canopy
+    n_layers, n_cells = data["air_temperature"].shape
+
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+
+    return {
+        "air_temperature": data["air_temperature"].to_numpy(),
+        "relative_humidity": data["relative_humidity"].to_numpy(),
+        "atmospheric_pressure": data["atmospheric_pressure"].to_numpy(),
+        "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
+        "canopy_temperature": data["canopy_temperature"].to_numpy(),
+        "evapotranspiration": evapotranspiration.to_numpy(),
+        "shortwave_absorption": data["shortwave_absorption"].to_numpy(),
+        "specific_heat_air": data["specific_heat_air"].to_numpy(),
+        "density_air": data["density_air"].to_numpy(),
+        "aerodynamic_resistance_canopy": (
+            data["aerodynamic_resistance_canopy"].to_numpy()
+        ),
+        "latent_heat_vapourisation": data["latent_heat_vapourisation"].to_numpy(),
+        "soil_temperature": data["soil_temperature"].to_numpy(),
+        "soil_evaporation": data["soil_evaporation"].to_numpy(),
+        "sensible_heat_flux": np.ones((n_layers, n_cells)) * 5.0,
+        "sensible_heat_flux_soil": np.ones(n_cells) * 2.0,
+        "latent_heat_flux": np.ones((n_layers, n_cells)) * 5.0,
+        "latent_heat_flux_soil": np.ones(n_cells) * 2.0,
+        "ground_heat_flux": np.ones(n_cells) * 2.0,
+        "ventilation_rate": np.repeat(0.05, n_cells),
     }
