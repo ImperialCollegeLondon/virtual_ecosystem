@@ -830,17 +830,6 @@ class AnimalModel(
         pom_consumption_nitrogen = pom_consumption_carbon / pom_c_n_ratios
         pom_consumption_phosphorus = pom_consumption_carbon / pom_c_p_ratios
 
-        # Combine into the single object that the data object expects (and convert to
-        # rate units)
-        pom_consumption_cnp = stack(
-            [
-                self.to_per_day(pom_consumption_carbon),
-                self.to_per_day(pom_consumption_nitrogen),
-                self.to_per_day(pom_consumption_phosphorus),
-            ],
-            axis=1,
-        )
-
         bacteria_initial_stock = self.data["soil_c_pool_bacteria"].to_numpy()
 
         bacteria_final_stock = array(
@@ -898,7 +887,14 @@ class AnimalModel(
 
         return {
             "animal_pom_consumption_cnp": DataArray(
-                data=pom_consumption_cnp,
+                data=stack(
+                    (
+                        self.to_per_day(pom_consumption_carbon),
+                        self.to_per_day(pom_consumption_nitrogen),
+                        self.to_per_day(pom_consumption_phosphorus),
+                    ),
+                    axis=1,
+                ),
                 coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
             "animal_bacteria_consumption": DataArray(

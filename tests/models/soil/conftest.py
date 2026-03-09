@@ -47,9 +47,6 @@ def dummy_carbon_data(fixture_core_components):
         "soil_p_pool_labile": [1.0582393e-5, 3.252961e-5, 6.806745e-5, 1.945635e-4],
         "pH": [3.0, 7.5, 9.0, 5.7],
         "clay_fraction": [0.8, 0.3, 0.1, 0.9],
-        "litter_C_mineralisation_rate": [0.00212106, 0.00106053, 0.00049000, 0.0055],
-        "litter_N_mineralisation_rate": [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
-        "litter_P_mineralisation_rate": [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
         "plant_symbiote_carbon_supply": [0.01, 0.25, 0.0075, 0.0047],
         "root_carbohydrate_exudation": [0.025, 0.01, 0.05, 0.0025],
         "plant_ammonium_uptake": [5.0e-5, 2.5e-5, 1.0e-5, 1.0e-4],
@@ -127,6 +124,17 @@ def dummy_carbon_data(fixture_core_components):
             [4.94e-3, 6.95e-8, 3.34e-8],
             [7.20e-3, 4.95e-8, 5.11e-8],
         ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_mineralisation_rate_cnp"] = DataArray(
+        data=np.array(
+            [
+                [0.00212106, 0.00106053, 0.00049000, 0.0055],
+                [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
+                [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
+            ]
+        ).transpose(),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
