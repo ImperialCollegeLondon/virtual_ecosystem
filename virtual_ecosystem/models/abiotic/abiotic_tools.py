@@ -487,8 +487,6 @@ def fill_layer_template(
 def record_hourly_output(
     hour: int,
     data_record: dict,
-    idx: SimpleNamespace,
-    layer_structure: LayerStructure,
     hourly_values: dict,
 ):
     """Record hourly data.
@@ -496,55 +494,16 @@ def record_hourly_output(
     Args:
         hour: Hour of the day
         data_record: dict that contains all hourly data
-        idx: Indices
-        layer_structure: LayerStructure object
         hourly_values: Hourly values
 
     Returns:
         updated dict with hour values
     """
 
-    # Flux variables that need layered assignments
-    flux_names = ["longwave_emission", "sensible_heat_flux", "latent_heat_flux"]
-    fluxes = {}
-
-    for name in flux_names:
-        # Convert boolean masks or scalars to integer arrays
-        canopy_idx = (
-            np.nonzero(np.atleast_1d(idx.canopy))[0]
-            if np.atleast_1d(idx.canopy).dtype == bool
-            else np.atleast_1d(idx.canopy)
-        )
-        surface_idx = (
-            np.nonzero(np.atleast_1d(idx.surface))[0]
-            if np.atleast_1d(idx.surface).dtype == bool
-            else np.atleast_1d(idx.surface)
-        )
-        topsoil_idx = (
-            np.nonzero(np.atleast_1d(idx.topsoil))[0]
-            if np.atleast_1d(idx.topsoil).dtype == bool
-            else np.atleast_1d(idx.topsoil)
-        )
-
-        # Topsoil as 1D
-        topsoil_values = hourly_values.get(
-            f"{name}_soil", hourly_values[name][topsoil_idx]
-        )
-
-        fluxes[name] = [
-            (canopy_idx, hourly_values[name][canopy_idx]),
-            (surface_idx, hourly_values[name][surface_idx]),
-            (topsoil_idx, topsoil_values),
-        ]
-
     # Assign values to data_record
     for var, value in hourly_values.items():
         if var not in data_record:
             continue
-
-        if var in fluxes:
-            full = fill_layer_template(layer_structure, fluxes[var])
-            data_record[var][hour] = full
 
         else:
             data_record[var][hour] = value

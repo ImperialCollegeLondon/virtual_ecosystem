@@ -482,41 +482,30 @@ def test_fill_layer_template(fixture_core_components):
     assert np.all(np.isnan(out[0]))
 
 
-def test_record_hourly_output(fixture_core_components, fixture_abiotic_indices):
+def test_record_hourly_output():
     """Test recording hourly 1D and layered variables."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import record_hourly_output
 
-    layer_structure = fixture_core_components.layer_structure
     hours, layers, cells = 24, 14, 4
     hour = 5
-    idx = fixture_abiotic_indices
 
     # Initialise data_record
     data_record = {
         "ground_heat_flux": np.full((hours, cells), np.nan),
         "longwave_emission": np.full((hours, layers, cells), np.nan),
-        "sensible_heat_flux": np.full((hours, layers, cells), np.nan),
-        "latent_heat_flux": np.full((hours, layers, cells), np.nan),
     }
 
     # Hourly values
     hourly_values = {
         "ground_heat_flux": np.array([1.0, 2.0, 3.0, 4.0]),
         "longwave_emission": np.arange(layers * cells).reshape(layers, cells),
-        "longwave_emission_soil": np.array([999.0, 999.0, 999.0, 999.0]),  # 1D
-        "sensible_heat_flux": np.arange(layers * cells).reshape(layers, cells),
-        "sensible_heat_flux_soil": np.array([888.0, 888.0, 888.0, 888.0]),  # 1D
-        "latent_heat_flux": np.arange(layers * cells).reshape(layers, cells),
-        "latent_heat_flux_soil": np.array([777.0, 777.0, 777.0, 777.0]),  # 1D
         "unknown_var": np.array([0, 0, 0, 0]),  # should be ignored
     }
 
     updated = record_hourly_output(
         hour=hour,
         data_record=data_record,
-        idx=idx,
-        layer_structure=layer_structure,
         hourly_values=hourly_values,
     )
 
@@ -524,21 +513,6 @@ def test_record_hourly_output(fixture_core_components, fixture_abiotic_indices):
     np.testing.assert_allclose(
         updated["ground_heat_flux"][hour], hourly_values["ground_heat_flux"]
     )
-    # Check layered variables
-    for var in ["longwave_emission", "sensible_heat_flux", "latent_heat_flux"]:
-        # canopy rows
-        canopy_rows = idx.canopy
-        np.testing.assert_allclose(
-            updated[var][hour, canopy_rows], hourly_values[var][canopy_rows]
-        )
-        # surface row
-        np.testing.assert_allclose(
-            updated[var][hour, idx.surface], hourly_values[var][idx.surface]
-        )
-        # topsoil row
-        np.testing.assert_allclose(
-            updated[var][hour, idx.topsoil], hourly_values[f"{var}_soil"]
-        )
 
     # Other hours untouched
     for var in data_record:
