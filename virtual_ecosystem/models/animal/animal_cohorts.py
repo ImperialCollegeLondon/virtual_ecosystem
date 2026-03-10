@@ -84,8 +84,13 @@ class AnimalCohort:
         """The amount of time [days] since reaching adult body-mass."""
         self.prey_groups: dict[str, tuple[float, float]] = {}
         """The identification of usable food resources."""
-        self.territory_size = sf.territory_size(self.functional_group.adult_mass)
-        """The size in hectares of the animal cohorts territory."""
+        self.territory_size = sf.territory_size(
+            self.functional_group.adult_mass,
+            self.constants.territory_size_terms[self.functional_group.metabolic_type][
+                self.functional_group.taxa
+            ],
+        )
+        """The size in m² of the animal cohort's territory."""
         self.occupancy_proportion: float = 1.0 / self.territory_size
         """The proportion of the cohort that is within a territorial given grid cell."""
         self._initialize_territory(centroid_key)
