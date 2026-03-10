@@ -19,7 +19,7 @@ from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.abiotic.energy_balance import (
     initialise_canopy_and_soil_fluxes,
 )
-from virtual_ecosystem.models.abiotic.microclimate import run_microclimate
+from virtual_ecosystem.models.abiotic.microclim import run_microclimate
 from virtual_ecosystem.models.abiotic.model_config import (
     AbioticConfiguration,
     AbioticConstants,
@@ -59,6 +59,7 @@ class AbioticModel(
         "air_temperature",
         "canopy_temperature",
         "soil_temperature",
+        "vapour_pressure",
         "vapour_pressure_deficit",
         "relative_humidity",
         "wind_speed",
@@ -70,7 +71,6 @@ class AbioticModel(
         "latent_heat_vapourisation",
         "aerodynamic_resistance_canopy",
         "net_radiation",
-        "conductive_flux_understorey",
         "longwave_emission",
     ),
     vars_required_for_update=(
@@ -107,7 +107,6 @@ class AbioticModel(
         "ground_heat_flux",
         "net_radiation",
         "longwave_emission",
-        "conductive_flux_understorey",
         "vapour_pressure",
     ),
     vars_populated_by_first_update=(),
@@ -200,6 +199,7 @@ class AbioticModel(
             time_index=0,
             constants=self.model_constants,
             core_constants=self.core_constants,
+            pyrealm_core_constants=pyrealm_core_constants,
             bounds=self.bounds,
         )
 
@@ -284,9 +284,9 @@ class AbioticModel(
             data=self.data,
             vars_updated=self.vars_updated,
             time_index=time_index,
+            time_dim=24,
             time_interval=self.model_timing.update_interval_seconds,
             month=month,
-            cell_area=self.grid.cell_area,
             latitude=latitude,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,

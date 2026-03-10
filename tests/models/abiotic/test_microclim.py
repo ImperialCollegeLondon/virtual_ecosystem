@@ -564,6 +564,7 @@ def test_calculate_vegetation_fluxes(
         "sensible_heat_flux",
         "latent_heat_flux",
         "energy_balance_residual",
+        "net_radiation",
     }
     assert set(result.keys()) == expected_keys
     for key in expected_keys:
@@ -613,6 +614,7 @@ def test_calculate_soil_fluxes(
         "sensible_heat_flux_soil",
         "latent_heat_flux_soil",
         "ground_heat_flux",
+        "net_radiation_soil",
     }
 
 
@@ -742,7 +744,7 @@ def test_run_hour_step_orchestration(
     time_index = 0
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
-    pyrealm_constants = PyrealmCoreConst()
+    pyrealm_core_constants = PyrealmCoreConst()
     abiotic_bounds = AbioticSimpleBounds()
 
     # get inputs
@@ -776,7 +778,7 @@ def test_run_hour_step_orchestration(
         layer_structure=fixture_core_components.layer_structure,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
-        pyrealm_constants=pyrealm_constants,
+        pyrealm_core_constants=pyrealm_core_constants,
         abiotic_bounds=abiotic_bounds,
         time_interval=time_interval,
     )
@@ -1020,15 +1022,16 @@ def test_run_microclimate(
         "longwave_emission",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "net_radiation",
     )
     time_interval = 3600
     time_index = 0
-    time_dim = 24
+    time_dim = 2  # NOTE this is shortened to reduce test run time
     month = 1
     latitude = 0
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
-    pyrealm_constants = PyrealmCoreConst()
+    pyrealm_core_constants = PyrealmCoreConst()
     abiotic_bounds = AbioticSimpleBounds()
 
     result = run_microclimate(
@@ -1043,7 +1046,7 @@ def test_run_microclimate(
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
         abiotic_bounds=abiotic_bounds,
-        pyrealm_constants=pyrealm_constants,
+        pyrealm_core_constants=pyrealm_core_constants,
     )
 
     for var in vars_updated:

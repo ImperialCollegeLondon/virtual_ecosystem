@@ -36,7 +36,6 @@ def test_initialise_canopy_and_soil_fluxes(
         "latent_heat_flux",
         "ground_heat_flux",
         "longwave_emission",
-        "conductive_flux_understorey",
     ]:
         assert var in result
 
@@ -265,6 +264,7 @@ def test_energy_balance_return_fluxes(
         "sensible_heat_flux",
         "latent_heat_flux",
         "energy_balance_residual",
+        "net_radiation",
     }
     mask = ~np.isnan(evapotranspiration)
 

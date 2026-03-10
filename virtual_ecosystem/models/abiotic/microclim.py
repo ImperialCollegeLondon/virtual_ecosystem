@@ -586,6 +586,13 @@ def calculate_soil_fluxes(
         + static["absorbed_longwave_radiation"][idx.topsoil, :]
     )
 
+    # Net radiation, [W m-2]
+    out["net_radiation_soil"] = (
+        state["shortwave_absorption"][idx.topsoil, :]
+        - out["longwave_emission_soil"]
+        + static["absorbed_longwave_radiation"][idx.topsoil, :]
+    )
+
     return out
 
 
@@ -739,7 +746,7 @@ def run_hour_step(
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
-    pyrealm_constants: PyrealmCoreConst,
+    pyrealm_core_constants: PyrealmCoreConst,
     abiotic_bounds: AbioticSimpleBounds,
     time_interval: float,
 ):
@@ -757,7 +764,7 @@ def run_hour_step(
         layer_structure: LayerStructure
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
-        pyrealm_constants: Set of constants from pyrealm core that are used in
+        pyrealm_core_constants: Set of constants from pyrealm core that are used in
             calculations
         abiotic_bounds: Set of bounds for abiotic values
         time_interval: Time interval for flux calculations, [s]
@@ -812,17 +819,18 @@ def run_hour_step(
     state["sensible_heat_flux"][idx.topsoil] = soil_fluxes["sensible_heat_flux_soil"]
     state["latent_heat_flux"][idx.topsoil] = soil_fluxes["latent_heat_flux_soil"]
     state["longwave_emission"][idx.topsoil] = soil_fluxes["longwave_emission_soil"]
+    state["net_radiation"][idx.topsoil] = soil_fluxes["net_radiation_soil"]
     state["ground_heat_flux"] = soil_fluxes["ground_heat_flux"]
 
     # Calculate soil temperature
     soil_temperature = energy_balance.update_soil_temperature(
         ground_heat_flux=state["ground_heat_flux"],
         soil_temperature=state["soil_temperature"][idx.soil],
-        soil_layer_thickness=static["geometry"]["thickness"][-1],
+        soil_layer_thickness=layer_structure.soil_layer_thickness,
         soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
         soil_bulk_density=abiotic_constants.bulk_density_soil,
         specific_heat_capacity_soil=abiotic_constants.specific_heat_capacity_soil,
-        time_interval=time_interval,
+        time_interval=1,  # TODO core_constants.seconds_to_hour,
     )
     state["soil_temperature"] = layer_structure.from_template()
     state["soil_temperature"][idx.soil] = soil_temperature
@@ -833,7 +841,7 @@ def run_hour_step(
         static=static,
         abiotic_bounds=abiotic_bounds,
         idx=idx,
-        time_interval=1,  # core_constants.seconds_to_hour,
+        time_interval=1,  # TODO core_constants.seconds_to_hour,
     )
     state["air_temperature"] = air_temperature
 
@@ -841,7 +849,7 @@ def run_hour_step(
     air_humidity = update_atmospheric_humidity(
         state=state,
         static=static,
-        pyrealm_core_constants=pyrealm_constants,
+        pyrealm_core_constants=pyrealm_core_constants,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
         idx=idx,
@@ -934,7 +942,7 @@ def run_microclimate(
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
-    pyrealm_constants: PyrealmCoreConst,
+    pyrealm_core_constants: PyrealmCoreConst,
     abiotic_bounds: AbioticSimpleBounds,
 ) -> dict[str, Any]:
     """Run the microclimate model for one day, iterating through hourly time steps.
@@ -956,7 +964,7 @@ def run_microclimate(
             and their indices
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
-        pyrealm_constants: Set of constants from pyrealm
+        pyrealm_core_constants: Set of constants from pyrealm
         abiotic_bounds: Bounds for air temperature to ensure physical realism
 
     Returns:
@@ -1021,7 +1029,7 @@ def run_microclimate(
             layer_structure=layer_structure,
             abiotic_constants=abiotic_constants,
             core_constants=core_constants,
-            pyrealm_constants=pyrealm_constants,
+            pyrealm_core_constants=pyrealm_core_constants,
             time_interval=time_interval,
             abiotic_bounds=abiotic_bounds,
         )

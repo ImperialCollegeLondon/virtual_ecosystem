@@ -103,17 +103,10 @@ def initialise_canopy_and_soil_fluxes(
         output[name] = base_flux.copy()
 
     # 1D fluxes (cell-wise)
-    cell_flux = DataArray(
-        np.full(base_flux.shape[1], initial_flux_value),
+    output["ground_heat_flux"] = DataArray(
+        np.full(base_flux.sizes["cell_id"], initial_flux_value),
         dims="cell_id",
     )
-
-    for name in (
-        "ground_heat_flux",
-        "conductive_flux_understorey",
-    ):
-        output[name] = cell_flux.copy()
-
     return output
 
 
@@ -344,6 +337,12 @@ def calculate_energy_balance_residual(
         time_interval=seconds_to_hour,
     )
 
+    # Net radiation, [W m-2]
+    net_radiation = (
+        absorbed_shortwave_radiation
+        + absorbed_longwave_radiation
+        - longwave_emission_canopy
+    )
     # Energy balance residual, [W m-2]
     energy_balance_residual = (
         absorbed_shortwave_radiation
@@ -360,6 +359,7 @@ def calculate_energy_balance_residual(
             "sensible_heat_flux": sensible_heat_flux_canopy,
             "latent_heat_flux": latent_heat_flux_canopy,
             "energy_balance_residual": energy_balance_residual,
+            "net_radiation": net_radiation,
         }
         return energy_balance
     else:
