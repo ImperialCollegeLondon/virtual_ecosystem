@@ -91,7 +91,9 @@ class AnimalCohort:
             ],
         )
         """The size in m² of the animal cohort's territory."""
-        self.occupancy_proportion: float = 1.0 / self.territory_size
+        self.territory_cells = ceil(self.territory_size / grid.cell_area)
+        """The number of grid cells the cohort occupies."""
+        self.occupancy_proportion: float = 1.0 / self.territory_cells
         """The proportion of the cohort that is within a territorial given grid cell."""
         self._initialize_territory(centroid_key)
         """Initialize the territory using the centroid grid key."""
