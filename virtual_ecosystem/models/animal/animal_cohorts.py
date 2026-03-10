@@ -90,11 +90,11 @@ class AnimalCohort:
                 self.functional_group.taxa
             ],
         )
-        """The size in m² of the animal cohort's territory."""
+        """The size in m2 of the animal cohort's territory."""
         self.territory_cells = ceil(self.territory_size / grid.cell_area)
         """The number of grid cells the cohort occupies."""
         self.occupancy_proportion: float = 1.0 / self.territory_cells
-        """The proportion of the cohort that is within a territorial given grid cell."""
+        """The proportion of the cohort that is within a grid cell of territory."""
         self._initialize_territory(centroid_key)
         """Initialize the territory using the centroid grid key."""
         self.territory: list[int]
@@ -164,20 +164,15 @@ class AnimalCohort:
     def get_territory_cells(self, centroid_key: int) -> list[int]:
         """This calls bfs_territory to determine the scope of the territory.
 
-        TODO: local import of bfs_territory is temporary while deciding whether to keep
-        animal_territory.py
-
         Args:
             centroid_key: The central grid cell key of the territory.
 
         """
-        # Each grid cell is 1 hectare, territory size in grids is the same as hectares
-        target_cell_number = int(self.territory_size)
 
         # Perform BFS to determine the territory cells
         territory_cells = sf.bfs_territory(
             centroid_key,
-            target_cell_number,
+            self.territory_cells,
             self.grid.cell_nx,
             self.grid.cell_ny,
         )
@@ -189,9 +184,6 @@ class AnimalCohort:
         centroid_key: int,
     ) -> None:
         """This initializes the territory occupied by the cohort.
-
-        TODO: local import of AnimalTerritory is temporary while deciding whether to
-        keep the class
 
         Args:
             centroid_key: The grid cell key anchoring the territory.
