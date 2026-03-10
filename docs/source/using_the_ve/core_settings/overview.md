@@ -13,11 +13,13 @@ jupyter:
 
 # Core simulation settings
 
-This section contains detailed explanation of the core simulation settings. It will be
-significantly expanded in future, at present in contains:
+This section explains how to set up the core components of a Virtual Ecosystem
+simulation. This includes:
 
 * A detailed overview of the [core simulation configuration
-  options](../core_configuration.md) for the Virtual Ecosystem.
+  options](./core_configuration.md) for the Virtual Ecosystem.
 * A detailed description of the [axes used by the data object](../axes.md).
+* A guide for [generating a reusable site definition file](./site_definition_guide.md),
+  (i.e. setting the spatial extent etc of your simulation grid)
 * An explanation of the [different ways that static models can be
   setup](./static_models.md).

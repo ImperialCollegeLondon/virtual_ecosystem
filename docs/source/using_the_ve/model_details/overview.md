@@ -13,14 +13,20 @@ jupyter:
 
 # Model specific setup details
 
-This section contains the details you need to know to setup specific models. It will be
-significantly expanded in future, at present in contains:
+This section contains the details you need to know to setup specific models. Rather than
+providing separate sections for every single model we group them by type, as a large
+amount of the setup process will be shared. The four types of models are as follows
+
+* The [abiotic environment models](./abiotic/overview.md) (`abiotic`, `abiotic_simple`
+  and `hydrology`)
+* The animal model
+* The plants model
+* The decay models (`litter` and `soil`)
+
+There's still a large amount of loose content that needs to be integrated with the above
+structure. It consists of:
 
 * A page containing an [explanation of how to configure plant functional
   types](./pft_configuration.md).
-* A page containing [important notes about climate data
-  pre-processing](./notes_preprocessing.md).
 * A page giving a [model by model breakdown of the configuration
-  options](../science_model_configuration.md), including default values for constants.
-* A page providing the [full set of config options](./new_config.md) for all models. At
-  some point this will be split into a page per model.
+  options](./science_model_configuration.md), including default values for constants.

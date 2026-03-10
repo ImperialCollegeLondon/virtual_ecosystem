@@ -69,7 +69,8 @@ variable.
 :tags: [remove-input]
 
 from IPython.display import display_html
-from variable_table import variable_table
+
+from virtual_ecosystem.core.docutils import variable_table
 
 display_html(variable_table(), raw=True)
 ```
