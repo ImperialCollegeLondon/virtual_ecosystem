@@ -785,41 +785,184 @@ def test_account_for_element_loss_turnover(
     )
 
 
+BALANCE_FOLIAGE_C = np.array([100.0, 200.0, 300.0, 400.0])
+BALANCE_FOLIAGE_CN = np.repeat([5], 4)
+BALANCE_FOLIAGE_CP = np.repeat([10], 4)
+BALANCE_WOOD_C = np.array([200.0, 400.0, 600.0, 800.0])
+BALANCE_WOOD_CN = np.repeat([10], 4)
+BALANCE_WOOD_CP = np.repeat([20], 4)
+BALANCE_POOL_SHAPE = (2, 4)
+
+
 @pytest.mark.parametrize(
-    argnames="initial_elements,initial_pool,expected_foliage,expected_wood,expected_pool",
+    argnames=(
+        "initial_foliage,initial_wood,initial_pool,"
+        "expected_foliage,expected_wood,expected_pool"
+    ),
     argvalues=(
         pytest.param(
             np.array(
                 [
-                    [100, 200, 300, 400],
-                    [100 / 5, 200 / 6, 300 / 5, 400 / 6],
-                    [100 / 10, 200 / 12, 300 / 10, 400 / 12],
-                    [200, 400, 600, 800],
-                    [200 / 10, 400 / 8, 600 / 10, 800 / 8],
-                    [200 / 20, 400 / 16, 600 / 20, 800 / 16],
-                ]
-            ),
-            np.array([[0, 0, 0, 0], [0, 0, 0, 0]], dtype=float),
-            np.array(
-                [
-                    [100 / 5, 200 / 6, 300 / 5, 400 / 6],
-                    [100 / 10, 200 / 12, 300 / 10, 400 / 12],
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
                 ]
             ),
             np.array(
                 [
-                    [200 / 10, 400 / 8, 600 / 10, 800 / 8],
-                    [200 / 20, 400 / 16, 600 / 20, 800 / 16],
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
                 ]
             ),
-            np.array([[0, 0, 0, 0], [0, 0, 0, 0]], dtype=float),
-            id="at ideal ratios, pools empty",
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            ),
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            ),
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            id="T ideal, P empty --> no change",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            )
+            - 5,
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            )
+            - 5,
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            )
+            - 5,
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            )
+            - 5,
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            id="T deficit, P empty --> no change",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            )
+            - 5,
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            )
+            - 5,
+            np.full(BALANCE_POOL_SHAPE, 10, dtype=float),
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            ),
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            ),
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            id="T deficit, P exact surplus --> T filled, P empty",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            )
+            - 5,
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            )
+            - 5,
+            np.full(BALANCE_POOL_SHAPE, 6, dtype=float),
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            )
+            - 2,
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            )
+            - 2,
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            id="T deficit, P slight surplus --> T part filled, P empty",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            )
+            - 5,
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            )
+            - 5,
+            np.full(BALANCE_POOL_SHAPE, 16, dtype=float),
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            ),
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            ),
+            np.full(BALANCE_POOL_SHAPE, 6, dtype=float),
+            id="T deficit, P over surplus --> T filled, P not empty",
         ),
     ),
 )
 def test_balance_elements(
     fixture_community,
-    initial_elements,
+    initial_foliage,
+    initial_wood,
     initial_pool,
     expected_foliage,
     expected_wood,
@@ -839,18 +982,18 @@ def test_balance_elements(
 
     foliage = FoliageTissue(
         community=fixture_community,
-        carbon_mass=initial_elements[0],
+        carbon_mass=BALANCE_FOLIAGE_C,
         element_masses={
             "N": Element(
                 name="n",
-                ideal_ratio=np.array([5.0, 6.0, 5.0, 6.0]),
-                actual_element_mass=initial_elements[1],
+                ideal_ratio=BALANCE_FOLIAGE_CN,
+                actual_element_mass=initial_foliage[0],
                 turnover_ratio=turnover_ratios,
             ),
             "P": Element(
                 name="p",
-                ideal_ratio=np.array([10.0, 12.0, 10.0, 12.0]),
-                actual_element_mass=initial_elements[2],
+                ideal_ratio=BALANCE_FOLIAGE_CP,
+                actual_element_mass=initial_foliage[1],
                 turnover_ratio=turnover_ratios,
             ),
         },
@@ -858,18 +1001,18 @@ def test_balance_elements(
 
     wood = WoodTissue(
         community=fixture_community,
-        carbon_mass=initial_elements[3],
+        carbon_mass=BALANCE_WOOD_C,
         element_masses={
             "N": Element(
                 name="n",
-                ideal_ratio=np.array([10.0, 8.0, 10.0, 8.0]),
-                actual_element_mass=initial_elements[4],
+                ideal_ratio=BALANCE_WOOD_CN,
+                actual_element_mass=initial_wood[0],
                 turnover_ratio=turnover_ratios,
             ),
             "P": Element(
                 name="p",
-                ideal_ratio=np.array([20.0, 16.0, 20.0, 16.0]),
-                actual_element_mass=initial_elements[5],
+                ideal_ratio=BALANCE_WOOD_CP,
+                actual_element_mass=initial_wood[1],
                 turnover_ratio=turnover_ratios,
             ),
         },
@@ -894,7 +1037,7 @@ def test_balance_elements(
     assert np.allclose(foliage, expected_foliage)
 
     wood = biomasses.get_tissue("wood").as_array()
-    assert np.allclose(foliage, expected_foliage)
+    assert np.allclose(wood, expected_wood)
 
     pool = np.stack(list(biomasses.element_surplus.values()))
     assert np.allclose(pool, expected_pool)

@@ -962,7 +962,7 @@ class Biomasses(CohortMethods, PandasExporter):
 
         # Calculate the redistribution of pool deficits (negative values) to tissues
         # weighted by the relative elemental mass for each tissue.
-        pool_to_tissue_deficits = stem_pools * (
+        pool_deficits_to_tissues = stem_pools * (
             tissue_element_masses / tissue_element_masses.sum(axis=0)
         )
 
@@ -976,12 +976,18 @@ class Biomasses(CohortMethods, PandasExporter):
             np.isnan(tissue_relative_deficits), 0, tissue_relative_deficits
         )
 
-        pool_to_tissue_surpluses = stem_pools * tissue_relative_deficits
-        # TODO - cap surplus filling
+        pool_surpluses_to_tissues = stem_pools * tissue_relative_deficits
+
+        # Constrain element changes
+        # - don't fill tissue deficits beyond the ideal ratio.
+        pool_surpluses_to_tissues = np.minimum(
+            tissue_element_deficits, pool_surpluses_to_tissues
+        )
+        # TODO - cap deficit reduction
 
         # Combine the two redistribution paths to give deficits and surpluses
         pool_to_tissue = np.where(
-            stem_pools < 0, pool_to_tissue_deficits, pool_to_tissue_surpluses
+            stem_pools < 0, pool_deficits_to_tissues, pool_surpluses_to_tissues
         )
 
         # Allocate resulting masses back to tissues
