@@ -121,11 +121,7 @@ class CompiledConfiguration(Configuration):
     """A dictionary of the requested modules in the simulation and their
     VirtualEcosystem BaseModel classes."""
 
-    _disturbance_classes: ClassVar[dict[str, Any]]  # FIXME - VEBaseDisturbance
-    """A dictionary of the requested disturbances in the simulation and their
-    VirtualEcosystem BaseDisturbance classes."""
-
-    def get_subconfiguration(self, name: str, _: Callable[..., T]) -> T:
+    def get_subconfiguration(self, name: str, as_class: Callable[..., T]) -> T:
         """Get a named subconfiguration object from a compiled configuration.
 
         This method can be used to extract model configurations or the core
@@ -143,14 +139,19 @@ class CompiledConfiguration(Configuration):
 
         Args:
             name: The required subconfiguration.
-            _: The class of objected returned by the method. This is not used by the
-                method itself but is used to support static typing of the return value.
+            as_class: The class of objected returned by the method. This is not used by
+            the method itself but is used to support static typing of the return value.
         """
 
         try:
             return getattr(self, name)
         except AttributeError:
-            raise AttributeError(f"Model configuration for {name} not loaded")
+            try:
+                return getattr(self, "disturbance").get_subconfiguration(name, as_class)
+            except AttributeError:
+                raise AttributeError(
+                    f"Model or disturbance configuration for {name} not loaded"
+                )
 
     def export_toml(self, path: Path):
         """TOML export method for a compiled configuration.
