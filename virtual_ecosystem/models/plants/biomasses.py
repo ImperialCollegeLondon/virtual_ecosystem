@@ -935,8 +935,6 @@ class Biomasses(CohortMethods, PandasExporter):
             the element mass SHOULD stay the same, however the plant must have enough
             surplus to cover the loss - hence only subtracting from the element surplus.
 
-        Returns:
-            The total element lost to turnover for each cohort.
         """
         for tissue in self.tissues:
             self._adjust_surpluses(tissue.tissue_turnover(allocation), increase=False)

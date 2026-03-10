@@ -765,16 +765,24 @@ def test_account_for_growth_updates_element_masses_and_surplus(
     )
 
 
-# def test_account_for_element_loss_turnover(stem_stoichiometry):
-#     """Test account for element loss function in StemStoichiometry."""
+def test_account_for_element_loss_turnover(
+    fixture_community, fixture_biomasses, fixture_stem_allocation
+):
+    """Test account for element loss function in Biomasses."""
 
-#     stem_stoichiometry.account_for_element_loss_turnover(DUMMY_ALLOC)
+    fixture_biomasses.account_for_element_loss_turnover(fixture_stem_allocation)
 
-#     expected = np.zeros(DUMMY_COMMUNITY.n_cohorts)
-#     for t in stem_stoichiometry.tissues:
-#         expected -= t.element_turnover(DUMMY_ALLOC)
+    expected_surplus = np.zeros(
+        (fixture_community.n_cohorts, len(fixture_biomasses.elements))
+    )
 
-#     assert np.allclose(stem_stoichiometry.element_surplus, expected)
+    for t in fixture_biomasses.tissues:
+        turnover_loss = t.tissue_turnover(fixture_stem_allocation)
+        expected_surplus -= np.stack(list(turnover_loss.values()))
+
+    assert np.allclose(
+        np.stack(list(fixture_biomasses.element_surplus.values())), expected_surplus
+    )
 
 
 # def test_distribute_deficit(stem_stoichiometry):
