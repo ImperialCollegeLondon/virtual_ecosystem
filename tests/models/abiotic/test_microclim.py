@@ -366,7 +366,7 @@ def test_initialize_hourly_record(
 def test_update_forcing_boundary_conditions(
     dummy_climate_data_varying_canopy, fixture_core_components
 ):
-    """Test update forcingcorrectly updates state with hourly forcing."""
+    """Test update forcing_correctly updates state with hourly forcing."""
 
     from virtual_ecosystem.models.abiotic.microclim import (
         update_forcing_boundary_conditions,
@@ -396,7 +396,6 @@ def test_update_forcing_boundary_conditions(
     # Keep expected slices for comparison
     expected_air = hourly_forcing["air_temperature_hourly"][hour]
     expected_rh = hourly_forcing["relative_humidity_hourly"][hour]
-
     expected_sw = hourly_forcing["shortwave_absorption_hourly"][hour, :, :]
     expected_et = hourly_forcing["evapotranspiration_hourly"][hour, :, :]
     expected_soil_evap = hourly_forcing["soil_evaporation_hourly"][hour]
@@ -586,12 +585,11 @@ def test_calculate_soil_fluxes(
     )
 
     static = fixture_static_inputs
+    state = fixture_state_inputs
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
     idx = fixture_abiotic_indices
     time_interval = 3600
-
-    state = fixture_state_inputs
 
     result = calculate_soil_fluxes(
         state=state,
@@ -602,7 +600,7 @@ def test_calculate_soil_fluxes(
         idx=idx,
     )
 
-    # Check output keys and shapes
+    # Check values, output keys and shapes
     expected_ground_flux = np.array([239.299606, 232.516272, 218.949606, 218.949606])
 
     np.testing.assert_allclose(
@@ -810,9 +808,6 @@ def test_run_hour_step_orchestration(
         "sensible_heat_flux": (14, 4),
         "latent_heat_flux": (14, 4),
         "energy_balance_residual": (14, 4),
-        "longwave_emission_soil": (4,),
-        "sensible_heat_flux_soil": (4,),
-        "latent_heat_flux_soil": (4,),
         "ground_heat_flux": (4,),
         "vapour_pressure": (14, 4),
         "vapour_pressure_deficit": (14, 4),
@@ -830,7 +825,6 @@ def test_run_hour_step_orchestration(
         assert arr.shape == shape, f"{key} shape mismatch: {arr.shape} != {shape}"
 
     # Physical sanity checks
-
     # Temperatures in Celsius
     for key in [
         "air_temperature",
@@ -887,7 +881,6 @@ def test_static_variable_created(fixture_core_components):
     layer_structure = fixture_core_components.layer_structure
     static = {"atmospheric_pressure": 1}
     data_record = {}
-
     vars_updated = ("atmospheric_pressure",)
 
     output = build_output_from_record(
@@ -909,7 +902,6 @@ def test_time_cell_variable_averaged(fixture_core_components):
     layer_structure = fixture_core_components.layer_structure
     static = {}
     data_record = {"temperature": np.random.rand(24, 4)}
-
     vars_updated = ("temperature",)
 
     output = build_output_from_record(
@@ -937,7 +929,6 @@ def test_time_layer_cell_variable_averaged(fixture_core_components):
     layer_structure = fixture_core_components.layer_structure
     static = {}
     data_record = {"soil_moisture": np.random.rand(24, 2, 4)}
-
     vars_updated = ("soil_moisture",)
 
     output = build_output_from_record(
@@ -968,7 +959,6 @@ def test_unrequested_variable_skipped(fixture_core_components):
         "temperature": np.random.rand(24, 4),
         "humidity": np.random.rand(24, 4),
     }
-
     vars_updated = ("temperature",)
 
     output = build_output_from_record(
@@ -988,10 +978,8 @@ def test_missing_requested_variable_raises(fixture_core_components):
     from virtual_ecosystem.models.abiotic.microclim import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
-
     static = {}
     data_record = {}
-
     vars_updated = ("temperature",)
 
     with pytest.raises(ValueError):
@@ -1030,6 +1018,8 @@ def test_run_microclimate(
         "latent_heat_vapourisation",
         "aerodynamic_resistance_canopy",
         "longwave_emission",
+        "atmospheric_pressure",
+        "atmospheric_co2",
     )
     time_interval = 3600
     time_index = 0
@@ -1059,168 +1049,148 @@ def test_run_microclimate(
     for var in vars_updated:
         assert var in result
 
+    print(result)
 
-#     def get_values(arr):
-#         """Return numpy array regardless of DataArray or ndarray."""
-#         return arr.values if hasattr(arr, "values") else arr
+    def get_values(arr):
+        """Return numpy array regardless of DataArray or ndarray."""
+        return arr.values if hasattr(arr, "values") else arr
 
-#     # ------------------------------------------------------------
-#     # Ensure no infinities anywhere
-#     # ------------------------------------------------------------
-#     for key, arr in result.items():
-#         vals = get_values(arr)
-#         valid = vals[~np.isnan(vals)]
-#         assert np.all(np.isfinite(valid)), f"{key} contains inf values"
+    # ------------------------------------------------------------
+    # Ensure no infinities anywhere
+    # ------------------------------------------------------------
+    for key, arr in result.items():
+        vals = get_values(arr)
+        valid = vals[~np.isnan(vals)]
+        assert np.all(np.isfinite(valid)), f"{key} contains inf values"
 
-#     # ------------------------------------------------------------
-#     # Atmospheric pressure (kPa)
-#     # Expected: ~90-105 kPa near surface
-#     # ------------------------------------------------------------
-#     pressure = get_values(result["atmospheric_pressure"])
-#     valid = pressure[~np.isnan(pressure)]
-#     assert np.all(valid > 80)
-#     assert np.all(valid < 110)
+    # ------------------------------------------------------------
+    # Atmospheric pressure (kPa)
+    # Expected: ~90-105 kPa near surface
+    # ------------------------------------------------------------
+    pressure = get_values(result["atmospheric_pressure"])
+    valid = pressure[~np.isnan(pressure)]
+    assert np.all(valid > 80)
+    assert np.all(valid < 110)
 
-#     # ------------------------------------------------------------
-#     # CO2 (ppm)
-#     # ------------------------------------------------------------
-#     co2 = get_values(result["atmospheric_co2"])
-#     valid = co2[~np.isnan(co2)]
-#     assert np.all(valid > 300)
-#     assert np.all(valid < 500)
+    # ------------------------------------------------------------
+    # CO2 (ppm)
+    # ------------------------------------------------------------
+    co2 = get_values(result["atmospheric_co2"])
+    valid = co2[~np.isnan(co2)]
+    assert np.all(valid > 300)
+    assert np.all(valid < 500)
 
-#     # ------------------------------------------------------------
-#     # Air temperature (°C)
-#     # ------------------------------------------------------------
-#     air_temp = get_values(result["air_temperature"])
-#     valid = air_temp[~np.isnan(air_temp)]
-#     assert np.all(valid > -50)
-#     assert np.all(valid < 60)
+    # ------------------------------------------------------------
+    # Air temperature (°C)
+    # ------------------------------------------------------------
+    air_temp = get_values(result["air_temperature"])
+    valid = air_temp[~np.isnan(air_temp)]
+    assert np.all(valid > -50)
+    assert np.all(valid < 60)
 
-#     # ------------------------------------------------------------
-#     # Relative humidity (%)
-#     # ------------------------------------------------------------
-#     rh = get_values(result["relative_humidity"])
-#     valid = rh[~np.isnan(rh)]
-#     assert np.all(valid >= 0)
-#     assert np.all(valid <= 100)
+    # ------------------------------------------------------------
+    # Relative humidity (%)
+    # ------------------------------------------------------------
+    rh = get_values(result["relative_humidity"])
+    valid = rh[~np.isnan(rh)]
+    assert np.all(valid >= 0)
+    assert np.all(valid <= 100)
 
-#     # ------------------------------------------------------------
-#     # Vapour pressure deficit (kPa)
-#     # ------------------------------------------------------------
-#     vpd = get_values(result["vapour_pressure_deficit"])
-#     valid = vpd[~np.isnan(vpd)]
-#     assert np.all(valid >= 0)
-#     assert np.all(valid < 10)
+    # ------------------------------------------------------------
+    # Vapour pressure deficit (kPa)
+    # ------------------------------------------------------------
+    vpd = get_values(result["vapour_pressure_deficit"])
+    valid = vpd[~np.isnan(vpd)]
+    assert np.all(valid >= 0)
+    assert np.all(valid < 10)
 
-#     # ------------------------------------------------------------
-#     # Air density (kg m-3)
-#     # Typical ~1.0-1.3
-#     # ------------------------------------------------------------
-#     rho = get_values(result["density_air"])
-#     valid = rho[~np.isnan(rho)]
-#     assert np.all(valid > 0.8)
-#     assert np.all(valid < 1.5)
+    # ------------------------------------------------------------
+    # Air density (kg m-3)
+    # Typical ~1.0-1.3
+    # ------------------------------------------------------------
+    rho = get_values(result["density_air"])
+    valid = rho[~np.isnan(rho)]
+    assert np.all(valid > 0.8)
+    assert np.all(valid < 1.5)
 
-#     # ------------------------------------------------------------
-#     # Specific heat air (J kg-1 K-1)
-#     # ------------------------------------------------------------
-#     cp = get_values(result["specific_heat_air"])
-#     valid = cp[~np.isnan(cp)]
-#     assert np.all(valid > 900)
-#     assert np.all(valid < 1100)
+    # ------------------------------------------------------------
+    # Specific heat air (J kg-1 K-1)
+    # ------------------------------------------------------------
+    cp = get_values(result["specific_heat_air"])
+    valid = cp[~np.isnan(cp)]
+    assert np.all(valid > 900)
+    assert np.all(valid < 1100)
 
-#     # ------------------------------------------------------------
-#     # Wind speed (m/s)
-#     # ------------------------------------------------------------
-#     wind = get_values(result["wind_speed"])
-#     valid = wind[~np.isnan(wind)]
-#     assert np.all(valid >= 0)
-#     assert np.all(valid < 50)
+    # ------------------------------------------------------------
+    # Wind speed (m/s)
+    # ------------------------------------------------------------
+    wind = get_values(result["wind_speed"])
+    valid = wind[~np.isnan(wind)]
+    assert np.all(valid >= 0)
+    assert np.all(valid < 50)
 
-#     # ------------------------------------------------------------
-#     # Latent heat of vaporisation (J/kg)
-#     # ------------------------------------------------------------
-#     lv = get_values(result["latent_heat_vapourisation"])
-#     valid = lv[~np.isnan(lv)]
-#     assert np.all(valid > 2.3e6)
-#     assert np.all(valid < 2.6e6)
+    # ------------------------------------------------------------
+    # Latent heat of vaporisation (J/kg)
+    # ------------------------------------------------------------
+    lv = get_values(result["latent_heat_vapourisation"])
+    valid = lv[~np.isnan(lv)]
+    assert np.all(valid > 2.3e6)
+    assert np.all(valid < 2.6e6)
 
-#     # ------------------------------------------------------------
-#     # Soil temperature (°C)
-#     # ------------------------------------------------------------
-#     soil = get_values(result["soil_temperature"])
-#     valid = soil[~np.isnan(soil)]
-#     assert np.all(valid > -20)
-#     assert np.all(valid < 60)
+    # ------------------------------------------------------------
+    # Soil temperature (°C)
+    # ------------------------------------------------------------
+    soil = get_values(result["soil_temperature"])
+    valid = soil[~np.isnan(soil)]
+    assert np.all(valid > -20)
+    assert np.all(valid < 60)
 
-#     # ------------------------------------------------------------
-#     # Radiative longwave emission (W m-2)
-#     # Typical canopy: 300-600
-#     # ------------------------------------------------------------
-#     lw = get_values(result["longwave_emission"])
-#     valid = lw[~np.isnan(lw)]
-#     assert np.all(valid >= 0)
-#     assert np.all(valid < 1000)
+    # ------------------------------------------------------------
+    # Radiative longwave emission (W m-2)
+    # Typical canopy: 300-600
+    # ------------------------------------------------------------
+    lw = get_values(result["longwave_emission"])
+    valid = lw[~np.isnan(lw)]
+    assert np.all(valid >= 0)
+    assert np.all(valid < 1000)
 
-#     # ------------------------------------------------------------
-#     # Sensible heat flux (W m-2)
-#     # Can be negative
-#     # ------------------------------------------------------------
-#     sh = get_values(result["sensible_heat_flux"])
-#     valid = sh[~np.isnan(sh)]
-#     assert np.all(valid > -500)
-#     assert np.all(valid < 1000)
+    # ------------------------------------------------------------
+    # Sensible heat flux (W m-2)
+    # Can be negative
+    # ------------------------------------------------------------
+    sh = get_values(result["sensible_heat_flux"])
+    valid = sh[~np.isnan(sh)]
+    assert np.all(valid > -500)
+    assert np.all(valid < 1000)
 
-#     # ------------------------------------------------------------
-#     # Latent heat flux (W m-2)
-#     # ------------------------------------------------------------
-#     lh = get_values(result["latent_heat_flux"])
-#     valid = lh[~np.isnan(lh)]
-#     assert np.all(valid >= 0)
-#     assert np.all(valid < 1000)
+    # ------------------------------------------------------------
+    # Latent heat flux (W m-2)
+    # ------------------------------------------------------------
+    lh = get_values(result["latent_heat_flux"])
+    valid = lh[~np.isnan(lh)]
+    assert np.all(valid >= 0)
+    assert np.all(valid < 1000)
 
-#     # ------------------------------------------------------------
-#     # Canopy temperature (°C)
-#     # ------------------------------------------------------------
-#     canopy = get_values(result["canopy_temperature"])
-#     valid = canopy[~np.isnan(canopy)]
-#     assert np.all(valid > -30)
-#     assert np.all(valid < 60)
+    # ------------------------------------------------------------
+    # Canopy temperature (°C)
+    # ------------------------------------------------------------
+    canopy = get_values(result["canopy_temperature"])
+    valid = canopy[~np.isnan(canopy)]
+    assert np.all(valid > -30)
+    assert np.all(valid < 60)
 
-#     # ------------------------------------------------------------
-#     # Ground heat flux (W m-2)
-#     # ------------------------------------------------------------
-#     ghf = get_values(result["ground_heat_flux"])
-#     valid = ghf[~np.isnan(ghf)]
-#     assert np.all(valid > -500)
-#     assert np.all(valid < 500)
+    # ------------------------------------------------------------
+    # Ground heat flux (W m-2)
+    # ------------------------------------------------------------
+    ghf = get_values(result["ground_heat_flux"])
+    valid = ghf[~np.isnan(ghf)]
+    assert np.all(valid > -500)
+    assert np.all(valid < 500)
 
-#     # ------------------------------------------------------------
-#     # Aerodynamic resistance (s m-1)
-#     # ------------------------------------------------------------
-#     ra = get_values(result["aerodynamic_resistance_canopy"])
-#     valid = ra[~np.isnan(ra)]
-#     assert np.all(valid > 0)
-#     assert np.all(valid < 1000)
-
-#     # ------------------------------------------------------------
-#     # Check NaN mask consistency
-#     # Atmospheric variables should share mask pattern
-#     # ------------------------------------------------------------
-#     atm_vars = [
-#         "air_temperature",
-#         "relative_humidity",
-#         "vapour_pressure_deficit",
-#         "density_air",
-#         "specific_heat_air",
-#         "wind_speed",
-#     ]
-
-#     masks = [np.isnan(get_values(result[var])) for var in atm_vars]
-
-#     # All atmospheric masks should match
-#     for m in masks[1:]:
-#         assert np.array_equal(masks[0], m), (
-#             "Atmospheric variables have inconsistent NaN masks"
-#         )
+    # ------------------------------------------------------------
+    # Aerodynamic resistance (s m-1)
+    # ------------------------------------------------------------
+    ra = get_values(result["aerodynamic_resistance_canopy"])
+    valid = ra[~np.isnan(ra)]
+    assert np.all(valid > 0)
+    assert np.all(valid < 1000)

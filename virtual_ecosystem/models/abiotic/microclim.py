@@ -526,7 +526,7 @@ def calculate_vegetation_fluxes(
         return_fluxes=True,
     )
 
-    return fluxes
+    return fluxes  # type: ignore
 
 
 def calculate_soil_fluxes(
@@ -1001,9 +1001,11 @@ def run_microclimate(
     )
 
     # Initialize hourly record for microclimate model
+    vars_hourly_updated = tuple(v for v in vars_updated if v not in static)
+
     data_record = initialize_hourly_record(
         data=data,
-        vars_updated=vars_updated,
+        vars_updated=vars_hourly_updated,
         time_dim=time_dim,
         layer_structure=layer_structure,
     )
@@ -1026,7 +1028,7 @@ def run_microclimate(
 
         # Check that all vars are updated
         abiotic_tools.validate_variables(
-            names=vars_updated,
+            names=vars_hourly_updated,
             values=state,
             exclude={  # These intermediate variables are already in data or merged
                 "aerodynamic_resistance_soil",
@@ -1036,7 +1038,6 @@ def run_microclimate(
                 "soil_evaporation",
                 "specific_humidity",
                 "ventilation_rate",
-                "wind_speed",
             },
         )
 
