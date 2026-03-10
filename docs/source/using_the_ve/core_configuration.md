@@ -41,7 +41,7 @@ configured in its own configuration section:
 
 The core configuration section is also used to set the location of data input files for
 required forcing variables for the simulation, but the `[core.data]` section is
-discussed in the [model data inputs](./model_data_inputs.md) documentation.
+discussed in the [using your own data tutorial](running_ve_with_your_own_data.md).
 
 ```{tip}
 You may find it useful to create the core TOML configuration for your system as the

@@ -439,8 +439,8 @@ The first two variables set data requirements during model initialisation:
   attribute sets which variables must be loaded into the `Data` object before your model
   can be initialised. These must either be:
 
-  * included in the [configured initial data](../../using_the_ve/model_data_inputs.md)
-    that is loaded when the simulation starts, or
+  * included in the configured initial data that is loaded when the simulation starts,
+    or
   * be populated by a model that initialises earlier in the model sequence.
 
 * The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_init`
