@@ -957,6 +957,98 @@ BALANCE_POOL_SHAPE = (2, 4)
             np.full(BALANCE_POOL_SHAPE, 6, dtype=float),
             id="T deficit, P over surplus --> T filled, P not empty",
         ),
+        pytest.param(
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            ),
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            ),
+            np.full(BALANCE_POOL_SHAPE, -10, dtype=float),
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            )
+            - 5,
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            )
+            - 5,
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            id="T ideal, P small deficit --> T deficit, P empty",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            ),
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            ),
+            -np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN
+                    + BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP
+                    + BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ],
+            ),
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            id="T ideal, P exact deficit --> T zero, P empty",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP,
+                ]
+            ),
+            np.array(
+                [
+                    BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ]
+            ),
+            -2
+            * np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN
+                    + BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP
+                    + BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ],
+            ),
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            np.zeros(BALANCE_POOL_SHAPE, dtype=float),
+            -1
+            * np.array(
+                [
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN
+                    + BALANCE_WOOD_C / BALANCE_WOOD_CN,
+                    BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CP
+                    + BALANCE_WOOD_C / BALANCE_WOOD_CP,
+                ],
+            ),
+            id="T ideal, P over deficit --> T zero, P not empty",
+        ),
     ),
 )
 def test_balance_elements(

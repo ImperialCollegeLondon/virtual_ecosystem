@@ -809,6 +809,7 @@ class Biomasses(CohortMethods, PandasExporter):
         # TODO - should this populate from the tissues themselves. When this is from
         # default_init then these _will_ be zeros, but that isn't true of direct use of
         # the constructor. Is there ever a case we'd use the __init__ though?
+
         self.element_surplus = {
             elem: np.zeros(self.community.n_cohorts) for elem in self.elements
         }
@@ -983,7 +984,10 @@ class Biomasses(CohortMethods, PandasExporter):
         pool_surpluses_to_tissues = np.minimum(
             tissue_element_deficits, pool_surpluses_to_tissues
         )
-        # TODO - cap deficit reduction
+        # - don't drain tissues below zero.
+        pool_deficits_to_tissues = np.maximum(
+            -tissue_element_masses, pool_deficits_to_tissues
+        )
 
         # Combine the two redistribution paths to give deficits and surpluses
         pool_to_tissue = np.where(
@@ -999,65 +1003,6 @@ class Biomasses(CohortMethods, PandasExporter):
         # Remove masses allocated to tissues from pool.
         for elem, from_pool in zip(self.elements, pool_to_tissue.sum(axis=0)):
             self.element_surplus[elem] -= from_pool
-
-    # def distribute_deficit(self, cohort: int) -> None:
-    #     """Distribute the element deficit across the tissue types.
-
-    #     During the update, the information about a surplus/deficit of element are
-    #     stored in the element_surplus. If there is a deficit (represented by a
-    #     negative element surplus), this method distributes the deficit across the
-    #     tissue types. Then, the element surplus is reset to 0. The deficit is
-    #     distributed in proportion to the total element mass of each tissue type for
-    #     that cohort.
-
-    #     Args:
-    #         cohort: The cohort to reconcile deficit.
-    #     """
-
-    #     if self.element_surplus[cohort] > 0:
-    #         raise ValueError("distribute_deficit called with non-negative surplus.")
-
-    #     deficit = -self.element_surplus[cohort]
-    #     total_element_mass = self.total_element_mass[cohort].copy()
-
-    #     for tissue in self.tissues:
-    #         share = tissue.actual_element_mass[cohort] / total_element_mass
-    #         tissue.actual_element_mass[cohort] -= deficit * share
-
-    #     self.element_surplus[cohort] = 0
-
-    # def distribute_surplus(self, cohort: int) -> None:
-    #     """Distribute the element surplus across the tissue types for a single cohort.
-
-    #     Args:
-    #         cohort: The cohort to reconcile surplus.
-    #     """
-
-    #     if self.element_surplus[cohort] < 0:
-    #         raise ValueError("distribute_surplus called with non-positive surplus.")
-
-    #     if self.element_surplus[cohort] >= self.tissue_deficit[cohort]:
-    #         # If there is sufficient surplus N to cover the existing deficit, the
-    #         # amount of the deficit is subtracted from the surplus which persists
-    #         # until the next update. All tissue types are updated to the ideal ratios.
-    #         self.element_surplus[cohort] = (
-    #             self.element_surplus[cohort] - self.tissue_deficit[cohort]
-    #         )
-    #         for tissue in self.tissues:
-    #             tissue.actual_element_mass[cohort] = (
-    #                 tissue.carbon_mass[cohort] / tissue.ideal_ratio[cohort]
-    #             )
-    #     else:
-    #         # If there is not enough surplus to cover the deficit, the surplus is
-    #         # distributed across the tissue types in proportion to the deficit.
-    #         # The surplus is then set to zero.
-    #         total_deficit = self.tissue_deficit[cohort].copy()
-    #         for i, tissue in enumerate(self.tissues):
-    #             share = tissue.deficit[cohort] / total_deficit
-    #             tissue.actual_element_mass[cohort] += (
-    #                 share * self.element_surplus[cohort]
-    #             )
-    #         self.element_surplus[cohort] = 0.0
 
     def get_tissue(self, tissue_type: str) -> TissueABC:
         """Get the tissue model for a specific tissue type.
