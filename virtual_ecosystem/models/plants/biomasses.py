@@ -184,17 +184,25 @@ class TissueABC(ABC):
             for ky, elem in self.element_masses.items()
         }
 
-    def as_array(self, with_carbon: bool = False) -> NDArray[np.floating]:
+    def as_array(
+        self, deficit: bool = False, with_carbon: bool = False
+    ) -> NDArray[np.floating]:
         """Utility method to return tissue masses as an array.
 
+        TODO: The internals of this class may switch over to array based, this is a
+              placeholder API for that change.
+
         Args:
+            deficit: Return the deficit masses not the actual masses.
             with_carbon: Should carbon mass be included in the array.
         """
 
-        elemental_masses = [
-            elem.actual_element_mass for elem in self.element_masses.values()
-        ]
-
+        if deficit:
+            elemental_masses = list(self.deficit.values())
+        else:
+            elemental_masses = [
+                elem.actual_element_mass for elem in self.element_masses.values()
+            ]
         if with_carbon:
             return np.stack(
                 [self.carbon_mass, *elemental_masses],
@@ -939,63 +947,111 @@ class Biomasses(CohortMethods, PandasExporter):
         for tissue in self.tissues:
             self._adjust_surpluses(tissue.tissue_turnover(allocation), increase=False)
 
-    def distribute_deficit(self, cohort: int) -> None:
-        """Distribute the element deficit across the tissue types.
+    def balance_elements(self) -> None:
+        """Redistribute elemental mass across tissues and element pool."""
 
-        During the update, the information about a surplus/deficit of element are stored
-        in the element_surplus. If there is a deficit (represented by a negative element
-        surplus), this method distributes the deficit across the tissue types. Then, the
-        element surplus is reset to 0. The deficit is distributed in proportion to the
-        total element mass of each tissue type for that cohort.
+        # Get 3D arrays of elements/cohorts/tissue for actual element masses and
+        # per tissue element deficits
+        tissue_element_masses = np.stack([t.as_array() for t in self.tissues])
+        tissue_element_deficits = np.stack(
+            [t.as_array(deficit=True) for t in self.tissues]
+        )
 
-        Args:
-            cohort: The cohort to reconcile deficit.
-        """
+        # Get a 2D array of elements/cohort from the individual-level element pool
+        stem_pools = np.stack(list(self.element_surplus.values()))
 
-        if self.element_surplus[cohort] > 0:
-            raise ValueError("distribute_deficit called with non-negative surplus.")
+        # Calculate the redistribution of pool deficits (negative values) to tissues
+        # weighted by the relative elemental mass for each tissue.
+        pool_to_tissue_deficits = stem_pools * (
+            tissue_element_masses / tissue_element_masses.sum(axis=0)
+        )
 
-        deficit = -self.element_surplus[cohort]
-        total_element_mass = self.total_element_mass[cohort].copy()
+        # Calculate the redistribution of pool surpluses (positive values) to tissues
+        # weighted by their relative deficits. This will be np.nan if an element within
+        # a tissue is _at_ the ideal ratio.
+        tissue_relative_deficits = (
+            tissue_element_deficits / tissue_element_deficits.sum(axis=0)
+        )
+        tissue_relative_deficits = np.where(
+            np.isnan(tissue_relative_deficits), 0, tissue_relative_deficits
+        )
 
-        for tissue in self.tissues:
-            share = tissue.actual_element_mass[cohort] / total_element_mass
-            tissue.actual_element_mass[cohort] -= deficit * share
+        pool_to_tissue_surpluses = stem_pools * tissue_relative_deficits
+        # TODO - cap surplus filling
 
-        self.element_surplus[cohort] = 0
+        # Combine the two redistribution paths to give deficits and surpluses
+        pool_to_tissue = np.where(
+            stem_pools < 0, pool_to_tissue_deficits, pool_to_tissue_surpluses
+        )
 
-    def distribute_surplus(self, cohort: int) -> None:
-        """Distribute the element surplus across the tissue types for a single cohort.
-
-        Args:
-            cohort: The cohort to reconcile surplus.
-        """
-
-        if self.element_surplus[cohort] < 0:
-            raise ValueError("distribute_surplus called with non-positive surplus.")
-
-        if self.element_surplus[cohort] >= self.tissue_deficit[cohort]:
-            # If there is sufficient surplus N to cover the existing deficit, the
-            # amount of the deficit is subtracted from the surplus which persists until
-            # the next update. All tissue types are updated to the ideal ratios.
-            self.element_surplus[cohort] = (
-                self.element_surplus[cohort] - self.tissue_deficit[cohort]
+        # Allocate resulting masses back to tissues
+        for tissue, to_tissue in zip(self.tissues, pool_to_tissue):
+            tissue.add_elemental_masses(
+                {ky: mass for ky, mass in zip(self.elements, to_tissue)}
             )
-            for tissue in self.tissues:
-                tissue.actual_element_mass[cohort] = (
-                    tissue.carbon_mass[cohort] / tissue.ideal_ratio[cohort]
-                )
-        else:
-            # If there is not enough surplus to cover the deficit, the surplus is
-            # distributed across the tissue types in proportion to the deficit.
-            # The surplus is then set to zero.
-            total_deficit = self.tissue_deficit[cohort].copy()
-            for i, tissue in enumerate(self.tissues):
-                share = tissue.deficit[cohort] / total_deficit
-                tissue.actual_element_mass[cohort] += (
-                    share * self.element_surplus[cohort]
-                )
-            self.element_surplus[cohort] = 0.0
+
+        # Remove masses allocated to tissues from pool.
+        for elem, from_pool in zip(self.elements, pool_to_tissue.sum(axis=0)):
+            self.element_surplus[elem] -= from_pool
+
+    # def distribute_deficit(self, cohort: int) -> None:
+    #     """Distribute the element deficit across the tissue types.
+
+    #     During the update, the information about a surplus/deficit of element are
+    #     stored in the element_surplus. If there is a deficit (represented by a
+    #     negative element surplus), this method distributes the deficit across the
+    #     tissue types. Then, the element surplus is reset to 0. The deficit is
+    #     distributed in proportion to the total element mass of each tissue type for
+    #     that cohort.
+
+    #     Args:
+    #         cohort: The cohort to reconcile deficit.
+    #     """
+
+    #     if self.element_surplus[cohort] > 0:
+    #         raise ValueError("distribute_deficit called with non-negative surplus.")
+
+    #     deficit = -self.element_surplus[cohort]
+    #     total_element_mass = self.total_element_mass[cohort].copy()
+
+    #     for tissue in self.tissues:
+    #         share = tissue.actual_element_mass[cohort] / total_element_mass
+    #         tissue.actual_element_mass[cohort] -= deficit * share
+
+    #     self.element_surplus[cohort] = 0
+
+    # def distribute_surplus(self, cohort: int) -> None:
+    #     """Distribute the element surplus across the tissue types for a single cohort.
+
+    #     Args:
+    #         cohort: The cohort to reconcile surplus.
+    #     """
+
+    #     if self.element_surplus[cohort] < 0:
+    #         raise ValueError("distribute_surplus called with non-positive surplus.")
+
+    #     if self.element_surplus[cohort] >= self.tissue_deficit[cohort]:
+    #         # If there is sufficient surplus N to cover the existing deficit, the
+    #         # amount of the deficit is subtracted from the surplus which persists
+    #         # until the next update. All tissue types are updated to the ideal ratios.
+    #         self.element_surplus[cohort] = (
+    #             self.element_surplus[cohort] - self.tissue_deficit[cohort]
+    #         )
+    #         for tissue in self.tissues:
+    #             tissue.actual_element_mass[cohort] = (
+    #                 tissue.carbon_mass[cohort] / tissue.ideal_ratio[cohort]
+    #             )
+    #     else:
+    #         # If there is not enough surplus to cover the deficit, the surplus is
+    #         # distributed across the tissue types in proportion to the deficit.
+    #         # The surplus is then set to zero.
+    #         total_deficit = self.tissue_deficit[cohort].copy()
+    #         for i, tissue in enumerate(self.tissues):
+    #             share = tissue.deficit[cohort] / total_deficit
+    #             tissue.actual_element_mass[cohort] += (
+    #                 share * self.element_surplus[cohort]
+    #             )
+    #         self.element_surplus[cohort] = 0.0
 
     def get_tissue(self, tissue_type: str) -> TissueABC:
         """Get the tissue model for a specific tissue type.

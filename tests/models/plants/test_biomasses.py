@@ -785,139 +785,116 @@ def test_account_for_element_loss_turnover(
     )
 
 
-# def test_distribute_deficit(stem_stoichiometry):
-#     """Test the distribution of a negative element surplus (deficit) across
-#     tissues."""
+@pytest.mark.parametrize(
+    argnames="initial_elements,initial_pool,expected_foliage,expected_wood,expected_pool",
+    argvalues=(
+        pytest.param(
+            np.array(
+                [
+                    [100, 200, 300, 400],
+                    [100 / 5, 200 / 6, 300 / 5, 400 / 6],
+                    [100 / 10, 200 / 12, 300 / 10, 400 / 12],
+                    [200, 400, 600, 800],
+                    [200 / 10, 400 / 8, 600 / 10, 800 / 8],
+                    [200 / 20, 400 / 16, 600 / 20, 800 / 16],
+                ]
+            ),
+            np.array([[0, 0, 0, 0], [0, 0, 0, 0]], dtype=float),
+            np.array(
+                [
+                    [100 / 5, 200 / 6, 300 / 5, 400 / 6],
+                    [100 / 10, 200 / 12, 300 / 10, 400 / 12],
+                ]
+            ),
+            np.array(
+                [
+                    [200 / 10, 400 / 8, 600 / 10, 800 / 8],
+                    [200 / 20, 400 / 16, 600 / 20, 800 / 16],
+                ]
+            ),
+            np.array([[0, 0, 0, 0], [0, 0, 0, 0]], dtype=float),
+            id="at ideal ratios, pools empty",
+        ),
+    ),
+)
+def test_balance_elements(
+    fixture_community,
+    initial_elements,
+    initial_pool,
+    expected_foliage,
+    expected_wood,
+    expected_pool,
+):
+    """Test the balancing of elements across tissues."""
 
-#     cohort = 0
+    from virtual_ecosystem.models.plants.biomasses import (
+        Biomasses,
+        Element,
+        FoliageTissue,
+        WoodTissue,
+    )
 
-#     # Set actual element masses to full ideal values
-#     for tissue in stem_stoichiometry.tissues:
-#         tissue.actual_element_mass[cohort] = (
-#             tissue.carbon_mass[cohort] / tissue.ideal_ratio[cohort]
-#         )
+    # Turnover not relevant to this test
+    turnover_ratios = np.repeat(np.nan, 4)
 
-#     # Introduce a deficit in element surplus (negative value)
-#     deficit_to_distribute = (
-#         -0.4 * stem_stoichiometry.total_element_mass[cohort]
-#     )  # 40% deficit
-#     stem_stoichiometry.element_surplus[cohort] = deficit_to_distribute
+    foliage = FoliageTissue(
+        community=fixture_community,
+        carbon_mass=initial_elements[0],
+        element_masses={
+            "N": Element(
+                name="n",
+                ideal_ratio=np.array([5.0, 6.0, 5.0, 6.0]),
+                actual_element_mass=initial_elements[1],
+                turnover_ratio=turnover_ratios,
+            ),
+            "P": Element(
+                name="p",
+                ideal_ratio=np.array([10.0, 12.0, 10.0, 12.0]),
+                actual_element_mass=initial_elements[2],
+                turnover_ratio=turnover_ratios,
+            ),
+        },
+    )
 
-#     # Record actual masses before distribution
-#     before = np.array(
-#         [t.actual_element_mass[cohort] for t in stem_stoichiometry.tissues]
-#     )
+    wood = WoodTissue(
+        community=fixture_community,
+        carbon_mass=initial_elements[3],
+        element_masses={
+            "N": Element(
+                name="n",
+                ideal_ratio=np.array([10.0, 8.0, 10.0, 8.0]),
+                actual_element_mass=initial_elements[4],
+                turnover_ratio=turnover_ratios,
+            ),
+            "P": Element(
+                name="p",
+                ideal_ratio=np.array([20.0, 16.0, 20.0, 16.0]),
+                actual_element_mass=initial_elements[5],
+                turnover_ratio=turnover_ratios,
+            ),
+        },
+    )
 
-#     # Compute shares based on initial actual masses
-#     initial_masses = before.copy()
-#     total_mass = initial_masses.sum()
-#     expected_losses = initial_masses / total_mass * -deficit_to_distribute
+    biomasses = Biomasses(
+        tissues=[foliage, wood],
+        community=fixture_community,
+        extra_pft_traits=SimpleNamespace(),
+    )
 
-#     # Distribute the deficit
-#     stem_stoichiometry.distribute_deficit(cohort)
+    # Set the element pools to balance
+    biomasses.element_surplus = {
+        ky: initial_pool[idx] for idx, ky in enumerate(biomasses.elements)
+    }
 
-#     # Record actual masses after distribution
-#     after = np.array(
-#         [t.actual_element_mass[cohort] for t in stem_stoichiometry.tissues]
-#     )
-#     total_loss = before.sum() - after.sum()
+    # Run the method.
+    biomasses.balance_elements()
 
-#     # Assertions
-#     assert np.all(after < before), "Each tissue should have decreased"
-#     assert stem_stoichiometry.element_surplus[cohort] == 0.0, (
-#         "Deficit should be fully distributed"
-#     )
-#     assert np.allclose(before - after, expected_losses, rtol=1e-12, atol=1e-12), (
-#         "Losses should match expected proportional distribution"
-#     )
-#     assert np.isclose(total_loss, -deficit_to_distribute, rtol=1e-12, atol=1e-12), (
-#         "Total loss should match the distributed deficit"
-#     )
+    # Check the expectations.
+    foliage = biomasses.get_tissue("foliage").as_array()
+    assert np.allclose(foliage, expected_foliage)
 
+    wood = biomasses.get_tissue("wood").as_array()
+    assert np.allclose(foliage, expected_foliage)
 
-# def test_distribute_partial_surplus(stem_stoichiometry):
-#     """Test distribution of a partial surplus across tissues with deficits."""
-
-#     cohort = 0
-
-#     # Set actual element masses to 50% of ideal to guarantee a positive deficit
-#     for tissue in stem_stoichiometry.tissues:
-#         ideal_mass = tissue.carbon_mass[cohort] / tissue.ideal_ratio[cohort]
-#         tissue.actual_element_mass[cohort] = 0.5 * ideal_mass
-
-#     # Compute total deficit and partial surplus
-#     total_deficit = stem_stoichiometry.tissue_deficit[cohort]
-#     partial_surplus = total_deficit * 0.4
-#     stem_stoichiometry.element_surplus[cohort] = partial_surplus
-
-#     # Record actual masses before distribution
-#     before = np.array(
-#         [t.actual_element_mass[cohort] for t in stem_stoichiometry.tissues]
-#     )
-#     ideals = np.array(
-#         [
-#             t.carbon_mass[cohort] / t.ideal_ratio[cohort]
-#             for t in stem_stoichiometry.tissues
-#         ]
-#     )
-
-#     # Distribute the partial surplus
-#     stem_stoichiometry.distribute_surplus(cohort)
-
-#     # Record actual masses after distribution
-#     after = np.array(
-#         [t.actual_element_mass[cohort] for t in stem_stoichiometry.tissues]
-#     )
-#     total_gain = after.sum() - before.sum()
-
-#     # Assertions
-#     assert np.all(after > before), "Each tissue should have increased"
-#     assert np.all(after <= ideals + 1e-12), "No tissue should exceed its ideal mass"
-#     assert stem_stoichiometry.element_surplus[cohort] == 0.0, (
-#         "Surplus should be fully consumed"
-#     )
-#     assert np.isclose(total_gain, partial_surplus, rtol=1e-12, atol=1e-12), (
-#         "Total gain should match partial surplus"
-#     )
-
-
-# def test_distribute_surplus_full(stem_stoichiometry):
-#     """Test distribution of a full surplus that exceeds all deficits."""
-
-#     # lower actuals so there is a deficit
-#     for t in stem_stoichiometry.tissues:
-#         t.actual_element_mass[:] *= 0.1
-
-#     cohort = 1
-#     initial_deficits = np.array(
-#           [t.deficit[cohort] for t in stem_stoichiometry.tissues]
-#     )
-#     total_deficit = initial_deficits.sum()
-
-#     # give more than enough surplus to cover all deficits
-#     stem_stoichiometry.element_surplus[cohort] = total_deficit * 2.0
-
-#     stem_stoichiometry.distribute_surplus(cohort)
-
-#     # all tissues should now be at their ideal ratios
-#     for t in stem_stoichiometry.tissues:
-#         expected = t.carbon_mass[cohort] / t.ideal_ratio[cohort]
-#         assert np.isclose(t.actual_element_mass[cohort], expected)
-
-#     # surplus should remain
-#     assert stem_stoichiometry.element_surplus[cohort] > 0.0
-
-
-# @pytest.mark.parametrize(
-#     "method,surplus",
-#     [
-#         ("distribute_deficit", 5.0),
-#         ("distribute_surplus", -5.0),
-#     ],
-# )
-# def test_error_triggers(method, surplus, stem_stoichiometry):
-#     """Test that errors are raised when surplus/deficit conditions are violated."""
-
-#     stem_stoichiometry.element_surplus[0] = surplus
-#     with pytest.raises(ValueError):
-#         getattr(stem_stoichiometry, method)(0)
+    pool = np.stack(list(biomasses.element_surplus.values()))
+    assert np.allclose(pool, expected_pool)
