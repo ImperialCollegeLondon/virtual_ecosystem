@@ -184,6 +184,24 @@ class TissueABC(ABC):
             for ky, elem in self.element_masses.items()
         }
 
+    def as_array(self, with_carbon: bool = False) -> NDArray[np.floating]:
+        """Utility method to return tissue masses as an array.
+
+        Args:
+            with_carbon: Should carbon mass be included in the array.
+        """
+
+        elemental_masses = [
+            elem.actual_element_mass for elem in self.element_masses.values()
+        ]
+
+        if with_carbon:
+            return np.stack(
+                [self.carbon_mass, *elemental_masses],
+            )
+
+        return np.stack(elemental_masses)
+
     @abstractmethod
     def elements_needed_for_growth(
         self, allocation: StemAllocation
@@ -780,7 +798,9 @@ class Biomasses(CohortMethods, PandasExporter):
         self.elements = elements.pop()
 
         # Populate the whole individual elemental surpluses
-        # TODO - should this populate from the tissues themselves.
+        # TODO - should this populate from the tissues themselves. When this is from
+        # default_init then these _will_ be zeros, but that isn't true of direct use of
+        # the constructor. Is there ever a case we'd use the __init__ though?
         self.element_surplus = {
             elem: np.zeros(self.community.n_cohorts) for elem in self.elements
         }
@@ -856,7 +876,7 @@ class Biomasses(CohortMethods, PandasExporter):
     #         self.element_surplus = np.append(self.element_surplus, 0.0)
 
     @property
-    def total_element_mass(self) -> dict[str, NDArray[np.floating]]:
+    def total_element_masses(self) -> dict[str, NDArray[np.floating]]:
         """Calculate the total element mass for each cohort.
 
         Returns:
@@ -879,11 +899,11 @@ class Biomasses(CohortMethods, PandasExporter):
         self, masses: dict[str, NDArray[np.floating]], increase: bool = True
     ) -> None:
         """Adjust the element surpluses in the biomass object."""
-        for ky, surplus in self.element_surpluses.items():
+        for elem in self.elements:
             if increase:
-                surplus += masses[ky]
+                self.element_surplus[elem] += masses[elem]
             else:
-                surplus -= masses[ky]
+                self.element_surplus[elem] -= masses[elem]
 
     def account_for_growth(self, allocation: StemAllocation) -> None:
         """Distribute the element needed for growth to each tissue type.

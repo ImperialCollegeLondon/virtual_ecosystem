@@ -105,12 +105,6 @@ def fixture_biomasses(fixture_community):
 
     wood = WoodTissue(
         community=fixture_community,
-        ideal_ratio=np.array([10.0, 8.0]),
-        actual_element_mass=np.array([5.0, 30.0]),
-    )
-
-    wood = WoodTissue(
-        community=fixture_community,
         carbon_mass=fixture_community.stem_allometry.stem_mass.copy(),
         element_masses={
             "N": Element(
@@ -713,48 +707,62 @@ def test_Biomasses_from_community(fixture_community, extra_pft_traits):
             )
 
 
-# def test_total_element_mass_and_deficit(stem_stoichiometry):
-#     """Test the total element mass and deficit calculations in StemStoichiometry."""
+def test_total_element_mass_and_deficit(fixture_biomasses):
+    """Test the total element mass and deficit calculations in StemStoichiometry."""
 
-#     # total element = sum across tissues
-#     expected_total = (
-#         stem_stoichiometry.tissues[0].actual_element_mass
-#         + stem_stoichiometry.tissues[1].actual_element_mass
-#         + stem_stoichiometry.tissues[2].actual_element_mass
-#         + stem_stoichiometry.tissues[3].actual_element_mass
-#     )
-#     assert np.allclose(stem_stoichiometry.total_element_mass, expected_total)
+    # Get the outputs from the two methods
+    calculated_element_masses = fixture_biomasses.total_element_masses
+    calculated_element_deficits = fixture_biomasses.tissue_deficit
 
-#     # total deficit = sum across tissues
-#     expected_deficit = (
-#         stem_stoichiometry.tissues[0].deficit
-#         + stem_stoichiometry.tissues[1].deficit
-#         + stem_stoichiometry.tissues[2].deficit
-#         + stem_stoichiometry.tissues[3].deficit
-#     )
-#     assert np.allclose(stem_stoichiometry.tissue_deficit, expected_deficit)
+    for elem in fixture_biomasses.elements:
+        # total element = sum across tissues
+        masses = [
+            t.element_masses[elem].actual_element_mass
+            for t in fixture_biomasses.tissues
+        ]
+
+        assert np.allclose(calculated_element_masses[elem], np.add.reduce(masses))
+
+        # total deficit = sum ideal - actual across tissues.
+        deficit = [
+            (t.carbon_mass / t.element_masses[elem].ideal_ratio)
+            - t.element_masses[elem].actual_element_mass
+            for t in fixture_biomasses.tissues
+        ]
+
+        assert np.allclose(calculated_element_deficits[elem], np.add.reduce(deficit))
 
 
-# def test_account_for_growth_updates_element_masses_and_surplus(
-#     stem_stoichiometry,
-# ):
-#     """Test that accounting for growth updates element masses and surplus
-#     correctly."""
+def test_account_for_growth_updates_element_masses_and_surplus(
+    fixture_community, fixture_biomasses, fixture_stem_allocation
+):
+    """Test that accounting for growth updates element masses and surplus correctly."""
 
-#     before = [t.actual_element_mass.copy() for t in stem_stoichiometry.tissues]
-#     stem_stoichiometry.account_for_growth(DUMMY_ALLOC)
-#     after = [t.actual_element_mass for t in stem_stoichiometry.tissues]
+    before = [t.as_array() for t in fixture_biomasses.tissues]
 
-#     # Each tissue should increase by element_needed_for_growth
-#     for b, a, t in zip(before, after, stem_stoichiometry.tissues):
-#         expected = b + t.element_needed_for_growth(DUMMY_ALLOC)
-#         assert np.allclose(a, expected)
+    fixture_biomasses.account_for_growth(fixture_stem_allocation)
+    after = [t.as_array() for t in fixture_biomasses.tissues]
 
-#     # Surplus should decrease accordingly
-#     expected_surplus = np.zeros(DUMMY_COMMUNITY.n_cohorts)
-#     for t in stem_stoichiometry.tissues:
-#         expected_surplus -= t.element_needed_for_growth(DUMMY_ALLOC)
-#     assert np.allclose(stem_stoichiometry.element_surplus, expected_surplus)
+    # Each tissue should increase by element_needed_for_growth and the total surplus
+    # should decrease accordingly
+    expected_surplus = np.zeros(
+        (fixture_community.n_cohorts, len(fixture_biomasses.elements))
+    )
+
+    for b, a, t in zip(before, after, fixture_biomasses.tissues):
+        # Test tissue increase
+        needed = t.elements_needed_for_growth(fixture_stem_allocation)
+        needed_array = np.stack(list(needed.values()))
+        expected = b + needed_array
+        assert np.allclose(a, expected)
+
+        # Accumulate decrease in surplus
+        expected_surplus -= needed_array
+
+    # Test accumulated surplus decrease
+    assert np.allclose(
+        np.stack(list(fixture_biomasses.element_surplus.values())), expected_surplus
+    )
 
 
 # def test_account_for_element_loss_turnover(stem_stoichiometry):
