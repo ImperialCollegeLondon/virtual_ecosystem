@@ -780,15 +780,7 @@ def test_calculate_litter_mineralisation_fluxes(
     }
 
     actual_fluxes = calculate_litter_mineralisation_fluxes(
-        litter_C_mineralisation_rate=dummy_carbon_data[
-            "litter_C_mineralisation_rate"
-        ].to_numpy(),
-        litter_N_mineralisation_rate=dummy_carbon_data[
-            "litter_N_mineralisation_rate"
-        ].to_numpy(),
-        litter_P_mineralisation_rate=dummy_carbon_data[
-            "litter_P_mineralisation_rate"
-        ].to_numpy(),
+        litter_mineralisation_rates=dummy_carbon_data["litter_mineralisation_rate_cnp"],
         constants=fixture_soil_constants,
     )
 
@@ -811,7 +803,9 @@ def test_calculate_litter_mineralisation_split(
     expected_particulate = [0.00211787841, 0.001058939205, 0.000489265, 0.00549175]
 
     actual_particulate, expected_dissolved = calculate_litter_mineralisation_split(
-        mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
+        mineralisation_rate=dummy_carbon_data["litter_mineralisation_rate_cnp"]
+        .loc[:, "C"]
+        .to_numpy(),
         litter_leaching_coefficient=fixture_soil_constants.litter_leaching_fraction_carbon,
     )
 
