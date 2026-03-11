@@ -306,7 +306,7 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
     return alpha_0_herb * mass
 
 
-def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> float:
+def k_i_k(alpha_i_k: float, B_k_t: float, A_cell: float) -> float:
     """The potential biomass (g) of plant k eaten by cohort i, per day.
 
     TODO: update name
@@ -316,8 +316,6 @@ def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> f
     Args:
         alpha_i_k: Effective rate at which an individual herbivore searches its
           environment.
-        phi_herb_t: Fraction of the total plant stock that is available to any one
-          herbivore cohort (default 0.1)
         B_k_t: Plant resource bool biomass.
         A_cell: The area of one cell [standard = 1 ha]
 
@@ -327,7 +325,7 @@ def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> f
 
     """
 
-    return alpha_i_k * ((phi_herb_t * B_k_t) / A_cell) ** 2
+    return alpha_i_k * ((B_k_t) / A_cell) ** 2
 
 
 def H_i_k(h_herb_0: float, M_ref: float, M_i_t: float, b_herb: float) -> float:
