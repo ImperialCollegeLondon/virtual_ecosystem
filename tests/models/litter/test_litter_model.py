@@ -220,9 +220,14 @@ def test_update(fixture_litter_model, dummy_litter_data):
         "c_p_ratio_woody": [558.58393, 762.474347, 847.96815, 599.98045],
         "c_p_ratio_below_metabolic": [314.40006, 404.09534, 315.06196, 360.38398],
         "c_p_ratio_below_structural": [558.1202, 607.2732, 775.4709, 759.5603],
-        "litter_C_mineralisation_rate": [0.0266645, 0.02019299, 0.00756695, 0.00762047],
-        "litter_N_mineralisation_rate": [0.006003, 0.00375757, 0.00087354, 0.00093259],
-        "litter_P_mineralisation_rate": [4.46372e-4, 2.12047e-4, 6.6561e-5, 6.70468e-5],
+        "litter_mineralisation_rate_cnp": np.stack(
+            [
+                [0.0266645, 0.02019299, 0.00756695, 0.00762047],
+                [0.006003, 0.00375757, 0.00087354, 0.00093259],
+                [4.46372e-4, 2.12047e-4, 6.6561e-5, 6.70468e-5],
+            ],
+            axis=1,
+        ),
     }
 
     # Add the data required for update

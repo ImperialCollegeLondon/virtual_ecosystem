@@ -114,9 +114,7 @@ class AnimalModel(
         "litter_consumption_woody",
         "litter_consumption_below_metabolic",
         "litter_consumption_below_structural",
-        "animal_pom_consumption_carbon",
-        "animal_pom_consumption_nitrogen",
-        "animal_pom_consumption_phosphorus",
+        "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
@@ -134,9 +132,7 @@ class AnimalModel(
         "litter_consumption_woody",
         "litter_consumption_below_metabolic",
         "litter_consumption_below_structural",
-        "animal_pom_consumption_carbon",
-        "animal_pom_consumption_nitrogen",
-        "animal_pom_consumption_phosphorus",
+        "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
@@ -890,14 +886,16 @@ class AnimalModel(
         )
 
         return {
-            "animal_pom_consumption_carbon": DataArray(
-                self.to_per_day(pom_consumption_carbon), dims="cell_id"
-            ),
-            "animal_pom_consumption_nitrogen": DataArray(
-                self.to_per_day(pom_consumption_nitrogen), dims="cell_id"
-            ),
-            "animal_pom_consumption_phosphorus": DataArray(
-                self.to_per_day(pom_consumption_phosphorus), dims="cell_id"
+            "animal_pom_consumption_cnp": DataArray(
+                data=stack(
+                    (
+                        self.to_per_day(pom_consumption_carbon),
+                        self.to_per_day(pom_consumption_nitrogen),
+                        self.to_per_day(pom_consumption_phosphorus),
+                    ),
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
             "animal_bacteria_consumption": DataArray(
                 self.to_per_day(bacteria_consumption), dims="cell_id"
