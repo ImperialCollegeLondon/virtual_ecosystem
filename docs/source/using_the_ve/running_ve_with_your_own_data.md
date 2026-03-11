@@ -87,23 +87,24 @@ inputs are within a range of accepted values.
 
 ### Selecting the models you want to run
 
-The Virtual Ecosystem allows you to choose which set of models you wish to run. You can
-choose to run a reduced set of models (e.g. just `plants` and `soil`), though this is
-quite tricky as it requires information previously produced by the removed models to be
-provided as input data (e.g. herbivory rates which are normally produced by the `animal`
-model). More commonly, this functionality will be used to pick between alternative model
-implementations (e.g. `abiotic_simple` instead of `abiotic`). The choice of models to be
-configured is indicated by including the required model names as top level entries in
-the model configuration. Note that the model name is required, even if the configuration
-uses all of the default settings. For example, this configuration specifies that four
-models are to be used, all with their default settings:
+The Virtual Ecosystem allows you to choose which set of models you wish to run. Unless
+you are trying to run static model simulations (in which case consult the [static mode
+guide](./virtual_ecosystem_in_static_mode.ipynb)), you will always want to run the
+primary set of Virtual Ecosystem models. In this case, the only choice you will have to
+make is which microclimate implementation you wish to use (i.e. `abiotic_simple` or
+`abiotic`). The choice of models to be configured is indicated by including the required
+model names as top level entries in the model configuration. Note that the model name is
+required, even if the configuration uses all of the default settings. For example, this
+configuration specifies that six models are to be used, all with their default settings:
 
 ```toml
 [core]  # optional
 [soil]
+[litter]
 [hydrology]
 [plants]
 [abiotic]
+[animals]
 ```
 
 The `[core]` element is optional as the Virtual Ecosystem core module is always
@@ -112,10 +113,12 @@ to include it as a reminder that a particular configuration is intentionally usi
 default settings. Each module configuration section can of course be expanded to change
 defaults.
 
-```{warning}
-Note that there is no guarantee that a particular set of configured models work in
-combination. You will need to look at model details to understand which other modules
-might be required.
+```{note}
+The order in which models are run is **not** something that can be controlled by users
+(i.e. execution order is **not** controlled by where models are placed in the
+configuration). As some models require outputs of the other models in order to run,
+there are hard constraints the order they can be run in. The simulation automatically
+choose a valid model execution order during the configuration process.
 ```
 
 ## Changing model constants

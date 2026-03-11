@@ -49,6 +49,14 @@ To ensure consistency across all VE modules, climate datasets must:
 * Be converted to appropriate physical units
 * Be formatted into a VE-compatible NetCDF structure
 
+```{note}
+Different data sources provide data at different vertical levels and with different
+underlying assumptions, which lead to biases in the model output. For example, the
+reference height can be 1.5 m or 2 m, above ground or above the canopy, measured or
+interpolated. In the Virtual Ecosystem, the reference height is assumed to be 2 m above
+the top of the canopy (2 m above the ground in absence of vegetation).
+```
+
 Climate preprocessing typically involves two stages:
 
 1. Data Download
@@ -80,7 +88,7 @@ averaged reanalysis datasets obtained via the Copernicus Climate Data Store
 To access the [Copernicus Data Store](https://cds.climate.copernicus.eu/) (CDS) you
 will need to register, and configure your `.cdsapirc` file in your home directory. The
 Copernicus Climate Data Store provides [comprehensive guidance on setting up and using
-their API](https://cds.climate.copernicus.eu/how-to-api)
+their API](https://cds.climate.copernicus.eu/how-to-api).
 
 The process given below is computational intensive, so for large variable downloads, it
 is recommended to run one variable at a time.
@@ -185,13 +193,24 @@ cdsapi_era5_downloader(
 )
 ```
 
-With this file downloaded as `era5_monthly_2010_2020_maliau.nc`, we now want to load in
-the site definition file, and use it to set the shape and resolution the dataset we are
-going to populate.
+The `abiotic` and `hydrology` modules require atmospheric forcing variables aligned to
+the model grid resolution of 100 m. However, the downloaded dataset
+`era5_monthly_2010_2020_maliau.nc` is provided at a much coarser spatial resolution
+(approximately 11 km). To reconcile this difference, the ERA5-Land monthly averaged
+variables are reprojected and resampled to the target 100 m grid using the
+nearest-neighbour method.
+
+```{note}
+The process shown below was originally written for a 90 m grid resolution. However, it
+can be adjusted to any desired grid resolution (e.g., 100 m) by modifying the scenario
+configuration, for example by changing the
+[site definition file](../../core_settings/site_definition_guide.md) that defines the
+Virtual Ecosystem grid.
+```
 
 ```{code-block} python
 # Load the destination grid details
-with open("maliau_site_definition.toml", "rb") as maliau_grid_file:
+with open("maliau_grid_definition_90m.toml", "rb") as maliau_grid_file:
     site_config = tomllib.load(maliau_grid_file)
 
 # Define the XY shape of the data in the destination dataset
@@ -392,7 +411,7 @@ it as a new netcdf file.
 ```{code-block} python
 output_dir_reprojected = Path(".../../../data/derived/abiotic/era5_land_monthly")
 output_dir_reprojected.mkdir(parents=True, exist_ok=True)
-output_filename_reprojected = output_dir_reprojected / "eRA5_maliau_2010_2020_90m.nc"
+output_filename_reprojected = output_dir_reprojected / "era5_maliau_2010_2020.90m.nc"
 
 dataset_xyt.to_netcdf(output_filename_reprojected)
 ```
