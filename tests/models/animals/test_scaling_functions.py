@@ -439,24 +439,21 @@ def test_alpha_i_k(alpha_0_herb, mass, expected_search_rate):
 
 
 @pytest.mark.parametrize(
-    "alpha_i_k, phi_herb_t, B_k_t, A_cell, expected_biomass",
+    "alpha_i_k, B_k_t, A_cell, expected_biomass",
     [
-        pytest.param(0.1, 0.5, 1000, 1, 25000.0, id="standard_scenario"),
-        pytest.param(0.2, 0.5, 1000, 1, 50000.0, id="increased_search_rate"),
-        pytest.param(0.1, 1, 1000, 1, 100000.0, id="all_plant_stock_available"),
-        pytest.param(0.1, 0.5, 2000, 1, 100000.0, id="increased_plant_biomass"),
-        pytest.param(0.1, 0.5, 1000, 2, 6250.0, id="increased_cell_area"),
-        pytest.param(0, 0.5, 1000, 1, 0.0, id="zero_search_rate"),
-        pytest.param(0.1, 0, 1000, 1, 0.0, id="no_plant_stock_available"),
-        pytest.param(0.1, 0.5, 0, 1, 0.0, id="zero_plant_biomass"),
+        pytest.param(0.1, 1000, 1, 100000.0, id="standard_scenario"),
+        pytest.param(0.2, 1000, 1, 200000.0, id="increased_search_rate"),
+        pytest.param(0.1, 2000, 1, 400000.0, id="increased_plant_biomass"),
+        pytest.param(0.1, 1000, 2, 25000.0, id="increased_cell_area"),
+        pytest.param(0, 1000, 1, 0.0, id="zero_search_rate"),
+        pytest.param(0.1, 0, 1, 0.0, id="zero_plant_biomass"),
     ],
 )
-def test_k_i_k(alpha_i_k, phi_herb_t, B_k_t, A_cell, expected_biomass):
+def test_k_i_k(alpha_i_k, B_k_t, A_cell, expected_biomass):
     """Testing the potential biomass eaten calculation for various scenarios."""
-
     from virtual_ecosystem.models.animal.scaling_functions import k_i_k
 
-    calculated_biomass = k_i_k(alpha_i_k, phi_herb_t, B_k_t, A_cell)
+    calculated_biomass = k_i_k(alpha_i_k, B_k_t, A_cell)
     assert calculated_biomass == pytest.approx(expected_biomass, rel=1e-6)
 
 

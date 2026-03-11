@@ -86,6 +86,7 @@ def metabolic_rate(
     mass and an exponential relationship with temperature.
 
     TODO: Implement activity windows to properly parameterize sigma.
+    TODO: double check unit alignment
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
@@ -306,7 +307,7 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
     return alpha_0_herb * mass
 
 
-def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> float:
+def k_i_k(alpha_i_k: float, B_k_t: float, A_cell: float) -> float:
     """The potential biomass (g) of plant k eaten by cohort i, per day.
 
     TODO: update name
@@ -316,8 +317,6 @@ def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> f
     Args:
         alpha_i_k: Effective rate at which an individual herbivore searches its
           environment.
-        phi_herb_t: Fraction of the total plant stock that is available to any one
-          herbivore cohort (default 0.1)
         B_k_t: Plant resource bool biomass.
         A_cell: The area of one cell [standard = 1 ha]
 
@@ -327,7 +326,7 @@ def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> f
 
     """
 
-    return alpha_i_k * ((phi_herb_t * B_k_t) / A_cell) ** 2
+    return alpha_i_k * ((B_k_t) / A_cell) ** 2
 
 
 def H_i_k(h_herb_0: float, M_ref: float, M_i_t: float, b_herb: float) -> float:
@@ -395,7 +394,7 @@ def w_bar_i_j(
         mass_predator: Current mass of the predator..
         mass_prey: Current mass of the prey.
         theta_opt_i: The optimum predator-prey mass ratio.
-        sigma_opt_pred_prey: The standard deviation of the mass ration.
+        sigma_opt_pred_prey: The standard deviation of the mass ratio.
 
     Returns:
         A float probability [0.0-1.0] that a predation encounter is successful.
@@ -434,29 +433,28 @@ def alpha_i_j(alpha_0_pred: float, mass: float, w_bar_i_j: float) -> float:
     return alpha_0_pred * mass * w_bar_i_j
 
 
-def k_i_j(alpha_i_j: float, N_i_t: float, A_cell: float, theta_i_j: float) -> float:
+def k_i_j(
+    alpha_i_j: float, N_i_t: float, intersection_area: float, theta_i_j: float
+) -> float:
     """Potential number of prey items eaten off j by i.
 
-    TODO: double check output needs to be float, might be int
     TODO: update name
 
     Madingley
 
     Args:
         alpha_i_j: Rate at which an individual predator searches its environment and
-          kills prey.
+            kills prey in m2/(day*g).
         N_i_t: Number of consumer individuals.
-        A_cell: The area of a grid cell.
+        intersection_area: The overlapping area between predator and prey territories
+          in m2.
         theta_i_j: The cumulative density of organisms with a mass lying within the
-              same predator specific mass bin.
+            same predator specific mass bin.
 
     Returns:
         Potential number of prey items eaten off j by i [integer number of individuals]
-
-
     """
-
-    return alpha_i_j * (N_i_t / A_cell) * theta_i_j
+    return alpha_i_j * (N_i_t / intersection_area) * theta_i_j
 
 
 def H_i_j(
