@@ -134,15 +134,9 @@ class LitterModel(
         "c_p_ratio_woody",
         "c_p_ratio_below_metabolic",
         "c_p_ratio_below_structural",
-        "litter_C_mineralisation_rate",
-        "litter_N_mineralisation_rate",
-        "litter_P_mineralisation_rate",
+        "litter_mineralisation_rate_cnp",
     ),
-    vars_populated_by_first_update=(
-        "litter_C_mineralisation_rate",
-        "litter_N_mineralisation_rate",
-        "litter_P_mineralisation_rate",
-    ),
+    vars_populated_by_first_update=("litter_mineralisation_rate_cnp",),
 ):
     """A class defining the litter model.
 
@@ -393,7 +387,7 @@ class LitterModel(
             ).magnitude,
         )
 
-        # Calculate the total mineralisation carbon mineralisation rate from the litter
+        # Calculate the total carbon mineralisation rate from the litter
         total_C_mineralisation_rate = calculate_total_C_mineralised(
             litter_losses=litter_losses,
             model_constants=self.model_constants,
@@ -449,14 +443,16 @@ class LitterModel(
             "c_p_ratio_below_structural": updated_chemistries[
                 "c_p_ratio_below_structural"
             ],
-            "litter_C_mineralisation_rate": DataArray(
-                total_C_mineralisation_rate, dims="cell_id"
-            ),
-            "litter_N_mineralisation_rate": DataArray(
-                litter_losses.N_mineralisation_rate, dims="cell_id"
-            ),
-            "litter_P_mineralisation_rate": DataArray(
-                litter_losses.P_mineralisation_rate, dims="cell_id"
+            "litter_mineralisation_rate_cnp": DataArray(
+                data=np.stack(
+                    (
+                        total_C_mineralisation_rate,
+                        litter_losses.N_mineralisation_rate,
+                        litter_losses.P_mineralisation_rate,
+                    ),
+                    axis=1,
+                ),
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
         }
 
