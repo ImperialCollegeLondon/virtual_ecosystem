@@ -54,7 +54,6 @@ from virtual_ecosystem.models.animal.decay import (
     ExcrementPool,
     FungalFruitPool,
     HerbivoryWaste,
-    LitterPool,
     SoilPool,
 )
 from virtual_ecosystem.models.animal.exporter import AnimalCohortDataExporter
@@ -85,6 +84,11 @@ class AnimalModel(
         "population_densities",
         "subcanopy_vegetation_cnp_consumed",
         "subcanopy_seedbank_cnp_consumed",
+        "litter_consumed_above_metabolic_cnp",
+        "litter_consumed_above_structural_cnp",
+        "litter_consumed_woody_cnp",
+        "litter_consumed_below_metabolic_cnp",
+        "litter_consumed_below_structural_cnp",
     ),
     vars_required_for_update=(
         "litter_pool_above_metabolic_cnp",
@@ -109,11 +113,6 @@ class AnimalModel(
         "decomposed_carcasses_cnp",
         "herbivory_waste_leaf_cnp",
         "herbivory_waste_leaf_lignin",
-        "litter_consumption_above_metabolic",
-        "litter_consumption_above_structural",
-        "litter_consumption_woody",
-        "litter_consumption_below_metabolic",
-        "litter_consumption_below_structural",
         "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
@@ -127,11 +126,11 @@ class AnimalModel(
         "herbivory_waste_leaf_cnp",
         "herbivory_waste_leaf_lignin",
         "total_animal_respiration",
-        "litter_consumption_above_metabolic",
-        "litter_consumption_above_structural",
-        "litter_consumption_woody",
-        "litter_consumption_below_metabolic",
-        "litter_consumption_below_structural",
+        "litter_consumed_above_metabolic_cnp",
+        "litter_consumed_above_structural_cnp",
+        "litter_consumed_woody_cnp",
+        "litter_consumed_below_metabolic_cnp",
+        "litter_consumed_below_structural_cnp",
         "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
@@ -209,8 +208,6 @@ class AnimalModel(
         """A pool for leaves removed by herbivory but not actually consumed."""
         self.microbial_c_n_p_ratios: dict[str, dict[str, float]]
         """The CNP ratios of the different microbial functional groups."""
-        self.litter_pools: dict[int, dict[str, Resource]]
-        """The litter pools with associated grid cell ids."""
         # TODO: make the following two modifiable
         self.target_cohorts_per_fg: int
         """The target number of cohorts per functional group in each grid cell."""
@@ -321,10 +318,9 @@ class AnimalModel(
         self.minimum_cohort_size = 5
         """The minimum number of individuals to initialize a cohort at init."""
 
-        # Microbial C:N:P ratios are then found, and the size of the initial litter and
-        # soil pools are populated
+        # Microbial C:N:P ratios are then found, and the size of the initial soil pools
+        # are populated
         self.microbial_c_n_p_ratios = microbial_c_n_p_ratios
-        self.litter_pools = self.populate_litter_pools()
         self.soil_pools = self.populate_soil_pools()
         self.fungal_fruiting_bodies = self.populate_fungal_fruiting_bodies()
 
@@ -455,9 +451,8 @@ class AnimalModel(
         # TODO: These pools are populated but nothing actually gets done with them at
         # the moment, this will have to change when scavenging gets introduced
 
-        # The litter and soil pools have to be populated again to reflect the changes
-        # that will have happened in the last time step for those models
-        self.litter_pools = self.populate_litter_pools()
+        # The soil pools have to be populated again to reflect the changes that will
+        # have happened in the last time step for those models
         self.soil_pools = self.populate_soil_pools()
 
         # The fungal fruiting bodies need to be updated based on input from soil fungi
@@ -482,7 +477,6 @@ class AnimalModel(
         # Now that communities have been updated information required to update the
         # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
-        litter_consumption = self.calculate_total_litter_consumption(self.litter_pools)
         soil_consumption = self.calculate_total_soil_consumption(self.soil_pools)
         litter_additions = self.calculate_litter_additions_from_herbivory()
 
@@ -495,7 +489,6 @@ class AnimalModel(
             fruiting_bodies_decay
             | additions_to_soil
             | soil_consumption
-            | litter_consumption
             | litter_additions
         )
 
@@ -654,43 +647,6 @@ class AnimalModel(
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
-
-    def populate_litter_pools(self) -> dict[int, dict[str, Resource]]:
-        """Populate the litter pools that animals can consume from.
-
-        Returns:
-            dict[str, Resource]: A dictionary where keys represent the pool types and
-            values are the corresponding LitterPool objects. The following pools are
-            included:
-
-            - "above_metabolic": Litter pool for above-ground metabolic organic matter
-            - "above_structural": Litter pool for above-ground structural organic matter
-            - "woody": Litter pool for woody biomass
-            - "below_metabolic": Litter pool for below-ground metabolic organic matter
-            - "below_structural": Litter pool for below-ground structural organic matter
-
-        """
-
-        litter_types = (
-            "above_metabolic",
-            "above_structural",
-            "woody",
-            "below_metabolic",
-            "below_structural",
-        )
-
-        return {
-            cell_id: {
-                lt: LitterPool(
-                    pool_name=lt,
-                    cell_id=cell_id,
-                    data=self.data,
-                    cell_area=self.data.grid.cell_area,  # OK while area is uniform
-                )
-                for lt in litter_types
-            }
-            for cell_id in self.data.grid.cell_id
-        }
 
     def populate_soil_pools(self) -> dict[int, dict[str, SoilPool]]:
         """Populate the soil pools that animals can consume from.
@@ -1558,9 +1514,14 @@ class AnimalModel(
             if diet & DietType.BACTERIA:
                 bacteria_list = cohort.get_bacteria_pools(self.soil_pools)
 
+            # TODO - I went with this as it was the only way I could see to fit litter
+            # consumption into the new system without massively rewriting animal
+            # foraging. But I feel like this might expose the litter pools to detrivory
+            # and herbivory separately (if the consumer has both diets). I need to check
+            # with Taran and David
             # Plant litter detritivory
             if diet & DietType.DETRITUS:
-                litter_list = cohort.get_litter_pools(self.litter_pools)
+                litter_list = cohort.get_array_resources(self.array_resource_pools)
 
             # Carcass scavenging
             if diet & DietType.CARCASSES:

@@ -104,6 +104,30 @@ def animal_data_for_model_instance(fixture_core_components):
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
 
+    litter_pools = DataArray(np.full(data.grid.n_cells, fill_value=1.5), dims="cell_id")
+    litter_ratios = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+
+    litter_cnp_template = DataArray(
+        np.stack(
+            [
+                litter_pools,
+                litter_pools / litter_ratios,
+                litter_pools / litter_ratios,
+            ],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
+
+    data["litter_pool_above_metabolic_cnp"] = litter_cnp_template
+    data["litter_pool_above_structural_cnp"] = litter_cnp_template
+    data["litter_pool_woody_cnp"] = litter_cnp_template
+    data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
+    data["litter_pool_below_structural_cnp"] = litter_cnp_template
+
     return data
 
 

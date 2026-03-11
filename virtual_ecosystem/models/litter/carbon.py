@@ -39,6 +39,7 @@ def calculate_post_consumption_pools(
     consumption_woody: NDArray[np.floating],
     consumption_below_metabolic: NDArray[np.floating],
     consumption_below_structural: NDArray[np.floating],
+    cell_area: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Calculates the size of the five litter pools after animal consumption.
 
@@ -46,34 +47,40 @@ def calculate_post_consumption_pools(
     And so only the litter not consumed by animals has a chance to decay. This is a
     major assumption that we may have to revisit in future.
 
+    This function calculates the change for all three nutrients (carbon, nitrogen and
+    phosphorus) simultaneously, and also converts the animal consumption into density
+    units.
+
     Args:
-        above_metabolic: Above ground metabolic litter pool [kg C m^-2]
-        above_structural: Above ground structural litter pool [kg C m^-2]
-        woody: The woody litter pool [kg C m^-2]
-        below_metabolic: Below ground metabolic litter pool [kg C m^-2]
-        below_structural: Below ground structural litter pool [kg C m^-2]
+        above_metabolic: Above ground metabolic litter pool [kg m^-2]
+        above_structural: Above ground structural litter pool [kg m^-2]
+        woody: The woody litter pool [kg m^-2]
+        below_metabolic: Below ground metabolic litter pool [kg m^-2]
+        below_structural: Below ground structural litter pool [kg m^-2]
         consumption_above_metabolic: Amount of above-ground metabolic litter that has
-            been consumed by animals [kg C m^-2]
+            been consumed by animals [kg]
         consumption_above_structural: Amount of above-ground structural litter that has
-            been consumed by animals [kg C m^-2]
-        consumption_woody: Amount of woody litter that has been consumed by animals [kg
-            C m^-2]
+            been consumed by animals [kg]
+        consumption_woody: Amount of woody litter that has been consumed by animals [kg]
         consumption_below_metabolic: Amount of below-ground metabolic litter that has
-            been consumed by animals [kg C m^-2]
+            been consumed by animals [kg]
         consumption_below_structural: Amount of below-ground structural litter that has
-            been consumed by animals [kg C m^-2]
+            been consumed by animals [kg]
+        cell_area: The area of each cell. [m^2]
 
     Returns:
         A dictionary containing the size of each litter pool after the mass consumed by
-        animals has been removed [kg C m^-2].
+        animals has been removed [kg m^-2].
     """
 
     return {
-        "above_metabolic": above_metabolic - consumption_above_metabolic,
-        "above_structural": above_structural - consumption_above_structural,
-        "woody": woody - consumption_woody,
-        "below_metabolic": below_metabolic - consumption_below_metabolic,
-        "below_structural": below_structural - consumption_below_structural,
+        "above_metabolic": above_metabolic - (consumption_above_metabolic / cell_area),
+        "above_structural": above_structural
+        - (consumption_above_structural / cell_area),
+        "woody": woody - (consumption_woody / cell_area),
+        "below_metabolic": below_metabolic - (consumption_below_metabolic / cell_area),
+        "below_structural": below_structural
+        - (consumption_below_structural / cell_area),
     }
 
 

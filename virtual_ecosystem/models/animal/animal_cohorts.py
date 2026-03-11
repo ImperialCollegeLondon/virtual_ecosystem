@@ -1983,22 +1983,3 @@ class AnimalCohort:
 
         """
         return bool(resource_occupancy & self.functional_group.vertical_occupancy)
-
-    def get_litter_pools(
-        self, litter_pools: dict[int, dict[str, Resource]]
-    ) -> list[Resource]:
-        """Return all litter pools that fall inside this cohort's territory.
-
-        Args:
-            litter_pools: The dictionary of litterpools that exist in the simulation.
-
-        Returns:
-            A flat list of litter pools found in the territory of the consumer.
-        """
-        pools_in_territory: list[Resource] = []
-
-        for cell_id in self.territory:
-            if cell_id in litter_pools:
-                pools_in_territory.extend(litter_pools[cell_id].values())
-
-        return pools_in_territory

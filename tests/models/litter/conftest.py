@@ -105,37 +105,34 @@ def metabolic_splits(total_litter_input, fixture_litter_constants):
 
 
 @pytest.fixture
-def post_consumption_pools(dummy_litter_data):
+def post_consumption_pools(dummy_litter_data, fixture_core_components):
     """Pool sizes after animal consumption for each litter pool."""
     from virtual_ecosystem.models.litter.carbon import calculate_post_consumption_pools
 
     post_consumption_pools = calculate_post_consumption_pools(
-        above_metabolic=dummy_litter_data["litter_pool_above_metabolic_cnp"]
-        .loc[:, "C"]
-        .to_numpy(),
-        above_structural=dummy_litter_data["litter_pool_above_structural_cnp"]
-        .loc[:, "C"]
-        .to_numpy(),
-        woody=dummy_litter_data["litter_pool_woody_cnp"].loc[:, "C"].to_numpy(),
-        below_metabolic=dummy_litter_data["litter_pool_below_metabolic_cnp"]
-        .loc[:, "C"]
-        .to_numpy(),
-        below_structural=dummy_litter_data["litter_pool_below_structural_cnp"]
-        .loc[:, "C"]
-        .to_numpy(),
+        above_metabolic=dummy_litter_data["litter_pool_above_metabolic_cnp"].to_numpy(),
+        above_structural=dummy_litter_data[
+            "litter_pool_above_structural_cnp"
+        ].to_numpy(),
+        woody=dummy_litter_data["litter_pool_woody_cnp"].to_numpy(),
+        below_metabolic=dummy_litter_data["litter_pool_below_metabolic_cnp"].to_numpy(),
+        below_structural=dummy_litter_data[
+            "litter_pool_below_structural_cnp"
+        ].to_numpy(),
         consumption_above_metabolic=dummy_litter_data[
-            "litter_consumption_above_metabolic"
+            "litter_consumed_above_metabolic_cnp"
         ].to_numpy(),
         consumption_above_structural=dummy_litter_data[
-            "litter_consumption_above_structural"
+            "litter_consumed_above_structural_cnp"
         ].to_numpy(),
-        consumption_woody=dummy_litter_data["litter_consumption_woody"].to_numpy(),
+        consumption_woody=dummy_litter_data["litter_consumed_woody_cnp"].to_numpy(),
         consumption_below_metabolic=dummy_litter_data[
-            "litter_consumption_below_metabolic"
+            "litter_consumed_below_metabolic_cnp"
         ].to_numpy(),
         consumption_below_structural=dummy_litter_data[
-            "litter_consumption_below_structural"
+            "litter_consumed_below_structural_cnp"
         ].to_numpy(),
+        cell_area=fixture_core_components.grid.cell_area,
     )
 
     return post_consumption_pools
@@ -157,7 +154,10 @@ def updated_pools(decay_rates, post_consumption_pools, litter_inputs):
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
 
     updated_pools = calculate_updated_pools(
-        post_consumption_pools=post_consumption_pools,
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        post_consumption_pools={
+            name: pools[:, 0] for name, pools in post_consumption_pools.items()
+        },
         decay_rates=decay_rates,
         litter_inputs=litter_inputs,
         update_interval=2.0,
@@ -194,7 +194,10 @@ def litter_losses(
 
     return calculate_litter_losses(
         data=dummy_litter_data,
-        original_pools=post_consumption_pools,
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        original_pools={
+            name: pools[:, 0] for name, pools in post_consumption_pools.items()
+        },
         final_pools=updated_pools,
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,

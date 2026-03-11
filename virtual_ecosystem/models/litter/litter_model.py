@@ -67,7 +67,7 @@ class LitterModel(
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
-        # TODO - THE BELOW ARE ONLY RETAINED AS A WORK ON THIS PR, AND SHOULD BE DELETED
+        # TODO - THE BELOW ARE ONLY RETAINED AS I WORK ON THIS PR, AND SHOULD BE DELETED
         # AT THE END
         "c_n_ratio_above_metabolic",
         "c_n_ratio_above_structural",
@@ -108,11 +108,11 @@ class LitterModel(
         "root_lignin",
         "herbivory_waste_leaf_cnp",
         "herbivory_waste_leaf_lignin",
-        "litter_consumption_above_metabolic",
-        "litter_consumption_above_structural",
-        "litter_consumption_woody",
-        "litter_consumption_below_metabolic",
-        "litter_consumption_below_structural",
+        "litter_consumed_above_metabolic_cnp",
+        "litter_consumed_above_structural_cnp",
+        "litter_consumed_woody_cnp",
+        "litter_consumed_below_metabolic_cnp",
+        "litter_consumed_below_structural_cnp",
         "air_temperature",
         "soil_temperature",
         "matric_potential",
@@ -307,36 +307,28 @@ class LitterModel(
             **kwargs: Further arguments to the update method.
         """
 
-        # TODO - THIS STEP SHOULD USE THE ARRAY RESOURCES IMPLEMENTATION
         # Calculate the pool sizes after animal consumption has occurred, which then get
         # used then for subsequent calculations
         consumed_pools = calculate_post_consumption_pools(
-            above_metabolic=self.data["litter_pool_above_metabolic_cnp"]
-            .loc[:, "C"]
-            .to_numpy(),
-            above_structural=self.data["litter_pool_above_structural_cnp"]
-            .loc[:, "C"]
-            .to_numpy(),
-            woody=self.data["litter_pool_woody_cnp"].loc[:, "C"].to_numpy(),
-            below_metabolic=self.data["litter_pool_below_metabolic_cnp"]
-            .loc[:, "C"]
-            .to_numpy(),
-            below_structural=self.data["litter_pool_below_structural_cnp"]
-            .loc[:, "C"]
-            .to_numpy(),
+            above_metabolic=self.data["litter_pool_above_metabolic_cnp"].to_numpy(),
+            above_structural=self.data["litter_pool_above_structural_cnp"].to_numpy(),
+            woody=self.data["litter_pool_woody_cnp"].to_numpy(),
+            below_metabolic=self.data["litter_pool_below_metabolic_cnp"].to_numpy(),
+            below_structural=self.data["litter_pool_below_structural_cnp"].to_numpy(),
             consumption_above_metabolic=self.data[
-                "litter_consumption_above_metabolic"
+                "litter_consumed_above_metabolic_cnp"
             ].to_numpy(),
             consumption_above_structural=self.data[
-                "litter_consumption_above_structural"
+                "litter_consumed_above_structural_cnp"
             ].to_numpy(),
-            consumption_woody=self.data["litter_consumption_woody"].to_numpy(),
+            consumption_woody=self.data["litter_consumed_woody_cnp"].to_numpy(),
             consumption_below_metabolic=self.data[
-                "litter_consumption_below_metabolic"
+                "litter_consumed_below_metabolic_cnp"
             ].to_numpy(),
             consumption_below_structural=self.data[
-                "litter_consumption_below_structural"
+                "litter_consumed_below_structural_cnp"
             ].to_numpy(),
+            cell_area=self.data.grid.cell_area,
         )
 
         # Calculate the litter pool decay rates
@@ -367,7 +359,10 @@ class LitterModel(
 
         # Calculate the updated pool masses
         updated_pools = calculate_updated_pools(
-            post_consumption_pools=consumed_pools,
+            # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+            post_consumption_pools={
+                name: pools[:, 0] for name, pools in consumed_pools.items()
+            },
             decay_rates=decay_rates,
             litter_inputs=litter_inputs,
             update_interval=self.model_timing.update_interval_quantity.to(
@@ -376,7 +371,10 @@ class LitterModel(
         )
 
         litter_losses = calculate_litter_losses(
-            original_pools=consumed_pools,
+            # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+            original_pools={
+                name: pools[:, 0] for name, pools in consumed_pools.items()
+            },
             final_pools=updated_pools,
             litter_inputs=litter_inputs,
             input_chemistries=input_chemistries,
@@ -392,7 +390,10 @@ class LitterModel(
             litter_inputs=litter_inputs,
             litter_losses=litter_losses,
             input_chemistries=input_chemistries,
-            original_pools=consumed_pools,
+            # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+            original_pools={
+                name: pools[:, 0] for name, pools in consumed_pools.items()
+            },
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
             ).magnitude,
