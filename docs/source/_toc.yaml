@@ -71,6 +71,11 @@ subtrees:
                   - file: using_the_ve/model_details/abiotic/hydrology_config
                   - file: using_the_ve/model_details/abiotic/elevation_data_guide
                   - file: using_the_ve/model_details/abiotic/climate_data_guide
+              - file: using_the_ve/model_details/decay/overview
+                entries:
+                  - file: using_the_ve/model_details/decay/litter_config
+                  - file: using_the_ve/model_details/decay/soil_config
+                  - file: using_the_ve/model_details/decay/default_microbial_params
               - file: using_the_ve/model_details/pft_configuration
               - file: using_the_ve/model_details/science_model_configuration
 
