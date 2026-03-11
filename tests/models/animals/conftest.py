@@ -82,6 +82,28 @@ def animal_data_for_model_instance(fixture_core_components):
     )
     data["air_temperature"] = air_temperature
 
+    # Array resource pools
+    pfts = np.array(["pioneer", "canopy", "emergent"])
+    cell_ids = np.arange(data.grid.n_cells)
+    elements = np.array(["C", "N", "P"])
+
+    leaf_mass = DataArray(
+        np.ones((data.grid.n_cells, elements.size, pfts.size)),
+        dims=("cell_id", "element", "pft"),
+        coords=dict(
+            cell_id=cell_ids,
+            element=elements,
+            pft=pfts,
+        ),
+    ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
+
+    data["subcanopy_vegetation_cnp"] = (
+        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
+    )
+    data["subcanopy_seedbank_cnp"] = (
+        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
+    )
+
     return data
 
 
@@ -330,6 +352,28 @@ def dummy_animal_data(animal_fixture_core_components):
     data["fungal_fruiting_bodies"] = litter_pools
     data["production_of_fungal_fruiting_bodies"] = DataArray(
         np.zeros(data.grid.n_cells), dims="cell_id"
+    )
+
+    # Array resource pools
+    pfts = np.array(["pioneer", "canopy", "emergent"])
+    cell_ids = np.arange(data.grid.n_cells)
+    elements = np.array(["C", "N", "P"])
+
+    leaf_mass = DataArray(
+        np.ones((data.grid.n_cells, elements.size, pfts.size)),
+        dims=("cell_id", "element", "pft"),
+        coords=dict(
+            cell_id=cell_ids,
+            element=elements,
+            pft=pfts,
+        ),
+    ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
+
+    data["subcanopy_vegetation_cnp"] = (
+        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
+    )
+    data["subcanopy_seedbank_cnp"] = (
+        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
 
     return data
@@ -720,25 +764,28 @@ def excrement_pools_by_cell_instance():
 
 
 @pytest.fixture
-def plant_instance(plant_data_instance, constants_instance):
-    """Fixture for a plant community used in tests."""
-    from virtual_ecosystem.models.animal.plant_resources import PlantResources
+def array_plant_list_instance():
+    """Return a list of CellResource objects usable as plant_list."""
+    import numpy as np
 
-    return PlantResources(
-        data=plant_data_instance, cell_id=4, constants=constants_instance
-    )
-
-
-@pytest.fixture
-def plant_list_instance(plant_data_instance, constants_instance):
-    """Fixture providing a list of plant resources."""
-    from virtual_ecosystem.models.animal.plant_resources import PlantResources
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.array_resources import CellResource
 
     return [
-        PlantResources(
-            data=plant_data_instance, cell_id=4, constants=constants_instance
-        )
-        for idx in range(3)
+        CellResource(
+            resource=object(),
+            available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
+            consumed_total_mass=np.zeros(3, dtype=float),
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            cell_id=0,
+        ),
+        CellResource(
+            resource=object(),
+            available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
+            consumed_total_mass=np.zeros(3, dtype=float),
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            cell_id=1,
+        ),
     ]
 
 
@@ -834,6 +881,28 @@ def litter_soil_data_instance(fixture_core_components):
 
     for var_name, var_values in data_values.items():
         data[var_name] = DataArray(var_values, dims=["cell_id"])
+
+    # Array resource pools
+    pfts = np.array(["pioneer", "canopy", "emergent"])
+    cell_ids = np.arange(data.grid.n_cells)
+    elements = np.array(["C", "N", "P"])
+
+    leaf_mass = DataArray(
+        np.ones((data.grid.n_cells, elements.size, pfts.size)),
+        dims=("cell_id", "element", "pft"),
+        coords=dict(
+            cell_id=cell_ids,
+            element=elements,
+            pft=pfts,
+        ),
+    ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
+
+    data["subcanopy_vegetation_cnp"] = (
+        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
+    )
+    data["subcanopy_seedbank_cnp"] = (
+        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
+    )
 
     return data
 

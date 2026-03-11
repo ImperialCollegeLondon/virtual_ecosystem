@@ -89,24 +89,21 @@ class TestAnimalModel:
                         DEBUG,
                         "animal model: required var 'fungal_fruiting_bodies' checked",
                     ),
+                    (
+                        INFO,
+                        "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
+                    ),
                     (INFO, "Adding data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
                     (INFO, "Updating animal model"),
                     (INFO, "Adding data array for 'decay_of_fungal_fruiting_bodies'"),
                     (INFO, "Adding data array for 'decomposed_excrement_cnp'"),
                     (INFO, "Adding data array for 'decomposed_carcasses_cnp'"),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_pom_consumption_carbon'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_pom_consumption_nitrogen'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_pom_consumption_phosphorus'",
-                    ),
+                    (INFO, "Adding data array for 'animal_pom_consumption_cnp'"),
                     (INFO, "Adding data array for 'animal_bacteria_consumption'"),
                     (
                         INFO,
@@ -736,14 +733,15 @@ class TestAnimalModel:
 
         # Validate consumption matches expected loss per cell
         for consumption_type, expected_consumption in [
-            ("animal_pom_consumption_carbon", np.full(4, 0.002142857)),
             (
-                "animal_pom_consumption_nitrogen",
-                np.array([0.000153061, 1.530536e-6, 8.746347e-6, 8.746353e-5]),
-            ),
-            (
-                "animal_pom_consumption_phosphorus",
-                np.array([6.122143e-7, 6.122443e-7, 3.498539e-7, 3.498541e-6]),
+                "animal_pom_consumption_cnp",
+                np.array(
+                    [
+                        np.full(4, 0.002142857),
+                        np.array([0.000153061, 1.530536e-6, 8.746347e-6, 8.746353e-5]),
+                        np.array([6.122143e-7, 6.122443e-7, 3.498539e-7, 3.498541e-6]),
+                    ]
+                ).transpose(),
             ),
             ("animal_bacteria_consumption", np.full(4, 0.03928571)),
             (
@@ -2044,6 +2042,8 @@ class TestAnimalModel:
         mocker,
     ):
         """Test that forage_cohort is called correctly."""
+        from numpy import timedelta64
+
         from virtual_ecosystem.models.animal.animal_traits import DietType
 
         # Mock the methods for herbivore and predator cohorts using the mocker fixture
@@ -2055,7 +2055,7 @@ class TestAnimalModel:
         mock_get_excrement_pools_predator = mocker.Mock(
             return_value=["excrement_pools_predator"]
         )
-        mock_get_plant_resources = mocker.Mock(return_value=["plant_resources"])
+        mock_get_array_resources = mocker.Mock(return_value=["array_resources"])
         mock_get_prey = mocker.Mock(return_value=["prey"])
 
         # Set up herbivore cohort
@@ -2063,11 +2063,9 @@ class TestAnimalModel:
             "foliage_fruit"
         )
         mocker.patch.object(
-            herbivore_cohort_instance, "get_plant_resources", mock_get_plant_resources
+            herbivore_cohort_instance, "get_array_resources", mock_get_array_resources
         )
-        mocker.patch.object(
-            herbivore_cohort_instance, "get_prey", mocker.Mock()
-        )  # Should not be called for herbivores
+        mocker.patch.object(herbivore_cohort_instance, "get_prey", mocker.Mock())
         mocker.patch.object(
             herbivore_cohort_instance,
             "get_excrement_pools",
@@ -2084,7 +2082,7 @@ class TestAnimalModel:
         predator_cohort_instance.functional_group.diet = DietType.parse("vertebrates")
         mocker.patch.object(
             predator_cohort_instance, "get_plant_resources", mocker.Mock()
-        )  # Should not be called for predators
+        )
         mocker.patch.object(predator_cohort_instance, "get_prey", mock_get_prey)
         mocker.patch.object(
             predator_cohort_instance,
@@ -2106,15 +2104,14 @@ class TestAnimalModel:
 
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
-        # Comment: make failures descriptive and short to read in pytest output.
-        assert hasattr(animal_model_instance, "plant_resources"), (
-            "plant_resources missing. "
+        # Guard updated to match new wiring
+        assert hasattr(animal_model_instance, "array_resource_pools"), (
+            "array_resource_pools missing. "
             f"_setup defined at: {inspect.getsourcefile(AnimalModel._setup)}:"
             f"{inspect.getsourcelines(AnimalModel._setup)[1]} | "
             f"attrs={sorted(vars(animal_model_instance))}"
         )
 
-        # Optional: verify other _setup outputs exist; helps pinpoint where it failed.
         for name in (
             "communities",
             "excrement_pools",
@@ -2125,15 +2122,16 @@ class TestAnimalModel:
             assert hasattr(animal_model_instance, name), f"Missing {name}"
 
         # Run the forage_community method
-        animal_model_instance.forage_community(dt=30)
+        dt = timedelta64(30, "D")
+        animal_model_instance.forage_community(dt=dt)
 
-        # Verify that herbivores forage plant resources and not animal prey
-        mock_get_plant_resources.assert_called_once_with(
-            animal_model_instance.plant_resources
+        # Herbivore: uses array resources, not prey
+        mock_get_array_resources.assert_called_once_with(
+            animal_model_instance.array_resource_pools
         )
         herbivore_cohort_instance.get_prey.assert_not_called()
         mock_forage_herbivore.assert_called_once_with(
-            plant_list=["plant_resources"],
+            plant_list=["array_resources"],
             animal_list=[],
             fungal_fruit_list=[],
             soil_fungi_list=[],
@@ -2145,10 +2143,10 @@ class TestAnimalModel:
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
-            dt=30,
+            dt=dt,
         )
 
-        # Verify that predators forage prey and not plant resources
+        # Predator: uses prey, not plant resources
         expected_prey_flags = predator_cohort_instance.functional_group.diet & (
             DietType.BLOOD
             | DietType.INVERTEBRATES
@@ -2173,7 +2171,7 @@ class TestAnimalModel:
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
-            dt=30,
+            dt=dt,
         )
 
     def test_metabolize_community(

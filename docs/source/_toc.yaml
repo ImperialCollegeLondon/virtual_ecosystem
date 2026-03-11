@@ -183,7 +183,7 @@ subtrees:
                     title: The decay submodule
                   - file: api/models/animal/functional_group
                     title: The functional_group submodule
-                  - file: api/models/animal/plant_resources
+                  - file: api/models/animal/array_resources
                     title: The plant_resources submodule
                   - file: api/models/animal/protocols
                     title: The protocols submodule
