@@ -15,6 +15,7 @@ from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import DietType, VerticalOccupancy
+from virtual_ecosystem.models.animal.array_resources import ResourcePool
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
@@ -681,7 +682,7 @@ class AnimalCohort:
         TODO: update name
 
         Returns:
-            A float representing the search efficiency rate in [ha/(day*g)].
+            A float representing the search efficiency rate in [m2/(day*g)].
         """
 
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
@@ -726,10 +727,9 @@ class AnimalCohort:
         if alpha <= 0:
             raise ValueError(f"alpha must be positive. Got {alpha}.")
 
-        phi = self.functional_group.constants.phi_herb_t
-        A_cell = 1.0  # Temporary value
+        A_cell = self.grid.cell_area
 
-        return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
+        return sf.k_i_k(alpha, target_plant.mass_current, A_cell)
 
     def calculate_total_handling_time_for_herbivory(
         self, plant_list: list[Resource], alpha: float
@@ -740,7 +740,6 @@ class AnimalCohort:
         list, incorporating the search efficiency and other scaling factors to compute
         the total handling time required by the cohort.
 
-        TODO: give A_cell a grid size reference.
         TODO: MGO - rework for territories
 
         Args:
@@ -753,10 +752,9 @@ class AnimalCohort:
             for all available plant resources.
         """
 
-        phi = self.functional_group.constants.phi_herb_t
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
         return sum(
-            sf.k_i_k(alpha, phi, plant.mass_current, A_cell)
+            sf.k_i_k(alpha, plant.mass_current, A_cell)
             + sf.H_i_k(
                 self.constants.h_herb_0,
                 self.constants.M_herb_ref,
@@ -840,7 +838,7 @@ class AnimalCohort:
             w_bar: Probability of successfully capturing prey.
 
         Returns:
-            A float value of the search rate in ha/day
+            A float value of the search rate in m2/day
 
         """
         return sf.alpha_i_j(self.constants.alpha_0_pred, self.mass_current, w_bar)
@@ -850,7 +848,6 @@ class AnimalCohort:
     ) -> float:
         """Calculate the potential number of prey consumed.
 
-        TODO: give A_cell a grid size reference
         TODO: MGO - rework for territories
 
         Args:
@@ -862,21 +859,52 @@ class AnimalCohort:
             The potential number of prey items consumed.
 
         """
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
         return sf.k_i_j(alpha, self.individuals, A_cell, theta_i_j)
 
-    def calculate_total_handling_time_for_predation(self) -> float:
+    def calculate_total_handling_time_for_predation(
+        self, animal_list: list[AnimalCohort], theta_opt: float
+    ) -> float:
         """Calculate the total handling time for preying on available animal cohorts.
 
-        Returns:
-            A float value of handling time in days.
+        Sums H_i_j * k_i_j across all prey cohorts, forming the denominator term
+        for the Holling type II functional response used in F_i_j_individual.
+        Mirrors the structure of calculate_total_handling_time_for_herbivory.
 
+        Args:
+            animal_list: All prey cohorts available to the predator.
+            theta_opt: The predator's optimum prey-predator mass ratio for this
+              encounter, drawn once in F_i_j_individual.
+
+        Returns:
+            A float value of total handling time in days.
         """
-        return sf.H_i_j(
-            self.constants.h_pred_0,
-            self.constants.M_pred_ref,
-            self.mass_current,
-            self.constants.b_pred,
+        A_cell = 1.0  # temporary
+        theta_i_j = self.theta_i_j(animal_list)
+        return sum(
+            sf.H_i_j(
+                self.constants.h_pred_0,
+                self.constants.M_pred_ref,
+                self.mass_current,
+                self.constants.b_pred,
+                prey.mass_current,
+            )
+            * sf.k_i_j(
+                sf.alpha_i_j(
+                    self.constants.alpha_0_pred,
+                    self.mass_current,
+                    sf.w_bar_i_j(
+                        self.mass_current,
+                        prey.mass_current,
+                        theta_opt,
+                        self.constants.sigma_opt_pred_prey,
+                    ),
+                ),
+                self.individuals,
+                A_cell,
+                theta_i_j,
+            )
+            for prey in animal_list
         )
 
     def F_i_j_individual(
@@ -884,32 +912,42 @@ class AnimalCohort:
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
+        Implements the Holling type II functional response for predation. The
+        predator-specific optimum prey-predator mass ratio (theta_opt) is drawn
+        once per call and passed to both the numerator (k_target) and denominator
+        (total_handling_t) to ensure consistency across the functional response,
+        since calculate_theta_opt_i is stochastic.
+
         TODO: check to see if there is a way to remove 0 indiv prey cohorts before this
             step.
 
         Args:
-            animal_list: A list of animal cohorts that can be consumed by the
-                predator.
+            animal_list: A list of animal cohorts that can be consumed by the predator.
             target_cohort: The prey cohort from which mass will be consumed.
 
         Returns:
             Float fraction of target cohort consumed per day.
-
-
         """
-        w_bar = self.calculate_predation_success_probability(target_cohort.mass_current)
-        alpha = self.calculate_predation_search_rate(w_bar)
-        theta_i_j = self.theta_i_j(animal_list)  # Assumes implementation of theta_i_j
-        k_target = self.calculate_potential_prey_consumed(alpha, theta_i_j)
-        total_handling_t = self.calculate_total_handling_time_for_predation()
-        N_i = self.individuals
         N_target = target_cohort.individuals
-
-        # If the prey cohort is empty, there is nothing to eat.
         if N_target <= 0:
             return 0.0
 
-        return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
+        theta_opt = self.calculate_theta_opt_i()  # stochastic: one draw per encounter
+
+        w_bar = sf.w_bar_i_j(
+            self.mass_current,
+            target_cohort.mass_current,
+            theta_opt,
+            self.constants.sigma_opt_pred_prey,
+        )
+        alpha = self.calculate_predation_search_rate(w_bar)
+        theta_i_j = self.theta_i_j(animal_list)
+        k_target = self.calculate_potential_prey_consumed(alpha, theta_i_j)
+        total_handling_t = self.calculate_total_handling_time_for_predation(
+            animal_list, theta_opt
+        )
+
+        return self.individuals * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
     def calculate_consumed_mass_predation(
         self,
@@ -1423,7 +1461,6 @@ class AnimalCohort:
         Madingley
 
         TODO: current mass bin format makes no sense, dig up the details in the supp
-        TODO: update A_cell with real reference to grid size
         TODO: update name
 
         Args:
@@ -1433,7 +1470,7 @@ class AnimalCohort:
         Returns:
             The float value of theta.
         """
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
 
         return sum(
             cohort.individuals / A_cell
@@ -1507,7 +1544,6 @@ class AnimalCohort:
         """The probability that a juvenile cohort will migrate to a new grid cell.
 
         TODO: This does not hold for diagonal moves or non-square grids.
-        TODO: update A_cell to grid size reference
 
         Following Madingley's assumption that the probability of juvenile dispersal is
         equal to the proportion of the cohort individuals that would arrive in the
@@ -1533,7 +1569,7 @@ class AnimalCohort:
 
         """
 
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
         grid_side = sqrt(A_cell)
         velocity = sf.juvenile_dispersal_speed(
             self.mass_current,
@@ -1708,6 +1744,37 @@ class AnimalCohort:
             result.extend(items)
 
         return result
+
+    def get_array_resources(
+        self, array_resources: list[ResourcePool]
+    ) -> list[Resource]:
+        """Return array resources accessible within this cohort's territory.
+
+        This method filters the array resources by territory and the cohort's
+        foraging capability (via `can_forage_on`).
+
+        Args:
+            array_resources: A list of ResourcePool instances.
+
+        Returns:
+            A list of CellResource objects that the cohort can forage on.
+        """
+
+        available_cell_array_resources: list[Resource] = []
+
+        # Loop over the array resources
+        for resource in array_resources:
+            # If the resource is forage-able, extend the list of resources with the
+            # resource for every cell in the territory.
+            if resource.is_forageable(
+                diet=self.functional_group.diet,
+                vertical_occupancy=self.functional_group.vertical_occupancy,
+            ):
+                available_cell_array_resources.extend(
+                    [resource[cell_id] for cell_id in self.territory]
+                )
+
+        return available_cell_array_resources
 
     def get_plant_resources(
         self, plant_resources: dict[int, list[Resource]]
