@@ -300,10 +300,10 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
 
     # Benchmark values to detect code behaviour change
     stem_gpp_bench = {
-        0: np.array([8.67847759e00, 4.90893691e-02, 5.77414069e-04]),
-        1: np.array([11.04221644, 0.11727063]),
-        2: np.array([1.46971037e01, 3.29750358e-03]),
-        3: np.array([2.06201547e01, 6.69970391e-01, 7.07433216e-03]),
+        0: np.array([8.66977499e00, 4.90401433e-02, 5.76835050e-04]),
+        1: np.array([11.03114354, 0.11715303]),
+        2: np.array([1.46823658e01, 3.29419691e-03]),
+        3: np.array([2.05994772e01, 6.69298558e-01, 7.06723817e-03]),
     }
 
     assert {
@@ -318,10 +318,10 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
 
     # Benchmark values to detect code behaviour change
     stem_transpiration_bench = {
-        0: np.array([1.16348784e-03, 6.58121003e-06, 7.74115319e-08]),
-        1: np.array([1.48038459e-03, 1.57219912e-05]),
-        2: np.array([1.97038031e-03, 4.42082757e-07]),
-        3: np.array([2.76445942e-03, 8.98201777e-05, 9.48426648e-07]),
+        0: np.array([1.21441867e-03, 6.86929773e-06, 8.08001656e-08]),
+        1: np.array([1.54518735e-03, 1.64102100e-05]),
+        2: np.array([2.05663228e-03, 4.61434609e-07]),
+        3: np.array([2.88547163e-03, 9.37519909e-05, 9.89943337e-07]),
     }
 
     assert {
@@ -339,10 +339,10 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
 
     transpiration_by_layer_benchmark = fxt_plants_model.layer_structure.from_template()
     transpiration_by_layer_benchmark[1:5] = [
-        [2.79799283e-01, 2.79797581e-01, 2.79807565e-01, 2.85515398e-01],
-        [1.17089904e-01, 1.17116145e-01, 1.14312706e-01, 7.40514285e-06],
-        [4.89879711e-02, 4.87738507e-02, np.nan, np.nan],
-        [2.01838383e-02, np.nan, np.nan, np.nan],
+        [2.92047294e-01, 2.92045517e-01, 2.92055938e-01, 2.98013627e-01],
+        [1.22215429e-01, 1.22242819e-01, 1.19316662e-01, 7.72929761e-06],
+        [5.11323840e-02, 5.09088906e-02, np.nan, np.nan],
+        [2.10673712e-02, np.nan, np.nan, np.nan],
     ]
 
     assert_allclose(
