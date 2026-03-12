@@ -794,13 +794,28 @@ BALANCE_WOOD_CP = np.repeat([20], 4)
 BALANCE_POOL_SHAPE = (2, 4)
 
 
-@pytest.mark.parametrize(
-    argnames=(
-        "initial_foliage,initial_wood,initial_pool,"
-        "expected_foliage,expected_wood,expected_pool"
-    ),
-    argvalues=(
-        pytest.param(
+@pytest.fixture
+def fixture_balance_elements_test_cases(which):
+    """Fixture to return a test case for the balance_elements method.
+
+    If which is a single integer, it provides the single test case that simulates a
+    particular behaviour across 4 cohorts. If a list of integers is passed to which then
+    the selected cases are combined to check that the method functions when handling
+    mixed conditions.
+
+
+    The return value is a tuple of six arrays providing data to populate a Biomass
+    object with two tissues (foliage and wood) for two elements (N,P):
+
+        initial_foliage: A 2 x N array of initial NP masses for foliage.
+        initial_wood: The same for wood
+        initial_pool: A 2 x N of the current biomass surplus pools for NP
+        expected_foliage: The expected foliage tissue level masses after balancing
+        expected_wood: The same for wood
+        expected_pool: The expected biomass surplus pools after balancing.
+    """
+    test_cases = [
+        (  # [0] T ideal, P empty --> no change
             np.array(
                 [
                     BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
@@ -827,9 +842,8 @@ BALANCE_POOL_SHAPE = (2, 4)
                 ]
             ),
             np.zeros(BALANCE_POOL_SHAPE, dtype=float),
-            id="T ideal, P empty --> no change",
         ),
-        pytest.param(
+        (  # [1] T deficit, P empty --> no change
             np.array(
                 [
                     BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
@@ -860,9 +874,8 @@ BALANCE_POOL_SHAPE = (2, 4)
             )
             - 5,
             np.zeros(BALANCE_POOL_SHAPE, dtype=float),
-            id="T deficit, P empty --> no change",
         ),
-        pytest.param(
+        (  # [2] T deficit, P exact surplus --> T filled, P empty
             np.array(
                 [
                     BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
@@ -891,9 +904,8 @@ BALANCE_POOL_SHAPE = (2, 4)
                 ]
             ),
             np.zeros(BALANCE_POOL_SHAPE, dtype=float),
-            id="T deficit, P exact surplus --> T filled, P empty",
         ),
-        pytest.param(
+        (  # [3] T deficit, P slight surplus --> T part filled, P empty
             np.array(
                 [
                     BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
@@ -924,9 +936,8 @@ BALANCE_POOL_SHAPE = (2, 4)
             )
             - 2,
             np.zeros(BALANCE_POOL_SHAPE, dtype=float),
-            id="T deficit, P slight surplus --> T part filled, P empty",
         ),
-        pytest.param(
+        (  # [4] T deficit, P over surplus --> T filled, P not empty
             np.array(
                 [
                     BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
@@ -955,9 +966,8 @@ BALANCE_POOL_SHAPE = (2, 4)
                 ]
             ),
             np.full(BALANCE_POOL_SHAPE, 6, dtype=float),
-            id="T deficit, P over surplus --> T filled, P not empty",
         ),
-        pytest.param(
+        (  # [5] T ideal, P small deficit --> T deficit, P empty
             np.array(
                 [
                     BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
@@ -986,9 +996,8 @@ BALANCE_POOL_SHAPE = (2, 4)
             )
             - 5,
             np.zeros(BALANCE_POOL_SHAPE, dtype=float),
-            id="T ideal, P small deficit --> T deficit, P empty",
         ),
-        pytest.param(
+        (  # [6] T ideal, P exact deficit --> T zero, P empty
             np.array(
                 [
                     BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
@@ -1012,9 +1021,8 @@ BALANCE_POOL_SHAPE = (2, 4)
             np.zeros(BALANCE_POOL_SHAPE, dtype=float),
             np.zeros(BALANCE_POOL_SHAPE, dtype=float),
             np.zeros(BALANCE_POOL_SHAPE, dtype=float),
-            id="T ideal, P exact deficit --> T zero, P empty",
         ),
-        pytest.param(
+        (  # [7] T ideal, P over deficit --> T zero, P not empty
             np.array(
                 [
                     BALANCE_FOLIAGE_C / BALANCE_FOLIAGE_CN,
@@ -1047,20 +1055,29 @@ BALANCE_POOL_SHAPE = (2, 4)
                     + BALANCE_WOOD_C / BALANCE_WOOD_CP,
                 ],
             ),
-            id="T ideal, P over deficit --> T zero, P not empty",
         ),
-    ),
-)
+    ]
+
+    if isinstance(which, int):
+        return test_cases[which]
+
+    # Concatenate the selected inputs and return
+    selected = [test_cases[w] for w in which]
+    return [np.concatenate(params, axis=1) for params in zip(*selected)]
+
+
+@pytest.mark.parametrize("which", (0, 1, 2, 3, 4, 5, 6, 7, [0, 1, 2, 3, 4, 5, 6, 7]))
 def test_balance_elements(
-    fixture_community,
-    initial_foliage,
-    initial_wood,
-    initial_pool,
-    expected_foliage,
-    expected_wood,
-    expected_pool,
+    fixture_community, fixture_balance_elements_test_cases, which
 ):
-    """Test the balancing of elements across tissues."""
+    """Test the balancing of elements across tissues.
+
+    The parameterisation passes the 'which' argument to the
+    fixture_balance_elements_test_cases fixture, which uses which to return either one
+    of or a combination of test cases. This is largely a trick to define individual
+    tests of particular behaviour and then easily combine those individual cases into a
+    test that the method handles a mixture of scenarios across cohorts.
+    """
 
     from virtual_ecosystem.models.plants.biomasses import (
         Biomasses,
@@ -1069,22 +1086,36 @@ def test_balance_elements(
         WoodTissue,
     )
 
+    # Unpack the inputs from the fixture
+    (
+        initial_foliage,
+        initial_wood,
+        initial_pool,
+        expected_foliage,
+        expected_wood,
+        expected_pool,
+    ) = fixture_balance_elements_test_cases
+
+    n_cases = 1 if isinstance(which, int) else len(which)
+
     # Turnover not relevant to this test
-    turnover_ratios = np.repeat(np.nan, 4)
+    turnover_ratios = np.repeat(np.nan, n_cases)
 
     foliage = FoliageTissue(
         community=fixture_community,
-        carbon_mass=BALANCE_FOLIAGE_C,
+        # Note that this only has two cohorts - not sure Tissue will retain community
+        # as an argument.
+        carbon_mass=np.tile(BALANCE_FOLIAGE_C, n_cases),
         element_masses={
             "N": Element(
                 name="n",
-                ideal_ratio=BALANCE_FOLIAGE_CN,
+                ideal_ratio=np.tile(BALANCE_FOLIAGE_CN, n_cases),
                 actual_element_mass=initial_foliage[0],
                 turnover_ratio=turnover_ratios,
             ),
             "P": Element(
                 name="p",
-                ideal_ratio=BALANCE_FOLIAGE_CP,
+                ideal_ratio=np.tile(BALANCE_FOLIAGE_CP, n_cases),
                 actual_element_mass=initial_foliage[1],
                 turnover_ratio=turnover_ratios,
             ),
@@ -1093,17 +1124,17 @@ def test_balance_elements(
 
     wood = WoodTissue(
         community=fixture_community,
-        carbon_mass=BALANCE_WOOD_C,
+        carbon_mass=np.tile(BALANCE_WOOD_C, n_cases),
         element_masses={
             "N": Element(
                 name="n",
-                ideal_ratio=BALANCE_WOOD_CN,
+                ideal_ratio=np.tile(BALANCE_WOOD_CN, n_cases),
                 actual_element_mass=initial_wood[0],
                 turnover_ratio=turnover_ratios,
             ),
             "P": Element(
                 name="p",
-                ideal_ratio=BALANCE_WOOD_CP,
+                ideal_ratio=np.tile(BALANCE_WOOD_CP, n_cases),
                 actual_element_mass=initial_wood[1],
                 turnover_ratio=turnover_ratios,
             ),

@@ -129,7 +129,7 @@ class AnimalConstants(Configuration):
         0.5,  # sig
         0.69,  # Ea
     )
-    """Metabolic rate scaling coefficients.
+    r"""Metabolic rate scaling coefficients.
     
     These are the coefficients of Madingley style scaling of metabolic rate with  mass
     and temperature, assuming a power-law relationship with mass and an exponential

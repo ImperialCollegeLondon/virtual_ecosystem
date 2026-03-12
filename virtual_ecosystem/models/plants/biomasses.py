@@ -1,14 +1,17 @@
-"""The :mod:`~virtual_ecosystem.models.plants.stoichiometry` module contains the class
-for managing plant cohort stoichiometry ratios. The carbon mass is stored in plant
-allometry or allocation, so this class uses those as the anchor weights and stores
-CN and CP ratios.
+"""The :mod:`~virtual_ecosystem.models.plants.biomasses` module contains the class
+for managing plant cohort carbon biomass along with the biomasses of all elements being
+tracked stochiometrically within a simulation. The class contains representations of the
+carbon mass and element masses within individual tissues and provides methods to balance
+stoichiometric nutrients across tissues.
 
-The class holds current CN and CP ratios for foliage, reproductive tissue, wood, and
-roots on the cohort level. Each tissue also has an ideal CN and CP ratio, which is used
-as a comparison in the case of any nutrient deficit. Senesced leaves also have fixed CN
-and CP ratios, which are used for leaf turnover.
+The theoretical tissue masses for individuals in a cohort are derived from the T Model
+predictions for the stem and the elemental masses are currently populated using the
+ideal ratio of those elements for each tissue. Growth is modelled using allocation of
+NPP from the T Model. However, the actual realised masses of different tissues can
+differ from the theory due to herbivory and fruit production, so this class is used to
+track the actual carbon masses realised by individuals through the simulation.
 
-In the future, the ideal CN and CP ratios will be PFT traits.
+The module define a base class for tissues and then currently four tissue types.
 
 FoliageTissue:
     # Has different ratios in turnover mass
@@ -44,7 +47,8 @@ RootTissue:
     turnover_ratio: root_turnover_c_{elem.lower()}_ratio
 
 WoodTissue
-    # No turnover at present, so same ratios doesn't really make sense, but it does.
+    # No turnover at present, so same ratios doesn't really make sense, but if there was
+      turnover it probably would be at these ratios.
 
     biomass: stem_mass
     turnover_biomass: not defined, no stem turnover
@@ -52,24 +56,6 @@ WoodTissue
 
     ideal_ratio: deadwood_c_{elem.lower()}_ratio
     turnover_ratio: not defined (because there is no turnover)
-
-
-    Biomass
-    - __init__(carbon_mass, elements)
-    base methods
-        - deficit()
-        - get_elemental_masses()
-        - add_elemental_masses(masses)
-        - Cx_ratios()
-        - elements_needed_for_growth(growth_mass)
-        - tissue_turnover(turnover_mass)
-        - extract_turnover(turnover_mass)
-        - init_from_defaults(community, epft, with_elements)
-    abstract_methods
-        - get_ratios(element, community, constants, epft)
-        - get_carbon_mass(community)
-        - get_turnover_mass(allocation)
-        - get_growth_mass(allocation)
 
 
 """  # noqa: D205
@@ -949,7 +935,16 @@ class Biomasses(CohortMethods, PandasExporter):
             self._adjust_surpluses(tissue.tissue_turnover(allocation), increase=False)
 
     def balance_elements(self) -> None:
-        """Redistribute elemental mass across tissues and element pool."""
+        """Redistribute elemental mass across tissues and element pool.
+
+        This method calculates the elemental deficits and surpluses in each tissue and
+        the central pool and then redistributes elemental masses to distribute whole
+        stem deficits and surpluses down to the tissue level.
+
+        Typically the central biomass pools will be empty at the end of this process
+        unless elemental surpluses exceed the masses needed to bring all of tissues up
+        to their ideal ratio.
+        """
 
         # Get 3D arrays of elements/cohorts/tissue for actual element masses and
         # per tissue element deficits
