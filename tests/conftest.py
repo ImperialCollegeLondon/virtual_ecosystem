@@ -13,7 +13,7 @@ from xarray import DataArray
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools
-from virtual_ecosystem.models.abiotic.microclim import (
+from virtual_ecosystem.models.abiotic.microclimate import (
     compute_weights_from_absorbed_radiation,
 )
 

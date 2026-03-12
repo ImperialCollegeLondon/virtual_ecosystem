@@ -1,4 +1,4 @@
-"""Test microclim.py."""
+"""Test microclimate.py."""
 
 import numpy as np
 import pytest
@@ -11,7 +11,7 @@ from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBo
 def test_compute_weights_normal_case():
     """Test that compute_weights_from_absorbed_radiation correctly normalizes array."""
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         compute_weights_from_absorbed_radiation,
     )
 
@@ -26,7 +26,7 @@ def test_compute_weights_normal_case():
 def test_compute_weights_with_nans():
     """Test that compute_weights_from_absorbed_radiation correctly handles NaNs."""
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         compute_weights_from_absorbed_radiation,
     )
 
@@ -43,7 +43,7 @@ def test_compute_weights_with_nans():
 def test_compute_weights_zero_total_raises():
     """Test that compute_weights_from_absorbed_radiation raises ValueError."""
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         compute_weights_from_absorbed_radiation,
     )
 
@@ -56,7 +56,7 @@ def test_compute_weights_zero_total_raises():
 def test_all_nan_raises():
     """Test that compute_weights_from_absorbed_radiation raises Error when NaN."""
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         compute_weights_from_absorbed_radiation,
     )
 
@@ -74,7 +74,7 @@ def test_prepare_static_inputs_returns_consistent_outputs(
 ):
     """Test prepare_static_inputs returns sensible and consistent outputs."""
 
-    from virtual_ecosystem.models.abiotic.microclim import prepare_static_inputs
+    from virtual_ecosystem.models.abiotic.microclimate import prepare_static_inputs
 
     data = dummy_climate_data_varying_canopy
     layer_structure = fixture_core_components.layer_structure
@@ -169,7 +169,7 @@ def test_calculate_wind_profiles(
 ):
     """Test wind profile calculations for physical plausibility and consistency."""
 
-    from virtual_ecosystem.models.abiotic.microclim import calculate_wind_profiles
+    from virtual_ecosystem.models.abiotic.microclimate import calculate_wind_profiles
 
     data = dummy_climate_data_varying_canopy
     static_inputs = fixture_static_inputs
@@ -236,7 +236,7 @@ def test_generate_hourly_forcing(
 ):
     """Test generate_hourly_forcing with prepared static inputs."""
 
-    from virtual_ecosystem.models.abiotic.microclim import generate_hourly_forcing
+    from virtual_ecosystem.models.abiotic.microclimate import generate_hourly_forcing
 
     data = dummy_climate_data_varying_canopy
     static_inputs = fixture_static_inputs
@@ -307,7 +307,7 @@ def test_generate_hourly_forcing(
 def test_initialize_state_shapes(dummy_climate_data_varying_canopy):
     """Test initialize_state returns all expected state variables."""
 
-    from virtual_ecosystem.models.abiotic.microclim import initialize_state
+    from virtual_ecosystem.models.abiotic.microclimate import initialize_state
 
     data = dummy_climate_data_varying_canopy
     state = initialize_state(data=data)
@@ -328,7 +328,7 @@ def test_initialize_hourly_record(
 ):
     """Test _initialize_hourly_record creates arrays of correct shape and type."""
 
-    from virtual_ecosystem.models.abiotic.microclim import initialize_hourly_record
+    from virtual_ecosystem.models.abiotic.microclimate import initialize_hourly_record
 
     data = dummy_climate_data_varying_canopy
     layer_structure = fixture_core_components.layer_structure
@@ -368,7 +368,7 @@ def test_update_forcing_boundary_conditions(
 ):
     """Test update forcing_correctly updates state with hourly forcing."""
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         update_forcing_boundary_conditions,
     )
 
@@ -428,7 +428,7 @@ def test_calculate_thermodynamics_day_and_night(
 ):
     """Test _calculate_thermodynamics produces expected outputs for day and night."""
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         calculate_thermodynamics,
     )
 
@@ -502,7 +502,7 @@ def test_calculate_vegetation_temperature(
 ):
     """Test calculate_vegetation_temperature produces expected outputs."""
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         calculate_vegetation_temperature,
     )
 
@@ -541,7 +541,7 @@ def test_calculate_vegetation_fluxes(
 ):
     """Test calculate_vegetation_fluxes produces expected outputs."""
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         calculate_vegetation_fluxes,
     )
 
@@ -581,7 +581,7 @@ def test_calculate_soil_fluxes(
 ):
     """Test calculate_soil_fluxes produces expected outputs."""
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         calculate_soil_fluxes,
     )
 
@@ -627,7 +627,7 @@ def test_update_air_temperature(
 ):
     """Integration-style test for update_air_temperature."""
 
-    from virtual_ecosystem.models.abiotic.microclim import update_air_temperature
+    from virtual_ecosystem.models.abiotic.microclimate import update_air_temperature
 
     data = dummy_climate_data_varying_canopy
     idx = fixture_abiotic_indices
@@ -667,7 +667,7 @@ def test_update_atmospheric_humidity(
 
     from pyrealm.core.hygro import calc_vp_sat
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         update_atmospheric_humidity,
     )
 
@@ -729,7 +729,7 @@ def test_run_hour_step_orchestration(
 ):
     """Test hourly loop."""
 
-    from virtual_ecosystem.models.abiotic.microclim import (
+    from virtual_ecosystem.models.abiotic.microclimate import (
         calculate_wind_profiles,
         generate_hourly_forcing,
         initialize_state,
@@ -878,7 +878,7 @@ def test_run_hour_step_orchestration(
 def test_static_variable_created(fixture_core_components):
     """Test static variables created in update."""
 
-    from virtual_ecosystem.models.abiotic.microclim import build_output_from_record
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     static = {"atmospheric_pressure": 1}
@@ -899,7 +899,7 @@ def test_static_variable_created(fixture_core_components):
 def test_time_cell_variable_averaged(fixture_core_components):
     """Test time cell variables avergaed in update."""
 
-    from virtual_ecosystem.models.abiotic.microclim import build_output_from_record
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
@@ -926,7 +926,7 @@ def test_time_cell_variable_averaged(fixture_core_components):
 def test_time_layer_cell_variable_averaged(fixture_core_components):
     """Test time layer cell variables averaged in update."""
 
-    from virtual_ecosystem.models.abiotic.microclim import build_output_from_record
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
@@ -953,7 +953,7 @@ def test_time_layer_cell_variable_averaged(fixture_core_components):
 def test_unrequested_variable_skipped(fixture_core_components):
     """Test unrequested variable skipped in update."""
 
-    from virtual_ecosystem.models.abiotic.microclim import build_output_from_record
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
@@ -977,7 +977,7 @@ def test_unrequested_variable_skipped(fixture_core_components):
 def test_missing_requested_variable_raises(fixture_core_components):
     """Test missing variables raised in update."""
 
-    from virtual_ecosystem.models.abiotic.microclim import build_output_from_record
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
@@ -1001,7 +1001,7 @@ def test_run_microclimate(
 ):
     """Full integration test microclimate."""
 
-    from virtual_ecosystem.models.abiotic.microclim import run_microclimate
+    from virtual_ecosystem.models.abiotic.microclimate import run_microclimate
 
     data = dummy_climate_data_varying_canopy
     vars_updated = (
