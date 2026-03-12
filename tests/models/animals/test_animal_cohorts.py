@@ -1,6 +1,7 @@
 """Test module for animal_cohorts.py."""
 
 import uuid
+from math import exp
 
 import pytest
 from numpy import isclose, timedelta64
@@ -3561,3 +3562,128 @@ class TestAnimalCohort:
             for pool in carcass_pools_by_cell_instance[cell_id]
         ]
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "predator_mass, prey_mass, theta_opt, expected_bin",
+        [
+            pytest.param(
+                100.0,
+                100.0 * exp(0.1),
+                0.1,
+                6,
+                id="prey_at_optimal_ratio_gives_offset_bin",
+            ),
+            pytest.param(
+                100.0,
+                100.0 * exp(0.1 + 0.35),
+                0.1,
+                7,
+                id="prey_one_half_sigma_above_optimal",
+            ),
+            pytest.param(
+                100.0,
+                100.0 * exp(0.1 - 0.35),
+                0.1,
+                5,
+                id="prey_one_half_sigma_below_optimal",
+            ),
+            pytest.param(
+                100.0,
+                100.0 * exp(0.1 + 0.70),
+                0.1,
+                8,
+                id="prey_two_half_sigma_steps_above_optimal",
+            ),
+            pytest.param(
+                100.0,
+                100.0 * exp(0.1 - 0.70),
+                0.1,
+                4,
+                id="prey_two_half_sigma_steps_below_optimal",
+            ),
+            pytest.param(
+                100.0,
+                100.0 * exp(0.0),
+                0.0,
+                6,
+                id="zero_theta_opt_equal_mass_gives_offset_bin",
+            ),
+        ],
+    )
+    def test_mass_bin_expected_values(
+        self,
+        predator_cohort_instance,
+        predator_mass,
+        prey_mass,
+        theta_opt,
+        expected_bin,
+    ):
+        """Test _mass_bin returns the correct integer bin index for known inputs.
+
+        Expected values derive from Eq. 39 of Harfoot et al. (2014) with default
+        constants sigma_opt_pred_prey=0.7 and N_sigma_opt_pred_prey=3.0, giving
+        bin = round((log(prey/pred) - theta_opt) / 0.35 + 6). Prey placed at
+        exactly the optimal ratio produces the offset bin (6); each half-sigma
+        step (0.35 in log-mass space) shifts the bin by one.
+        """
+
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        proportions = predator_cohort_instance.cnp_proportions
+        predator_cohort_instance.mass_cnp = CNP(
+            C=predator_mass * proportions["C"],
+            N=predator_mass * proportions["N"],
+            P=predator_mass * proportions["P"],
+        )
+
+        result = predator_cohort_instance._mass_bin(prey_mass, theta_opt)
+
+        assert result == expected_bin
+
+    def test_mass_bin_raises_on_zero_predator_mass(self, predator_cohort_instance):
+        """Test that zero predator mass_current raises ValueError."""
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        predator_cohort_instance.mass_cnp = CNP(C=0.0, N=0.0, P=0.0)
+
+        with pytest.raises(ValueError, match="Predator mass_current must be positive"):
+            predator_cohort_instance._mass_bin(100.0, 0.1)
+
+    def test_mass_bin_raises_on_zero_prey_mass(self, predator_cohort_instance):
+        """Test that zero prey_mass raises ValueError."""
+        with pytest.raises(ValueError, match="prey_mass must be positive"):
+            predator_cohort_instance._mass_bin(0.0, 0.1)
+
+    def test_mass_bin_raises_on_negative_prey_mass(self, predator_cohort_instance):
+        """Test that negative prey_mass raises ValueError."""
+        with pytest.raises(ValueError, match="prey_mass must be positive"):
+            predator_cohort_instance._mass_bin(-50.0, 0.1)
+
+    def test_mass_bin_depends_on_ratio_not_absolute_mass(
+        self, predator_cohort_instance
+    ):
+        """Test that bin index depends on prey/predator ratio, not absolute masses.
+
+        A predator of 10 kg and prey of 10*exp(0.1) kg should produce the same
+        bin as predator 100 kg and prey 100*exp(0.1) kg, since the log ratio is
+        identical in both cases.
+        """
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        proportions = predator_cohort_instance.cnp_proportions
+
+        predator_cohort_instance.mass_cnp = CNP(
+            C=10.0 * proportions["C"],
+            N=10.0 * proportions["N"],
+            P=10.0 * proportions["P"],
+        )
+        bin_small = predator_cohort_instance._mass_bin(10.0 * exp(0.1), 0.1)
+
+        predator_cohort_instance.mass_cnp = CNP(
+            C=100.0 * proportions["C"],
+            N=100.0 * proportions["N"],
+            P=100.0 * proportions["P"],
+        )
+        bin_large = predator_cohort_instance._mass_bin(100.0 * exp(0.1), 0.1)
+
+        assert bin_small == bin_large

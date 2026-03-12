@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 import uuid
 from _collections_abc import Callable, Mapping
-from math import ceil, exp, sqrt
+from math import ceil, exp, log, sqrt
 from typing import Literal, TypeVar, cast
 
 from numpy import timedelta64
@@ -809,6 +809,38 @@ class AnimalCohort:
             self.constants.theta_opt_min_f,
             self.constants.theta_opt_f,
             self.constants.sigma_opt_f,
+        )
+
+    def _mass_bin(self, prey_mass: float, theta_opt: float) -> int:
+        """Calculate the predator-specific mass bin index for a prey cohort.
+
+        Implements Equation 39 of Harfoot et al. (2014). Assigns a prey cohort
+        to a discrete bin based on its log mass ratio to the predator, normalised
+        by the prey preference width, offset to ensure non-negative bin indices.
+
+        Args:
+            prey_mass: Current body mass of the prey cohort in kg.
+            theta_opt: This predator's optimal prey-predator mass ratio for this
+                foraging encounter, drawn once per encounter in delta_mass_predation.
+
+        Returns:
+            Integer bin index for the prey cohort.
+
+        Raises:
+            ValueError: If prey_mass or self.mass_current is zero or negative, which
+                would make the log ratio undefined.
+        """
+        if prey_mass <= 0.0:
+            raise ValueError(f"prey_mass must be positive, got {prey_mass}.")
+        if self.mass_current <= 0.0:
+            raise ValueError(
+                f"Predator mass_current must be positive, got {self.mass_current}."
+            )
+
+        return round(
+            (log(prey_mass / self.mass_current) - theta_opt)
+            / (0.5 * self.constants.sigma_opt_pred_prey)
+            + 2 * self.constants.N_sigma_opt_pred_prey
         )
 
     def calculate_predation_success_probability(self, M_target: float) -> float:
