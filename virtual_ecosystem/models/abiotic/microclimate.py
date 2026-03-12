@@ -29,6 +29,9 @@ def compute_weights_from_absorbed_radiation(
 
     Returns:
         2D array of normalized weights corresponding to the absorbed radiation
+
+    Raises:
+        ValueError when total radiation is zero or NaN
     """
     total = np.nansum(radiation)
 
@@ -48,8 +51,9 @@ def prepare_static_inputs(
     """Prepare static inputs for microclimate model.
 
     These are inputs that do not change during the hourly loop, but can vary in space
-    and between time steps. They include canopy height, leaf area index, atmospheric
-    pressure and CO2 profiles, and absorbed longwave radiation.
+    and between VE time steps. They include canopy height, sum over canopy leaf area
+    index, atmospheric pressure and CO2 profiles, absorbed longwave radiation, and cell
+    area.
 
     If there is no canopy, canopy height and leaf area index sum are set to zero.
 
@@ -114,6 +118,7 @@ def prepare_static_inputs(
     absorbed_longwave_radiation[idx.topsoil] = (
         downward_longwave * weights[idx.topsoil] * abiotic_constants.soil_emissivity
     )
+    # Cell area, [m2]
     cell_area = data.grid.cell_area
 
     return {
@@ -153,7 +158,7 @@ def calculate_wind_profiles(
         time_index: Time index
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
-        layer_structure: layer structure
+        layer_structure: Layer structure
 
     Returns:
         Dictionary with calculated wind profiles for microclimate model
@@ -242,9 +247,9 @@ def generate_hourly_forcing(
 ) -> dict[str, Any]:
     """Generate hourly profiles for atmospheric forcing variables.
 
-    This function calculates air temperature, shortwave absorption, relative humidity,
-    evapotranspiration, and soil evaporation. The diurnal cycle is generated from
-    monthly data using a sinusoidal function.
+    This function generates a diurnal cycle of air temperature, shortwave absorption,
+    relative humidity, evapotranspiration, and soil evaporation. This diurnal cycle is
+    generated from monthly data using a sinusoidal function.
 
     Args:
         data: Data object
@@ -304,6 +309,10 @@ def initialize_hourly_record(
 ) -> dict[str, Any]:
     """Initialize hourly record arrays for microclimate model.
 
+    This function initialised a dictionary of data arrays for all variables that are
+    updated by the abiotic model. These arrays collect the hourly data which is later
+    averaged and returned to the data object.
+
     Args:
         data: Data object
         vars_updated: Tuple containing strings of all variables that are updated by the
@@ -316,6 +325,7 @@ def initialize_hourly_record(
         Dictionary with initialized hourly record arrays for microclimate model
     """
     variables = {name: data[name] for name in vars_updated}
+
     return abiotic_tools.initialize_data_record(
         variables=variables,
         time_dim=time_dim,
@@ -331,8 +341,9 @@ def update_forcing_boundary_conditions(
 ) -> dict[str, Any]:
     """Update forcing boundary conditions for microclimate model.
 
-    This updates atmospheric air temperature, humidity, shortwave absorption,
-    evapotranspiration, and soil evaporation for the current hour.
+    This function updates boundary conditions and forcing for atmospheric air
+    temperature, relative humidity, shortwave absorption, evapotranspiration, and soil
+    evaporation for the current hour.
 
     Args:
         state: Current state variables for microclimate model
@@ -347,12 +358,12 @@ def update_forcing_boundary_conditions(
     state["air_temperature"][0] = hourly_forcing["air_temperature_hourly"][hour, :]
     state["relative_humidity"][0] = hourly_forcing["relative_humidity_hourly"][hour, :]
 
-    # Select shortwave absorption profiles
+    # Select shortwave absorption profiles for hour
     state["shortwave_absorption"] = hourly_forcing["shortwave_absorption_hourly"][
         hour, :, :
     ]
 
-    # Select evapotranspiration and soil evaporation
+    # Select evapotranspiration and soil evaporation for hour
     state["evapotranspiration"] = hourly_forcing["evapotranspiration_hourly"][
         hour, :, :
     ]
@@ -453,9 +464,9 @@ def calculate_vegetation_temperature(
 ) -> NDArray[np.floating]:
     """Calculate canopy and understorey temperature for microclimate model.
 
-    This uses the energy balance equation to solve for canopy temperature based on
-    absorbed radiation, evapotranspiration, aerodynamic resistance, and other
-    thermodynamic variables.
+    This uses the energy balance equation to solve for canopy and understorey
+    temperature based on absorbed radiation, evapotranspiration, aerodynamic resistance,
+    and other thermodynamic variables.
 
     Args:
         state: Current state variables for microclimate model
@@ -498,6 +509,9 @@ def calculate_vegetation_fluxes(
 ) -> dict[str, Any]:
     """Calculate vegetation fluxes for microclimate model.
 
+    This function calculates the components of the vegetation energy balance, including
+    net radiation, longwave emission, and sensible and latent heat flux.
+
     Args:
         state: Current state variables for microclimate model
         static: Prepared static inputs for microclimate model
@@ -538,6 +552,10 @@ def calculate_soil_fluxes(
     idx: SimpleNamespace,
 ) -> dict[str, NDArray[np.floating]]:
     """Calculate soil fluxes for microclimate model.
+
+    This function calculates the components of the soil energy balance, including
+    net radiation, longwave emission,  sensible and latent heat flux, and ground heat
+    flux.
 
     Args:
         state: Current state variables for microclimate model
@@ -605,7 +623,7 @@ def update_air_temperature(
     idx: SimpleNamespace,
     time_interval: float,
 ) -> NDArray[np.floating]:
-    """Update air temperature profiles based on calculated fluxes and wind mixing.
+    """Update air temperature profiles based on calculated fluxes and turbulent mixing.
 
     Args:
         state: Current state variables for microclimate model
@@ -666,7 +684,7 @@ def update_atmospheric_humidity(
     idx: SimpleNamespace,
     time_interval: float,
 ) -> dict[str, Any]:
-    """Update atmospheric humidity profiles based on fluxes and wind mixing.
+    """Update atmospheric humidity profiles based on fluxes and turbulent mixing.
 
     Args:
         state: Current state variables for microclimate model
@@ -678,7 +696,8 @@ def update_atmospheric_humidity(
         time_interval: Time interval for flux calculations, [s]
 
     Returns:
-        dict with atmospheric humidity, vapour pressure deficit
+        dict with atmospheric humidity, vapour pressure, vapour pressure deficit,
+            specific humidity
     """
 
     # Saturated vapour pressure of air, [kPa]

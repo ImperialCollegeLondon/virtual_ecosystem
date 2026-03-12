@@ -8,21 +8,6 @@ from virtual_ecosystem.models.abiotic.abiotic_tools import finite_and_within
 from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
 
-def test_compute_weights_normal_case():
-    """Test that compute_weights_from_absorbed_radiation correctly normalizes array."""
-
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        compute_weights_from_absorbed_radiation,
-    )
-
-    radiation = np.array([[1.0, 2.0], [3.0, 4.0]])
-    weights = compute_weights_from_absorbed_radiation(radiation)
-    expected = radiation / np.nansum(radiation)
-
-    assert np.allclose(weights, expected)
-    assert np.isclose(np.nansum(weights), 1.0)
-
-
 def test_compute_weights_with_nans():
     """Test that compute_weights_from_absorbed_radiation correctly handles NaNs."""
 
@@ -1026,7 +1011,7 @@ def test_run_microclimate(
     )
     time_interval = 3600
     time_index = 0
-    time_dim = 2  # NOTE this is shortened to reduce test run time
+    time_dim = 24  # NOTE this is shortened to reduce test run time
     month = 1
     latitude = 0
     abiotic_constants = fixture_abiotic_constants

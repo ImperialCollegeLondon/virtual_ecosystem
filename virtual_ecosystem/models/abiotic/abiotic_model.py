@@ -279,6 +279,7 @@ class AbioticModel(
         )
 
         latitude = 0.0  # Placeholder for future use
+
         # Run microclimate model
         update_dict = run_microclimate(
             data=self.data,
