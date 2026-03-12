@@ -152,6 +152,87 @@ def fixture_biomasses(fixture_community):
     )
 
 
+def test_Element_append():
+    """Tests the append() method of Element."""
+
+    from virtual_ecosystem.models.plants.biomasses import Element
+
+    e1 = Element(
+        name="N",
+        ideal_ratio=np.arange(10),
+        actual_element_mass=np.arange(10),
+        turnover_ratio=np.arange(10),
+    )
+
+    e2 = Element(
+        name="N",
+        ideal_ratio=np.arange(10),
+        actual_element_mass=np.arange(10),
+        turnover_ratio=np.arange(10),
+    )
+
+    e1.append(e2)
+
+    assert e1.ideal_ratio.shape == (20,)
+    assert e1.actual_element_mass.shape == (20,)
+    assert e1.turnover_ratio.shape == (20,)
+
+
+def test_Tissue_append(fixture_community):
+    """Tests the shared append() method of TissueABC."""
+
+    from virtual_ecosystem.models.plants.biomasses import Element, FoliageTissue
+
+    foliage_1 = FoliageTissue(
+        community=fixture_community,
+        carbon_mass=fixture_community.stem_allometry.foliage_mass.copy(),
+        element_masses={
+            "N": Element(
+                name="n",
+                ideal_ratio=np.array([5.0, 6.0]),
+                actual_element_mass=np.array([5.0, 20.0]),
+                turnover_ratio=np.array([10.0, 12.0]),
+            ),
+            "P": Element(
+                name="p",
+                ideal_ratio=np.array([5.0, 6.0]),
+                actual_element_mass=np.array([5.0, 20.0]),
+                turnover_ratio=np.array([10.0, 12.0]),
+            ),
+        },
+    )
+
+    foliage_2 = FoliageTissue(
+        community=fixture_community,
+        carbon_mass=fixture_community.stem_allometry.foliage_mass.copy(),
+        element_masses={
+            "N": Element(
+                name="n",
+                ideal_ratio=np.array([5.1, 6.1]),
+                actual_element_mass=np.array([5.1, 20.1]),
+                turnover_ratio=np.array([10.1, 12.1]),
+            ),
+            "P": Element(
+                name="p",
+                ideal_ratio=np.array([5.1, 6.1]),
+                actual_element_mass=np.array([5.1, 20.1]),
+                turnover_ratio=np.array([10.1, 12.1]),
+            ),
+        },
+    )
+
+    foliage_1.append(foliage_2)
+
+    assert np.allclose(
+        foliage_1.carbon_mass, np.tile(fixture_community.stem_allometry.foliage_mass, 2)
+    )
+
+    for elem in foliage_1.element_masses.values():
+        assert np.allclose(elem.ideal_ratio, np.array([5.0, 6.0, 5.1, 6.1]))
+        assert np.allclose(elem.actual_element_mass, np.array([5.0, 20.0, 5.1, 20.1]))
+        assert np.allclose(elem.turnover_ratio, np.array([10.0, 12.0, 10.1, 12.1]))
+
+
 @pytest.mark.parametrize(
     argnames="tissue_name,mass_attribute",
     argvalues=(

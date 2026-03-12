@@ -68,8 +68,9 @@ from typing import ClassVar
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.demography.community import Community
+from pyrealm.demography.community import Cohorts, Community
 from pyrealm.demography.core import CohortMethods, PandasExporter
+from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllocation
 
 from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
@@ -87,6 +88,14 @@ class Element:
     """The actual mass of the element for the tissue type."""
     turnover_ratio: NDArray[np.floating]
     """What to do with this on non-reclaiming tissues."""
+
+    def append(self, other: Element) -> None:
+        """Appends new data representing new cohorts onto an element instance."""
+        self.ideal_ratio = np.append(self.ideal_ratio, other.ideal_ratio)
+        self.actual_element_mass = np.append(
+            self.actual_element_mass, other.actual_element_mass
+        )
+        self.turnover_ratio = np.append(self.turnover_ratio, other.turnover_ratio)
 
 
 @dataclass
@@ -225,6 +234,18 @@ class TissueABC(ABC):
               different format. Could return an array slice, for example, ready for
               insertion into an array.
         """
+
+    def append(self, other: TissueABC):
+        """Add new tissue data representing new cohorts."""
+
+        # TODO? Checking for consistent elements
+
+        # Append the carbon mass from the incoming instance
+        self.carbon_mass = np.append(self.carbon_mass, other.carbon_mass)
+
+        # Append the element masses from the incoming instance
+        for elem_name, elem_instance in self.element_masses.items():
+            elem_instance.append(other.element_masses[elem_name])
 
     # @abstractmethod
     # def add_cohort(
@@ -837,39 +858,6 @@ class Biomasses(CohortMethods, PandasExporter):
             extra_pft_traits=extra_pft_traits,
         )
 
-    # def add_cohorts(
-    #     self,
-    #     new_cohort_data: Cohorts,
-    #     flora: Flora,
-    #     element: str,
-    # ) -> None:
-    #     """Add a set of new cohorts to the stochiometry model.
-
-    #     Args:
-    #         new_cohort_data: Cohort object containing information about the new
-    #             cohort.
-    #         flora: The flora object providing stem traits for the new cohort.
-    #         element: The name of the element (e.g., "N" for nitrogen).
-    #     """
-
-    #     new_stem_traits = flora.get_stem_traits(pft_names=new_cohort_data.pft_names)
-    #     new_stem_allometry = StemAllometry(
-    #         stem_traits=new_stem_traits, at_dbh=new_cohort_data._dbh_values
-    #     )
-
-    #     for i in range(new_cohort_data.n_cohorts):
-    #         for tissue in self.tissues:
-    #             tissue.add_cohort(
-    #                 stem_allometry=new_stem_allometry,
-    #                 extra_pft_traits=self.extra_pft_traits,
-    #                 new_pft_name=new_cohort_data.pft_names[i],
-    #                 element=element,
-    #                 cohort=i,
-    #                 stem_traits=new_stem_traits,
-    #             )
-
-    #         self.element_surplus = np.append(self.element_surplus, 0.0)
-
     @property
     def total_element_masses(self) -> dict[str, NDArray[np.floating]]:
         """Calculate the total element mass for each cohort.
@@ -1013,3 +1001,37 @@ class Biomasses(CohortMethods, PandasExporter):
             return self.tissues[self.tissue_names.index(tissue_type)]
         except ValueError:
             raise ValueError(f"Tissue type '{tissue_type}' not found.")
+
+    def add_cohorts(
+        self,
+        new_cohort_data: Cohorts,
+        flora: Flora,
+    ) -> None:
+        """Add a set of new cohorts to the Biomasses model.
+
+        TODO: currently using default ratios.
+
+        Args:
+            new_cohort_data: Cohort object containing information about the new
+                cohort.
+            flora: The flora object providing stem traits for the new cohort.
+            element: The name of the element (e.g., "N" for nitrogen).
+        """
+
+        new_stem_traits = flora.get_stem_traits(pft_names=new_cohort_data.pft_names)
+        new_stem_allometry = StemAllometry(
+            stem_traits=new_stem_traits, at_dbh=new_cohort_data._dbh_values
+        )
+
+        for i in range(new_cohort_data.n_cohorts):
+            for tissue in self.tissues:
+                tissue.add_cohort(
+                    stem_allometry=new_stem_allometry,
+                    extra_pft_traits=self.extra_pft_traits,
+                    new_pft_name=new_cohort_data.pft_names[i],
+                    element=element,
+                    cohort=i,
+                    stem_traits=new_stem_traits,
+                )
+
+            self.element_surplus = np.append(self.element_surplus, 0.0)
