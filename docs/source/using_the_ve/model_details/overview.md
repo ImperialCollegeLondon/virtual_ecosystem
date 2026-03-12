@@ -20,13 +20,11 @@ amount of the setup process will be shared. The four types of models are as foll
 * The [abiotic environment models](./abiotic/overview.md) (`abiotic`, `abiotic_simple`
   and `hydrology`)
 * The animal model
-* The plants model
+* The [plants model](./plants/overview.md)
 * The [decay models](./decay/overview.md) (`litter` and `soil`)
 
-There's still a large amount of loose content that needs to be integrated with the above
+There's still a bit of loose content that needs to be integrated with the above
 structure. It consists of:
 
-* A page containing an [explanation of how to configure plant functional
-  types](./pft_configuration.md).
 * A page giving a [model by model breakdown of the configuration
   options](./science_model_configuration.md), including default values for constants.

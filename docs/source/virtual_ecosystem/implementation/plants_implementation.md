@@ -59,9 +59,9 @@ Mortality and reproduction have not yet been implemented.
 ## Required array variables
 
 In addition to the [definition of the plant
-communities](../../using_the_ve/model_details/pft_configuration.md), the plants model
-needs some additional array data to be set. These provide values that can be easily
-structured as arrays by grid cell id and by plant functional type name:
+communities](../../using_the_ve/model_details/plants/pft_configuration.md), the plants
+model needs some additional array data to be set. These provide values that can be
+easily structured as arrays by grid cell id and by plant functional type name:
 
 <!-- markdownlint-disable-next-line MD033-->
 * <a
