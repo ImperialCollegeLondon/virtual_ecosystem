@@ -21,11 +21,11 @@ class LitterInputs:
     """The full set input flows to the litter model."""
 
     leaf_mass: NDArray[np.floating]
-    """Total leaf input rate to litter [kg C m^-2 day^-1]"""
+    """Total leaf input rate to litter in carbon terms [kg C m^-2 day^-1]"""
     root_mass: NDArray[np.floating]
-    """Total root input rate to litter [kg C m^-2 day^-1]"""
+    """Total root input rate to litter in carbon terms [kg C m^-2 day^-1]"""
     deadwood_mass: NDArray[np.floating]
-    """Total deadwood input rate to litter [kg C m^-2 day^-1]"""
+    """Total deadwood input rate to litter in carbon terms [kg C m^-2 day^-1]"""
 
     leaf_lignin: NDArray[np.floating]
     """Lignin proportion of leaf input [kg lignin C (kg C)^-1]"""
@@ -35,18 +35,18 @@ class LitterInputs:
     """Lignin proportion of deadwood input [kg lignin C (kg C)^-1]"""
 
     leaf_nitrogen: NDArray[np.floating]
-    """Carbon nitrogen ratio of leaf input [unitless]"""
+    """Nitrogen mass of leaf input [kg N m^-2 day^-1]"""
     root_nitrogen: NDArray[np.floating]
-    """Carbon nitrogen ratio of root input [unitless]"""
+    """Nitrogen mass of root input [kg N m^-2 day^-1]"""
     deadwood_nitrogen: NDArray[np.floating]
-    """Carbon nitrogen ratio of deadwood input [unitless]"""
+    """Nitrogen mass of deadwood input [kg N m^-2 day^-1]"""
 
     leaf_phosphorus: NDArray[np.floating]
-    """Carbon phosphorus ratio of leaf input [unitless]"""
+    """Phosphorus mass of leaf input [kg P m^-2 day^-1]"""
     root_phosphorus: NDArray[np.floating]
-    """Carbon phosphorus ratio of root input [unitless]"""
+    """Phosphorus mass of root input [kg P m^-2 day^-1]"""
     deadwood_phosphorus: NDArray[np.floating]
-    """Carbon phosphorus ratio of deadwood input [unitless]"""
+    """Phosphorus mass of deadwood input [kg P m^-2 day^-1]"""
 
     leaves_meta_split: NDArray[np.floating]
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
@@ -187,55 +187,39 @@ def combine_input_sources(
     stem_lignin = data["stem_lignin"]
 
     # Calculate leaf nitrogen concentrations for each combined pool
-    leaf_nitrogen = np.divide(
-        data["foliage_turnover_cnp"].loc[:, "C"]
-        + data["herbivory_waste_leaf_cnp"].loc[:, "C"],
+    leaf_nitrogen = convert_to_input_masses_to_rates_per_area(
         data["foliage_turnover_cnp"].loc[:, "N"]
         + data["herbivory_waste_leaf_cnp"].loc[:, "N"],
-        out=np.full_like(
-            data["herbivory_waste_leaf_cnp"].loc[:, "C"], np.inf, dtype=float
-        ),
-        where=data["foliage_turnover_cnp"].loc[:, "N"]
-        + data["herbivory_waste_leaf_cnp"].loc[:, "N"]
-        != 0,
+        cell_area=data.grid.cell_area,
+        update_interval=update_interval,
     )
-    root_nitrogen = np.divide(
-        data["root_turnover_cnp"].loc[:, "C"],
+    root_nitrogen = convert_to_input_masses_to_rates_per_area(
         data["root_turnover_cnp"].loc[:, "N"],
-        out=np.full_like(data["root_turnover_cnp"].loc[:, "C"], np.inf, dtype=float),
-        where=data["root_turnover_cnp"].loc[:, "N"] != 0,
+        cell_area=data.grid.cell_area,
+        update_interval=update_interval,
     )
-    deadwood_nitrogen = np.divide(
-        data["stem_turnover_cnp"].loc[:, "C"],
+    deadwood_nitrogen = convert_to_input_masses_to_rates_per_area(
         data["stem_turnover_cnp"].loc[:, "N"],
-        out=np.full_like(data["stem_turnover_cnp"].loc[:, "C"], np.inf, dtype=float),
-        where=data["stem_turnover_cnp"].loc[:, "N"] != 0,
+        cell_area=data.grid.cell_area,
+        update_interval=update_interval,
     )
 
     # Calculate leaf phosphorus concentrations for each combined pool
-    leaf_phosphorus = np.divide(
-        data["foliage_turnover_cnp"].loc[:, "C"]
-        + data["herbivory_waste_leaf_cnp"].loc[:, "C"],
+    leaf_phosphorus = convert_to_input_masses_to_rates_per_area(
         data["foliage_turnover_cnp"].loc[:, "P"]
         + data["herbivory_waste_leaf_cnp"].loc[:, "P"],
-        out=np.full_like(
-            data["herbivory_waste_leaf_cnp"].loc[:, "C"], np.inf, dtype=float
-        ),
-        where=data["foliage_turnover_cnp"].loc[:, "P"]
-        + data["herbivory_waste_leaf_cnp"].loc[:, "P"]
-        != 0,
+        cell_area=data.grid.cell_area,
+        update_interval=update_interval,
     )
-    root_phosphorus = np.divide(
-        data["root_turnover_cnp"].loc[:, "C"],
+    root_phosphorus = convert_to_input_masses_to_rates_per_area(
         data["root_turnover_cnp"].loc[:, "P"],
-        out=np.full_like(data["root_turnover_cnp"].loc[:, "C"], np.inf, dtype=float),
-        where=data["root_turnover_cnp"].loc[:, "P"] != 0,
+        cell_area=data.grid.cell_area,
+        update_interval=update_interval,
     )
-    deadwood_phosphorus = np.divide(
-        data["stem_turnover_cnp"].loc[:, "C"],
+    deadwood_phosphorus = convert_to_input_masses_to_rates_per_area(
         data["stem_turnover_cnp"].loc[:, "P"],
-        out=np.full_like(data["stem_turnover_cnp"].loc[:, "C"], np.inf, dtype=float),
-        where=data["stem_turnover_cnp"].loc[:, "P"] != 0,
+        cell_area=data.grid.cell_area,
+        update_interval=update_interval,
     )
 
     return {
@@ -245,10 +229,10 @@ def combine_input_sources(
         "leaf_lignin": leaf_lignin,
         "root_lignin": root_lignin.to_numpy(),
         "stem_lignin": stem_lignin.to_numpy(),
-        "leaf_nitrogen": leaf_nitrogen,
+        "leaf_nitrogen": leaf_nitrogen.to_numpy(),
         "root_nitrogen": root_nitrogen.to_numpy(),
         "deadwood_nitrogen": deadwood_nitrogen.to_numpy(),
-        "leaf_phosphorus": leaf_phosphorus,
+        "leaf_phosphorus": leaf_phosphorus.to_numpy(),
         "root_phosphorus": root_phosphorus.to_numpy(),
         "deadwood_phosphorus": deadwood_phosphorus.to_numpy(),
     }
@@ -264,10 +248,9 @@ def calculate_metabolic_proportions_of_input(
     inputs either as they all flow into just the metabolic pool.
 
     Args:
-        total_input: The total pool size for each input pools [kg C m^-3], as
-            well as the carbon to nitrogen ratios [unitless], carbon to phosphorus
-            ratios [unitless] and lignin proportions [kg lignin C (kg C)^-1] of each of
-            these pools.
+        total_input: The total amount of carbon in each input pools [kg C m^-3], as
+            well as the nitrogen content [kg N m^-3], phosphorus content [kg P m^-3] and
+            lignin proportions [kg lignin C (kg C)^-1] of each of these pools.
         constants: Set of constants for the litter model.
 
     Returns:
@@ -277,20 +260,21 @@ def calculate_metabolic_proportions_of_input(
     """
 
     # Calculate split of each input biomass type
-
     leaves_metabolic_split = split_pool_into_metabolic_and_structural_litter(
+        input_carbon=total_input["leaf_mass"],
         lignin_proportion=total_input["leaf_lignin"],
-        carbon_nitrogen_ratio=total_input["leaf_nitrogen"],
-        carbon_phosphorus_ratio=total_input["leaf_phosphorus"],
+        input_nitrogen=total_input["leaf_nitrogen"],
+        input_phosphorus=total_input["leaf_phosphorus"],
         max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
         split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
         split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
     )
 
     roots_metabolic_split = split_pool_into_metabolic_and_structural_litter(
+        input_carbon=total_input["root_mass"],
         lignin_proportion=total_input["root_lignin"],
-        carbon_nitrogen_ratio=total_input["root_nitrogen"],
-        carbon_phosphorus_ratio=total_input["root_phosphorus"],
+        input_nitrogen=total_input["root_nitrogen"],
+        input_phosphorus=total_input["root_phosphorus"],
         max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
         split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
         split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
@@ -353,25 +337,25 @@ def partion_plant_inputs_between_pools(
 
 
 def split_pool_into_metabolic_and_structural_litter(
+    input_carbon: NDArray[np.floating],
     lignin_proportion: NDArray[np.floating],
-    carbon_nitrogen_ratio: NDArray[np.floating],
-    carbon_phosphorus_ratio: NDArray[np.floating],
+    input_nitrogen: NDArray[np.floating],
+    input_phosphorus: NDArray[np.floating],
     max_metabolic_fraction: float,
     split_sensitivity_nitrogen: float,
     split_sensitivity_phosphorus: float,
 ) -> NDArray[np.floating]:
     """Calculate the split of input biomass between metabolic and structural pools.
 
-    This division depends on the lignin and nitrogen content of the input biomass, the
-    functional form is taken from :cite:t:`parton_dynamics_1988`.
+    This division depends on the lignin, nitrogen and phosphorus contents of the input
+    biomass, the functional form is taken from :cite:t:`parton_dynamics_1988`.
 
     Args:
+        input_carbon: Mass of carbon in the input biomass [kg C m^-2]
         lignin_proportion: Proportion of input biomass carbon that is lignin
             [kg lignin C (kg C)^-1]
-        carbon_nitrogen_ratio: Ratio of carbon to nitrogen for the input biomass
-            [unitless]
-        carbon_phosphorus_ratio: Ratio of carbon to phosphorus for the input biomass
-            [unitless]
+        input_nitrogen: Mass of nitrogen in the input biomass [kg N m^-2]
+        input_phosphorus: Mass of phosphorus in the input biomass [kg P m^-2]
         max_metabolic_fraction: Fraction of pool that becomes metabolic litter for the
             easiest to breakdown case, i.e. no lignin, ample nitrogen [unitless]
         split_sensitivity_nitrogen: Sets how rapidly the split changes in response to
@@ -393,6 +377,21 @@ def split_pool_into_metabolic_and_structural_litter(
         to_raise = ValueError("Lignin proportion not between 0 and 1 (inclusive)!")
         LOGGER.error(to_raise)
         raise to_raise
+
+    # Calculate carbon:nitrogen and carbon:phosphorus ratios based on the input
+    # biomasses
+    carbon_nitrogen_ratio = np.divide(
+        input_carbon,
+        input_nitrogen,
+        out=np.full_like(input_carbon, np.inf, dtype=float),
+        where=input_nitrogen != 0,
+    )
+    carbon_phosphorus_ratio = np.divide(
+        input_carbon,
+        input_phosphorus,
+        out=np.full_like(input_carbon, np.inf, dtype=float),
+        where=input_phosphorus != 0,
+    )
 
     metabolic_fraction = max_metabolic_fraction - lignin_proportion * (
         split_sensitivity_nitrogen * carbon_nitrogen_ratio

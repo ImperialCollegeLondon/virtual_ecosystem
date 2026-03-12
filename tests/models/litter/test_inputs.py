@@ -30,12 +30,12 @@ def test_determine_all_plant_to_litter_flows(
         "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
-        "leaf_nitrogen": [15.00583994, 32.23584906, 39.05894298, 47.80986065],
-        "root_nitrogen": [30.3, 45.6, 43.3, 37.1],
-        "deadwood_nitrogen": [60.7, 57.9, 73.1, 55.1],
-        "leaf_phosphorus": [414.56154, 342.52452, 514.18037, 384.00081],
-        "root_phosphorus": [656.7, 450.6, 437.3, 371.9],
-        "deadwood_phosphorus": [856.5, 675.4, 933.2, 888.8],
+        "leaf_nitrogen": [0.00090064935, 3.72256365e-5, 0.00030530780, 0.00032629252],
+        "root_nitrogen": [0.000445545, 0.000230263, 3.464203e-6, 0.000335580],
+        "deadwood_nitrogen": [0.00061779, 0.00085492, 0.00043092, 0.00029946],
+        "leaf_phosphorus": [3.260071e-5, 3.503399e-6, 2.319225e-5, 4.062491e-5],
+        "root_phosphorus": [2.0557332e-5, 2.3302264e-5, 3.4301395e-7, 3.3476741e-5],
+        "deadwood_phosphorus": [4.3782837e-5, 7.3289902e-5, 3.3754822e-5, 1.8564356e-5],
     }
 
     litter_inputs = LitterInputs.create_from_data(
@@ -84,12 +84,12 @@ def test_combine_input_sources(dummy_litter_data):
         "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
-        "leaf_nitrogen": [15.00583994, 32.23584906, 39.05894298, 47.80986065],
-        "root_nitrogen": [30.3, 45.6, 43.3, 37.1],
-        "deadwood_nitrogen": [60.7, 57.9, 73.1, 55.1],
-        "leaf_phosphorus": [414.56154, 342.52452, 514.18037, 384.00081],
-        "root_phosphorus": [656.7, 450.6, 437.3, 371.9],
-        "deadwood_phosphorus": [856.5, 675.4, 933.2, 888.8],
+        "leaf_nitrogen": [0.00090064935, 3.72256365e-5, 0.00030530780, 0.00032629252],
+        "root_nitrogen": [0.000445545, 0.000230263, 3.464203e-6, 0.000335580],
+        "deadwood_nitrogen": [0.00061779, 0.00085492, 0.00043092, 0.00029946],
+        "leaf_phosphorus": [3.260071e-5, 3.503399e-6, 2.319225e-5, 4.062491e-5],
+        "root_phosphorus": [2.0557332e-5, 2.3302264e-5, 3.4301395e-7, 3.3476741e-5],
+        "deadwood_phosphorus": [4.3782837e-5, 7.3289902e-5, 3.3754822e-5, 1.8564356e-5],
     }
 
     actual_combined = combine_input_sources(dummy_litter_data, update_interval=2.0)
@@ -160,11 +160,10 @@ def test_split_pool_into_metabolic_and_structural_litter(
     expected_split = [0.812403025, 0.640197595, 0.424077745, 0.0089426731]
 
     actual_split = split_pool_into_metabolic_and_structural_litter(
+        input_carbon=dummy_litter_data["foliage_turnover_cnp"].loc[:, "C"],
         lignin_proportion=dummy_litter_data["senesced_leaf_lignin"],
-        carbon_nitrogen_ratio=dummy_litter_data["foliage_turnover_cnp"].loc[:, "C"]
-        / dummy_litter_data["foliage_turnover_cnp"].loc[:, "N"],
-        carbon_phosphorus_ratio=dummy_litter_data["foliage_turnover_cnp"].loc[:, "C"]
-        / dummy_litter_data["foliage_turnover_cnp"].loc[:, "P"],
+        input_nitrogen=dummy_litter_data["foliage_turnover_cnp"].loc[:, "N"],
+        input_phosphorus=dummy_litter_data["foliage_turnover_cnp"].loc[:, "P"],
         max_metabolic_fraction=fixture_litter_constants.max_metabolic_fraction_of_input,
         split_sensitivity_nitrogen=fixture_litter_constants.metabolic_split_nitrogen_sensitivity,
         split_sensitivity_phosphorus=fixture_litter_constants.metabolic_split_phosphorus_sensitivity,
@@ -187,7 +186,7 @@ def test_split_pool_into_metabolic_and_structural_litter(
     ],
 )
 def test_split_pool_into_metabolic_and_structural_litter_bad_data(
-    caplog, fixture_litter_constants, lignin_proportions
+    caplog, fixture_litter_constants, lignin_proportions, dummy_litter_data
 ):
     """Check that pool split functions raises an error if out of bounds data is used."""
 
@@ -195,14 +194,12 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
         split_pool_into_metabolic_and_structural_litter,
     )
 
-    c_n_ratios = np.array([34.2, 55.5, 37.1, 3.7])
-    c_p_ratios = np.array([415.0, 327.4, 554.5, 145.0])
-
     with pytest.raises(ValueError):
         split_pool_into_metabolic_and_structural_litter(
+            input_carbon=dummy_litter_data["foliage_turnover_cnp"].loc[:, "C"],
             lignin_proportion=lignin_proportions,
-            carbon_nitrogen_ratio=c_n_ratios,
-            carbon_phosphorus_ratio=c_p_ratios,
+            input_nitrogen=dummy_litter_data["foliage_turnover_cnp"].loc[:, "N"],
+            input_phosphorus=dummy_litter_data["foliage_turnover_cnp"].loc[:, "P"],
             max_metabolic_fraction=fixture_litter_constants.max_metabolic_fraction_of_input,
             split_sensitivity_nitrogen=fixture_litter_constants.metabolic_split_nitrogen_sensitivity,
             split_sensitivity_phosphorus=fixture_litter_constants.metabolic_split_phosphorus_sensitivity,
