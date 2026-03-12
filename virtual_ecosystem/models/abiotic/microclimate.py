@@ -243,6 +243,7 @@ def generate_hourly_forcing(
     static: dict[str, Any],
     time_index: int,
     month: int,
+    days: int,
     latitude: float,
 ) -> dict[str, Any]:
     """Generate hourly profiles for atmospheric forcing variables.
@@ -256,6 +257,7 @@ def generate_hourly_forcing(
         static: Dictionary with prepared static inputs for microclimate model
         time_index: Time index
         month: Current month (1-12)
+        days: Number of days per month
         latitude: Latitude of the location, [degrees]
 
     Returns:
@@ -274,6 +276,7 @@ def generate_hourly_forcing(
         monthly_soil_evaporation=data["soil_evaporation"].to_numpy(),
         latitude_deg=latitude,
         month=month,
+        days=days,
         daily_temp_amplitude=5,  # TODO abiotic_constants or input data
     )
 
@@ -856,7 +859,6 @@ def run_hour_step(
         specific_heat_capacity_soil=abiotic_constants.specific_heat_capacity_soil,
         time_interval=1,  # TODO core_constants.seconds_to_hour,
     )
-    state["soil_temperature"] = layer_structure.from_template()
     state["soil_temperature"][idx.soil] = soil_temperature
 
     # Update air temperature
@@ -962,6 +964,7 @@ def run_microclimate(
     time_dim: int,
     time_interval: float,
     month: int,
+    days: int,
     latitude: float,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConstants,
@@ -983,6 +986,7 @@ def run_microclimate(
         time_dim: Number of time steps in the hourly record (e.g., 24 for a full day)
         time_interval: Time interval for flux calculations, [s]
         month: Current month (1-12) for generating diurnal cycle
+        days: Number of days per month
         latitude: Latitude of the location, [degrees]
         layer_structure: Layer structure object with information on number of layers
             and their indices
@@ -995,7 +999,7 @@ def run_microclimate(
         Dictionary with updated state variables and hourly record for the day
     """
 
-    # Select indices for different layer types
+    # Select indices for different layer types, shorter than layer_structure naming
     idx = abiotic_tools.build_indices(data=data, layer_structure=layer_structure)
 
     # Initialise state dict
@@ -1029,6 +1033,7 @@ def run_microclimate(
         static=static,
         time_index=time_index,
         month=month,
+        days=days,
         latitude=latitude,
     )
 

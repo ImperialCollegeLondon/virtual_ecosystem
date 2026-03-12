@@ -277,17 +277,20 @@ class AbioticModel(
             % 12
             + 1
         )
-
-        latitude = 0.0  # Placeholder for future use
+        # TODO The following are placeholders and should be arguments to abiotic_model
+        days = 30
+        latitude = 0.0
+        time_dim = 24
 
         # Run microclimate model
         update_dict = run_microclimate(
             data=self.data,
             vars_updated=self.vars_updated,
             time_index=time_index,
-            time_dim=24,
+            time_dim=time_dim,
             time_interval=self.model_timing.update_interval_seconds,
             month=month,
+            days=days,
             latitude=latitude,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,

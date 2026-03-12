@@ -1013,6 +1013,7 @@ def test_run_microclimate(
     time_index = 0
     time_dim = 24  # NOTE this is shortened to reduce test run time
     month = 1
+    days = 30
     latitude = 0
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
@@ -1026,6 +1027,7 @@ def test_run_microclimate(
         time_dim=time_dim,
         time_interval=time_interval,
         month=month,
+        days=days,
         latitude=latitude,
         layer_structure=fixture_core_components.layer_structure,
         abiotic_constants=abiotic_constants,

@@ -369,6 +369,7 @@ def generate_diurnal_cycle_from_monthly_data(
     monthly_soil_evaporation: NDArray[np.floating],
     latitude_deg: float,
     month: int,
+    days: int,
     daily_temp_amplitude: float = 5.0,
 ) -> dict[str, NDArray[np.floating]]:
     """Generate synthetic hourly forcing for one day from monthly averages.
@@ -381,6 +382,7 @@ def generate_diurnal_cycle_from_monthly_data(
         monthly_soil_evaporation: Monthly total soil evaporation [mm/month]
         latitude_deg: Latitude for daylength calculation [deg]
         month: Month number [1-12]
+        days: Number of days in month
         daily_temp_amplitude: typical diurnal temperature swing [C]
 
     Returns:
@@ -388,12 +390,13 @@ def generate_diurnal_cycle_from_monthly_data(
         relative_humidity_hourly, evapotranspiration_hourly, soil_evaporation_hourly
     """
 
-    hours = np.arange(24)
+    hours_per_day = 24
+    hours = np.arange(hours_per_day)
 
-    # Air temperature (sine wave, max at 14:00), (24, cell)
+    # Air temperature (sine wave, max at 14:00), (hours_per_day, cell)
     air_temperature_hourly = monthly_air_temperature[
         None, :
-    ] + daily_temp_amplitude * np.sin(2 * np.pi * (hours[:, None] - 8) / 24)
+    ] + daily_temp_amplitude * np.sin(2 * np.pi * (hours[:, None] - 8) / hours_per_day)
 
     # Daylength (simple climatology)
     daylength = 12 + 4 * np.cos((month - 1) * np.pi / 6) * np.cos(
@@ -405,16 +408,16 @@ def generate_diurnal_cycle_from_monthly_data(
     sunset = 12 + daylength / 2
 
     # Shortwave radiation (half-sine over daylight)
-    hour_fraction = np.zeros(24)
+    hour_fraction = np.zeros(hours_per_day)
 
-    for h in range(24):
+    for h in range(hours_per_day):
         if sunrise <= h <= sunset:
             hour_fraction[h] = np.sin(np.pi * (h - sunrise) / daylength)
 
     if hour_fraction.sum() > 0:
         hour_fraction /= hour_fraction.sum()
 
-    # Shortwave absorption (distributed like radiation), (24, layer, cell)
+    # Shortwave absorption (distributed like radiation), (hours_per_day, layer, cell)
     shortwave_absorption_hourly = (
         monthly_shortwave_absorption[None, :, :] * hour_fraction[:, None, None]
     )
@@ -423,7 +426,7 @@ def generate_diurnal_cycle_from_monthly_data(
     e_s_mean = calc_vp_sat(monthly_air_temperature)  # (cell,)
     e_a = monthly_relative_humidity / 100.0 * e_s_mean  # (cell,)
 
-    e_s_hourly = calc_vp_sat(air_temperature_hourly)  # (24, cell)
+    e_s_hourly = calc_vp_sat(air_temperature_hourly)  # (hours_per_day, cell)
     relative_humidity_hourly = 100.0 * e_a[None, :] / e_s_hourly
     relative_humidity_hourly = np.clip(relative_humidity_hourly, 0.0, 100.0)
 
@@ -433,20 +436,20 @@ def generate_diurnal_cycle_from_monthly_data(
     evapotranspiration_hourly = np.where(
         sw_sum > 0,
         monthly_evapotranspiration[None, :, :]
-        / 30
+        / days
         * shortwave_absorption_hourly
         / sw_sum,
-        monthly_evapotranspiration[None, :, :] / 30 / 24.0,
+        monthly_evapotranspiration[None, :, :] / days / hours_per_day,
     )
 
     # Soil evaporation (distributed like radiation)
     soil_evaporation_hourly = np.where(
         shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :] > 0,
         monthly_soil_evaporation[None, :]
-        / 30
+        / days
         * shortwave_absorption_hourly.sum(axis=1)
         / shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :],
-        monthly_soil_evaporation[None, :] / 30 / 24.0,
+        monthly_soil_evaporation[None, :] / days / hours_per_day,
     )
 
     return {
@@ -577,8 +580,8 @@ def validate_variables(
         values: variables in hourly update
         exclude: variable names to ignore in the comparison
 
-    Returns:
-        None
+    Raises:
+        ValueError when variable names don't match
     """
     exclude_set = set(exclude)
 

@@ -393,6 +393,7 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_can
 
     latitude_deg = 0.0
     month = 2
+    days = 30
     daily_temp_amplitude = 5.0
     data = dummy_climate_data_varying_canopy
     n_layers, n_cells = data["canopy_evaporation"].shape
@@ -411,6 +412,7 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_can
         monthly_soil_evaporation=data["soil_evaporation"].to_numpy(),
         latitude_deg=latitude_deg,
         month=month,
+        days=days,
         daily_temp_amplitude=daily_temp_amplitude,
     )
 
@@ -438,9 +440,9 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_can
     assert np.all(nighttime_sw == 0.0)
 
     # Check conservation
-    monthly_sum_et = np.nansum(forcing["evapotranspiration_hourly"], axis=0) * 30
+    monthly_sum_et = np.nansum(forcing["evapotranspiration_hourly"], axis=0) * days
     monthly_sum_sw_abs = np.nansum(forcing["shortwave_absorption_hourly"], axis=0)
-    monthly_sum_soil_evap = np.nansum(forcing["soil_evaporation_hourly"], axis=0) * 30
+    monthly_sum_soil_evap = np.nansum(forcing["soil_evaporation_hourly"], axis=0) * days
 
     # Mask for valid monthly
     mask = ~np.isnan(evapotranspiration.to_numpy())
