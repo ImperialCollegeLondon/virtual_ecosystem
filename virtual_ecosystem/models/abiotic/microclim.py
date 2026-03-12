@@ -579,18 +579,20 @@ def calculate_soil_fluxes(
 
     # Ground heat flux, [W m-2]
     out["ground_heat_flux"] = (
-        state["shortwave_absorption"][idx.topsoil, :]
+        state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
         - out["latent_heat_flux_soil"]
         - out["sensible_heat_flux_soil"]
-        + static["absorbed_longwave_radiation"][idx.topsoil, :]
+        + static["absorbed_longwave_radiation"][idx.topsoil]
+        + 0.5 * state["longwave_emission"][idx.surface]
     )
 
     # Net radiation, [W m-2]
     out["net_radiation_soil"] = (
-        state["shortwave_absorption"][idx.topsoil, :]
+        state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
-        + static["absorbed_longwave_radiation"][idx.topsoil, :]
+        + static["absorbed_longwave_radiation"][idx.topsoil]
+        + 0.5 * state["longwave_emission"][idx.surface]
     )
 
     return out
@@ -627,10 +629,13 @@ def update_air_temperature(
     )
 
     # Update surface air temperatures, [C]
+    flux_from_soil = (
+        state["sensible_heat_flux"][idx.topsoil]
+        + 0.5 * state["longwave_emission"][idx.topsoil]
+    )
     surface_air_temperature = energy_balance.update_air_temperature(
         air_temperature=state["air_temperature"][idx.surface],
-        sensible_heat_flux=state["sensible_heat_flux"][idx.surface]
-        + state["sensible_heat_flux"][idx.topsoil],
+        sensible_heat_flux=state["sensible_heat_flux"][idx.surface] + flux_from_soil,
         specific_heat_air=state["specific_heat_air"][idx.surface],
         density_air=state["density_air"][idx.surface],
         mixing_layer_thickness=static["geometry"]["thickness"][-1],

@@ -957,4 +957,5 @@ def fixture_state_inputs(
         "latent_heat_flux_soil": np.ones(n_cells) * 2.0,
         "ground_heat_flux": np.ones(n_cells) * 2.0,
         "ventilation_rate": np.repeat(0.05, n_cells),
+        "longwave_emission": data["longwave_emission"].to_numpy(),
     }

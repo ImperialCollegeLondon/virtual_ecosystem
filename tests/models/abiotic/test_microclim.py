@@ -602,7 +602,7 @@ def test_calculate_soil_fluxes(
     )
 
     # Check values, output keys and shapes
-    expected_ground_flux = np.array([239.299606, 232.516272, 218.949606, 218.949606])
+    expected_ground_flux = np.array([464.299606, 457.516272, 443.949606, 443.949606])
 
     np.testing.assert_allclose(
         result["ground_heat_flux"], expected_ground_flux, rtol=1e-5, atol=1e-5

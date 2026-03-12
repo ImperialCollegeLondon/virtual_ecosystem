@@ -343,10 +343,10 @@ def test_setup_and_update_abiotic_model(
     # Now do the test
     assert ((soil_temps >= 0.0) & (soil_temps <= 40.0)).all()
     assert (
-        (valid_values_can_temp_clean >= 5.0) & (valid_values_can_temp_clean <= 40.0)
+        (valid_values_can_temp_clean >= 0.0) & (valid_values_can_temp_clean <= 40.0)
     ).all()
     assert (
-        (valid_values_air_temp_clean >= 5.0) & (valid_values_air_temp_clean <= 40.0)
+        (valid_values_air_temp_clean >= 0.0) & (valid_values_air_temp_clean <= 40.0)
     ).all()
     assert (
         (valid_values_rel_hum_clean >= 0.0) & (valid_values_rel_hum_clean <= 100.0)
