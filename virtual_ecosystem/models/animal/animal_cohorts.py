@@ -843,6 +843,34 @@ class AnimalCohort:
             + 2 * self.constants.N_sigma_opt_pred_prey
         )
 
+    def _build_prey_bin_densities(
+        self,
+        animal_list: list[AnimalCohort],
+        theta_opt: float,
+    ) -> dict[int, float]:
+        """Build a mapping of mass bin index to cumulative prey density.
+
+        Pre-computes the per-bin prey density for all bins represented in
+        animal_list in a single pass.
+
+        Args:
+            animal_list: Prey cohorts available to this predator.
+            theta_opt: This predator's optimal prey-predator mass ratio for this
+                foraging encounter, drawn once per encounter in delta_mass_predation.
+
+        Returns:
+            Dict mapping each occupied bin index to the sum of
+            individuals / cell_area for all prey cohorts assigned to that bin.
+        """
+        A_cell = self.grid.cell_area
+        bin_densities: dict[int, float] = {}
+
+        for cohort in animal_list:
+            b = self._mass_bin(cohort.mass_current, theta_opt)
+            bin_densities[b] = bin_densities.get(b, 0.0) + cohort.individuals / A_cell
+
+        return bin_densities
+
     def calculate_predation_success_probability(self, M_target: float) -> float:
         """Calculate the probability of a successful predation event.
 

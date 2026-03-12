@@ -3687,3 +3687,102 @@ class TestAnimalCohort:
         bin_large = predator_cohort_instance._mass_bin(100.0 * exp(0.1), 0.1)
 
         assert bin_small == bin_large
+
+    def test_build_prey_bin_densities_empty_list(self, predator_cohort_instance):
+        """Test that an empty animal_list returns an empty dict."""
+        result = predator_cohort_instance._build_prey_bin_densities([], 0.1)
+
+        assert result == {}
+
+    def test_build_prey_bin_densities_single_cohort(
+        self, predator_cohort_instance, mocker
+    ):
+        """Test that a single cohort produces one bin entry with correct density.
+
+        Density is individuals / cell_area. With cell_area=10000 and individuals=10,
+        expected density is 0.001.
+        """
+        prey = mocker.Mock()
+        prey.mass_current = 50.0
+        prey.individuals = 10
+
+        mocker.patch.object(predator_cohort_instance, "_mass_bin", return_value=5)
+
+        result = predator_cohort_instance._build_prey_bin_densities([prey], 0.1)
+
+        assert result == {5: pytest.approx(10 / 10000)}
+
+    def test_build_prey_bin_densities_two_cohorts_different_bins(
+        self, predator_cohort_instance, mocker
+    ):
+        """Test that cohorts in different bins produce separate entries."""
+        prey_a = mocker.Mock()
+        prey_a.mass_current = 50.0
+        prey_a.individuals = 10
+
+        prey_b = mocker.Mock()
+        prey_b.mass_current = 500.0
+        prey_b.individuals = 20
+
+        mocker.patch.object(
+            predator_cohort_instance,
+            "_mass_bin",
+            side_effect=[5, 7],
+        )
+
+        result = predator_cohort_instance._build_prey_bin_densities(
+            [prey_a, prey_b], 0.1
+        )
+
+        assert result == {
+            5: pytest.approx(10 / 10000),
+            7: pytest.approx(20 / 10000),
+        }
+
+    def test_build_prey_bin_densities_two_cohorts_same_bin(
+        self, predator_cohort_instance, mocker
+    ):
+        """Test that cohorts in the same bin have their densities summed."""
+        prey_a = mocker.Mock()
+        prey_a.mass_current = 50.0
+        prey_a.individuals = 10
+
+        prey_b = mocker.Mock()
+        prey_b.mass_current = 55.0
+        prey_b.individuals = 30
+
+        mocker.patch.object(
+            predator_cohort_instance,
+            "_mass_bin",
+            return_value=5,
+        )
+
+        result = predator_cohort_instance._build_prey_bin_densities(
+            [prey_a, prey_b], 0.1
+        )
+
+        assert result == {5: pytest.approx(40 / 10000)}
+
+    def test_build_prey_bin_densities_calls_mass_bin_once_per_cohort(
+        self, predator_cohort_instance, mocker
+    ):
+        """Test that _mass_bin is called exactly once per cohort."""
+        prey_a = mocker.Mock()
+        prey_a.mass_current = 50.0
+        prey_a.individuals = 10
+
+        prey_b = mocker.Mock()
+        prey_b.mass_current = 200.0
+        prey_b.individuals = 5
+
+        mock_bin = mocker.patch.object(
+            predator_cohort_instance,
+            "_mass_bin",
+            side_effect=[5, 6],
+        )
+
+        predator_cohort_instance._build_prey_bin_densities([prey_a, prey_b], 0.1)
+
+        assert mock_bin.call_count == 2
+        mock_bin.assert_any_call(50.0, 0.1)
+        mock_bin.assert_any_call(200.0, 0.1)
