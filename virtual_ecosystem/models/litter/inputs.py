@@ -476,32 +476,26 @@ class InputChemistries:
     """Dataclass containing the chemistry for the input to each litter pool."""
 
     above_metabolic_nitrogen: NDArray[np.floating]
-    """Carbon to nitrogen ratio of input to the aboveground metabolic pool [unitless]"""
+    """Mass of nitrogen in input to the aboveground metabolic pool [kg N m^-2]"""
     above_structural_nitrogen: NDArray[np.floating]
-    """Carbon to nitrogen ratio of input to the aboveground structural pool [unitless].
-    """
+    """Mass of nitrogen in input to the aboveground structural pool [kg N m^-2]."""
     woody_nitrogen: NDArray[np.floating]
-    """Carbon to nitrogen ratio of input to the woody pool [unitless]"""
+    """Mass of nitrogen in input to the woody pool [kg N m^-2]"""
     below_metabolic_nitrogen: NDArray[np.floating]
-    """Carbon to nitrogen ratio of input to the belowground metabolic pool [unitless]"""
+    """Mass of nitrogen in input to the belowground metabolic pool [kg N m^-2]"""
     below_structural_nitrogen: NDArray[np.floating]
-    """Carbon to nitrogen ratio of input to the belowground structural pool [unitless]
-    """
+    """Mass of nitrogen in input to the belowground structural pool [kg N m^-2]"""
 
     above_metabolic_phosphorus: NDArray[np.floating]
-    """Carbon to phosphorus ratio of input to the aboveground metabolic pool [unitless]
-    """
+    """Mass of phosphorus in input to the aboveground metabolic pool [kg P m^-2]"""
     above_structural_phosphorus: NDArray[np.floating]
-    """Carbon to phosphorus ratio of input to the aboveground structural pool [unitless]
-    """
+    """Mass of phosphorus in input to the aboveground structural pool [kg P m^-2]"""
     woody_phosphorus: NDArray[np.floating]
-    """Carbon to phosphorus ratio of input to the woody pool [unitless]"""
+    """Mass of phosphorus in input to the woody pool [kg P m^-2]"""
     below_metabolic_phosphorus: NDArray[np.floating]
-    """Carbon to phosphorus ratio of input to the belowground metabolic pool [unitless]
-    """
+    """Mass of phosphorus in input to the belowground metabolic pool [kg P m^-2]"""
     below_structural_phosphorus: NDArray[np.floating]
-    """Carbon to phosphorus ratio of input to the belowground structural pool [unitless]
-    """
+    """Mass of phosphorus in input to the belowground structural pool [kg P m^-2]"""
 
     above_structural_lignin: NDArray[np.floating]
     """Lignin proportion of input to the aboveground structural pool.
@@ -542,13 +536,15 @@ def calculate_input_chemistries(
     input_lignin = calculate_litter_input_lignin_concentrations(
         litter_inputs=litter_inputs,
     )
-    input_c_n_ratios = calculate_litter_input_nitrogen_ratios(
+    input_c_n_ratios = calculate_litter_input_nutrient_masses(
         litter_inputs=litter_inputs,
-        struct_to_meta_nitrogen_ratio=struct_to_meta_nitrogen_ratio,
+        struct_to_meta_nutrient_ratio=struct_to_meta_nitrogen_ratio,
+        nutrient="nitrogen",
     )
-    input_c_p_ratios = calculate_litter_input_phosphorus_ratios(
+    input_c_p_ratios = calculate_litter_input_nutrient_masses(
         litter_inputs=litter_inputs,
-        struct_to_meta_phosphorus_ratio=struct_to_meta_phosphorus_ratio,
+        struct_to_meta_nutrient_ratio=struct_to_meta_phosphorus_ratio,
+        nutrient="phosphorus",
     )
 
     return InputChemistries(**input_lignin, **input_c_n_ratios, **input_c_p_ratios)
@@ -604,119 +600,65 @@ def calculate_litter_input_lignin_concentrations(
     }
 
 
-def calculate_litter_input_nitrogen_ratios(
-    litter_inputs: LitterInputs,
-    struct_to_meta_nitrogen_ratio: float,
+def calculate_litter_input_nutrient_masses(
+    litter_inputs: LitterInputs, struct_to_meta_nutrient_ratio: float, nutrient: str
 ) -> dict[str, NDArray[np.floating]]:
-    """Calculate the carbon to nitrogen ratio for each plant biomass to litter flow.
+    """Calculate the nutrient mass for each plant biomass to litter flow.
 
-    The ratio for the input to the woody litter pool just matches the ratio of the
-    deadwood input. For the other pools, the ratios of the flows from root/leaf
-    turnover into the metabolic and structural pools is calculated.
+    Input to the woody litter pool just matches the nutrient masses of the
+    deadwood input. For the other pools, the split of nutrient flows from root/leaf
+    turnover between the metabolic and structural pools is calculated.
 
     Args:
         litter_inputs: An LitterInputs instance containing the total input of each
             plant biomass type, the proportion of the input that goes to the relevant
             metabolic pool for each input type (expect deadwood) and the total input
             into each litter pool.
-        struct_to_meta_nitrogen_ratio: Ratio of the carbon to nitrogen ratios of
+        struct_to_meta_nutrient_ratio: Ratio of the carbon to nutrient ratios of
             structural vs metabolic litter pools [unitless]
+        nutrient: Nutrient to calculate flows for (options are nitrogen and phosphorus)
 
     Returns:
-        Dictionary containing the carbon to nitrogen ratios of the input to each of
-        the pools [unitless]
+        Dictionary containing the nutrient (nitrogen or phosphorus) mass of the input to
+        each of the pools [kg nut m^-2]
     """
+
+    if nutrient not in {"nitrogen", "phosphorus"}:
+        to_raise = ValueError(f"{nutrient} is not an element we currently track!")
+        LOGGER.error(to_raise)
+        raise to_raise
 
     # Calculate c_n_ratio split for each (non-wood) input biomass type
-    root_c_n_ratio_meta, root_c_n_ratio_struct = (
+    root_nutrient_meta, root_nutrient_struct = (
         calculate_nutrient_split_between_litter_pools(
-            input_c_nut_ratio=litter_inputs.root_nitrogen,
+            input_carbon_mass=litter_inputs.root_mass,
+            input_nutrient_mass=getattr(litter_inputs, f"root_{nutrient}"),
             metabolic_split=litter_inputs.roots_meta_split,
-            struct_to_meta_nutrient_ratio=struct_to_meta_nitrogen_ratio,
+            struct_to_meta_nutrient_ratio=struct_to_meta_nutrient_ratio,
         )
     )
 
-    leaf_c_n_ratio_meta, leaf_c_n_ratio_struct = (
+    leaf_nutrient_meta, leaf_nutrient_struct = (
         calculate_nutrient_split_between_litter_pools(
-            input_c_nut_ratio=litter_inputs.leaf_nitrogen,
+            input_carbon_mass=litter_inputs.leaf_mass,
+            input_nutrient_mass=getattr(litter_inputs, f"leaf_{nutrient}"),
             metabolic_split=litter_inputs.leaves_meta_split,
-            struct_to_meta_nutrient_ratio=struct_to_meta_nitrogen_ratio,
+            struct_to_meta_nutrient_ratio=struct_to_meta_nutrient_ratio,
         )
     )
-    c_n_ratio_below_metabolic = root_c_n_ratio_meta
-    c_n_ratio_below_structural = root_c_n_ratio_struct
-    c_n_ratio_woody = litter_inputs.deadwood_nitrogen
-
-    c_n_ratio_above_metabolic = leaf_c_n_ratio_meta
-    c_n_ratio_above_structural = leaf_c_n_ratio_struct
 
     return {
-        "woody_nitrogen": c_n_ratio_woody,
-        "below_metabolic_nitrogen": c_n_ratio_below_metabolic,
-        "below_structural_nitrogen": c_n_ratio_below_structural,
-        "above_metabolic_nitrogen": c_n_ratio_above_metabolic,
-        "above_structural_nitrogen": c_n_ratio_above_structural,
-    }
-
-
-def calculate_litter_input_phosphorus_ratios(
-    litter_inputs: LitterInputs,
-    struct_to_meta_phosphorus_ratio: float,
-) -> dict[str, NDArray[np.floating]]:
-    """Calculate carbon to phosphorus ratio for each plant biomass to litter flow.
-
-    The ratio for the input to the woody litter pool just matches the ratio of the
-    deadwood input. For the other pools, the ratios of the flows from root/leaf
-    turnover into the metabolic and structural pools is calculated.
-
-    Args:
-        litter_inputs: An LitterInputs instance containing the total input of each
-            plant biomass type, the proportion of the input that goes to the relevant
-            metabolic pool for each input type (expect deadwood) and the total input
-            into each litter pool.
-        struct_to_meta_phosphorus_ratio: Ratio of the carbon to phosphorus ratios of
-            structural vs metabolic litter pools [unitless]
-
-    Returns:
-        Dictionary containing the carbon to phosphorus ratios of the input to each of
-        the pools [unitless]
-    """
-
-    # Calculate c_p_ratio split for each (non-wood) input biomass type
-    root_c_p_ratio_meta, root_c_p_ratio_struct = (
-        calculate_nutrient_split_between_litter_pools(
-            input_c_nut_ratio=litter_inputs.root_phosphorus,
-            metabolic_split=litter_inputs.roots_meta_split,
-            struct_to_meta_nutrient_ratio=struct_to_meta_phosphorus_ratio,
-        )
-    )
-
-    leaf_c_p_ratio_meta, leaf_c_p_ratio_struct = (
-        calculate_nutrient_split_between_litter_pools(
-            input_c_nut_ratio=litter_inputs.leaf_phosphorus,
-            metabolic_split=litter_inputs.leaves_meta_split,
-            struct_to_meta_nutrient_ratio=struct_to_meta_phosphorus_ratio,
-        )
-    )
-
-    c_p_ratio_below_metabolic = root_c_p_ratio_meta
-    c_p_ratio_below_structural = root_c_p_ratio_struct
-    c_p_ratio_woody = litter_inputs.deadwood_phosphorus
-
-    c_p_ratio_above_metabolic = leaf_c_p_ratio_meta
-    c_p_ratio_above_structural = leaf_c_p_ratio_struct
-
-    return {
-        "woody_phosphorus": c_p_ratio_woody,
-        "below_metabolic_phosphorus": c_p_ratio_below_metabolic,
-        "below_structural_phosphorus": c_p_ratio_below_structural,
-        "above_metabolic_phosphorus": c_p_ratio_above_metabolic,
-        "above_structural_phosphorus": c_p_ratio_above_structural,
+        f"woody_{nutrient}": getattr(litter_inputs, f"deadwood_{nutrient}"),
+        f"below_metabolic_{nutrient}": root_nutrient_meta,
+        f"below_structural_{nutrient}": root_nutrient_struct,
+        f"above_metabolic_{nutrient}": leaf_nutrient_meta,
+        f"above_structural_{nutrient}": leaf_nutrient_struct,
     }
 
 
 def calculate_nutrient_split_between_litter_pools(
-    input_c_nut_ratio: NDArray[np.floating],
+    input_carbon_mass: NDArray[np.floating],
+    input_nutrient_mass: NDArray[np.floating],
     metabolic_split: NDArray[np.floating],
     struct_to_meta_nutrient_ratio: float,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
@@ -730,21 +672,33 @@ def calculate_nutrient_split_between_litter_pools(
     where every nutrient effects decay rate of every pool.
 
     Args:
-        input_c_nut_ratio: Carbon:nutrient ratio of input organic matter [unitless]
+        input_carbon_mass: Mass of carbon in the input organic matter [kg C m^-2]
+        input_nutrient_mass: Mass of the nutrient in the input organic matter [kg nut
+            m^-2]
         metabolic_split: Proportion of organic matter input that flows to the metabolic
             litter pool [unitless]
         struct_to_meta_nutrient_ratio: Ratio of the carbon to nutrient ratios of
             structural vs metabolic litter pools [unitless]
 
     Returns:
-        A tuple containing the carbon to nitrogen ratio of the organic matter input to
-        the metabolic and structural litter pools, in that order.
+        A tuple containing the nutrient input to the metabolic and structural litter
+        pools [kg nut m^-2], in that order.
     """
 
+    # Calculate carbon:nutrient ratio based on the input masses
+    input_c_nut_ratio = input_carbon_mass / input_nutrient_mass
+
+    # Find the ratios for each compartment
     c_nut_ratio_meta_input = input_c_nut_ratio * (
         metabolic_split + (1 - metabolic_split) / struct_to_meta_nutrient_ratio
     )
 
     c_nut_ratio_struct_input = struct_to_meta_nutrient_ratio * c_nut_ratio_meta_input
 
-    return (c_nut_ratio_meta_input, c_nut_ratio_struct_input)
+    # Convert these back to masses
+    meta_nutrient_mass = metabolic_split * input_carbon_mass / c_nut_ratio_meta_input
+    struct_nutrient_mass = (
+        (1 - metabolic_split) * input_carbon_mass / c_nut_ratio_struct_input
+    )
+
+    return (meta_nutrient_mass, struct_nutrient_mass)
