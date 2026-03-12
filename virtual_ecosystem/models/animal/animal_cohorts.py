@@ -926,15 +926,19 @@ class AnimalCohort:
         bin_densities: dict[int, float],
         intersection_areas: dict[int, float],
     ) -> float:
-        """Calculate the total handling time for preying on available animal cohorts.
+        """Calculate the total handling time term for the predation functional response.
 
-        Sums H_i_j * k_i_j across all prey cohorts, forming the denominator term
-        for the Holling type II functional response used in F_i_j_individual.
+        Computes the denominator sum ∑(K_i,m · H_i,m) from Equations 28/29 of
+        Harfoot et al. (2014), which represents the total time in days, per day
+        spent searching, that would be taken to handle all potential prey items
+        across all prey cohorts. This is dimensionless (days of handling per day
+        of searching) and forms the saturation term in the Holling Type II
+        denominator: 1 + ∑(K_i,m · H_i,m).
 
         Args:
             animal_list: All prey cohorts available to the predator.
             theta_opt: The predator's optimum prey-predator mass ratio for this
-                encounter, drawn once in F_i_j_individual.
+                encounter, drawn once per encounter in delta_mass_predation.
             bin_densities: Pre-computed mapping of mass bin index to cumulative
                 prey density, built once per encounter by _build_prey_bin_densities.
             intersection_areas: Pre-computed mapping of prey cohort id to territory
@@ -942,7 +946,8 @@ class AnimalCohort:
                 delta_mass_predation.
 
         Returns:
-            A float value of total handling time in days.
+            Dimensionless sum of handling time across all prey cohorts (days of
+            handling per day of searching).
         """
         return sum(
             sf.H_i_j(
@@ -991,8 +996,8 @@ class AnimalCohort:
             target_cohort: The prey cohort from which mass will be consumed.
             intersection_area: Pre-computed overlap area between predator and target
                 territories in m2.
-            theta_opt: This predator's optimal prey-predator mass ratio, drawn once
-                per encounter in delta_mass_predation.
+            theta_opt: The predator's optimum prey-predator mass ratio for this
+                encounter, drawn once per encounter in delta_mass_predation.
             bin_densities: Pre-computed mapping of mass bin index to cumulative prey
                 density, built once per encounter by _build_prey_bin_densities.
             intersection_areas: Pre-computed mapping of prey cohort id to territory
