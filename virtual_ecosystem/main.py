@@ -13,12 +13,15 @@ from typing import Any
 
 from tqdm import tqdm
 
-from virtual_ecosystem.core.base_model import BaseModel
+from virtual_ecosystem.core.base_model import BaseDisturbance, BaseModel
 from virtual_ecosystem.core.config_builder import (
     ConfigurationLoader,
     generate_configuration,
 )
-from virtual_ecosystem.core.configuration import CompiledConfiguration
+from virtual_ecosystem.core.configuration import (
+    CompiledConfiguration,
+    DisturbanceConfigurationRoot,
+)
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
@@ -146,6 +149,85 @@ def initialise_models(
     return models_cfd
 
 
+def sort_disturbances(disturbance_config: CompiledConfiguration) -> list[str]:
+    """Sort disturbances based on priority and name.
+
+    Args:
+        disturbance_config: CompiledConfiguration object for disturbances.
+
+    Returns:
+        Tuple of disturbance model names in the order they need to be executed.
+    """
+    return sorted(
+        disturbance_config._model_classes.keys(),
+        key=lambda name: (
+            -disturbance_config.get_subconfiguration(
+                name, DisturbanceConfigurationRoot
+            ).priority,
+            name,
+        ),
+    )
+
+
+def initialise_disturbances(
+    sorted_disturbances: list[str],
+    configuration: CompiledConfiguration,
+    data: Data,
+    core_components: CoreComponents,
+    models: dict[str, BaseModel],
+) -> dict[str, BaseDisturbance]:
+    """Initialise a set of disturbances for use in a `virtual_ecosystem` simulation.
+
+    Args:
+        sorted_disturbances: list of disturbances in the right execution order.
+        configuration: A validated Virtual Ecosystem configuration object containing the
+            disturbance configuration.
+        data: A Data instance.
+        core_components: A CoreComponents instance.
+        models: A dictionary of initialised models.
+
+    Raises:
+        InitialisationError: If one or more disturbances cannot be properly configured
+
+    Returns:
+        Dictionary of initialised disturbances in the right execution order.
+    """
+
+    LOGGER.info("Initialising disturbances: {}".format(",".join(sorted_disturbances)))
+
+    # Use factory methods to configure the desired disturbances
+    failed_disturbances = []
+    models_cfd = {}
+
+    for disturbance_name in sorted_disturbances:
+        LOGGER.info(f"Initialising {disturbance_name} disturbance")
+
+        try:
+            disturbance_class: BaseDisturbance = configuration._model_classes[
+                disturbance_name
+            ]
+            this_disturbance = disturbance_class.from_config(
+                data=data,
+                configuration=configuration,
+                core_components=core_components,
+                models=models,
+            )
+            models_cfd[disturbance_name] = this_disturbance
+
+        except (InitialisationError, ConfigurationError, KeyError):
+            failed_disturbances.append(disturbance_name)
+
+    # If any models fail to configure inform the user about it
+    if failed_disturbances:
+        to_raise: Exception = InitialisationError(
+            f"Configuration failed for disturbances: {','.join(failed_disturbances)}"
+        )
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+    return models_cfd
+
+
 def ve_run(
     cfg_paths: str | Path | Sequence[str | Path] = [],
     cfg_strings: str | list[str] = [],
@@ -253,6 +335,20 @@ def ve_run(
 
     LOGGER.info("All models successfully initialised.")
 
+    # Get disturbances order and initialise them
+    if disturbance_config := configuration.get_disturbance_config():
+        disturbances = initialise_disturbances(
+            sorted_disturbances=sort_disturbances(disturbance_config),
+            configuration=disturbance_config,
+            data=data,
+            core_components=core_components,
+            models=models_init,
+        )
+
+        LOGGER.info("All disturbances successfully initialised.")
+    else:
+        disturbances = {}
+
     # TODO - A model spin up might be needed here in future
 
     # Data output options
@@ -331,6 +427,9 @@ def ve_run(
                     model=model.model_name,
                     attr="vars_populated_by_first_update",
                 )
+
+        for disturbance in disturbances.values():
+            disturbance.disturb(time_index)
 
         # If there are mismatches in the variable specifications, fail.
         if not model_variables_ok:
