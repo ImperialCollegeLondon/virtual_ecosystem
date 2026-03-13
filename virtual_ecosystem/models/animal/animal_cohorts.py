@@ -977,32 +977,29 @@ class AnimalCohort:
 
     def F_i_j_individual(
         self,
-        animal_list: list[AnimalCohort],
         target_cohort: AnimalCohort,
         intersection_area: float,
         theta_opt: float,
         bin_densities: dict[int, float],
-        intersection_areas: dict[int, float],
+        total_handling_time: float,
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
-        Implements the Holling type II functional response for predation. theta_opt
-        is drawn once per encounter in delta_mass_predation and passed in to ensure
-        consistency across the numerator and denominator of the functional response,
-        since calculate_theta_opt_i is stochastic.
+        Implements the Holling type II functional response for predation. All
+        encounter-level quantities (theta_opt, bin_densities, total_handling_time)
+        are pre-computed once per encounter in delta_mass_predation and passed in
+        to avoid redundant recomputation across prey.
 
         Args:
-            animal_list: A list of animal cohorts that can be consumed by the predator.
             target_cohort: The prey cohort from which mass will be consumed.
             intersection_area: Pre-computed overlap area between predator and target
                 territories in m2.
-            theta_opt: The predator's optimum prey-predator mass ratio for this
-                encounter, drawn once per encounter in delta_mass_predation.
+            theta_opt: This predator's optimal prey-predator mass ratio, drawn once
+                per encounter in delta_mass_predation.
             bin_densities: Pre-computed mapping of mass bin index to cumulative prey
                 density, built once per encounter by _build_prey_bin_densities.
-            intersection_areas: Pre-computed mapping of prey cohort id to territory
-                intersection area in m², built once per encounter in
-                delta_mass_predation.
+            total_handling_time: Pre-computed Holling type II denominator sum
+                ∑(K_i,m · H_i,m), built once per encounter in delta_mass_predation.
 
         Returns:
             Float fraction of target cohort consumed per day.
@@ -1023,20 +1020,18 @@ class AnimalCohort:
         k_target = self.calculate_potential_prey_consumed(
             alpha, theta, intersection_area
         )
-        total_handling_t = self.calculate_total_handling_time_for_predation(
-            animal_list, theta_opt, bin_densities, intersection_areas
+        return (
+            self.individuals * (k_target / (1 + total_handling_time)) * (1 / N_target)
         )
-        return self.individuals * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
     def calculate_consumed_mass_predation(
         self,
-        animal_list: list[AnimalCohort],
         target_cohort: AnimalCohort,
         adjusted_dt: timedelta64,
         intersection_area: float,
         theta_opt: float,
         bin_densities: dict[int, float],
-        intersection_areas: dict[int, float],
+        total_handling_time: float,
     ) -> float:
         """Calculates the mass to be consumed from a prey cohort by the predator.
 
@@ -1045,7 +1040,6 @@ class AnimalCohort:
         be consumed based on this rate and other model parameters.
 
         Args:
-            animal_list: A list of animal cohorts that can be consumed by the predator.
             target_cohort: The prey cohort from which mass will be consumed.
             adjusted_dt: The amount of time (D) in the time-step available for foraging.
             intersection_area: Pre-computed overlap area between predator and target
@@ -1054,20 +1048,18 @@ class AnimalCohort:
                 per encounter in delta_mass_predation.
             bin_densities: Pre-computed mapping of mass bin index to cumulative prey
                 density, built once per encounter by _build_prey_bin_densities.
-            intersection_areas: Pre-computed mapping of prey cohort id to territory
-                intersection area in m², built once per encounter in
-                delta_mass_predation.
+            total_handling_time: Pre-computed Holling type II denominator sum
+                ∑(K_i,m · H_i,m), built once per encounter in delta_mass_predation.
 
         Returns:
             The mass to be consumed from the target cohort by the predator (in kg).
         """
         F = self.F_i_j_individual(
-            animal_list,
             target_cohort,
             intersection_area,
             theta_opt,
             bin_densities,
-            intersection_areas,
+            total_handling_time,
         )
         return (
             target_cohort.mass_current
@@ -1116,6 +1108,9 @@ class AnimalCohort:
             id(prey): self.get_territory_intersection(prey)[1] for prey in animal_list
         }
         bin_densities = self._build_prey_bin_densities(animal_list, theta_opt)
+        total_handling_time = self.calculate_total_handling_time_for_predation(
+            animal_list, theta_opt, bin_densities, intersection_areas
+        )
 
         total_consumed_mass = {"C": 0.0, "N": 0.0, "P": 0.0}
 
@@ -1126,13 +1121,12 @@ class AnimalCohort:
                 continue
 
             consumed_mass = self.calculate_consumed_mass_predation(
-                animal_list,
                 prey_cohort,
                 adjusted_dt,
                 intersection_area,
                 theta_opt,
                 bin_densities,
-                intersection_areas,
+                total_handling_time,
             )
 
             if consumed_mass is None:
