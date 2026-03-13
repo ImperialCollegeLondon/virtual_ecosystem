@@ -1477,13 +1477,12 @@ class TestAnimalCohort:
         Zero-individual prey returns 0.0 immediately. For the normal case the
         return value is derived from mocked sub-methods and verified via the
         Holling type II formula: N_i * (k / (1 + H)) * (1 / N_target).
+        total_handling_time is passed directly as a pre-computed value.
         """
         target = mocker.Mock()
         target.mass_current = 50.0
         target.individuals = n_target
-        animal_list = [target]
         bin_densities = {5: 0.001}
-        intersection_areas = {id(target): 5000.0}
 
         mocker.patch.object(predator_cohort_instance, "_mass_bin", return_value=5)
         mocker.patch(
@@ -1500,14 +1499,9 @@ class TestAnimalCohort:
             "calculate_potential_prey_consumed",
             return_value=4.0,
         )
-        mocker.patch.object(
-            predator_cohort_instance,
-            "calculate_total_handling_time_for_predation",
-            return_value=1.0,
-        )
 
         result = predator_cohort_instance.F_i_j_individual(
-            animal_list, target, 5000.0, 0.1, bin_densities, intersection_areas
+            target, 5000.0, 0.1, bin_densities, 1.0
         )
 
         if expected is not None:
@@ -1521,7 +1515,10 @@ class TestAnimalCohort:
         predator_cohort_instance,
         mocker,
     ):
-        """Test that calculate_theta_opt_i is never called."""
+        """Test that calculate_theta_opt_i is never called.
+
+        theta_opt is drawn once per encounter in delta_mass_predation and passed in.
+        """
         target = mocker.Mock()
         target.mass_current = 50.0
         target.individuals = 10
@@ -1544,15 +1541,8 @@ class TestAnimalCohort:
             "calculate_potential_prey_consumed",
             return_value=4.0,
         )
-        mocker.patch.object(
-            predator_cohort_instance,
-            "calculate_total_handling_time_for_predation",
-            return_value=1.0,
-        )
 
-        predator_cohort_instance.F_i_j_individual(
-            [target], target, 5000.0, 0.1, {5: 0.001}, {id(target): 5000.0}
-        )
+        predator_cohort_instance.F_i_j_individual(target, 5000.0, 0.1, {5: 0.001}, 1.0)
 
         mock_draw.assert_not_called()
 
@@ -1561,7 +1551,10 @@ class TestAnimalCohort:
         predator_cohort_instance,
         mocker,
     ):
-        """Test that theta_i_j is never called directly."""
+        """Test that theta_i_j is never called directly.
+
+        Bin density lookups use the pre-computed bin_densities dict instead.
+        """
         target = mocker.Mock()
         target.mass_current = 50.0
         target.individuals = 10
@@ -1582,15 +1575,8 @@ class TestAnimalCohort:
             "calculate_potential_prey_consumed",
             return_value=4.0,
         )
-        mocker.patch.object(
-            predator_cohort_instance,
-            "calculate_total_handling_time_for_predation",
-            return_value=1.0,
-        )
 
-        predator_cohort_instance.F_i_j_individual(
-            [target], target, 5000.0, 0.1, {5: 0.001}, {id(target): 5000.0}
-        )
+        predator_cohort_instance.F_i_j_individual(target, 5000.0, 0.1, {5: 0.001}, 1.0)
 
         mock_theta.assert_not_called()
 
@@ -1680,7 +1666,10 @@ class TestAnimalCohort:
         individuals,
         expected_behavior,
     ):
-        """Test consumed mass formula across F values, mass, and individual counts."""
+        """Test consumed mass formula across F values, mass, and individual counts.
+
+        total_handling_time is passed directly as a pre-computed value.
+        """
         from math import exp, isclose
 
         from numpy import timedelta64
@@ -1692,14 +1681,13 @@ class TestAnimalCohort:
         adjusted_dt = timedelta64(8, "D")
         dt_days = float(adjusted_dt / timedelta64(1, "D"))
         bin_densities = {5: 0.001}
-        intersection_areas = {id(prey): 5000.0}
 
         mocker.patch.object(
             predator_cohort_instance, "F_i_j_individual", return_value=F_value
         )
 
         result = predator_cohort_instance.calculate_consumed_mass_predation(
-            [prey], prey, adjusted_dt, 5000.0, 0.1, bin_densities, intersection_areas
+            prey, adjusted_dt, 5000.0, 0.1, bin_densities, 1.0
         )
 
         if expected_behavior == "formula":
@@ -1715,7 +1703,7 @@ class TestAnimalCohort:
         predator_cohort_instance,
         mocker,
     ):
-        """Test that calls are forwarded to F_i_j_individual."""
+        """Test that arguments are forwarded correctly to F_i_j_individual."""
         from numpy import timedelta64
 
         prey = mocker.Mock()
@@ -1723,25 +1711,21 @@ class TestAnimalCohort:
         prey.individuals = 5
 
         bin_densities = {5: 0.001}
-        intersection_areas = {id(prey): 5000.0}
 
         mock_F = mocker.patch.object(
             predator_cohort_instance, "F_i_j_individual", return_value=0.05
         )
 
         predator_cohort_instance.calculate_consumed_mass_predation(
-            [prey],
             prey,
             timedelta64(8, "D"),
             5000.0,
             0.1,
             bin_densities,
-            intersection_areas,
+            1.0,
         )
 
-        mock_F.assert_called_once_with(
-            [prey], prey, 5000.0, 0.1, bin_densities, intersection_areas
-        )
+        mock_F.assert_called_once_with(prey, 5000.0, 0.1, bin_densities, 1.0)
 
     @pytest.mark.parametrize(
         "animal_list_spec, carcass_pools_spec, should_raise, error_match, "
@@ -1762,7 +1746,7 @@ class TestAnimalCohort:
                 {1: [True]},
                 False,
                 None,
-                {"C": 10.0, "N": 2.0, "P": 1.0},
+                10.0,
                 {"C": 8.0, "N": 1.5, "P": 0.8},
                 {"C": 8.0, "N": 1.5, "P": 0.8},
                 id="single_prey_accumulates_cnp",
@@ -1772,7 +1756,7 @@ class TestAnimalCohort:
                 {1: [True]},
                 False,
                 None,
-                {"C": 5.0, "N": 1.0, "P": 0.5},
+                5.0,
                 {"C": 4.0, "N": 0.8, "P": 0.4},
                 {"C": 8.0, "N": 1.6, "P": 0.8},
                 id="two_prey_cnp_summed",
@@ -1812,7 +1796,7 @@ class TestAnimalCohort:
                 {1: [True]},
                 True,
                 "get_eaten.*returned None",
-                {"C": 10.0, "N": 2.0, "P": 1.0},
+                10.0,
                 None,
                 None,
                 id="none_get_eaten_raises",
@@ -1831,7 +1815,11 @@ class TestAnimalCohort:
         mock_actual_cnp,
         expected_total,
     ):
-        """Test delta_mass_predation accumulation, empty list, and error cases."""
+        """Test delta_mass_predation accumulation, empty list, and error cases.
+
+        calculate_consumed_mass_predation returns a float (kg), get_eaten returns
+        the CNP dict. Both are mocked here to isolate orchestration logic.
+        """
         from numpy import timedelta64
 
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
@@ -1868,6 +1856,11 @@ class TestAnimalCohort:
             predator_cohort_instance,
             "_build_prey_bin_densities",
             return_value={5: 0.001},
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_total_handling_time_for_predation",
+            return_value=1.0,
         )
         mocker.patch.object(
             predator_cohort_instance,
@@ -1920,10 +1913,15 @@ class TestAnimalCohort:
             "_build_prey_bin_densities",
             return_value={5: 0.001},
         )
+        mock_handling = mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_total_handling_time_for_predation",
+            return_value=1.0,
+        )
         mocker.patch.object(
             predator_cohort_instance,
             "calculate_consumed_mass_predation",
-            return_value={"C": 1.0, "N": 0.1, "P": 0.01},
+            return_value=5.0,
         )
 
         predator_cohort_instance.delta_mass_predation(
@@ -1931,15 +1929,21 @@ class TestAnimalCohort:
         )
 
         mock_theta.assert_called_once()
-        assert mock_intersection.call_count == 2  # once per prey, not per prey²
+        assert mock_intersection.call_count == 2
         mock_bin_densities.assert_called_once()
+        mock_handling.assert_called_once()
 
     def test_delta_mass_predation_skips_zero_intersection(
         self,
         mocker,
         predator_cohort_instance,
     ):
-        """Test that prey with zero territory intersection are skipped."""
+        """Test that prey with zero territory intersection are skipped.
+
+        calculate_consumed_mass_predation must not be called when intersection
+        area is 0.0. calculate_total_handling_time_for_predation is still called
+        once before the loop since it does not depend on individual prey areas.
+        """
         from numpy import timedelta64
 
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
@@ -1959,6 +1963,11 @@ class TestAnimalCohort:
         mocker.patch.object(
             predator_cohort_instance, "_build_prey_bin_densities", return_value={}
         )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_total_handling_time_for_predation",
+            return_value=1.0,
+        )
         mock_consume = mocker.patch.object(
             predator_cohort_instance, "calculate_consumed_mass_predation"
         )
@@ -1968,6 +1977,7 @@ class TestAnimalCohort:
             {1: [mocker.MagicMock(spec=CarcassPool)]},
             timedelta64(10, "D"),
         )
+
         mock_consume.assert_not_called()
 
     @pytest.mark.parametrize(
