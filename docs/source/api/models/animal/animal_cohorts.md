@@ -21,7 +21,7 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.11.9
+  version: 3.12
 ---
 
 # API for the {mod}`~virtual_ecosystem.models.animal.animal_cohorts` module
