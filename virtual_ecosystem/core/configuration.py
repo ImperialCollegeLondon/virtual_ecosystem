@@ -146,9 +146,9 @@ class CompiledConfiguration(Configuration):
         try:
             return getattr(self, name)
         except AttributeError:
-            try:
-                return getattr(self, "disturbance").get_subconfiguration(name, as_class)
-            except AttributeError:
+            if disturbance := self.get_disturbance_config():
+                return disturbance.get_subconfiguration(name, as_class)
+            else:
                 raise AttributeError(
                     f"Model or disturbance configuration for {name} not loaded"
                 )
@@ -162,6 +162,10 @@ class CompiledConfiguration(Configuration):
 
         with open(path, "wb") as destination:
             tomli_w.dump(self.model_dump(mode="json"), destination)
+
+    def get_disturbance_config(self) -> CompiledConfiguration | None:
+        """Get the compile configuration for disturbances, if any."""
+        return getattr(self, "disturbance", None)
 
 
 class ModelConfigurationRoot(Configuration):
@@ -209,6 +213,13 @@ class DisturbanceConfigurationRoot(Configuration):
     from where a list of integers indicating the time indices when the disturbance is to
     run can be constructed. If not provided, 'step' defaults to 1 and 'stop' defaults to
     the last time index. 'start' must always be provided."""
+
+    priority: int = 0
+    """Priority for the disturbance. 
+
+    Higher priority disturbances will be executed first. In case of having the same
+    disturbances are sorted by alphabetical order.
+    """
 
     @model_validator(mode="after")
     def timing_options_are_not_both_empty(self) -> DisturbanceConfigurationRoot:
