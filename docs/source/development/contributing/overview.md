@@ -395,14 +395,14 @@ sudo apt install sqlite3 sqlite3-doc libsqlite3-dev
 curl https://pyenv.run | bash
 
 # Install python
-pyenv install 3.11
+pyenv install 3.12
 
 
-# Activate Python 3.11 for the current project
-pyenv local 3.11
+# Activate Python 3.12 for the current project
+pyenv local 3.12
 
-# Configure Python 3.11 as python interpreter for the virtual environment
-poetry env use 3.11
+# Configure Python 3.12 as python interpreter for the virtual environment
+poetry env use 3.12
 ```
 
 If you are installing parallel Python versions and want to use more than one version in
