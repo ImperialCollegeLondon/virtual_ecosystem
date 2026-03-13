@@ -68,9 +68,8 @@ from typing import ClassVar
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.demography.community import Cohorts, Community
+from pyrealm.demography.community import Community
 from pyrealm.demography.core import CohortMethods, PandasExporter
-from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllocation
 
 from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
@@ -1002,36 +1001,49 @@ class Biomasses(CohortMethods, PandasExporter):
         except ValueError:
             raise ValueError(f"Tissue type '{tissue_type}' not found.")
 
-    def add_cohorts(
-        self,
-        new_cohort_data: Cohorts,
-        flora: Flora,
-    ) -> None:
-        """Add a set of new cohorts to the Biomasses model.
+    def append(self, other: Biomasses):
+        """Append data from another Biomasses instance representing new cohorts."""
 
-        TODO: currently using default ratios.
+        # TODO check tissues and elements?
 
-        Args:
-            new_cohort_data: Cohort object containing information about the new
-                cohort.
-            flora: The flora object providing stem traits for the new cohort.
-            element: The name of the element (e.g., "N" for nitrogen).
-        """
+        for tissue_name in self.tissue_names:
+            self.get_tissue(tissue_name).append(other.get_tissue(tissue_name))
 
-        new_stem_traits = flora.get_stem_traits(pft_names=new_cohort_data.pft_names)
-        new_stem_allometry = StemAllometry(
-            stem_traits=new_stem_traits, at_dbh=new_cohort_data._dbh_values
-        )
+        for elem in self.elements:
+            self.element_surplus[elem] = np.append(
+                self.element_surplus[elem], other.element_surplus[elem]
+            )
 
-        for i in range(new_cohort_data.n_cohorts):
-            for tissue in self.tissues:
-                tissue.add_cohort(
-                    stem_allometry=new_stem_allometry,
-                    extra_pft_traits=self.extra_pft_traits,
-                    new_pft_name=new_cohort_data.pft_names[i],
-                    element=element,
-                    cohort=i,
-                    stem_traits=new_stem_traits,
-                )
+    # def add_cohorts(
+    #     self,
+    #     new_cohort_data: Cohorts,
+    #     flora: Flora,
+    # ) -> None:
+    #     """Add a set of new cohorts to the Biomasses model.
 
-            self.element_surplus = np.append(self.element_surplus, 0.0)
+    #     TODO: currently using default ratios.
+
+    #     Args:
+    #         new_cohort_data: Cohort object containing information about the new
+    #             cohort.
+    #         flora: The flora object providing stem traits for the new cohort.
+    #         element: The name of the element (e.g., "N" for nitrogen).
+    #     """
+
+    #     new_stem_traits = flora.get_stem_traits(pft_names=new_cohort_data.pft_names)
+    #     new_stem_allometry = StemAllometry(
+    #         stem_traits=new_stem_traits, at_dbh=new_cohort_data._dbh_values
+    #     )
+
+    #     for i in range(new_cohort_data.n_cohorts):
+    #         for tissue in self.tissues:
+    #             tissue.add_cohort(
+    #                 stem_allometry=new_stem_allometry,
+    #                 extra_pft_traits=self.extra_pft_traits,
+    #                 new_pft_name=new_cohort_data.pft_names[i],
+    #                 element=element,
+    #                 cohort=i,
+    #                 stem_traits=new_stem_traits,
+    #             )
+
+    #         self.element_surplus = np.append(self.element_surplus, 0.0)

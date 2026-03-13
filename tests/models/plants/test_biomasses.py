@@ -233,6 +233,12 @@ def test_Tissue_append(fixture_community):
         assert np.allclose(elem.turnover_ratio, np.array([10.0, 12.0, 10.1, 12.1]))
 
 
+def test_Biomasses_append(fixture_biomasses):
+    """Test the Biomasses append() method."""
+
+    fixture_biomasses.append(fixture_biomasses)
+
+
 @pytest.mark.parametrize(
     argnames="tissue_name,mass_attribute",
     argvalues=(
