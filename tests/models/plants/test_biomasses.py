@@ -234,9 +234,29 @@ def test_Tissue_append(fixture_community):
 
 
 def test_Biomasses_append(fixture_biomasses):
-    """Test the Biomasses append() method."""
+    """Test the Biomasses append() method.
 
+    This should double the length of the mass arrays. The Element.append() and
+    TissueABC.append() methods are tested above, so this tests a subset of the
+    attributes at each level.
+    """
+
+    # Quick check that the initial values have len 2
+    for tissue in fixture_biomasses.tissues:
+        assert len(tissue.carbon_mass) == 2
+
+    # Append the biomasses fixture onto itself
     fixture_biomasses.append(fixture_biomasses)
+
+    # Check tissue, element and surplus arrays are now len 4.
+    for tissue in fixture_biomasses.tissues:
+        assert len(tissue.carbon_mass) == 4
+
+        for elem in tissue.element_masses.values():
+            assert len(elem.actual_element_mass) == 4
+
+    for surplus in fixture_biomasses.element_surplus.values():
+        assert len(surplus) == 4
 
 
 @pytest.mark.parametrize(
