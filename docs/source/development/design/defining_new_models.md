@@ -306,12 +306,11 @@ There are some specific requirements for including paths in configuration models
 
 * File paths should obviously point to existing files, but that makes it hard to set
   meaningful default values for use in generating example or template configurations.
-  The custom {class}`~virtual_ecosystem.core.configuration.FILEPATH_PLACEHOLDER` type
-  used in the example above helps solve this issue. Under the hood, this type uses the
-  pydantic `FilePath`, which will fail validation if the input path does not exist. It
-  also sets the default values `<PLACEHOLDER>`, but has extended validation to
-  specifically check that this placeholder default has not been left in configuration
-  file in use.
+  The custom `FILEPATH_PLACEHOLDER` type used in the example above helps solve this
+  issue. Under the hood, this type uses the pydantic `FilePath`, which will fail
+  validation if the input path does not exist. It also sets the default values
+  `<PLACEHOLDER>`, but has extended validation to specifically check that this
+  placeholder default has not been left in configuration file in use.
 
 ## Defining the new model class
 
