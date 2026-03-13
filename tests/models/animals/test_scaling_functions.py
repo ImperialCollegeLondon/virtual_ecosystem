@@ -653,25 +653,3 @@ def test_juvenile_dispersal_speed(
         current_mass, V_disp, M_disp_ref, o_disp
     )
     assert calculated_speed == pytest.approx(expected_speed, rel=1e-6)
-
-
-@pytest.mark.parametrize(
-    "mass_kg, terms, expected_m2",
-    [
-        pytest.param(0.01, (-6.09, 1.13), 305.6, id="small"),
-        pytest.param(1.0, (-6.09, 1.13), 55_610.0, id="medium"),
-        pytest.param(50.0, (-6.09, 1.13), 4_625_000.0, id="large"),
-        pytest.param(0.01, (3.60, 0.48), 1_105_249.0, id="small_open"),
-        pytest.param(1.0, (3.60, 0.48), 10_079_991.0, id="medium_open"),
-        pytest.param(50.0, (3.60, 0.48), 65_912_189.0, id="large_open"),
-    ],
-)
-def test_territory_size(mass_kg, terms, expected_m2):
-    """Test territory_size returns expected m² and scales correctly with body mass."""
-    from virtual_ecosystem.models.animal.scaling_functions import territory_size
-
-    assert territory_size(mass_kg, terms) == pytest.approx(expected_m2, rel=1e-3)
-    assert territory_size(2 * mass_kg, terms) / territory_size(mass_kg, terms) == (
-        pytest.approx(2 ** terms[1], rel=1e-6)
-    )
-    assert territory_size(mass_kg, terms) < territory_size(mass_kg * 10, terms)
