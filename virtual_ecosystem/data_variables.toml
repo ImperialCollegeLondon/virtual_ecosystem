@@ -2,7 +2,7 @@
 axis = [] # ["community_id", "functional_group_id"]
 description = "Density of animal populations."
 name = "population_densities"
-unit = "???"
+unit = "individual m-2"
 variable_type = "float"
 
 [[variable]]
@@ -777,23 +777,9 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of carbon addition to soil from litter"
-name = "litter_C_mineralisation_rate"
-unit = "kg C m^-3 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate of nitrogen addition to soil from litter"
-name = "litter_N_mineralisation_rate"
-unit = "kg N m^-3 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate of phosphorus addition to soil from litter"
-name = "litter_P_mineralisation_rate"
-unit = "kg P m^-3 day^-1"
+description = "Rate of carbon, nitrogen and phosphorus addition to soil from litter"
+name = "litter_mineralisation_rate_cnp"
+unit = "kg m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
@@ -952,23 +938,9 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate at which carbon component of soil particulate organic matter is being consumed by animals"
-name = "animal_pom_consumption_carbon"
-unit = "kg C m^-3 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate at which nitrogen component of soil particulate organic matter is being consumed by animals"
-name = "animal_pom_consumption_nitrogen"
-unit = "kg N m^-3 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate at which phosphorus component of soil particulate organic matter is being consumed by animals"
-name = "animal_pom_consumption_phosphorus"
-unit = "kg P m^-3 day^-1"
+description = "Rate at which carbon, nitrogen and phosphorus components of soil particulate organic matter are consumed by animals"
+name = "animal_pom_consumption_cnp"
+unit = "kg m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
