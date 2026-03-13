@@ -67,18 +67,6 @@ class LitterModel(
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
-        # TODO - THE BELOW ARE ONLY RETAINED AS I WORK ON THIS PR, AND SHOULD BE DELETED
-        # AT THE END
-        "c_n_ratio_above_metabolic",
-        "c_n_ratio_above_structural",
-        "c_n_ratio_woody",
-        "c_n_ratio_below_metabolic",
-        "c_n_ratio_below_structural",
-        "c_p_ratio_above_metabolic",
-        "c_p_ratio_above_structural",
-        "c_p_ratio_woody",
-        "c_p_ratio_below_metabolic",
-        "c_p_ratio_below_structural",
     ),
     vars_populated_by_init=(),
     vars_required_for_update=(
@@ -90,16 +78,6 @@ class LitterModel(
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
-        "c_n_ratio_above_metabolic",
-        "c_n_ratio_above_structural",
-        "c_n_ratio_woody",
-        "c_n_ratio_below_metabolic",
-        "c_n_ratio_below_structural",
-        "c_p_ratio_above_metabolic",
-        "c_p_ratio_above_structural",
-        "c_p_ratio_woody",
-        "c_p_ratio_below_metabolic",
-        "c_p_ratio_below_structural",
         "stem_turnover_cnp",
         "root_turnover_cnp",
         "foliage_turnover_cnp",
@@ -126,16 +104,6 @@ class LitterModel(
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
-        "c_n_ratio_above_metabolic",
-        "c_n_ratio_above_structural",
-        "c_n_ratio_woody",
-        "c_n_ratio_below_metabolic",
-        "c_n_ratio_below_structural",
-        "c_p_ratio_above_metabolic",
-        "c_p_ratio_above_structural",
-        "c_p_ratio_woody",
-        "c_p_ratio_below_metabolic",
-        "c_p_ratio_below_structural",
         "litter_mineralisation_rate_cnp",
     ),
     vars_populated_by_first_update=("litter_mineralisation_rate_cnp",),
@@ -223,31 +191,6 @@ class LitterModel(
             to_raise = InitialisationError(
                 "Lignin proportions not between 0 and 1 found in: "
                 f"{', '.join(bad_proportions)}",
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        # Check that nutrient ratios are not negative
-        nutrient_ratios = [
-            "c_n_ratio_above_metabolic",
-            "c_n_ratio_above_structural",
-            "c_n_ratio_woody",
-            "c_n_ratio_below_metabolic",
-            "c_n_ratio_below_structural",
-            "c_p_ratio_above_metabolic",
-            "c_p_ratio_above_structural",
-            "c_p_ratio_woody",
-            "c_p_ratio_below_metabolic",
-            "c_p_ratio_below_structural",
-        ]
-        negative_ratios = []
-        for ratio in nutrient_ratios:
-            if np.any(self.data[ratio] < 0):
-                negative_ratios.append(ratio)
-
-        if negative_ratios:
-            to_raise = InitialisationError(
-                f"Negative nutrient ratios found in: {', '.join(negative_ratios)}"
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -384,11 +327,7 @@ class LitterModel(
             litter_inputs=litter_inputs,
             litter_losses=litter_losses,
             input_chemistries=input_chemistries,
-            # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
-            original_pools={
-                name: pools.loc[:, "C"].to_numpy()
-                for name, pools in consumed_pools.items()
-            },
+            original_pools=consumed_pools,
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
             ).magnitude,
@@ -410,8 +349,8 @@ class LitterModel(
                 np.stack(
                     [
                         updated_pools["above_metabolic"],
-                        np.zeros_like(updated_pools["above_metabolic"]),
-                        np.zeros_like(updated_pools["above_metabolic"]),
+                        updated_chemistries["above_metabolic_nitrogen"],
+                        updated_chemistries["above_metabolic_phosphorus"],
                     ],
                     axis=1,
                 ),
@@ -421,8 +360,8 @@ class LitterModel(
                 np.stack(
                     [
                         updated_pools["above_structural"],
-                        np.zeros_like(updated_pools["above_structural"]),
-                        np.zeros_like(updated_pools["above_structural"]),
+                        updated_chemistries["above_structural_nitrogen"],
+                        updated_chemistries["above_structural_phosphorus"],
                     ],
                     axis=1,
                 ),
@@ -432,8 +371,8 @@ class LitterModel(
                 np.stack(
                     [
                         updated_pools["woody"],
-                        np.zeros_like(updated_pools["woody"]),
-                        np.zeros_like(updated_pools["woody"]),
+                        updated_chemistries["woody_nitrogen"],
+                        updated_chemistries["woody_phosphorus"],
                     ],
                     axis=1,
                 ),
@@ -443,8 +382,8 @@ class LitterModel(
                 np.stack(
                     [
                         updated_pools["below_metabolic"],
-                        np.zeros_like(updated_pools["below_metabolic"]),
-                        np.zeros_like(updated_pools["below_metabolic"]),
+                        updated_chemistries["below_metabolic_nitrogen"],
+                        updated_chemistries["below_metabolic_phosphorus"],
                     ],
                     axis=1,
                 ),
@@ -454,8 +393,8 @@ class LitterModel(
                 np.stack(
                     [
                         updated_pools["below_structural"],
-                        np.zeros_like(updated_pools["below_structural"]),
-                        np.zeros_like(updated_pools["below_structural"]),
+                        updated_chemistries["below_structural_nitrogen"],
+                        updated_chemistries["below_structural_phosphorus"],
                     ],
                     axis=1,
                 ),
@@ -464,34 +403,12 @@ class LitterModel(
             "lignin_above_structural": DataArray(
                 updated_chemistries["lignin_above_structural"], dims="cell_id"
             ),
-            "lignin_woody": updated_chemistries["lignin_woody"],
-            "lignin_below_structural": updated_chemistries["lignin_below_structural"],
-            "c_n_ratio_above_metabolic": updated_chemistries[
-                "c_n_ratio_above_metabolic"
-            ],
-            "c_n_ratio_above_structural": updated_chemistries[
-                "c_n_ratio_above_structural"
-            ],
-            "c_n_ratio_woody": updated_chemistries["c_n_ratio_woody"],
-            "c_n_ratio_below_metabolic": updated_chemistries[
-                "c_n_ratio_below_metabolic"
-            ],
-            "c_n_ratio_below_structural": updated_chemistries[
-                "c_n_ratio_below_structural"
-            ],
-            "c_p_ratio_above_metabolic": updated_chemistries[
-                "c_p_ratio_above_metabolic"
-            ],
-            "c_p_ratio_above_structural": updated_chemistries[
-                "c_p_ratio_above_structural"
-            ],
-            "c_p_ratio_woody": updated_chemistries["c_p_ratio_woody"],
-            "c_p_ratio_below_metabolic": updated_chemistries[
-                "c_p_ratio_below_metabolic"
-            ],
-            "c_p_ratio_below_structural": updated_chemistries[
-                "c_p_ratio_below_structural"
-            ],
+            "lignin_woody": DataArray(
+                updated_chemistries["lignin_woody"], dims="cell_id"
+            ),
+            "lignin_below_structural": DataArray(
+                updated_chemistries["lignin_below_structural"], dims="cell_id"
+            ),
             "litter_mineralisation_rate_cnp": DataArray(
                 data=np.stack(
                     (

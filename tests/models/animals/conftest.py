@@ -346,17 +346,6 @@ def dummy_animal_data(animal_fixture_core_components):
     litter_ratios = DataArray(
         np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
     )
-    data["c_n_ratio_above_metabolic"] = litter_ratios
-    data["c_n_ratio_above_structural"] = litter_ratios
-    data["c_n_ratio_woody"] = litter_ratios
-    data["c_n_ratio_below_metabolic"] = litter_ratios
-    data["c_n_ratio_below_structural"] = litter_ratios
-    data["c_p_ratio_above_metabolic"] = litter_ratios
-    data["c_p_ratio_above_structural"] = litter_ratios
-    data["c_p_ratio_woody"] = litter_ratios
-    data["c_p_ratio_below_metabolic"] = litter_ratios
-    data["c_p_ratio_below_structural"] = litter_ratios
-
     # Also need to add soil pools that animals consume from
     soil_pools = DataArray(np.full(data.grid.n_cells, fill_value=0.15), dims="cell_id")
     data["soil_c_pool_pom"] = soil_pools
@@ -891,16 +880,6 @@ def litter_soil_data_instance(fixture_core_components):
     # The required data is now added. This is basically the 5 litter pool sizes and
     # stoichiometric ratios
     data_values = {
-        "c_n_ratio_above_metabolic": [7.3, 8.7, 10.1, 9.8],
-        "c_n_ratio_above_structural": [37.5, 43.2, 45.8, 50.2],
-        "c_n_ratio_woody": [55.5, 63.3, 47.3, 59.1],
-        "c_n_ratio_below_metabolic": [10.7, 11.3, 15.2, 12.4],
-        "c_n_ratio_below_structural": [50.5, 55.6, 73.1, 61.2],
-        "c_p_ratio_above_metabolic": [57.3, 68.7, 100.1, 95.8],
-        "c_p_ratio_above_structural": [337.5, 473.2, 415.8, 570.2],
-        "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
-        "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
-        "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
         "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
         "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
         "soil_p_pool_particulate": [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],

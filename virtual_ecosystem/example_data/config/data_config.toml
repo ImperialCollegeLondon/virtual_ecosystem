@@ -143,33 +143,3 @@ var_name = "lignin_woody"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
 var_name = "lignin_below_structural"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_n_ratio_above_metabolic"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_n_ratio_above_structural"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_n_ratio_woody"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_n_ratio_below_metabolic"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_n_ratio_below_structural"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_p_ratio_above_metabolic"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_p_ratio_above_structural"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_p_ratio_woody"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_p_ratio_below_metabolic"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_p_ratio_below_structural"
