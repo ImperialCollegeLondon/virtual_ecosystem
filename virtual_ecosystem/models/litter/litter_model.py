@@ -368,11 +368,7 @@ class LitterModel(
         )
 
         litter_losses = calculate_litter_losses(
-            # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
-            original_pools={
-                name: pools.loc[:, "C"].to_numpy()
-                for name, pools in consumed_pools.items()
-            },
+            original_pools=consumed_pools,
             final_pools=updated_pools,
             litter_inputs=litter_inputs,
             input_chemistries=input_chemistries,

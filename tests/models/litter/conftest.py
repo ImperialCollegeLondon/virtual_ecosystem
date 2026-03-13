@@ -187,10 +187,7 @@ def litter_losses(
 
     return calculate_litter_losses(
         data=dummy_litter_data,
-        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
-        original_pools={
-            name: pools[:, 0] for name, pools in post_consumption_pools.items()
-        },
+        original_pools=post_consumption_pools,
         final_pools=updated_pools,
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,
