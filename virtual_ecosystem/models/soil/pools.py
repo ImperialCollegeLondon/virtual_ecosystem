@@ -11,6 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import convert_temperature
+from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
@@ -569,15 +570,7 @@ class SoilPools:
 
         # Calculate the flux to each pool from litter mineralisation
         litter_mineralisation_flux = calculate_litter_mineralisation_fluxes(
-            litter_C_mineralisation_rate=self.data[
-                "litter_C_mineralisation_rate"
-            ].to_numpy(),
-            litter_N_mineralisation_rate=self.data[
-                "litter_N_mineralisation_rate"
-            ].to_numpy(),
-            litter_P_mineralisation_rate=self.data[
-                "litter_P_mineralisation_rate"
-            ].to_numpy(),
+            litter_mineralisation_rates=self.data["litter_mineralisation_rate_cnp"],
             constants=self.model_constants,
         )
 
@@ -720,7 +713,7 @@ class SoilPools:
         delta_pools_ordered["soil_c_pool_pom"] = (
             litter_mineralisation_flux.pom
             - enzyme_mediated.pom_to_lmwc
-            - self.data["animal_pom_consumption_carbon"].to_numpy()
+            - self.data["animal_pom_consumption_cnp"].loc[:, "C"].to_numpy()
         )
         delta_pools_ordered["soil_c_pool_necromass"] = (
             microbial_changes.necromass_generation
@@ -772,7 +765,7 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_particulate"] = (
             litter_mineralisation_flux.particulate_n
             - pom_n_mineralisation
-            - self.data["animal_pom_consumption_nitrogen"].to_numpy()
+            - self.data["animal_pom_consumption_cnp"].loc[:, "N"].to_numpy()
         )
         delta_pools_ordered["soil_n_pool_necromass"] = (
             microbial_changes.necromass_n_flow
@@ -821,7 +814,7 @@ class SoilPools:
         delta_pools_ordered["soil_p_pool_particulate"] = (
             litter_mineralisation_flux.particulate_p
             - pom_p_mineralisation
-            - self.data["animal_pom_consumption_phosphorus"].to_numpy()
+            - self.data["animal_pom_consumption_cnp"].loc[:, "P"].to_numpy()
         )
         delta_pools_ordered["soil_p_pool_necromass"] = (
             microbial_changes.necromass_p_flow
@@ -1580,9 +1573,7 @@ def calculate_necromass_breakdown(
 
 
 def calculate_litter_mineralisation_fluxes(
-    litter_C_mineralisation_rate: NDArray[np.floating],
-    litter_N_mineralisation_rate: NDArray[np.floating],
-    litter_P_mineralisation_rate: NDArray[np.floating],
+    litter_mineralisation_rates: DataArray,
     constants: SoilConstants,
 ) -> LitterMineralisationFluxes:
     """Calculate the split of the litter mineralisation fluxes between soil pools.
@@ -1593,12 +1584,8 @@ def calculate_litter_mineralisation_fluxes(
     inorganic leached nitrogen assumed to be entirely in the form of ammonium.
 
     Args:
-        litter_C_mineralisation_rate: The rate at which carbon is being mineralised from
-            the litter [kg C m^-3 day^-1]
-        litter_N_mineralisation_rate: The rate at which nitrogen is being mineralised
-            from the litter [kg N m^-3 day^-1]
-        litter_P_mineralisation_rate: The rate at which phosphorus is being mineralised
-            from the litter [kg P m^-3 day^-1]
+        litter_mineralisation_rates: The rate at which carbon, nitrogen and phosphorus
+            are mineralised from the litter [kg m^-3 day^-1]
         constants: Set of constants for the soil model.
 
     Returns:
@@ -1607,11 +1594,11 @@ def calculate_litter_mineralisation_fluxes(
     """
 
     flux_C_particulate, flux_C_dissolved = calculate_litter_mineralisation_split(
-        mineralisation_rate=litter_C_mineralisation_rate,
+        mineralisation_rate=litter_mineralisation_rates.loc[:, "C"].to_numpy(),
         litter_leaching_coefficient=constants.litter_leaching_fraction_carbon,
     )
     flux_N_particulate, flux_N_dissolved = calculate_litter_mineralisation_split(
-        mineralisation_rate=litter_N_mineralisation_rate,
+        mineralisation_rate=litter_mineralisation_rates.loc[:, "N"].to_numpy(),
         litter_leaching_coefficient=constants.litter_leaching_fraction_nitrogen,
     )
     flux_N_organic_dissolved = (
@@ -1621,7 +1608,7 @@ def calculate_litter_mineralisation_fluxes(
         1 - constants.organic_proportion_litter_nitrogen_leaching
     )
     flux_P_particulate, flux_P_dissolved = calculate_litter_mineralisation_split(
-        mineralisation_rate=litter_P_mineralisation_rate,
+        mineralisation_rate=litter_mineralisation_rates.loc[:, "P"].to_numpy(),
         litter_leaching_coefficient=constants.litter_leaching_fraction_phosphorus,
     )
     flux_P_organic_dissolved = (

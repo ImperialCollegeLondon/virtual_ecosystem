@@ -47,9 +47,6 @@ def dummy_carbon_data(fixture_core_components):
         "soil_p_pool_labile": [1.0582393e-5, 3.252961e-5, 6.806745e-5, 1.945635e-4],
         "pH": [3.0, 7.5, 9.0, 5.7],
         "clay_fraction": [0.8, 0.3, 0.1, 0.9],
-        "litter_C_mineralisation_rate": [0.00212106, 0.00106053, 0.00049000, 0.0055],
-        "litter_N_mineralisation_rate": [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
-        "litter_P_mineralisation_rate": [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
         "plant_symbiote_carbon_supply": [0.01, 0.25, 0.0075, 0.0047],
         "root_carbohydrate_exudation": [0.025, 0.01, 0.05, 0.0025],
         "plant_ammonium_uptake": [5.0e-5, 2.5e-5, 1.0e-5, 1.0e-4],
@@ -58,9 +55,6 @@ def dummy_carbon_data(fixture_core_components):
         "subcanopy_ammonium_uptake": [4.35e-6, 1.64e-5, 9.48e-6, 2.75e-5],
         "subcanopy_nitrate_uptake": [6.51e-4, 4.74e-4, 2.35e-4, 4.51e-5],
         "subcanopy_phosphorus_uptake": [7.58e-7, 4.83e-5, 1.96e-6, 4.91e-7],
-        "animal_pom_consumption_carbon": [8.26e-3, 8.61e-3, 4.94e-3, 7.20e-3],
-        "animal_pom_consumption_nitrogen": [4.86e-8, 2.86e-8, 6.95e-8, 4.95e-8],
-        "animal_pom_consumption_phosphorus": [1.65e-8, 7.37e-8, 3.34e-8, 5.11e-8],
         "animal_bacteria_consumption": [5.86e-3, 9.87e-5, 9.87e-4, 4.49e-4],
         "animal_saprotrophic_fungi_consumption": [5.46e-4, 1.49e-4, 1.35e-4, 8.55e-4],
         "animal_ectomycorrhiza_consumption": [9.52e-4, 3.84e-4, 3.77e-4, 9.43e-4],
@@ -120,6 +114,27 @@ def dummy_carbon_data(fixture_core_components):
             [2.459e-5, 1.433e-5, 4.928e-6],
             [0.003891, 0.0002582, 3.769e-6],
         ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["animal_pom_consumption_cnp"] = DataArray(
+        data=[
+            [8.26e-3, 4.86e-8, 1.65e-8],
+            [8.61e-3, 2.86e-8, 7.37e-8],
+            [4.94e-3, 6.95e-8, 3.34e-8],
+            [7.20e-3, 4.95e-8, 5.11e-8],
+        ],
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_mineralisation_rate_cnp"] = DataArray(
+        data=np.array(
+            [
+                [0.00212106, 0.00106053, 0.00049000, 0.0055],
+                [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
+                [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
+            ]
+        ).transpose(),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
