@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 import uuid
 from _collections_abc import Callable, Mapping
-from math import ceil, exp, sqrt
+from math import ceil, exp, log, sqrt
 from typing import Literal, TypeVar, cast
 
 from numpy import timedelta64
@@ -84,10 +84,17 @@ class AnimalCohort:
         """The amount of time [days] since reaching adult body-mass."""
         self.prey_groups: dict[str, tuple[float, float]] = {}
         """The identification of usable food resources."""
-        self.territory_size = sf.territory_size(self.functional_group.adult_mass)
-        """The size in hectares of the animal cohorts territory."""
-        self.occupancy_proportion: float = 1.0 / self.territory_size
-        """The proportion of the cohort that is within a territorial given grid cell."""
+        self.territory_size = sf.territory_size(
+            self.functional_group.adult_mass,
+            self.constants.territory_size_terms[self.functional_group.metabolic_type][
+                self.functional_group.taxa
+            ],
+        )
+        """The size in m2 of the animal cohort's territory."""
+        self.territory_cells = ceil(self.territory_size / grid.cell_area)
+        """The number of grid cells the cohort occupies."""
+        self.occupancy_proportion: float = 1.0 / self.territory_cells
+        """The proportion of the cohort that is within a grid cell of territory."""
         self._initialize_territory(centroid_key)
         """Initialize the territory using the centroid grid key."""
         self.territory: list[int]
@@ -157,20 +164,15 @@ class AnimalCohort:
     def get_territory_cells(self, centroid_key: int) -> list[int]:
         """This calls bfs_territory to determine the scope of the territory.
 
-        TODO: local import of bfs_territory is temporary while deciding whether to keep
-        animal_territory.py
-
         Args:
             centroid_key: The central grid cell key of the territory.
 
         """
-        # Each grid cell is 1 hectare, territory size in grids is the same as hectares
-        target_cell_number = int(self.territory_size)
 
         # Perform BFS to determine the territory cells
         territory_cells = sf.bfs_territory(
             centroid_key,
-            target_cell_number,
+            self.territory_cells,
             self.grid.cell_nx,
             self.grid.cell_ny,
         )
@@ -182,9 +184,6 @@ class AnimalCohort:
         centroid_key: int,
     ) -> None:
         """This initializes the territory occupied by the cohort.
-
-        TODO: local import of AnimalTerritory is temporary while deciding whether to
-        keep the class
 
         Args:
             centroid_key: The grid cell key anchoring the territory.
@@ -655,7 +654,7 @@ class AnimalCohort:
 
         # Find the intersection of prey and predator territories
         intersection_carcass_pools = self.find_intersecting_carcass_pools(
-            predator.territory, carcass_pools
+            predator, carcass_pools
         )
 
         # Update the carcass pool with the carcass mass
@@ -682,7 +681,7 @@ class AnimalCohort:
         TODO: update name
 
         Returns:
-            A float representing the search efficiency rate in [ha/(day*g)].
+            A float representing the search efficiency rate in [m2/(day*g)].
         """
 
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
@@ -727,10 +726,9 @@ class AnimalCohort:
         if alpha <= 0:
             raise ValueError(f"alpha must be positive. Got {alpha}.")
 
-        phi = self.functional_group.constants.phi_herb_t
-        A_cell = 1.0  # Temporary value
+        A_cell = self.grid.cell_area
 
-        return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
+        return sf.k_i_k(alpha, target_plant.mass_current, A_cell)
 
     def calculate_total_handling_time_for_herbivory(
         self, plant_list: list[Resource], alpha: float
@@ -741,7 +739,6 @@ class AnimalCohort:
         list, incorporating the search efficiency and other scaling factors to compute
         the total handling time required by the cohort.
 
-        TODO: give A_cell a grid size reference.
         TODO: MGO - rework for territories
 
         Args:
@@ -754,10 +751,9 @@ class AnimalCohort:
             for all available plant resources.
         """
 
-        phi = self.functional_group.constants.phi_herb_t
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
         return sum(
-            sf.k_i_k(alpha, phi, plant.mass_current, A_cell)
+            sf.k_i_k(alpha, plant.mass_current, A_cell)
             + sf.H_i_k(
                 self.constants.h_herb_0,
                 self.constants.M_herb_ref,
@@ -815,6 +811,66 @@ class AnimalCohort:
             self.constants.sigma_opt_f,
         )
 
+    def _mass_bin(self, prey_mass: float, theta_opt: float) -> int:
+        """Calculate the predator-specific mass bin index for a prey cohort.
+
+        Implements Equation 39 of Harfoot et al. (2014). Assigns a prey cohort
+        to a discrete bin based on its log mass ratio to the predator, normalised
+        by the prey preference width, offset to ensure non-negative bin indices.
+
+        Args:
+            prey_mass: Current body mass of the prey cohort in kg.
+            theta_opt: This predator's optimal prey-predator mass ratio for this
+                foraging encounter, drawn once per encounter in delta_mass_predation.
+
+        Returns:
+            Integer bin index for the prey cohort.
+
+        Raises:
+            ValueError: If prey_mass or self.mass_current is zero or negative, which
+                would make the log ratio undefined.
+        """
+        if prey_mass <= 0.0:
+            raise ValueError(f"prey_mass must be positive, got {prey_mass}.")
+        if self.mass_current <= 0.0:
+            raise ValueError(
+                f"Predator mass_current must be positive, got {self.mass_current}."
+            )
+
+        return round(
+            (log(prey_mass / self.mass_current) - theta_opt)
+            / (0.5 * self.constants.sigma_opt_pred_prey)
+            + 2 * self.constants.N_sigma_opt_pred_prey
+        )
+
+    def _build_prey_bin_densities(
+        self,
+        animal_list: list[AnimalCohort],
+        theta_opt: float,
+    ) -> dict[int, float]:
+        """Build a mapping of mass bin index to cumulative prey density.
+
+        Pre-computes the per-bin prey density for all bins represented in
+        animal_list in a single pass.
+
+        Args:
+            animal_list: Prey cohorts available to this predator.
+            theta_opt: This predator's optimal prey-predator mass ratio for this
+                foraging encounter, drawn once per encounter in delta_mass_predation.
+
+        Returns:
+            Dict mapping each occupied bin index to the sum of
+            individuals / cell_area for all prey cohorts assigned to that bin.
+        """
+        A_cell = self.grid.cell_area
+        bin_densities: dict[int, float] = {}
+
+        for cohort in animal_list:
+            b = self._mass_bin(cohort.mass_current, theta_opt)
+            bin_densities[b] = bin_densities.get(b, 0.0) + cohort.individuals / A_cell
+
+        return bin_densities
+
     def calculate_predation_success_probability(self, M_target: float) -> float:
         """Calculate the probability of a successful predation event.
 
@@ -841,110 +897,175 @@ class AnimalCohort:
             w_bar: Probability of successfully capturing prey.
 
         Returns:
-            A float value of the search rate in ha/day
+            A float value of the search rate in m2/day
 
         """
         return sf.alpha_i_j(self.constants.alpha_0_pred, self.mass_current, w_bar)
 
     def calculate_potential_prey_consumed(
-        self, alpha: float, theta_i_j: float
+        self, alpha: float, theta_i_j: float, intersection_area: float
     ) -> float:
         """Calculate the potential number of prey consumed.
 
-        TODO: give A_cell a grid size reference
-        TODO: MGO - rework for territories
-
         Args:
-            alpha: the predation search rate
+            alpha: The predation search rate in m2/(day*g).
             theta_i_j: The cumulative density of organisms with a mass lying within the
-              same predator specific mass bin.
+                same predator specific mass bin.
+            intersection_area: The overlapping area between predator and prey
+              territories in m2.
 
         Returns:
             The potential number of prey items consumed.
-
         """
-        A_cell = 1.0  # temporary
-        return sf.k_i_j(alpha, self.individuals, A_cell, theta_i_j)
+        return sf.k_i_j(alpha, self.individuals, intersection_area, theta_i_j)
 
-    def calculate_total_handling_time_for_predation(self) -> float:
-        """Calculate the total handling time for preying on available animal cohorts.
+    def calculate_total_handling_time_for_predation(
+        self,
+        animal_list: list[AnimalCohort],
+        theta_opt: float,
+        bin_densities: dict[int, float],
+        intersection_areas: dict[int, float],
+    ) -> float:
+        """Calculate the total handling time term for the predation functional response.
+
+        Computes the denominator sum ∑(K_i,m · H_i,m) from Equations 28/29 of
+        Harfoot et al. (2014), which represents the total time in days, per day
+        spent searching, that would be taken to handle all potential prey items
+        across all prey cohorts. This is dimensionless (days of handling per day
+        of searching) and forms the saturation term in the Holling Type II
+        denominator: 1 + ∑(K_i,m · H_i,m).
+
+        Args:
+            animal_list: All prey cohorts available to the predator.
+            theta_opt: The predator's optimum prey-predator mass ratio for this
+                encounter, drawn once per encounter in delta_mass_predation.
+            bin_densities: Pre-computed mapping of mass bin index to cumulative
+                prey density, built once per encounter by _build_prey_bin_densities.
+            intersection_areas: Pre-computed mapping of prey cohort id to territory
+                intersection area in m², built once per encounter in
+                delta_mass_predation.
 
         Returns:
-            A float value of handling time in days.
-
+            Dimensionless sum of handling time across all prey cohorts (days of
+            handling per day of searching).
         """
-        return sf.H_i_j(
-            self.constants.h_pred_0,
-            self.constants.M_pred_ref,
-            self.mass_current,
-            self.constants.b_pred,
+        return sum(
+            sf.H_i_j(
+                self.constants.h_pred_0,
+                self.constants.M_pred_ref,
+                self.mass_current,
+                self.constants.b_pred,
+                prey.mass_current,
+            )
+            * sf.k_i_j(
+                sf.alpha_i_j(
+                    self.constants.alpha_0_pred,
+                    self.mass_current,
+                    sf.w_bar_i_j(
+                        self.mass_current,
+                        prey.mass_current,
+                        theta_opt,
+                        self.constants.sigma_opt_pred_prey,
+                    ),
+                ),
+                self.individuals,
+                intersection_areas[id(prey)],
+                bin_densities.get(self._mass_bin(prey.mass_current, theta_opt), 0.0),
+            )
+            for prey in animal_list
         )
 
     def F_i_j_individual(
-        self, animal_list: list[AnimalCohort], target_cohort: AnimalCohort
+        self,
+        target_cohort: AnimalCohort,
+        intersection_area: float,
+        theta_opt: float,
+        bin_densities: dict[int, float],
+        total_handling_time: float,
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
-        TODO: check to see if there is a way to remove 0 indiv prey cohorts before this
-            step.
+        Implements the Holling type II functional response for predation. All
+        encounter-level quantities (theta_opt, bin_densities, total_handling_time)
+        are pre-computed once per encounter in delta_mass_predation and passed in
+        to avoid redundant recomputation across prey.
 
         Args:
-            animal_list: A list of animal cohorts that can be consumed by the
-                predator.
             target_cohort: The prey cohort from which mass will be consumed.
+            intersection_area: Pre-computed overlap area between predator and target
+                territories in m2.
+            theta_opt: This predator's optimal prey-predator mass ratio, drawn once
+                per encounter in delta_mass_predation.
+            bin_densities: Pre-computed mapping of mass bin index to cumulative prey
+                density, built once per encounter by _build_prey_bin_densities.
+            total_handling_time: Pre-computed Holling type II denominator sum
+                ∑(K_i,m · H_i,m), built once per encounter in delta_mass_predation.
 
         Returns:
             Float fraction of target cohort consumed per day.
-
-
         """
-        w_bar = self.calculate_predation_success_probability(target_cohort.mass_current)
-        alpha = self.calculate_predation_search_rate(w_bar)
-        theta_i_j = self.theta_i_j(animal_list)  # Assumes implementation of theta_i_j
-        k_target = self.calculate_potential_prey_consumed(alpha, theta_i_j)
-        total_handling_t = self.calculate_total_handling_time_for_predation()
-        N_i = self.individuals
         N_target = target_cohort.individuals
-
-        # If the prey cohort is empty, there is nothing to eat.
         if N_target <= 0:
             return 0.0
 
-        return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
+        w_bar = sf.w_bar_i_j(
+            self.mass_current,
+            target_cohort.mass_current,
+            theta_opt,
+            self.constants.sigma_opt_pred_prey,
+        )
+        alpha = self.calculate_predation_search_rate(w_bar)
+        target_bin = self._mass_bin(target_cohort.mass_current, theta_opt)
+        theta = bin_densities.get(target_bin, 0.0)
+        k_target = self.calculate_potential_prey_consumed(
+            alpha, theta, intersection_area
+        )
+        return (
+            self.individuals * (k_target / (1 + total_handling_time)) * (1 / N_target)
+        )
 
     def calculate_consumed_mass_predation(
         self,
-        animal_list: list[AnimalCohort],
         target_cohort: AnimalCohort,
         adjusted_dt: timedelta64,
+        intersection_area: float,
+        theta_opt: float,
+        bin_densities: dict[int, float],
+        total_handling_time: float,
     ) -> float:
         """Calculates the mass to be consumed from a prey cohort by the predator.
 
-        This method utilizes the F_i_j_individual method to determine the rate at which
-        the target cohort is consumed, and then calculates the actual mass to be
-        consumed based on this rate and other model parameters.
-
-        TODO: Replace delta_t with time step reference
+        This method utilizes the F_i_j_individual method to determine the rate at
+        which the target cohort is consumed, and then calculates the actual mass to
+        be consumed based on this rate and other model parameters.
 
         Args:
-            animal_list: A list of animal cohorts that can be consumed by the
-                predator.
             target_cohort: The prey cohort from which mass will be consumed.
             adjusted_dt: The amount of time (D) in the time-step available for foraging.
+            intersection_area: Pre-computed overlap area between predator and target
+                territories in m2.
+            theta_opt: This predator's optimal prey-predator mass ratio, drawn once
+                per encounter in delta_mass_predation.
+            bin_densities: Pre-computed mapping of mass bin index to cumulative prey
+                density, built once per encounter by _build_prey_bin_densities.
+            total_handling_time: Pre-computed Holling type II denominator sum
+                ∑(K_i,m · H_i,m), built once per encounter in delta_mass_predation.
 
         Returns:
             The mass to be consumed from the target cohort by the predator (in kg).
         """
-        F = self.F_i_j_individual(animal_list, target_cohort)
-
-        # Calculate the consumed mass based on Mad. formula for delta_mass_predation
-        consumed_mass = (
+        F = self.F_i_j_individual(
+            target_cohort,
+            intersection_area,
+            theta_opt,
+            bin_densities,
+            total_handling_time,
+        )
+        return (
             target_cohort.mass_current
             * target_cohort.individuals
             * (1 - exp(-(F * float(adjusted_dt / timedelta64(1, "D")))))
         )
-
-        return consumed_mass
 
     def delta_mass_predation(
         self,
@@ -955,6 +1076,9 @@ class AnimalCohort:
         """Handles mass assimilation from predation.
 
         This is Madingley's delta_assimilation_mass_predation.
+
+        Pre-computes territory intersections, draws theta_opt once, and builds
+        the prey bin density dict.
 
         Args:
             animal_list: A list of animal cohorts that can be consumed by the predator.
@@ -970,24 +1094,39 @@ class AnimalCohort:
             ValueError: If `prey_cohort.get_eaten()` returns None.
             ValueError: If `self.calculate_consumed_mass_predation()` returns None.
         """
-
-        # Validate inputs
         if animal_list is None:
             raise ValueError("animal_list cannot be None.")
         if carcass_pools is None:
             raise ValueError("carcass_pools cannot be None.")
 
-        # If no prey are available, return zero change
         if not animal_list:
             return {"C": 0.0, "N": 0.0, "P": 0.0}
 
-        # Initialize the total consumed mass as a stoichiometric dictionary
+        # Pre-compute once per encounter
+        theta_opt = self.calculate_theta_opt_i()
+        intersection_areas = {
+            id(prey): self.get_territory_intersection(prey)[1] for prey in animal_list
+        }
+        bin_densities = self._build_prey_bin_densities(animal_list, theta_opt)
+        total_handling_time = self.calculate_total_handling_time_for_predation(
+            animal_list, theta_opt, bin_densities, intersection_areas
+        )
+
         total_consumed_mass = {"C": 0.0, "N": 0.0, "P": 0.0}
 
         for prey_cohort in animal_list:
-            # Calculate the mass to be consumed from this cohort
+            intersection_area = intersection_areas[id(prey_cohort)]
+
+            if intersection_area == 0.0:
+                continue
+
             consumed_mass = self.calculate_consumed_mass_predation(
-                animal_list, prey_cohort, adjusted_dt
+                prey_cohort,
+                adjusted_dt,
+                intersection_area,
+                theta_opt,
+                bin_densities,
+                total_handling_time,
             )
 
             if consumed_mass is None:
@@ -996,7 +1135,6 @@ class AnimalCohort:
                     f"{prey_cohort}."
                 )
 
-            # Call get_eaten on the prey cohort to update its mass and individuals
             actual_consumed_cnp = prey_cohort.get_eaten(
                 consumed_mass, self, carcass_pools
             )
@@ -1004,13 +1142,11 @@ class AnimalCohort:
             if actual_consumed_cnp is None:
                 raise ValueError(f"get_eaten() returned None for {prey_cohort}.")
 
-            # record resource → consumer transfer
             self.record_trophic_transfer(
                 ("cohort", str(prey_cohort.id)),
                 CNP.from_dict(actual_consumed_cnp),
             )
 
-            # Update total consumed mass for each nutrient
             for element in total_consumed_mass:
                 total_consumed_mass[element] += actual_consumed_cnp[element]
 
@@ -1415,31 +1551,34 @@ class AnimalCohort:
         if any(v > 0 for v in total_gain.values()):
             self.eat(total_gain, excrement_pools)
 
-    def theta_i_j(self, animal_list: list[AnimalCohort]) -> float:
-        """Cumulative density method for delta_mass_predation.
+    def theta_i_j(
+        self,
+        animal_list: list[AnimalCohort],
+        theta_opt: float,
+        target_bin: int,
+    ) -> float:
+        """Cumulative density of prey within the same mass bin as the target prey.
 
-        The cumulative density of organisms with a mass lying within the same predator
-        specific mass bin as Mi.
-
-        Madingley
-
-        TODO: current mass bin format makes no sense, dig up the details in the supp
-        TODO: update A_cell with real reference to grid size
-        TODO: update name
+        Implements Equation 38 of Harfoot et al. (2014). Sums the density of all
+        prey cohorts that fall in the same predator-specific mass bin as the target
+        cohort, where bin assignment follows Equation 39 (_mass_bin).
 
         Args:
-            animal_list: A list of animal cohorts that can be consumed by the
-                         predator.
+            animal_list: Prey cohorts available to this predator.
+            theta_opt: This predator's optimal prey-predator mass ratio for this
+                foraging encounter, drawn once per encounter and passed in to
+                ensure consistency with the w_bar_i_j calculation.
+            target_bin: The bin index of the target prey cohort, computed by the
+                caller via _mass_bin prior to this call.
 
         Returns:
-            The float value of theta.
+            Cumulative prey density in individuals per m² within the matching bin.
         """
-        A_cell = 1.0  # temporary
-
+        A_cell = self.grid.cell_area
         return sum(
             cohort.individuals / A_cell
             for cohort in animal_list
-            if self.mass_current == cohort.mass_current
+            if self._mass_bin(cohort.mass_current, theta_opt) == target_bin
         )
 
     def eat(
@@ -1508,7 +1647,6 @@ class AnimalCohort:
         """The probability that a juvenile cohort will migrate to a new grid cell.
 
         TODO: This does not hold for diagonal moves or non-square grids.
-        TODO: update A_cell to grid size reference
 
         Following Madingley's assumption that the probability of juvenile dispersal is
         equal to the proportion of the cohort individuals that would arrive in the
@@ -1534,7 +1672,7 @@ class AnimalCohort:
 
         """
 
-        A_cell = 1.0  # temporary
+        A_cell = self.grid.cell_area
         grid_side = sqrt(A_cell)
         velocity = sf.juvenile_dispersal_speed(
             self.mass_current,
@@ -1641,8 +1779,8 @@ class AnimalCohort:
         Returns:
             List of animal cohorts that can be preyed upon.
         """
-        prey_list: list[AnimalCohort] = []
 
+        prey_set: set[AnimalCohort] = set()
         for cell_id in self.territory:
             for prey_cohort in communities[cell_id]:
                 if not self.can_prey_on(prey_cohort):
@@ -1655,9 +1793,8 @@ class AnimalCohort:
                 if (allows_invertebrates and prey_group.is_invertebrate) or (
                     allows_vertebrates and prey_group.is_vertebrate
                 ):
-                    prey_list.append(prey_cohort)
-
-        return prey_list
+                    prey_set.add(prey_cohort)
+        return list(prey_set)
 
     def can_forage_on(self, resource: Resource) -> bool:
         """Check if the cohort can forage on a given non-cohort resource pool.
@@ -1868,25 +2005,40 @@ class AnimalCohort:
         )
         return cast(list[Resource], pools_list)
 
-    def find_intersecting_carcass_pools(
-        self,
-        prey_territory: list[int],
-        carcass_pools: dict[int, list[CarcassPool]],
-    ) -> list[CarcassPool]:
-        """Find the carcass pools of the intersection of two territories.
+    def get_territory_intersection(
+        self, other_cohort: AnimalCohort
+    ) -> tuple[set[int], float]:
+        """Find the overlapping cells and area between this cohort and another cohort.
 
         Args:
-            prey_territory: Another AnimalTerritory to find the intersection with.
+            other_cohort: The prey cohort to find the territorial overlap with.
+
+        Returns:
+            A tuple of the set of overlapping cell IDs and the total intersection
+            area in m2.
+        """
+        intersection_cells = set(self.territory) & set(other_cohort.territory)
+        intersection_area = len(intersection_cells) * self.grid.cell_area
+        return intersection_cells, intersection_area
+
+    def find_intersecting_carcass_pools(
+        self,
+        other_cohort: AnimalCohort,
+        carcass_pools: dict[int, list[CarcassPool]],
+    ) -> list[CarcassPool]:
+        """Find the carcass pools in the territorial overlap with another cohort.
+
+        Args:
+            other_cohort: The other cohort to find the territorial intersection with.
             carcass_pools: A dictionary mapping cell IDs to CarcassPool objects.
 
         Returns:
             A list of CarcassPools in the intersecting grid cells.
         """
-        intersecting_keys = set(self.territory) & set(prey_territory)
-        intersecting_carcass_pools: list[CarcassPool] = []
-        for cell_id in intersecting_keys:
-            intersecting_carcass_pools.extend(carcass_pools[cell_id])
-        return intersecting_carcass_pools
+        intersection_cells, _ = self.get_territory_intersection(other_cohort)
+        return [
+            pool for cell_id in intersection_cells for pool in carcass_pools[cell_id]
+        ]
 
     def get_herbivory_waste_pools(
         self, plant_waste: dict[int, HerbivoryWaste]

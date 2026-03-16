@@ -1,6 +1,7 @@
 """Test module for animal_cohorts.py."""
 
 import uuid
+from math import exp
 
 import pytest
 from numpy import isclose, timedelta64
@@ -1059,39 +1060,32 @@ class TestAnimalCohort:
         should_raise_error,
         expected_error_message,
     ):
-        """Test `calculate_potential_consumed_biomass`."""
-
+        """Test calculate_potential_consumed_biomass."""
         from virtual_ecosystem.models.animal.protocols import Resource
 
         # Mock the target plant with given attributes
         target_plant = mocker.MagicMock(spec=Resource)
         target_plant.mass_current = target_plant_attrs.get("mass_current", None)
 
-        # Mock `k_i_k` to check call parameters (not its return value)
+        # Mock k_i_k to check call parameters (not its return value)
         mock_kik = mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.k_i_k"
         )
 
-        # Extract functional group parameter
-        phi_herb_t = herbivore_cohort_instance.functional_group.constants.phi_herb_t
-        A_cell = 1.0  # Temporary placeholder
+        A_cell = herbivore_cohort_instance.grid.cell_area
 
         if should_raise_error:
-            # Ensure the correct error is raised
             with pytest.raises(ValueError, match=expected_error_message):
                 herbivore_cohort_instance.calculate_potential_consumed_biomass(
                     target_plant, alpha
                 )
         else:
-            # Call the method
             herbivore_cohort_instance.calculate_potential_consumed_biomass(
                 target_plant, alpha
             )
 
-            # Ensure `k_i_k` was called with correct parameters
-            mock_kik.assert_called_once_with(
-                alpha, phi_herb_t, target_plant.mass_current, A_cell
-            )
+            # Ensure k_i_k was called with the correct parameters
+            mock_kik.assert_called_once_with(alpha, target_plant.mass_current, A_cell)
 
     def test_calculate_total_handling_time_for_herbivory(
         self, mocker, herbivore_cohort_instance
@@ -1296,9 +1290,9 @@ class TestAnimalCohort:
 
     def test_calculate_potential_prey_consumed(self, mocker, herbivore_cohort_instance):
         """Test calculation of potential number of prey consumed."""
-
-        alpha = 0.8  # Example search rate
-        theta_i_j = 0.7  # Example predation parameter
+        alpha = 0.8
+        theta_i_j = 0.7
+        intersection_area = 5000.0
 
         mock_k_i_j = mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.k_i_j",
@@ -1306,162 +1300,361 @@ class TestAnimalCohort:
         )
 
         result = herbivore_cohort_instance.calculate_potential_prey_consumed(
-            alpha, theta_i_j
+            alpha, theta_i_j, intersection_area
         )
 
-        # Verify that k_i_j was called with the correct parameters
         mock_k_i_j.assert_called_once_with(
             alpha,
             herbivore_cohort_instance.individuals,
-            1.0,
+            intersection_area,
             theta_i_j,
         )
-
-        # Asserting the result matches the mocked return value
         assert result == 15.0, "Expected potential prey consumed not returned."
 
-    def test_calculate_total_handling_time_for_predation(
-        self, mocker, herbivore_cohort_instance
-    ):
-        """Test total handling time calculation for predation."""
-
-        mock_H_i_j = mocker.patch(
-            "virtual_ecosystem.models.animal.scaling_functions.H_i_j", return_value=2.5
-        )
-
-        result = herbivore_cohort_instance.calculate_total_handling_time_for_predation()
-
-        # Verify that H_i_j was called with the correct parameters
-        mock_H_i_j.assert_called_once_with(
-            herbivore_cohort_instance.constants.h_pred_0,
-            herbivore_cohort_instance.constants.M_pred_ref,
-            herbivore_cohort_instance.mass_current,
-            herbivore_cohort_instance.constants.b_pred,
-        )
-
-        # Asserting the result matches the mocked return value
-        assert result == 2.5, "Expected total handling time for predation not returned."
-
-    def test_F_i_j_individual(
-        self, mocker, predator_cohort_instance, animal_list_instance
-    ):
-        """Test instantaneous predation rate calculation on a selected target cohort."""
-
-        target_animal = animal_list_instance[0]
-
-        # Mock methods using the mocker fixture
-        mock_success_prob = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_predation_success_probability"
+    @pytest.mark.parametrize(
+        "cohort_specs, bin_densities, intersection_areas, expected",
+        [
+            pytest.param(
+                [],
+                {},
+                {},
+                0.0,
+                id="empty_list_returns_zero",
             ),
+            pytest.param(
+                [(50.0,), (100.0,)],
+                {5: 0.001, 6: 0.002},
+                None,  # built from cohort ids in test body
+                12.0,  # two prey, each H_i_j(2.0) * k_i_j(3.0) = 6.0
+                id="two_prey_sums_handling_time",
+            ),
+        ],
+    )
+    def test_calculate_total_handling_time_for_predation(
+        self,
+        predator_cohort_instance,
+        mocker,
+        cohort_specs,
+        bin_densities,
+        intersection_areas,
+        expected,
+    ):
+        """Test total handling time sums H_i_j * k_i_j correctly across prey list.
+
+        Scaling functions and _mass_bin are mocked to isolate accumulation logic.
+        intersection_areas is built from cohort ids in the test body when None.
+        """
+        animal_list = []
+        bin_side_effects = []
+        for i, (mass,) in enumerate(cohort_specs):
+            prey = mocker.Mock()
+            prey.mass_current = mass
+            animal_list.append(prey)
+            bin_side_effects.append(i + 5)
+
+        if intersection_areas is None:
+            intersection_areas = {
+                id(prey): 5000.0 * (i + 1) for i, prey in enumerate(animal_list)
+            }
+
+        mocker.patch.object(
+            predator_cohort_instance, "_mass_bin", side_effect=bin_side_effects
+        )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.w_bar_i_j",
             return_value=0.5,
         )
-        mock_search_rate = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_predation_search_rate"
-            ),
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.alpha_i_j",
             return_value=0.8,
         )
-        mock_theta_i_j = mocker.patch(
-            ("virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.theta_i_j"),
-            return_value=0.7,
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.H_i_j",
+            return_value=2.0,
         )
-        mock_potential_prey = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_potential_prey_consumed"
-            ),
-            return_value=10,
-        )
-        mock_total_handling = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.calculate_total_handling_time_for_predation"
-            ),
-            return_value=2,
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.k_i_j",
+            return_value=3.0,
         )
 
-        # Execute the method under test
-        rate = predator_cohort_instance.F_i_j_individual(
-            animal_list_instance, target_animal
+        result = predator_cohort_instance.calculate_total_handling_time_for_predation(
+            animal_list, 0.1, bin_densities, intersection_areas
         )
 
-        # Verify each mocked method was called with expected arguments
-        mock_success_prob.assert_called_once_with(target_animal.mass_current)
-        mock_search_rate.assert_called_once_with(0.5)
-        mock_theta_i_j.assert_called_once_with(animal_list_instance)
-        mock_potential_prey.assert_called_once_with(0.8, 0.7)
-        mock_total_handling.assert_called_once()
+        assert result == pytest.approx(expected)
 
-        # Calculate the expected rate based on the mocked return values and assert
-        N_i = predator_cohort_instance.individuals
-        N_target = target_animal.individuals
-        expected_rate = N_i * (10 / (1 + 2)) * (1 / N_target)
-        assert rate == pytest.approx(expected_rate), (
-            "F_i_j_individual did not return the expected predation rate."
-        )
-
-    def test_theta_i_j(self, predator_cohort_instance, animal_list_instance):
-        """Test theta_i_j."""
-        # TODO change this A_cell to call it from its real plant in the data
-        A_cell = 1.0  # Define A_cell value used in method implementation
-
-        # Execute the method under test
-        theta = predator_cohort_instance.theta_i_j(animal_list_instance)
-
-        # Calculate expected theta value considering A_cell
-        expected_theta = (
-            sum(
-                cohort.individuals
-                for cohort in animal_list_instance
-                if cohort.mass_current == predator_cohort_instance.mass_current
-            )
-            / A_cell
-        )
-
-        assert theta == expected_theta
-
-    def test_calculate_consumed_mass_predation_not_in_list(
+    def test_calculate_total_handling_time_for_predation_uses_precomputed_values(
         self,
         predator_cohort_instance,
         mocker,
     ):
-        """Test behavior when target cohort is not present in the prey list."""
-        from numpy import timedelta64
+        """Test that get_territory_intersection and theta_i_j are never called.
 
-        predator = predator_cohort_instance
-
+        Verifies the redundant recomputation has been eliminated in favour of
+        the pre-computed bin_densities and intersection_areas dicts.
+        """
         prey = mocker.Mock()
-        prey.mass_current = 10.0
-        prey.individuals = 5
+        prey.mass_current = 50.0
 
-        # Use a day-based timedelta64, matching model usage
-        adjusted_dt = timedelta64(10, "D")
-
-        prey_list = []  # Empty list, so target is not present
-
-        mocker.patch.object(predator, "F_i_j_individual", return_value=0.05)
-
-        result = predator.calculate_consumed_mass_predation(
-            prey_list,
-            prey,
-            adjusted_dt,
+        mock_territory = mocker.patch.object(
+            predator_cohort_instance, "get_territory_intersection"
+        )
+        mock_theta = mocker.patch.object(predator_cohort_instance, "theta_i_j")
+        mocker.patch.object(predator_cohort_instance, "_mass_bin", return_value=5)
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.w_bar_i_j",
+            return_value=0.5,
+        )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.alpha_i_j",
+            return_value=0.8,
+        )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.H_i_j",
+            return_value=2.0,
+        )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.k_i_j",
+            return_value=3.0,
         )
 
-        # No error expected — default formula still works, prey list isn't validated
-        assert isinstance(result, float)
-        assert result >= 0.0
+        predator_cohort_instance.calculate_total_handling_time_for_predation(
+            [prey], 0.1, {5: 0.001}, {id(prey): 5000.0}
+        )
+
+        mock_territory.assert_not_called()
+        mock_theta.assert_not_called()
+
+    def test_calculate_total_handling_time_for_predation_missing_bin_defaults_to_zero(
+        self,
+        predator_cohort_instance,
+        mocker,
+    ):
+        """Test that a prey bin absent from bin_densities passes 0.0 to k_i_j."""
+        prey = mocker.Mock()
+        prey.mass_current = 50.0
+
+        mocker.patch.object(predator_cohort_instance, "_mass_bin", return_value=99)
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.w_bar_i_j",
+            return_value=0.5,
+        )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.alpha_i_j",
+            return_value=0.8,
+        )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.H_i_j",
+            return_value=2.0,
+        )
+        mock_k = mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.k_i_j",
+            return_value=0.0,
+        )
+
+        predator_cohort_instance.calculate_total_handling_time_for_predation(
+            [prey], 0.1, {}, {id(prey): 5000.0}
+        )
+
+        assert mock_k.call_args[0][3] == pytest.approx(0.0)
+
+    @pytest.mark.parametrize(
+        "n_target, expected",
+        [
+            pytest.param(0, 0.0, id="zero_individuals_returns_zero"),
+            pytest.param(10, None, id="normal_case_uses_functional_response"),
+        ],
+    )
+    def test_F_i_j_individual(
+        self,
+        predator_cohort_instance,
+        mocker,
+        n_target,
+        expected,
+    ):
+        """Test instantaneous predation rate on a target cohort.
+
+        Zero-individual prey returns 0.0 immediately. For the normal case the
+        return value is derived from mocked sub-methods and verified via the
+        Holling type II formula: N_i * (k / (1 + H)) * (1 / N_target).
+        total_handling_time is passed directly as a pre-computed value.
+        """
+        target = mocker.Mock()
+        target.mass_current = 50.0
+        target.individuals = n_target
+        bin_densities = {5: 0.001}
+
+        mocker.patch.object(predator_cohort_instance, "_mass_bin", return_value=5)
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.w_bar_i_j",
+            return_value=0.5,
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_predation_search_rate",
+            return_value=0.8,
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_potential_prey_consumed",
+            return_value=4.0,
+        )
+
+        result = predator_cohort_instance.F_i_j_individual(
+            target, 5000.0, 0.1, bin_densities, 1.0
+        )
+
+        if expected is not None:
+            assert result == pytest.approx(expected)
+        else:
+            # N_i=10, k=4.0, H=1.0, N_target=10 → 10 * (4/(1+1)) * (1/10) = 2.0
+            assert result == pytest.approx(2.0)
+
+    def test_F_i_j_individual_does_not_draw_theta_opt(
+        self,
+        predator_cohort_instance,
+        mocker,
+    ):
+        """Test that calculate_theta_opt_i is never called.
+
+        theta_opt is drawn once per encounter in delta_mass_predation and passed in.
+        """
+        target = mocker.Mock()
+        target.mass_current = 50.0
+        target.individuals = 10
+
+        mock_draw = mocker.patch.object(
+            predator_cohort_instance, "calculate_theta_opt_i"
+        )
+        mocker.patch.object(predator_cohort_instance, "_mass_bin", return_value=5)
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.w_bar_i_j",
+            return_value=0.5,
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_predation_search_rate",
+            return_value=0.8,
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_potential_prey_consumed",
+            return_value=4.0,
+        )
+
+        predator_cohort_instance.F_i_j_individual(target, 5000.0, 0.1, {5: 0.001}, 1.0)
+
+        mock_draw.assert_not_called()
+
+    def test_F_i_j_individual_does_not_call_theta_i_j(
+        self,
+        predator_cohort_instance,
+        mocker,
+    ):
+        """Test that theta_i_j is never called directly.
+
+        Bin density lookups use the pre-computed bin_densities dict instead.
+        """
+        target = mocker.Mock()
+        target.mass_current = 50.0
+        target.individuals = 10
+
+        mock_theta = mocker.patch.object(predator_cohort_instance, "theta_i_j")
+        mocker.patch.object(predator_cohort_instance, "_mass_bin", return_value=5)
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.sf.w_bar_i_j",
+            return_value=0.5,
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_predation_search_rate",
+            return_value=0.8,
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_potential_prey_consumed",
+            return_value=4.0,
+        )
+
+        predator_cohort_instance.F_i_j_individual(target, 5000.0, 0.1, {5: 0.001}, 1.0)
+
+        mock_theta.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "cohort_specs, target_bin, expected_density",
+        [
+            pytest.param(
+                [],
+                5,
+                0.0,
+                id="empty_list_returns_zero",
+            ),
+            pytest.param(
+                [(10, 5)],
+                5,
+                10 / 10000,
+                id="single_cohort_in_target_bin",
+            ),
+            pytest.param(
+                [(10, 5)],
+                6,
+                0.0,
+                id="single_cohort_outside_target_bin",
+            ),
+            pytest.param(
+                [(10, 5), (20, 5)],
+                5,
+                30 / 10000,
+                id="two_cohorts_same_bin_densities_summed",
+            ),
+            pytest.param(
+                [(10, 5), (20, 6)],
+                5,
+                10 / 10000,
+                id="two_cohorts_different_bins_only_target_counted",
+            ),
+            pytest.param(
+                [(10, 5), (20, 6), (30, 5)],
+                5,
+                40 / 10000,
+                id="mixed_bins_only_matching_summed",
+            ),
+        ],
+    )
+    def test_theta_i_j(
+        self,
+        predator_cohort_instance,
+        mocker,
+        cohort_specs,
+        target_bin,
+        expected_density,
+    ):
+        """Test theta_i_j sums density of cohorts in the target bin only."""
+        animal_list = []
+        bin_returns = []
+        for individuals, bin_index in cohort_specs:
+            prey = mocker.Mock()
+            prey.mass_current = 100.0
+            prey.individuals = individuals
+            animal_list.append(prey)
+            bin_returns.append(bin_index)
+
+        mocker.patch.object(
+            predator_cohort_instance, "_mass_bin", side_effect=bin_returns
+        )
+
+        result = predator_cohort_instance.theta_i_j(animal_list, 0.1, target_bin)
+
+        assert result == pytest.approx(expected_density)
 
     @pytest.mark.parametrize(
         "F_value, mass_current, individuals, expected_behavior",
         [
-            (0.05, 10.0, 5, "formula"),  # normal case
-            (0.0, 10.0, 5, 0.0),  # F = 0
-            (1e6, 10.0, 5, "max"),  # very high F
-            (0.05, 10.0, 0, 0.0),  # zero individuals
-            (0.05, 0.0, 5, 0.0),  # zero mass
+            pytest.param(0.05, 10.0, 5, "formula", id="normal_case"),
+            pytest.param(0.0, 10.0, 5, 0.0, id="zero_F_consumes_nothing"),
+            pytest.param(1e6, 10.0, 5, "max", id="high_F_consumes_all"),
+            pytest.param(0.05, 10.0, 0, 0.0, id="zero_individuals"),
+            pytest.param(0.05, 0.0, 5, 0.0, id="zero_mass"),
         ],
     )
     def test_calculate_consumed_mass_predation_cases(
@@ -1473,189 +1666,319 @@ class TestAnimalCohort:
         individuals,
         expected_behavior,
     ):
-        """Parametrized test for consumed mass predation with mocked prey."""
+        """Test consumed mass formula across F values, mass, and individual counts.
+
+        total_handling_time is passed directly as a pre-computed value.
+        """
         from math import exp, isclose
 
         from numpy import timedelta64
 
-        predator = predator_cohort_instance
-
-        # Mock prey cohort
         prey = mocker.Mock()
         prey.mass_current = mass_current
         prey.individuals = individuals
-        prey_list = [prey]
 
-        # Use an integer-day timedelta64 and derive dt_days the same way the
-        # model does internally.
         adjusted_dt = timedelta64(8, "D")
         dt_days = float(adjusted_dt / timedelta64(1, "D"))
+        bin_densities = {5: 0.001}
 
-        # Patch predation rate method to return fixed value
-        mocker.patch.object(predator, "F_i_j_individual", return_value=F_value)
+        mocker.patch.object(
+            predator_cohort_instance, "F_i_j_individual", return_value=F_value
+        )
 
-        # Run method under test
-        result = predator.calculate_consumed_mass_predation(
-            prey_list,
-            prey,
-            adjusted_dt,
+        result = predator_cohort_instance.calculate_consumed_mass_predation(
+            prey, adjusted_dt, 5000.0, 0.1, bin_densities, 1.0
         )
 
         if expected_behavior == "formula":
             expected = mass_current * individuals * (1.0 - exp(-F_value * dt_days))
             assert isclose(result, expected, rel_tol=1e-9)
-
         elif expected_behavior == "max":
-            expected = mass_current * individuals
-            assert isclose(result, expected, rel_tol=1e-3)
-
+            assert isclose(result, mass_current * individuals, rel_tol=1e-3)
         else:
-            # Zero F, zero individuals, or zero mass → zero consumption
-            assert result == expected_behavior
+            assert result == pytest.approx(expected_behavior)
+
+    def test_calculate_consumed_mass_predation_passes_through_to_F_i_j(
+        self,
+        predator_cohort_instance,
+        mocker,
+    ):
+        """Test that arguments are forwarded correctly to F_i_j_individual."""
+        from numpy import timedelta64
+
+        prey = mocker.Mock()
+        prey.mass_current = 10.0
+        prey.individuals = 5
+
+        bin_densities = {5: 0.001}
+
+        mock_F = mocker.patch.object(
+            predator_cohort_instance, "F_i_j_individual", return_value=0.05
+        )
+
+        predator_cohort_instance.calculate_consumed_mass_predation(
+            prey,
+            timedelta64(8, "D"),
+            5000.0,
+            0.1,
+            bin_densities,
+            1.0,
+        )
+
+        mock_F.assert_called_once_with(prey, 5000.0, 0.1, bin_densities, 1.0)
 
     @pytest.mark.parametrize(
-        "animal_list, carcass_pools, should_raise_error, expected_error_message,"
+        "animal_list_spec, carcass_pools_spec, should_raise, error_match, "
         "mock_consumed_mass, mock_actual_cnp, expected_total",
         [
-            # Normal case: Predation occurs with valid inputs, single prey
-            (
-                [{"mock": True}],
-                {1: [{"mock": True}]},
-                False,
-                None,
-                {"C": 10.0, "N": 2.0, "P": 1.0},
-                {"C": 8.0, "N": 1.5, "P": 0.8},
-                {"C": 8.0, "N": 1.5, "P": 0.8},
-            ),
-            # Normal case: Two prey cohorts, sum their values
-            (
-                [{"mock": True}, {"mock": True}],
-                {1: [{"mock": True}]},
-                False,
-                None,
-                {"C": 5.0, "N": 1.0, "P": 0.5},
-                {"C": 4.0, "N": 0.8, "P": 0.4},
-                {"C": 8.0, "N": 1.6, "P": 0.8},
-            ),
-            # No prey (should return zero mass)
-            (
+            pytest.param(
                 [],
-                {1: [{"mock": True}]},
+                {1: [True]},
                 False,
                 None,
                 None,
                 None,
                 {"C": 0.0, "N": 0.0, "P": 0.0},
+                id="empty_list_returns_zero",
             ),
-            # animal_list is None
-            (
+            pytest.param(
+                [True],
+                {1: [True]},
+                False,
                 None,
-                {1: [{"mock": True}]},
+                10.0,
+                {"C": 8.0, "N": 1.5, "P": 0.8},
+                {"C": 8.0, "N": 1.5, "P": 0.8},
+                id="single_prey_accumulates_cnp",
+            ),
+            pytest.param(
+                [True, True],
+                {1: [True]},
+                False,
+                None,
+                5.0,
+                {"C": 4.0, "N": 0.8, "P": 0.4},
+                {"C": 8.0, "N": 1.6, "P": 0.8},
+                id="two_prey_cnp_summed",
+            ),
+            pytest.param(
+                None,
+                {1: [True]},
                 True,
-                "animal_list cannot be None.",
+                "animal_list cannot be None",
                 None,
                 None,
                 None,
+                id="none_animal_list_raises",
             ),
-            # carcass_pools is None
-            (
-                [{"mock": True}],
+            pytest.param(
+                [True],
                 None,
                 True,
-                "carcass_pools cannot be None.",
+                "carcass_pools cannot be None",
                 None,
                 None,
                 None,
+                id="none_carcass_pools_raises",
             ),
-            # calculate_consumed_mass_predation returns None
-            (
-                [{"mock": True}],
-                {1: [{"mock": True}]},
+            pytest.param(
+                [True],
+                {1: [True]},
                 True,
                 "calculate_consumed_mass_predation.*returned None",
                 None,
                 {"C": 8.0, "N": 1.5, "P": 0.8},
                 None,
+                id="none_consumed_mass_raises",
             ),
-            # get_eaten returns None
-            (
-                [{"mock": True}],
-                {1: [{"mock": True}]},
+            pytest.param(
+                [True],
+                {1: [True]},
                 True,
                 "get_eaten.*returned None",
-                {"C": 10.0, "N": 2.0, "P": 1.0},
+                10.0,
                 None,
                 None,
+                id="none_get_eaten_raises",
             ),
         ],
     )
     def test_delta_mass_predation(
         self,
         mocker,
-        herbivore_cohort_instance,
-        animal_list,
-        carcass_pools,
-        should_raise_error,
-        expected_error_message,
+        predator_cohort_instance,
+        animal_list_spec,
+        carcass_pools_spec,
+        should_raise,
+        error_match,
         mock_consumed_mass,
         mock_actual_cnp,
         expected_total,
     ):
-        """Test `delta_mass_predation` for normal and error cases.."""
+        """Test delta_mass_predation accumulation, empty list, and error cases.
 
-        # Import inside the method
+        calculate_consumed_mass_predation returns a float (kg), get_eaten returns
+        the CNP dict. Both are mocked here to isolate orchestration logic.
+        """
+        from numpy import timedelta64
+
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.decay import CarcassPool
 
-        # Mock the animal cohorts and carcass pools
+        animal_list = (
+            [mocker.MagicMock(spec=AnimalCohort) for _ in animal_list_spec]
+            if animal_list_spec is not None
+            else None
+        )
         if animal_list:
-            animal_list = [mocker.MagicMock(spec=AnimalCohort) for _ in animal_list]
             for prey in animal_list:
                 prey.id = uuid.uuid4()
                 mocker.patch.object(prey, "get_eaten", return_value=mock_actual_cnp)
-        if carcass_pools:
-            carcass_pools = {
+
+        carcass_pools = (
+            {
                 k: [mocker.MagicMock(spec=CarcassPool) for _ in v]
-                for k, v in carcass_pools.items()
+                for k, v in carcass_pools_spec.items()
             }
+            if carcass_pools_spec is not None
+            else None
+        )
 
-        adjusted_dt = 10
-
-        # Mock `calculate_consumed_mass_predation`
-        mock_calculate = mocker.patch.object(
-            herbivore_cohort_instance,
+        mocker.patch.object(
+            predator_cohort_instance, "calculate_theta_opt_i", return_value=0.1
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "get_territory_intersection",
+            return_value=(set(), 5000.0),
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "_build_prey_bin_densities",
+            return_value={5: 0.001},
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_total_handling_time_for_predation",
+            return_value=1.0,
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
             "calculate_consumed_mass_predation",
             return_value=mock_consumed_mass,
         )
 
-        # Mock `get_eaten` on all prey cohorts
-        for prey in animal_list or []:
-            mocker.patch.object(prey, "get_eaten", return_value=mock_actual_cnp)
-
-        if should_raise_error:
-            with pytest.raises(ValueError, match=expected_error_message):
-                herbivore_cohort_instance.delta_mass_predation(
-                    animal_list, carcass_pools, adjusted_dt=10
+        if should_raise:
+            with pytest.raises(ValueError, match=error_match):
+                predator_cohort_instance.delta_mass_predation(
+                    animal_list, carcass_pools, timedelta64(10, "D")
                 )
         else:
-            # Call method
-            result = herbivore_cohort_instance.delta_mass_predation(
-                animal_list, carcass_pools, adjusted_dt
+            result = predator_cohort_instance.delta_mass_predation(
+                animal_list, carcass_pools, timedelta64(10, "D")
+            )
+            assert result == expected_total
+
+    def test_delta_mass_predation_precomputes_once(
+        self,
+        mocker,
+        predator_cohort_instance,
+    ):
+        """Test that theta_opt, intersection_areas, and bin_densities compute once."""
+        from numpy import timedelta64
+
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import CarcassPool
+
+        prey_a = mocker.MagicMock(spec=AnimalCohort)
+        prey_b = mocker.MagicMock(spec=AnimalCohort)
+        for prey in (prey_a, prey_b):
+            prey.id = uuid.uuid4()
+            mocker.patch.object(
+                prey, "get_eaten", return_value={"C": 1.0, "N": 0.1, "P": 0.01}
             )
 
-            # Ensure correct mass summation
-            assert result == expected_total, (
-                f"Expected {expected_total}, but got {result}"
-            )
+        carcass_pools = {1: [mocker.MagicMock(spec=CarcassPool)]}
 
-            # Ensure `calculate_consumed_mass_predation` was called for each prey
-            assert mock_calculate.call_count == len(animal_list)
+        mock_theta = mocker.patch.object(
+            predator_cohort_instance, "calculate_theta_opt_i", return_value=0.1
+        )
+        mock_intersection = mocker.patch.object(
+            predator_cohort_instance,
+            "get_territory_intersection",
+            return_value=(set(), 5000.0),
+        )
+        mock_bin_densities = mocker.patch.object(
+            predator_cohort_instance,
+            "_build_prey_bin_densities",
+            return_value={5: 0.001},
+        )
+        mock_handling = mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_total_handling_time_for_predation",
+            return_value=1.0,
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_consumed_mass_predation",
+            return_value=5.0,
+        )
 
-            # Ensure `get_eaten` was called for each prey
-            for prey in animal_list:
-                prey.get_eaten.assert_called_once_with(
-                    mock_consumed_mass, herbivore_cohort_instance, carcass_pools
-                )
+        predator_cohort_instance.delta_mass_predation(
+            [prey_a, prey_b], carcass_pools, timedelta64(10, "D")
+        )
+
+        mock_theta.assert_called_once()
+        assert mock_intersection.call_count == 2
+        mock_bin_densities.assert_called_once()
+        mock_handling.assert_called_once()
+
+    def test_delta_mass_predation_skips_zero_intersection(
+        self,
+        mocker,
+        predator_cohort_instance,
+    ):
+        """Test that prey with zero territory intersection are skipped.
+
+        calculate_consumed_mass_predation must not be called when intersection
+        area is 0.0. calculate_total_handling_time_for_predation is still called
+        once before the loop since it does not depend on individual prey areas.
+        """
+        from numpy import timedelta64
+
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import CarcassPool
+
+        prey = mocker.MagicMock(spec=AnimalCohort)
+        prey.id = uuid.uuid4()
+
+        mocker.patch.object(
+            predator_cohort_instance, "calculate_theta_opt_i", return_value=0.1
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "get_territory_intersection",
+            return_value=(set(), 0.0),
+        )
+        mocker.patch.object(
+            predator_cohort_instance, "_build_prey_bin_densities", return_value={}
+        )
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_total_handling_time_for_predation",
+            return_value=1.0,
+        )
+        mock_consume = mocker.patch.object(
+            predator_cohort_instance, "calculate_consumed_mass_predation"
+        )
+
+        predator_cohort_instance.delta_mass_predation(
+            [prey],
+            {1: [mocker.MagicMock(spec=CarcassPool)]},
+            timedelta64(10, "D"),
+        )
+
+        mock_consume.assert_not_called()
 
     @pytest.mark.parametrize(
         "F_value, mass_current, expected",
@@ -2316,7 +2639,7 @@ class TestAnimalCohort:
         # Assign test-specific values to the cohort instance
         cohort = herbivore_cohort_instance
 
-        # ✅ Mock `mass_current` properly as a property on the class
+        # Mock `mass_current` properly as a property on the class
         mocker.patch.object(
             type(cohort),
             "mass_current",
@@ -2324,28 +2647,28 @@ class TestAnimalCohort:
             return_value=mass_current,
         )
 
-        # ✅ Mock `constants`
+        # Mock `constants`
         cohort.constants = mocker.MagicMock(
             V_disp=V_disp, M_disp_ref=M_disp_ref, o_disp=o_disp
         )
 
-        # ✅ Mock `juvenile_dispersal_speed`
+        # Mock `juvenile_dispersal_speed`
         mocked_velocity = V_disp * (mass_current / M_disp_ref) ** o_disp
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.juvenile_dispersal_speed",
             return_value=mocked_velocity,
         )
 
-        # ✅ Calculate expected probability
-        A_cell = 1.0
+        # Calculate expected probability
+        A_cell = herbivore_cohort_instance.grid.cell_area
         grid_side = sqrt(A_cell)
         calculated_probability = mocked_velocity / grid_side
         expected_probability = min(calculated_probability, 1.0)  # Cap at 1.0
 
-        # ✅ Call the method under test
+        # Call the method under test
         probability_of_dispersal = cohort.migrate_juvenile_probability()
 
-        # ✅ Assertion to check if the method returns the correct probability
+        # Assertion to check if the method returns the correct probability
         assert probability_of_dispersal == expected_probability, (
             f"Expected {expected_probability}, but got {probability_of_dispersal}."
         )
@@ -2417,7 +2740,7 @@ class TestAnimalCohort:
         cohort.time_since_maturity = t_since_maturity
         cohort.functional_group.adult_mass = mass_max
 
-        # ✅ Mock `mass_current` properly as a property on the class
+        # Mock `mass_current` properly as a property on the class
         mocker.patch.object(
             type(cohort),
             "mass_current",
@@ -2425,7 +2748,7 @@ class TestAnimalCohort:
             return_value=mass_current,
         )
 
-        # ✅ Mocking the mortality functions to return predefined values
+        # Mocking the mortality functions to return predefined values
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.background_mortality",
             return_value=u_bg,
@@ -3441,3 +3764,289 @@ class TestAnimalCohort:
         pool_a.__getitem__.assert_any_call(1)
         pool_a.__getitem__.assert_any_call(2)
         pool_b.__getitem__.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "self_territory, other_territory, expected_cells, expected_cell_count",
+        [
+            pytest.param([0, 1, 2], [1, 2, 3], {1, 2}, 2, id="partial_overlap"),
+            pytest.param([0, 1], [2, 3], set(), 0, id="no_overlap"),
+        ],
+    )
+    def test_get_territory_intersection(
+        self,
+        herbivore_cohort_instance,
+        predator_cohort_instance,
+        self_territory,
+        other_territory,
+        expected_cells,
+        expected_cell_count,
+    ):
+        """Test get_territory_intersection."""
+        herbivore_cohort_instance.territory = self_territory
+        predator_cohort_instance.territory = other_territory
+
+        intersection_cells, intersection_area = (
+            herbivore_cohort_instance.get_territory_intersection(
+                predator_cohort_instance
+            )
+        )
+
+        assert intersection_cells == expected_cells
+        assert intersection_area == pytest.approx(
+            expected_cell_count * herbivore_cohort_instance.grid.cell_area
+        )
+
+    @pytest.mark.parametrize(
+        "self_territory, other_territory, expected_cell_ids",
+        [
+            pytest.param([0, 1, 2], [1, 2, 3], {1, 2}, id="partial_overlap"),
+            pytest.param([0, 1], [2, 3], set(), id="no_overlap"),
+        ],
+    )
+    def test_find_intersecting_carcass_pools(
+        self,
+        herbivore_cohort_instance,
+        predator_cohort_instance,
+        carcass_pools_by_cell_instance,
+        self_territory,
+        other_territory,
+        expected_cell_ids,
+    ):
+        """Test find_intersecting_carcass_pools."""
+        herbivore_cohort_instance.territory = self_territory
+        predator_cohort_instance.territory = other_territory
+
+        result = herbivore_cohort_instance.find_intersecting_carcass_pools(
+            predator_cohort_instance, carcass_pools_by_cell_instance
+        )
+
+        expected = [
+            pool
+            for cell_id in expected_cell_ids
+            for pool in carcass_pools_by_cell_instance[cell_id]
+        ]
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "predator_mass, prey_mass, theta_opt, expected_bin",
+        [
+            pytest.param(
+                100.0,
+                100.0 * exp(0.1),
+                0.1,
+                6,
+                id="prey_at_optimal_ratio_gives_offset_bin",
+            ),
+            pytest.param(
+                100.0,
+                100.0 * exp(0.1 + 0.35),
+                0.1,
+                7,
+                id="prey_one_half_sigma_above_optimal",
+            ),
+            pytest.param(
+                100.0,
+                100.0 * exp(0.1 - 0.35),
+                0.1,
+                5,
+                id="prey_one_half_sigma_below_optimal",
+            ),
+            pytest.param(
+                100.0,
+                100.0 * exp(0.1 + 0.70),
+                0.1,
+                8,
+                id="prey_two_half_sigma_steps_above_optimal",
+            ),
+            pytest.param(
+                100.0,
+                100.0 * exp(0.1 - 0.70),
+                0.1,
+                4,
+                id="prey_two_half_sigma_steps_below_optimal",
+            ),
+            pytest.param(
+                100.0,
+                100.0 * exp(0.0),
+                0.0,
+                6,
+                id="zero_theta_opt_equal_mass_gives_offset_bin",
+            ),
+        ],
+    )
+    def test_mass_bin_expected_values(
+        self,
+        predator_cohort_instance,
+        predator_mass,
+        prey_mass,
+        theta_opt,
+        expected_bin,
+    ):
+        """Test _mass_bin returns the correct integer bin index for known inputs.
+
+        Expected values derive from Eq. 39 of Harfoot et al. (2014) with default
+        constants sigma_opt_pred_prey=0.7 and N_sigma_opt_pred_prey=3.0, giving
+        bin = round((log(prey/pred) - theta_opt) / 0.35 + 6). Prey placed at
+        exactly the optimal ratio produces the offset bin (6); each half-sigma
+        step (0.35 in log-mass space) shifts the bin by one.
+        """
+
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        proportions = predator_cohort_instance.cnp_proportions
+        predator_cohort_instance.mass_cnp = CNP(
+            C=predator_mass * proportions["C"],
+            N=predator_mass * proportions["N"],
+            P=predator_mass * proportions["P"],
+        )
+
+        result = predator_cohort_instance._mass_bin(prey_mass, theta_opt)
+
+        assert result == expected_bin
+
+    def test_mass_bin_raises_on_zero_predator_mass(self, predator_cohort_instance):
+        """Test that zero predator mass_current raises ValueError."""
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        predator_cohort_instance.mass_cnp = CNP(C=0.0, N=0.0, P=0.0)
+
+        with pytest.raises(ValueError, match="Predator mass_current must be positive"):
+            predator_cohort_instance._mass_bin(100.0, 0.1)
+
+    def test_mass_bin_raises_on_zero_prey_mass(self, predator_cohort_instance):
+        """Test that zero prey_mass raises ValueError."""
+        with pytest.raises(ValueError, match="prey_mass must be positive"):
+            predator_cohort_instance._mass_bin(0.0, 0.1)
+
+    def test_mass_bin_raises_on_negative_prey_mass(self, predator_cohort_instance):
+        """Test that negative prey_mass raises ValueError."""
+        with pytest.raises(ValueError, match="prey_mass must be positive"):
+            predator_cohort_instance._mass_bin(-50.0, 0.1)
+
+    def test_mass_bin_depends_on_ratio_not_absolute_mass(
+        self, predator_cohort_instance
+    ):
+        """Test that bin index depends on prey/predator ratio, not absolute masses.
+
+        A predator of 10 kg and prey of 10*exp(0.1) kg should produce the same
+        bin as predator 100 kg and prey 100*exp(0.1) kg, since the log ratio is
+        identical in both cases.
+        """
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        proportions = predator_cohort_instance.cnp_proportions
+
+        predator_cohort_instance.mass_cnp = CNP(
+            C=10.0 * proportions["C"],
+            N=10.0 * proportions["N"],
+            P=10.0 * proportions["P"],
+        )
+        bin_small = predator_cohort_instance._mass_bin(10.0 * exp(0.1), 0.1)
+
+        predator_cohort_instance.mass_cnp = CNP(
+            C=100.0 * proportions["C"],
+            N=100.0 * proportions["N"],
+            P=100.0 * proportions["P"],
+        )
+        bin_large = predator_cohort_instance._mass_bin(100.0 * exp(0.1), 0.1)
+
+        assert bin_small == bin_large
+
+    def test_build_prey_bin_densities_empty_list(self, predator_cohort_instance):
+        """Test that an empty animal_list returns an empty dict."""
+        result = predator_cohort_instance._build_prey_bin_densities([], 0.1)
+
+        assert result == {}
+
+    def test_build_prey_bin_densities_single_cohort(
+        self, predator_cohort_instance, mocker
+    ):
+        """Test that a single cohort produces one bin entry with correct density.
+
+        Density is individuals / cell_area. With cell_area=10000 and individuals=10,
+        expected density is 0.001.
+        """
+        prey = mocker.Mock()
+        prey.mass_current = 50.0
+        prey.individuals = 10
+
+        mocker.patch.object(predator_cohort_instance, "_mass_bin", return_value=5)
+
+        result = predator_cohort_instance._build_prey_bin_densities([prey], 0.1)
+
+        assert result == {5: pytest.approx(10 / 10000)}
+
+    def test_build_prey_bin_densities_two_cohorts_different_bins(
+        self, predator_cohort_instance, mocker
+    ):
+        """Test that cohorts in different bins produce separate entries."""
+        prey_a = mocker.Mock()
+        prey_a.mass_current = 50.0
+        prey_a.individuals = 10
+
+        prey_b = mocker.Mock()
+        prey_b.mass_current = 500.0
+        prey_b.individuals = 20
+
+        mocker.patch.object(
+            predator_cohort_instance,
+            "_mass_bin",
+            side_effect=[5, 7],
+        )
+
+        result = predator_cohort_instance._build_prey_bin_densities(
+            [prey_a, prey_b], 0.1
+        )
+
+        assert result == {
+            5: pytest.approx(10 / 10000),
+            7: pytest.approx(20 / 10000),
+        }
+
+    def test_build_prey_bin_densities_two_cohorts_same_bin(
+        self, predator_cohort_instance, mocker
+    ):
+        """Test that cohorts in the same bin have their densities summed."""
+        prey_a = mocker.Mock()
+        prey_a.mass_current = 50.0
+        prey_a.individuals = 10
+
+        prey_b = mocker.Mock()
+        prey_b.mass_current = 55.0
+        prey_b.individuals = 30
+
+        mocker.patch.object(
+            predator_cohort_instance,
+            "_mass_bin",
+            return_value=5,
+        )
+
+        result = predator_cohort_instance._build_prey_bin_densities(
+            [prey_a, prey_b], 0.1
+        )
+
+        assert result == {5: pytest.approx(40 / 10000)}
+
+    def test_build_prey_bin_densities_calls_mass_bin_once_per_cohort(
+        self, predator_cohort_instance, mocker
+    ):
+        """Test that _mass_bin is called exactly once per cohort."""
+        prey_a = mocker.Mock()
+        prey_a.mass_current = 50.0
+        prey_a.individuals = 10
+
+        prey_b = mocker.Mock()
+        prey_b.mass_current = 200.0
+        prey_b.individuals = 5
+
+        mock_bin = mocker.patch.object(
+            predator_cohort_instance,
+            "_mass_bin",
+            side_effect=[5, 6],
+        )
+
+        predator_cohort_instance._build_prey_bin_densities([prey_a, prey_b], 0.1)
+
+        assert mock_bin.call_count == 2
+        mock_bin.assert_any_call(50.0, 0.1)
+        mock_bin.assert_any_call(200.0, 0.1)
