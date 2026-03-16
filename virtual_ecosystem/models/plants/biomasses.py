@@ -659,6 +659,13 @@ class RootTissue(TissueABC):
 
         element_masses: dict[str, Element] = {}
 
+        # until pyrealm 2.0.1
+        fine_root_mass = (
+            community.stem_allometry.foliage_mass
+            * community.stem_traits.zeta
+            * community.stem_traits.sla
+        )
+
         for elem in with_elements:
             ideal_ratio = np.array(
                 [
@@ -673,13 +680,15 @@ class RootTissue(TissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.fine_root_mass
-                / ideal_ratio,
+                actual_element_mass=fine_root_mass / ideal_ratio,
+                # actual_element_mass=community.stem_allometry.fine_root_mass
+                # / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
         return cls(
-            carbon_mass=community.stem_allometry.fine_root_mass,
+            # carbon_mass=community.stem_allometry.fine_root_mass,
+            carbon_mass=fine_root_mass,
             community=community,
             element_masses=element_masses,
         )

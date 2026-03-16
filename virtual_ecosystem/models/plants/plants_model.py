@@ -405,7 +405,7 @@ class PlantsModel(
                 with_elements=["N", "P"],
                 tissues=biomass_tissues,
             )
-            for cell_id, community in self.communities
+            for cell_id, community in self.communities.items()
         }
 
         # Check the pft propagules data
