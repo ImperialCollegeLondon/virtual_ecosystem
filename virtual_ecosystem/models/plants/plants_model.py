@@ -26,6 +26,24 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration, PyrealmConfig
+from virtual_ecosystem.models.plants.biomasses import (
+    Biomasses,
+)
+from virtual_ecosystem.models.plants.biomasses import (
+    FoliageTissue as bioFoliageTissue,
+)
+from virtual_ecosystem.models.plants.biomasses import (
+    ReproductiveTissue as bioReproductiveTissue,
+)
+from virtual_ecosystem.models.plants.biomasses import (
+    RootTissue as bioRootTissue,
+)
+from virtual_ecosystem.models.plants.biomasses import (
+    TissueABC as bioTissueABC,
+)
+from virtual_ecosystem.models.plants.biomasses import (
+    WoodTissue as bioWoodTissue,
+)
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
     initialise_canopy_layers,
@@ -256,6 +274,9 @@ class PlantsModel(
         self.communities: PlantCommunities
         """An instance of PlantCommunities providing dictionary access keyed by cell id
         to PlantCommunity instances for each cell."""
+        self.biomasses: dict[int, Biomasses]
+        """A dictionary keyed by cell id of the carbon and nutrient biomass of each
+        community."""
         self.stoichiometries: dict[int, dict[str, StemStoichiometry]]
         """A dictionary keyed by cell id giving the stoichiometry of each community."""
         self.allocations: dict[int, StemAllocation]
@@ -367,9 +388,25 @@ class PlantsModel(
             RootTissue,  # not a pyrealm allometry attribute
         ]
 
-        # Record the per stem biomasses of stochiometric tissues for each cohort.
+        # Currently two parallel tissue type definitions - one for the original
+        # stochiometry module and then one from the new biomasses module.
+        biomass_tissues: list[type[bioTissueABC]] = [
+            bioFoliageTissue,  # foliage mass
+            bioReproductiveTissue,  # reproductive mass
+            bioWoodTissue,  # stem mass
+            bioRootTissue,  # not a pyrealm allometry attribute
+        ]
 
-        # >>>>>>>>> BIOMASS STUFF GOES IN HERE <<<<<<<<
+        # Record the per stem biomasses of stochiometric tissues for each cohort.
+        self.biomasses = {
+            cell_id: Biomasses.default_init(
+                community=community,
+                extra_pft_traits=extra_pft_traits,
+                with_elements=["N", "P"],
+                tissues=biomass_tissues,
+            )
+            for cell_id, community in self.communities
+        }
 
         # Check the pft propagules data
         # Some development notes:
