@@ -19,8 +19,10 @@ model](./plants_config.md).
 ## Preparing the input data for the plants model
 
 Input data preparation for the `plants` model involves providing some array data (the
-specific variables required can be found in the [variables
-table](../../variables/variables.md)). It also involves providing details of the plant
-functional types, both in terms of their parametrisation and their distribution across
-cells. We provide an [extended description of how you configure plant functional
+specific variables required can be found in the
+<!-- markdownlint-disable-next-line MD013 MD033-->
+<a href="../../using_the_ve/variables/variables.html?models=plants&roles=vars_required_for_init,vars_required_for_update">variables table.</a>.
+It also involves providing details of the plant functional types,
+both in terms of their parametrisation and their distribution across cells. We provide
+an [extended description of how you configure plant functional
 types](pft_configuration.md).
