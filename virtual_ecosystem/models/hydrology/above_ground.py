@@ -545,7 +545,7 @@ def distribute_monthly_rainfall(
     scale_parameter: float,
     seed: int | None = None,
 ) -> NDArray[np.floating]:
-    """Distribute monthly rainfall to daily rainfall using stochastic weather generator.
+    r"""Distribute monthly to daily rainfall using stochastic weather generator.
 
     Daily rainfall occurrence is simulated using a first-order Markov chain ,
     and rainfall intensity on wet days is drawn from a Gamma distribution
@@ -553,82 +553,58 @@ def distribute_monthly_rainfall(
 
     Wet/dry occurrence model
     ------------------------
-    Let S_t be the rainfall state on day t:
+    Let :math:`S_{t}` be the rainfall state on day :math:`t`:
 
-        S_t = 1  (wet day)
-        S_t = 0  (dry day)
+        :math:`S_{t} = 1`  (wet day)
+        :math:`S_{t} = 0`  (dry day)
 
     The probability of a wet day depends on the previous day:
 
-        P(S_t = 1 | S_{t-1} = 1) = p_wet_wet
-        P(S_t = 1 | S_{t-1} = 0) = p_wet_dry
+        :math:`P(S_t = 1 | S_{t-1} = 1) = p_wet_wet`
+        :math:`P(S_t = 1 | S_{t-1} = 0) = p_wet_dry`
+
 
     Rainfall intensity model
     ------------------------
     Rainfall on wet days is sampled from a Gamma distribution:
 
-        x ~ Gamma(k, θ)
+        :math:`x ~ Gamma(k, \Theta)`
 
     where:
-        k = shape parameter
-        θ = scale parameter
+        :math:`k` = shape parameter, dimensionless
+        :math:`\Theta` = scale parameter, dimensionless
 
 
     The sampled intensities are then scaled so that their sum equals the
     specified monthly rainfall total:
 
-        r_i = (x_i / Σx_i) * R
+        :math:`r_{i} = (x_{i} / \Sigma x_{i}) * R`
 
     where:
-        r_i = rainfall on day i [mm]
-        x_i = sampled Gamma intensity
-        R   = total monthly rainfall [mm]
+        :math:`r_{i}` = rainfall on day i [mm]
+        :math:`x_{i}` = sampled Gamma intensity
+        :math:`R`   = total monthly rainfall [mm]
 
     Args:
-        total_monthly_rainfall:
-            Total rainfall per month [mm].
+        total_monthly_rainfall: Total rainfall per month [mm].
+        num_days: Number of days in the month.
+        p_wet_wet: Probability a wet day follows a wet day. Typical values are
+            0.5-0.7 temperate climates; 0.6-0.8 humid climates; 0.3-0.5 arid climates
+        p_wet_dry: Probability a wet day follows a dry day. Typical values are
+                0.1-0.3 arid climates; 0.2-0.4 temperate climates; 0.3-0.5 tropical
+                climates
+        shape_parameter: Shape parameter of the Gamma distribution controlling
+            rainfall variability. Typical values are 0.7-1.0 intense storms / high
+            variability; 1.0-2.0 moderate variability (common default 1.5); 2.0-4.0 more
+            uniform rainfall
+        scale_parameter: Scale parameter of the Gamma distribution controlling
+            absolute magnitude of rainfall, typically 1.0.
+        seed: Seed for random number generator (optional).
 
-        num_days:
-            Number of days in the month.
+    Returns: Daily rainfall array (len(total_monthly_rainfall), num_days), [mm].
 
-        p_wet_wet:
-            Probability a wet day follows a wet day.
-
-            Typical values:
-                0.5-0.7 temperate climates
-                0.6-0.8 humid climates
-                0.3-0.5 arid climates
-
-        p_wet_dry:
-            Probability a wet day follows a dry day.
-
-            Typical values:
-                0.1-0.3 arid climates
-                0.2-0.4 temperate climates
-                0.3-0.5 tropical climates
-
-        shape_parameter:
-            Shape parameter (k) of the Gamma distribution controlling rainfall
-            variability.
-
-            Typical values:
-                0.7-1.0 intense storms / high variability
-                1.0-2.0 moderate variability (common default 1.5)
-                2.0-4.0 more uniform rainfall
-
-        scale_parameter:
-            Scale parameter (θ) of the Gamma distribution controlling absolute
-            magnitude of rainfall, typically 1.0.
-
-        seed:
-            Seed for random number generator (optional).
-
-    Returns:
-        Daily rainfall array with shape (len(total_monthly_rainfall), num_days), [mm].
-
-    Raises:
-        ValueError: If any input is invalid (negative rainfall, invalid probabilities,
-            etc.)
+    Raises: ValueError, if any input is invalid (negative rainfall, invalid
+        probabilities, etc.)
     """
 
     # Input validation
