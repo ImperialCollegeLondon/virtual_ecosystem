@@ -81,6 +81,10 @@ def test_setup_hydrology_input_current_timestep(
         soil_layer_thickness_mm=lyr_strct.soil_layer_thickness * 1000,
         soil_moisture_saturation=0.9,
         soil_moisture_residual=0.1,
+        p_wet_wet=0.6,
+        p_wet_dry=0.3,
+        shape_parameter=1.5,
+        scale_parameter=1.0,
     )
 
     # Check if all variables were created TODO switch back to subcanopy
