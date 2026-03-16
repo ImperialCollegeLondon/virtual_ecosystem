@@ -217,8 +217,7 @@ class DisturbanceConfigurationRoot(Configuration):
     priority: int = 0
     """Priority for the disturbance. 
 
-    Higher priority disturbances will be executed first. In case of having the same
-    disturbances are sorted by alphabetical order.
+    Every disturbance model must have a different priority.
     """
 
     @model_validator(mode="after")

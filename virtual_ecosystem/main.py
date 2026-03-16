@@ -158,15 +158,19 @@ def sort_disturbances(disturbance_config: CompiledConfiguration) -> list[str]:
     Returns:
         Tuple of disturbance model names in the order they need to be executed.
     """
-    return sorted(
-        disturbance_config._model_classes.keys(),
-        key=lambda name: (
-            -disturbance_config.get_subconfiguration(
-                name, DisturbanceConfigurationRoot
-            ).priority,
-            name,
-        ),
-    )
+    priorities = {
+        name: -disturbance_config.get_subconfiguration(
+            name, DisturbanceConfigurationRoot
+        ).priority
+        for name in disturbance_config._model_classes.keys()
+    }
+    if len(set(priorities.values())) != len(priorities):
+        to_raise: Exception = InitialisationError(
+            "Configuration failed for disturbances: 2 or more disturbance models have "
+            "the same priority"
+        )
+        LOGGER.critical(to_raise)
+    return sorted(priorities.keys(), key=lambda name: priorities[name])
 
 
 def initialise_disturbances(
