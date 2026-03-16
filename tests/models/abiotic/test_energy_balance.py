@@ -77,9 +77,9 @@ def test_calculate_longwave_emission(
     canopy_index = lyr_str.index_filled_canopy
 
     result = calculate_longwave_emission(
-        temperature=data["air_temperature"][canopy_index].to_numpy()
+        temperature=data["canopy_temperature"][canopy_index].to_numpy()
         + fixture_core_constants.zero_Celsius,
-        emissivity=fixture_abiotic_constants.soil_emissivity,
+        emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann=fixture_core_constants.stefan_boltzmann_constant,
     )
 

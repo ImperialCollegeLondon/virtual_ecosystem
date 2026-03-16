@@ -500,7 +500,7 @@ def calculate_vegetation_temperature(
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=False,
-        maxiter=10000,
+        maxiter=100,
     )
 
 
@@ -577,7 +577,8 @@ def calculate_soil_fluxes(
 
     # longwave emission from topsoil, [W m-2]
     out["longwave_emission_soil"] = energy_balance.calculate_longwave_emission(
-        temperature=state["soil_temperature"][idx.topsoil],
+        temperature=state["soil_temperature"][idx.topsoil]
+        + core_constants.zero_Celsius,
         emissivity=abiotic_constants.soil_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
@@ -651,7 +652,7 @@ def update_air_temperature(
 
     # Update surface air temperatures, [C]
     flux_from_soil = (
-        state["sensible_heat_flux"][idx.topsoil]
+        -state["sensible_heat_flux"][idx.topsoil]
         + 0.5 * state["longwave_emission"][idx.topsoil]
     )
     surface_air_temperature = energy_balance.update_air_temperature(
@@ -659,7 +660,7 @@ def update_air_temperature(
         sensible_heat_flux=state["sensible_heat_flux"][idx.surface] + flux_from_soil,
         specific_heat_air=state["specific_heat_air"][idx.surface],
         density_air=state["density_air"][idx.surface],
-        mixing_layer_thickness=static["geometry"]["thickness"][-1],
+        mixing_layer_thickness=static["geometry"]["thickness"][-1] * 10,  # TODO
         time_interval=time_interval,
     )
 
@@ -668,10 +669,10 @@ def update_air_temperature(
     air_temperature[1 : len(canopy_air_temperature) + 1] = canopy_air_temperature
     air_temperature[idx.surface] = surface_air_temperature
 
-    air_temperature[idx.atm] = wind.mix_and_ventilate(
-        input_variable=air_temperature[idx.atm],
+    air_temperature = wind.mix_and_ventilate(
+        input_variable=air_temperature,
         ventilation_rate=state["ventilation_rate"],
-        mixing_coefficient=static["mixing_coefficient"][idx.atm],
+        mixing_coefficient=static["mixing_coefficient"],
         limits=abiotic_bounds.air_temperature[:2],
     )
 
@@ -910,11 +911,13 @@ def build_output_from_record(
     vars_set = set(vars_updated)
 
     # Static atmospheric layered variables
+    atm_index = layer_structure.index_filled_atmosphere
     for name in static:
         if name not in vars_set:
             continue
 
         temp = layer_structure.from_template()
+        temp[atm_index] = static[name][atm_index]
         output[name] = temp
 
     # Hourly recorded variables
@@ -1091,4 +1094,6 @@ def run_microclimate(
         layer_structure=layer_structure,
         vars_updated=vars_updated,
     )
+    output["latent_heat_vapourisation"] /= 1000.0
+
     return output
