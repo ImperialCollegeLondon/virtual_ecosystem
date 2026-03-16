@@ -15,7 +15,7 @@ TODO change temperatures to Kelvin
 
 import numpy as np
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calculate_vp_sat
+from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -272,7 +272,7 @@ def calculate_vapour_pressure_deficit(
     """
 
     output = {}
-    saturation_vapour_pressure_numpy = calculate_vp_sat(
+    saturation_vapour_pressure_numpy = calc_vp_sat(
         ta=temperature.to_numpy(),
         core_const=pyrealm_core_constants,
     )

@@ -12,7 +12,7 @@ from math import sqrt
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calculate_vp_sat
+from pyrealm.core.hygro import calc_vp_sat
 
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
@@ -280,7 +280,7 @@ def calculate_soil_evaporation(
     alpha = np.where(barton_ratio > 1, 1, barton_ratio)
 
     # Calculate saturation vapour pressure, kPa
-    saturation_vapour_pressure = calculate_vp_sat(
+    saturation_vapour_pressure = calc_vp_sat(
         ta=temperature,
         core_const=pyrealm_core_constants,
     )
