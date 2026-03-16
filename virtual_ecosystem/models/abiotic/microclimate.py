@@ -656,7 +656,7 @@ def update_air_temperature(
     # TODO The surface layer is only 10cm thick and therefore cannot absorb all energy
     # emitted by high LAI of understorey without exploding temperatures. This scaling
     # factor artificially expands the layer thickness to 1.5 m reference height; this
-    # needs to be addressed with location of understorey vegetation.
+    # needs to be addressed with location of understorey vegetation. #1439
     surface_layer_scaling_factor = 15
     surface_mixing_layer_thickness = (
         static["geometry"]["thickness"][-1] * surface_layer_scaling_factor
