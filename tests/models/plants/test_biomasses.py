@@ -542,6 +542,7 @@ def test_RootTissue_functions(fixture_community, fixture_stem_allocation):
 
     # Check tissue masses have been decreased
 
+    # This is currently a shit test
     assert np.allclose(
         tissue.carbon_mass,
         fine_root_mass,
@@ -814,18 +815,6 @@ def test_Biomasses_from_community(fixture_community, extra_pft_traits):
         tissues=[FoliageTissue, ReproductiveTissue, WoodTissue, RootTissue],
     )
 
-    # Check the biomasses are all populated correctly
-    for tissue_name, allom_attr in (
-        ("foliage", "foliage_mass"),
-        ("wood", "stem_mass"),
-        ("reproductive", "reproductive_tissue_mass"),
-        ("root", "fine_root_mass"),
-    ):
-        assert np.allclose(
-            biomasses.get_tissue(tissue_name).carbon_mass,
-            getattr(fixture_community.stem_allometry, allom_attr),
-        )
-
     # Check the biomasses are all populated correctly and the element masses are at the
     # ideal ratios
     for tissue_name, allom_attr in (
@@ -836,10 +825,22 @@ def test_Biomasses_from_community(fixture_community, extra_pft_traits):
     ):
         tissue = biomasses.get_tissue(tissue_name)
 
-        assert np.allclose(
-            tissue.carbon_mass,
-            getattr(fixture_community.stem_allometry, allom_attr),
-        )
+        if allom_attr == "fine_root_mass":
+            expected_mass = (
+                fixture_community.stem_allometry.foliage_mass
+                * fixture_community.stem_traits.zeta
+                * fixture_community.stem_traits.sla
+            )
+        else:
+            expected_mass = getattr(fixture_community.stem_allometry, allom_attr)
+
+        assert np.allclose(tissue.carbon_mass, expected_mass)
+
+        # From pyrealm 2.0.1
+        # assert np.allclose(
+        #     tissue.carbon_mass,
+        #     getattr(fixture_community.stem_allometry, allom_attr),
+        # )
 
         for elem in biomasses.elements:
             element = tissue.element_masses[elem]

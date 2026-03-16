@@ -14,7 +14,7 @@ from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
-from pyrealm.demography.community import Cohorts
+from pyrealm.demography.community import Cohorts, Community
 from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
@@ -277,6 +277,9 @@ class PlantsModel(
         self.biomasses: dict[int, Biomasses]
         """A dictionary keyed by cell id of the carbon and nutrient biomass of each
         community."""
+        self.biomass_tissues: list[type[bioTissueABC]]
+        """A list of types of biomass subclasses that sets the tissues to be
+        modelled within the simulation."""
         self.stoichiometries: dict[int, dict[str, StemStoichiometry]]
         """A dictionary keyed by cell id giving the stoichiometry of each community."""
         self.allocations: dict[int, StemAllocation]
@@ -390,7 +393,7 @@ class PlantsModel(
 
         # Currently two parallel tissue type definitions - one for the original
         # stochiometry module and then one from the new biomasses module.
-        biomass_tissues: list[type[bioTissueABC]] = [
+        self.biomass_tissues = [
             bioFoliageTissue,  # foliage mass
             bioReproductiveTissue,  # reproductive mass
             bioWoodTissue,  # stem mass
@@ -403,7 +406,7 @@ class PlantsModel(
                 community=community,
                 extra_pft_traits=extra_pft_traits,
                 with_elements=["N", "P"],
-                tissues=biomass_tissues,
+                tissues=self.biomass_tissues,
             )
             for cell_id, community in self.communities.items()
         }
@@ -1356,6 +1359,26 @@ class PlantsModel(
                 # Add recruited cohorts
                 community.add_cohorts(new_data=cohorts)
 
+                # Extend biomasses.
+                # TODO - This currently uses initialisation from default ratios, but  it
+                #        should use nutrients from the reproductive mass. One step at a
+                #        time.
+                new_community = Community(
+                    cell_id=cell_id,
+                    cohorts=cohorts,
+                    flora=self.flora,
+                    cell_area=community.cell_area,
+                )
+                new_biomasses = Biomasses.default_init(
+                    community=new_community,
+                    extra_pft_traits=self.extra_pft_traits,
+                    with_elements=["N", "P"],
+                    tissues=self.biomass_tissues,
+                )
+
+                self.biomasses[cell_id].append(new_biomasses)
+
+                # Extend stochiometries
                 self.stoichiometries[cell_id]["N"].add_cohorts(
                     new_cohort_data=cohorts,
                     flora=self.flora,
