@@ -170,7 +170,6 @@ def sort_disturbances(disturbance_config: CompiledConfiguration) -> list[str]:
 
 
 def initialise_disturbances(
-    sorted_disturbances: list[str],
     configuration: CompiledConfiguration,
     data: Data,
     core_components: CoreComponents,
@@ -179,7 +178,6 @@ def initialise_disturbances(
     """Initialise a set of disturbances for use in a `virtual_ecosystem` simulation.
 
     Args:
-        sorted_disturbances: list of disturbances in the right execution order.
         configuration: A validated Virtual Ecosystem configuration object containing the
             disturbance configuration.
         data: A Data instance.
@@ -192,6 +190,7 @@ def initialise_disturbances(
     Returns:
         Dictionary of initialised disturbances in the right execution order.
     """
+    sorted_disturbances = sort_disturbances(configuration)
 
     LOGGER.info("Initialising disturbances: {}".format(",".join(sorted_disturbances)))
 
@@ -338,7 +337,6 @@ def ve_run(
     # Get disturbances order and initialise them
     if disturbance_config := configuration.get_disturbance_config():
         disturbances = initialise_disturbances(
-            sorted_disturbances=sort_disturbances(disturbance_config),
             configuration=disturbance_config,
             data=data,
             core_components=core_components,
