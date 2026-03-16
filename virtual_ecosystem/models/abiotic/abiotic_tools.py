@@ -536,9 +536,8 @@ def initialize_data_record(
 ) -> dict[str, NDArray[np.floating]]:
     """Create a data_record dict with a new leading time dimension.
 
-    Assumptions:
-        - 1D variables have shape (cell_ids,)
-        - 2D variables have shape (layers, cell_ids)
+    Assumptions are that 1D variables have shape (cell_ids,) and 2D variables have shape
+    (layers, cell_ids).
 
     Args:
         variables : Dictionary of variable names to template arrays
@@ -547,7 +546,8 @@ def initialize_data_record(
         cell_ids : Number of cell ids
 
     Returns:
-        Dictionary with initialized arrays filled with NaNs
+        Dictionary with initialized arrays filled with NaNs. Raises ValueError is number
+        of dimensions cannot be matched
     """
     data_record = {}
 
@@ -580,8 +580,8 @@ def validate_variables(
         values: variables in hourly update
         exclude: variable names to ignore in the comparison
 
-    Raises:
-        ValueError when variable names don't match
+    Returns:
+        None. Raises ValueError if variable mismatch is detected.
     """
     exclude_set = set(exclude)
 
@@ -599,8 +599,19 @@ def validate_variables(
         )
 
 
-def finite_and_within(arr, low, high, name):
-    """Test that values are finite and within bounds."""
+def finite_and_within(arr: DataArray, low: float, high: float, name: str) -> None:
+    """Test that values are finite and within bounds.
+
+    Args:
+        arr: Output DataArray to be tested
+        low: Minimum value
+        high: maximum value
+        name: name of variable
+
+    Returns:
+        None. Raises AssertionError if values are not finite or outside bounds.
+
+    """
 
     values = np.asarray(arr)
 

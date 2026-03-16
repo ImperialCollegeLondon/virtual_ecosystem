@@ -28,10 +28,8 @@ def compute_weights_from_absorbed_radiation(
         radiation: 2D array of absorbed radiation values for each layer and cell
 
     Returns:
-        2D array of normalized weights corresponding to the absorbed radiation
-
-    Raises:
-        ValueError when total radiation is zero or NaN
+        2D array of normalized weights corresponding to the absorbed radiation. Raises
+            ValueError when total radiation is zero or NaN
     """
     total = np.nansum(radiation)
 
@@ -103,21 +101,20 @@ def prepare_static_inputs(
         layer_structure=layer_structure,
     )
 
-    # Absorbed longwave radiation by canopy, [W m-2]
+    # Absorbed longwave radiation by canopy based on shortwave absorption, [W m-2]
     shortwave_absorption = data["shortwave_absorption"].to_numpy()
+    weights = compute_weights_from_absorbed_radiation(radiation=shortwave_absorption)
+
     downward_longwave = (
         data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
     )
-
-    weights = compute_weights_from_absorbed_radiation(radiation=shortwave_absorption)
-
     absorbed_longwave_radiation = (
         downward_longwave * weights * abiotic_constants.leaf_emissivity
     )
-
     absorbed_longwave_radiation[idx.topsoil] = (
         downward_longwave * weights[idx.topsoil] * abiotic_constants.soil_emissivity
     )
+
     # Cell area, [m2]
     cell_area = data.grid.cell_area
 
@@ -655,12 +652,21 @@ def update_air_temperature(
         -state["sensible_heat_flux"][idx.topsoil]
         + 0.5 * state["longwave_emission"][idx.topsoil]
     )
+
+    # TODO The surface layer is only 10cm thick and therefore cannot absorb all energy
+    # emitted by high LAI of understorey without exploding temperatures. This scaling
+    # factor artificially expands the layer thickness to 1.5 m reference height; this
+    # needs to be addressed with location of understorey vegetation.
+    surface_layer_scaling_factor = 15
+    surface_mixing_layer_thickness = (
+        static["geometry"]["thickness"][-1] * surface_layer_scaling_factor
+    )
     surface_air_temperature = energy_balance.update_air_temperature(
         air_temperature=state["air_temperature"][idx.surface],
         sensible_heat_flux=state["sensible_heat_flux"][idx.surface] + flux_from_soil,
         specific_heat_air=state["specific_heat_air"][idx.surface],
         density_air=state["density_air"][idx.surface],
-        mixing_layer_thickness=static["geometry"]["thickness"][-1] * 10,  # TODO
+        mixing_layer_thickness=surface_mixing_layer_thickness,
         time_interval=time_interval,
     )
 
@@ -904,7 +910,8 @@ def build_output_from_record(
             abiotic model
 
     Returns:
-        Dictionary of DataArray outputs
+        Dictionary of DataArray outputs. Raises ValueError when unsupported variable
+            dimensions are provided and when requested variables could not be produced
     """
 
     output: dict[str, DataArray] = {}
