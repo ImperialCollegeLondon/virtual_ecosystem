@@ -556,22 +556,25 @@ def distribute_monthly_rainfall(
     Let :math:`S_{t}` be the rainfall state on day :math:`t`:
 
         :math:`S_{t} = 1`  (wet day)
+
         :math:`S_{t} = 0`  (dry day)
 
     The probability of a wet day depends on the previous day:
 
-        :math:`P(S_t = 1 | S_{t-1} = 1) = p_wet_wet`
-        :math:`P(S_t = 1 | S_{t-1} = 0) = p_wet_dry`
+        :math:`P(S_t = 1 | S_{t-1} = 1) = p_{wet,wet}`
+
+        :math:`P(S_t = 1 | S_{t-1} = 0) = p_{wet,dry}`
 
 
     Rainfall intensity model
     ------------------------
     Rainfall on wet days is sampled from a Gamma distribution:
 
-        :math:`x ~ Gamma(k, \Theta)`
+        :math:`x \sim Gamma(k, \Theta)`
 
     where:
         :math:`k` = shape parameter, dimensionless
+
         :math:`\Theta` = scale parameter, dimensionless
 
 
@@ -581,7 +584,7 @@ def distribute_monthly_rainfall(
         :math:`r_{i} = (x_{i} / \Sigma x_{i}) * R`
 
     where:
-        :math:`r_{i}` = rainfall on day i [mm]
+        :math:`r_{i}` = rainfall on day :math:`i` [mm]
         :math:`x_{i}` = sampled Gamma intensity
         :math:`R`   = total monthly rainfall [mm]
 
