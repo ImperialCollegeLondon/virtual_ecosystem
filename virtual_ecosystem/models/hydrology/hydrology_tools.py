@@ -2,7 +2,7 @@
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.core.hygro import calculate_specific_heat
+from pyrealm.core.hygro import calc_specific_heat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -83,7 +83,7 @@ def initialise_atmosphere_for_hydrology(
     output["density_air"] = density_air_layer
 
     # Specific heat of air
-    specific_heat_air = calculate_specific_heat(tc=air_temp)
+    specific_heat_air = calc_specific_heat(tc=air_temp)
     specific_heat_air_layer = layer_structure.from_template()
     specific_heat_air_layer[layer_structure.index_filled_atmosphere] = specific_heat_air
     output["specific_heat_air"] = specific_heat_air_layer / 1000.0

@@ -4,7 +4,7 @@ balance in the Virtual Ecosystem.
 
 import numpy as np
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calc_vp_sat, calculate_specific_heat
+from pyrealm.core.hygro import calc_specific_heat, calc_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -237,7 +237,7 @@ def run_microclimate(
     )
 
     # Specific heat capacity of air, [J kg-1 K-1]
-    specific_heat_air = calculate_specific_heat(
+    specific_heat_air = calc_specific_heat(
         tc=all_air_temperature,
     )
 
