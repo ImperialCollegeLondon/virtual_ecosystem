@@ -113,3 +113,8 @@ plant cohort. The fields in this file must set:
 * `plant_cohorts_dbh`: the initial size of each individual in the cohort, as the
   diameter at breast height (m)
 * `plant_cohorts_n`: the initial number of individuals in the cohort
+
+```{note}
+Even if you intend cohort distributions to be identical across all simulation cells you
+still **must** provide the input data described above for every single cell individually.
+```
