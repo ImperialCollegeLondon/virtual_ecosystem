@@ -51,8 +51,8 @@ describe the stoichiometry of plant tissues. Stoichiometry is not currently impl
 in the `pyrealm` package and so these values are additional requirements of the Virtual
 Ecosystem.
 
-The PFT definitions file needs to include the following fields defining the PFT names
-and then values for all of the traits:
+The PFT definitions file needs to include the following fields (the order doesn't
+matter) defining the PFT names and then values for all of the traits:
 
 ```{csv-table}
 :header: >
@@ -118,3 +118,18 @@ plant cohort. The fields in this file must set:
 Even if you intend cohort distributions to be identical across all simulation cells you
 still **must** provide the input data described above for every single cell individually.
 ```
+
+## Example files
+
+The dropdowns below show the example versions of the plant functional types csv and the
+plants cohort distribution csv.
+
+````{dropdown} plants_pfts.csv
+```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/plant_pfts.csv
+```
+````
+
+````{dropdown} example_plant_cohorts.csv
+```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/example_plant_cohorts.csv
+```
+````
