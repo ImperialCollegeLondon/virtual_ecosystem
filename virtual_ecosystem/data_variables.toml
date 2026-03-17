@@ -1315,17 +1315,17 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial", "pft"]
 description = "Number of fruits of each PFT in the canopy"
 name = "canopy_fruit_n"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial", "pft"]
 description = "Number of seeds per fruit in each PFT"
 name = "canopy_seeds_per_fruit"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
@@ -1336,10 +1336,10 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial", "pft"]
 description = "Number of fallen fruits per PFT"
 name = "fallen_fruit_n"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
@@ -1357,10 +1357,10 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial", "pft"]
 description = "Number of seeds per fruit per PFT"
 name = "fallen_seeds_per_fruit"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
