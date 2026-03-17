@@ -558,7 +558,7 @@ def initialize_data_record(
         Dictionary with initialized arrays filled with NaNs.
 
     Raises:
-        ValueError is number of dimensions cannot be matched
+        ValueError: is number of dimensions cannot be matched
     """
     data_record = {}
 
@@ -595,7 +595,7 @@ def validate_variables(
         None
 
     Raises:
-        ValueError if variable mismatch is detected.
+        ValueError: if variable mismatch is detected.
     """
     exclude_set = set(exclude)
 
@@ -626,7 +626,7 @@ def finite_and_within(arr: DataArray, low: float, high: float, name: str) -> Non
         None.
 
     Raises:
-        AssertionError if values are not finite or outside bounds.
+        AssertionError: if values are not finite or outside bounds.
 
     """
 
