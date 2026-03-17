@@ -167,26 +167,19 @@ class HydrologyConstants(Configuration):
 
 
 class HydrologyConfiguration(ModelConfigurationRoot):
-    """Root configuration class for the hydrology model.
-
-    Attributes:
-        initial_soil_moisture: Initial soil moisture for all layers
-        initial_groundwater_saturation: Initial ground water saturation for all layers
-            unitless
-        constants: Constants values for hydrology model.
-        p_wet_wet: Probability a wet day follows a wet day.
-        p_wet_dry: Probability a wet day follows a dry day.
-        rainfall_shape_parameter: Shape parameter of the Gamma distribution controlling
-            rainfall variability.
-        rainfall_scale_parameter: Scale parameter of the Gamma distribution controlling
-            magnitude of rainfall.
-
-    """
+    """Root configuration class for the hydrology model."""
 
     initial_soil_moisture: float = Field(ge=0, le=1, default=0.5)
+    """Initial soil moisture for all layers"""
     initial_groundwater_saturation: float = Field(ge=0, le=1, default=0.9)
+    """Initial ground water saturation for all layers, unitless"""
     constants: HydrologyConstants = HydrologyConstants()
-    p_wet_wet: float = Field(ge=0.3, le=0.8, default=0.6)
-    p_wet_dry: float = Field(ge=0.1, le=0.5, default=0.3)
-    rainfall_shape_parameter: float = Field(ge=0.7, le=4.0, default=1.5)
-    rainfall_scale_parameter: float = Field(ge=0.1, le=2.0, default=1.0)
+    """Constants values for hydrology model."""
+    p_wet_wet: float = 0.6
+    """Probability a wet day follows a wet day."""
+    p_wet_dry: float = 0.3
+    """Probability a wet day follows a dry day."""
+    rainfall_shape_parameter: float = 1.5
+    """Shape parameter of the Gamma distribution controlling rainfall variability."""
+    rainfall_scale_parameter: float = 1.0
+    """Scale parameter of the Gamma distribution controlling magnitude of rainfall."""
