@@ -430,26 +430,35 @@ def generate_diurnal_cycle_from_monthly_data(
     relative_humidity_hourly = 100.0 * e_a[None, :] / e_s_hourly
     relative_humidity_hourly = np.clip(relative_humidity_hourly, 0.0, 100.0)
 
-    # Evapotranspiration (distributed like radiation)
+    # Preselect monthly
     sw_sum = shortwave_absorption_hourly.sum(axis=0, keepdims=True)
+    monthly_et = monthly_evapotranspiration[None, :, :]
+    monthly_soil = monthly_soil_evaporation[None, :]
+
+    uniform_et = monthly_et / (days * hours_per_day)
+    uniform_soil = monthly_soil / (days * hours_per_day)
+
+    # Evapotranspiration
+    radiation_fraction = shortwave_absorption_hourly / sw_sum
+    scaled_et = (monthly_et / days) * radiation_fraction
 
     evapotranspiration_hourly = np.where(
         sw_sum > 0,
-        monthly_evapotranspiration[None, :, :]
-        / days
-        * shortwave_absorption_hourly
-        / sw_sum,
-        monthly_evapotranspiration[None, :, :] / days / hours_per_day,
+        scaled_et,
+        uniform_et,
     )
 
-    # Soil evaporation (distributed like radiation)
+    # Soil evaporation
+    hourly_sw = shortwave_absorption_hourly.sum(axis=1)
+    total_sw = hourly_sw.sum(axis=0)[None, :]
+
+    soil_fraction = hourly_sw / total_sw
+    scaled_soil = (monthly_soil / days) * soil_fraction
+
     soil_evaporation_hourly = np.where(
-        shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :] > 0,
-        monthly_soil_evaporation[None, :]
-        / days
-        * shortwave_absorption_hourly.sum(axis=1)
-        / shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :],
-        monthly_soil_evaporation[None, :] / days / hours_per_day,
+        total_sw > 0,
+        scaled_soil,
+        uniform_soil,
     )
 
     return {
@@ -546,8 +555,10 @@ def initialize_data_record(
         cell_ids : Number of cell ids
 
     Returns:
-        Dictionary with initialized arrays filled with NaNs. Raises ValueError is number
-        of dimensions cannot be matched
+        Dictionary with initialized arrays filled with NaNs.
+
+    Raises:
+        ValueError is number of dimensions cannot be matched
     """
     data_record = {}
 
@@ -581,7 +592,10 @@ def validate_variables(
         exclude: variable names to ignore in the comparison
 
     Returns:
-        None. Raises ValueError if variable mismatch is detected.
+        None
+
+    Raises:
+        ValueError if variable mismatch is detected.
     """
     exclude_set = set(exclude)
 
@@ -609,7 +623,10 @@ def finite_and_within(arr: DataArray, low: float, high: float, name: str) -> Non
         name: name of variable
 
     Returns:
-        None. Raises AssertionError if values are not finite or outside bounds.
+        None.
+
+    Raises:
+        AssertionError if values are not finite or outside bounds.
 
     """
 
