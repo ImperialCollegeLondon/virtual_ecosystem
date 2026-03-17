@@ -126,11 +126,6 @@ A Markov chain is a stochastic (random) process in which the probability of the
 current state depends only on the previous state, not on the full history. This is known
 as the *Markov property*.
 
-In this case, rainfall occurrence is modeled as a two-state Markov chain:
-
-- wet day (1)
-- dry day (0)
-
 Let $S_t$ be the rainfall state on day $t$:
 
 $$
