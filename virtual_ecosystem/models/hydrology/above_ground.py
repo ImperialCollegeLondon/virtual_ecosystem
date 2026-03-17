@@ -612,7 +612,8 @@ def distribute_monthly_rainfall(
 
     Returns: Daily rainfall array (len(total_monthly_rainfall), num_days), [mm].
 
-    Raises: ValueError, if any input is invalid (negative rainfall, invalid
+    Raises:
+        ValueError: if any input is invalid (negative rainfall, invalid
         probabilities, etc.)
     """
 
