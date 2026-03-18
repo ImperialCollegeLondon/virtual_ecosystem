@@ -121,8 +121,8 @@ still **must** provide the input data described above for every single cell indi
 
 ## Example files
 
-The dropdowns below show the example versions of the plant functional types csv and the
-plants cohort distribution csv.
+The dropdowns below show the example versions of the plant functional type definitions
+and the plant cohort distribution.
 
 ````{dropdown} pft_definitions.csv
 ```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/plant_pfts.csv

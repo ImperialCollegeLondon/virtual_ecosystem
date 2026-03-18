@@ -19,7 +19,7 @@ model](./plants_config.md).
 ## Preparing the input data for the plants model
 
 You need to provide input data for both the tree communities and the sub-canopy
-vegetation to setup the plant model. Each of these follows a different approach
+vegetation to setup the plant model. Each of these follows a different approach.
 
 ### Tree communities
 
@@ -33,5 +33,6 @@ extended description of how you configure plant functional types](pft_configurat
 The distribution of subcanopy biomass is provided via the array variables (the specific
 variables required can be found in the [variables table](../../variables/variables.md)).
 The specific properties of this subcanopy vegetation will vary location by location, so
-will **need** to provide parameters for subcanopy vegetation at your site. This is done
-by altering the relevant [plant model constants](./plants_config.md#plants-constants).
+you will **need** to provide parameters for subcanopy vegetation at your site. This is
+done by altering the relevant [plant model
+constants](./plants_config.md#plants-constants).
