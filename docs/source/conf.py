@@ -214,7 +214,6 @@ nitpick_ignore = [
     # to that major version
     ("py:class", "pandas.core.frame.DataFrame"),
 ]
-nitpick_ignore_regex = [(r"py:class", r"virtual_ecosystem.models..*.model_config..*")]
 
 
 intersphinx_mapping = {
