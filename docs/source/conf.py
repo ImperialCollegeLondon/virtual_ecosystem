@@ -215,6 +215,7 @@ nitpick_ignore = [
     ("py:class", "pandas.core.frame.DataFrame"),
 ]
 
+
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
