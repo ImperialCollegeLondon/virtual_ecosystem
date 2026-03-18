@@ -896,7 +896,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Proportion carbon leaf carbon added to litter due to herbivore mechanical inefficiency that is lignin carbon"
+description = "Proportion of leaf carbon added to litter due to herbivore mechanical inefficiency that is lignin carbon"
 name = "herbivory_waste_leaf_lignin"
 unit = "unitless"
 variable_type = "float"
