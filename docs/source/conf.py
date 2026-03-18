@@ -215,6 +215,7 @@ nitpick_ignore = [
     ("py:class", "pandas.core.frame.DataFrame"),
 ]
 
+
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
@@ -223,7 +224,10 @@ intersphinx_mapping = {
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
     "pyrealm": ("https://pyrealm.readthedocs.io/en/stable/", None),
-    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    # TODO - This is currently pinned to the version we use as there are changes in
+    # 3.0 (stable) which break the docs build. Once we have moved to 3.0 we should
+    # revert this to stable
+    "pandas": ("http://pandas.pydata.org/pandas-docs/version/2.3/", None),
     "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
 

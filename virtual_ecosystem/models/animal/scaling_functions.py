@@ -508,35 +508,26 @@ def juvenile_dispersal_speed(
     return V_disp * (current_mass / M_disp_ref) ** o_disp
 
 
-def territory_size(mass: float) -> float:
-    """This function provides allometric scaling for territory size.
+def territory_size(
+    mass_kg: float,
+    terms: tuple[float, float],
+) -> float:
+    """Allometric scaling of territory size from body mass.
 
-    TODO: Replace this toy scaling with a real allometry
-    TODO: decide if this allometry will be based on current mass or adult mass
+    TODO: Decide whether to use current mass or adult mass.
 
     Args:
-        mass: The mass of the animal cohort
+        mass_kg: Body mass of the animal [kg].
+        terms: A tuple (intercept, exponent) for the log-log scaling relationship,
+            where intercept and exponent act on ln(BM_g).
 
     Returns:
-        The size of the cohort's territory in hectares
+        Territory size [m²].
     """
 
-    if mass < 10.0:
-        territory = 1.0
-    elif 10.0 <= mass < 25.0:
-        territory = 2.0
-    elif 25.0 <= mass < 50.0:
-        territory = 5.0
-    elif 50.0 <= mass < 100.0:
-        territory = 10.0
-    elif 100.0 <= mass < 200.0:
-        territory = 15.0
-    elif 200.0 <= mass < 500.0:
-        territory = 20.0
-    else:
-        territory = 30.0
-
-    return territory
+    intercept, exponent = terms
+    ln_territory_ha = intercept + exponent * log(mass_kg * 1000)
+    return exp(ln_territory_ha) * 10_000
 
 
 def bfs_territory(
