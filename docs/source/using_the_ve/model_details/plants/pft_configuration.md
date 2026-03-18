@@ -129,7 +129,7 @@ plants cohort distribution csv.
 ```
 ````
 
-````{dropdown} example_plant_cohorts.csv
+````{dropdown} cohort_data.csv
 ```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/example_plant_cohorts.csv
 ```
 ````
