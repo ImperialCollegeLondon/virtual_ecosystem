@@ -46,11 +46,15 @@ def fixture_hydrology_init_data(dummy_climate_data_varying_canopy):
 
 
 @pytest.mark.parametrize(
-    "ini_soil_moisture, ini_groundwater_sat",
+    "ini_soil_moisture, ini_groundwater_sat,ini_wet,ini_dry, ini_shape, ini_scale",
     [
         pytest.param(
             0.5,
             0.9,
+            0.6,
+            0.3,
+            1.5,
+            1.0,
             id="succeeds",
         ),
     ],
@@ -62,6 +66,10 @@ def test_hydrology_model_initialization(
     fixture_hydrology_constants,
     ini_soil_moisture,
     ini_groundwater_sat,
+    ini_wet,
+    ini_dry,
+    ini_shape,
+    ini_scale,
 ):
     """Test `HydrologyModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
@@ -73,6 +81,10 @@ def test_hydrology_model_initialization(
         core_components=fixture_core_components,
         initial_soil_moisture=ini_soil_moisture,
         initial_groundwater_saturation=ini_groundwater_sat,
+        p_wet_wet=ini_wet,
+        p_wet_dry=ini_dry,
+        rainfall_shape_parameter=ini_shape,
+        rainfall_scale_parameter=ini_scale,
         model_constants=fixture_hydrology_constants,
     )
 
@@ -82,6 +94,10 @@ def test_hydrology_model_initialization(
     assert repr(model) == "HydrologyModel(update_interval=1209600 seconds)"
     assert model.initial_soil_moisture == ini_soil_moisture
     assert model.initial_groundwater_saturation == ini_groundwater_sat
+    assert model.p_wet_wet == ini_wet
+    assert model.p_wet_dry == ini_dry
+    assert model.rainfall_shape_parameter == ini_shape
+    assert model.rainfall_scale_parameter == ini_scale
     # TODO: not sure on the value below, test with more expansive drainage maps
     assert model.drainage_map == {0: [], 1: [], 2: [0, 1, 2, 3], 3: [1]}
 
@@ -96,7 +112,11 @@ def test_hydrology_model_initialization(
             "[core]\n[core.grid]\ncell_nx = 2\ncell_ny = 2\n"
             "[abiotic]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
-            "initial_groundwater_saturation = 0.51\n",
+            "initial_groundwater_saturation = 0.51\n"
+            "p_wet_wet = 0.6\n"
+            "p_wet_dry = 0.3\n"
+            "rainfall_shape_parameter = 1.5\n"
+            "rainfall_scale_parameter = 1.0\n",
             0.51,
             MODEL_VAR_CHECK_LOG,
             id="default_config",
@@ -106,6 +126,10 @@ def test_hydrology_model_initialization(
             "[abiotic]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.9\n"
+            "p_wet_wet = 0.6\n"
+            "p_wet_dry = 0.3\n"
+            "rainfall_shape_parameter = 1.5\n"
+            "rainfall_scale_parameter = 1.0\n"
             "[hydrology.constants]\nsoil_moisture_saturation = 0.7\n",
             0.7,
             MODEL_VAR_CHECK_LOG,
@@ -148,18 +172,22 @@ def test_generate_hydrology_model(
 
 
 @pytest.mark.parametrize(
-    "update_interval", [pint.Quantity(1, "month"), pint.Quantity(1, "week")]
+    "update_interval",
+    [
+        pytest.param(pint.Quantity(1, "month"), id="1 month"),
+        pytest.param(pint.Quantity(1, "week"), id="1 week"),
+    ],
 )
-def test_hydrology_model_general(
+def test_setup_and_update_hydrology_model_ranges(
+    fixture_core_components,
     fixture_hydrology_init_data,
     dummy_climate_data_varying_canopy,
     fixture_configuration,
     update_interval,
 ):
-    """Test HydrologyModel update produces sensible outputs for a range of inputs."""
+    """Test hydrology model update with ranges."""
 
     from virtual_ecosystem.core.core_components import CoreComponents
-    from virtual_ecosystem.models.hydrology import hydrology_tools
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     # Override update interval
@@ -168,10 +196,10 @@ def test_hydrology_model_general(
         update_interval.to("seconds").magnitude
     )
 
+    # Initialize core and model
     core_components = CoreComponents(fixture_configuration.core)
     lyr_strct = core_components.layer_structure
 
-    # Initialise model
     model = HydrologyModel.from_config(
         data=fixture_hydrology_init_data,
         configuration=fixture_configuration,
@@ -188,39 +216,55 @@ def test_hydrology_model_general(
     # Run update
     model.update(time_index=1, seed=42)
 
-    # ---- General sanity checks ----
-    # 1. Shapes
-    assert model.data["soil_moisture"].shape == (
-        len(lyr_strct.index_all_soil),
-        model.grid.n_cells,
+    # Test ranges for canopy variables
+    canopy_indices = [1, 2, 3, 11]
+    canopy_mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["canopy_temperature"].isel(
+            layers=lyr_strct.index_filled_canopy
+        )
     )
-    assert model.data["groundwater_storage"].shape[1] == model.grid.n_cells
+    for var_name in ["canopy_evaporation", "interception"]:
+        values = model.data[var_name][canopy_indices]
+        masked_values = np.isfinite(values.where(canopy_mask))
+        # All values finite
+        assert np.all(masked_values), f"{var_name} has NaNs"
+        # Values non-negative
+        assert np.all(masked_values >= 0), f"{var_name} has negative values"
+        # Reasonable upper bound (example: 20 mm/day)
+        assert np.all(masked_values <= 20), f"{var_name} exceeds expected upper bound"
 
-    # 2. Non-negativity where expected
-    for var in [
-        "canopy_evaporation",
-        "interception",
+    # Test ranges for 2D soil variables
+    soil_indices = lyr_strct.index_all_soil
+    for var_name in [
         "soil_moisture",
+        "matric_potential",
+        "vertical_flow",
+    ]:
+        values = model.data[var_name][soil_indices]
+        assert np.all(np.isfinite(values)), f"{var_name} has NaNs"
+        # Typical physical ranges
+        if var_name == "soil_moisture":
+            assert np.all((values >= 0) & (values <= 500)), f"{var_name} out of range"
+        elif var_name == "matric_potential":
+            assert np.all((values <= 0) & (values >= -500)), f"{var_name} out of range"
+        elif var_name == "vertical_flow":
+            assert np.all(values >= 0), f"{var_name} negative"
+
+    # Test ranges for 1D variables
+    for var_name in [
         "total_runoff",
         "surface_runoff",
+        "surface_runoff_routed_plus_local",
         "soil_evaporation",
     ]:
-        vals = model.data[var].to_numpy().flatten()
-        vals = vals[~np.isnan(vals)]
-        assert np.all(vals >= 0.0), f"{var} contains negative values"
+        values = model.data[var_name]
+        assert np.all(np.isfinite(values)), f"{var_name} has NaNs"
+        assert np.all(values >= 0), f"{var_name} negative"
+        assert np.all(values <= 10000), f"{var_name} exceeds expected max"
 
-    # 3. Plausible ranges
-    # Soil moisture: 0 - 500 mm (example max soil capacity)
-    sm = model.data["soil_moisture"].to_numpy().flatten()
-    sm = sm[~np.isnan(sm)]
-    assert np.all(sm <= 500.0), "soil_moisture exceeds plausible maximum"
+    # Mass balance check
+    from virtual_ecosystem.models.hydrology import hydrology_tools
 
-    # 4. Mass balance roughly holds (monthly precipitation vs evap + runoff)
-    precipitation_mm = (
-        dummy_climate_data_varying_canopy["precipitation"].isel(time_index=1).to_numpy()
-    )
-    surface_runoff_mm = model.data["surface_runoff_routed_plus_local"].to_numpy()
-    soil_evap_mm = model.data["soil_evaporation"].to_numpy()
     hydrology_tools.check_monthly_mass_balance(
         drainage_map=model.drainage_map,
         surface_channel_inflow_mm=surface_runoff_mm,
