@@ -322,22 +322,131 @@ def test_calculate_interception(
 
 
 def test_distribute_monthly_rainfall():
-    """Test that randomly generated numbers are reproducible."""
+    """Test the stochastic rainfall generator, including invalid inputs."""
+
     from virtual_ecosystem.models.hydrology.above_ground import (
         distribute_monthly_rainfall,
     )
 
-    monthly_rain = np.array([0.0, 20.0, 200.0])
-    result = distribute_monthly_rainfall(monthly_rain, 10, 42)
-    result1 = distribute_monthly_rainfall(monthly_rain, 10, 42)
+    # Valid input tests
+    monthly = np.array([0.0, 50.0, 80.0, 120.0])
+    num_days = 30
+    shape = 1.0
+    scale = 2.0
+    seed = 42
+    p_wet_wet = 0.6
+    p_wet_dry = 0.3
 
-    assert result.shape == (3, 10)
-    np.testing.assert_allclose(result.sum(axis=1), monthly_rain)
-    np.testing.assert_allclose(result, result1)
+    result = distribute_monthly_rainfall(
+        total_monthly_rainfall=monthly,
+        num_days=num_days,
+        p_wet_wet=p_wet_wet,
+        p_wet_dry=p_wet_dry,
+        shape_parameter=shape,
+        scale_parameter=scale,
+        seed=seed,
+    )
+
+    # Shape check
+    assert result.shape == (len(monthly), num_days), "Output shape mismatch"
+
+    # Monthly totals preserved
+    np.testing.assert_allclose(
+        result.sum(axis=1), monthly, rtol=1e-6, err_msg="Monthly totals not preserved"
+    )
+
+    # Non-negative rainfall
+    assert np.all(result >= 0), "Negative rainfall found"
+
+    # Reproducibility
+    result2 = distribute_monthly_rainfall(
+        total_monthly_rainfall=monthly,
+        num_days=num_days,
+        p_wet_wet=p_wet_wet,
+        p_wet_dry=p_wet_dry,
+        shape_parameter=shape,
+        scale_parameter=scale,
+        seed=seed,
+    )
+    np.testing.assert_allclose(result, result2, err_msg="Results differ for same seed")
+
+    # Zero-month check
+    assert np.all(result[0] == 0), "Zero-month should produce all zeros"
+
+    # Some dry days for positive months
+    for i in range(1, len(monthly)):
+        wet_days = np.sum(result[i] > 0)
+        assert 0 < wet_days < num_days, f"Month {i} has unrealistic wet/dry pattern"
+
+    # Invalid input tests (raises)
+
+    # Negative rainfall
+    with pytest.raises(ValueError):
+        distribute_monthly_rainfall(
+            total_monthly_rainfall=np.array([-10.0]),
+            num_days=num_days,
+            p_wet_wet=p_wet_wet,
+            p_wet_dry=p_wet_dry,
+            shape_parameter=shape,
+            scale_parameter=scale,
+        )
+
+    # num_days <= 0
+    with pytest.raises(ValueError):
+        distribute_monthly_rainfall(
+            total_monthly_rainfall=np.array([50.0]),
+            num_days=0,
+            p_wet_wet=p_wet_wet,
+            p_wet_dry=p_wet_dry,
+            shape_parameter=shape,
+            scale_parameter=scale,
+        )
+
+    # Invalid probabilities
+    with pytest.raises(ValueError):
+        distribute_monthly_rainfall(
+            total_monthly_rainfall=np.array([50.0]),
+            num_days=num_days,
+            p_wet_wet=1.5,
+            p_wet_dry=0.3,
+            shape_parameter=shape,
+            scale_parameter=scale,
+        )
+    with pytest.raises(ValueError):
+        distribute_monthly_rainfall(
+            total_monthly_rainfall=np.array([50.0]),
+            num_days=num_days,
+            p_wet_wet=0.6,
+            p_wet_dry=-0.2,
+            shape_parameter=shape,
+            scale_parameter=scale,
+        )
+
+    # Invalid shape
+    with pytest.raises(ValueError):
+        distribute_monthly_rainfall(
+            total_monthly_rainfall=np.array([50.0]),
+            num_days=num_days,
+            p_wet_wet=p_wet_wet,
+            p_wet_dry=p_wet_dry,
+            shape_parameter=0.0,
+            scale_parameter=scale,
+        )
+
+    # Invalid scale
+    with pytest.raises(ValueError):
+        distribute_monthly_rainfall(
+            total_monthly_rainfall=np.array([50.0]),
+            num_days=num_days,
+            p_wet_wet=p_wet_wet,
+            p_wet_dry=p_wet_dry,
+            shape_parameter=shape,
+            scale_parameter=0.0,
+        )
 
 
 def test_calculate_bypass_flow():
-    """Test."""
+    """Test bypass flow."""
 
     from virtual_ecosystem.models.hydrology.above_ground import calculate_bypass_flow
 
