@@ -213,7 +213,9 @@ nitpick_ignore = [
     # This broke when pandas upgraded to 3.0. We should review this once we've upgraded
     # to that major version
     ("py:class", "pandas.core.frame.DataFrame"),
+    ("py:class", r"virtual_ecosystem.models..*.model_config..*"),
 ]
+
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
