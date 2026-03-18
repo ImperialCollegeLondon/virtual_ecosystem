@@ -13,7 +13,6 @@ dl.myst>dt {
     font-family: monospace;
     font-size: 14px;
     border-left: 3px solid #ccc;
-    background-color: #f0f0f0;
     width: fit-content;
     padding: 6px;
 }
