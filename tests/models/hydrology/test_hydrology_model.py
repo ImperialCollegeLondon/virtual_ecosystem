@@ -5,6 +5,7 @@ from logging import DEBUG, INFO
 import numpy as np
 import pint
 import pytest
+from xarray import DataArray
 
 from tests.conftest import log_check
 
@@ -206,14 +207,42 @@ def test_setup_and_update_hydrology_model_ranges(
         core_components=core_components,
     )
 
-    # Populate variables required for update
-    missing_vars = set(model.vars_required_for_update) - set(
+    # Test soil moisture and matric potential initial values
+    soil_indices = lyr_strct.index_all_soil
+    expected_values = {
+        "soil_moisture": (soil_indices, np.full((2, 4), 250.0)),
+        "matric_potential": (soil_indices, np.full((2, 4), -49.673613)),
+    }
+    for var_name, (indices, values) in expected_values.items():
+        exp_var = lyr_strct.from_template()
+        exp_var[indices] = values
+        np.testing.assert_allclose(
+            model.data[var_name],
+            exp_var,
+            rtol=1e-3,
+            atol=1e-3,
+        )
+
+    # Test groundwater storage
+    exp_groundwater = DataArray(
+        np.full((2, fixture_core_components.grid.n_cells), 450.0),
+        dims=("groundwater_layers", "cell_id"),
+    )
+    np.testing.assert_allclose(
+        model.data["groundwater_storage"],
+        exp_groundwater,
+        rtol=1e-3,
+        atol=1e-3,
+    )
+
+    # Add additional data required to update the model
+    data_required_from_other_sources = set(model.vars_required_for_update) - set(
         model.vars_populated_by_init
     )
-    for var in missing_vars:
+    for var in data_required_from_other_sources:
         model.data[var] = dummy_climate_data_varying_canopy[var]
 
-    # Run update
+    # Run the update step
     model.update(time_index=1, seed=42)
 
     # Test ranges for canopy variables
@@ -267,13 +296,11 @@ def test_setup_and_update_hydrology_model_ranges(
 
     hydrology_tools.check_monthly_mass_balance(
         drainage_map=model.drainage_map,
-        surface_channel_inflow_mm=surface_runoff_mm,
-        monthly_precipitation_mm=precipitation_mm,
-        monthly_evaporation_mm=soil_evap_mm,
+        surface_channel_inflow_mm=model.data[
+            "surface_runoff_routed_plus_local"
+        ].to_numpy(),
+        monthly_precipitation_mm=dummy_climate_data_varying_canopy["precipitation"]
+        .isel(time_index=1)
+        .to_numpy(),
+        monthly_evaporation_mm=model.data["soil_evaporation"].to_numpy(),
     )
-
-    # 5. 2D variables have finite values somewhere
-    for var in ["matric_potential", "vertical_flow"]:
-        vals = model.data[var].to_numpy().flatten()
-        vals = vals[~np.isnan(vals)]
-        assert len(vals) > 0, f"{var} has no valid values"
