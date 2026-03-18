@@ -80,8 +80,9 @@ extensions = [
 autodoc_default_flags = ["members"]
 autosummary_generate = True
 
-# autodoc_typehints = "description"
+autodoc_typehints = "description"
 autodoc_typehints_format = "short"
+autodoc_preserve_defaults = True
 python_use_unqualified_type_names = True
 # autodoc_type_aliases = {
 #   "FILEPATH_PLACEHOLDER": "virtual_ecosystem.core.configuration.FILEPATH_PLACEHOLDER",
