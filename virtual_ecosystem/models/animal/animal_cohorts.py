@@ -15,7 +15,7 @@ from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import DietType, VerticalOccupancy
-from virtual_ecosystem.models.animal.array_resources import ResourcePool
+from virtual_ecosystem.models.animal.array_resources import CellResource, ResourcePool
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
@@ -732,7 +732,7 @@ class AnimalCohort:
         return sf.k_i_k(alpha, target_plant.mass_current, A_cell)
 
     def calculate_total_handling_time_for_herbivory(
-        self, plant_list: list[Resource], alpha: float
+        self, plant_list: list[Resource] | list[CellResource], alpha: float
     ) -> float:
         """Calculate total handling time across all plant resources.
 
@@ -764,7 +764,11 @@ class AnimalCohort:
             for plant in plant_list
         )
 
-    def F_i_k(self, resource_list: list[Resource], target_resource: Resource) -> float:
+    def F_i_k(
+        self,
+        resource_list: list[Resource] | list[CellResource],
+        target_resource: Resource,
+    ) -> float:
         """Method to determine instantaneous consumption rate on resource k.
 
         This method integrates the calculated search efficiency, potential consumed
@@ -1055,8 +1059,8 @@ class AnimalCohort:
 
     def _consumed_resource_mass(
         self,
-        resource_list: list[Resource],
-        target: Resource,
+        resource_list: list[Resource] | list[CellResource],
+        target: Resource | CellResource,
         adjusted_dt: timedelta64,
     ) -> float:
         """Standard search/handling time consumption using F_i_k (non-predation).
@@ -1077,10 +1081,11 @@ class AnimalCohort:
 
     def forage_resource_list(
         self,
-        resources: list[Resource],
+        resources: list[Resource] | list[CellResource],
         adjusted_dt: timedelta64,
         calculate_consumed_mass: Callable[
-            [list[Resource], Resource, timedelta64], float
+            [list[Resource] | list[CellResource], Resource | CellResource, timedelta64],
+            float,
         ],
         resource_kind: str,
         herbivory_waste_pools: dict[int, HerbivoryWaste] | None = None,
@@ -1121,7 +1126,7 @@ class AnimalCohort:
 
     def delta_mass_herbivory(
         self,
-        plant_list: list[Resource],
+        plant_list: list[CellResource],
         adjusted_dt: timedelta64,
         herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> dict[str, float]:
@@ -1145,7 +1150,7 @@ class AnimalCohort:
 
     def delta_mass_detritivory(
         self,
-        litter_pools: list[Resource],
+        litter_pools: list[CellResource],
         adjusted_dt: timedelta64,
     ) -> dict[str, float]:
         """Handle mass assimilation from litter (detritivory).
@@ -1300,13 +1305,12 @@ class AnimalCohort:
 
     def forage_cohort(
         self,
-        plant_list: list[Resource],
+        array_resource_list: list[CellResource],
         animal_list: list[AnimalCohort],
         fungal_fruit_list: list[Resource],
         soil_fungi_list: list[Resource],
         pom_list: list[Resource],
         bacteria_list: list[Resource],
-        litter_pools: list[Resource],
         excrement_pools: list[ExcrementPool],
         carcass_pool_map: dict[int, list[CarcassPool]],
         scavenge_carcass_pools: list[Resource],
@@ -1324,13 +1328,14 @@ class AnimalCohort:
         cohort is not actively scavenging.
 
         Args:
-            plant_list: Live plant resources available for herbivory.
+            array_resource_list: Full set of resources available through the array
+                resources interface, at present this consists of the living plants and
+                dead plant detritus (litter).
             animal_list: Live prey cohorts available for predation.
             fungal_fruit_list: Live fungal fruiting bodies available for consumption.
             soil_fungi_list: Soil fungi pools (not fruiting bodies).
             pom_list: Soil particulate organic matter pools (POM).
             bacteria_list: Soil bacteria pools.
-            litter_pools: LitterPool objects available for detritivory.
             excrement_pools: ExcrementPool objects used for defecation
                 deposition.
             carcass_pool_map: Mapping ``cell_id → list[CarcassPool]`` that
@@ -1352,6 +1357,28 @@ class AnimalCohort:
         if self.mass_current == 0:
             LOGGER.warning("No mass left in cohort to forage.")
             return
+
+        # TODO - TEMPORARY SOLUTION THAT TARAN SHOULD IMPROVE UPON
+        # Split array resources between herbivory and detritivory
+        herbivore_diets = [
+            DietType.ALGAE,
+            DietType.FLOWERS,
+            DietType.FOLIAGE,
+            DietType.FRUIT,
+            DietType.SEEDS,
+            DietType.NECTAR,
+            DietType.WOOD,
+        ]
+        plant_list = [
+            resource
+            for resource in array_resource_list
+            if resource.resource.diet_type in herbivore_diets
+        ]
+        litter_pools = [
+            resource
+            for resource in array_resource_list
+            if resource.resource.diet_type == DietType.DETRITUS
+        ]
 
         # Compute foraging time proportionally across diet types
         time_available_per_diet = (
@@ -1742,7 +1769,7 @@ class AnimalCohort:
 
     def get_array_resources(
         self, array_resources: list[ResourcePool]
-    ) -> list[Resource]:
+    ) -> list[CellResource]:
         """Return array resources accessible within this cohort's territory.
 
         This method filters the array resources by territory and the cohort's
@@ -1755,7 +1782,7 @@ class AnimalCohort:
             A list of CellResource objects that the cohort can forage on.
         """
 
-        available_cell_array_resources: list[Resource] = []
+        available_cell_array_resources: list[CellResource] = []
 
         # Loop over the array resources
         for resource in array_resources:

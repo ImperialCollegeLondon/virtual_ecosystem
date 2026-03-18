@@ -46,6 +46,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
 from virtual_ecosystem.models.animal.array_resources import (
     ARRAY_RESOURCES,
     ArrayResource,
+    CellResource,
     ResourcePool,
 )
 from virtual_ecosystem.models.animal.cnp import CNP, find_microbial_stoichiometries
@@ -1450,14 +1451,12 @@ class AnimalModel(
             diet: DietType = cohort.functional_group.diet
 
             # Build resource collections based on diet flags
-            plant_list: list[Resource] = []
-            # array_resource_list: list[Resource] = []
+            array_resource_list: list[CellResource] = []
             prey_list: list[AnimalCohort] = []
             fungal_fruit_list: list[Resource] = []
             soil_fungi_list: list[Resource] = []
             pom_list: list[Resource] = []
             bacteria_list: list[Resource] = []
-            litter_list: list[Resource] = []
             scavenge_carcass_pools: list[Resource] = []
             scavenge_waste_pools: list[Resource] = []
 
@@ -1470,7 +1469,8 @@ class AnimalModel(
             # array_resource_list =
             # cohort.get_array_resources(self.array_resource_pools)
 
-            # Live plant resources
+            # All resources that currently use the array resources framework (living
+            # plant matter, and plant detritus)
             if diet & (
                 DietType.ALGAE
                 | DietType.FLOWERS
@@ -1479,9 +1479,11 @@ class AnimalModel(
                 | DietType.SEEDS
                 | DietType.NECTAR
                 | DietType.WOOD
+                | DietType.DETRITUS
             ):
-                plant_list = cohort.get_array_resources(self.array_resource_pools)
-                # plant_list = cohort.get_plant_resources(self.plant_resources)
+                array_resource_list = cohort.get_array_resources(
+                    self.array_resource_pools
+                )
 
             # Live prey (taxonomically filtered)
             prey_flags = diet & (
@@ -1514,15 +1516,6 @@ class AnimalModel(
             if diet & DietType.BACTERIA:
                 bacteria_list = cohort.get_bacteria_pools(self.soil_pools)
 
-            # TODO - I went with this as it was the only way I could see to fit litter
-            # consumption into the new system without massively rewriting animal
-            # foraging. But I feel like this might expose the litter pools to detrivory
-            # and herbivory separately (if the consumer has both diets). I need to check
-            # with Taran and David
-            # Plant litter detritivory
-            if diet & DietType.DETRITUS:
-                litter_list = cohort.get_array_resources(self.array_resource_pools)
-
             # Carcass scavenging
             if diet & DietType.CARCASSES:
                 scavenge_carcass_pools = cast(
@@ -1535,13 +1528,12 @@ class AnimalModel(
 
             # Delegate to cohort-level foraging
             cohort.forage_cohort(
-                plant_list=plant_list,
+                array_resource_list=array_resource_list,
                 animal_list=prey_list,
                 fungal_fruit_list=fungal_fruit_list,
                 soil_fungi_list=soil_fungi_list,
                 pom_list=pom_list,
                 bacteria_list=bacteria_list,
-                litter_pools=litter_list,
                 excrement_pools=excrement_pools,  # for defecation
                 carcass_pool_map=carcass_pool_map,  # for prey remains
                 scavenge_carcass_pools=scavenge_carcass_pools,

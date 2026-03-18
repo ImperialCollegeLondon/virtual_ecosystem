@@ -802,23 +802,84 @@ def excrement_pools_by_cell_instance():
 
 
 @pytest.fixture
-def array_plant_list_instance():
+def array_plant_list_instance(animal_data_for_model_instance):
     """Return a list of CellResource objects usable as plant_list."""
     import numpy as np
 
-    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
-    from virtual_ecosystem.models.animal.array_resources import CellResource
+    from virtual_ecosystem.models.animal.animal_traits import (
+        DietType,
+        VerticalOccupancy,
+    )
+    from virtual_ecosystem.models.animal.array_resources import (
+        ArrayResource,
+        ArrayResourceDefinition,
+        CellResource,
+    )
+
+    resource = ArrayResource(
+        definition=ArrayResourceDefinition(
+            pool_array="subcanopy_vegetation_cnp",
+            consumed_array="subcanopy_vegetation_cnp_consumed",
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            diet_type=DietType.FOLIAGE,
+        ),
+        data=animal_data_for_model_instance,
+    )
 
     return [
         CellResource(
-            resource=object(),
+            resource=resource,
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
             cell_id=0,
         ),
         CellResource(
-            resource=object(),
+            resource=resource,
+            available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
+            consumed_total_mass=np.zeros(3, dtype=float),
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            cell_id=1,
+        ),
+    ]
+
+
+@pytest.fixture
+def array_litter_list_instance(animal_data_for_model_instance):
+    """Return a list of CellResource objects usable as litter_list."""
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import (
+        DietType,
+        VerticalOccupancy,
+    )
+    from virtual_ecosystem.models.animal.array_resources import (
+        ArrayResource,
+        ArrayResourceDefinition,
+        CellResource,
+    )
+
+    resource = ArrayResource(
+        ArrayResourceDefinition(
+            pool_array="litter_pool_woody_cnp",
+            consumed_array="litter_consumed_woody_cnp",
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            diet_type=DietType.DETRITUS,
+            density=True,
+        ),
+        data=animal_data_for_model_instance,
+    )
+
+    return [
+        CellResource(
+            resource=resource,
+            available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
+            consumed_total_mass=np.zeros(3, dtype=float),
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            cell_id=0,
+        ),
+        CellResource(
+            resource=resource,
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
@@ -983,64 +1044,6 @@ def litter_soil_data_instance(fixture_core_components):
     )
 
     return data
-
-
-@pytest.fixture
-def litter_pool_instance(litter_soil_data_instance):
-    """Fixture for a single LitterPool instance in cell 0."""
-    from virtual_ecosystem.models.animal.decay import LitterPool
-
-    return LitterPool(
-        pool_name="above_metabolic",
-        cell_id=0,
-        data=litter_soil_data_instance,
-        cell_area=10000,
-    )
-
-
-@pytest.fixture
-def litter_pools_by_cell_instance(litter_soil_data_instance):
-    """Fixture for litter pools used in tests."""
-    from virtual_ecosystem.models.animal.decay import LitterPool
-
-    return {
-        cell_id: [
-            LitterPool(
-                pool_name="above_metabolic",
-                cell_id=cell_id,
-                data=litter_soil_data_instance,
-                cell_area=10000,
-            )
-        ]
-        for cell_id in range(4)  # data has 4 valid cells: 0 to 3
-    }
-
-
-@pytest.fixture
-def litter_pools_dict_by_cell_instance(litter_soil_data_instance):
-    """Fixture for litter pools with correct dict[str, Resource] structure."""
-    from virtual_ecosystem.models.animal.decay import LitterPool
-
-    pool_names = [
-        "above_metabolic",
-        "above_structural",
-        "woody",
-        "below_metabolic",
-        "below_structural",
-    ]
-
-    return {
-        cell_id: {
-            name: LitterPool(
-                pool_name=name,
-                cell_id=cell_id,
-                data=litter_soil_data_instance,
-                cell_area=10000,
-            )
-            for name in pool_names
-        }
-        for cell_id in range(4)
-    }
 
 
 @pytest.fixture
