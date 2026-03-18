@@ -24,7 +24,6 @@ The module implements the following classes:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -71,7 +70,7 @@ class Nutrient:
         return cls(name=element, ideal_ratio=ideal_ratio, masses=masses / ideal_ratio)
 
 
-SubcanopyNutrients: TypeAlias = dict[str, Nutrient]
+type SubcanopyNutrients = dict[str, Nutrient]
 """A type to indicate a dictionary of Nutrient instances."""
 
 
