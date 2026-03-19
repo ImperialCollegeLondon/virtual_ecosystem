@@ -173,10 +173,7 @@ def test_calculate_updated_pools(decay_rates, post_consumption_pools, litter_inp
     }
 
     actual_pools = calculate_updated_pools(
-        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
-        post_consumption_pools={
-            name: pools[:, 0] for name, pools in post_consumption_pools.items()
-        },
+        post_consumption_pools=post_consumption_pools,
         decay_rates=decay_rates,
         litter_inputs=litter_inputs,
         update_interval=2.0,
