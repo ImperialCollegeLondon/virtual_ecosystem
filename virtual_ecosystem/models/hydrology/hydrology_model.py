@@ -470,7 +470,10 @@ class HydrologyModel(
         :class:`~virtual_ecosystem.models.hydrology.model_config.HydrologyConstants`.
         """
         # Determine number of days
-        days_float: float = self.model_timing.update_interval_seconds / 86400
+        days_float: float = (
+            self.model_timing.update_interval_seconds
+            / self.core_constants.seconds_to_day
+        )
         days: int = int(days_float // 1)
 
         # Check if the number of days is exact and warn if not

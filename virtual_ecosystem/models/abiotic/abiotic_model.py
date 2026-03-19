@@ -286,9 +286,11 @@ class AbioticModel(
             % 12
             + 1
         )
-        # TODO #1441 These placeholders should be arguments to abiotic_model
         # Determine number of days
-        days_float: float = self.model_timing.update_interval_seconds / 86400
+        days_float: float = (
+            self.model_timing.update_interval_seconds
+            / self.core_constants.seconds_to_day
+        )
         days: int = int(days_float // 1)
 
         # Check if the number of days is exact and warn if not
@@ -298,14 +300,12 @@ class AbioticModel(
                 f" partitioning inputs among {days} days."
             )
 
-        time_dim = 24
-
         # Run microclimate model
         update_dict = run_microclimate(
             data=self.data,
             vars_updated=self.vars_updated,
             time_index=time_index,
-            time_dim=time_dim,
+            time_dim=self.core_constants.hours_per_day,
             time_interval=self.model_timing.update_interval_seconds,
             month=month,
             days=days,
