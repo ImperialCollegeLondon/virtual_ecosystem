@@ -77,6 +77,7 @@ def test_abiotic_model_initialization(
         data=fixture_abiotic_init_data,
         core_components=fixture_core_components,
         model_constants=fixture_abiotic_constants,
+        latitude=0.0,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -111,6 +112,7 @@ def test_abiotic_model_initialization_no_data(
             empty_data,
             core_components=fixture_core_components,
             model_constants=fixture_abiotic_constants,
+            latitude=0.0,
         )
 
     # Final check that expected logging entries are produced
@@ -235,6 +237,7 @@ def test_setup_and_update_abiotic_model(
     model = AbioticModel(
         data=fixture_abiotic_init_data,
         core_components=fixture_core_components,
+        latitude=0.0,
     )
 
     # check all variables are initialised in data object
