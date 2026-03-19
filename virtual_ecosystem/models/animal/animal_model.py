@@ -469,6 +469,7 @@ class AnimalModel(
             pool.set_resources()
 
         self.reset_trophic_records()
+        self.update_activity_windows_community()
         self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
         self.birth_community()
@@ -1889,3 +1890,32 @@ class AnimalModel(
         """Reset trophic interaction records for all active cohorts."""
         for cohort in self.active_cohorts.values():
             cohort.reset_trophic_record()
+
+    def update_activity_windows_community(self) -> None:
+        """Update the activity window fraction for all cohorts in all communities.
+
+        Note:
+            Climate inputs other than surface temperature are currently supplied as
+            placeholder constants from
+            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`.
+            Replace with dynamic per-cell fields from the abiotic model once diurnal
+            temperature range, annual mean temperature, and annual temperature SD are
+            exposed via the data object.
+        """
+        for cell_id, community in self.communities.items():
+            if not community:
+                continue
+
+            surface_temperature = self.data["air_temperature"][
+                self.layer_structure.index_surface_scalar
+            ].to_numpy()
+
+            temperature = surface_temperature[cell_id]
+
+            for cohort in community:
+                cohort.update_activity_window(
+                    temperature=temperature,
+                    diurnal_temp_range=cohort.constants.placeholder_diurnal_temp_range,
+                    annual_mean_temp=cohort.constants.placeholder_annual_mean_temp,
+                    annual_temp_sd=cohort.constants.placeholder_annual_temp_sd,
+                )
