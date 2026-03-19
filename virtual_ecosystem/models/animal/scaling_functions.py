@@ -752,6 +752,7 @@ def activity_window(
     r"""Proportion of the timestep suitable for a cohort to be active.
 
     Implements Madingley eqs. 41-47:
+    
     * Endotherms are active for the full timestep (eq. 41).
     * Terrestrial ectotherms are limited to the fraction of the day within their
       thermal tolerance window, derived from the diurnal temperature cycle and
@@ -763,7 +764,7 @@ def activity_window(
             1 & \\text{if } f \\text{ is endotherm} \\\\
             1 - (p_{Above,f} + p_{Below,f}) & \\text{if } f \\text{ is ectotherm}
         \\end{cases}
-        
+
     The result is clamped to [0, 1] to guard against floating-point cases where
     ``p_above + p_below`` marginally exceeds 1.
 
