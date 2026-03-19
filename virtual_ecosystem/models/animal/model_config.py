@@ -129,15 +129,16 @@ class AnimalConstants(Configuration):
         0.5,  # sig
         0.69,  # Ea
     )
-    """Metabolic rate scaling coefficients.
+    r"""Metabolic rate scaling coefficients.
     
     These are the coefficients of Madingley style scaling of metabolic rate with  mass
     and temperature, assuming a power-law relationship with mass and an exponential
     relationship with temperature. The three values are:
 
-    * $E_s$ - energy to mass conversion constant (g/kJ)
-    * $\sigma$ - proportion of time-step with temp in active range (toy default value)
-    * $E_a$ - aggregate activation energy of metabolic reactions
+    * :math:`E_s` - energy to mass conversion constant (g/kJ)
+    * :math:`\sigma` - proportion of time-step with temp in active range (toy default
+      value)
+    * :math:`E_a` - aggregate activation energy of metabolic reactions
     """
 
     metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = Field(
