@@ -608,6 +608,7 @@ def t_opt_ectotherm(
 
     Implements Madingley eq. 47:
     .. math::
+
         T_{opt} = m_{tsm} \\cdot \\sigma_{T_{Annual}^C} + c_{tsm} + T_{Annual}^C
 
     Args:
@@ -634,6 +635,7 @@ def t_max_crit_ectotherm(
 
     Implements Madingley eq. 45:
     .. math::
+
         T_{\\max,f}^{crit} = m_{tol,terrestrial} \\cdot \\sigma_{T_{Annual}^C}
             + c_{tol,terrestrial} + T_{Annual}^C
 
@@ -656,6 +658,7 @@ def t_min_crit_ectotherm(t_max_crit: float, t_opt: float) -> float:
 
     Implements Madingley eq. 46:
     .. math::
+
         T_{\\min,f}^{crit} = T_{opt,f}
             - 4 \\cdot \\frac{T_{\\max,f}^{crit} - T_{opt,f}}{12}
 
@@ -680,6 +683,7 @@ def p_above_t_max(
     ``temperature`` with amplitude ``diurnal_temp_range / 2``. Returns the fraction
     of the period for which that cycle exceeds ``t_max_crit`` (Madingley eq. 43).
     .. math::
+
         p_{Above,f} = \\frac{\\pi/2 - \\sin^{-1}
             \\left[\\text{clamp}\\left(
                 \\frac{2(T_{\\max,f}^{crit} - T_C)}{\\Delta T_{Diurnal}^C},
@@ -712,6 +716,7 @@ def p_below_t_min(
     eq. 44). The :math:`1 - {\\ldots}` flip converts "proportion of the day above
     ``t_min_crit``" into "proportion of the day below ``t_min_crit``".
     .. math::
+
         p_{Below,f} = 1 - \\frac{\\pi/2 - \\sin^{-1}
             \\left[\\text{clamp}\\left(
                 \\frac{2(T_{\\min,f}^{crit} - T_C)}{\\Delta T_{Diurnal}^C},
@@ -746,6 +751,7 @@ def activity_window(
       thermal tolerance window, derived from the diurnal temperature cycle and
       climatological statistics (eq. 42).
     .. math::
+
         \\varsigma_{f(t)} = \\begin{cases}
             1 & \\text{if } f \\text{ is endotherm} \\\\
             1 - (p_{Above,f} + p_{Below,f}) & \\text{if } f \\text{ is ectotherm}
