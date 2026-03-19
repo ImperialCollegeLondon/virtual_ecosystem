@@ -692,6 +692,7 @@ def p_above_t_max(
             \\left[\\text{clamp}\\left(
                 \\frac{2(T_{\\max,f}^{crit} - T_C)}{\\Delta T_{Diurnal}^C},
                 -1, 1\\right)\\right]}{\\pi}
+
     The piecewise clamping ensures the arcsin receives a valid argument when the
     threshold lies entirely outside the daily temperature range, which is equivalent
     to the explicit ``if`` branches in the original Madingley formulation.
@@ -719,6 +720,7 @@ def p_below_t_min(
     Mirrors :func:`p_above_t_max` for the cold end of the activity window (Madingley
     eq. 44). The :math:`1 - {\\ldots}` flip converts "proportion of the day above
     ``t_min_crit``" into "proportion of the day below ``t_min_crit``".
+
     .. math::
 
         p_{Below,f} = 1 - \\frac{\\pi/2 - \\sin^{-1}
@@ -754,12 +756,14 @@ def activity_window(
     * Terrestrial ectotherms are limited to the fraction of the day within their
       thermal tolerance window, derived from the diurnal temperature cycle and
       climatological statistics (eq. 42).
+
     .. math::
 
         \\varsigma_{f(t)} = \\begin{cases}
             1 & \\text{if } f \\text{ is endotherm} \\\\
             1 - (p_{Above,f} + p_{Below,f}) & \\text{if } f \\text{ is ectotherm}
         \\end{cases}
+        
     The result is clamped to [0, 1] to guard against floating-point cases where
     ``p_above + p_below`` marginally exceeds 1.
 
