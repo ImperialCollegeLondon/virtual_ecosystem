@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -278,7 +279,17 @@ class AbioticModel(
             + 1
         )
         # TODO #1441 These placeholders should be arguments to abiotic_model
-        days = 30
+        # Determine number of days
+        days_float: float = self.model_timing.update_interval_seconds / 86400
+        days: int = int(days_float // 1)
+
+        # Check if the number of days is exact and warn if not
+        if not np.allclose(days_float % 1, 0):
+            LOGGER.warning(
+                f"Update interval is not a whole number of days ({days_float}),"
+                f" partitioning inputs among {days} days."
+            )
+
         latitude = 0.0
         time_dim = 24
 
