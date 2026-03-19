@@ -98,6 +98,8 @@ class ArrayResourceDefinition:
     """A definition of the diet type that can forage from this resource."""
     partition_by_pft: bool = False
     """Is the pool array partitioned along the plant functional type axis."""
+    density: bool = False
+    """Is the input pool density (per m^2) rather than just a mass."""
 
 
 class ArrayResource:
@@ -138,6 +140,8 @@ class ArrayResource:
         self.partition_by_pft: bool = definition.partition_by_pft
         """Should this resource array be partitioned into separate resource pools by
         PFT."""
+        self.density: bool = definition.density
+        """Is the pool being accessed a density (per m^2) rather than a mass."""
         self.data: Data = data
         """The data instance containing array resources."""
 
@@ -165,21 +169,11 @@ class ArrayResource:
         """
         if self.partition_by_pft:
             return [
-                ResourcePool(
-                    data=data,
-                    resource=self,
-                    pft=pft,
-                )
+                ResourcePool(data=data, resource=self, pft=pft, density=self.density)
                 for pft in data["pft"].to_numpy()
             ]
 
-        return [
-            ResourcePool(
-                data=data,
-                resource=self,
-                pft=None,
-            )
-        ]
+        return [ResourcePool(data=data, resource=self, pft=None, density=self.density)]
 
 
 ARRAY_RESOURCES = [
@@ -194,6 +188,41 @@ ARRAY_RESOURCES = [
         consumed_array="subcanopy_seedbank_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.SEEDS,
+    ),
+    ArrayResourceDefinition(
+        pool_array="litter_pool_above_metabolic_cnp",
+        consumed_array="litter_consumed_above_metabolic_cnp",
+        vertical_occupancy=VerticalOccupancy.GROUND,
+        diet_type=DietType.DETRITUS,
+        density=True,
+    ),
+    ArrayResourceDefinition(
+        pool_array="litter_pool_above_structural_cnp",
+        consumed_array="litter_consumed_above_structural_cnp",
+        vertical_occupancy=VerticalOccupancy.GROUND,
+        diet_type=DietType.DETRITUS,
+        density=True,
+    ),
+    ArrayResourceDefinition(
+        pool_array="litter_pool_woody_cnp",
+        consumed_array="litter_consumed_woody_cnp",
+        vertical_occupancy=VerticalOccupancy.GROUND,
+        diet_type=DietType.DETRITUS,
+        density=True,
+    ),
+    ArrayResourceDefinition(
+        pool_array="litter_pool_below_metabolic_cnp",
+        consumed_array="litter_consumed_below_metabolic_cnp",
+        vertical_occupancy=VerticalOccupancy.SOIL,
+        diet_type=DietType.DETRITUS,
+        density=True,
+    ),
+    ArrayResourceDefinition(
+        pool_array="litter_pool_below_structural_cnp",
+        consumed_array="litter_consumed_below_structural_cnp",
+        vertical_occupancy=VerticalOccupancy.SOIL,
+        diet_type=DietType.DETRITUS,
+        density=True,
     ),
 ]
 """Definition of the set of ArrayResources available to the AnimalModel."""
@@ -224,11 +253,13 @@ class ResourcePool:
         self,
         resource: ArrayResource,
         data: Data,
+        density: bool,
         pft: str | None = None,
     ):
         self.data: Data = data
         self.resource: ArrayResource = resource
         self.pft = pft
+        self.density = density
 
         # Type internal array attributes
         self.elemental_masses: NDArray[np.floating]
@@ -246,8 +277,12 @@ class ResourcePool:
         the local array tracking consumed total biomass.
         """
 
-        # Needs to collapse down to a single mass and element ratio per cell
-        mass_data = self.data[self.resource.pool_array]
+        # Needs to collapse down to a single mass and element ratio per cell and to
+        # convert to mass units in the density case
+        if self.density:
+            mass_data = self.data[self.resource.pool_array] * self.data.grid.cell_area
+        else:
+            mass_data = self.data[self.resource.pool_array]
 
         # Reduce to the PFT if needed
         # TODO - think about indexing here with a more general solution.

@@ -121,19 +121,19 @@ var_name = "fungal_fruiting_bodies"
 # Litter 
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_above_metabolic"
+var_name = "litter_pool_above_metabolic_cnp"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_above_structural"
+var_name = "litter_pool_above_structural_cnp"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_woody"
+var_name = "litter_pool_woody_cnp"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_below_metabolic"
+var_name = "litter_pool_below_metabolic_cnp"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_below_structural"
+var_name = "litter_pool_below_structural_cnp"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
 var_name = "lignin_above_structural"

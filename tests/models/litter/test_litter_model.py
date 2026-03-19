@@ -89,20 +89,30 @@ def test_litter_model_initialization_no_data(
     argnames="var,values,msg",
     argvalues=(
         pytest.param(
-            "litter_pool_above_metabolic",
-            [0.05, 0.02, -0.1, -0.1],
+            "litter_pool_above_metabolic_cnp",
+            DataArray(
+                np.stack(
+                    [
+                        [0.05, 0.02, -0.1, -0.1],
+                        [0.05, 0.02, 0.02, 0.02],
+                        [0.05, 0.02, 0.02, 0.02],
+                    ],
+                    axis=1,
+                ),
+                dims=["cell_id", "element"],
+            ),
             "Negative pool sizes found in: ",
             id="bad pool bounds",
         ),
         pytest.param(
             "lignin_woody",
-            [0.5, 0.4, 1.1, 1.1],
+            DataArray([0.5, 0.4, 1.1, 1.1], dims=["cell_id"]),
             "Lignin proportions not between 0 and 1 found in: ",
             id="bad lignin bounds",
         ),
         pytest.param(
             "c_n_ratio_woody",
-            [23.3, 45.6, -23.4, -11.1],
+            DataArray([23.3, 45.6, -23.4, -11.1], dims=["cell_id"]),
             "Negative nutrient ratios found in: ",
             id="bad nutrient ratio bounds",
         ),
@@ -122,7 +132,7 @@ def test_litter_model_initialization_errors(
 
     with pytest.raises(InitialisationError):
         # Put incorrect data in for lmwc
-        fixture_litter_init_data[var] = DataArray(values, dims=["cell_id"])
+        fixture_litter_init_data[var] = values
 
         LitterModel(
             data=fixture_litter_init_data,
@@ -197,16 +207,46 @@ def test_update(fixture_litter_model, dummy_litter_data):
     """Test to check that the update step works and increments the update step."""
 
     expected_output = {
-        "litter_pool_above_metabolic": [0.31274778, 0.14733378, 0.07884319, 0.07237949],
-        "litter_pool_above_structural": [
-            0.50473556,
-            0.24936209,
-            0.10274537,
-            0.11665499,
-        ],
-        "litter_pool_woody": [4.774026, 11.89845637, 7.35980938, 7.32981591],
-        "litter_pool_below_metabolic": [0.39768414, 0.36316585, 0.06791351, 0.07781341],
-        "litter_pool_below_structural": [0.6105005, 0.32204064, 0.02014513, 0.03468225],
+        "litter_pool_above_metabolic_cnp": np.stack(
+            [
+                [0.31274778, 0.14733378, 0.07884319, 0.07237949],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            axis=1,
+        ),
+        "litter_pool_above_structural_cnp": np.stack(
+            [
+                [0.50473556, 0.24936209, 0.10274537, 0.11665499],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            axis=1,
+        ),
+        "litter_pool_woody_cnp": np.stack(
+            [
+                [4.774026, 11.89845637, 7.35980938, 7.32981591],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            axis=1,
+        ),
+        "litter_pool_below_metabolic_cnp": np.stack(
+            [
+                [0.39768414, 0.36316585, 0.06791351, 0.07781341],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            axis=1,
+        ),
+        "litter_pool_below_structural_cnp": np.stack(
+            [
+                [0.6105005, 0.32204064, 0.02014513, 0.03468225],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            axis=1,
+        ),
         "lignin_above_structural": [0.49765798, 0.10073481, 0.68181057, 0.68425001],
         "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
         "lignin_below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
