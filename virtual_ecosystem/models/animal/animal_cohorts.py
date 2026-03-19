@@ -99,6 +99,8 @@ class AnimalCohort:
         """Initialize the territory using the centroid grid key."""
         self.territory: list[int]
         """The list of grid cells currently occupied by the cohort."""
+        self.sigma_f_t: float = 1.0
+        """The Activity window fraction in [0, 1]."""
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = find_decay_consumed_split(
@@ -321,6 +323,7 @@ class AnimalCohort:
             temperature=temperature,
             terms=self.functional_group.metabolic_rate_terms,
             metabolic_type=self.functional_group.metabolic_type,
+            sigma_f_t=self.sigma_f_t,
             metabolic_scaling_coefficients=self.constants.metabolic_scaling_coefficients,
             boltzmann_constant=self.core_constants.boltzmann_constant,
         ) * float(dt / timedelta64(1, "D"))
@@ -1454,10 +1457,7 @@ class AnimalCohort:
 
         # Compute foraging time proportionally across diet types
         time_available_per_diet = (
-            dt
-            * self.constants.tau_f
-            * self.constants.sigma_f_t
-            / self.diet_category_count
+            dt * self.constants.tau_f * self.sigma_f_t / self.diet_category_count
         )
 
         total_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
@@ -2117,3 +2117,28 @@ class AnimalCohort:
                 pools_in_territory.extend(litter_pools[cell_id].values())
 
         return pools_in_territory
+
+    def update_activity_window(
+        self,
+        temperature: float,
+        diurnal_temp_range: float,
+        annual_mean_temp: float,
+        annual_temp_sd: float,
+    ) -> None:
+        """Update the activity window fraction for the current timestep.
+
+        Args:
+            temperature: Monthly mean ambient temperature [°C].
+            diurnal_temp_range: Monthly mean diurnal temperature range [°C].
+            annual_mean_temp: Annual mean ambient temperature [°C].
+            annual_temp_sd: Standard deviation of monthly temperatures across the
+                climatological year [°C].
+        """
+        self.sigma_f_t = sf.activity_window(
+            metabolic_type=self.functional_group.metabolic_type,
+            temperature=temperature,
+            diurnal_temp_range=diurnal_temp_range,
+            annual_mean_temp=annual_mean_temp,
+            annual_temp_sd=annual_temp_sd,
+            constants=self.constants,
+        )
