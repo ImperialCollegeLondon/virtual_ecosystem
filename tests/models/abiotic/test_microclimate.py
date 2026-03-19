@@ -620,14 +620,12 @@ def test_update_air_temperature(
     idx = fixture_abiotic_indices
     static = fixture_static_inputs
     state = fixture_state_inputs
-    time_interval = 1
     abiotic_bounds = fixture_abiotic_simple_configuration.bounds
 
     result = update_air_temperature(
         state=state,
         static=static,
         abiotic_bounds=abiotic_bounds,
-        time_interval=time_interval,
         idx=idx,
     )
 

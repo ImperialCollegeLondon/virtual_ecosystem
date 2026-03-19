@@ -348,7 +348,6 @@ def test_update_air_temperature(
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
         mixing_layer_thickness=above_ground_layer_thickness[1:-1],
-        time_interval=3600.0,
     )
 
     # Mask valid values

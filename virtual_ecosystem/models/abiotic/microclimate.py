@@ -622,7 +622,6 @@ def update_air_temperature(
     static: dict[str, Any],
     abiotic_bounds: AbioticSimpleBounds,
     idx: SimpleNamespace,
-    time_interval: float,
 ) -> NDArray[np.floating]:
     """Update air temperature profiles based on calculated fluxes and turbulent mixing.
 
@@ -631,7 +630,6 @@ def update_air_temperature(
         static: Prepared static inputs for microclimate model
         abiotic_bounds: Bounds for air temperature to ensure physical realism
         idx: Indices for different layer types
-        time_interval: Time interval for flux calculations, [s]
 
     Returns:
         Updated air temperature profiles for microclimate model
@@ -644,7 +642,6 @@ def update_air_temperature(
         specific_heat_air=state["specific_heat_air"][idx.canopy],
         density_air=state["density_air"][idx.canopy],
         mixing_layer_thickness=static["geometry"]["thickness"][1:-1],
-        time_interval=time_interval,
     )
 
     # Update surface air temperatures, [C]
@@ -667,7 +664,6 @@ def update_air_temperature(
         specific_heat_air=state["specific_heat_air"][idx.surface],
         density_air=state["density_air"][idx.surface],
         mixing_layer_thickness=surface_mixing_layer_thickness,
-        time_interval=time_interval,
     )
 
     # Update all air temperatures, [C]
@@ -864,7 +860,7 @@ def run_hour_step(
         soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
         soil_bulk_density=abiotic_constants.bulk_density_soil,
         specific_heat_capacity_soil=abiotic_constants.specific_heat_capacity_soil,
-        time_interval=1,  # TODO core_constants.seconds_to_hour,
+        time_interval=core_constants.seconds_to_hour,
     )
     state["soil_temperature"][idx.soil] = soil_temperature
 
@@ -874,7 +870,6 @@ def run_hour_step(
         static=static,
         abiotic_bounds=abiotic_bounds,
         idx=idx,
-        time_interval=1,  # TODO core_constants.seconds_to_hour,
     )
     state["air_temperature"] = air_temperature
 
