@@ -81,14 +81,15 @@ def test_madingley_individuals_density_value(mass, terms, expected_behavior):
 
 
 @pytest.mark.parametrize(
-    "mass, temperature, terms, metabolic_type, met_rate",
+    "mass, temperature, terms, metabolic_type, sigma_f_t, met_rate",
     [
-        # Test cases for an endothermic animal
+        # Symmetric terms (basal == field) — sigma does not affect output
         pytest.param(
             0.0,
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "endothermic",
+            1.0,
             0.0,
             id="endothermic_zero_mass",
         ),
@@ -97,6 +98,7 @@ def test_madingley_individuals_density_value(mass, terms, expected_behavior):
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "endothermic",
+            1.0,
             2.3264417757316824e-16,
             id="endothermic_small_mass",
         ),
@@ -105,15 +107,16 @@ def test_madingley_individuals_density_value(mass, terms, expected_behavior):
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "endothermic",
+            1.0,
             3.218786623537764e-16,
             id="endothermic_large_mass",
         ),
-        # Test cases for an ectothermic animal
         pytest.param(
             0.0,
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
+            1.0,
             0.0,
             id="ectothermic_zero_mass",
         ),
@@ -122,6 +125,7 @@ def test_madingley_individuals_density_value(mass, terms, expected_behavior):
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
+            1.0,
             9.116692117764761e-17,
             id="ectothermic_small_mass",
         ),
@@ -130,19 +134,56 @@ def test_madingley_individuals_density_value(mass, terms, expected_behavior):
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
+            1.0,
             1.261354870157637e-16,
             id="ectothermic_large_mass",
         ),
+        # Asymmetric terms (basal != field) — exercises the sigma FMR/BMR split
+        pytest.param(
+            1.0,
+            25,
+            {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
+            "endothermic",
+            1.0,
+            2.316717571445662e-16,
+            id="endothermic_fully_active",
+        ),
+        pytest.param(
+            1.0,
+            25,
+            {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
+            "endothermic",
+            0.0,
+            1.9480521887285538e-16,
+            id="endothermic_fully_inactive",
+        ),
+        pytest.param(
+            1.0,
+            25,
+            {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
+            "ectothermic",
+            1.0,
+            9.078585349134391e-17,
+            id="ectothermic_fully_active",
+        ),
+        pytest.param(
+            1.0,
+            25,
+            {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
+            "ectothermic",
+            0.0,
+            7.633886097261398e-17,
+            id="ectothermic_fully_inactive",
+        ),
     ],
 )
-def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
-    """Testing metabolic rate for various body-masses."""
-
+def test_metabolic_rate(mass, temperature, terms, metabolic_type, sigma_f_t, met_rate):
+    """Testing metabolic rate for various body-masses and activity window fractions."""
     from virtual_ecosystem.models.animal.animal_traits import MetabolicType
     from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
 
     testing_rate = metabolic_rate(
-        mass, temperature, terms, MetabolicType(metabolic_type)
+        mass, temperature, terms, MetabolicType(metabolic_type), sigma_f_t
     )
     assert testing_rate == pytest.approx(met_rate, rel=1e-6)
 
