@@ -200,10 +200,11 @@ nitpick_ignore = [
     ("py:class", "REQUIRED_MICROBIAL_GROUPS"),
     ("py:class", "HIGHER_TAXONOMIC_GROUPS"),
     ("py:class", "dir"),
-    # FOR PITY'S SAKE, SPHINX - why can you not find DIRPATH_PLACEHOLDER when you _can_
-    # find FILEPATH_PLACEHOLDER, which is defined in the same way, in the same file and
-    # when both do actually appear in the API docs? It's right there.
+    # FOR PITY'S SAKE, SPHINX - not finding types
+    ("py:class", "FILEPATH_PLACEHOLDER"),
+    ("py:class", "GRID_STRUCTURE_SIG"),
     ("py:class", "DIRPATH_PLACEHOLDER"),
+    ("py:class", "SubcanopyNutrients"),
     ("py:class", "PyrealmCoreConst"),
     # Typing on animal.model_config
     ("py:class", "virtual_ecosystem.models.animal.animal_traits.Annotated"),
