@@ -29,18 +29,18 @@ from virtual_ecosystem.models.litter.model_config import LitterConstants
 
 
 def calculate_post_consumption_pools(
-    above_metabolic: NDArray[np.floating],
-    above_structural: NDArray[np.floating],
-    woody: NDArray[np.floating],
-    below_metabolic: NDArray[np.floating],
-    below_structural: NDArray[np.floating],
-    consumption_above_metabolic: NDArray[np.floating],
-    consumption_above_structural: NDArray[np.floating],
-    consumption_woody: NDArray[np.floating],
-    consumption_below_metabolic: NDArray[np.floating],
-    consumption_below_structural: NDArray[np.floating],
+    above_metabolic: DataArray,
+    above_structural: DataArray,
+    woody: DataArray,
+    below_metabolic: DataArray,
+    below_structural: DataArray,
+    consumption_above_metabolic: DataArray,
+    consumption_above_structural: DataArray,
+    consumption_woody: DataArray,
+    consumption_below_metabolic: DataArray,
+    consumption_below_structural: DataArray,
     cell_area: float,
-) -> dict[str, NDArray[np.floating]]:
+) -> dict[str, DataArray]:
     """Calculates the size of the five litter pools after animal consumption.
 
     At present the Virtual Ecosystem gives animals priority for consumption of litter.
@@ -222,7 +222,7 @@ def calculate_total_C_mineralised(
 
 
 def calculate_updated_pools(
-    post_consumption_pools: dict[str, NDArray[np.floating]],
+    post_consumption_pools: dict[str, DataArray],
     decay_rates: dict[str, NDArray[np.floating]],
     litter_inputs: LitterInputs,
     update_interval: float,
@@ -254,31 +254,39 @@ def calculate_updated_pools(
         "above_metabolic": calculate_final_pool_size(
             input_rate=litter_inputs.above_metabolic,
             decay_rate=decay_rates["metabolic_above"],
-            initial_pool=post_consumption_pools["above_metabolic"],
+            initial_pool=post_consumption_pools["above_metabolic"]
+            .loc[:, "C"]
+            .to_numpy(),
             update_interval=update_interval,
         ),
         "above_structural": calculate_final_pool_size(
             input_rate=litter_inputs.above_structural,
             decay_rate=decay_rates["structural_above"],
-            initial_pool=post_consumption_pools["above_structural"],
+            initial_pool=post_consumption_pools["above_structural"]
+            .loc[:, "C"]
+            .to_numpy(),
             update_interval=update_interval,
         ),
         "woody": calculate_final_pool_size(
             input_rate=litter_inputs.woody,
             decay_rate=decay_rates["woody"],
-            initial_pool=post_consumption_pools["woody"],
+            initial_pool=post_consumption_pools["woody"].loc[:, "C"].to_numpy(),
             update_interval=update_interval,
         ),
         "below_metabolic": calculate_final_pool_size(
             input_rate=litter_inputs.below_metabolic,
             decay_rate=decay_rates["metabolic_below"],
-            initial_pool=post_consumption_pools["below_metabolic"],
+            initial_pool=post_consumption_pools["below_metabolic"]
+            .loc[:, "C"]
+            .to_numpy(),
             update_interval=update_interval,
         ),
         "below_structural": calculate_final_pool_size(
             input_rate=litter_inputs.below_structural,
             decay_rate=decay_rates["structural_below"],
-            initial_pool=post_consumption_pools["below_structural"],
+            initial_pool=post_consumption_pools["below_structural"]
+            .loc[:, "C"]
+            .to_numpy(),
             update_interval=update_interval,
         ),
     }

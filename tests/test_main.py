@@ -28,16 +28,6 @@ INITIALISATION_LOG = [
     (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
     (DEBUG, "litter model: required var 'lignin_woody' checked"),
     (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
-    (DEBUG, "litter model: required var 'c_n_ratio_above_metabolic' checked"),
-    (DEBUG, "litter model: required var 'c_n_ratio_above_structural' checked"),
-    (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
-    (DEBUG, "litter model: required var 'c_n_ratio_below_metabolic' checked"),
-    (DEBUG, "litter model: required var 'c_n_ratio_below_structural' checked"),
-    (DEBUG, "litter model: required var 'c_p_ratio_above_metabolic' checked"),
-    (DEBUG, "litter model: required var 'c_p_ratio_above_structural' checked"),
-    (DEBUG, "litter model: required var 'c_p_ratio_woody' checked"),
-    (DEBUG, "litter model: required var 'c_p_ratio_below_metabolic' checked"),
-    (DEBUG, "litter model: required var 'c_p_ratio_below_structural' checked"),
 ]
 
 
