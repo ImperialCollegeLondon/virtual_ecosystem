@@ -285,6 +285,24 @@ class AnimalConstants(Configuration):
     optimal temperature relative to annual mean temperature, for terrestrial
     ectothermic functional groups."""
 
+    # Placeholder climate inputs for activity window computation.
+    # TODO: replace with dynamic per-cell values from the abiotic model once the
+    # required variables (diurnal temperature range, annual mean temperature, annual
+    # temperature SD) are exposed via the data object.
+
+    placeholder_diurnal_temp_range: float = 10.0
+    """Monthly mean diurnal temperature range used as a toy stand-in for
+    $\\Delta T_{Diurnal}^C$ [°C]. Replace once abiotic model exposes this."""
+
+    placeholder_annual_mean_temp: float = 20.0
+    """Annual mean temperature used as a toy stand-in for $T_{Annual}^C$ [°C].
+    Replace once abiotic model exposes this."""
+
+    placeholder_annual_temp_sd: float = 5.0
+    """Standard deviation of monthly temperatures across the climatological year,
+    used as a toy stand-in for $\\sigma_{T_{Annual}^C}$ [°C]. Replace once abiotic
+    model exposes this."""
+
     # Madingley dispersal parameters
 
     M_disp_ref: float = 1.0  # M_disp_ref [Madingley] [g]
