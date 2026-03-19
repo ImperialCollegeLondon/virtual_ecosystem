@@ -35,6 +35,7 @@ def run_simple_microclimate(
     time_index: int,  # could be datetime?
     constants: AbioticSimpleConstants | AbioticConstants,
     core_constants: CoreConstants,
+    pyrealm_core_constants: PyrealmCoreConst,
     bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
@@ -89,6 +90,7 @@ def run_simple_microclimate(
         time_index: Time index, integer
         constants: Set of constants for the abiotic simple model
         core_constants: Set of constants shared across all models
+        pyrealm_core_constants: Set of constants from pyrealm package
         bounds: Upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
 
@@ -126,6 +128,15 @@ def run_simple_microclimate(
             lower_bound=lower,
             gradient=gradient,
         ).rename(var)
+
+    # Vapour pressure, [kPa]
+    vapour_pressure = abiotic_tools.calculate_actual_vapour_pressure(
+        air_temperature=output["air_temperature"],
+        relative_humidity=output["relative_humidity"],
+        pyrealm_core_constants=pyrealm_core_constants,
+    )
+    output["vapour_pressure"] = layer_structure.from_template()
+    output["vapour_pressure"] = vapour_pressure
 
     # Mean atmospheric pressure profile, [kPa]
     output["atmospheric_pressure"] = abiotic_tools.update_profile_from_reference(
