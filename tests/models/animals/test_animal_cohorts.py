@@ -4050,3 +4050,80 @@ class TestAnimalCohort:
         assert mock_bin.call_count == 2
         mock_bin.assert_any_call(50.0, 0.1)
         mock_bin.assert_any_call(200.0, 0.1)
+
+    @pytest.mark.parametrize(
+        "cohort_type, temperature, diurnal_temp_range, annual_mean_temp,"
+        " annual_temp_sd, expected_sigma, check_type",
+        [
+            pytest.param(
+                "herbivore",
+                31.0,
+                4.0,
+                20.0,
+                5.0,
+                1.0,
+                "equal",
+                id="endotherm_always_1",
+            ),
+            pytest.param(
+                "ectotherm",
+                31.0,
+                4.0,
+                20.0,
+                5.0,
+                1.0,
+                "equal",
+                id="ectotherm_fully_within_window",
+            ),
+            pytest.param(
+                "ectotherm",
+                10.0,
+                4.0,
+                20.0,
+                5.0,
+                0.0,
+                "equal",
+                id="ectotherm_always_too_cold",
+            ),
+            pytest.param(
+                "ectotherm",
+                30.0,
+                10.0,
+                20.0,
+                5.0,
+                None,
+                "between",
+                id="ectotherm_partial_overlap",
+            ),
+        ],
+    )
+    def test_update_activity_window(
+        self,
+        herbivore_cohort_instance,
+        ectotherm_cohort_instance,
+        cohort_type,
+        temperature,
+        diurnal_temp_range,
+        annual_mean_temp,
+        annual_temp_sd,
+        expected_sigma,
+        check_type,
+    ):
+        """Test that update_activity_window sets sigma_f_t correctly."""
+        cohort = (
+            herbivore_cohort_instance
+            if cohort_type == "herbivore"
+            else ectotherm_cohort_instance
+        )
+
+        cohort.update_activity_window(
+            temperature=temperature,
+            diurnal_temp_range=diurnal_temp_range,
+            annual_mean_temp=annual_mean_temp,
+            annual_temp_sd=annual_temp_sd,
+        )
+
+        if check_type == "equal":
+            assert cohort.sigma_f_t == pytest.approx(expected_sigma)
+        else:
+            assert 0.0 < cohort.sigma_f_t < 1.0

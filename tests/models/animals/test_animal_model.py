@@ -2875,6 +2875,19 @@ class TestAnimalModel:
         mock_immature.update_largest_mass.assert_called_once()
         mock_mature.update_largest_mass.assert_not_called()
 
+    def test_update_activity_windows_community(self, prepared_animal_model_instance):
+        """Test that update_activity_windows_community sets sigma_f_t correctly."""
+        from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+
+        prepared_animal_model_instance.update_activity_windows_community()
+
+        for community in prepared_animal_model_instance.communities.values():
+            for cohort in community:
+                if cohort.functional_group.metabolic_type == MetabolicType.ENDOTHERMIC:
+                    assert cohort.sigma_f_t == pytest.approx(1.0)
+                else:
+                    assert 0.0 <= cohort.sigma_f_t <= 1.0
+
 
 def test_to_per_day(prepared_animal_model_instance):
     """Test that helper function to convert to per day rates works."""
