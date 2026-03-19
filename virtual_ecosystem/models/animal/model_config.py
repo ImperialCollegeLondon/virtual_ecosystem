@@ -124,9 +124,8 @@ class AnimalConstants(Configuration):
     madingley_biomass_scaling_terms: tuple[float, float] = (0.6, 300000.0)
     """Biomass scaling terms from the Madingley model."""
 
-    metabolic_scaling_coefficients: tuple[float, float, float] = (
+    metabolic_scaling_coefficients: tuple[float, float] = (
         0.037,  # Es
-        0.5,  # sig
         0.69,  # Ea
     )
     r"""Metabolic rate scaling coefficients.
@@ -136,8 +135,6 @@ class AnimalConstants(Configuration):
     relationship with temperature. The three values are:
 
     * :math:`E_s` - energy to mass conversion constant (g/kJ)
-    * :math:`\sigma` - proportion of time-step with temp in active range (toy default
-      value)
     * :math:`E_a` - aggregate activation energy of metabolic reactions
     """
 
