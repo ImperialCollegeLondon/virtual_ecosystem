@@ -16,4 +16,5 @@ dung_beetle,invertebrate,waste,ectothermic,terrestrial,iteroparous,direct,adult,
 scavenging_mammal,mammal,carcasses,endothermic,terrestrial,iteroparous,direct,adult,scavenging_mammal,ureotelic,none,ground,2.0,20.0,None
 detritivorous_insect,invertebrate,detritus,ectothermic,terrestrial,iteroparous,direct,adult,detritivorous_insect,uricotelic,none,soil_ground,0.0004,0.004,None
 fungivorous_mammal,mammal,mushrooms,endothermic,terrestrial,iteroparous,direct,adult,fungivorous_mammal,ureotelic,none,soil_ground,1.0,10.0,None
-
+herbivorous_lizard,reptile,foliage_fruit,ectothermic,terrestrial,iteroparous,direct,adult,herbivorous_lizard,uricotelic,none,ground_canopy,0.01,0.5,0.005
+carnivorous_snake,reptile,vertebrates_invertebrates_carcasses,ectothermic,terrestrial,iteroparous,direct,adult,carnivorous_snake,uricotelic,none,ground,0.02,1.0,0.005

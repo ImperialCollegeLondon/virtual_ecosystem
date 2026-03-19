@@ -117,6 +117,11 @@ class AnimalConstants(Configuration):
                 DietType.CARNIVORE: (-0.75, 2.00),
                 DietType.OMNIVORE: (-0.75, 3.00),
             },
+            TaxaType.REPTILE: {
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
+            },
         }
     )
     """Damuth Law terms, structured by taxonomic type and broad diet category."""
@@ -190,6 +195,7 @@ class AnimalConstants(Configuration):
             MetabolicType.ECTOTHERMIC: {
                 TaxaType.INVERTEBRATE: (1.0, 1.0),
                 TaxaType.AMPHIBIAN: (1.0, 1.0),
+                TaxaType.REPTILE: (1.0, 1.0),
             },  # Toy values
         }
     )
@@ -201,6 +207,7 @@ class AnimalConstants(Configuration):
             TaxaType.BIRD: {"C": 0.4, "N": 0.3, "P": 0.3},
             TaxaType.INVERTEBRATE: {"C": 0.4, "N": 0.2, "P": 0.4},
             TaxaType.AMPHIBIAN: {"C": 0.4, "N": 0.2, "P": 0.4},
+            TaxaType.REPTILE: {"C": 0.4, "N": 0.2, "P": 0.4},
         }
     )
     """Stoichiometric proportions structured by taxon type."""
@@ -416,6 +423,10 @@ class AnimalConstants(Configuration):
                         1.13,
                     ),  # Ofstad et al. (2016), ungulates, closed habitat
                     TaxaType.AMPHIBIAN: (
+                        -6.09,
+                        1.13,
+                    ),  # Ofstad et al. (2016), ungulates, closed habitat
+                    TaxaType.REPTILE: (
                         -6.09,
                         1.13,
                     ),  # Ofstad et al. (2016), ungulates, closed habitat

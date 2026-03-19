@@ -160,7 +160,12 @@ def prey_group_selection(
         # Vertebrate prey (birds, mammals, amphibians)
         if diet_type & (
             DietType.VERTEBRATES | DietType.BLOOD | DietType.FISH
-        ) and fg.taxa in {TaxaType.BIRD, TaxaType.MAMMAL, TaxaType.AMPHIBIAN}:
+        ) and fg.taxa in {
+            TaxaType.BIRD,
+            TaxaType.MAMMAL,
+            TaxaType.AMPHIBIAN,
+            TaxaType.REPTILE,
+        }:
             result[fg.name] = (0.0001, 1000.0)
 
         # Invertebrate prey
@@ -752,7 +757,7 @@ def activity_window(
     r"""Proportion of the timestep suitable for a cohort to be active.
 
     Implements Madingley eqs. 41-47:
-    
+
     * Endotherms are active for the full timestep (eq. 41).
     * Terrestrial ectotherms are limited to the fraction of the day within their
       thermal tolerance window, derived from the diurnal temperature cycle and
