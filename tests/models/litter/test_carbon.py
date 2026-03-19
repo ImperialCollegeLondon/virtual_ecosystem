@@ -25,37 +25,77 @@ def temp_and_water_factors(
     )
 
 
-def test_calculate_post_consumption_pools(dummy_litter_data):
+def test_calculate_post_consumption_pools(dummy_litter_data, fixture_core_components):
     """Test that the calculation of post consumption pool sizes is correct."""
     from virtual_ecosystem.models.litter.carbon import calculate_post_consumption_pools
 
     expected_pools = {
-        "above_metabolic": [0.3, 0.15, 0.07, 0.07],
-        "above_structural": [0.5, 0.25, 0.09, 0.09],
-        "woody": [4.7, 11.8, 7.3, 7.3],
-        "below_metabolic": [0.4, 0.37, 0.07, 0.07],
-        "below_structural": [0.6, 0.31, 0.02, 0.02],
+        "above_metabolic": np.stack(
+            [
+                [0.3, 0.15, 0.07, 0.07],
+                [0.04109593, 0.0172416, 0.00693067, 0.00714283],
+                [0.005235602, 0.002183406, 0.000699301, 0.000730689],
+            ],
+            axis=1,
+        ),
+        "above_structural": np.stack(
+            [
+                [0.5, 0.25, 0.09, 0.09],
+                [0.01333333, 0.005787046, 0.001965111, 0.001792787],
+                [0.00148147667, 0.000528317464, 0.000216453025, 0.000157842746],
+            ],
+            axis=1,
+        ),
+        "woody": np.stack(
+            [
+                [4.7, 11.8, 7.3, 7.3],
+                [0.084684685, 0.186413902, 0.154334038, 0.123519459],
+                [0.008460846, 0.015459190, 0.008615603, 0.012184944],
+            ],
+            axis=1,
+        ),
+        "below_metabolic": np.stack(
+            [
+                [0.4, 0.37, 0.07, 0.07],
+                [0.0373832, 0.0327434, 0.0046053, 0.0056452],
+                [0.00128742, 0.00089959, 0.00022208, 0.00016974],
+            ],
+            axis=1,
+        ),
+        "below_structural": np.stack(
+            [
+                [0.6, 0.31, 0.02, 0.02],
+                [0.011881143, 0.005575536, 0.000273646, 0.000326796],
+                [0.00108992146, 0.0005204796, 2.586988e-5, 3.071258e-5],
+            ],
+            axis=1,
+        ),
     }
 
     actual_pools = calculate_post_consumption_pools(
-        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
-        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
-        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
-        below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
-        below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        above_metabolic=dummy_litter_data["litter_pool_above_metabolic_cnp"].to_numpy(),
+        above_structural=dummy_litter_data[
+            "litter_pool_above_structural_cnp"
+        ].to_numpy(),
+        woody=dummy_litter_data["litter_pool_woody_cnp"].to_numpy(),
+        below_metabolic=dummy_litter_data["litter_pool_below_metabolic_cnp"].to_numpy(),
+        below_structural=dummy_litter_data[
+            "litter_pool_below_structural_cnp"
+        ].to_numpy(),
         consumption_above_metabolic=dummy_litter_data[
-            "litter_consumption_above_metabolic"
+            "litter_consumed_above_metabolic_cnp"
         ].to_numpy(),
         consumption_above_structural=dummy_litter_data[
-            "litter_consumption_above_structural"
+            "litter_consumed_above_structural_cnp"
         ].to_numpy(),
-        consumption_woody=dummy_litter_data["litter_consumption_woody"].to_numpy(),
+        consumption_woody=dummy_litter_data["litter_consumed_woody_cnp"].to_numpy(),
         consumption_below_metabolic=dummy_litter_data[
-            "litter_consumption_below_metabolic"
+            "litter_consumed_below_metabolic_cnp"
         ].to_numpy(),
         consumption_below_structural=dummy_litter_data[
-            "litter_consumption_below_structural"
+            "litter_consumed_below_structural_cnp"
         ].to_numpy(),
+        cell_area=fixture_core_components.grid.cell_area,
     )
 
     assert set(expected_pools.keys()) == set(actual_pools.keys())
@@ -133,7 +173,10 @@ def test_calculate_updated_pools(decay_rates, post_consumption_pools, litter_inp
     }
 
     actual_pools = calculate_updated_pools(
-        post_consumption_pools=post_consumption_pools,
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        post_consumption_pools={
+            name: pools[:, 0] for name, pools in post_consumption_pools.items()
+        },
         decay_rates=decay_rates,
         litter_inputs=litter_inputs,
         update_interval=2.0,
@@ -154,7 +197,7 @@ def test_calculate_final_pool_size(post_consumption_pools, litter_inputs, decay_
     actual_pool_size = calculate_final_pool_size(
         input_rate=litter_inputs.above_metabolic,
         decay_rate=decay_rates["metabolic_above"],
-        initial_pool=post_consumption_pools["above_metabolic"],
+        initial_pool=post_consumption_pools["above_metabolic"][:, 0],
         update_interval=2.0,
     )
 

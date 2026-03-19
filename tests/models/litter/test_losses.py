@@ -42,7 +42,10 @@ def test_calculate_litter_losses(
 
     actual_losses = calculate_litter_losses(
         data=dummy_litter_data,
-        original_pools=post_consumption_pools,
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        original_pools={
+            name: pools[:, 0] for name, pools in post_consumption_pools.items()
+        },
         final_pools=updated_pools,
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,
@@ -69,7 +72,8 @@ def test_calculate_carbon_pool_loss(
     expected_loss = [0.00921022, 0.00446856, 0.00223770, 0.00214006]
 
     actual_loss = calculate_carbon_pool_loss(
-        old_pool_size=post_consumption_pools["above_metabolic"],
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        old_pool_size=post_consumption_pools["above_metabolic"][:, 0],
         final_pool_size=updated_pools["above_metabolic"],
         input_rate=litter_inputs.above_metabolic,
         update_interval=2.0,
@@ -105,7 +109,8 @@ def test_calculate_nutrient_pool_loss(
     from virtual_ecosystem.models.litter.losses import calculate_nutrient_pool_loss
 
     actual_nutrient_loss = calculate_nutrient_pool_loss(
-        initial_pool_size=post_consumption_pools["above_metabolic"],
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        initial_pool_size=post_consumption_pools["above_metabolic"][:, 0],
         carbon_loss=carbon_loss,
         input_rate=litter_inputs.above_metabolic,
         initial_carbon_nutrient_ratio=dummy_litter_data["c_n_ratio_above_metabolic"],
@@ -143,7 +148,8 @@ def test_calculate_lignin_pool_loss(
     from virtual_ecosystem.models.litter.losses import calculate_lignin_pool_loss
 
     actual_lignin_loss = calculate_lignin_pool_loss(
-        initial_pool_size=post_consumption_pools["above_structural"],
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        initial_pool_size=post_consumption_pools["above_structural"][:, 0],
         carbon_loss=carbon_loss,
         input_rate=litter_inputs.above_structural,
         initial_lignin_proportion=dummy_litter_data["lignin_above_structural"],

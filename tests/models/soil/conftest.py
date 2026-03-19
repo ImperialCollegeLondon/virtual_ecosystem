@@ -128,13 +128,14 @@ def dummy_carbon_data(fixture_core_components):
     )
 
     data["litter_mineralisation_rate_cnp"] = DataArray(
-        data=np.array(
+        data=np.stack(
             [
                 [0.00212106, 0.00106053, 0.00049000, 0.0055],
                 [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
                 [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
-            ]
-        ).transpose(),
+            ],
+            axis=1,
+        ),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 

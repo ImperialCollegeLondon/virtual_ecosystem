@@ -52,7 +52,10 @@ def test_calculate_new_pool_chemistries(
         litter_inputs=litter_inputs,
         litter_losses=litter_losses,
         input_chemistries=input_chemistries,
-        original_pools=post_consumption_pools,
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        original_pools={
+            name: pools[:, 0] for name, pools in post_consumption_pools.items()
+        },
         update_interval=2.0,
     )
 
@@ -81,7 +84,10 @@ def test_calculate_new_lignin_proportions(
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,
         litter_losses=litter_losses,
-        original_pools=post_consumption_pools,
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        original_pools={
+            name: pools[:, 0] for name, pools in post_consumption_pools.items()
+        },
         update_interval=2.0,
     )
 
@@ -106,7 +112,8 @@ def test_calculate_updated_pool_nutrient_ratio(
     expected_ratio = [7.52594014, 8.77113534, 10.94226006, 10.0196659]
 
     actual_ratio = calculate_updated_pool_nutrient_ratio(
-        initial_carbon=post_consumption_pools["above_metabolic"],
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        initial_carbon=post_consumption_pools["above_metabolic"][:, 0],
         input_carbon_rate=litter_inputs.above_metabolic,
         carbon_loss=litter_losses.above_metabolic_carbon,
         initial_c_nut_ratio=dummy_litter_data["c_n_ratio_above_metabolic"].to_numpy(),
@@ -133,7 +140,8 @@ def test_calculate_updated_pool_lignin_proportion(
     expected_lignin = [0.49765798, 0.10073481, 0.68181057, 0.68425001]
 
     actual_lignin = calculate_updated_pool_lignin_proportion(
-        initial_carbon=post_consumption_pools["above_structural"],
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        initial_carbon=post_consumption_pools["above_structural"][:, 0],
         input_carbon_rate=litter_inputs.above_structural,
         carbon_loss=litter_losses.above_structural_carbon,
         initial_lignin_proportion=dummy_litter_data[
@@ -168,7 +176,10 @@ def test_calculate_new_c_n_ratios(
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,
         litter_losses=litter_losses,
-        original_pools=post_consumption_pools,
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        original_pools={
+            name: pools[:, 0] for name, pools in post_consumption_pools.items()
+        },
         update_interval=2.0,
     )
 
@@ -199,7 +210,10 @@ def test_calculate_new_c_p_ratios(
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,
         litter_losses=litter_losses,
-        original_pools=post_consumption_pools,
+        # TODO - TEMPORARY FIX THAT SHOULD BE REPLACED SOON
+        original_pools={
+            name: pools[:, 0] for name, pools in post_consumption_pools.items()
+        },
         update_interval=2.0,
     )
 
