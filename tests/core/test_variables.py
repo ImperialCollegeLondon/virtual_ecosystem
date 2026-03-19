@@ -190,7 +190,9 @@ def test_check_model_variables_are_known(fixture_variable, fixture_test_model):
     known_variables = {}
 
     with pytest.raises(
-        ValueError, match=r"Model TestModel definition contains unknown variables"
+        ValueError,
+        match="Unknown variables in the definition of the following models, check log: "
+        + "TestModel",
     ):
         _check_model_variables_are_known(
             [fixture_test_model], known_variables=known_variables
