@@ -607,6 +607,7 @@ def t_opt_ectotherm(
     r"""Optimal activity temperature for a terrestrial ectothermic functional group.
 
     Implements Madingley eq. 47:
+
     .. math::
 
         T_{opt} = m_{tsm} \\cdot \\sigma_{T_{Annual}^C} + c_{tsm} + T_{Annual}^C
@@ -634,6 +635,7 @@ def t_max_crit_ectotherm(
     r"""Upper critical temperature for a terrestrial ectothermic functional group.
 
     Implements Madingley eq. 45:
+
     .. math::
 
         T_{\\max,f}^{crit} = m_{tol,terrestrial} \\cdot \\sigma_{T_{Annual}^C}
@@ -657,6 +659,7 @@ def t_min_crit_ectotherm(t_max_crit: float, t_opt: float) -> float:
     r"""Lower critical temperature for a terrestrial ectothermic functional group.
 
     Implements Madingley eq. 46:
+
     .. math::
 
         T_{\\min,f}^{crit} = T_{opt,f}
@@ -682,6 +685,7 @@ def p_above_t_max(
     Models the daily temperature cycle as a sine wave centred on the monthly mean
     ``temperature`` with amplitude ``diurnal_temp_range / 2``. Returns the fraction
     of the period for which that cycle exceeds ``t_max_crit`` (Madingley eq. 43).
+
     .. math::
 
         p_{Above,f} = \\frac{\\pi/2 - \\sin^{-1}
