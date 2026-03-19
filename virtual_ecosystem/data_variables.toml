@@ -1085,7 +1085,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "The fraction of clay in soil"
+description = "The fraction of clay in soil. This is a proportion between 0 and 1."
 name = "clay_fraction"
 unit = "-"
 variable_type = "float"
