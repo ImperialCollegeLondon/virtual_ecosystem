@@ -200,10 +200,11 @@ nitpick_ignore = [
     ("py:class", "REQUIRED_MICROBIAL_GROUPS"),
     ("py:class", "HIGHER_TAXONOMIC_GROUPS"),
     ("py:class", "dir"),
-    # FOR PITY'S SAKE, SPHINX - why can you not find DIRPATH_PLACEHOLDER when you _can_
-    # find FILEPATH_PLACEHOLDER, which is defined in the same way, in the same file and
-    # when both do actually appear in the API docs? It's right there.
+    # FOR PITY'S SAKE, SPHINX - not finding types
+    ("py:class", "FILEPATH_PLACEHOLDER"),
+    ("py:class", "GRID_STRUCTURE_SIG"),
     ("py:class", "DIRPATH_PLACEHOLDER"),
+    ("py:class", "SubcanopyNutrients"),
     ("py:class", "PyrealmCoreConst"),
     # Typing on animal.model_config
     ("py:class", "virtual_ecosystem.models.animal.animal_traits.Annotated"),
@@ -215,6 +216,7 @@ nitpick_ignore = [
     ("py:class", "pandas.core.frame.DataFrame"),
 ]
 
+
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
@@ -223,7 +225,10 @@ intersphinx_mapping = {
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
     "pyrealm": ("https://pyrealm.readthedocs.io/en/stable/", None),
-    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    # TODO - This is currently pinned to the version we use as there are changes in
+    # 3.0 (stable) which break the docs build. Once we have moved to 3.0 we should
+    # revert this to stable
+    "pandas": ("http://pandas.pydata.org/pandas-docs/version/2.3/", None),
     "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
 

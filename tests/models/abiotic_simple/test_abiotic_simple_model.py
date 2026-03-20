@@ -38,6 +38,7 @@ def fixture_abiotic_simple_init_log():
                 "relative_humidity",
                 "vapour_pressure_deficit",
                 "wind_speed",
+                "vapour_pressure",
                 "atmospheric_pressure",
                 "atmospheric_co2",
                 "soil_temperature",
@@ -242,21 +243,11 @@ def test_setup_and_update_abiotic_simple_model(
 
     exp_netrad = lyr_strct.from_template()
     exp_netrad[lyr_strct.index_filled_canopy] = [
-        [449.955469, 449.955309, 449.955149, np.nan],
-        [449.958399, 449.957284, np.nan, np.nan],
-        [449.96307, np.nan, np.nan, np.nan],
+        [179.955, 179.955, 179.955, np.nan],
+        [159.958, 159.957, np.nan, np.nan],
+        [119.96307, np.nan, np.nan, np.nan],
     ]
-    exp_netrad[lyr_strct.index_surface_scalar] = [
-        449.984934,
-        449.977546,
-        449.967725,
-        449.954989,
-    ]
-    exp_netrad[lyr_strct.index_topsoil_scalar] = [
-        449.990086,
-        449.988875,
-        449.987557,
-        449.986126,
-    ]
+    exp_netrad[lyr_strct.index_surface_scalar] = [179.984, 179.977, 179.967, 179.954]
+    exp_netrad[lyr_strct.index_topsoil_scalar] = [179.990, 179.988, 179.987, 179.986]
 
     xr.testing.assert_allclose(model.data["net_radiation"], exp_netrad)

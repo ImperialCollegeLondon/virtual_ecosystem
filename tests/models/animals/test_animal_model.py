@@ -1965,13 +1965,12 @@ class TestAnimalModel:
         )
         herbivore_cohort_instance.get_prey.assert_not_called()
         mock_forage_herbivore.assert_called_once_with(
-            plant_list=["array_resources"],
+            array_resource_list=["array_resources"],
             animal_list=[],
             fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
-            litter_pools=[],
             excrement_pools=["excrement_pools_herbivore"],
             carcass_pool_map=animal_model_instance.carcass_pools,
             scavenge_carcass_pools=[],
@@ -1993,13 +1992,12 @@ class TestAnimalModel:
         )
         predator_cohort_instance.get_plant_resources.assert_not_called()
         mock_forage_predator.assert_called_once_with(
-            plant_list=[],
+            array_resource_list=[],
             animal_list=["prey"],
             fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
-            litter_pools=[],
             excrement_pools=["excrement_pools_predator"],
             carcass_pool_map=animal_model_instance.carcass_pools,
             scavenge_carcass_pools=[],

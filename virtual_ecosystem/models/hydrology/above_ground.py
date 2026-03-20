@@ -539,37 +539,131 @@ def calculate_interception(
 def distribute_monthly_rainfall(
     total_monthly_rainfall: NDArray[np.floating],
     num_days: int,
+    p_wet_wet: float,
+    p_wet_dry: float,
+    shape_parameter: float,
+    scale_parameter: float,
     seed: int | None = None,
 ) -> NDArray[np.floating]:
-    """Distributes total monthly rainfall over the specified number of days.
+    r"""Distribute monthly to daily rainfall using stochastic weather generator.
 
-    At the moment, this function allocates each millimeter of monthly rainfall to a
-    randomly selected day. In the future, this allocation could be based on observed
-    rainfall patterns.
+    Daily rainfall occurrence is simulated using a first-order Markov chain ,
+    and rainfall intensity on wet days is drawn from a Gamma distribution
+    :cite:p:`katz_precipitation_1977`.
+
+    Wet/dry occurrence model
+    ------------------------
+    Let :math:`S_{t}` be the rainfall state on day :math:`t`:
+
+    .. math::
+
+        S_t =
+        \begin{cases}
+        1 & \text{wet day} \\
+        0 & \text{dry day}
+        \end{cases}
+
+    The probability of rainfall depends on the previous day's state:
+
+    .. math::
+
+        P(S_t = 1 \mid S_{t-1} = 1) = p_{ww}
+
+    .. math::
+
+        P(S_t = 1 \mid S_{t-1} = 0) = p_{wd}
+
+    Rainfall intensity model
+    ------------------------
+    Rainfall on wet days is sampled from a Gamma distribution:
+
+    .. math::
+
+        x_i \sim \text{Gamma}(k, \theta)
+
+    where :math:`k` is a shape parameter (dimensionless), and :math:`\theta` is a scale
+    parameter, (dimensionless).
+
+    The sampled intensities are then scaled so that their sum equals the
+    specified monthly rainfall total:
+
+    .. math::
+    
+        r_{i} = \frac{x_i}{\sum_{j=1}^{n} x_j} P
+
+    where :math:`r_{i}` is the rainfall on day :math:`i` [mm], :math:`x_{i}` is the
+    sampled Gamma intensity, and :math:`P` is the total monthly rainfall [mm].
 
     Args:
-        total_monthly_rainfall: Total monthly rainfall, [mm]
-        num_days: Number of days to distribute the rainfall over
-        seed: Seed for random number generator, optional
+        total_monthly_rainfall: Total rainfall per month [mm].
+        num_days: Number of days in the month.
+        p_wet_wet: Probability a wet day follows a wet day. Typical values are
+            0.5-0.7 temperate climates; 0.6-0.8 humid climates; 0.3-0.5 arid climates
+        p_wet_dry: Probability a wet day follows a dry day. Typical values are
+                0.1-0.3 arid climates; 0.2-0.4 temperate climates; 0.3-0.5 tropical
+                climates
+        shape_parameter: Shape parameter of the Gamma distribution controlling
+            rainfall variability. Typical values are 0.7-1.0 intense storms / high
+            variability; 1.0-2.0 moderate variability (common default 1.5); 2.0-4.0 more
+            uniform rainfall
+        scale_parameter: Scale parameter of the Gamma distribution controlling
+            absolute magnitude of rainfall, typically 1.0.
+        seed: Seed for random number generator (optional).
 
-    Returns:
-        An array containing the daily rainfall amounts, [mm]
+    Returns: Daily rainfall array (len(total_monthly_rainfall), num_days), [mm].
+
+    Raises:
+        ValueError: if any input is invalid (negative rainfall, invalid
+        probabilities, etc.)
     """
+
+    # Input validation
+    if np.any(total_monthly_rainfall < 0):
+        raise ValueError("Monthly rainfall values cannot be negative")
+
+    if num_days <= 0:
+        raise ValueError("num_days must be greater than 0")
+
+    if not (0 <= p_wet_wet <= 1):
+        raise ValueError("p_wet_wet must be between 0 and 1")
+
+    if not (0 <= p_wet_dry <= 1):
+        raise ValueError("p_wet_dry must be between 0 and 1")
+
+    if shape_parameter <= 0:
+        raise ValueError("shape_parameter must be positive")
+
+    if scale_parameter <= 0:
+        raise ValueError("scale_parameter must be positive")
+
+    # Initialize random number generator (rng) and rainfall array
     rng = np.random.default_rng(seed)
+    daily_rainfall_data = np.zeros((len(total_monthly_rainfall), num_days))
 
-    daily_rainfall_data = []
-    for rainfall in total_monthly_rainfall:
-        daily_rainfall = np.zeros(num_days)
+    for m, total in enumerate(total_monthly_rainfall):
+        states = np.zeros(num_days, dtype=int)
 
-        for _ in range(int(rainfall)):
-            day = rng.integers(0, num_days, seed)  # Randomly select a day
-            daily_rainfall[day] += 1.0  # Add 1.0 mm of rainfall to the selected day
+        # Initialize first day
+        states[0] = rng.random() < p_wet_dry
 
-        if np.sum(daily_rainfall > 0):
-            daily_rainfall *= rainfall / np.sum(daily_rainfall)
-        else:
-            daily_rainfall[:] = 0
-        daily_rainfall_data.append(daily_rainfall)
+        # Simulate Markov chain for wet/dry days
+        for d in range(1, num_days):
+            if states[d - 1] == 1:
+                states[d] = rng.random() < p_wet_wet
+            else:
+                states[d] = rng.random() < p_wet_dry
+
+        wet_days = np.where(states == 1)[0]
+
+        if len(wet_days) == 0 or total <= 0:
+            continue
+
+        # Simulate rainfall intensities
+        intensities = rng.gamma(
+            shape=shape_parameter, scale=scale_parameter, size=len(wet_days)
+        )
+        intensities *= total / intensities.sum()
+        daily_rainfall_data[m, wet_days] = intensities
 
     return np.nan_to_num(np.array(daily_rainfall_data), nan=0.0)
 

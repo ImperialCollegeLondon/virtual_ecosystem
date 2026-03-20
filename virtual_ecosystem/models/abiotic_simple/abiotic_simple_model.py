@@ -55,6 +55,7 @@ class AbioticSimpleModel(
         "atmospheric_co2",
         "wind_speed",
         "net_radiation",
+        "vapour_pressure",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -70,6 +71,7 @@ class AbioticSimpleModel(
     ),
     vars_populated_by_init=(  # TODO move functionality from setup() to __init__
         "soil_temperature",
+        "vapour_pressure",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
         "net_radiation",
@@ -165,6 +167,7 @@ class AbioticSimpleModel(
             time_index=0,
             constants=self.model_constants,
             core_constants=self.core_constants,
+            pyrealm_core_constants=pyrealm_core_constants,
             bounds=self.bounds,
         )
         self.data.add_from_dict(output_dict=output_variables)
@@ -232,6 +235,7 @@ class AbioticSimpleModel(
             time_index=time_index,
             constants=self.model_constants,
             core_constants=self.core_constants,
+            pyrealm_core_constants=self.pyrealm_core_constants,
             bounds=self.bounds,
         )
         self.data.add_from_dict(output_dict=output_variables)
