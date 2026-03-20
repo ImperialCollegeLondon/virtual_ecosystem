@@ -2033,10 +2033,10 @@ def calculate_fungal_fruiting_body_decay(
 ) -> dict[str, NDArray[np.floating]]:
     """Calculate contribution to different soil pools from fungal fruiting body decay.
 
-    Fungal fruiting bodies are organic matter so they decay into three soil pools:
-    :term:`LMWC`, :term:`DON` and :term:`DOP`. The decay rate is already known in carbon
-    terms and the decay into the organic nitrogen and phosphorus pools is found based on
-    this and the fixed stoichiometric ratios of the fungal fruiting bodies pool.
+    Fungal fruiting bodies are organic matter so they decay into the :term:`LMWC` pool.
+    The decay rate is already known in carbon terms and the decay into the organic
+    nitrogen and phosphorus pools is found based on this and the fixed stoichiometric
+    ratios of the fungal fruiting bodies pool.
 
     Args:
         decay_rate: The rate at which fungal fruiting bodies decay in carbon terms [kg C

@@ -47,8 +47,7 @@ of fungi) to produce reproductive bodies.
 In the model microbes can take up the following resources: carbon in the form of
 {term}`LMWC`, inorganic nitrogen in the form of ammonium and nitrate, and inorganic
 labile phosphorus. When microbes take up carbon they also take up organic nitrogen and
-phosphorus with it (these fractions are termed {term}`DON` and {term}`DOP`,
-respectively), so organic nutrient uptake is not tracked as a separate process. The
+phosphorus with it, so organic nutrient uptake is not tracked as a separate process. The
 maximum uptake rate for each resource is found using
 
 $$m_{i,j} = \frac{k_{i,j}*f_{T,r}*f_W*f_{p}*R_j*C_i}{R_j + f_{T,s}*K_{i,j}},$$
@@ -154,7 +153,7 @@ greater uptake of nutrients.
 
 These fruiting bodies are made available for animal consumption (this process is tracked
 with the animal model). Fungal fruiting bodies that aren't consumed decay back into the
-soil in a labile organic form, i.e. as {term}`LMWC`, {term}`DON` and {term}`DOP`.
+soil in a labile organic form, i.e. as {term}`LMWC`.
 
 ### Mycorrhiza
 
