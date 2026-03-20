@@ -102,11 +102,11 @@ def test_calculate_nutrient_uptake_rates(
 
     if symbiotic:
         actual_carbon_gain, actual_consumption_rates = calculate_nutrient_uptake_rates(
-            soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-            soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+            soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
+            soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "N"],
             soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
             soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-            soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+            soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "P"],
             soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
             microbial_pool_size=dummy_carbon_data["soil_c_pool_ectomycorrhiza"],
             external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
@@ -118,11 +118,11 @@ def test_calculate_nutrient_uptake_rates(
         )
     else:
         actual_carbon_gain, actual_consumption_rates = calculate_nutrient_uptake_rates(
-            soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-            soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+            soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
+            soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "N"],
             soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
             soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-            soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+            soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "P"],
             soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
             microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
             external_carbon_supply=None,
@@ -162,11 +162,11 @@ def test_calculate_maximum_uptake_rates(
     }
 
     actual_max_rates = calculate_maximum_uptake_rates(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
+        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "N"],
         soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "P"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
         water_factor=environmental_factors.water,
@@ -329,7 +329,7 @@ def test_calculate_highest_achievable_nutrient_uptake(
     expected_uptake = [0.01024359, 0.006607655, 0.056746414, 5.198510e-5]
 
     actual_uptake = calculate_highest_achievable_nutrient_uptake(
-        labile_nutrient_pool=dummy_carbon_data["soil_c_pool_lmwc"],
+        labile_nutrient_pool=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
         microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
@@ -356,7 +356,7 @@ def test_negative_highest_achievable_nutrient_uptake_are_impossible(
         calculate_highest_achievable_nutrient_uptake,
     )
 
-    labile_carbon_data = dummy_carbon_data["soil_c_pool_lmwc"]
+    labile_carbon_data = dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"]
     labile_carbon_data[1] = -0.0001
     labile_carbon_data[3] = -3.7e-5
 

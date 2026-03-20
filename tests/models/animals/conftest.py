@@ -348,9 +348,6 @@ def dummy_animal_data(animal_fixture_core_components):
     )
     # Also need to add soil pools that animals consume from
     soil_pools = DataArray(np.full(data.grid.n_cells, fill_value=0.15), dims="cell_id")
-    data["soil_c_pool_pom"] = soil_pools
-    data["soil_n_pool_particulate"] = soil_pools
-    data["soil_p_pool_particulate"] = soil_pools
     data["soil_c_pool_bacteria"] = soil_pools
     data["soil_c_pool_saprotrophic_fungi"] = soil_pools
     data["soil_c_pool_arbuscular_mycorrhiza"] = soil_pools
@@ -366,6 +363,19 @@ def dummy_animal_data(animal_fixture_core_components):
     pfts = np.array(["pioneer", "canopy", "emergent"])
     cell_ids = np.arange(data.grid.n_cells)
     elements = np.array(["C", "N", "P"])
+
+    data["soil_cnp_pool_pom"] = DataArray(
+        np.stack(
+            [
+                soil_pools,
+                soil_pools,
+                soil_pools,
+            ],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
 
     litter_cnp_template = DataArray(
         np.stack(
@@ -880,9 +890,6 @@ def litter_soil_data_instance(fixture_core_components):
     # The required data is now added. This is basically the 5 litter pool sizes and
     # stoichiometric ratios
     data_values = {
-        "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
-        "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
-        "soil_p_pool_particulate": [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
         "soil_c_pool_bacteria": [5.8, 2.3, 11.3, 1.0],
         "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
         "soil_c_pool_arbuscular_mycorrhiza": [0.65, 1.47, 3.92, 9.04],
@@ -898,6 +905,19 @@ def litter_soil_data_instance(fixture_core_components):
     pfts = np.array(["pioneer", "canopy", "emergent"])
     cell_ids = np.arange(data.grid.n_cells)
     elements = np.array(["C", "N", "P"])
+
+    data["soil_cnp_pool_pom"] = DataArray(
+        np.stack(
+            [
+                [0.1, 1.0, 0.7, 0.35],
+                [0.00714285, 0.00071425, 0.00285714, 0.01428571],
+                [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
+            ],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
 
     leaf_mass = DataArray(
         np.ones((data.grid.n_cells, elements.size, pfts.size)),

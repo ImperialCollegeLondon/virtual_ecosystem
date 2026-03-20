@@ -97,33 +97,43 @@ labile_p_values = 2.5e-5 + 2.5e-5 * gradient / 64.0
 # pool [kg m^-2].
 fungal_fruiting_bodies_values = 0.1 + 0.3 * gradient / 64.0
 
+# Construct CNP triplets
+lmwc_cnp = np.stack(
+    [lmwc_values, don_values, dop_values],
+    axis=2,
+)
+maom_cnp = np.stack(
+    [maom_values, maom_n_values, maom_p_values],
+    axis=2,
+)
+pom_cnp = np.stack(
+    [pom_values, particulate_n_values, particulate_p_values],
+    axis=2,
+)
+necromass_cnp = np.stack(
+    [necromass_values, necromass_n_values, necromass_p_values],
+    axis=2,
+)
+
 # Make example soil dataset
 example_soil_data = Dataset(
     data_vars=dict(
         pH=(["x", "y"], pH_values),
         clay_fraction=(["x", "y"], clay_fraction_values),
-        soil_c_pool_lmwc=(["x", "y"], lmwc_values),
-        soil_c_pool_maom=(["x", "y"], maom_values),
+        soil_cnp_pool_lmwc=(["x", "y", "element"], lmwc_cnp),
+        soil_cnp_pool_maom=(["x", "y", "element"], maom_cnp),
         soil_c_pool_bacteria=(["x", "y"], bacterial_C_values),
         soil_c_pool_saprotrophic_fungi=(["x", "y"], fungal_C_values),
         soil_c_pool_arbuscular_mycorrhiza=(["x", "y"], fungal_C_values),
         soil_c_pool_ectomycorrhiza=(["x", "y"], fungal_C_values),
-        soil_c_pool_pom=(["x", "y"], pom_values),
-        soil_c_pool_necromass=(["x", "y"], necromass_values),
+        soil_cnp_pool_pom=(["x", "y", "element"], pom_cnp),
+        soil_cnp_pool_necromass=(["x", "y", "element"], necromass_cnp),
         soil_enzyme_pom_bacteria=(["x", "y"], pom_enzyme_values),
         soil_enzyme_maom_bacteria=(["x", "y"], maom_enzyme_values),
         soil_enzyme_pom_fungi=(["x", "y"], pom_enzyme_values),
         soil_enzyme_maom_fungi=(["x", "y"], maom_enzyme_values),
-        soil_n_pool_don=(["x", "y"], don_values),
-        soil_n_pool_particulate=(["x", "y"], particulate_n_values),
-        soil_n_pool_maom=(["x", "y"], maom_n_values),
-        soil_n_pool_necromass=(["x", "y"], necromass_n_values),
         soil_n_pool_ammonium=(["x", "y"], ammonium_values),
         soil_n_pool_nitrate=(["x", "y"], nitrate_values),
-        soil_p_pool_dop=(["x", "y"], dop_values),
-        soil_p_pool_particulate=(["x", "y"], particulate_p_values),
-        soil_p_pool_maom=(["x", "y"], maom_p_values),
-        soil_p_pool_necromass=(["x", "y"], necromass_p_values),
         soil_p_pool_primary=(["x", "y"], primary_p_values),
         soil_p_pool_secondary=(["x", "y"], secondary_p_values),
         soil_p_pool_labile=(["x", "y"], labile_p_values),
@@ -132,6 +142,7 @@ example_soil_data = Dataset(
     coords=dict(
         x=(["x"], cell_displacements),
         y=(["y"], cell_displacements),
+        element=(["element"], ["C", "N", "P"]),
     ),
     attrs={
         "dataset_description": """This dataset contains example values for the various
@@ -143,11 +154,15 @@ example_soil_data.pH.attrs = dict(units="pH", description="pH of the soil")
 example_soil_data.clay_fraction.attrs = dict(
     units="NA", description="fraction of the soil which is clay"
 )
-example_soil_data.soil_c_pool_lmwc.attrs = dict(
-    units="kg C m^-3", description="Size of the low molecular weight carbon pool"
+example_soil_data.soil_cnp_pool_lmwc.attrs = dict(
+    units="kg m^-3",
+    description="Carbon, nitrogen and phosphorus content of the low molecular weight "
+    "carbon pool",
 )
-example_soil_data.soil_c_pool_maom.attrs = dict(
-    units="kg C m^-3", description="Size of the mineral associated organic matter pool"
+example_soil_data.soil_cnp_pool_maom.attrs = dict(
+    units="kg m^-3",
+    description="Carbon, nitrogen and phosphorus content of the mineral associated "
+    "organic matter pool",
 )
 example_soil_data.soil_c_pool_bacteria.attrs = dict(
     units="kg C m^-3", description="Bacterial biomass in the soil"
@@ -161,11 +176,15 @@ example_soil_data.soil_c_pool_arbuscular_mycorrhiza.attrs = dict(
 example_soil_data.soil_c_pool_ectomycorrhiza.attrs = dict(
     units="kg C m^-3", description="Ectomycorrhizal biomass in the soil"
 )
-example_soil_data.soil_c_pool_pom.attrs = dict(
-    units="kg C m^-3", description="Size of the particulate organic matter pool"
+example_soil_data.soil_cnp_pool_pom.attrs = dict(
+    units="kg m^-3",
+    description="Carbon, nitrogen and phosphorus content of the particulate organic "
+    "matter pool",
 )
-example_soil_data.soil_c_pool_necromass.attrs = dict(
-    units="kg C m^-3", description="Size of the microbial necromass pool"
+example_soil_data.soil_cnp_pool_necromass.attrs = dict(
+    units="kg m^-3",
+    description="Carbon, nitrogen and phosphorus content of the microbial necromass "
+    "pool",
 )
 example_soil_data.soil_enzyme_pom_bacteria.attrs = dict(
     units="kg C m^-3", description="Amount of bacterial {term}`POM` degrading enzymes"
@@ -179,45 +198,11 @@ example_soil_data.soil_enzyme_pom_fungi.attrs = dict(
 example_soil_data.soil_enzyme_maom_fungi.attrs = dict(
     units="kg C m^-3", description="Amount of fungal {term}`MAOM` degrading enzymes"
 )
-example_soil_data.soil_n_pool_don.attrs = dict(
-    units="kg N m^-3",
-    description="Size of dissolved organic nitrogen pool, this corresponds to the "
-    "{term}`LMWC` pool",
-)
-example_soil_data.soil_n_pool_particulate.attrs = dict(
-    units="kg N m^-3",
-    description="Amount of nitrogen contained in the {term}`POM` pool",
-)
-example_soil_data.soil_n_pool_maom.attrs = dict(
-    units="kg N m^-3",
-    description="Amount of nitrogen contained in the {term}`MAOM` pool",
-)
-example_soil_data.soil_n_pool_necromass.attrs = dict(
-    units="kg N m^-3",
-    description="Amount of nitrogen contained microbial necromass pool",
-)
 example_soil_data.soil_n_pool_ammonium.attrs = dict(
     units="kg N m^-3", description="Size of the soil ammonium pool"
 )
 example_soil_data.soil_n_pool_nitrate.attrs = dict(
     units="kg N m^-3", description="Size of the soil nitrate pool"
-)
-example_soil_data.soil_p_pool_dop.attrs = dict(
-    units="kg P m^-3",
-    description="Size of dissolved organic phosphorus pool, this corresponds to the "
-    "{term}`LMWC` pool",
-)
-example_soil_data.soil_p_pool_particulate.attrs = dict(
-    units="kg P m^-3",
-    description="Amount of phosphorus contained in the {term}`POM` pool",
-)
-example_soil_data.soil_p_pool_maom.attrs = dict(
-    units="kg P m^-3",
-    description="Amount of phosphorus contained in the {term}`MAOM` pool",
-)
-example_soil_data.soil_p_pool_necromass.attrs = dict(
-    units="kg P m^-3",
-    description="Amount of phosphorus contained microbial necromass pool",
 )
 example_soil_data.soil_p_pool_primary.attrs = dict(
     units="kg P m^-3",

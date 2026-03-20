@@ -292,11 +292,23 @@ class LitterMineralisationFluxes:
 class PoolData:
     """Data class collecting the full set of soil pools updated by the soil model."""
 
-    soil_c_pool_maom: NDArray[np.floating]
-    """Mineral associated organic matter pool [kg C m^-3]."""
+    soil_cnp_pool_maom_carbon: NDArray[np.floating]
+    """Carbon content of the mineral associated organic matter pool [kg C m^-3]."""
 
-    soil_c_pool_lmwc: NDArray[np.floating]
-    """Low molecular weight carbon pool [kg C m^-3]."""
+    soil_cnp_pool_maom_nitrogen: NDArray[np.floating]
+    """Nitrogen content of the :term:`MAOM` pool [kg N m^-3]."""
+
+    soil_cnp_pool_maom_phosphorus: NDArray[np.floating]
+    """Phosphorus content of the :term:`MAOM` pool [kg P m^-3]."""
+
+    soil_cnp_pool_lmwc_carbon: NDArray[np.floating]
+    """Carbon content of the low molecular weight carbon pool [kg C m^-3]."""
+
+    soil_cnp_pool_lmwc_nitrogen: NDArray[np.floating]
+    """Nitrogen content of the :term:`LMWC` pool [kg N m^-3]."""
+
+    soil_cnp_pool_lmwc_phosphorus: NDArray[np.floating]
+    """Phosphorus content of the :term:`LMWC` pool [kg P m^-3]."""
 
     soil_c_pool_bacteria: NDArray[np.floating]
     """Bacterial biomass pool [kg C m^-3]."""
@@ -310,11 +322,23 @@ class PoolData:
     soil_c_pool_ectomycorrhiza: NDArray[np.floating]
     """Ectomycorrhizal fungi biomass pool [kg C m^-3]."""
 
-    soil_c_pool_pom: NDArray[np.floating]
-    """Particulate organic matter pool [kg C m^-3]."""
+    soil_cnp_pool_pom_carbon: NDArray[np.floating]
+    """Carbon content of the particulate organic matter pool [kg C m^-3]."""
 
-    soil_c_pool_necromass: NDArray[np.floating]
-    """Microbial necromass pool [kg C m^-3]."""
+    soil_cnp_pool_pom_nitrogen: NDArray[np.floating]
+    """Nitrogen content of the :term:`POM` pool [kg N m^-3]."""
+
+    soil_cnp_pool_pom_phosphorus: NDArray[np.floating]
+    """Phosphorus content of the :term:`POM` pool [kg P m^-3]."""
+
+    soil_cnp_pool_necromass_carbon: NDArray[np.floating]
+    """Carbon content of the microbial necromass pool [kg C m^-3]."""
+
+    soil_cnp_pool_necromass_nitrogen: NDArray[np.floating]
+    """Nitrogen content of the microbial necromass pool [kg N m^-3]."""
+
+    soil_cnp_pool_necromass_phosphorus: NDArray[np.floating]
+    """Phosphorus content of the microbial necromass pool [kg P m^-3]."""
 
     soil_enzyme_pom_bacteria: NDArray[np.floating]
     """Bacteria produced enzyme class which breaks down :term:`POM` [kg C m^-3]."""
@@ -328,41 +352,11 @@ class PoolData:
     soil_enzyme_maom_fungi: NDArray[np.floating]
     """Fungi produced enzyme class which breaks down :term:`MAOM` [kg C m^-3]."""
 
-    soil_n_pool_don: NDArray[np.floating]
-    """Organic nitrogen content of the low molecular weight carbon pool [kg N m^-3].
-    
-    This also gets termed the dissolved organic nitrogen (DON) pool.
-    """
-
-    soil_n_pool_particulate: NDArray[np.floating]
-    """Organic nitrogen content of the particulate organic matter pool [kg N m^-3]."""
-
-    soil_n_pool_necromass: NDArray[np.floating]
-    """Organic nitrogen content of the microbial necromass pool [kg N m^-3]."""
-
-    soil_n_pool_maom: NDArray[np.floating]
-    """Organic nitrogen content of the :term:`MAOM` pool [kg N m^-3]."""
-
     soil_n_pool_ammonium: NDArray[np.floating]
     r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg N m^-3]."""
 
     soil_n_pool_nitrate: NDArray[np.floating]
     r"""Soil nitrate (:math:`\ce{NO3-}`) pool [kg N m^-3]."""
-
-    soil_p_pool_dop: NDArray[np.floating]
-    """Organic phosphorus content of the low molecular weight carbon pool [kg P m^-3].
-    
-    This also gets termed the dissolved organic phosphorus (DOP) pool.
-    """
-
-    soil_p_pool_particulate: NDArray[np.floating]
-    """Organic phosphorus content of the particulate organic matter pool [kg P m^-3]."""
-
-    soil_p_pool_necromass: NDArray[np.floating]
-    """Organic phosphorus content of the microbial necromass pool [kg P m^-3]."""
-
-    soil_p_pool_maom: NDArray[np.floating]
-    """Organic phosphorus content of the :term:`MAOM` pool [kg P m^-3]."""
 
     soil_p_pool_primary: NDArray[np.floating]
     """Primary mineral phosphorus pool [kg P m^-3]."""
@@ -536,9 +530,9 @@ class SoilPools:
 
         # Calculate nutrient removal due to water flows
         nutrient_removal_by_water = calculate_nutrient_removal_by_water(
-            soil_c_pool_lmwc=self.pools.soil_c_pool_lmwc,
-            soil_n_pool_don=self.pools.soil_n_pool_don,
-            soil_p_pool_dop=self.pools.soil_p_pool_dop,
+            soil_c_pool_lmwc=self.pools.soil_cnp_pool_lmwc_carbon,
+            soil_n_pool_don=self.pools.soil_cnp_pool_lmwc_nitrogen,
+            soil_p_pool_dop=self.pools.soil_cnp_pool_lmwc_phosphorus,
             soil_n_pool_ammonium=self.pools.soil_n_pool_ammonium,
             soil_n_pool_nitrate=self.pools.soil_n_pool_nitrate,
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
@@ -550,21 +544,21 @@ class SoilPools:
 
         # Calculate transfers between the lmwc, necromass and maom pools
         maom_desorption_to_lmwc = calculate_maom_desorption(
-            soil_c_pool_maom=self.pools.soil_c_pool_maom,
+            soil_c_pool_maom=self.pools.soil_cnp_pool_maom_carbon,
             desorption_rate_constant=self.model_constants.maom_desorption_rate,
         )
 
         necromass_decay_to_lmwc = calculate_necromass_breakdown(
-            soil_c_pool_necromass=self.pools.soil_c_pool_necromass,
+            soil_c_pool_necromass=self.pools.soil_cnp_pool_necromass_carbon,
             necromass_decay_rate=self.model_constants.necromass_decay_rate,
         )
 
         necromass_sorption_to_maom = calculate_sorption_to_maom(
-            soil_c_pool=self.pools.soil_c_pool_necromass,
+            soil_c_pool=self.pools.soil_cnp_pool_necromass_carbon,
             sorption_rate_constant=self.model_constants.necromass_sorption_rate,
         )
         lmwc_sorption_to_maom = calculate_sorption_to_maom(
-            soil_c_pool=self.pools.soil_c_pool_lmwc,
+            soil_c_pool=self.pools.soil_cnp_pool_lmwc_carbon,
             sorption_rate_constant=self.model_constants.lmwc_sorption_rate,
         )
 
@@ -576,33 +570,33 @@ class SoilPools:
 
         # Find mineralisation rates from POM
         pom_n_mineralisation = calculate_soil_nutrient_mineralisation(
-            pool_carbon=self.pools.soil_c_pool_pom,
-            pool_nutrient=self.pools.soil_n_pool_particulate,
+            pool_carbon=self.pools.soil_cnp_pool_pom_carbon,
+            pool_nutrient=self.pools.soil_cnp_pool_pom_nitrogen,
             breakdown_rate=enzyme_mediated.pom_to_lmwc,
         )
         pom_p_mineralisation = calculate_soil_nutrient_mineralisation(
-            pool_carbon=self.pools.soil_c_pool_pom,
-            pool_nutrient=self.pools.soil_p_pool_particulate,
+            pool_carbon=self.pools.soil_cnp_pool_pom_carbon,
+            pool_nutrient=self.pools.soil_cnp_pool_pom_phosphorus,
             breakdown_rate=enzyme_mediated.pom_to_lmwc,
         )
 
         # Find nitrogen released by necromass breakdown/sorption
         necromass_outflows = find_necromass_nutrient_outflows(
-            necromass_carbon=self.pools.soil_c_pool_necromass,
-            necromass_nitrogen=self.pools.soil_n_pool_necromass,
-            necromass_phosphorus=self.pools.soil_p_pool_necromass,
+            necromass_carbon=self.pools.soil_cnp_pool_necromass_carbon,
+            necromass_nitrogen=self.pools.soil_cnp_pool_necromass_nitrogen,
+            necromass_phosphorus=self.pools.soil_cnp_pool_necromass_phosphorus,
             necromass_decay=necromass_decay_to_lmwc,
             necromass_sorption=necromass_sorption_to_maom,
         )
         # Find net nitrogen transfer between maom and lmwc/don
         nutrient_transfers_maom_to_lmwc = (
             calculate_net_nutrient_transfers_from_maom_to_lmwc(
-                lmwc_carbon=self.pools.soil_c_pool_lmwc,
-                lmwc_nitrogen=self.pools.soil_n_pool_don,
-                lmwc_phosphorus=self.pools.soil_p_pool_dop,
-                maom_carbon=self.pools.soil_c_pool_maom,
-                maom_nitrogen=self.pools.soil_n_pool_maom,
-                maom_phosphorus=self.pools.soil_p_pool_maom,
+                lmwc_carbon=self.pools.soil_cnp_pool_lmwc_carbon,
+                lmwc_nitrogen=self.pools.soil_cnp_pool_lmwc_nitrogen,
+                lmwc_phosphorus=self.pools.soil_cnp_pool_lmwc_phosphorus,
+                maom_carbon=self.pools.soil_cnp_pool_maom_carbon,
+                maom_nitrogen=self.pools.soil_cnp_pool_maom_nitrogen,
+                maom_phosphorus=self.pools.soil_cnp_pool_maom_phosphorus,
                 maom_breakdown=enzyme_mediated.maom_to_lmwc,
                 maom_desorption=maom_desorption_to_lmwc,
                 lmwc_sorption=lmwc_sorption_to_maom,
@@ -669,7 +663,7 @@ class SoilPools:
         )
 
         # Determine net changes to the pools
-        delta_pools_ordered["soil_c_pool_lmwc"] = (
+        delta_pools_ordered["soil_cnp_pool_lmwc_carbon"] = (
             litter_mineralisation_flux.lmwc
             + self.to_per_volume(self.data["root_carbohydrate_exudation"].to_numpy())
             + enzyme_mediated.pom_to_lmwc
@@ -688,7 +682,7 @@ class SoilPools:
             - nutrient_removal_by_water.lmwc
         )
 
-        delta_pools_ordered["soil_c_pool_maom"] = (
+        delta_pools_ordered["soil_cnp_pool_maom_carbon"] = (
             necromass_sorption_to_maom
             + lmwc_sorption_to_maom
             - enzyme_mediated.maom_to_lmwc
@@ -710,12 +704,12 @@ class SoilPools:
             microbial_changes.ectomycorrhiza_change
             - self.data["animal_ectomycorrhiza_consumption"].to_numpy()
         )
-        delta_pools_ordered["soil_c_pool_pom"] = (
+        delta_pools_ordered["soil_cnp_pool_pom_carbon"] = (
             litter_mineralisation_flux.pom
             - enzyme_mediated.pom_to_lmwc
             - self.data["animal_pom_consumption_cnp"].loc[:, "C"].to_numpy()
         )
-        delta_pools_ordered["soil_c_pool_necromass"] = (
+        delta_pools_ordered["soil_cnp_pool_necromass_carbon"] = (
             microbial_changes.necromass_generation
             - necromass_decay_to_lmwc
             - necromass_sorption_to_maom
@@ -747,7 +741,7 @@ class SoilPools:
         delta_pools_ordered["new_emf_p_supply"] = (
             microbial_changes.ectomycorrhiza_p_supply
         )
-        delta_pools_ordered["soil_n_pool_don"] = (
+        delta_pools_ordered["soil_cnp_pool_lmwc_nitrogen"] = (
             litter_mineralisation_flux.don
             + pom_n_mineralisation
             + necromass_outflows["decay_nitrogen"]
@@ -762,17 +756,17 @@ class SoilPools:
             - microbial_changes.don_uptake
             - nutrient_removal_by_water.don
         )
-        delta_pools_ordered["soil_n_pool_particulate"] = (
+        delta_pools_ordered["soil_cnp_pool_pom_nitrogen"] = (
             litter_mineralisation_flux.particulate_n
             - pom_n_mineralisation
             - self.data["animal_pom_consumption_cnp"].loc[:, "N"].to_numpy()
         )
-        delta_pools_ordered["soil_n_pool_necromass"] = (
+        delta_pools_ordered["soil_cnp_pool_necromass_nitrogen"] = (
             microbial_changes.necromass_n_flow
             - necromass_outflows["decay_nitrogen"]
             - necromass_outflows["sorption_nitrogen"]
         )
-        delta_pools_ordered["soil_n_pool_maom"] = (
+        delta_pools_ordered["soil_cnp_pool_maom_nitrogen"] = (
             necromass_outflows["sorption_nitrogen"]
             - nutrient_transfers_maom_to_lmwc["nitrogen"]
         )
@@ -796,7 +790,7 @@ class SoilPools:
             - self.to_per_volume(self.data["subcanopy_nitrate_uptake"].to_numpy())
             - nutrient_removal_by_water.nitrate
         )
-        delta_pools_ordered["soil_p_pool_dop"] = (
+        delta_pools_ordered["soil_cnp_pool_lmwc_phosphorus"] = (
             litter_mineralisation_flux.dop
             + pom_p_mineralisation
             + necromass_outflows["decay_phosphorus"]
@@ -811,17 +805,17 @@ class SoilPools:
             - microbial_changes.dop_uptake
             - nutrient_removal_by_water.dop
         )
-        delta_pools_ordered["soil_p_pool_particulate"] = (
+        delta_pools_ordered["soil_cnp_pool_pom_phosphorus"] = (
             litter_mineralisation_flux.particulate_p
             - pom_p_mineralisation
             - self.data["animal_pom_consumption_cnp"].loc[:, "P"].to_numpy()
         )
-        delta_pools_ordered["soil_p_pool_necromass"] = (
+        delta_pools_ordered["soil_cnp_pool_necromass_phosphorus"] = (
             microbial_changes.necromass_p_flow
             - necromass_outflows["decay_phosphorus"]
             - necromass_outflows["sorption_phosphorus"]
         )
-        delta_pools_ordered["soil_p_pool_maom"] = (
+        delta_pools_ordered["soil_cnp_pool_maom_phosphorus"] = (
             necromass_outflows["sorption_phosphorus"]
             - nutrient_transfers_maom_to_lmwc["phosphorus"]
         )
@@ -900,11 +894,11 @@ def calculate_microbial_changes(
 
     # Calculate uptake, growth rate, and loss rate
     bacterial_growth, bacterial_uptake = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=pools.soil_c_pool_lmwc,
-        soil_n_pool_don=pools.soil_n_pool_don,
+        soil_c_pool_lmwc=pools.soil_cnp_pool_lmwc_carbon,
+        soil_n_pool_don=pools.soil_cnp_pool_lmwc_nitrogen,
         soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
         soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
-        soil_p_pool_dop=pools.soil_p_pool_dop,
+        soil_p_pool_dop=pools.soil_cnp_pool_lmwc_phosphorus,
         soil_p_pool_labile=pools.soil_p_pool_labile,
         microbial_pool_size=pools.soil_c_pool_bacteria,
         external_carbon_supply=None,
@@ -916,11 +910,11 @@ def calculate_microbial_changes(
     )
     saprotrophic_fungal_growth, saprotrophic_fungal_uptake = (
         calculate_nutrient_uptake_rates(
-            soil_c_pool_lmwc=pools.soil_c_pool_lmwc,
-            soil_n_pool_don=pools.soil_n_pool_don,
+            soil_c_pool_lmwc=pools.soil_cnp_pool_lmwc_carbon,
+            soil_n_pool_don=pools.soil_cnp_pool_lmwc_nitrogen,
             soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
             soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
-            soil_p_pool_dop=pools.soil_p_pool_dop,
+            soil_p_pool_dop=pools.soil_cnp_pool_lmwc_phosphorus,
             soil_p_pool_labile=pools.soil_p_pool_labile,
             microbial_pool_size=pools.soil_c_pool_saprotrophic_fungi,
             external_carbon_supply=None,
@@ -933,11 +927,11 @@ def calculate_microbial_changes(
     )
     arbuscular_mycorrhizal_growth, arbuscular_mycorrhizal_uptake = (
         calculate_nutrient_uptake_rates(
-            soil_c_pool_lmwc=pools.soil_c_pool_lmwc,
-            soil_n_pool_don=pools.soil_n_pool_don,
+            soil_c_pool_lmwc=pools.soil_cnp_pool_lmwc_carbon,
+            soil_n_pool_don=pools.soil_cnp_pool_lmwc_nitrogen,
             soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
             soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
-            soil_p_pool_dop=pools.soil_p_pool_dop,
+            soil_p_pool_dop=pools.soil_cnp_pool_lmwc_phosphorus,
             soil_p_pool_labile=pools.soil_p_pool_labile,
             microbial_pool_size=pools.soil_c_pool_arbuscular_mycorrhiza,
             external_carbon_supply=carbon_supply.arbuscular_mycorrhiza,
@@ -949,11 +943,11 @@ def calculate_microbial_changes(
         )
     )
     ectomycorrhizal_growth, ectomycorrhizal_uptake = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=pools.soil_c_pool_lmwc,
-        soil_n_pool_don=pools.soil_n_pool_don,
+        soil_c_pool_lmwc=pools.soil_cnp_pool_lmwc_carbon,
+        soil_n_pool_don=pools.soil_cnp_pool_lmwc_nitrogen,
         soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
         soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
-        soil_p_pool_dop=pools.soil_p_pool_dop,
+        soil_p_pool_dop=pools.soil_cnp_pool_lmwc_phosphorus,
         soil_p_pool_labile=pools.soil_p_pool_labile,
         microbial_pool_size=pools.soil_c_pool_ectomycorrhiza,
         external_carbon_supply=carbon_supply.ectomycorrhiza,
@@ -1138,7 +1132,7 @@ def calculate_enzyme_mediated_rates(
         f"{substrate}_to_lmwc": np.sum(
             [
                 calculate_enzyme_mediated_decomposition(
-                    soil_c_pool=getattr(pools, f"soil_c_pool_{substrate}"),
+                    soil_c_pool=getattr(pools, f"soil_cnp_pool_{substrate}_carbon"),
                     soil_enzyme=getattr(pools, f"soil_enzyme_{substrate}_{source}"),
                     soil_temp=soil_temp,
                     env_factors=env_factors,

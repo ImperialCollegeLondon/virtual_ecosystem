@@ -97,6 +97,11 @@ class AnimalModel(
         "litter_pool_below_metabolic_cnp",
         "litter_pool_below_structural_cnp",
         "production_of_fungal_fruiting_bodies",
+        "soil_cnp_pool_pom",
+        "soil_c_pool_bacteria",
+        "soil_c_pool_saprotrophic_fungi",
+        "soil_c_pool_arbuscular_mycorrhiza",
+        "soil_c_pool_ectomycorrhiza",
     ),
     vars_populated_by_first_update=(
         "decomposed_excrement_cnp",
@@ -754,7 +759,7 @@ class AnimalModel(
         cell_ids = self.data.grid.cell_id
         area = self.data.grid.cell_area  # Cell area is uniform at present
 
-        pom_initial_stock = self.data["soil_c_pool_pom"].to_numpy()
+        pom_initial_stock = self.data["soil_cnp_pool_pom"].loc[:, "C"].to_numpy()
 
         pom_final_stock = array(
             [
