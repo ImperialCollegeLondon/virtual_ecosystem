@@ -1,6 +1,7 @@
 """Test module for hydrology.hydrology_model.py."""
 
 from logging import DEBUG, INFO
+from unittest.mock import patch
 
 import numpy as np
 import pint
@@ -304,3 +305,34 @@ def test_setup_and_update_hydrology_model_ranges(
         .to_numpy(),
         monthly_evaporation_mm=model.data["soil_evaporation"].to_numpy(),
     )
+
+
+def test_update_warns_for_fractional_days(
+    fixture_core_components,
+    fixture_hydrology_init_data,
+    dummy_climate_data_varying_canopy,
+    fixture_configuration,
+):
+    """Test warning raised if days are not a whole number of days."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
+
+    model = HydrologyModel.from_config(
+        data=fixture_hydrology_init_data,
+        configuration=fixture_configuration,
+        core_components=fixture_core_components,
+    )
+
+    model.model_timing.update_interval_seconds = 90000  # fractional day
+
+    for var in model.vars_required_for_update:
+        model.data[var] = dummy_climate_data_varying_canopy[var]
+
+    with patch(
+        "virtual_ecosystem.models.hydrology.hydrology_model.LOGGER.warning"
+    ) as mock_warn:
+        model.update(time_index=0)
+
+    messages = [call.args[0] for call in mock_warn.call_args_list]
+
+    assert any("not a whole number of days" in msg for msg in messages)
