@@ -115,87 +115,25 @@ to determine hourly scaling.
 
 ### Numerical workflow
 
-At each Virtual Ecosystem model time step, the following sequence is executed:
+At each Virtual Ecosystem model time step, a sequence of steps is executed as
+illustrated in {numref}`abiotic_workflow`.
 
-#### 1. Initialisation and preprocessing
+:::{figure} ../../_static/images/abiotic_workflow.svg
+:name: abiotic_workflow
+:alt: Abiotic workflow
+:class: bg-primary
+:width: 600px
 
-* **Initialise state variables**
-
-  Create storage for all variables that will be tracked over the diurnal cycle and
-  returned as vars_updated.
-
-* **Prepare static inputs for the microclimate model**
-
-  Update variables that are assumed constant over the day (e.g. atmospheric pressure,
-  $\ce{CO2}$ concentration).
-
-* **Calculate wind profiles**
-
-  Compute wind speed profiles and associated variables (e.g. aerodynamic resistance,
-  turbulence parameters), which are currently assumed constant throughout the day.
-
-* **Generate hourly forcing**
-
-  Construct the diurnal cycle of above-canopy forcing variables from monthly inputs.
-
-#### 2. Hourly simulation loop
-
-* **Initialise hourly state record**
-
-  Create a state structure to store variables at each hourly timestep.
-
-* **Iterate over 24 hours:**
-
-  * **Update boundary conditions**
-
-    Select forcing variables for the current hour at the reference height.
-
-  * **Update thermodynamic properties**
-
-    Recalculate properties such as air density and molar density.
-
-  * **Update vegetation temperature**
-
-    Solve the canopy energy balance to obtain leaf temperature.
-
-  * **Calculate vegetation fluxes**
-
-    Compute sensible/latent heat fluxes and longwave emission from the canopy.
-
-  * **Calculate soil fluxes**
-
-    Compute soil sensible/latent/ground heat fluxes and longwave emission from topsoil.
-
-  * **Update soil temperature**
-
-    Advance the soil temperature profile using the heat diffusion scheme.
-
-  * **Update air temperature**
-
-    Adjust air temperature based on canopy–air heat exchange and vertical mixing.
-
-  * **Update atmospheric humidity**
-
-    Incorporate evapotranspiration and soil evaporation, and update humidity profiles
-    including vertical mixing.
-
-  * **Validate state update**
-
-    Ensure all expected variables have been updated for the current timestep.
-
-  * **Record hourly state**
-  * **Store all variables for the current hour.**
-
-#### 3. Post-processing
-
-* **Aggregate results**
-
-  Compute monthly means (and other summary statistics if required) from the simulated
-  hourly data.
-
-* **Return outputs**
-
-  Write aggregated variables back to the main data object.
+Numerical workflow of the abiotic model, starting with initialisation (yellow), followed
+by 24 runs of the hourly loop (green), and closed with post-processing (blue).
+Static variables are variables that are updated by the abiotic model but held
+constant during the diurnal cycle. This currently includes atmospheric pressure and
+$\ce{CO2}$ and the wind profiles.
+State variables refer to all variables that are updated hourly by the abiotic model.
+This includes vertical profiles of air temperature, relative humidity, soil temperature,
+and energy fluxes, for full list see [list of updated variables](#updated-variables).
+The aggregation step at the end returns mean values of the representative day.
+:::
 
 ## Energy balance framework
 
