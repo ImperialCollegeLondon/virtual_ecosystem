@@ -104,6 +104,30 @@ def animal_data_for_model_instance(fixture_core_components):
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
 
+    litter_pools = DataArray(np.full(data.grid.n_cells, fill_value=1.5), dims="cell_id")
+    litter_ratios = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+
+    litter_cnp_template = DataArray(
+        np.stack(
+            [
+                litter_pools,
+                litter_pools / litter_ratios,
+                litter_pools / litter_ratios,
+            ],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
+
+    data["litter_pool_above_metabolic_cnp"] = litter_cnp_template
+    data["litter_pool_above_structural_cnp"] = litter_cnp_template
+    data["litter_pool_woody_cnp"] = litter_cnp_template
+    data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
+    data["litter_pool_below_structural_cnp"] = litter_cnp_template
+
     return data
 
 
@@ -322,22 +346,6 @@ def dummy_animal_data(animal_fixture_core_components):
     litter_ratios = DataArray(
         np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
     )
-    data["litter_pool_above_metabolic"] = litter_pools
-    data["litter_pool_above_structural"] = litter_pools
-    data["litter_pool_woody"] = litter_pools
-    data["litter_pool_below_metabolic"] = litter_pools
-    data["litter_pool_below_structural"] = litter_pools
-    data["c_n_ratio_above_metabolic"] = litter_ratios
-    data["c_n_ratio_above_structural"] = litter_ratios
-    data["c_n_ratio_woody"] = litter_ratios
-    data["c_n_ratio_below_metabolic"] = litter_ratios
-    data["c_n_ratio_below_structural"] = litter_ratios
-    data["c_p_ratio_above_metabolic"] = litter_ratios
-    data["c_p_ratio_above_structural"] = litter_ratios
-    data["c_p_ratio_woody"] = litter_ratios
-    data["c_p_ratio_below_metabolic"] = litter_ratios
-    data["c_p_ratio_below_structural"] = litter_ratios
-
     # Also need to add soil pools that animals consume from
     soil_pools = DataArray(np.full(data.grid.n_cells, fill_value=0.15), dims="cell_id")
     data["soil_c_pool_pom"] = soil_pools
@@ -358,6 +366,25 @@ def dummy_animal_data(animal_fixture_core_components):
     pfts = np.array(["pioneer", "canopy", "emergent"])
     cell_ids = np.arange(data.grid.n_cells)
     elements = np.array(["C", "N", "P"])
+
+    litter_cnp_template = DataArray(
+        np.stack(
+            [
+                litter_pools,
+                litter_pools / litter_ratios,
+                litter_pools / litter_ratios,
+            ],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
+
+    data["litter_pool_above_metabolic_cnp"] = litter_cnp_template
+    data["litter_pool_above_structural_cnp"] = litter_cnp_template
+    data["litter_pool_woody_cnp"] = litter_cnp_template
+    data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
+    data["litter_pool_below_structural_cnp"] = litter_cnp_template
 
     leaf_mass = DataArray(
         np.ones((data.grid.n_cells, elements.size, pfts.size)),
@@ -764,23 +791,84 @@ def excrement_pools_by_cell_instance():
 
 
 @pytest.fixture
-def array_plant_list_instance():
+def array_plant_list_instance(animal_data_for_model_instance):
     """Return a list of CellResource objects usable as plant_list."""
     import numpy as np
 
-    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
-    from virtual_ecosystem.models.animal.array_resources import CellResource
+    from virtual_ecosystem.models.animal.animal_traits import (
+        DietType,
+        VerticalOccupancy,
+    )
+    from virtual_ecosystem.models.animal.array_resources import (
+        ArrayResource,
+        ArrayResourceDefinition,
+        CellResource,
+    )
+
+    resource = ArrayResource(
+        definition=ArrayResourceDefinition(
+            pool_array="subcanopy_vegetation_cnp",
+            consumed_array="subcanopy_vegetation_cnp_consumed",
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            diet_type=DietType.FOLIAGE,
+        ),
+        data=animal_data_for_model_instance,
+    )
 
     return [
         CellResource(
-            resource=object(),
+            resource=resource,
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
             cell_id=0,
         ),
         CellResource(
-            resource=object(),
+            resource=resource,
+            available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
+            consumed_total_mass=np.zeros(3, dtype=float),
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            cell_id=1,
+        ),
+    ]
+
+
+@pytest.fixture
+def array_litter_list_instance(animal_data_for_model_instance):
+    """Return a list of CellResource objects usable as litter_list."""
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import (
+        DietType,
+        VerticalOccupancy,
+    )
+    from virtual_ecosystem.models.animal.array_resources import (
+        ArrayResource,
+        ArrayResourceDefinition,
+        CellResource,
+    )
+
+    resource = ArrayResource(
+        ArrayResourceDefinition(
+            pool_array="litter_pool_woody_cnp",
+            consumed_array="litter_consumed_woody_cnp",
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            diet_type=DietType.DETRITUS,
+            density=True,
+        ),
+        data=animal_data_for_model_instance,
+    )
+
+    return [
+        CellResource(
+            resource=resource,
+            available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
+            consumed_total_mass=np.zeros(3, dtype=float),
+            vertical_occupancy=VerticalOccupancy.GROUND,
+            cell_id=0,
+        ),
+        CellResource(
+            resource=resource,
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
@@ -853,21 +941,6 @@ def litter_soil_data_instance(fixture_core_components):
     # The required data is now added. This is basically the 5 litter pool sizes and
     # stoichiometric ratios
     data_values = {
-        "litter_pool_above_metabolic": [0.3, 0.15, 0.07, 0.07],
-        "litter_pool_above_structural": [0.5, 0.25, 0.09, 0.09],
-        "litter_pool_woody": [4.7, 11.8, 7.3, 7.3],
-        "litter_pool_below_metabolic": [0.4, 0.37, 0.07, 0.07],
-        "litter_pool_below_structural": [0.6, 0.31, 0.02, 0.02],
-        "c_n_ratio_above_metabolic": [7.3, 8.7, 10.1, 9.8],
-        "c_n_ratio_above_structural": [37.5, 43.2, 45.8, 50.2],
-        "c_n_ratio_woody": [55.5, 63.3, 47.3, 59.1],
-        "c_n_ratio_below_metabolic": [10.7, 11.3, 15.2, 12.4],
-        "c_n_ratio_below_structural": [50.5, 55.6, 73.1, 61.2],
-        "c_p_ratio_above_metabolic": [57.3, 68.7, 100.1, 95.8],
-        "c_p_ratio_above_structural": [337.5, 473.2, 415.8, 570.2],
-        "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
-        "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
-        "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
         "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
         "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
         "soil_p_pool_particulate": [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
@@ -904,65 +977,52 @@ def litter_soil_data_instance(fixture_core_components):
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
 
-    return data
-
-
-@pytest.fixture
-def litter_pool_instance(litter_soil_data_instance):
-    """Fixture for a single LitterPool instance in cell 0."""
-    from virtual_ecosystem.models.animal.decay import LitterPool
-
-    return LitterPool(
-        pool_name="above_metabolic",
-        cell_id=0,
-        data=litter_soil_data_instance,
-        cell_area=10000,
+    data["litter_pool_above_metabolic_cnp"] = DataArray(
+        np.stack(
+            [[0.3, 0.15, 0.07, 0.07], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
     )
 
+    data["litter_pool_above_structural_cnp"] = DataArray(
+        np.stack(
+            [[0.5, 0.25, 0.09, 0.09], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
 
-@pytest.fixture
-def litter_pools_by_cell_instance(litter_soil_data_instance):
-    """Fixture for litter pools used in tests."""
-    from virtual_ecosystem.models.animal.decay import LitterPool
+    data["litter_pool_woody_cnp"] = DataArray(
+        np.stack(
+            [[4.7, 11.8, 7.3, 7.3], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
 
-    return {
-        cell_id: [
-            LitterPool(
-                pool_name="above_metabolic",
-                cell_id=cell_id,
-                data=litter_soil_data_instance,
-                cell_area=10000,
-            )
-        ]
-        for cell_id in range(4)  # data has 4 valid cells: 0 to 3
-    }
+    data["litter_pool_below_metabolic_cnp"] = DataArray(
+        np.stack(
+            [[0.4, 0.37, 0.07, 0.07], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
 
+    data["litter_pool_below_structural_cnp"] = DataArray(
+        np.stack(
+            [[0.6, 0.31, 0.02, 0.02], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
 
-@pytest.fixture
-def litter_pools_dict_by_cell_instance(litter_soil_data_instance):
-    """Fixture for litter pools with correct dict[str, Resource] structure."""
-    from virtual_ecosystem.models.animal.decay import LitterPool
-
-    pool_names = [
-        "above_metabolic",
-        "above_structural",
-        "woody",
-        "below_metabolic",
-        "below_structural",
-    ]
-
-    return {
-        cell_id: {
-            name: LitterPool(
-                pool_name=name,
-                cell_id=cell_id,
-                data=litter_soil_data_instance,
-                cell_area=10000,
-            )
-            for name in pool_names
-        }
-        for cell_id in range(4)
-    }
+    return data
 
 
 @pytest.fixture

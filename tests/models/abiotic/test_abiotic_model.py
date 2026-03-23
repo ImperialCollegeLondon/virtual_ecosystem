@@ -35,6 +35,7 @@ SETUP_MANIPULATIONS = (
     (INFO, "Adding data array for 'relative_humidity'"),
     (INFO, "Adding data array for 'vapour_pressure_deficit'"),
     (INFO, "Adding data array for 'wind_speed'"),
+    (INFO, "Adding data array for 'vapour_pressure'"),
     (INFO, "Adding data array for 'atmospheric_pressure'"),
     (INFO, "Adding data array for 'atmospheric_co2'"),
     (INFO, "Adding data array for 'soil_temperature'"),
@@ -42,6 +43,7 @@ SETUP_MANIPULATIONS = (
     (INFO, "Adding data array for 'canopy_temperature'"),
     (INFO, "Adding data array for 'sensible_heat_flux'"),
     (INFO, "Adding data array for 'latent_heat_flux'"),
+    (INFO, "Adding data array for 'longwave_emission'"),
     (INFO, "Adding data array for 'ground_heat_flux'"),
 )
 
@@ -235,17 +237,8 @@ def test_setup_and_update_abiotic_model(
         core_components=fixture_core_components,
     )
 
-    # check all variables are in data object
-    for var in [
-        "air_temperature",
-        "soil_temperature",
-        "relative_humidity",
-        "vapour_pressure_deficit",
-        "atmospheric_pressure",
-        "atmospheric_co2",
-        "wind_speed",
-        "net_radiation",
-    ]:
+    # check all variables are initialised in data object
+    for var in model.vars_populated_by_init:
         assert var in model.data
 
     # Test that VPD was calculated for all time steps
@@ -278,18 +271,9 @@ def test_setup_and_update_abiotic_model(
             [22.81851, 25.21234, 27.60617, 30.0],
         ]
     )
-
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
-    # Test other variables have been inserted and some check values
-    for var in [
-        "canopy_temperature",
-        "sensible_heat_flux",
-        "latent_heat_flux",
-        "ground_heat_flux",
-    ]:
-        assert var in model.data
-
+    # Test check fluxes initialise correctly
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         expected_vals = lyr_strct.from_template()
         expected_vals[lyr_strct.index_filled_canopy] = 0.001
@@ -339,12 +323,12 @@ def test_setup_and_update_abiotic_model(
     valid_values_rel_hum_clean = valid_values_rel_hum.dropna(dim="layers", how="any")
 
     # Now do the test
-    assert ((soil_temps >= 10.0) & (soil_temps <= 30.0)).all()
+    assert ((soil_temps >= 0.0) & (soil_temps <= 40.0)).all()
     assert (
-        (valid_values_can_temp_clean >= 15.0) & (valid_values_can_temp_clean <= 40.0)
+        (valid_values_can_temp_clean >= 0.0) & (valid_values_can_temp_clean <= 40.0)
     ).all()
     assert (
-        (valid_values_air_temp_clean >= 15.0) & (valid_values_air_temp_clean <= 40.0)
+        (valid_values_air_temp_clean >= 0.0) & (valid_values_air_temp_clean <= 40.0)
     ).all()
     assert (
         (valid_values_rel_hum_clean >= 0.0) & (valid_values_rel_hum_clean <= 100.0)

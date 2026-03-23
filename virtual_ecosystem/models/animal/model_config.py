@@ -129,15 +129,16 @@ class AnimalConstants(Configuration):
         0.5,  # sig
         0.69,  # Ea
     )
-    """Metabolic rate scaling coefficients.
+    r"""Metabolic rate scaling coefficients.
     
     These are the coefficients of Madingley style scaling of metabolic rate with  mass
     and temperature, assuming a power-law relationship with mass and an exponential
     relationship with temperature. The three values are:
 
-    * $E_s$ - energy to mass conversion constant (g/kJ)
-    * $\sigma$ - proportion of time-step with temp in active range (toy default value)
-    * $E_a$ - aggregate activation energy of metabolic reactions
+    * :math:`E_s` - energy to mass conversion constant (g/kJ)
+    * :math:`\sigma` - proportion of time-step with temp in active range (toy default
+      value)
+    * :math:`E_a` - aggregate activation energy of metabolic reactions
     """
 
     metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = Field(
@@ -380,6 +381,46 @@ class AnimalConstants(Configuration):
 
     seasonal_migration_probability: float = 0.083  # approx 1 seasonal migration per yr.
     """The probability a seasonal migration event occurs per time step (month)."""
+
+    territory_size_terms: dict[MetabolicType, dict[TaxaType, tuple[float, float]]] = (
+        Field(
+            default_factory=lambda: {
+                MetabolicType.ENDOTHERMIC: {
+                    TaxaType.MAMMAL: (
+                        -6.09,
+                        1.13,
+                    ),  # Ofstad et al. (2016), ungulates, closed habitat
+                    TaxaType.BIRD: (
+                        -6.09,
+                        1.13,
+                    ),  # Ofstad et al. (2016), ungulates, closed habitat
+                },
+                MetabolicType.ECTOTHERMIC: {
+                    TaxaType.INVERTEBRATE: (
+                        -6.09,
+                        1.13,
+                    ),  # Ofstad et al. (2016), ungulates, closed habitat
+                    TaxaType.AMPHIBIAN: (
+                        -6.09,
+                        1.13,
+                    ),  # Ofstad et al. (2016), ungulates, closed habitat
+                },
+            }
+        )
+    )
+    """Territory size scaling terms (intercept, exponent) by metabolic and taxa type.
+
+    Tuple entries are (intercept, exponent) for the log-log relationship:
+        ln(territory_ha) = intercept + exponent * ln(BM_g)
+
+    All entries currently use the Ofstad et al. (2016) closed-habitat ungulate
+    parameters as a placeholder. The data team should replace these with
+    taxon-specific fits as they become available.
+
+    Reference:
+        Ofstad EG et al. 2016 Proc. R. Soc. B 283: 20161234.
+        https://doi.org/10.1098/rspb.2016.1234
+    """
 
 
 class AnimalExportConfig(Configuration):
