@@ -29,13 +29,17 @@ The process-based abiotic model is currently the default abiotic model version i
 Virtual Ecosystem configuration; however, the model is still under development.
 This page provides a summary of the current status and the directions in which we aim to
 take the model development forward.
+
+A known issue is that the `ve_example` simulation fails after approximately five time
+steps. This occurs because the leaf area index in the understorey increases to
+unrealistically high values, which in turn causes numerical instability in the surface
+temperature update. Resolving this issue is a priority for future development.
 ```
 
 ## Required variables
 
 The tables below show the variables that are required to initialise the abiotic model
-and then update it at each time step. Please check also the
-[notes on climate data pre-processing](../../using_the_ve/data/notes_preprocessing.md).
+and then update it at each time step.
 
 ```{code-cell} ipython3
 ---
@@ -56,15 +60,154 @@ display_markdown(
 
 ## Model overview
 
+The abiotic model simulates the exchange of energy, water, and heat between the land
+surface, vegetation canopy, soil, and atmosphere. These processes regulate
+microclimate conditions that directly influence ecosystem dynamics.
+
+To ensure numerical stability and capture sub-daily variability, the model operates on
+a reconstructed **mean diurnal cycle**, derived from monthly mean input data.
+
+## Temporal resolution strategy
+
+### The mean diurnal cycle
+
+Calculating abiotic processes at coarse temporal resolution (e.g. monthly) can introduce
+numerical instability and obscure important sub-daily dynamics. To address this, the
+model simulates a single representative (average) day for each month. From monthly mean
+inputs, a full diurnal cycle is reconstructed, allowing processes to be resolved at
+hourly time steps.
+
+The resulting hourly values are then used to derive monthly means and ranges of state
+variables required by other models.
+
+### Diurnal cycle reconstruction
+
+Monthly mean climate variables at reference height above the canopy are converted into
+hourly values over a 24-hour period using simplified, physically motivated assumptions.
+
+**Air temperature** follows a sinusoidal cycle, peaking in the early afternoon (~14:00).
+The amplitude is defined by a prescribed daily temperature range (currently part of
+the model configuration), which produces a smooth oscillation around the monthly mean.
+
+**Incoming shortwave radiation** is distributed across daylight hours using a half-sine
+curve which is zero at night and peaks at midday. The resulting hourly fractions are
+normalised and used to distribute monthly shortwave absorption across hours, layers,
+and grid cells.
+
+```{note}
+Daylength is estimated from month and latitude and is constrained between 6 and 18
+hours. Sunrise and sunset are then calculated symmetrically around noon.
+
+The mean latitude of the grid has to be provided to the model configuration. In the
+future, this will be determined internally from the input model data projection and
+extent.
+```
+
+**Relative humidity** is computed assuming constant atmospheric vapour pressure.
+Saturation vapour pressure depends on temperature, actual vapour pressure is derived
+from monthly mean humidity, and hourly humidity is computed from their ratio. Values are
+constrained between 0 and 100%.
+
+**Evapotranspiration** is distributed hourly proportional to absorbed radiation when
+present and uniform when radiation is absent. **Soil evaporation** follows the same
+approach, using total absorbed radiation across layers
+to determine hourly scaling.
+
+### Numerical workflow
+
+At each Virtual Ecosystem model time step, the following sequence is executed:
+
+#### 1. Initialisation and preprocessing
+
+* **Initialise state variables**
+
+  Create storage for all variables that will be tracked over the diurnal cycle and
+  returned as vars_updated.
+
+* **Prepare static inputs for the microclimate model**
+
+  Update variables that are assumed constant over the day (e.g. atmospheric pressure,
+  $\ce{CO2}$ concentration).
+
+* **Calculate wind profiles**
+
+  Compute wind speed profiles and associated variables (e.g. aerodynamic resistance,
+  turbulence parameters), which are currently assumed constant throughout the day.
+
+* **Generate hourly forcing**
+
+  Construct the diurnal cycle of above-canopy forcing variables from monthly inputs.
+
+#### 2. Hourly simulation loop
+
+* **Initialise hourly state record**
+
+  Create a state structure to store variables at each hourly timestep.
+
+* **Iterate over 24 hours:**
+
+  * **Update boundary conditions**
+
+    Select forcing variables for the current hour at the reference height.
+
+  * **Update thermodynamic properties**
+
+    Recalculate properties such as air density and molar density.
+
+  * **Update vegetation temperature**
+
+    Solve the canopy energy balance to obtain leaf temperature.
+
+  * **Calculate vegetation fluxes**
+
+    Compute sensible/latent heat fluxes and longwave emission from the canopy.
+
+  * **Calculate soil fluxes**
+
+    Compute soil sensible/latent/ground heat fluxes and longwave emission from topsoil.
+
+  * **Update soil temperature**
+
+    Advance the soil temperature profile using the heat diffusion scheme.
+
+  * **Update air temperature**
+
+    Adjust air temperature based on canopy–air heat exchange and vertical mixing.
+
+  * **Update atmospheric humidity**
+
+    Incorporate evapotranspiration and soil evaporation, and update humidity profiles
+    including vertical mixing.
+
+  * **Validate state update**
+
+    Ensure all expected variables have been updated for the current timestep.
+
+  * **Record hourly state**
+  * **Store all variables for the current hour.**
+
+#### 3. Post-processing
+
+* **Aggregate results**
+
+  Compute monthly means (and other summary statistics if required) from the simulated
+  hourly data.
+
+* **Return outputs**
+
+  Write aggregated variables back to the main data object.
+
+## Energy balance framework
+
 The exchange of energy between the Earth's surface or canopy and the surrounding
 atmosphere involves five important categories of processes:
 
-- *Absorption* and *emission* of electromagnetic radiation by the surface/canopy
-- *Thermal conduction* of heat energy within the ground
-- *Turbulent transfer* of heat energy towards or away from the surface within the
+* *Absorption* and *emission* of electromagnetic radiation by the surface/canopy
+* *Thermal conduction* of heat energy within the ground
+* *Turbulent transfer* of heat energy towards or away from the surface within the
   atmosphere
-- *Evaporation*, *transpiration*, and *condensation* of water
-- *Primary productivity*
+* *Evaporation*, *transpiration*, and *condensation* of water
+* *Primary productivity*
 
 Each of these processes can be associated with an energy flux density, which is the rate
 of transfer of energy normal to a surface of unit area (in $\mathrm{W\,m^{-2}}$).
@@ -74,8 +217,8 @@ written as:
 
 $$\frac{dQ}{dt} = R_n - G - H - \lambda E (- PP)$$
 
-where each term is later expanded for the [canopy](#canopy-energy-balance),
-[understorey](#understorey-energy-balance), and [soil surface](#soil-energy-balance).
+where each term is later expanded for the [canopy](#canopy-energy-balance), and
+[soil surface](#soil-energy-balance).
 
 **Variable definitions:**
 
@@ -85,7 +228,7 @@ Total heat energy stored in the surface layer.
 $R_n$:
 Net surface irradiance (commonly referred to as the net radiation). It
 represents the gain of energy by the surface from radiation. It is a positive number
-when it is towards the surface.
+when it is towards the surface. This includes long- and shortwave radiation.
 
 $G$:
 Ground Heat Flux. It is the loss of energy by heat conduction through the
@@ -107,26 +250,14 @@ $\mathrm{kg\,m^{-2}\,s^{-1}}$).
 $PP$:
 Primary productivity, represents the energy that plants use to photosynthesize.
 
-```{note}
-Calculating abiotic processes at coarse time scales can lead to numerical instability,
-so the abiotic model uses an equilibrium assumption and where required, the integration
-interval is 1 hour.
-
-The outputs returned by the abiotic model are therefore equilibrium values for that
-representative hour. A planned future improvement is to allow true hourly input, so the
-model can capture full diurnal cycles and return time-averaged values of key variables.
-```
+## Radiative forcing
 
 ### Net radiation
-
-The current representation of the radiation balance is limited to the reflection and
-absorption of direct downward shortwave radiation and the emission of longwave radiation
-as part of the surface energy balance.
 
 The net radiation $R_n$ ($\mathrm{W\,m^{-2}}$) at the leaf or soil surface is
 calculated as:
 
-$$R_n = S_0 \cdot (1 - \alpha) - \epsilon_{s} \sigma T^{4}$$
+$$R_n = S_0 \cdot (1 - \alpha) + LW_{down} - \epsilon_{s} \sigma T^{4}$$
 
 where:
 
@@ -135,6 +266,9 @@ Incoming shortwave radiation ($\mathrm{W\,m^{-2}}$)
 
 $\alpha$:
 Surface albedo, the fraction of shortwave radiation reflected (–)
+
+$LW_{down}$:
+Incoming longwave radiation ($\mathrm{W\,m^{-2}}$)
 
 $\epsilon_s$:
 Surface emissivity, the efficiency of longwave radiation emission (–)
@@ -145,25 +279,23 @@ Stefan–Boltzmann constant ($5.67 \times 10^{-8}\,\mathrm{W\,m^{-2}\,K^{-4}}$)
 $T$:
 Surface temperature (°C)
 
-Shortwave radiation $S_0$ is progressively attenuated through the canopy, as leaves
-absorb a portion of the incoming radiation.
+Shortwave radiation $S_0$ and longwave radiation $LW_{down}$ are progressively
+attenuated through the canopy, as leaves absorb a portion of the incoming radiation.
 
 ```{Note}
-In the future, we aim to implement a full diurnal cycle of incoming radiation, including:
+In the future, we aim to implement a more advance radiative transfer scheme, including:
 - the effects of topography on sun angle, and
 - the contribution of diffuse radiation.
 ```
 
+## Canopy processes
+
 ### Canopy energy balance
 
-Given that the time increments of the model are an hour or longer,
+Given that the time increments of the model are one hour,
 we can assume that below-canopy heat and vapour exchange attain steady state and heat
 storage in the canopy does not need to be simulated explicitly
 {cite:p}`maclean_microclimc_2021`.
-(For applications where very fine-temporal resolution data might be needed, heat and
-vapour exchange must be modelled as transient processes, and heat storage by the canopy,
-and the exchange of heat between different layers of the canopy, must be considered
-explicitly, see {cite:t}`maclean_microclimc_2021`. This is currently not implemented.)
 
 Under steady-state, the balance equation $\frac{dQ}{dt}$ for the leaves in each canopy
 layer is as follows:
@@ -180,8 +312,7 @@ layer is as follows:
 where:
 
 $R_{\text{abs}}$:
-Shortwave radiation absorbed by the canopy, equivalent to $S_0 (1-\alpha)$
-($\mathrm{W\,m^{-2}}$)
+Shortwave and longwave radiation absorbed by the canopy ($\mathrm{W\,m^{-2}}$)
 
 $R_{\text{em}}$:
 Emitted longwave radiation from the canopy ($\mathrm{W\,m^{-2}}$)
@@ -224,7 +355,7 @@ function of the stomatal conductance $g_{c}$ ($\mathrm{s\,m^{-1}}$)
 $PP$:
 Primary productivity, represents the energy that plants use to photosynthesize
 
-### Air and canopy temperature update
+### Temperature solution
 
 A challenge in solving this equation is the dependency of latent heat and emitted
 radiation on leaf temperature. This method estimates updated canopy and air temperatures
@@ -308,7 +439,7 @@ This derivative represents the rate at which each energy loss term changes with 
 temperature: convective, evaporative, and radiative. It ensures that the update step
 accounts for the nonlinear temperature dependence, especially of radiative loss.
 
-#### Air Temperature Coupling
+### Air-canopy temperature coupling
 
 After updating the canopy temperature, we update the air temperature in the
 adjacent canopy layer to reflect its coupling with the leaf temperature following
@@ -316,11 +447,11 @@ adjacent canopy layer to reflect its coupling with the leaf temperature followin
 
 The sensible heat flux between canopy and air is
 
-$$H = \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})$$
+$$H = \frac{\rho_{a} c_{p}}{r_{a}}(T_{l} - T_{a})$$
 
 and the air temperature evolves as
 
-$$T_{a}^{\text{new}} = T_{a}^{\text{old}} + \frac{H \Delta t}{\rho_a c_p z}$$
+$$T_{a}^{\text{new}} = T_{a}^{\text{old}} + \frac{H}{\rho_{a} c_{p} z}$$
 
 where:
 
@@ -330,120 +461,23 @@ Air temperature, (°C)
 $z$:
 Thickness of the air layer we are updating, (m)
 
-Finally, we consider vertical mixing between layers (including the understorey layer
-described in the following section) and heat is transferred to the air above the canopy.
+In the understorey vegetation, we add the contribution of soil sensible heat flux and
+longwave emission to the equation.
+
+Finally, we consider vertical mixing between all vegetation layers and heat is
+transferred to the air above the canopy.
 
 ```{note}
 Advection of heat above the canopy is currently not implemented as everything is
 removed with time interval >= 1h and horizontal transfer is not considered.
 ```
 
-### Understorey energy balance
-
-The understorey vegetation layer as currently implemented in the Virtual Ecosystem
-modifies water and energy exchange between the soil and the air above. It intercepts a
-fraction of throughfall, blocks most of the incoming radiation and reduces soil
-evaporation. The energy balance of this layer differs from that of the
-canopy because the understorey is structurally different and has therefore a
-different structural and functional traits (e.g., aerodynamic resistance,
-density).
-
-Importantly, due to the understorey's density and proximity to the soil surface, we need
-to account for heat conductance into the soil. This convective heat flux, $G_{u}$, is
-later added to the soil energy balance.
-
-```{note}
-Moisture dynamics within the understorey layer are not currently represented.
-```
-
-#### Understorey temperature update
-
-The understorey energy balance follows the heat and moisture framework of
-{cite:t}`ogee_a_forest_2002`, extended to represent understorey vegetation as a mixture
-of leaves and air rather than a compact litter layer.
-
-The understorey temperature evolves according to
-
-```{math}
-\frac{\delta T_{u}}{\delta t}
-= \frac{R_{n,0} - H_{0} - \lambda E_{0} - G_{u}}{c_{u} z_{u}}
-```
-
-where the conductive heat flux into the soil is
-
-$$G_{u} = -(\lambda_{g} \lambda_{u})^{0.5} \frac{T_{s} - T_{u}}{z_{u}}$$
-
-and the effective volumetric heat capacity of the understorey is
-
-$$c_{u} = (\frac{LAI \cdot LMA}{z_{u}} c_{l} + c_{pv}) z_{u}$$
-
-where:
-
-$T_{u}$:
-Understorey temperature (°C)
-
-$T_{s}$:
-Topsoil temperature (°C)
-
-$R_{n,0}$:
-Net radiation above the understorey ($\mathrm{W\,m^{-2}}$)
-
-$H_{0}$:
-Sensible heat flux above understorey ($\mathrm{W\,m^{-2}}$)
-
-$\lambda E_{0}$:
-Latent heat flux above understorey ($\mathrm{W\,m^{-2}}$)
-
-$G_{u}$:
-Conductive heat flux between understorey and soil ($\mathrm{W\,m^{-2}}$)
-
-$\lambda_{u}$:
-Understorey thermal conductivity ($\mathrm{W\,m^{-1}},K^{-1}$)
-
-$\lambda_{s}$:
-Soil surface thermal conductivity ($\mathrm{W\,m^{-1}},K^{-1}$)
-
-$LAI$:
-Leaf area index $\mathrm{m\,m^{-1}}$
-
-$LMA$:
-Leaf mass per area $\mathrm{kg\,m^{-2}}$
-
-$c_{l}$:
-Leaf specific heat capacity ($\mathrm{J\,kg^{-1}},K^{-1}$)
-
-$c_{u}$:
-Understorey specific heat capacity ($\mathrm{J\,kg^{-1}},K^{-1}$)
-
-$c_{pv}$:
-Volumetric heat capacity of air ($\mathrm{J\, m^{-3}\,K^{-1}}$)
-
-$z_{u}$:
-Thickness of understorey layer (m)
-
-#### Understorey air temperature coupling
-
-After updating the understorey temperature, we update the temperature of the
-near-surface air using the same method as described for the canopy air temperature
-{cite:p}`bonan_climate_2019`:
-
-The sensible heat flux between understorey and air is
-
-$$H_{u} = \frac{\rho_{a} c_{p}}{r_{a}}(T_{u} - T_{a,u})$$
-
-and the air temperature evolves as
-
-$$T_{a,u}^{\text{new}} = T_{a,u}^{\text{old}} + \frac{H_{u} \Delta t}{\rho_{a} c_{p} z_{u}}$$
-
-where:
-
-$T_{a,u}$:
-Air temperature (°C)
+## Soil processes
 
 ### Soil energy balance
 
-The `models.abiotic.energy_balance` submodule determines the energy balance at the
-soil surface by partitioning net radiation $R_N$ into different fluxes.
+The energy balance at the soil surface is solved by partitioning net radiation $R_N$
+into different fluxes.
 
 The **sensible heat flux** from the soil surface is given by:
 
@@ -485,7 +519,7 @@ calculated by the hydrology model.
 The **ground heat flux** is calculated as the residual of the energy balance at the
 soil surface plus the conductive heat from the understorey layer:
 
-$$G = R_n - H_s - \lambda E_s + G_{u}$$
+$$G = R_{n} - H_{s} - \lambda E_{s} + G_{u}$$
 
 ### Soil temperature update
 
@@ -555,7 +589,7 @@ T_{n-1}^{t+\Delta t} =
 \end{aligned}
 ```
 
-#### Update of atmospheric moisture
+## Atmospheric moisture
 
 Evapotranspiration and soil evaporation are initially provided in millimetres of water
 depth. These values are converted to a mass of water per unit volume of air
@@ -577,12 +611,13 @@ Advection of water above the canopy is currently not implemented as everything i
 removed with time interval >= 1h and horizontal transfer is not considered.
 ```
 
-### Wind
+## Turbulence and wind
 
 The wind profile determines the exchange of heat, water, and $\ce{CO_{2}}$ between soil
 and atmosphere below the canopy as well as the exchange with the atmosphere above the
 canopy. The wind speed above the canopy is provided as an input to the model at each
 time step.
+
 This section describes the implementation of wind profiles within the canopy, friction
 velocity, aerodynamic resistance, vertical mixing rates, and ventilation rate used to
 model turbulent mixing with air above the canopy.
@@ -656,8 +691,15 @@ r_a = \frac{1}{g_a} = \frac{\left[ \ln\left( \frac{z - d}{z_0} \right) \right]^2
 
 Separate values are computed for:
 
-- Canopy resistance, using wind speeds within the canopy layer.
-- Soil resistance, passed as an external input from the hydrology model.
+* Canopy resistance, using wind speeds within the canopy layer.
+* Soil resistance, passed as an external input from the hydrology model.
+
+```{note}
+We currently distinguish between daytime and night time values or aerodynamic resistance
+. The calculation above are true for daytime conditions; during nighttime, values are
+set to a constant value which can be defined in the model configuration. This will be
+updated once the nighttime wind speed can be calculated reliably.
+```
 
 The **eddy diffusivity** or **turbulent mixing coefficients** for heat ($k_H$) and
 momentum ($k_M$) ($\mathrm{m^{2}\,s^{-1}}$) are used to mix water and energy in the
