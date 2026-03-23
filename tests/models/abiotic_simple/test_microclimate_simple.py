@@ -60,10 +60,10 @@ def test_varying_canopy_calculate_vapour_pressure_deficit(
     exp_output = lyr_strct.from_template()
     exp_output[lyr_strct.index_filled_atmosphere] = [
         [0.423372, 0.423372, 0.423372, 0.423372],
-        [0.405282, 0.405282, 0.405282, np.nan],
-        [0.297993, 0.297993, np.nan, np.nan],
-        [0.138345, np.nan, np.nan, np.nan],
-        [0.0, 0.0, 0.0, 0.0],
+        [0.376681, 0.376681, 0.376681, np.nan],
+        [0.278148, 0.278148, np.nan, np.nan],
+        [0.143955, np.nan, np.nan, np.nan],
+        [0.052748, 0.052748, 0.052748, 0.052748],
     ]
     xr.testing.assert_allclose(result["vapour_pressure_deficit"], exp_output)
 
@@ -73,6 +73,7 @@ def test_run_microclimate_varying_canopy(
     fixture_core_components,
     fixture_core_constants,
     fixture_abiotic_simple_configuration,
+    fixture_pyrealm_config,
 ):
     """Test interpolation of all variables with varying canopy arrays."""
 
@@ -89,6 +90,7 @@ def test_run_microclimate_varying_canopy(
         time_index=0,
         constants=fixture_abiotic_simple_configuration.constants,
         core_constants=fixture_core_constants,
+        pyrealm_core_constants=fixture_pyrealm_config.core,
         bounds=fixture_abiotic_simple_configuration.bounds,
     )
 

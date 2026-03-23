@@ -69,7 +69,7 @@ def test_calculate_carbon_pool_loss(
     expected_loss = [0.00921022, 0.00446856, 0.00223770, 0.00214006]
 
     actual_loss = calculate_carbon_pool_loss(
-        old_pool_size=post_consumption_pools["above_metabolic"],
+        old_pool_size=post_consumption_pools["above_metabolic"].loc[:, "C"].to_numpy(),
         final_pool_size=updated_pools["above_metabolic"],
         input_rate=litter_inputs.above_metabolic,
         update_interval=2.0,
@@ -88,13 +88,12 @@ def test_calculate_carbon_pool_loss(
         ),
         pytest.param(
             np.array([0.32449688, 0.15805352, 0.08320238, 0.0776660]),
-            [0.04301673, 0.01755336, 0.00752195, 0.00765046],
+            [0.04301677, 0.01755358, 0.00752192, 0.00765043],
             id="high_loss",
         ),
     ],
 )
 def test_calculate_nutrient_pool_loss(
-    dummy_litter_data,
     post_consumption_pools,
     litter_inputs,
     input_chemistries,
@@ -105,11 +104,15 @@ def test_calculate_nutrient_pool_loss(
     from virtual_ecosystem.models.litter.losses import calculate_nutrient_pool_loss
 
     actual_nutrient_loss = calculate_nutrient_pool_loss(
-        initial_pool_size=post_consumption_pools["above_metabolic"],
+        initial_pool_carbon=post_consumption_pools["above_metabolic"]
+        .loc[:, "C"]
+        .to_numpy(),
+        initial_pool_nutrient=post_consumption_pools["above_metabolic"]
+        .loc[:, "N"]
+        .to_numpy(),
         carbon_loss=carbon_loss,
-        input_rate=litter_inputs.above_metabolic,
-        initial_carbon_nutrient_ratio=dummy_litter_data["c_n_ratio_above_metabolic"],
-        input_carbon_nutrient_ratio=input_chemistries.above_metabolic_nitrogen,
+        input_rate_carbon=litter_inputs.above_metabolic,
+        input_rate_nutrient=input_chemistries.above_metabolic_nitrogen,
         update_interval=2.0,
     )
 
@@ -143,7 +146,9 @@ def test_calculate_lignin_pool_loss(
     from virtual_ecosystem.models.litter.losses import calculate_lignin_pool_loss
 
     actual_lignin_loss = calculate_lignin_pool_loss(
-        initial_pool_size=post_consumption_pools["above_structural"],
+        initial_pool_size=post_consumption_pools["above_structural"]
+        .loc[:, "C"]
+        .to_numpy(),
         carbon_loss=carbon_loss,
         input_rate=litter_inputs.above_structural,
         initial_lignin_proportion=dummy_litter_data["lignin_above_structural"],

@@ -6,6 +6,9 @@ TODO cross-check with pyrealm for duplication/ different implementation
 TODO change temperatures to Kelvin
 """  # noqa: D205
 
+from collections.abc import Iterable
+from types import SimpleNamespace
+
 import bottleneck as bn
 import numpy as np
 from numpy.typing import NDArray
@@ -15,6 +18,30 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+
+
+def build_indices(data: Data, layer_structure: LayerStructure) -> SimpleNamespace:
+    """Build indices for different layers and variables for easier access.
+
+    Args:
+        data: Data object
+        layer_structure: Layer structure object
+
+    Returns:
+        SimpleNamespace with indices for different layers and variables
+    """
+
+    return SimpleNamespace(
+        above=layer_structure.index_above,
+        canopy=layer_structure.index_filled_canopy,
+        surface=layer_structure.index_surface_scalar,
+        atm=layer_structure.index_filled_atmosphere,
+        flux=layer_structure.index_flux_layers,
+        soil=layer_structure.index_all_soil,
+        topsoil=layer_structure.index_topsoil_scalar,
+        layers=layer_structure.n_layers,
+        cell_id=data.grid.n_cells,
+    )
 
 
 def calculate_molar_density_air(
@@ -342,6 +369,7 @@ def generate_diurnal_cycle_from_monthly_data(
     monthly_soil_evaporation: NDArray[np.floating],
     latitude_deg: float,
     month: int,
+    days: int,
     daily_temp_amplitude: float = 5.0,
 ) -> dict[str, NDArray[np.floating]]:
     """Generate synthetic hourly forcing for one day from monthly averages.
@@ -354,6 +382,7 @@ def generate_diurnal_cycle_from_monthly_data(
         monthly_soil_evaporation: Monthly total soil evaporation [mm/month]
         latitude_deg: Latitude for daylength calculation [deg]
         month: Month number [1-12]
+        days: Number of days in month
         daily_temp_amplitude: typical diurnal temperature swing [C]
 
     Returns:
@@ -361,12 +390,13 @@ def generate_diurnal_cycle_from_monthly_data(
         relative_humidity_hourly, evapotranspiration_hourly, soil_evaporation_hourly
     """
 
-    hours = np.arange(24)
+    hours_per_day = 24
+    hours = np.arange(hours_per_day)
 
-    # Air temperature (sine wave, max at 14:00), (24, cell)
+    # Air temperature (sine wave, max at 14:00), (hours_per_day, cell)
     air_temperature_hourly = monthly_air_temperature[
         None, :
-    ] + daily_temp_amplitude * np.sin(2 * np.pi * (hours[:, None] - 8) / 24)
+    ] + daily_temp_amplitude * np.sin(2 * np.pi * (hours[:, None] - 8) / hours_per_day)
 
     # Daylength (simple climatology)
     daylength = 12 + 4 * np.cos((month - 1) * np.pi / 6) * np.cos(
@@ -378,16 +408,16 @@ def generate_diurnal_cycle_from_monthly_data(
     sunset = 12 + daylength / 2
 
     # Shortwave radiation (half-sine over daylight)
-    hour_fraction = np.zeros(24)
+    hour_fraction = np.zeros(hours_per_day)
 
-    for h in range(24):
+    for h in range(hours_per_day):
         if sunrise <= h <= sunset:
             hour_fraction[h] = np.sin(np.pi * (h - sunrise) / daylength)
 
     if hour_fraction.sum() > 0:
         hour_fraction /= hour_fraction.sum()
 
-    # Shortwave absorption (distributed like radiation), (24, layer, cell)
+    # Shortwave absorption (distributed like radiation), (hours_per_day, layer, cell)
     shortwave_absorption_hourly = (
         monthly_shortwave_absorption[None, :, :] * hour_fraction[:, None, None]
     )
@@ -396,26 +426,39 @@ def generate_diurnal_cycle_from_monthly_data(
     e_s_mean = calc_vp_sat(monthly_air_temperature)  # (cell,)
     e_a = monthly_relative_humidity / 100.0 * e_s_mean  # (cell,)
 
-    e_s_hourly = calc_vp_sat(air_temperature_hourly)  # (24, cell)
+    e_s_hourly = calc_vp_sat(air_temperature_hourly)  # (hours_per_day, cell)
     relative_humidity_hourly = 100.0 * e_a[None, :] / e_s_hourly
     relative_humidity_hourly = np.clip(relative_humidity_hourly, 0.0, 100.0)
 
-    # Evapotranspiration (distributed like radiation)
+    # Preselect monthly
     sw_sum = shortwave_absorption_hourly.sum(axis=0, keepdims=True)
+    monthly_et = monthly_evapotranspiration[None, :, :]
+    monthly_soil = monthly_soil_evaporation[None, :]
+
+    uniform_et = monthly_et / (days * hours_per_day)
+    uniform_soil = monthly_soil / (days * hours_per_day)
+
+    # Evapotranspiration
+    radiation_fraction = shortwave_absorption_hourly / sw_sum
+    scaled_et = (monthly_et / days) * radiation_fraction
 
     evapotranspiration_hourly = np.where(
         sw_sum > 0,
-        monthly_evapotranspiration[None, :, :] * shortwave_absorption_hourly / sw_sum,
-        monthly_evapotranspiration[None, :, :] / 24.0,
+        scaled_et,
+        uniform_et,
     )
 
-    # Soil evaporation (distributed like radiation)
+    # Soil evaporation
+    hourly_sw = shortwave_absorption_hourly.sum(axis=1)
+    total_sw = hourly_sw.sum(axis=0)[None, :]
+
+    soil_fraction = hourly_sw / total_sw
+    scaled_soil = (monthly_soil / days) * soil_fraction
+
     soil_evaporation_hourly = np.where(
-        shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :] > 0,
-        monthly_soil_evaporation[None, :]
-        * shortwave_absorption_hourly.sum(axis=1)
-        / shortwave_absorption_hourly.sum(axis=1).sum(axis=0)[None, :],
-        monthly_soil_evaporation[None, :] / 24.0,
+        total_sw > 0,
+        scaled_soil,
+        uniform_soil,
     )
 
     return {
@@ -451,7 +494,6 @@ def fill_layer_template(
 def record_hourly_output(
     hour: int,
     data_record: dict,
-    layer_structure: LayerStructure,
     hourly_values: dict,
 ):
     """Record hourly data.
@@ -459,25 +501,19 @@ def record_hourly_output(
     Args:
         hour: Hour of the day
         data_record: dict that contains all hourly data
-        layer_structure: LayerStructure object
         hourly_values: Hourly values
 
     Returns:
         updated dict with hour values
     """
+
+    # Assign values to data_record
     for var, value in hourly_values.items():
         if var not in data_record:
             continue
 
-        # 1D (cells)
-        if isinstance(value, np.ndarray) and value.ndim == 1:
-            data_record[var][hour] = value
-
-        # 2D layered variable
         else:
-            full = fill_layer_template(layer_structure, value)
-            data_record[var][hour] = full
-
+            data_record[var][hour] = value
     return data_record
 
 
@@ -499,3 +535,109 @@ def mean_to_layers(
     mean_vals = np.nanmean(data_record[var], axis=0)
     out[index] = mean_vals[index]
     return out
+
+
+def initialize_data_record(
+    variables: dict[str, DataArray],
+    time_dim: int,
+    layers: int,
+    cell_ids: int,
+) -> dict[str, NDArray[np.floating]]:
+    """Create a data_record dict with a new leading time dimension.
+
+    Assumptions are that 1D variables have shape (cell_ids,) and 2D variables have shape
+    (layers, cell_ids).
+
+    Args:
+        variables : Dictionary of variable names to template arrays
+        time_dim : Size of the new time dimension (e.g. 24)
+        layers : Number of layers
+        cell_ids : Number of cell ids
+
+    Returns:
+        Dictionary with initialized arrays filled with NaNs.
+
+    Raises:
+        ValueError: is number of dimensions cannot be matched
+    """
+    data_record = {}
+
+    for var, arr in variables.items():
+        shape: tuple[int, ...]
+
+        if arr.ndim == 1:
+            shape = (time_dim, cell_ids)
+        elif arr.ndim == 2:
+            shape = (time_dim, layers, cell_ids)
+        else:
+            raise ValueError(
+                f"Unsupported number of dimensions for '{var}': {arr.ndim}"
+            )
+
+        data_record[var] = np.full(shape, np.nan)
+
+    return data_record
+
+
+def validate_variables(
+    names: tuple[str, ...],
+    values: dict[str, object],
+    exclude: Iterable[str] = (),
+) -> None:
+    """Validate all variables are in update dictionary.
+
+    Args:
+        names: variable names in output
+        values: variables in hourly update
+        exclude: variable names to ignore in the comparison
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: if variable mismatch is detected.
+    """
+    exclude_set = set(exclude)
+
+    names_set = set(names) - exclude_set
+    values_set = set(values) - exclude_set
+
+    missing = names_set - values_set
+    extra = values_set - names_set
+
+    if missing or extra:
+        raise ValueError(
+            "Variable mismatch detected\n"
+            f"Missing: {sorted(missing)}\n"
+            f"Extra: {sorted(extra)}"
+        )
+
+
+def finite_and_within(arr: DataArray, low: float, high: float, name: str) -> None:
+    """Test that values are finite and within bounds.
+
+    Args:
+        arr: Output DataArray to be tested
+        low: Minimum value
+        high: maximum value
+        name: name of variable
+
+    Returns:
+        None.
+
+    Raises:
+        AssertionError: if values are not finite or outside bounds.
+
+    """
+
+    values = np.asarray(arr)
+
+    finite = np.isfinite(values)
+    assert finite.any(), f"{name} has no finite values"
+
+    # ignore NaNs
+    min_val = np.nanmin(values)
+    max_val = np.nanmax(values)
+
+    assert min_val >= low, f"{name} below {low}"
+    assert max_val <= high, f"{name} above {high}"

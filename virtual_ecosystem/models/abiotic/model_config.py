@@ -164,6 +164,19 @@ class AbioticConstants(AbioticSharedConstants):
     Values roughly estimated based on :cite:t:`poorter_causes_2009`.
     """
 
+    aerodynamic_resistance_canopy_night: float = 50.0
+    """Aerodynamic resistance of the canopy at night, [s m-1]."""
+
+    aerodynamic_resistance_soil_night: float = 50.0
+    """Aerodynamic resistance of the soil at night, [s m-1]."""
+
+    aerodynamic_resistance_canopy_day: float = 20.0
+    """Aerodynamic resistance of the canopy during the day, [s m-1]."""
+
+    max_mixing_coefficient: float = 1000.0
+    """Maximum turbulent mixing coefficients, [m2 s-1].
+    """
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""

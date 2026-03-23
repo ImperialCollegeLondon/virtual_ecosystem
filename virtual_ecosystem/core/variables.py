@@ -322,7 +322,7 @@ def _check_model_variables_are_known(
         "vars_updated",
     )
 
-    fail = False
+    failed_models = []
 
     for mod in models:
         for var_attr in variable_attributes:
@@ -333,10 +333,13 @@ def _check_model_variables_are_known(
                     f"Unknown variables in {mod.model_name}.{var_attr}: "
                     f"{', '.join(unknown_variables)}"
                 )
-                fail = True
+                failed_models.append(mod.model_name)
 
-    if fail:
-        msg = f"Model {mod.model_name} definition contains unknown variables, check log"
+    if failed_models:
+        msg = (
+            "Unknown variables in the definition of the following models, check log: "
+            + f"{', '.join(failed_models)}"
+        )
         LOGGER.critical(msg)
         raise ValueError(msg)
 
