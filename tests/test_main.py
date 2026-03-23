@@ -15,28 +15,19 @@ from .conftest import log_check, record_found_in_log
 
 INITIALISATION_LOG = [
     (INFO, "Initialising models: litter"),
+    (INFO, "Initialising litter model"),
     (
         INFO,
         "Information required to initialise the litter model successfully extracted.",
     ),
-    (DEBUG, "litter model: required var 'litter_pool_above_metabolic' checked"),
-    (DEBUG, "litter model: required var 'litter_pool_above_structural' checked"),
-    (DEBUG, "litter model: required var 'litter_pool_woody' checked"),
-    (DEBUG, "litter model: required var 'litter_pool_below_metabolic' checked"),
-    (DEBUG, "litter model: required var 'litter_pool_below_structural' checked"),
+    (DEBUG, "litter model: required var 'litter_pool_above_metabolic_cnp' checked"),
+    (DEBUG, "litter model: required var 'litter_pool_above_structural_cnp' checked"),
+    (DEBUG, "litter model: required var 'litter_pool_woody_cnp' checked"),
+    (DEBUG, "litter model: required var 'litter_pool_below_metabolic_cnp' checked"),
+    (DEBUG, "litter model: required var 'litter_pool_below_structural_cnp' checked"),
     (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
     (DEBUG, "litter model: required var 'lignin_woody' checked"),
     (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
-    (DEBUG, "litter model: required var 'c_n_ratio_above_metabolic' checked"),
-    (DEBUG, "litter model: required var 'c_n_ratio_above_structural' checked"),
-    (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
-    (DEBUG, "litter model: required var 'c_n_ratio_below_metabolic' checked"),
-    (DEBUG, "litter model: required var 'c_n_ratio_below_structural' checked"),
-    (DEBUG, "litter model: required var 'c_p_ratio_above_metabolic' checked"),
-    (DEBUG, "litter model: required var 'c_p_ratio_above_structural' checked"),
-    (DEBUG, "litter model: required var 'c_p_ratio_woody' checked"),
-    (DEBUG, "litter model: required var 'c_p_ratio_below_metabolic' checked"),
-    (DEBUG, "litter model: required var 'c_p_ratio_below_structural' checked"),
 ]
 
 

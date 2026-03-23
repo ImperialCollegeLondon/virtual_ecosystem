@@ -2,14 +2,20 @@
 
 from logging import DEBUG
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 from xarray import DataArray
 
 # An import of LOGGER is required for INFO logging events to be visible to tests
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic import abiotic_tools
+from virtual_ecosystem.models.abiotic.microclimate import (
+    compute_weights_from_absorbed_radiation,
+)
 
 # Class uses DEBUG
 LOGGER.setLevel(DEBUG)
@@ -430,24 +436,9 @@ def dummy_litter_data(fixture_core_components):
     # manner. The repeated fourth value is simply to adapt three hand validated examples
     # to the shared fixture core components grid
     pool_values = {
-        "litter_pool_above_metabolic": [0.319785, 0.161631, 0.086129, 0.093456],
-        "litter_pool_above_structural": [0.52097, 0.26609, 0.10019, 0.09988],
-        "litter_pool_woody": [5.1773833, 12.185701, 7.673456, 7.462192],
-        "litter_pool_below_metabolic": [0.410373, 0.375794, 0.080181, 0.083494],
-        "litter_pool_below_structural": [0.613547, 0.321674, 0.032738, 0.029168],
         "lignin_above_structural": [0.5, 0.1, 0.7, 0.7],
         "lignin_woody": [0.5, 0.8, 0.35, 0.35],
         "lignin_below_structural": [0.5, 0.25, 0.75, 0.75],
-        "c_n_ratio_above_metabolic": [7.3, 8.7, 10.1, 9.8],
-        "c_n_ratio_above_structural": [37.5, 43.2, 45.8, 50.2],
-        "c_n_ratio_woody": [55.5, 63.3, 47.3, 59.1],
-        "c_n_ratio_below_metabolic": [10.7, 11.3, 15.2, 12.4],
-        "c_n_ratio_below_structural": [50.5, 55.6, 73.1, 61.2],
-        "c_p_ratio_above_metabolic": [57.3, 68.7, 100.1, 95.8],
-        "c_p_ratio_above_structural": [337.5, 473.2, 415.8, 570.2],
-        "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
-        "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
-        "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
         "fallen_non_propagule_c_mass": [0.003, 0.0075, 0.00255, 0.00375],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
@@ -455,12 +446,6 @@ def dummy_litter_data(fixture_core_components):
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
         "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
-        "root_turnover_c_p_ratio": [656.7, 450.6, 437.3, 371.9],
-        "litter_consumption_above_metabolic": [0.019785, 0.011631, 0.016129, 0.023456],
-        "litter_consumption_above_structural": [0.02097, 0.01609, 0.01019, 0.00988],
-        "litter_consumption_woody": [0.4773833, 0.385701, 0.373456, 0.162192],
-        "litter_consumption_below_metabolic": [0.010373, 0.005794, 0.010181, 0.013494],
-        "litter_consumption_below_structural": [0.013547, 0.011674, 0.012738, 0.009168],
         "herbivory_waste_leaf_lignin": [0.13, 0.08, 0.27, 0.22],
     }
 
@@ -482,6 +467,127 @@ def dummy_litter_data(fixture_core_components):
     data["air_temperature"][lyr_strct.index_filled_atmosphere] = np.array(
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
+
+    # Stoichiometric variables
+    data["litter_pool_above_metabolic_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.319785, 0.161631, 0.086129, 0.093456],
+                [0.0438062, 0.0185783, 0.0085276, 0.0095363],
+                [0.00558089, 0.00235271, 0.00086043, 0.00097553],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_pool_above_structural_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.52097, 0.26609, 0.10019, 0.09988],
+                [0.0138925, 0.0061595, 0.0021876, 0.0019896],
+                [0.00154361, 0.00056232, 0.00024096, 0.00017517],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_pool_woody_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [5.1773833, 12.185701, 7.673456, 7.462192],
+                [0.0932862, 0.1925071, 0.1622295, 0.1262638],
+                [0.00932022, 0.01596450, 0.00905636, 0.01245567],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_pool_below_metabolic_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.410373, 0.375794, 0.080181, 0.083494],
+                [0.0383526, 0.0332561, 0.0052751, 0.0067334],
+                [0.0013208014, 0.0009136737, 0.0002543813, 0.0002024588],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_pool_below_structural_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.613547, 0.321674, 0.032738, 0.029168],
+                [0.0121494, 0.0057855, 0.0004479, 0.0004766],
+                [0.00111453, 0.00054008, 4.23464e-5, 4.47912e-5],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_consumed_above_metabolic_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [160.2585, 94.2111, 130.6449, 189.9936],
+                [21.953187, 10.82727, 12.935133, 19.387107],
+                [2.7968328, 1.3713381, 1.3051449, 1.9832283],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_consumed_above_structural_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [169.857, 130.329, 82.539, 80.028],
+                [4.52952, 3.0168774, 1.8021609, 1.5941853],
+                [0.5032799973, 0.2754205416, 0.1985064975, 0.1403507574],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_consumed_woody_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [3866.80473, 3124.1781, 3024.9936, 1313.7552],
+                [69.67215, 49.35492, 63.95355, 22.22964],
+                [6.9609456, 4.0929867, 3.570156, 2.1928806],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_consumed_below_metabolic_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [84.0213, 46.9314, 82.4661, 109.3014],
+                [7.852464, 4.153194, 5.42538, 8.814663],
+                [0.27042579, 0.1141047, 0.26163081, 0.26503767],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["litter_consumed_below_structural_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [109.7307, 94.5594, 103.1778, 74.2608],
+                [2.1728817, 1.7007084, 1.4114574, 1.2134124],
+                [0.199329174, 0.15876324, 0.133459812, 0.114036822],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     data["stem_turnover_cnp"] = DataArray(
         data=[
@@ -545,16 +651,16 @@ def dummy_climate_data(fixture_core_components):
 
     # Reference data with a time series
     ref_values = {
-        "air_temperature_ref": 30.0,
-        "wind_speed_ref": 1.0,
-        "relative_humidity_ref": 90.0,
-        "vapour_pressure_deficit_ref": 0.14,
-        "vapour_pressure_ref": 0.14,
-        "atmospheric_pressure_ref": 96.0,
-        "atmospheric_co2_ref": 400.0,
-        "precipitation": 200.0,
-        "downward_shortwave_radiation": 500.0,
-        "downward_longwave_radiation": 400.0,
+        "air_temperature_ref": 30.0,  # °C
+        "wind_speed_ref": 1.0,  # m s-1
+        "relative_humidity_ref": 90.0,  # %
+        "vapour_pressure_deficit_ref": 0.14,  # kPa
+        "vapour_pressure_ref": 3.7,  # kPa (consistent with 30C, 90% RH)
+        "atmospheric_pressure_ref": 96.0,  # kPa
+        "atmospheric_co2_ref": 400.0,  # ppm
+        "precipitation": 200.0,  # mm month-1
+        "downward_shortwave_radiation": 220.0,  # W m-2 (24h monthly mean)
+        "downward_longwave_radiation": 400.0,  # W m-2 (24h monthly mean)
     }
 
     for var, value in ref_values.items():
@@ -565,23 +671,25 @@ def dummy_climate_data(fixture_core_components):
 
     # Spatially varying but not vertically structured
     spatially_variable = {
-        "shortwave_radiation_surface": [100, 10, 0, 0],
-        "friction_velocity": [12, 5, 2, 2],
-        "soil_evaporation": [0.001, 0.01, 0.1, 0.1],
-        "elevation": [200, 100, 10, 10],
+        "shortwave_radiation_surface": [120, 80, 30, 10],  # W m-2
+        "friction_velocity": [0.35, 0.25, 0.15, 0.15],  # m s-1
+        "soil_evaporation": [30.0, 40.0, 60.0, 60.0],  # mm month-1
+        "elevation": [200, 100, 10, 10],  # m
     }
     for var, vals in spatially_variable.items():
         data[var] = DataArray(vals, dims=["cell_id"])
 
     # Spatially constant and not vertically structured
     spatially_constant = {
-        "sensible_heat_flux_soil": 1,
-        "latent_heat_flux_soil": 1,
-        "zero_plane_displacement": 20.0,
-        "mean_mixing_length": 1.3,
-        "aerodynamic_resistance_soil": 12.5,
-        "aerodynamic_resistance_canopy": 12.5,
-        "mean_annual_temperature": 20.0,
+        "sensible_heat_flux_soil": 20.0,  # W m-2
+        "latent_heat_flux_soil": 40.0,  # W m-2
+        "zero_plane_displacement": 20.0,  # m
+        "mean_mixing_length": 1.3,  # m
+        "aerodynamic_resistance_soil": 50.0,  # s m-1
+        "aerodynamic_resistance_canopy": 30.0,  # s m-1
+        "mean_annual_temperature": 20.0,  # C
+        "ground_heat_flux": 20.0,
+        "conductive_flux_understorey": 50.0,
     }
     for var, val in spatially_constant.items():
         data[var] = DataArray(np.repeat(val, 4), dims=["cell_id"])
@@ -608,7 +716,7 @@ def dummy_climate_data(fixture_core_components):
 
     data["air_temperature"] = from_template()
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.844995, 28.87117, 27.206405, 21.145945]
+        [30.0, 29.8, 28.9, 27.2, 22.0]
     )[:, None]
 
     data["soil_temperature"] = from_template()
@@ -621,22 +729,30 @@ def dummy_climate_data(fixture_core_components):
 
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
-        [90.0, 90.341644, 92.488034, 96.157312, 100]
+        [90.0, 91.0, 93.0, 96.0, 98.0]
+    )[:, None]
+
+    data["vapour_pressure"] = from_template()
+    data["vapour_pressure"][lyr_str.index_filled_atmosphere] = np.array(
+        [3.82, 3.82, 3.70, 3.46, 2.59]
     )[:, None]
 
     data["vapour_pressure_deficit"] = from_template()
     data["vapour_pressure_deficit"][lyr_str.index_filled_atmosphere] = np.array(
-        [0.14, 0.2, 0.2, 0.2, 0.14]
+        [0.42, 0.37, 0.27, 0.14, 0.05]
     )[:, None]
 
     data["shortwave_absorption"] = from_template()
-    data["shortwave_absorption"][lyr_str.index_flux_layers] = 450.0
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 180.0
+
+    data["longwave_emission"] = from_template()
+    data["longwave_emission"][lyr_str.index_flux_layers] = 450.0
 
     data["sensible_heat_flux"] = from_template()
-    data["sensible_heat_flux"][lyr_str.index_flux_layers] = 0.0
+    data["sensible_heat_flux"][lyr_str.index_flux_layers] = 20.0
 
     data["latent_heat_flux"] = from_template()
-    data["latent_heat_flux"][lyr_str.index_flux_layers] = 0.0
+    data["latent_heat_flux"][lyr_str.index_flux_layers] = 40.0
 
     data["net_radiation"] = from_template()
     data["net_radiation"][lyr_str.index_flux_layers] = 20.0
@@ -654,20 +770,23 @@ def dummy_climate_data(fixture_core_components):
     data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2442.0
 
     data["canopy_temperature"] = from_template()
-    data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0
-    data["canopy_temperature"][lyr_str.index_surface_scalar] = 25.0
+    data["canopy_temperature"][lyr_str.index_filled_canopy] = np.array(
+        [29.8, 28.9, 27.2]
+    )[:, None]
+    data["canopy_temperature"][lyr_str.index_surface_scalar] = 22.0
 
     data["canopy_evaporation"] = from_template()
-    data["canopy_evaporation"][lyr_str.index_filled_canopy] = 10.0
-    data["canopy_evaporation"][lyr_str.index_surface_scalar] = 10.0
+    data["canopy_evaporation"][lyr_str.index_filled_canopy] = 40.0
+    data["canopy_evaporation"][lyr_str.index_surface_scalar] = 40.0
 
     data["stomatal_conductance"] = from_template()
-    data["stomatal_conductance"][lyr_str.index_filled_canopy] = 15.0
-    data["stomatal_conductance"][lyr_str.index_surface_scalar] = 15.0
+    data["stomatal_conductance"][lyr_str.index_filled_canopy] = 12.0
+    data["stomatal_conductance"][lyr_str.index_surface_scalar] = 12.0
 
     # Hydrology
     data["transpiration"] = from_template()
-    data["transpiration"][lyr_str.index_filled_canopy] = 20.0  # TODO add understorey
+    data["transpiration"][lyr_str.index_filled_canopy] = 80.0
+    data["transpiration"][lyr_str.index_surface_scalar] = 80.0
 
     data["soil_moisture"] = from_template()
     data["soil_moisture"][lyr_str.index_all_soil] = np.array([5.0, 500.0])[:, None]
@@ -709,58 +828,70 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
 
     # Microclimate and energy balance
     dummy_climate_data["wind_speed"][index_filled_canopy] = [
-        [0.1, 0.1, 0.1, np.nan],
-        [0.1, 0.1, np.nan, np.nan],
+        [0.3, 0.3, 0.3, np.nan],
+        [0.25, 0.25, np.nan, np.nan],
         [0.1, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["air_temperature"][index_filled_canopy] = [
-        [29.844995, 29.844995, 29.844995, np.nan],
-        [28.87117, 28.87117, np.nan, np.nan],
-        [27.206405, np.nan, np.nan, np.nan],
+        [29.8, 29.8, 29.8, np.nan],
+        [28.9, 28.9, np.nan, np.nan],
+        [27.2, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["relative_humidity"][index_filled_canopy] = [
-        [90.341644, 90.341644, 90.341644, np.nan],
-        [92.488034, 92.488034, np.nan, np.nan],
-        [96.157312, np.nan, np.nan, np.nan],
+        [91.0, 91.0, 91.0, np.nan],
+        [93.0, 93.0, np.nan, np.nan],
+        [96.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["shortwave_absorption"][index_filled_canopy] = [
+        [180.0, 180.0, 180.0, np.nan],
+        [160.0, 160.0, np.nan, np.nan],
+        [120.0, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["longwave_emission"][index_filled_canopy] = [
         [450.0, 450.0, 450.0, np.nan],
         [450.0, 450.0, np.nan, np.nan],
         [450.0, np.nan, np.nan, np.nan],
     ]
-
+    dummy_climate_data["vapour_pressure"][index_filled_atmosphere] = [
+        [3.82, 3.82, 3.82, 3.82],
+        [3.82, 3.82, 3.82, np.nan],
+        [3.7, 3.7, np.nan, np.nan],
+        [3.46, np.nan, np.nan, np.nan],
+        [2.59, 2.59, 2.59, 2.59],
+    ]
     dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
-        [0.14, 0.14, 0.14, 0.14],
-        [0.2, 0.2, 0.2, np.nan],
-        [0.2, 0.2, np.nan, np.nan],
-        [0.2, np.nan, np.nan, np.nan],
-        [0.14, 0.14, 0.14, 0.14],
+        [0.42, 0.42, 0.42, 0.42],
+        [0.37, 0.37, 0.37, np.nan],
+        [0.27, 0.27, np.nan, np.nan],
+        [0.14, np.nan, np.nan, np.nan],
+        [0.05, 0.05, 0.05, 0.05],
     ]
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
-        [0.0, 0.0, 0.0, np.nan],
-        [0.0, 0.0, np.nan, np.nan],
-        [0.0, np.nan, np.nan, np.nan],
+        [25.0, 25.0, 25.0, np.nan],
+        [20.0, 20.0, np.nan, np.nan],
+        [15.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["latent_heat_flux"][index_filled_canopy] = [
-        [0.0, 0.0, 0.0, np.nan],
-        [0.0, 0.0, np.nan, np.nan],
-        [0.0, np.nan, np.nan, np.nan],
+        [45.0, 45.0, 45.0, np.nan],
+        [40.0, 40.0, np.nan, np.nan],
+        [30.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["net_radiation"][lyr_str.index_filled_canopy] = [
-        [20.0, 20.0, 20.0, np.nan],
-        [20.0, 20.0, np.nan, np.nan],
-        [20.0, np.nan, np.nan, np.nan],
+        [70.0, 70.0, 70.0, np.nan],
+        [60.0, 60.0, np.nan, np.nan],
+        [45.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["canopy_temperature"][index_filled_canopy] = [
-        [25.0, 25.0, 25.0, np.nan],
-        [25.0, 25.0, np.nan, np.nan],
-        [25.0, np.nan, np.nan, np.nan],
+        [29.8, 29.8, 29.8, np.nan],
+        [28.9, 28.9, np.nan, np.nan],
+        [27.2, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["canopy_evaporation"][index_filled_canopy] = [
@@ -785,3 +916,147 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     dummy_climate_data["transpiration"][lyr_str.index_surface_scalar] = 20.0
 
     return dummy_climate_data
+
+
+@pytest.fixture
+def fixture_abiotic_indices(
+    dummy_climate_data_varying_canopy, fixture_core_components
+) -> SimpleNamespace:
+    """Build indices for different layers and variables for easier access."""
+
+    layer_structure = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
+
+    return SimpleNamespace(
+        above=layer_structure.index_above,
+        canopy=layer_structure.index_filled_canopy,
+        surface=layer_structure.index_surface_scalar,
+        atm=layer_structure.index_filled_atmosphere,
+        flux=layer_structure.index_flux_layers,
+        soil=layer_structure.index_all_soil,
+        topsoil=layer_structure.index_topsoil_scalar,
+        layers=layer_structure.n_layers,
+        cell_id=data.grid.n_cells,
+    )
+
+
+@pytest.fixture
+def fixture_static_inputs(
+    dummy_climate_data_varying_canopy,
+    fixture_abiotic_indices,
+    fixture_core_components,
+    fixture_abiotic_constants,
+) -> dict[str, NDArray[np.floating]]:
+    """Prepare static inputs for microclimate model."""
+
+    data = dummy_climate_data_varying_canopy
+    indices = fixture_abiotic_indices
+    layer_structure = fixture_core_components.layer_structure
+    abiotic_constants = fixture_abiotic_constants
+    time_index = 0
+
+    canopy_height = np.nan_to_num(data["layer_heights"][1].to_numpy())
+
+    leaf_area_index_sum = np.nan_to_num(
+        np.nansum(data["leaf_area_index"][indices.canopy].to_numpy(), axis=0)
+    )
+
+    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+
+    atmospheric_pressure = abiotic_tools.update_profile_from_reference(
+        layer_structure=layer_structure,
+        mask_variable=data["air_temperature"],
+        variable_name=data["atmospheric_pressure_ref"],
+        time_index=time_index,
+    )
+    atmospheric_pressure_true = atmospheric_pressure.to_numpy()
+
+    atmospheric_co2 = abiotic_tools.update_profile_from_reference(
+        layer_structure=layer_structure,
+        mask_variable=data["air_temperature"],
+        variable_name=data["atmospheric_co2_ref"],
+        time_index=time_index,
+    )
+    atmospheric_co2_true = atmospheric_co2.to_numpy()
+
+    atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
+        data=data,
+        layer_structure=layer_structure,
+    )
+
+    # Absorbed longwave radiation by canopy, [W m-2]
+    weights = compute_weights_from_absorbed_radiation(
+        radiation=data["shortwave_absorption"].to_numpy(),
+    )
+    absorbed_longwave_radiation = (
+        data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
+        * weights
+        * abiotic_constants.leaf_emissivity  # TODO needs to be soil too
+    )
+    cell_area = data.grid.cell_area
+
+    mixing_coefficient = fixture_core_components.layer_structure.from_template()
+    mixing_coefficient[indices.atm] = np.array(
+        [
+            [0.1, 0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.1, np.nan],
+            [0.1, 0.1, np.nan, np.nan],
+            [0.1, np.nan, np.nan, np.nan],
+            [0.1, 0.1, 0.1, 0.1],
+        ]
+    )
+    zero_plane_displacement = np.ones(data.grid.n_cells) * 2.0
+    ventilation_rate = np.ones(data.grid.n_cells) * 2.0
+    wind_speed = data["wind_speed"].to_numpy()
+
+    return {
+        "canopy_height": canopy_height,
+        "lai_sum": leaf_area_index_sum,
+        "evapotranspiration": evapotranspiration,
+        "atmospheric_pressure": atmospheric_pressure_true,
+        "atmospheric_co2": atmospheric_co2_true,
+        "geometry": atmospheric_layer_geometry,
+        "absorbed_longwave_radiation": absorbed_longwave_radiation,
+        "cell_area": cell_area,
+        "mixing_coefficient": mixing_coefficient,
+        "zero_plane_displacement": zero_plane_displacement,
+        "wind_speed": wind_speed,
+        "ventialtion_rate": ventilation_rate,
+    }
+
+
+@pytest.fixture
+def fixture_state_inputs(
+    dummy_climate_data_varying_canopy,
+) -> dict[str, NDArray[np.floating]]:
+    """Prepare static inputs for microclimate model."""
+
+    data = dummy_climate_data_varying_canopy
+    n_layers, n_cells = data["air_temperature"].shape
+
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+
+    return {
+        "air_temperature": data["air_temperature"].to_numpy(),
+        "relative_humidity": data["relative_humidity"].to_numpy(),
+        "atmospheric_pressure": data["atmospheric_pressure"].to_numpy(),
+        "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
+        "canopy_temperature": data["canopy_temperature"].to_numpy(),
+        "evapotranspiration": evapotranspiration.to_numpy(),
+        "shortwave_absorption": data["shortwave_absorption"].to_numpy(),
+        "specific_heat_air": data["specific_heat_air"].to_numpy(),
+        "density_air": data["density_air"].to_numpy(),
+        "aerodynamic_resistance_canopy": (
+            data["aerodynamic_resistance_canopy"].to_numpy()
+        ),
+        "latent_heat_vapourisation": data["latent_heat_vapourisation"].to_numpy(),
+        "soil_temperature": data["soil_temperature"].to_numpy(),
+        "soil_evaporation": data["soil_evaporation"].to_numpy(),
+        "sensible_heat_flux": np.ones((n_layers, n_cells)) * 5.0,
+        "sensible_heat_flux_soil": np.ones(n_cells) * 2.0,
+        "latent_heat_flux": np.ones((n_layers, n_cells)) * 5.0,
+        "latent_heat_flux_soil": np.ones(n_cells) * 2.0,
+        "ground_heat_flux": np.ones(n_cells) * 2.0,
+        "ventilation_rate": np.repeat(0.05, n_cells),
+        "longwave_emission": data["longwave_emission"].to_numpy(),
+    }

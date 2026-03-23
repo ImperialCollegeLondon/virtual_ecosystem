@@ -89,22 +89,26 @@ def test_litter_model_initialization_no_data(
     argnames="var,values,msg",
     argvalues=(
         pytest.param(
-            "litter_pool_above_metabolic",
-            [0.05, 0.02, -0.1, -0.1],
+            "litter_pool_above_metabolic_cnp",
+            DataArray(
+                np.stack(
+                    [
+                        [0.05, 0.02, -0.1, -0.1],
+                        [0.05, 0.02, 0.02, 0.02],
+                        [0.05, 0.02, 0.02, 0.02],
+                    ],
+                    axis=1,
+                ),
+                dims=["cell_id", "element"],
+            ),
             "Negative pool sizes found in: ",
             id="bad pool bounds",
         ),
         pytest.param(
             "lignin_woody",
-            [0.5, 0.4, 1.1, 1.1],
+            DataArray([0.5, 0.4, 1.1, 1.1], dims=["cell_id"]),
             "Lignin proportions not between 0 and 1 found in: ",
             id="bad lignin bounds",
-        ),
-        pytest.param(
-            "c_n_ratio_woody",
-            [23.3, 45.6, -23.4, -11.1],
-            "Negative nutrient ratios found in: ",
-            id="bad nutrient ratio bounds",
         ),
     ),
 )
@@ -122,7 +126,7 @@ def test_litter_model_initialization_errors(
 
     with pytest.raises(InitialisationError):
         # Put incorrect data in for lmwc
-        fixture_litter_init_data[var] = DataArray(values, dims=["cell_id"])
+        fixture_litter_init_data[var] = values
 
         LitterModel(
             data=fixture_litter_init_data,
@@ -197,32 +201,57 @@ def test_update(fixture_litter_model, dummy_litter_data):
     """Test to check that the update step works and increments the update step."""
 
     expected_output = {
-        "litter_pool_above_metabolic": [0.31274778, 0.14733378, 0.07884319, 0.07237949],
-        "litter_pool_above_structural": [
-            0.50473556,
-            0.24936209,
-            0.10274537,
-            0.11665499,
-        ],
-        "litter_pool_woody": [4.774026, 11.89845637, 7.35980938, 7.32981591],
-        "litter_pool_below_metabolic": [0.39768414, 0.36316585, 0.06791351, 0.07781341],
-        "litter_pool_below_structural": [0.6105005, 0.32204064, 0.02014513, 0.03468225],
+        "litter_pool_above_metabolic_cnp": np.stack(
+            [
+                [0.31274778, 0.14733378, 0.07884319, 0.07237949],
+                [0.04155601, 0.01679779, 0.00720536, 0.00722372],
+                [0.0051371875, 0.0021249325, 0.0007146426, 0.0007456092],
+            ],
+            axis=1,
+        ),
+        "litter_pool_above_structural_cnp": np.stack(
+            [
+                [0.50473556, 0.24936209, 0.10274537, 0.11665499],
+                [0.01340387, 0.00576308, 0.00207896, 0.00214561],
+                [0.0014833637, 0.0005261425, 0.0002250811, 0.0002017854],
+            ],
+            axis=1,
+        ),
+        "litter_pool_woody_cnp": np.stack(
+            [
+                [4.774026, 11.89845637, 7.35980938, 7.32981591],
+                [0.08590272676, 0.1881151570, 0.15512843175, 0.1240644940],
+                [0.00854665833, 0.01560505795, 0.00867934648, 0.01221675791],
+            ],
+            axis=1,
+        ),
+        "litter_pool_below_metabolic_cnp": np.stack(
+            [
+                [0.39768414, 0.36316585, 0.06791351, 0.07781341],
+                [0.036463742, 0.031780242, 0.004463859, 0.005972943],
+                [0.00126489842, 0.00089871328, 0.00021555604, 0.00021591806],
+            ],
+            axis=1,
+        ),
+        "litter_pool_below_structural_cnp": np.stack(
+            [
+                [0.6105005, 0.32204064, 0.02014513, 0.03468225],
+                [0.01197838, 0.00567122, 0.00027473, 0.00047664],
+                [0.0010938513, 0.0005303060, 2.5977932e-5, 4.5660957e-5],
+            ],
+            axis=1,
+        ),
         "lignin_above_structural": [0.49765798, 0.10073481, 0.68181057, 0.68425001],
         "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
         "lignin_below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
-        "c_n_ratio_above_metabolic": [7.52594014, 8.77113534, 10.94226006, 10.0196659],
-        "c_n_ratio_above_structural": [37.6558673, 43.2689945, 49.4225393, 54.3682015],
-        "c_n_ratio_woody": [55.57479, 63.250918, 47.44333, 59.08069],
-        "c_n_ratio_below_metabolic": [10.90629, 11.42741, 15.21408, 13.02765],
-        "c_n_ratio_below_structural": [50.96669, 56.78504, 73.33861, 72.76419],
-        "c_p_ratio_above_metabolic": [60.879182, 69.335744, 110.32534, 97.074293],
-        "c_p_ratio_above_structural": [340.26419, 473.943986, 456.481612, 578.114146],
-        "c_p_ratio_woody": [558.58393, 762.474347, 847.96815, 599.98045],
-        "c_p_ratio_below_metabolic": [314.40006, 404.09534, 315.06196, 360.38398],
-        "c_p_ratio_below_structural": [558.1202, 607.2732, 775.4709, 759.5603],
-        "litter_C_mineralisation_rate": [0.0266645, 0.02019299, 0.00756695, 0.00762047],
-        "litter_N_mineralisation_rate": [0.006003, 0.00375757, 0.00087354, 0.00093259],
-        "litter_P_mineralisation_rate": [4.46372e-4, 2.12047e-4, 6.6561e-5, 6.70468e-5],
+        "litter_mineralisation_rate_cnp": np.stack(
+            [
+                [0.0266645, 0.02019299, 0.00756695, 0.00762047],
+                [0.006003, 0.00375757, 0.00087354, 0.00093259],
+                [4.46372e-4, 2.12047e-4, 6.6561e-5, 6.70468e-5],
+            ],
+            axis=1,
+        ),
     }
 
     # Add the data required for update

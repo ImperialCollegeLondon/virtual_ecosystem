@@ -19,7 +19,7 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.11.9
+  version: 3.12
 ---
 
 # Creating new Virtual Ecosystem models
@@ -306,12 +306,11 @@ There are some specific requirements for including paths in configuration models
 
 * File paths should obviously point to existing files, but that makes it hard to set
   meaningful default values for use in generating example or template configurations.
-  The custom {class}`~virtual_ecosystem.core.configuration.FILEPATH_PLACEHOLDER` type
-  used in the example above helps solve this issue. Under the hood, this type uses the
-  pydantic `FilePath`, which will fail validation if the input path does not exist. It
-  also sets the default values `<PLACEHOLDER>`, but has extended validation to
-  specifically check that this placeholder default has not been left in configuration
-  file in use.
+  The custom `FILEPATH_PLACEHOLDER` type used in the example above helps solve this
+  issue. Under the hood, this type uses the pydantic `FilePath`, which will fail
+  validation if the input path does not exist. It also sets the default values
+  `<PLACEHOLDER>`, but has extended validation to specifically check that this
+  placeholder default has not been left in configuration file in use.
 
 ## Defining the new model class
 
@@ -439,8 +438,8 @@ The first two variables set data requirements during model initialisation:
   attribute sets which variables must be loaded into the `Data` object before your model
   can be initialised. These must either be:
 
-  * included in the [configured initial data](../../using_the_ve/model_data_inputs.md)
-    that is loaded when the simulation starts, or
+  * included in the configured initial data that is loaded when the simulation starts,
+    or
   * be populated by a model that initialises earlier in the model sequence.
 
 * The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_init`

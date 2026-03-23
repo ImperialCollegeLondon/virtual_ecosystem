@@ -20,23 +20,19 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.11.9
+  version: 3.12
 mystnb:
   render_markdown_format: myst
 ---
 
-# Configuring science models in the Virtual Ecosystem
+# Science model configuration in the Virtual Ecosystem
 
 ```{code-cell} ipython3
 :tags: [remove-input]
 
 import tomli_w
-import json
-from config_display import (
-    dump_config_toml,
-    model_config_to_deflist,
-)
 from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.docutils import dump_config_toml, model_config_to_deflist
 from virtual_ecosystem.core.registry import get_model_configuration_class
 from IPython.display import display, Markdown, HTML
 from importlib import import_module
@@ -55,11 +51,9 @@ you will need to configure the sources of the gridded array data providing the d
 variables required by each model:
 
 * The variables required for each model are described in the [model implementation
-  pages](../virtual_ecosystem/implementation/how_it_works.md#science-models).
+  pages](../../virtual_ecosystem/implementation/how_it_works.md#science-models).
 * A complete list of variables can be found in the [variables description
-  page](./variables/variables.md).
-* The model inputs page describes the [configuration of gridded data file
-  inputs](./model_data_inputs.md#configuring-gridded-data-inputs)
+  page](../variables/variables.md).
 
 ```
 
@@ -88,207 +82,9 @@ described in the documentation of the model configuration. These are linked in e
 section below - these pages are part of the API (application programming interface) so
 are a bit more technical but provide the a complete description of the model settings.
 
-## Simple abiotic model
-
-[See also the [configuration details](../api/models/abiotic_simple/model_config.md)]
-
-Configuration for the `abiotic_simple` model includes two sections:
-
-* A small set of constants values (`[abiotic_simple.constants]`), and
-* A set of upper and lower bounds on the predicted microclimate variables
-  (`[abiotic_simple.bounds]`).
-
-In both cases, these default configuration will probably be enough to get an initial
-configuration running for your simulation but may then need to be adjusted for your
-study system.
-
-### Abiotic simple constants
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleConstants
-
-config_object = AbioticSimpleConstants()
-dump_config_toml("abiotic_simple.constants", config_object)
-model_config_to_deflist("abiotic_simple.constants", config_object)
-```
-
-### Abiotic simple bounds
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
-
-config_object = AbioticSimpleBounds()
-dump_config_toml("abiotic_simple.constants", config_object)
-model_config_to_deflist("abiotic_simple.constants", config_object)
-```
-
-## Abiotic model
-
-Configuration for the `abiotic` model includes three sections:
-
-* An expanded set of constants values (`[abiotic.constants]`).
-* A set of upper and lower bounds on the predicted microclimate variables
-  (`[abiotic.bounds]`). This uses the same defaults as the simple abiotic model.
-* The abiotic model uses the simple abiotic model to initialise the system state and
-  also requires the simple constants used by that model (`[abiotic.simple_constants`).
-
-The last two sections are defined identically to the abiotic simple above and so follow
-the structure for the [bounds](#abiotic-simple-bounds) and [simple
-constants](#abiotic-simple-constants) shown above. The only difference is that the
-should use the section names for the abiotic model.
-
-### Abiotic constants
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
-
-config_object = AbioticConstants()
-dump_config_toml("abiotic.constants", config_object)
-model_config_to_deflist("abiotic.constants", config_object)
-```
-
-## Litter model
-
-[See also the [configuration details](../api/models/litter/model_config.md)]
-
-```{eval-rst}
-..
-    This is needed to allow sphinx to resolve the :attr: links for litter constants
-.. currentmodule:: virtual_ecosystem.models.litter.model_config
-```
-
-The litter model only requires one configuration section:
-
-* The litter model constants (`[litter.constants]`)
-
-### Litter constants
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.litter.model_config import LitterConstants
-
-config_object = LitterConstants()
-dump_config_toml("litter.constants", config_object)
-model_config_to_deflist("litter.constants", config_object)
-```
-
-## Hydrology model
-
-[See also the [configuration details](../api/models/hydrology/model_config.md)]
-
-The hydrology model requires two simple initialisation values and then a set of
-hydrology constants one configuration section:
-
-* the initial soil moisture,
-* the initial groundwater saturation, and
-* the hydrology model constants (`[hydrology.constants]`)
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.hydrology.model_config import HydrologyConfiguration
-
-config_object = HydrologyConfiguration()
-dump_config_toml("hydrology", config_object)
-model_config_to_deflist("hydrology", config_object)
-```
-
-## Soil model
-
-[See also the [configuration details](../api/models/soil/model_config.md)]
-
-```{eval-rst}
-..
-    This is needed to allow sphinx to resolve the :attr: links for soils config objects
-.. currentmodule:: virtual_ecosystem.models.soil.model_config
-```
-
-```{code-cell} ipython3
-:tags: [remove-cell]
-
-from myst_nb import glue
-from typing import get_args
-from virtual_ecosystem.models.soil.model_config import (
-    REQUIRED_MICROBIAL_GROUPS,
-    REQUIRED_ENZYMES,
-)
-
-glue("soil_required_enzymes", ", ".join([str(pair) for pair in REQUIRED_ENZYMES]))
-glue("soil_required_groups", ", ".join([*get_args(REQUIRED_MICROBIAL_GROUPS)]))
-```
-
-The Soil model configuration is used to provide:
-
-* Trait data on the microbial groups required for the soil model. The soil model
-  requires a defined set of these groups, currently: {glue:text}`soil_required_groups`.
-
-  These are currently configured directly in the TOML file using the
-  `soil.microbial_group_definition` configuration option but this may move to loading
-  from a CSV file using the `soil.microbial_group_definition_path` setting.
-
-* Enzyme kinetics data for the enzymes produced by the taxonomic groups. Data is
-  required for each pair of the higher taxonomic groups of microbes (fungi or bacteria)
-  and the enzyme substrates targeted in the model (particulate organic matter or mineral
-  associated organic matter): {glue:text}`soil_required_enzymes`
-
-  These are currently configured directly in the TOML file using the
-  `soil.enzyme_class_definition` configuration option but this may move to loading from
-  a CSV file using the `soil.enzyme_class_definition_path` setting.
-
-* A set of soil model constants using the `soil.constants` configuration.
-
-### Soil microbial groups
-
-The soil microbial groups are defined as a set of traits associated with each of the
-required groups.
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.soil.model_config import SoilMicrobialGroup
-
-config_object = SoilMicrobialGroup()
-dump_config_toml("soil.microbial_group_definition", config_object)
-model_config_to_deflist("soil.microbial_group_definition", config_object)
-```
-
-### Soil enzyme classes
-
-The soil enzyme classes are defined as a set of traits associated with each pair of
-higher taxon and substrate
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.soil.model_config import SoilEnzymeClass
-
-config_object = SoilEnzymeClass()
-dump_config_toml("soil.enzyme_class_definition", config_object)
-model_config_to_deflist("soil.enzyme_class_definition", config_object)
-```
-
-### Soil constants
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.soil.model_config import SoilConstants
-
-config_object = SoilConstants()
-dump_config_toml("soil.constants", config_object)
-model_config_to_deflist("soil.constants", config_object)
-```
-
 ## Plants model
 
-[See also the [configuration details](../api/models/plants/model_config.md)]
+[See also the [configuration details](../../api/models/plants/model_config.md)]
 
 Configuration for the `plants` model includes four sections:
 
@@ -445,7 +241,7 @@ model_config_to_deflist("plants.constants", config_object)
 
 ## Animal model
 
-[See also the [configuration details](../api/models/animal/model_config.md)]
+[See also the [configuration details](../../api/models/animal/model_config.md)]
 
 ### Animal functional groups
 

@@ -129,15 +129,16 @@ class AnimalConstants(Configuration):
         0.5,  # sig
         0.69,  # Ea
     )
-    """Metabolic rate scaling coefficients.
+    r"""Metabolic rate scaling coefficients.
     
     These are the coefficients of Madingley style scaling of metabolic rate with  mass
     and temperature, assuming a power-law relationship with mass and an exponential
     relationship with temperature. The three values are:
 
-    * $E_s$ - energy to mass conversion constant (g/kJ)
-    * $\sigma$ - proportion of time-step with temp in active range (toy default value)
-    * $E_a$ - aggregate activation energy of metabolic reactions
+    * :math:`E_s` - energy to mass conversion constant (g/kJ)
+    * :math:`\sigma` - proportion of time-step with temp in active range (toy default
+      value)
+    * :math:`E_a` - aggregate activation energy of metabolic reactions
     """
 
     metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = Field(
@@ -226,13 +227,10 @@ class AnimalConstants(Configuration):
 
     # Trophic parameters
 
-    alpha_0_herb: float = 1.0e-11  # alpha_herb_0 [Madingley] ha/(day*g)
+    alpha_0_herb: float = 1.0e-7  # ha/(day*g) [Madingley] converted to m2/(day*g)
     """Effective rate per unit mass at which a herbivore searches its environment."""
-    alpha_0_pred: float = 1.0e-6  # alpha_pred_0 [Madingley] ha/(day*g)
+    alpha_0_pred: float = 1.0e-2  # ha/(day*g) [Madingley] converted to m2/(day*g)
     """Effective rate per unit mass at which a predator searches its environment."""
-
-    phi_herb_t: float = 0.1  # phi_herb_t
-    """Fraction of the resource stock that is available to any one herbivore cohort."""
 
     b_herb: float = 0.7  # ( ),b_herb)
     """Herbivore exponent of the power-law function relating the handling time of
@@ -244,9 +242,7 @@ class AnimalConstants(Configuration):
 
     M_herb_ref: float = 1.0  # M_herb_ref [Madingley] g
     """Reference mass for herbivore handling time."""
-    M_herb_0: float = 0.7  # M_herb_0 [Madingley] (days)
-    """Time that it would take a herbivore of body mass equal to the reference mass,
-    to handle one gram of autotroph biomass."""
+
     h_herb_0: float = 0.7  # h_pred_0 [Madingley]
     """Time that it would take a herbivore of body mass equal to the reference mass,
     to handle one gram of autotroph biomass"""
@@ -385,6 +381,46 @@ class AnimalConstants(Configuration):
 
     seasonal_migration_probability: float = 0.083  # approx 1 seasonal migration per yr.
     """The probability a seasonal migration event occurs per time step (month)."""
+
+    territory_size_terms: dict[MetabolicType, dict[TaxaType, tuple[float, float]]] = (
+        Field(
+            default_factory=lambda: {
+                MetabolicType.ENDOTHERMIC: {
+                    TaxaType.MAMMAL: (
+                        -6.09,
+                        1.13,
+                    ),  # Ofstad et al. (2016), ungulates, closed habitat
+                    TaxaType.BIRD: (
+                        -6.09,
+                        1.13,
+                    ),  # Ofstad et al. (2016), ungulates, closed habitat
+                },
+                MetabolicType.ECTOTHERMIC: {
+                    TaxaType.INVERTEBRATE: (
+                        -6.09,
+                        1.13,
+                    ),  # Ofstad et al. (2016), ungulates, closed habitat
+                    TaxaType.AMPHIBIAN: (
+                        -6.09,
+                        1.13,
+                    ),  # Ofstad et al. (2016), ungulates, closed habitat
+                },
+            }
+        )
+    )
+    """Territory size scaling terms (intercept, exponent) by metabolic and taxa type.
+
+    Tuple entries are (intercept, exponent) for the log-log relationship:
+        ln(territory_ha) = intercept + exponent * ln(BM_g)
+
+    All entries currently use the Ofstad et al. (2016) closed-habitat ungulate
+    parameters as a placeholder. The data team should replace these with
+    taxon-specific fits as they become available.
+
+    Reference:
+        Ofstad EG et al. 2016 Proc. R. Soc. B 283: 20161234.
+        https://doi.org/10.1098/rspb.2016.1234
+    """
 
 
 class AnimalExportConfig(Configuration):

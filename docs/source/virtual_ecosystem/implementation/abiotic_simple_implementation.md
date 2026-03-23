@@ -19,7 +19,7 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.11.9
+  version: 3.12
 ---
 
 # The abiotic simple model implementation
@@ -31,8 +31,8 @@ model.
 ## Required variables
 
 The abiotic_simple model requires a timeseries of the following variables to initialise
-and update the model. Please check also the [notes on climate data
-pre-processing](../../using_the_ve/model_details/notes_preprocessing.md).
+and update the model. Please check also the [guide for pre-processing
+climate data](../../using_the_ve/model_details/abiotic/climate_data_guide.md).
 
 <!-- markdownlint-disable-next-line MD033-->
 * <a

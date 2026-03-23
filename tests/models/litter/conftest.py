@@ -105,29 +105,30 @@ def metabolic_splits(total_litter_input, fixture_litter_constants):
 
 
 @pytest.fixture
-def post_consumption_pools(dummy_litter_data):
+def post_consumption_pools(dummy_litter_data, fixture_core_components):
     """Pool sizes after animal consumption for each litter pool."""
     from virtual_ecosystem.models.litter.carbon import calculate_post_consumption_pools
 
     post_consumption_pools = calculate_post_consumption_pools(
-        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
-        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
-        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
-        below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
-        below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        above_metabolic=dummy_litter_data["litter_pool_above_metabolic_cnp"],
+        above_structural=dummy_litter_data["litter_pool_above_structural_cnp"],
+        woody=dummy_litter_data["litter_pool_woody_cnp"],
+        below_metabolic=dummy_litter_data["litter_pool_below_metabolic_cnp"],
+        below_structural=dummy_litter_data["litter_pool_below_structural_cnp"],
         consumption_above_metabolic=dummy_litter_data[
-            "litter_consumption_above_metabolic"
-        ].to_numpy(),
+            "litter_consumed_above_metabolic_cnp"
+        ],
         consumption_above_structural=dummy_litter_data[
-            "litter_consumption_above_structural"
-        ].to_numpy(),
-        consumption_woody=dummy_litter_data["litter_consumption_woody"].to_numpy(),
+            "litter_consumed_above_structural_cnp"
+        ],
+        consumption_woody=dummy_litter_data["litter_consumed_woody_cnp"],
         consumption_below_metabolic=dummy_litter_data[
-            "litter_consumption_below_metabolic"
-        ].to_numpy(),
+            "litter_consumed_below_metabolic_cnp"
+        ],
         consumption_below_structural=dummy_litter_data[
-            "litter_consumption_below_structural"
-        ].to_numpy(),
+            "litter_consumed_below_structural_cnp"
+        ],
+        cell_area=fixture_core_components.grid.cell_area,
     )
 
     return post_consumption_pools

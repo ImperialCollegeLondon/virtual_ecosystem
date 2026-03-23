@@ -20,7 +20,7 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.11.9
+  version: 3.12
 mystnb:
   render_markdown_format: myst
 ---
@@ -180,10 +180,8 @@ model and then iterate over a time series.
 ### Array data
 
 Most of the data required by the Virtual Ecosystem is organised on well defined axes and
-so is imported into a central data store (see [the data
-object](../development/design/data.md) for details). These input data are typically
-stored in NetCDF format files, which is a format designed around array data on defined
-axes.
+so is imported into a central data store. These input data are typically stored in
+NetCDF format files, which is a format designed around array data on defined axes.
 
 The data in the files then needs to be linked into the variables required by the Virtual
 Ecosystem model. This is set in the configuration TOML files using the
@@ -193,7 +191,7 @@ variable. For example:
 ```toml
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_above_metabolic"
+var_name = "litter_pool_above_metabolic_cnp"
 ```
 
 The configuration setting needs to be provided which for every variable required by
@@ -320,24 +318,24 @@ The `example_litter_data.nc` file provides:
   - Unit
   - Dims
 * - above ground metabolic litter pools
-  - `litter_pool_above_metabolic`
-  - kg C $\textrm{m}^{-2}$
+  - `litter_pool_above_metabolic_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - above ground structural litter pools
-  - `litter_pool_above_structural`
-  - kg C $\textrm{m}^{-2}$
+  - `litter_pool_above_structural_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - woody litter pools
-  - `litter_pool_woody`
-  - kg C $\textrm{m}^{-2}$
+  - `litter_pool_woody_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - below ground metabolic litter pools
-  - `litter_pool_below_metabolic`
-  - kg C $\textrm{m}^{-2}$
+  - `litter_pool_below_metabolic_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - below ground structural litter pools
-  - `litter_pool_below_structural`
-  - kg C $\textrm{m}^{-2}$
+  - `litter_pool_below_structural_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - lignin proportion of above ground structural litter
   - `lignin_above_structural`
@@ -400,7 +398,7 @@ The example model data directory also contains:
    You don't really need to look at these, but they provide simple recipes for creating
    or editing the example data files, so might be useful for tinkering with the example
    inputs. For any real model you want to fit, you will need to prepare actual
-   [data inputs](./model_data_inputs.md) using data for your ecosystem.
+   [data inputs](./model_details/overview.md) using data for your ecosystem.
 
 * The `static_config` directory is empty and is used as part of the advanced usage of
   [static models](./virtual_ecosystem_in_static_mode.ipynb) in the Virtual Ecosystem.

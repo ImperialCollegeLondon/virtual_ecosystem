@@ -54,22 +54,30 @@ subtrees:
           - file: using_the_ve/virtual_ecosystem_in_use
           - file: using_the_ve/running_ve_with_your_own_data
             title: Using your own data
-            entries:
-              - file: using_the_ve/core_configuration
-              - file: using_the_ve/science_model_configuration
-              - file: using_the_ve/config
-              - file: using_the_ve/model_data_inputs
-              - file: using_the_ve/axes
           - file: using_the_ve/virtual_ecosystem_in_static_mode
           - file: using_the_ve/variables/variables
           - file: using_the_ve/core_settings/overview
             entries:
+              - file: using_the_ve/core_settings/core_configuration
+              - file: using_the_ve/axes
+              - file: using_the_ve/core_settings/site_definition_guide
               - file: using_the_ve/core_settings/static_models
           - file: using_the_ve/model_details/overview
             entries:
+              - file: using_the_ve/model_details/abiotic/overview
+                entries:
+                  - file: using_the_ve/model_details/abiotic/abiotic_config
+                  - file: using_the_ve/model_details/abiotic/abiotic_simple_config
+                  - file: using_the_ve/model_details/abiotic/hydrology_config
+                  - file: using_the_ve/model_details/abiotic/elevation_data_guide
+                  - file: using_the_ve/model_details/abiotic/climate_data_guide
+              - file: using_the_ve/model_details/decay/overview
+                entries:
+                  - file: using_the_ve/model_details/decay/litter_config
+                  - file: using_the_ve/model_details/decay/soil_config
+                  - file: using_the_ve/model_details/decay/default_microbial_params
               - file: using_the_ve/model_details/pft_configuration
-              - file: using_the_ve/model_details/notes_preprocessing
-              - file: using_the_ve/model_details/new_config
+              - file: using_the_ve/model_details/science_model_configuration
 
       - file: development/contributing
         title: Developers
@@ -135,6 +143,8 @@ subtrees:
                     title: The utils submodule
                   - file: api/core/variables.md
                     title: The variables submodule
+                  - file: api/core/docutils.md
+                    title: The docutils submodule
           - file: api/main.md
             title: The main submodule
           - file: api/models.md
@@ -180,7 +190,7 @@ subtrees:
                     title: The decay submodule
                   - file: api/models/animal/functional_group
                     title: The functional_group submodule
-                  - file: api/models/animal/plant_resources
+                  - file: api/models/animal/array_resources
                     title: The plant_resources submodule
                   - file: api/models/animal/protocols
                     title: The protocols submodule

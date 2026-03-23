@@ -302,7 +302,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     # Set of pools to be returned to test that update does use (mocked) integrator
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
-    end_microbe = [5.8, 2.3, 11.3, 1.0]
+    end_bacteria = [5.8, 2.3, 11.3, 1.0]
     end_pom = [0.25, 2.34, 0.746, 0.3467]
     end_necromass = [0.058, 0.015, 0.093, 0.105]
 
@@ -334,7 +334,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
         data_vars=dict(
             soil_c_pool_lmwc=DataArray(end_lmwc, dims="cell_id"),
             soil_c_pool_maom=DataArray(end_maom, dims="cell_id"),
-            soil_c_pool_microbe=DataArray(end_microbe, dims="cell_id"),
+            soil_c_pool_bacteria=DataArray(end_bacteria, dims="cell_id"),
             soil_c_pool_pom=DataArray(end_pom, dims="cell_id"),
             soil_c_pool_necromass=DataArray(end_necromass, dims="cell_id"),
             soil_n_pool_nitrate=DataArray(end_nitrate, dims="cell_id"),
@@ -358,7 +358,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     # Check that data fixture has been updated correctly
     assert np.allclose(dummy_carbon_data["soil_c_pool_lmwc"], end_lmwc)
     assert np.allclose(dummy_carbon_data["soil_c_pool_maom"], end_maom)
-    assert np.allclose(dummy_carbon_data["soil_c_pool_microbe"], end_microbe)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_bacteria"], end_bacteria)
     assert np.allclose(dummy_carbon_data["soil_c_pool_pom"], end_pom)
     assert np.allclose(dummy_carbon_data["soil_c_pool_necromass"], end_necromass)
 
@@ -598,9 +598,7 @@ def test_order_independance(
         "soil_temperature",
         "air_temperature",
         "clay_fraction",
-        "litter_C_mineralisation_rate",
-        "litter_N_mineralisation_rate",
-        "litter_P_mineralisation_rate",
+        "litter_mineralisation_rate_cnp",
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
@@ -609,9 +607,7 @@ def test_order_independance(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
-        "animal_pom_consumption_carbon",
-        "animal_pom_consumption_nitrogen",
-        "animal_pom_consumption_phosphorus",
+        "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",

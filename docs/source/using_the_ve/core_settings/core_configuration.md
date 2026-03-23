@@ -20,7 +20,7 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.11.9
+  version: 3.12
 mystnb:
   render_markdown_format: myst
 ---
@@ -41,7 +41,7 @@ configured in its own configuration section:
 
 The core configuration section is also used to set the location of data input files for
 required forcing variables for the simulation, but the `[core.data]` section is
-discussed in the [model data inputs](./model_data_inputs.md) documentation.
+discussed in the [using your own data tutorial](../running_ve_with_your_own_data.md).
 
 ```{tip}
 You may find it useful to create the core TOML configuration for your system as the
@@ -74,10 +74,7 @@ coordinate system.
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-from config_display import (
-    dump_config_toml,
-    model_config_to_deflist,
-)
+from virtual_ecosystem.core.docutils import dump_config_toml, model_config_to_deflist
 from virtual_ecosystem.core.model_config import GridConfiguration
 from virtual_ecosystem.core.grid import Grid
 import matplotlib.pyplot as plt
@@ -165,7 +162,7 @@ The `[core.layers]` configuration section defines the vertical layer structure o
 simulation. The model uses a fixed number of layers along the vertical height axis: this
 configuration is used to set the actual heights of layers - sometimes relative to the
 canopy layer heights - and the number of layers. See the [vertical structure
-implementation](../virtual_ecosystem/implementation/core_components_overview.md#the-vertical-layer-structure)
+implementation](../../virtual_ecosystem/implementation/core_components_overview.md#the-vertical-layer-structure)
 page for more details.
 
 ```{code-cell} ipython3

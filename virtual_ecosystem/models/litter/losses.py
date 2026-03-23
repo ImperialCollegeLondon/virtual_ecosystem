@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
+from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.litter.inputs import InputChemistries, LitterInputs
@@ -64,7 +65,7 @@ class LitterLosses:
 
 def calculate_litter_losses(
     data: Data,
-    original_pools: dict[str, NDArray[np.floating]],
+    original_pools: dict[str, DataArray],
     final_pools: dict[str, NDArray[np.floating]],
     litter_inputs: LitterInputs,
     input_chemistries: InputChemistries,
@@ -92,31 +93,31 @@ def calculate_litter_losses(
 
     # Calculate the loss of carbon from each litter pool
     above_metabolic_carbon = calculate_carbon_pool_loss(
-        old_pool_size=original_pools["above_metabolic"],
+        old_pool_size=original_pools["above_metabolic"].loc[:, "C"].to_numpy(),
         final_pool_size=final_pools["above_metabolic"],
         input_rate=litter_inputs.above_metabolic,
         update_interval=update_interval,
     )
     above_structural_carbon = calculate_carbon_pool_loss(
-        old_pool_size=original_pools["above_structural"],
+        old_pool_size=original_pools["above_structural"].loc[:, "C"].to_numpy(),
         final_pool_size=final_pools["above_structural"],
         input_rate=litter_inputs.above_structural,
         update_interval=update_interval,
     )
     woody_carbon = calculate_carbon_pool_loss(
-        old_pool_size=original_pools["woody"],
+        old_pool_size=original_pools["woody"].loc[:, "C"].to_numpy(),
         final_pool_size=final_pools["woody"],
         input_rate=litter_inputs.woody,
         update_interval=update_interval,
     )
     below_metabolic_carbon = calculate_carbon_pool_loss(
-        old_pool_size=original_pools["below_metabolic"],
+        old_pool_size=original_pools["below_metabolic"].loc[:, "C"].to_numpy(),
         final_pool_size=final_pools["below_metabolic"],
         input_rate=litter_inputs.below_metabolic,
         update_interval=update_interval,
     )
     below_structural_carbon = calculate_carbon_pool_loss(
-        old_pool_size=original_pools["below_structural"],
+        old_pool_size=original_pools["below_structural"].loc[:, "C"].to_numpy(),
         final_pool_size=final_pools["below_structural"],
         input_rate=litter_inputs.below_structural,
         update_interval=update_interval,
@@ -124,91 +125,91 @@ def calculate_litter_losses(
 
     # Calculate the loss of nitrogen from each litter pool
     above_metabolic_nitrogen = calculate_nutrient_pool_loss(
-        initial_pool_size=original_pools["above_metabolic"],
+        initial_pool_carbon=original_pools["above_metabolic"].loc[:, "C"].to_numpy(),
+        initial_pool_nutrient=original_pools["above_metabolic"].loc[:, "N"].to_numpy(),
         carbon_loss=above_metabolic_carbon,
-        input_rate=litter_inputs.above_metabolic,
-        initial_carbon_nutrient_ratio=data["c_n_ratio_above_metabolic"].to_numpy(),
-        input_carbon_nutrient_ratio=input_chemistries.above_metabolic_nitrogen,
+        input_rate_carbon=litter_inputs.above_metabolic,
+        input_rate_nutrient=input_chemistries.above_metabolic_nitrogen,
         update_interval=update_interval,
     )
     above_structural_nitrogen = calculate_nutrient_pool_loss(
-        initial_pool_size=original_pools["above_structural"],
+        initial_pool_carbon=original_pools["above_structural"].loc[:, "C"].to_numpy(),
+        initial_pool_nutrient=original_pools["above_structural"].loc[:, "N"].to_numpy(),
         carbon_loss=above_structural_carbon,
-        input_rate=litter_inputs.above_structural,
-        initial_carbon_nutrient_ratio=data["c_n_ratio_above_structural"].to_numpy(),
-        input_carbon_nutrient_ratio=input_chemistries.above_structural_nitrogen,
+        input_rate_carbon=litter_inputs.above_structural,
+        input_rate_nutrient=input_chemistries.above_structural_nitrogen,
         update_interval=update_interval,
     )
     woody_nitrogen = calculate_nutrient_pool_loss(
-        initial_pool_size=original_pools["woody"],
+        initial_pool_carbon=original_pools["woody"].loc[:, "C"].to_numpy(),
+        initial_pool_nutrient=original_pools["woody"].loc[:, "N"].to_numpy(),
         carbon_loss=woody_carbon,
-        input_rate=litter_inputs.woody,
-        initial_carbon_nutrient_ratio=data["c_n_ratio_woody"].to_numpy(),
-        input_carbon_nutrient_ratio=input_chemistries.woody_nitrogen,
+        input_rate_carbon=litter_inputs.woody,
+        input_rate_nutrient=input_chemistries.woody_nitrogen,
         update_interval=update_interval,
     )
     below_metabolic_nitrogen = calculate_nutrient_pool_loss(
-        initial_pool_size=original_pools["below_metabolic"],
+        initial_pool_carbon=original_pools["below_metabolic"].loc[:, "C"].to_numpy(),
+        initial_pool_nutrient=original_pools["below_metabolic"].loc[:, "N"].to_numpy(),
         carbon_loss=below_metabolic_carbon,
-        input_rate=litter_inputs.below_metabolic,
-        initial_carbon_nutrient_ratio=data["c_n_ratio_below_metabolic"].to_numpy(),
-        input_carbon_nutrient_ratio=input_chemistries.below_metabolic_nitrogen,
+        input_rate_carbon=litter_inputs.below_metabolic,
+        input_rate_nutrient=input_chemistries.below_metabolic_nitrogen,
         update_interval=update_interval,
     )
     below_structural_nitrogen = calculate_nutrient_pool_loss(
-        initial_pool_size=original_pools["below_structural"],
+        initial_pool_carbon=original_pools["below_structural"].loc[:, "C"].to_numpy(),
+        initial_pool_nutrient=original_pools["below_structural"].loc[:, "N"].to_numpy(),
         carbon_loss=below_structural_carbon,
-        input_rate=litter_inputs.below_structural,
-        initial_carbon_nutrient_ratio=data["c_n_ratio_below_structural"].to_numpy(),
-        input_carbon_nutrient_ratio=input_chemistries.below_structural_nitrogen,
+        input_rate_carbon=litter_inputs.below_structural,
+        input_rate_nutrient=input_chemistries.below_structural_nitrogen,
         update_interval=update_interval,
     )
 
     # Calculate the loss of nitrogen from each litter pool
     above_metabolic_phosphorus = calculate_nutrient_pool_loss(
-        initial_pool_size=original_pools["above_metabolic"],
+        initial_pool_carbon=original_pools["above_metabolic"].loc[:, "C"].to_numpy(),
+        initial_pool_nutrient=original_pools["above_metabolic"].loc[:, "P"].to_numpy(),
         carbon_loss=above_metabolic_carbon,
-        input_rate=litter_inputs.above_metabolic,
-        initial_carbon_nutrient_ratio=data["c_p_ratio_above_metabolic"].to_numpy(),
-        input_carbon_nutrient_ratio=input_chemistries.above_metabolic_phosphorus,
+        input_rate_carbon=litter_inputs.above_metabolic,
+        input_rate_nutrient=input_chemistries.above_metabolic_phosphorus,
         update_interval=update_interval,
     )
     above_structural_phosphorus = calculate_nutrient_pool_loss(
-        initial_pool_size=original_pools["above_structural"],
+        initial_pool_carbon=original_pools["above_structural"].loc[:, "C"].to_numpy(),
+        initial_pool_nutrient=original_pools["above_structural"].loc[:, "P"].to_numpy(),
         carbon_loss=above_structural_carbon,
-        input_rate=litter_inputs.above_structural,
-        initial_carbon_nutrient_ratio=data["c_p_ratio_above_structural"].to_numpy(),
-        input_carbon_nutrient_ratio=input_chemistries.above_structural_phosphorus,
+        input_rate_carbon=litter_inputs.above_structural,
+        input_rate_nutrient=input_chemistries.above_structural_phosphorus,
         update_interval=update_interval,
     )
     woody_phosphorus = calculate_nutrient_pool_loss(
-        initial_pool_size=original_pools["woody"],
+        initial_pool_carbon=original_pools["woody"].loc[:, "C"].to_numpy(),
+        initial_pool_nutrient=original_pools["woody"].loc[:, "P"].to_numpy(),
         carbon_loss=woody_carbon,
-        input_rate=litter_inputs.woody,
-        initial_carbon_nutrient_ratio=data["c_p_ratio_woody"].to_numpy(),
-        input_carbon_nutrient_ratio=input_chemistries.woody_phosphorus,
+        input_rate_carbon=litter_inputs.woody,
+        input_rate_nutrient=input_chemistries.woody_phosphorus,
         update_interval=update_interval,
     )
     below_metabolic_phosphorus = calculate_nutrient_pool_loss(
-        initial_pool_size=original_pools["below_metabolic"],
+        initial_pool_carbon=original_pools["below_metabolic"].loc[:, "C"].to_numpy(),
+        initial_pool_nutrient=original_pools["below_metabolic"].loc[:, "P"].to_numpy(),
         carbon_loss=below_metabolic_carbon,
-        input_rate=litter_inputs.below_metabolic,
-        initial_carbon_nutrient_ratio=data["c_p_ratio_below_metabolic"].to_numpy(),
-        input_carbon_nutrient_ratio=input_chemistries.below_metabolic_phosphorus,
+        input_rate_carbon=litter_inputs.below_metabolic,
+        input_rate_nutrient=input_chemistries.below_metabolic_phosphorus,
         update_interval=update_interval,
     )
     below_structural_phosphorus = calculate_nutrient_pool_loss(
-        initial_pool_size=original_pools["below_structural"],
+        initial_pool_carbon=original_pools["below_structural"].loc[:, "C"].to_numpy(),
+        initial_pool_nutrient=original_pools["below_structural"].loc[:, "P"].to_numpy(),
         carbon_loss=below_structural_carbon,
-        input_rate=litter_inputs.below_structural,
-        initial_carbon_nutrient_ratio=data["c_p_ratio_below_structural"].to_numpy(),
-        input_carbon_nutrient_ratio=input_chemistries.below_structural_phosphorus,
+        input_rate_carbon=litter_inputs.below_structural,
+        input_rate_nutrient=input_chemistries.below_structural_phosphorus,
         update_interval=update_interval,
     )
 
     # Calculate the loss of lignin from the three relevant litter pools
     above_structural_lignin = calculate_lignin_pool_loss(
-        initial_pool_size=original_pools["above_structural"],
+        initial_pool_size=original_pools["above_structural"].loc[:, "C"].to_numpy(),
         carbon_loss=above_structural_carbon,
         input_rate=litter_inputs.above_structural,
         initial_lignin_proportion=data["lignin_above_structural"].to_numpy(),
@@ -216,7 +217,7 @@ def calculate_litter_losses(
         update_interval=update_interval,
     )
     woody_lignin = calculate_lignin_pool_loss(
-        initial_pool_size=original_pools["woody"],
+        initial_pool_size=original_pools["woody"].loc[:, "C"].to_numpy(),
         carbon_loss=woody_carbon,
         input_rate=litter_inputs.woody,
         initial_lignin_proportion=data["lignin_woody"].to_numpy(),
@@ -224,7 +225,7 @@ def calculate_litter_losses(
         update_interval=update_interval,
     )
     below_structural_lignin = calculate_lignin_pool_loss(
-        initial_pool_size=original_pools["below_structural"],
+        initial_pool_size=original_pools["below_structural"].loc[:, "C"].to_numpy(),
         carbon_loss=below_structural_carbon,
         input_rate=litter_inputs.below_structural,
         initial_lignin_proportion=data["lignin_below_structural"].to_numpy(),
@@ -297,11 +298,11 @@ def calculate_carbon_pool_loss(
 
 
 def calculate_nutrient_pool_loss(
-    initial_pool_size: NDArray[np.floating],
+    initial_pool_carbon: NDArray[np.floating],
+    initial_pool_nutrient: NDArray[np.floating],
     carbon_loss: NDArray[np.floating],
-    input_rate: NDArray[np.floating],
-    initial_carbon_nutrient_ratio: NDArray[np.floating],
-    input_carbon_nutrient_ratio: NDArray[np.floating],
+    input_rate_carbon: NDArray[np.floating],
+    input_rate_nutrient: NDArray[np.floating],
     update_interval: float,
 ) -> NDArray[np.floating]:
     """Calculate the total nutrient loss from a specific litter pool.
@@ -317,14 +318,16 @@ def calculate_nutrient_pool_loss(
     split.
 
     Args:
-        initial_pool_size: The size of the litter pool before the update [kg C m^-2].
+        initial_pool_carbon: Amount of carbon in the litter pool before the update [kg C
+            m^-2]
+        initial_pool_nutrient: Amount of nutrient in the litter pool before the update
+            [kg nut m^-2]
         carbon_loss: The total loss of carbon from the pool over the decay period
-            [kg C m^-2].
-        input_rate: The rate of carbon input to the litter pool [kg C m^-2 day^-1].
-        initial_carbon_nutrient_ratio: The carbon to nutrient ratio of the litter pool
-            before the update [unitless]
-        input_carbon_nutrient_ratio: The carbon to nutrient ratio of the input to the
-            litter pool [unitless]
+            [kg C m^-2]
+        input_rate_carbon: The rate of carbon input to the litter pool [kg C m^-2
+            day^-1]
+        input_rate_nutrient: The rate of nutrient input to the litter pool [kg nut m^-2
+            day^-1]
         update_interval: The time period over which the litter pools are updated [days].
 
     Returns:
@@ -334,21 +337,20 @@ def calculate_nutrient_pool_loss(
     # Find the fraction of the initial pool that has decayed, and the fraction of input
     # that decays (if the initial pool isn't sufficient)
     fraction_of_initial_pool_decayed = np.where(
-        carbon_loss > initial_pool_size, 1, carbon_loss / initial_pool_size
+        carbon_loss > initial_pool_carbon, 1, carbon_loss / initial_pool_carbon
     )
     fraction_of_new_input_decayed = np.divide(
-        carbon_loss - initial_pool_size,
-        input_rate * update_interval,
+        carbon_loss - initial_pool_carbon,
+        input_rate_carbon * update_interval,
         out=np.zeros_like(carbon_loss, dtype=float),
-        where=(carbon_loss > initial_pool_size) & (input_rate != 0),
+        where=(carbon_loss > initial_pool_carbon) & (input_rate_carbon != 0),
     )
 
-    # Then calculate the amount of nutrient there initially and added due to input
-    initial_nutrient = initial_pool_size / initial_carbon_nutrient_ratio
-    input_nutrient = input_rate * update_interval / input_carbon_nutrient_ratio
+    # Find total amount of nutrient added over the time period
+    input_nutrient = input_rate_nutrient * update_interval
 
     return (
-        fraction_of_initial_pool_decayed * initial_nutrient
+        fraction_of_initial_pool_decayed * initial_pool_nutrient
         + fraction_of_new_input_decayed * input_nutrient
     )
 

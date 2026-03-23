@@ -89,24 +89,38 @@ class TestAnimalModel:
                         DEBUG,
                         "animal model: required var 'fungal_fruiting_bodies' checked",
                     ),
+                    (
+                        INFO,
+                        "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'litter_consumed_above_metabolic_cnp'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'litter_consumed_above_structural_cnp'",
+                    ),
+                    (INFO, "Adding data array for 'litter_consumed_woody_cnp'"),
+                    (
+                        INFO,
+                        "Adding data array for 'litter_consumed_below_metabolic_cnp'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'litter_consumed_below_structural_cnp'",
+                    ),
                     (INFO, "Adding data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
                     (INFO, "Updating animal model"),
                     (INFO, "Adding data array for 'decay_of_fungal_fruiting_bodies'"),
                     (INFO, "Adding data array for 'decomposed_excrement_cnp'"),
                     (INFO, "Adding data array for 'decomposed_carcasses_cnp'"),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_pom_consumption_carbon'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_pom_consumption_nitrogen'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_pom_consumption_phosphorus'",
-                    ),
+                    (INFO, "Adding data array for 'animal_pom_consumption_cnp'"),
                     (INFO, "Adding data array for 'animal_bacteria_consumption'"),
                     (
                         INFO,
@@ -120,23 +134,6 @@ class TestAnimalModel:
                         INFO,
                         "Adding data array for 'animal_arbuscular_mycorrhiza_"
                         "consumption'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumption_above_metabolic'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumption_above_structural'",
-                    ),
-                    (INFO, "Adding data array for 'litter_consumption_woody'"),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumption_below_metabolic'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumption_below_structural'",
                     ),
                     (INFO, "Adding data array for 'herbivory_waste_leaf_cnp'"),
                     (INFO, "Adding data array for 'herbivory_waste_leaf_lignin'"),
@@ -399,86 +396,6 @@ class TestAnimalModel:
                     f"Expected: {expected_density}, Found: {calculated_density}"
                 )
 
-    @pytest.mark.parametrize(
-        "density_key, expected_key, c_n_key, c_p_key, expect_error",
-        [
-            ("zeros", "zeros", "ones", "ones", False),
-            ("small", "small", "tens", "twenties", False),
-            ("large", "large", "fifties", "hundreds", False),
-            ("negative", "zeros", "tens", "twenties", True),
-            ("medium", "medium", "huge", "huge", False),
-        ],
-    )
-    def test_populate_litter_pools(
-        self,
-        animal_model_instance,
-        density_key,
-        expected_key,
-        c_n_key,
-        c_p_key,
-        expect_error,
-    ):
-        """Test litter pool population with full structure-aware validation."""
-        import numpy as np
-        import xarray as xr
-
-        from virtual_ecosystem.models.animal.decay import LitterPool
-
-        value_map = {
-            "zeros": np.zeros(9),
-            "small": np.full(9, 1e-10),
-            "large": np.full(9, 1e5),
-            "negative": np.full(9, -1.0),
-            "medium": np.full(9, 10.0),
-            "ones": np.ones(9),
-            "tens": np.full(9, 10.0),
-            "twenties": np.full(9, 20.0),
-            "fifties": np.full(9, 50.0),
-            "hundreds": np.full(9, 100.0),
-            "huge": np.full(9, 1e6),
-        }
-
-        cell_area = animal_model_instance.data.grid.cell_area
-        density_values = xr.DataArray(value_map[density_key], dims=["cell_id"])
-        expected_mass = xr.DataArray(
-            value_map[expected_key] * cell_area, dims=["cell_id"]
-        )
-        c_n_ratio = xr.DataArray(value_map[c_n_key], dims=["cell_id"])
-        c_p_ratio = xr.DataArray(value_map[c_p_key], dims=["cell_id"])
-
-        pool_names = [
-            "above_metabolic",
-            "above_structural",
-            "woody",
-            "below_metabolic",
-            "below_structural",
-        ]
-        for name in pool_names:
-            animal_model_instance.data[f"litter_pool_{name}"] = density_values
-            animal_model_instance.data[f"c_n_ratio_{name}"] = c_n_ratio
-            animal_model_instance.data[f"c_p_ratio_{name}"] = c_p_ratio
-
-        if expect_error:
-            with pytest.raises(ValueError):
-                animal_model_instance.populate_litter_pools()
-        else:
-            litter_pools = animal_model_instance.populate_litter_pools()
-            expected_pool_set = set(pool_names)
-
-            for cell_id, pool_dict in litter_pools.items():
-                assert set(pool_dict.keys()) == expected_pool_set
-                for pool_name, pool in pool_dict.items():
-                    assert isinstance(pool, LitterPool)
-                    assert pool.pool_name == pool_name
-
-                    expected_carbon = expected_mass.values[cell_id]
-                    expected_n = expected_carbon / c_n_ratio.values[cell_id]
-                    expected_p = expected_carbon / c_p_ratio.values[cell_id]
-
-                    assert np.isclose(pool.mass_current, expected_carbon)
-                    assert np.isclose(pool.mass_cnp.N, expected_n)
-                    assert np.isclose(pool.mass_cnp.P, expected_p)
-
     def test_populate_soil_pools(self, animal_model_instance):
         """Test that populating of the soil resource pools works as expected."""
 
@@ -541,95 +458,6 @@ class TestAnimalModel:
             _ = animal_model_instance.populate_soil_pools()
 
         assert "pom: negative mass detected in cell 0" in str(err.value)
-
-    def test_calculate_total_litter_consumption(
-        self,
-        litter_soil_data_instance,
-        fixture_core_components,
-        functional_group_list_instance,
-        constants_instance,
-        microbial_c_n_p_ratios,
-        dummy_animal_exporter,
-    ):
-        """Test calculation of total consumption of litter by animals is correct."""
-        from copy import deepcopy
-
-        import numpy as np
-
-        from virtual_ecosystem.models.animal.animal_model import AnimalModel
-        from virtual_ecosystem.models.animal.decay import LitterPool
-
-        # Create AnimalModel instance with test data
-        model = AnimalModel(
-            data=litter_soil_data_instance,
-            core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
-            functional_groups=functional_group_list_instance,
-            model_constants=constants_instance,
-            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
-        )
-
-        # Copy data and simulate biomass loss from each litter pool
-        new_data = deepcopy(litter_soil_data_instance)
-        new_data["litter_pool_above_metabolic"] = (
-            litter_soil_data_instance["litter_pool_above_metabolic"] - 0.03
-        )
-        new_data["litter_pool_above_structural"] = (
-            litter_soil_data_instance["litter_pool_above_structural"] - 0.04
-        )
-        new_data["litter_pool_woody"] = (
-            litter_soil_data_instance["litter_pool_woody"] - 1.2
-        )
-        new_data["litter_pool_below_metabolic"] = (
-            litter_soil_data_instance["litter_pool_below_metabolic"] - 0.06
-        )
-        new_data["litter_pool_below_structural"] = (
-            litter_soil_data_instance["litter_pool_below_structural"] - 0.01
-        )
-
-        pool_names = [
-            "above_metabolic",
-            "above_structural",
-            "woody",
-            "below_metabolic",
-            "below_structural",
-        ]
-
-        cell_ids = fixture_core_components.grid.cell_id
-        cell_area = fixture_core_components.grid.cell_area
-
-        # Construct the nested dict: cell_id → pool_name → LitterPool
-        new_litter_pools = {
-            cid: {
-                pool_name: LitterPool(
-                    pool_name=pool_name,
-                    cell_id=cid,
-                    data=new_data,
-                    cell_area=cell_area,
-                )
-                for pool_name in pool_names
-            }
-            for cid in cell_ids
-        }
-
-        # Run consumption calculation
-        consumption = model.calculate_total_litter_consumption(
-            litter_pools=new_litter_pools
-        )
-
-        # Validate consumption matches expected loss per cell
-        for pool_name, expected_loss in [
-            ("above_metabolic", 0.03),
-            ("above_structural", 0.04),
-            ("woody", 1.2),
-            ("below_metabolic", 0.06),
-            ("below_structural", 0.01),
-        ]:
-            expected = expected_loss * np.ones(len(cell_ids))
-            actual = consumption[f"litter_consumption_{pool_name}"].values
-            assert np.allclose(actual, expected), (
-                f"Mismatch in {pool_name} consumption."
-            )
 
     def test_calculate_total_soil_consumption(
         self,
@@ -736,14 +564,16 @@ class TestAnimalModel:
 
         # Validate consumption matches expected loss per cell
         for consumption_type, expected_consumption in [
-            ("animal_pom_consumption_carbon", np.full(4, 0.002142857)),
             (
-                "animal_pom_consumption_nitrogen",
-                np.array([0.000153061, 1.530536e-6, 8.746347e-6, 8.746353e-5]),
-            ),
-            (
-                "animal_pom_consumption_phosphorus",
-                np.array([6.122143e-7, 6.122443e-7, 3.498539e-7, 3.498541e-6]),
+                "animal_pom_consumption_cnp",
+                np.stack(
+                    [
+                        np.full(4, 0.002142857),
+                        np.array([0.000153061, 1.530536e-6, 8.746347e-6, 8.746353e-5]),
+                        np.array([6.122143e-7, 6.122443e-7, 3.498539e-7, 3.498541e-6]),
+                    ],
+                    axis=1,
+                ),
             ),
             ("animal_bacteria_consumption", np.full(4, 0.03928571)),
             (
@@ -885,10 +715,6 @@ class TestAnimalModel:
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
-        mocker.patch(
-            "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_litter_pools",
-            return_value={},
-        )
         mocker.patch(
             "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_soil_pools",
             return_value={},
@@ -2044,6 +1870,8 @@ class TestAnimalModel:
         mocker,
     ):
         """Test that forage_cohort is called correctly."""
+        from numpy import timedelta64
+
         from virtual_ecosystem.models.animal.animal_traits import DietType
 
         # Mock the methods for herbivore and predator cohorts using the mocker fixture
@@ -2055,7 +1883,7 @@ class TestAnimalModel:
         mock_get_excrement_pools_predator = mocker.Mock(
             return_value=["excrement_pools_predator"]
         )
-        mock_get_plant_resources = mocker.Mock(return_value=["plant_resources"])
+        mock_get_array_resources = mocker.Mock(return_value=["array_resources"])
         mock_get_prey = mocker.Mock(return_value=["prey"])
 
         # Set up herbivore cohort
@@ -2063,18 +1891,13 @@ class TestAnimalModel:
             "foliage_fruit"
         )
         mocker.patch.object(
-            herbivore_cohort_instance, "get_plant_resources", mock_get_plant_resources
+            herbivore_cohort_instance, "get_array_resources", mock_get_array_resources
         )
-        mocker.patch.object(
-            herbivore_cohort_instance, "get_prey", mocker.Mock()
-        )  # Should not be called for herbivores
+        mocker.patch.object(herbivore_cohort_instance, "get_prey", mocker.Mock())
         mocker.patch.object(
             herbivore_cohort_instance,
             "get_excrement_pools",
             mock_get_excrement_pools_herbivore,
-        )
-        mocker.patch.object(
-            herbivore_cohort_instance, "get_litter_pools", mocker.Mock(return_value=[])
         )
         mocker.patch.object(
             herbivore_cohort_instance, "forage_cohort", mock_forage_herbivore
@@ -2084,7 +1907,7 @@ class TestAnimalModel:
         predator_cohort_instance.functional_group.diet = DietType.parse("vertebrates")
         mocker.patch.object(
             predator_cohort_instance, "get_plant_resources", mocker.Mock()
-        )  # Should not be called for predators
+        )
         mocker.patch.object(predator_cohort_instance, "get_prey", mock_get_prey)
         mocker.patch.object(
             predator_cohort_instance,
@@ -2106,49 +1929,47 @@ class TestAnimalModel:
 
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
-        # Comment: make failures descriptive and short to read in pytest output.
-        assert hasattr(animal_model_instance, "plant_resources"), (
-            "plant_resources missing. "
+        # Guard updated to match new wiring
+        assert hasattr(animal_model_instance, "array_resource_pools"), (
+            "array_resource_pools missing. "
             f"_setup defined at: {inspect.getsourcefile(AnimalModel._setup)}:"
             f"{inspect.getsourcelines(AnimalModel._setup)[1]} | "
             f"attrs={sorted(vars(animal_model_instance))}"
         )
 
-        # Optional: verify other _setup outputs exist; helps pinpoint where it failed.
         for name in (
             "communities",
             "excrement_pools",
             "carcass_pools",
             "leaf_waste_pools",
-            "litter_pools",
         ):
             assert hasattr(animal_model_instance, name), f"Missing {name}"
 
         # Run the forage_community method
-        animal_model_instance.forage_community(dt=30)
+        dt = timedelta64(30, "D")
+        animal_model_instance.forage_community(dt=dt)
 
-        # Verify that herbivores forage plant resources and not animal prey
-        mock_get_plant_resources.assert_called_once_with(
-            animal_model_instance.plant_resources
+        # Herbivore: uses array resources, not prey
+        mock_get_array_resources.assert_called_once_with(
+            animal_model_instance.array_resource_pools
         )
         herbivore_cohort_instance.get_prey.assert_not_called()
         mock_forage_herbivore.assert_called_once_with(
-            plant_list=["plant_resources"],
+            array_resource_list=["array_resources"],
             animal_list=[],
             fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
-            litter_pools=[],
             excrement_pools=["excrement_pools_herbivore"],
             carcass_pool_map=animal_model_instance.carcass_pools,
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
-            dt=30,
+            dt=dt,
         )
 
-        # Verify that predators forage prey and not plant resources
+        # Predator: uses prey, not plant resources
         expected_prey_flags = predator_cohort_instance.functional_group.diet & (
             DietType.BLOOD
             | DietType.INVERTEBRATES
@@ -2161,19 +1982,18 @@ class TestAnimalModel:
         )
         predator_cohort_instance.get_plant_resources.assert_not_called()
         mock_forage_predator.assert_called_once_with(
-            plant_list=[],
+            array_resource_list=[],
             animal_list=["prey"],
             fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
-            litter_pools=[],
             excrement_pools=["excrement_pools_predator"],
             carcass_pool_map=animal_model_instance.carcass_pools,
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
-            dt=30,
+            dt=dt,
         )
 
     def test_metabolize_community(

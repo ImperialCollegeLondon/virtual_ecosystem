@@ -61,6 +61,7 @@ class AbioticModel(
         "soil_temperature",
         "vapour_pressure",
         "vapour_pressure_deficit",
+        "relative_humidity",
         "wind_speed",
         "sensible_heat_flux",
         "latent_heat_flux",
@@ -70,7 +71,7 @@ class AbioticModel(
         "latent_heat_vapourisation",
         "aerodynamic_resistance_canopy",
         "net_radiation",
-        "conductive_flux_understorey",
+        "longwave_emission",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -96,7 +97,6 @@ class AbioticModel(
         "vapour_pressure_deficit_ref",
         "air_temperature",
         "relative_humidity",
-        "vapour_pressure",
         "vapour_pressure_deficit",
         "wind_speed",
         "atmospheric_pressure",
@@ -106,11 +106,10 @@ class AbioticModel(
         "latent_heat_flux",
         "ground_heat_flux",
         "net_radiation",
-    ),
-    vars_populated_by_first_update=(
         "longwave_emission",
-        "conductive_flux_understorey",
+        "vapour_pressure",
     ),
+    vars_populated_by_first_update=(),
 ):
     """A class describing the abiotic model.
 
@@ -200,6 +199,7 @@ class AbioticModel(
             time_index=0,
             constants=self.model_constants,
             core_constants=self.core_constants,
+            pyrealm_core_constants=pyrealm_core_constants,
             bounds=self.bounds,
         )
 
@@ -270,12 +270,28 @@ class AbioticModel(
             time_index: The index of the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
+        month = (
+            self.model_timing.update_datestamps[time_index]
+            .astype("datetime64[M]")
+            .astype(int)
+            % 12
+            + 1
+        )
+        # TODO #1441 These placeholders should be arguments to abiotic_model
+        days = 30
+        latitude = 0.0
+        time_dim = 24
+
         # Run microclimate model
         update_dict = run_microclimate(
             data=self.data,
+            vars_updated=self.vars_updated,
             time_index=time_index,
+            time_dim=time_dim,
             time_interval=self.model_timing.update_interval_seconds,
-            cell_area=self.grid.cell_area,
+            month=month,
+            days=days,
+            latitude=latitude,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
             core_constants=self.core_constants,

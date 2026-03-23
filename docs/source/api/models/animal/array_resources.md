@@ -21,13 +21,13 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.11.9
+  version: 3.12
 ---
 
-# API for the {mod}`~virtual_ecosystem.models.animal.plant_resources` module
+# API for the {mod}`~virtual_ecosystem.models.animal.array_resources` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.animal.plant_resources
+.. automodule:: virtual_ecosystem.models.animal.array_resources
     :autosummary:
     :members:
     :exclude-members: model_name
