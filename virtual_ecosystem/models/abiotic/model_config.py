@@ -190,3 +190,6 @@ class AbioticConfiguration(ModelConfigurationRoot):
     simple_constants: AbioticSimpleConstants = AbioticSimpleConstants()
     """Constants used for the simple abiotic model, used to set up initial
     conditions."""
+
+    latitude: float = 0.0
+    """Latitude in degrees. This is required to generate the diurnal cycle."""

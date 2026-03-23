@@ -807,7 +807,7 @@ def run_hour_step(
         state=state, hourly_forcing=hourly_forcing, hour=hour
     )
 
-    # Update tehermodynamics
+    # Update thermodynamics
     thermo = calculate_thermodynamics(
         state=state,
         static=static,
