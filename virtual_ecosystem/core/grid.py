@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Sequence
-from typing import Any, TypeAlias
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -34,7 +34,7 @@ grid of that type. Users can register their own grid types using the `register_g
 decorator.
 """
 
-GRID_STRUCTURE_SIG: TypeAlias = tuple[list[int], list[Polygon]]
+type GRID_STRUCTURE_SIG = tuple[list[int], list[Polygon]]
 """Type signature of the data structure to be returned from grid creator functions.
 
 The first value is a list of integer cell ids, the second is a matching list of the
