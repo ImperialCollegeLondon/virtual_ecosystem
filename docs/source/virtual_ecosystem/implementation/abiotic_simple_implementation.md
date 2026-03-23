@@ -30,9 +30,8 @@ model.
 
 ## Required variables
 
-The abiotic_simple model requires a timeseries of the following variables to initialise
-and update the model. Please check also the [guide for pre-processing
-climate data](../../using_the_ve/model_details/abiotic/climate_data_guide.md).
+The abiotic_simple model requires a timeseries of the following variables to
+initialise and update the model.
 
 <!-- markdownlint-disable-next-line MD033-->
 * <a
