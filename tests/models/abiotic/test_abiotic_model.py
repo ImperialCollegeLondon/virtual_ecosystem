@@ -2,6 +2,7 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG, ERROR, INFO
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -77,6 +78,7 @@ def test_abiotic_model_initialization(
         data=fixture_abiotic_init_data,
         core_components=fixture_core_components,
         model_constants=fixture_abiotic_constants,
+        latitude=0.0,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -111,6 +113,7 @@ def test_abiotic_model_initialization_no_data(
             empty_data,
             core_components=fixture_core_components,
             model_constants=fixture_abiotic_constants,
+            latitude=0.0,
         )
 
     # Final check that expected logging entries are produced
@@ -235,6 +238,7 @@ def test_setup_and_update_abiotic_model(
     model = AbioticModel(
         data=fixture_abiotic_init_data,
         core_components=fixture_core_components,
+        latitude=0.0,
     )
 
     # check all variables are initialised in data object
@@ -333,3 +337,33 @@ def test_setup_and_update_abiotic_model(
     assert (
         (valid_values_rel_hum_clean >= 0.0) & (valid_values_rel_hum_clean <= 100.0)
     ).all()
+
+
+def test_update_warns_for_fractional_days(
+    fixture_abiotic_init_data,
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+):
+    """Test warning raised if days are not a whole number of days."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
+
+    model = AbioticModel(
+        data=fixture_abiotic_init_data,
+        core_components=fixture_core_components,
+        latitude=0.0,
+    )
+
+    model.model_timing.update_interval_seconds = 90000  # fractional day
+
+    for var in model.vars_required_for_update:
+        model.data[var] = dummy_climate_data_varying_canopy[var]
+
+    with patch(
+        "virtual_ecosystem.models.abiotic.abiotic_model.LOGGER.warning"
+    ) as mock_warn:
+        model.update(time_index=0)
+
+    messages = [call.args[0] for call in mock_warn.call_args_list]
+
+    assert any("not a whole number of days" in msg for msg in messages)
