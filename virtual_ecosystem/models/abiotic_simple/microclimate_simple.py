@@ -93,7 +93,8 @@ def run_simple_microclimate(
         core_constants: Set of constants shared across all models
         pyrealm_core_constants: Set of constants from pyrealm package
         bounds: Upper and lower allowed values for vertical profiles, used to constrain
-            log interpolation. Note that currently no conservation of water and energy!
+            log/exp interpolation. Note that currently no conservation of water and
+            energy!
 
     Returns:
         Dict of DataArrays for air temperature [C], relative humidity [-], vapour
@@ -290,7 +291,7 @@ def exp_interpolation(
         layer_structure: The LayerStructure instance for the simulation.
         layer_heights: Vertical layer heights, [m]
         lower_bound: Minimum allowed value, used to constrain exp interpolation. Note
-        that currently no conservation of water and energy!
+            that currently no conservation of water and energy!
         upper_bound: Maximum allowed value, used to constrain exp interpolation.
         gradient: Gradient of regression from :cite:t:`hardwick_relationship_2015`
 
