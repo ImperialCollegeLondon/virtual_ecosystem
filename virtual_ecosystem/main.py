@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from enum import IntEnum
 from itertools import chain
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from tqdm import tqdm
 
@@ -149,15 +149,19 @@ def initialise_models(
     return models_cfd
 
 
-def sort_disturbances(disturbance_config: CompiledConfiguration) -> list[str]:
+def sort_disturbances(configuration: CompiledConfiguration) -> list[str]:
     """Sort disturbances based on priority and name.
 
     Args:
-        disturbance_config: CompiledConfiguration object for disturbances.
+        configuration: CompiledConfiguration object for disturbances.
 
     Returns:
         Tuple of disturbance model names in the order they need to be executed.
     """
+    disturbance_config = configuration.get_disturbance_config()
+    if not disturbance_config:
+        return []
+
     priorities = {
         name: -disturbance_config.get_subconfiguration(
             name, DisturbanceConfigurationRoot
@@ -202,11 +206,16 @@ def initialise_disturbances(
     failed_disturbances = []
     models_cfd = {}
 
+    # We do know there are disturbances at this point, so this casting is OK.
+    disturbance_config = cast(
+        CompiledConfiguration, configuration.get_disturbance_config()
+    )
+
     for disturbance_name in sorted_disturbances:
         LOGGER.info(f"Initialising {disturbance_name} disturbance")
 
         try:
-            disturbance_class: BaseDisturbance = configuration._model_classes[
+            disturbance_class: BaseDisturbance = disturbance_config._model_classes[
                 disturbance_name
             ]
             this_disturbance = disturbance_class.from_config(

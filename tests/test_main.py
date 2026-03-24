@@ -243,11 +243,99 @@ def test_sort_disturbances(mocker):
     }
     expected_order = ["more_important", "important", "normal"]
 
-    class MockConfig:
+    class MockConfig(CompiledConfiguration):
         _model_classes = models
 
-        def get_subconfiguration(self, model_name, _) -> DisturbanceConfigurationRoot:
+        def get_subconfiguration(self, model_name, _):
             return self._model_classes[model_name]
+
+        @property
+        def disturbance(self):
+            return self
 
     actual_order = sort_disturbances(cast(CompiledConfiguration, MockConfig()))
     assert expected_order == actual_order
+
+
+DISTURBANCE_INITIALISATION_LOG = [
+    (INFO, "Initialising disturbances: disturbance_testing"),
+    (INFO, "Initialising disturbance_testing disturbance"),
+    (
+        INFO,
+        "Disturbance testing model instance generated from configuration.",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "cfg_strings,output,raises,expected_log_entries",
+    [
+        pytest.param(
+            "[core.timing]\nupdate_interval = '7 days'\n"
+            "[testing]\n"
+            "[disturbance.disturbance_testing]\n",
+            "DisturbanceTestingModel(_run_at=[0])",
+            does_not_raise(),
+            tuple(
+                [
+                    *DISTURBANCE_INITIALISATION_LOG,
+                ],
+            ),
+            id="valid config",
+        ),
+        pytest.param(
+            "[core.timing]\nupdate_interval = '7 days'\n"
+            "[disturbance.disturbance_testing]\n",
+            None,
+            pytest.raises(InitialisationError),
+            tuple(
+                [
+                    *DISTURBANCE_INITIALISATION_LOG[:-1],
+                    (
+                        CRITICAL,
+                        "Configuration failed for disturbances: disturbance_testing",
+                    ),
+                ],
+            ),
+            id="model required for disturbance missing",
+        ),
+    ],
+)
+def test_initialise_disturbances(
+    caplog,
+    dummy_litter_data,
+    cfg_strings,
+    output,
+    raises,
+    expected_log_entries,
+):
+    """Test the function that initialises the models."""
+
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.main import initialise_disturbances
+
+    # Generate a configuration to use, using simple inputs to populate most from
+    # defaults. Then clear the caplog to isolate the logging for the function,
+    config_data = ConfigurationLoader(cfg_strings=cfg_strings)
+    configuration = generate_configuration(config_data.data)
+    core_components = CoreComponents(configuration.core)
+    caplog.clear()
+
+    with raises:
+        models = initialise_disturbances(
+            configuration=configuration,
+            data=dummy_litter_data,
+            core_components=core_components,
+            models=configuration._model_classes,
+        )
+
+        if output is None:
+            assert models == [None]
+        else:
+            assert repr(models["disturbance_testing"]) == output
+
+    log_check(caplog, expected_log_entries)
