@@ -19,12 +19,23 @@ amount of the setup process will be shared. The four types of models are as foll
 
 * The [abiotic environment models](./abiotic/overview.md) (`abiotic`, `abiotic_simple`
   and `hydrology`)
-* The animal model
+* The [animal model](./animal/overview.md)
 * The [plants model](./plants/overview.md)
 * The [decay models](./decay/overview.md) (`litter` and `soil`)
 
-There's still a bit of loose content that needs to be integrated with the above
-structure. It consists of:
+## Validation of science model configurations
 
-* A page giving a [model by model breakdown of the configuration
-  options](./science_model_configuration.md), including default values for constants.
+As with the core configuration, each science model in the Virtual Ecosystem has a
+defined set of configuration options that are built into the definition of the model.
+Those options will also have specific validation settings that are used to check that
+the setting values that you provide are appropriate for the model: these constraints are
+automatically enforced when your configuration files are loaded. If configuration data
+contains invalid values, then the simulation will exit and the log will contain a
+detailed breakdown of any configuration validation issues.
+
+The details of the validation constraints for a particular model configuration are
+described in the documentation of the model configuration. The model setup details pages
+(provided above) contain links to pages describing the details of these validation
+constraints for the model in question - these pages are part of the API (application
+programming interface) so are a bit more technical but provide the a complete
+description of the model settings.
