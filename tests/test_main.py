@@ -6,6 +6,7 @@ defined in main.py that it calls.
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
+from typing import cast
 
 import pytest
 
@@ -225,3 +226,28 @@ variable = []
     assert len(err.splitlines()) == 0
     output = [v for v in out.splitlines() if v]  # drop blank lines
     assert len(output) == output_length
+
+
+def test_sort_disturbances(mocker):
+    """Test the sort_disturbances function."""
+    from virtual_ecosystem.core.configuration import (
+        CompiledConfiguration,
+        DisturbanceConfigurationRoot,
+    )
+    from virtual_ecosystem.main import sort_disturbances
+
+    models = {
+        "normal": DisturbanceConfigurationRoot(run_at=0, priority=0),
+        "more_important": DisturbanceConfigurationRoot(run_at=0, priority=2),
+        "important": DisturbanceConfigurationRoot(run_at=0, priority=1),
+    }
+    expected_order = ["more_important", "important", "normal"]
+
+    class MockConfig:
+        _model_classes = models
+
+        def get_subconfiguration(self, model_name, _) -> DisturbanceConfigurationRoot:
+            return self._model_classes[model_name]
+
+    actual_order = sort_disturbances(cast(CompiledConfiguration, MockConfig()))
+    assert expected_order == actual_order
