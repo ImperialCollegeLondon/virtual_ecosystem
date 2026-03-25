@@ -71,7 +71,7 @@ and $c$ is the intersect which we set to the external data values,
 see {numref}`abiotic_simple_step1`.
 We assume that the gradient remains constant throughout the simulation.
 
-:::{figure} ../../_static/images/step1.svg
+:::{figure} ../../_static/images/abiotic_simple_step_1.svg
 :name: abiotic_simple_step1
 :alt: Abiotic simple step1
 :class: bg-primary
@@ -91,7 +91,7 @@ deficit) and
 interpolation between the input at reference height 2 m above the canopy and the 1.5 m
 values, see {numref}`abiotic_simple_step2`.
 
-:::{figure} ../../_static/images/step2.svg
+:::{figure} ../../_static/images/abiotic_simple_step_2.svg
 :name: abiotic_simple_step2
 :alt: Abiotic simple step2
 :class: bg-primary
