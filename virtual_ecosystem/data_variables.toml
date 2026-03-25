@@ -784,23 +784,23 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Proportion of above ground structural pool which is lignin"
+description = "Proportion of above ground structural litter carbon which is lignin carbon"
 name = "lignin_above_structural"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Proportion of below ground structural pool which is lignin"
+description = "Proportion of below ground structural litter carbon which is lignin carbon"
 name = "lignin_below_structural"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Proportion of dead wood pool which is lignin"
+description = "Proportion of dead wood carbon which is lignin carbon"
 name = "lignin_woody"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
@@ -826,9 +826,9 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of leaves added to litter due to herbivore mechanical inefficiency"
+description = "Proportion of leaf carbon added to litter due to herbivore mechanical inefficiency that is lignin carbon"
 name = "herbivory_waste_leaf_lignin"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
@@ -938,30 +938,30 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of deadwood"
+description = "Proportion of stem carbon that is lignin carbon"
 name = "stem_lignin"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of leaf turnover"
+description = "Proportion of carbon in leaf turnover that is lignin carbon"
 name = "senesced_leaf_lignin"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of plant reproductive tissue turnover"
+description = "Proportion of carbon in reproductive tissue turnover that is lignin carbon"
 name = "plant_reproductive_tissue_lignin"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of root turnover"
+description = "Proportion of carbon in root turnover that is lignin carbon"
 name = "root_lignin"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
@@ -1148,14 +1148,14 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of subcanopy vegetation litter."
+description = "Proportion of subcanopy vegetation litter carbon that is lignin carbon."
 name = "subcanopy_vegetation_litter_lignin"
 unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of subcanopy seedbank litter"
+description = "Proportion of subcanopy seedbank litter carbon that is lignin carbon"
 name = "subcanopy_seedbank_litter_lignin"
 unit = "unitless"
 variable_type = "float"
@@ -1245,17 +1245,17 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # ["spatial", "pft"]
 description = "Number of fruits of each PFT in the canopy"
 name = "canopy_fruit_n"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # ["spatial", "pft"]
 description = "Number of seeds per fruit in each PFT"
 name = "canopy_seeds_per_fruit"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
@@ -1266,10 +1266,10 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # ["spatial", "pft"]
 description = "Number of fallen fruits per PFT"
 name = "fallen_fruit_n"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
@@ -1287,10 +1287,10 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # ["spatial", "pft"]
 description = "Number of seeds per fruit per PFT"
 name = "fallen_seeds_per_fruit"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]

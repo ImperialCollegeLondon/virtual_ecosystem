@@ -317,12 +317,12 @@ data will have specific model configuration settings. For example:
 * The plants model requires a set of defined plant functional types (PFTs). This is
   a CSV file defining a set required trait values for each PFT, and the path to this
   file is set in the [plants model configuration
-  options](./model_details/science_model_configuration.md#plant-functional-types)
+  options](./model_details/plants/plants_config.md#plant-functional-types)
 
 * The plant model also requires a defined initial cohort structure, which sets the
   initial cohorts present in each cell. This again is defined as a CSV file with the
   path set in the [plants model configuration
-  options](./model_details/science_model_configuration.md#plant-cohort-data)
+  options](./model_details/plants/plants_config.md#plant-cohort-data)
 
 * The animal model also requires a defined initial cohort structure.
 
