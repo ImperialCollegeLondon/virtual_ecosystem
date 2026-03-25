@@ -56,8 +56,12 @@ def run_simple_microclimate(
     and :math:`c` is the intersect which we set to the external data values. We assume
     that the gradient remains constant.
 
-    The other atmospheric layers are calculated by exponential or logarithmic regression
+    The values for all atmospheric layers as defined by 'layer_heights' in the Virtual
+    Ecosystem (including canopy layers and surface layer) are calculated by exponential
+    (for atmospheric temperature, relative humidity, vapour pressure deficit) or
+    logarithmic (for wind speed) regression
     and interpolation between the input at the top of the canopy and the 1.5 m values.
+
     Soil temperature is interpolated between the surface layer and the temperature at
     1 m depth which which approximately equals the mean annual temperature, i.e. can
     assumed to be constant over the year.
