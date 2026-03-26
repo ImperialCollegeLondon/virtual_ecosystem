@@ -2440,13 +2440,12 @@ class TestAnimalCohort:
         dt = timedelta64(30, "D")
 
         cohort.forage_cohort(
-            plant_list=plant_list,
+            array_resource_list=plant_list,
             animal_list=animal_list,
             fungal_fruit_list=fungal_fruit_list,
             soil_fungi_list=soil_fungi_list,
             pom_list=pom_list,
             bacteria_list=bacteria_list,
-            litter_pools=empty_list,
             excrement_pools=[excrement_pool_instance],
             carcass_pool_map=carcass_pools_by_cell_instance,
             scavenge_carcass_pools=empty_list,
@@ -2483,6 +2482,7 @@ class TestAnimalCohort:
     def test_forage_cohort_earthworm_multisoil(
         self,
         mocker,
+        array_litter_list_instance,
         earthworm_cohort_instance,
         soil_fungi_list_instance,
         pom_list_instance,
@@ -2512,23 +2512,19 @@ class TestAnimalCohort:
             cohort, "delta_mass_bacteriophagy", return_value=expected
         )
 
-        # Litter must be non-empty so detritivory path is exercised.
-        litter_pools = ["litter_resources"]
-
         cohort.forage_cohort(
-            plant_list=[],
+            array_resource_list=array_litter_list_instance,
             animal_list=[],
             fungal_fruit_list=[],
             soil_fungi_list=soil_fungi_list_instance,
             pom_list=pom_list_instance,
             bacteria_list=bacteria_list_instance,
-            litter_pools=litter_pools,
             excrement_pools=[excrement_pool_instance],
             carcass_pool_map=carcass_pools_by_cell_instance,
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools={},
-            dt=30,
+            dt=timedelta64(30, "D"),
         )
 
         # Each relevant path should be called exactly once with correct args.
@@ -2537,14 +2533,14 @@ class TestAnimalCohort:
         m_pom.assert_called_once()
         m_bact.assert_called_once()
 
-        assert m_det.call_args.kwargs["litter_pools"] == litter_pools
+        assert m_det.call_args.kwargs["litter_pools"] == array_litter_list_instance
         assert m_fungi.call_args.kwargs["soil_fungi_list"] == soil_fungi_list_instance
         assert m_pom.call_args.kwargs["pom_list"] == pom_list_instance
         assert m_bact.call_args.kwargs["bacteria_list"] == bacteria_list_instance
 
         # Basic sanity: adjusted_dt is numeric for each call.
         for m in (m_det, m_fungi, m_pom, m_bact):
-            assert isinstance(m.call_args.kwargs["adjusted_dt"], int | float)
+            assert isinstance(m.call_args.kwargs["adjusted_dt"], timedelta64)
 
     def test_forage_cohort_skips_when_no_individuals(
         self, mocker, herbivore_cohort_instance
@@ -2562,13 +2558,12 @@ class TestAnimalCohort:
         mock_eat = mocker.patch.object(cohort, "eat")
 
         cohort.forage_cohort(
-            plant_list=[],
+            array_resource_list=[],
             animal_list=[],
             fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
-            litter_pools=[],
             excrement_pools=[],
             carcass_pool_map={},
             scavenge_carcass_pools=[],
@@ -2596,13 +2591,12 @@ class TestAnimalCohort:
         mock_eat = mocker.patch.object(cohort, "eat")
 
         cohort.forage_cohort(
-            plant_list=[],
+            array_resource_list=[],
             animal_list=[],
             fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
-            litter_pools=[],
             excrement_pools=[],
             carcass_pool_map={},
             scavenge_carcass_pools=[],
@@ -3619,69 +3613,6 @@ class TestAnimalCohort:
 
         result = cohort.match_vertical(VerticalOccupancy.parse(resource_occupancy))
         assert result is expected
-
-    @pytest.mark.parametrize(
-        "territory, cell_pool_map, expected",
-        [
-            # Single pool in one cell
-            ([1], {1: ["above_metabolic"]}, 1),
-            # Multiple pools in one cell
-            ([1], {1: ["above_metabolic", "woody"]}, 2),
-            # Pools in multiple cells
-            ([1, 2], {1: ["above_metabolic"], 2: ["woody"]}, 2),
-            # One cell has no pool
-            ([1, 2], {1: ["above_metabolic"]}, 1),
-            # No overlapping cells
-            ([3], {1: ["above_metabolic"], 2: ["woody"]}, 0),
-        ],
-    )
-    def test_get_litter_pools(
-        self,
-        territory,
-        cell_pool_map,
-        expected,
-        functional_group_list_instance,
-        constants_instance,
-        litter_pools_dict_by_cell_instance,
-    ):
-        """Test get_litter_pools."""
-
-        from virtual_ecosystem.core.grid import Grid
-        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animal.functional_group import (
-            get_functional_group_by_name,
-        )
-
-        # Setup grid and functional group
-        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
-        herbivore_group = get_functional_group_by_name(
-            functional_group_list_instance, "herbivorous_mammal"
-        )
-
-        cohort = AnimalCohort(
-            functional_group=herbivore_group,
-            mass=10.0,
-            age=20.0,
-            individuals=10,
-            centroid_key=0,
-            grid=grid,
-            constants=constants_instance,
-        )
-        cohort.territory = territory
-
-        # Extract only requested pools from the full fixture
-        test_litter_pools = {
-            cell_id: {
-                pool_name: litter_pools_dict_by_cell_instance[cell_id][pool_name]
-                for pool_name in pool_names
-            }
-            for cell_id, pool_names in cell_pool_map.items()
-            if cell_id in litter_pools_dict_by_cell_instance
-        }
-
-        result = cohort.get_litter_pools(test_litter_pools)
-
-        assert len(result) == expected
 
     @pytest.mark.parametrize(
         "C, N, P, initial_largest_mass, expected_largest_mass",

@@ -90,19 +90,23 @@ def initialise_canopy_and_soil_fluxes(
     ]
     output["canopy_temperature"] = canopy_temperature
 
-    # Initialise sensible heat flux with non-zero minimum values
-    sensible_heat_flux = layer_structure.from_template()
-    sensible_heat_flux[layer_structure.index_flux_layers] = initial_flux_value
-    output["sensible_heat_flux"] = sensible_heat_flux
+    # Base flux template (non-zero minimum)
+    base_flux = layer_structure.from_template()
+    base_flux[layer_structure.index_flux_layers] = initial_flux_value
 
-    # Initialise latent heat flux with non-zero minimum values
-    output["latent_heat_flux"] = sensible_heat_flux.copy()
+    # Fluxes that share the same structure
+    for name in (
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "longwave_emission",
+    ):
+        output[name] = base_flux.copy()
 
-    # Initialise ground heat flux with non-zero minimum values
-    ground_heat_flux = layer_structure.from_template()
-    ground_heat_flux[layer_structure.index_topsoil] = initial_flux_value
-    output["ground_heat_flux"] = ground_heat_flux
-
+    # 1D fluxes (cell-wise)
+    output["ground_heat_flux"] = DataArray(
+        np.full(base_flux.sizes["cell_id"], initial_flux_value),
+        dims="cell_id",
+    )
     return output
 
 
@@ -333,6 +337,12 @@ def calculate_energy_balance_residual(
         time_interval=seconds_to_hour,
     )
 
+    # Net radiation, [W m-2]
+    net_radiation = (
+        absorbed_shortwave_radiation
+        + absorbed_longwave_radiation
+        - longwave_emission_canopy
+    )
     # Energy balance residual, [W m-2]
     energy_balance_residual = (
         absorbed_shortwave_radiation
@@ -345,10 +355,11 @@ def calculate_energy_balance_residual(
 
     if return_fluxes:
         energy_balance = {
-            "longwave_emission_canopy": longwave_emission_canopy,
-            "sensible_heat_flux_canopy": sensible_heat_flux_canopy,
-            "latent_heat_flux_canopy": latent_heat_flux_canopy,
+            "longwave_emission": longwave_emission_canopy,
+            "sensible_heat_flux": sensible_heat_flux_canopy,
+            "latent_heat_flux": latent_heat_flux_canopy,
             "energy_balance_residual": energy_balance_residual,
+            "net_radiation": net_radiation,
         }
         return energy_balance
     else:
@@ -469,14 +480,14 @@ def solve_canopy_temperature(
                         [[absorbed_shortwave_radiation[i, j]]], dtype=np.float64
                     ),
                     absorbed_longwave_radiation=np.array(
-                        [[absorbed_longwave_radiation[i]]], dtype=np.float64
+                        [[absorbed_longwave_radiation[i, j]]], dtype=np.float64
                     ),
                     specific_heat_air=np.array(
                         [[specific_heat_air[i, j]]], dtype=np.float64
                     ),
                     density_air=np.array([[density_air[i, j]]], dtype=np.float64),
                     aerodynamic_resistance=np.array(
-                        [[aerodynamic_resistance[i]]], dtype=np.float64
+                        [[aerodynamic_resistance[i, j]]], dtype=np.float64
                     ),
                     latent_heat_vapourisation=np.array(
                         [[latent_heat_vapourisation[i, j]]], dtype=np.float64
@@ -584,8 +595,9 @@ def update_air_temperature(
     """
 
     # Update air temperature over a layer of height z (e.g., canopy height)
+    heat_into_air = -sensible_heat_flux
     new_air_temperature = air_temperature + (
-        sensible_heat_flux / (density_air * specific_heat_air * mixing_layer_thickness)
+        heat_into_air / (density_air * specific_heat_air * mixing_layer_thickness)
     )
     return new_air_temperature
 

@@ -135,9 +135,10 @@ class AnimalConstants(Configuration):
     and temperature, assuming a power-law relationship with mass and an exponential
     relationship with temperature. The three values are:
 
-    * $E_s$ - energy to mass conversion constant (g/kJ)
-    * $\sigma$ - proportion of time-step with temp in active range (toy default value)
-    * $E_a$ - aggregate activation energy of metabolic reactions
+    * :math:`E_s` - energy to mass conversion constant (g/kJ)
+    * :math:`\sigma` - proportion of time-step with temp in active range (toy default
+      value)
+    * :math:`E_a` - aggregate activation energy of metabolic reactions
     """
 
     metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = Field(

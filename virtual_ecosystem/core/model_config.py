@@ -100,6 +100,9 @@ class CoreConstants(Configuration):
     seconds_to_hour: float = 3600.0
     """Factor to convert variable unit from seconds to hours."""
 
+    hours_per_day: int = 24
+    """Number of hours per day."""
+
     characteristic_dimension_leaf: float = 0.01
     """Characteristic dimension of leaf, typically around 0.7 * leaf width, [m]."""
 

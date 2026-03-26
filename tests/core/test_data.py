@@ -777,7 +777,7 @@ def test_save_to_netcdf(
             dummy_litter_data.save_to_netcdf(
                 output_file_path=out_path,
                 timing=fixture_core_components.model_timing,
-                variables_to_save=["litter_pool_woody"],
+                variables_to_save=["litter_pool_woody_cnp"],
             )
         else:
             dummy_litter_data.save_to_netcdf(
@@ -790,11 +790,11 @@ def test_save_to_netcdf(
 
         # Then check that expected keys are in it
         if save_specific:
-            assert "litter_pool_woody" in saved_data
-            assert "litter_pool_above_metabolic" not in saved_data
+            assert "litter_pool_woody_cnp" in saved_data
+            assert "litter_pool_above_metabolic_cnp" not in saved_data
         else:
-            assert "litter_pool_woody" in saved_data
-            assert "litter_pool_above_metabolic" in saved_data
+            assert "litter_pool_woody_cnp" in saved_data
+            assert "litter_pool_above_metabolic_cnp" in saved_data
 
         # Close the dataset (otherwise windows has a problem)
         saved_data.close()
@@ -810,7 +810,7 @@ def test_save_to_netcdf(
             "initial.nc",
             pytest.raises(ConfigurationError),
             (
-                (INFO, "Replacing data array for 'litter_pool_woody'"),
+                (INFO, "Replacing data array for 'lignin_woody'"),
                 (
                     CRITICAL,
                     "The user specified output directory (bad_folder) doesn't exist!",
@@ -822,7 +822,7 @@ def test_save_to_netcdf(
             "initial.nc",
             pytest.raises(ConfigurationError),
             (
-                (INFO, "Replacing data array for 'litter_pool_woody'"),
+                (INFO, "Replacing data array for 'lignin_woody'"),
                 (
                     CRITICAL,
                     "The user specified output folder (pyproject.toml) isn't a "
@@ -835,7 +835,7 @@ def test_save_to_netcdf(
             "already_exists.nc",
             pytest.raises(ConfigurationError),
             (
-                (INFO, "Replacing data array for 'litter_pool_woody'"),
+                (INFO, "Replacing data array for 'lignin_woody'"),
                 (CRITICAL, "A file in the user specified output folder ("),
             ),
         ),
@@ -859,14 +859,14 @@ def test_save_timeslice_to_netcdf(
 
     with raises:
         # Change data to check that appending works
-        dummy_litter_data["litter_pool_woody"] = DataArray(
+        dummy_litter_data["lignin_woody"] = DataArray(
             [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
         )
         dummy_litter_data["soil_temperature"][12][0] = 15.0
         # Append data to netcdf file
         dummy_litter_data.save_timeslice_to_netcdf(
             out_path,
-            variables_to_save=["litter_pool_woody", "soil_temperature"],
+            variables_to_save=["lignin_woody", "soil_temperature"],
             time_index=1,
             timestamp=np.datetime64("2000-01-01"),
         )
@@ -874,7 +874,7 @@ def test_save_timeslice_to_netcdf(
         # Load file, and then check that contents meet expectation
         saved_data = xr.open_dataset(out_path)
         xr.testing.assert_allclose(
-            saved_data["litter_pool_woody"],
+            saved_data["lignin_woody"],
             DataArray(
                 [[0.1, 0.05, 0.2, 0.01]],
                 dims=["time_index", "cell_id"],
@@ -903,7 +903,7 @@ def test_save_timeslice_to_netcdf(
 
         # Check that only expected variables were added
         assert set(saved_data.keys()) == {
-            "litter_pool_woody",
+            "lignin_woody",
             "soil_temperature",
             "timestamp",
         }
@@ -993,24 +993,14 @@ def test_output_current_state(mocker, dummy_litter_data, time_index):
     assert mock_save.call_args == mocker.call(
         output_file_path=Path(f"./continuous_state{time_index:05}.nc"),
         variables_to_save=[
-            "litter_pool_above_metabolic",
-            "litter_pool_above_structural",
-            "litter_pool_woody",
-            "litter_pool_below_metabolic",
-            "litter_pool_below_structural",
+            "litter_pool_above_metabolic_cnp",
+            "litter_pool_above_structural_cnp",
+            "litter_pool_woody_cnp",
+            "litter_pool_below_metabolic_cnp",
+            "litter_pool_below_structural_cnp",
             "lignin_above_structural",
             "lignin_woody",
             "lignin_below_structural",
-            "c_n_ratio_above_metabolic",
-            "c_n_ratio_above_structural",
-            "c_n_ratio_woody",
-            "c_n_ratio_below_metabolic",
-            "c_n_ratio_below_structural",
-            "c_p_ratio_above_metabolic",
-            "c_p_ratio_above_structural",
-            "c_p_ratio_woody",
-            "c_p_ratio_below_metabolic",
-            "c_p_ratio_below_structural",
             "litter_mineralisation_rate_cnp",
         ],
         time_index=time_index,
@@ -1024,7 +1014,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
     from virtual_ecosystem.core.data import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
-    variables_to_save = ["litter_pool_woody", "soil_temperature"]
+    variables_to_save = ["lignin_woody", "soil_temperature"]
 
     # Save first data file
     dummy_litter_data.save_timeslice_to_netcdf(
@@ -1035,7 +1025,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
     )
 
     # Alter data so that files differ (slightly)
-    dummy_litter_data["litter_pool_woody"] = DataArray(
+    dummy_litter_data["lignin_woody"] = DataArray(
         [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
     )
     dummy_litter_data["soil_temperature"][12][0] = 15.0
@@ -1066,9 +1056,9 @@ def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
 
     # Check that data file is as expected
     testing.assert_allclose(
-        full_data["litter_pool_woody"],
+        full_data["lignin_woody"],
         DataArray(
-            [[5.1773833, 12.185701, 7.673456, 7.462192], [0.1, 0.05, 0.2, 0.01]],
+            [[0.5, 0.8, 0.35, 0.35], [0.1, 0.05, 0.2, 0.01]],
             dims=["time_index", "cell_id"],
             coords={"cell_id": [0, 1, 2, 3], "time_index": [1, 2]},
         ),
@@ -1110,7 +1100,7 @@ def test_merge_continuous_file_already_exists(
     from virtual_ecosystem.core.data import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
-    variables_to_save = ["litter_pool_woody", "soil_temperature"]
+    variables_to_save = ["lignin_woody", "soil_temperature"]
 
     # Save first data file
     dummy_litter_data.save_timeslice_to_netcdf(
