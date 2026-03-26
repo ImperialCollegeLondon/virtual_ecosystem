@@ -70,7 +70,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.todo",
     "sphinxcontrib.bibtex",
-    "sphinxcontrib.mermaid",
     "myst_nb",
     "sphinx_rtd_theme",
     "sphinx_external_toc",
