@@ -1838,27 +1838,26 @@ class AnimalModel(
         """Update the activity window fraction for all cohorts in all communities.
 
         Note:
-            Climate inputs other than surface temperature are currently supplied as
-            placeholder constants from
-            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`.
-            Replace with dynamic per-cell fields from the abiotic model once diurnal
-            temperature range, annual mean temperature, and annual temperature SD are
-            exposed via the data object.
+            Diurnal temperature range is sourced dynamically from the abiotic model.
+            Annual mean temperature and annual temperature SD are currently placeholder
+            constants from
+            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants` and
+            should be replaced once the abiotic model exposes those fields.
         """
+        surface_temperature = self.data["air_temperature"][
+            self.layer_structure.index_surface_scalar
+        ].to_numpy()
+
+        diurnal_temp_range = self.data["diurnal_temperature_range"].to_numpy()
+
         for cell_id, community in self.communities.items():
             if not community:
                 continue
 
-            surface_temperature = self.data["air_temperature"][
-                self.layer_structure.index_surface_scalar
-            ].to_numpy()
-
-            temperature = surface_temperature[cell_id]
-
             for cohort in community:
                 cohort.update_activity_window(
-                    temperature=temperature,
-                    diurnal_temp_range=cohort.constants.placeholder_diurnal_temp_range,
+                    temperature=surface_temperature[cell_id],
+                    diurnal_temp_range=diurnal_temp_range[cell_id],
                     annual_mean_temp=cohort.constants.placeholder_annual_mean_temp,
                     annual_temp_sd=cohort.constants.placeholder_annual_temp_sd,
                 )

@@ -297,10 +297,6 @@ class AnimalConstants(Configuration):
     # required variables (diurnal temperature range, annual mean temperature, annual
     # temperature SD) are exposed via the data object.
 
-    placeholder_diurnal_temp_range: float = 10.0
-    """Monthly mean diurnal temperature range used as a toy stand-in for
-    $\\Delta T_{Diurnal}^C$ [°C]. Replace once abiotic model exposes this."""
-
     placeholder_annual_mean_temp: float = 20.0
     """Annual mean temperature used as a toy stand-in for $T_{Annual}^C$ [°C].
     Replace once abiotic model exposes this."""
