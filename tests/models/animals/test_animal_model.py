@@ -2710,6 +2710,58 @@ class TestAnimalModel:
                 else:
                     assert 0.0 <= cohort.sigma_f_t <= 1.0
 
+    def test_update_activity_windows_community_uses_per_cell_values(
+        self, prepared_animal_model_instance
+    ):
+        """Test that activity windows use spatially varying per-cell climate inputs."""
+        from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+
+        model = prepared_animal_model_instance
+        lyr_str = model.layer_structure
+
+        # Assign spatially varying surface temperatures: one warm (within ectotherm
+        # window ~27-35°C), one cold (well outside it)
+        surface_temps = (
+            model.data["air_temperature"][lyr_str.index_surface_scalar]
+            .to_numpy()
+            .copy()
+        )
+        surface_temps[0] = 31.0  # within window
+        surface_temps[1] = 5.0  # too cold
+        model.data["air_temperature"].values[lyr_str.index_surface_scalar] = (
+            surface_temps
+        )
+
+        # Assign spatially varying diurnal range
+        diurnal = (
+            model.data["diurnal_temperature_range"][lyr_str.index_surface_scalar]
+            .to_numpy()
+            .copy()
+        )
+        diurnal[0] = 4.0
+        diurnal[1] = 4.0
+        model.data["diurnal_temperature_range"].values[lyr_str.index_surface_scalar] = (
+            diurnal
+        )
+
+        model.update_activity_windows_community()
+
+        # Find an ectotherm cohort in cell 0 and cell 1
+        ecto_cell_0 = [
+            c
+            for c in model.communities[0]
+            if c.functional_group.metabolic_type == MetabolicType.ECTOTHERMIC
+        ]
+        ecto_cell_1 = [
+            c
+            for c in model.communities[1]
+            if c.functional_group.metabolic_type == MetabolicType.ECTOTHERMIC
+        ]
+
+        if ecto_cell_0 and ecto_cell_1:
+            assert ecto_cell_0[0].sigma_f_t != ecto_cell_1[0].sigma_f_t
+            assert ecto_cell_0[0].sigma_f_t > ecto_cell_1[0].sigma_f_t
+
 
 def test_to_per_day(prepared_animal_model_instance):
     """Test that helper function to convert to per day rates works."""
