@@ -28,6 +28,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Diurnal air temperature range"
+name = "diurnal_temperature_range"
+unit = "C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Animal respiration aggregated over all functional types"
 name = "total_animal_respiration"
 unit = "ppm"
