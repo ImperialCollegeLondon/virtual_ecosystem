@@ -484,7 +484,7 @@ def calculate_carbon_mineralised(
         carbon_use_efficiency: Carbon use efficiency of litter pool [unitless]
 
     Returns:
-        Rate at which carbon is mineralised from the litter pool [kg C m^-2 day^-1]
+        Rate at which carbon is mineralised from the litter pool [kg C m^-2]
     """
 
     return carbon_use_efficiency * carbon_loss
