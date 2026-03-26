@@ -27,7 +27,7 @@ from math import ceil, isnan, sqrt
 from random import choice
 from typing import Any, cast
 
-from numpy import array, float32, random, stack, timedelta64, where, zeros
+from numpy import array, float32, mean, random, stack, timedelta64, where, zeros
 from numpy.typing import NDArray
 from xarray import DataArray
 
@@ -1837,6 +1837,9 @@ class AnimalModel(
     def update_activity_windows_community(self) -> None:
         """Update the activity window fraction for all cohorts in all communities.
 
+        Temperature and diurnal range are averaged across all cells in the cohort's
+          territory.
+
         Note:
             Diurnal temperature range is sourced dynamically from the abiotic model.
             Annual mean temperature and annual temperature SD are currently placeholder
@@ -1852,14 +1855,16 @@ class AnimalModel(
             self.layer_structure.index_surface_scalar
         ].to_numpy()
 
-        for cell_id, community in self.communities.items():
-            if not community:
-                continue
-
-            for cohort in community:
-                cohort.update_activity_window(
-                    temperature=surface_temperature[cell_id],
-                    diurnal_temp_range=diurnal_temp_range[cell_id],
-                    annual_mean_temp=cohort.constants.placeholder_annual_mean_temp,
-                    annual_temp_sd=cohort.constants.placeholder_annual_temp_sd,
-                )
+        for cohort in self.active_cohorts.values():
+            territory_temperature = float(
+                mean([surface_temperature[c] for c in cohort.territory])
+            )
+            territory_diurnal_range = float(
+                mean([diurnal_temp_range[c] for c in cohort.territory])
+            )
+            cohort.update_activity_window(
+                temperature=territory_temperature,
+                diurnal_temp_range=territory_diurnal_range,
+                annual_mean_temp=cohort.constants.placeholder_annual_mean_temp,
+                annual_temp_sd=cohort.constants.placeholder_annual_temp_sd,
+            )
