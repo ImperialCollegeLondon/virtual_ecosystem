@@ -75,7 +75,6 @@ extensions = [
     "sphinx_rtd_theme",
     "sphinx_external_toc",
     "sphinx_design",
-    "hoverxref.extension",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
@@ -305,11 +304,6 @@ html_css_files = [
 html_sidebars = {
     "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
 }
-
-# Configure hoverxref
-hoverxref_roles = ["term"]
-
-hoverxref_role_types = {"term": "tooltip"}
 
 # Allow for longer runtime
 nb_execution_mode = "force"
