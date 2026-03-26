@@ -403,6 +403,9 @@ def dummy_animal_data(animal_fixture_core_components):
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
 
+    data["diurnal_temperature_range"] = from_template()
+    data["diurnal_temperature_range"][lyr_str.index_surface_scalar] = 10.0
+
     return data
 
 

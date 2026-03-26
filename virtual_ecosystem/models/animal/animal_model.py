@@ -1848,7 +1848,9 @@ class AnimalModel(
             self.layer_structure.index_surface_scalar
         ].to_numpy()
 
-        diurnal_temp_range = self.data["diurnal_temperature_range"].to_numpy()
+        diurnal_temp_range = self.data["diurnal_temperature_range"][
+            self.layer_structure.index_surface_scalar
+        ].to_numpy()
 
         for cell_id, community in self.communities.items():
             if not community:
