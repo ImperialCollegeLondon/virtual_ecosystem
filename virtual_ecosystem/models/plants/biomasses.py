@@ -13,7 +13,7 @@ track the actual carbon masses realised by individuals through the simulation.
 
 The module define a base class for tissues and then currently four tissue types.
 
-FoliageTissue:
+FoliageBiomass:
     # Has different ratios in turnover mass
 
     biomass: foliage_mass
@@ -26,7 +26,7 @@ FoliageTissue:
     TODO - check to make sure turnover foliage doesn't get relatively _enriched_ if the
            plant is severely nutrient depleted.
 
-ReproductiveTissue:
+ReproductiveBiomass:
     # Same ratios; has turnover
 
     biomass: reproductive_tissue_mass
@@ -36,7 +36,7 @@ ReproductiveTissue:
     ideal_ratio: not defined - identical to turnover ratio
     turnover_ratio: plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio
 
-RootTissue:
+RootBiomass:
     # Same ratios; has turnover
 
     biomass: fine_root_mass
@@ -46,7 +46,7 @@ RootTissue:
     ideal_ratio: not defined - identical to turnover ratio
     turnover_ratio: root_turnover_c_{elem.lower()}_ratio
 
-WoodTissue
+WoodBiomass
     # No turnover at present, so same ratios doesn't really make sense, but if there was
       turnover it probably would be at these ratios.
 
@@ -98,8 +98,8 @@ class Element:
 
 
 @dataclass
-class TissueABC(ABC):
-    """A dataclass to hold tissue stoichiometry data for a set of plant cohorts.
+class BiomassTissueABC(ABC):
+    """A dataclass to hold tissue stoichiometry biomasses for a set of plant cohorts.
 
     This class holds the current quantity of a given element (generally N or P) for a
     specific plant tissue type (generally foliage, wood, roots or reproductive tissue).
@@ -234,7 +234,7 @@ class TissueABC(ABC):
               insertion into an array.
         """
 
-    def append(self, other: TissueABC):
+    def append(self, other: BiomassTissueABC):
         """Add new tissue data representing new cohorts."""
 
         # TODO? Checking for consistent elements
@@ -269,7 +269,7 @@ class TissueABC(ABC):
 
 
 @dataclass
-class FoliageTissue(TissueABC):
+class FoliageBiomass(BiomassTissueABC):
     """A class to hold foliage stoichiometry data for a set of plant cohorts."""
 
     tissue_name = "foliage"
@@ -281,7 +281,7 @@ class FoliageTissue(TissueABC):
         extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
-        """Create a default instance of FoliageTissue based on the PFT traits."""
+        """Create a default instance of FoliageBiomass based on the PFT traits."""
         pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
@@ -399,7 +399,7 @@ class FoliageTissue(TissueABC):
 
 
 @dataclass
-class ReproductiveTissue(TissueABC):
+class ReproductiveBiomass(BiomassTissueABC):
     """Holds reproductive tissue stoichiometry data for a set of plant cohorts."""
 
     tissue_name = "reproductive"
@@ -411,7 +411,7 @@ class ReproductiveTissue(TissueABC):
         extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
-        """Create a default instance of FoliageTissue based on the PFT traits."""
+        """Create a default instance of FoliageBiomass based on the PFT traits."""
         pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
@@ -531,7 +531,7 @@ class ReproductiveTissue(TissueABC):
 
 
 @dataclass
-class WoodTissue(TissueABC):
+class WoodBiomass(BiomassTissueABC):
     """A class to hold wood stoichiometry data for a set of plant cohorts."""
 
     tissue_name = "wood"
@@ -543,7 +543,7 @@ class WoodTissue(TissueABC):
         extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
-        """Create a default instance of WoodTissue based on the PFT traits."""
+        """Create a default instance of WoodBiomass based on the PFT traits."""
         pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
@@ -642,7 +642,7 @@ class WoodTissue(TissueABC):
 
 
 @dataclass
-class RootTissue(TissueABC):
+class RootBiomass(BiomassTissueABC):
     """A class to hold root stoichiometry data for a set of plant cohorts."""
 
     tissue_name = "root"
@@ -654,7 +654,7 @@ class RootTissue(TissueABC):
         extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
-        """Create a default instance of FoliageTissue based on the PFT traits."""
+        """Create a default instance of FoliageBiomass based on the PFT traits."""
         pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
@@ -792,7 +792,7 @@ class Biomasses(CohortMethods, PandasExporter):
     required.
     """
 
-    tissues: list[TissueABC]
+    tissues: list[BiomassTissueABC]
     """Tissues for the associated cohorts."""
     community: Community
     """The community object that the stoichiometry is associated with."""
@@ -835,7 +835,7 @@ class Biomasses(CohortMethods, PandasExporter):
         community: Community,
         extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
-        tissues: list[type[TissueABC]],
+        tissues: list[type[BiomassTissueABC]],
     ):
         """Create an instance of StemStoichiometry from the PFT stoichiometry ratios.
 
@@ -851,7 +851,7 @@ class Biomasses(CohortMethods, PandasExporter):
         """
 
         # Generate the default tissues
-        default_tissues: list[TissueABC] = [
+        default_tissues: list[BiomassTissueABC] = [
             tissue.from_pft_default_ratios(
                 community=community,
                 extra_pft_traits=extra_pft_traits,
@@ -995,7 +995,7 @@ class Biomasses(CohortMethods, PandasExporter):
         for elem, from_pool in zip(self.elements, pool_to_tissue.sum(axis=0)):
             self.element_surplus[elem] -= from_pool
 
-    def get_tissue(self, tissue_type: str) -> TissueABC:
+    def get_tissue(self, tissue_type: str) -> BiomassTissueABC:
         """Get the tissue model for a specific tissue type.
 
         Args:

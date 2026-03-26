@@ -28,21 +28,11 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration, PyrealmConfig
 from virtual_ecosystem.models.plants.biomasses import (
     Biomasses,
-)
-from virtual_ecosystem.models.plants.biomasses import (
-    FoliageTissue as bioFoliageTissue,
-)
-from virtual_ecosystem.models.plants.biomasses import (
-    ReproductiveTissue as bioReproductiveTissue,
-)
-from virtual_ecosystem.models.plants.biomasses import (
-    RootTissue as bioRootTissue,
-)
-from virtual_ecosystem.models.plants.biomasses import (
-    TissueABC as bioTissueABC,
-)
-from virtual_ecosystem.models.plants.biomasses import (
-    WoodTissue as bioWoodTissue,
+    BiomassTissueABC,
+    FoliageBiomass,
+    ReproductiveBiomass,
+    RootBiomass,
+    WoodBiomass,
 )
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
@@ -277,7 +267,7 @@ class PlantsModel(
         self.biomasses: dict[int, Biomasses]
         """A dictionary keyed by cell id of the carbon and nutrient biomass of each
         community."""
-        self.biomass_tissues: list[type[bioTissueABC]]
+        self.biomass_tissues: list[type[BiomassTissueABC]]
         """A list of types of biomass subclasses that sets the tissues to be
         modelled within the simulation."""
         self.stoichiometries: dict[int, dict[str, StemStoichiometry]]
@@ -394,10 +384,10 @@ class PlantsModel(
         # Currently two parallel tissue type definitions - one for the original
         # stochiometry module and then one from the new biomasses module.
         self.biomass_tissues = [
-            bioFoliageTissue,  # foliage mass
-            bioReproductiveTissue,  # reproductive mass
-            bioWoodTissue,  # stem mass
-            bioRootTissue,  # not a pyrealm allometry attribute
+            FoliageBiomass,  # foliage mass
+            ReproductiveBiomass,  # reproductive mass
+            WoodBiomass,  # stem mass
+            RootBiomass,  # not a pyrealm allometry attribute
         ]
 
         # Record the per stem biomasses of stochiometric tissues for each cohort.
