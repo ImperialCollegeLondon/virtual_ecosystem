@@ -62,9 +62,9 @@ where $I_p$ is the total input of phosphorus from the litter to the soil, $\lamb
 the fraction of the litter decay that occurs by leaching, and $\delta_o$ is the fraction
 of the leached phosphorus that enters the soil in an organic form.
 
-Microbes uptake organic matter (in the form of :term:`LMWC`) so that they can synthesis
+Microbes uptake organic matter (in the form of {term}`LMWC`) so that they can synthesis
 new biomass. This organic matter also has nitrogen and phosphorus contents (referred to
-as :term:`DON` and :term:`DOP`, respectively). This can result in more macronutrient
+as {term}`DON` and {term}`DOP`, respectively). This can result in more macronutrient
 being taken up than the microbe needs to sustain it's growth. When this happens the
 excess macronutrient gets returned to the soil. The form that this excess nutrient gets
 returned in depends on how carbon limited the microbial group is. The closer to carbon
@@ -95,7 +95,7 @@ up by both plants and microbes, and can be removed from the soil by water flows.
 
 Nitrification results in production of nitrate ($\ce{NO^{-}_{3}}$) from ammonium. This
 nitrate can be lost due to leaching and volatilisation, or can be taken up by plant
-roots. Nitrate can also be mineralised from :term:`POM` by microbes and can leach into
+roots. Nitrate can also be mineralised from {term}`POM` by microbes and can leach into
 the soil from the litter layer. This pool can be taken up by both plants and microbes,
 and can be removed from the soil by water flows.
 
