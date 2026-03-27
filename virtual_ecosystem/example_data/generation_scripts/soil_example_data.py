@@ -46,8 +46,9 @@ pom_enzyme_values = 0.01 + 0.49 * gradient / 64.0
 # Generate a range of plausible values (0.01-0.5) for the MAOM enzyme pool [kg C m^-3].
 maom_enzyme_values = 0.01 + 0.49 * gradient / 64.0
 
-# Generate a range of plausible values (2.5e-4 - 5.0e-4) for the DON pool [kg N m^-3]
-don_values = 2.5e-4 + 2.5e-4 * gradient / 64.0
+# Generate a range of plausible values (2.5e-4 - 5.0e-4) for the nitrogen component of
+# the LMWC pool [kg N m^-3]
+lmwc_n_values = 2.5e-4 + 2.5e-4 * gradient / 64.0
 
 # Generate a range of plausible values (7.5e-4 - 1.5e-3) for the particulate N pool [kg
 # N m^-3]
@@ -66,8 +67,9 @@ nitrate_values = 1e-3 + 4e-3 * gradient / 64.0
 # nitrogen pool [kg N m^-3].
 necromass_n_values = 3e-5 + 7e-5 * gradient / 64.0
 
-# Generate a range of plausible values (1e-5 - 2e-5) for the DOP pool [kg P m^-3]
-dop_values = 1e-5 + 1e-5 * gradient / 64.0
+# Generate a range of plausible values (1e-5 - 2e-5) for the phosphorus component of
+# the LMWC pool [kg P m^-3]
+lmwc_p_values = 1e-5 + 1e-5 * gradient / 64.0
 
 # Generate a range of plausible values (3e-5 - 6e-5) for the particulate P pool [kg P
 # m^-3]
@@ -99,7 +101,7 @@ fungal_fruiting_bodies_values = 0.1 + 0.3 * gradient / 64.0
 
 # Construct CNP triplets
 lmwc_cnp = np.stack(
-    [lmwc_values, don_values, dop_values],
+    [lmwc_values, lmwc_n_values, lmwc_p_values],
     axis=2,
 )
 maom_cnp = np.stack(
