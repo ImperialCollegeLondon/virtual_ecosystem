@@ -1852,13 +1852,6 @@ class AnimalModel(
     def update_activity_windows_community(self) -> None:
         """Update the activity window fraction for all cohorts in all communities.
 
-        Per-stratum temperatures are pre-computed once per timestep as per-cell
-        means, then
-        :func:`~virtual_ecosystem.models.animal.scaling_functions.cohort_temperature`
-        derives the temperature experienced by each cohort based on its vertical
-        occupancy. Both temperature and diurnal range are averaged across all
-        cells in the cohort's territory.
-
         Note:
             Diurnal temperature range is sourced dynamically from the abiotic model.
             Annual mean temperature and annual temperature SD are currently placeholder
