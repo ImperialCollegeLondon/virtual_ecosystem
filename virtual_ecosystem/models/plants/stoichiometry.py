@@ -13,6 +13,7 @@ In the future, the ideal CN and CP ratios will be PFT traits.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 import numpy as np
 from numpy.typing import NDArray
@@ -25,7 +26,7 @@ from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
 
 
 @dataclass
-class Tissue(ABC):
+class TissueABC(ABC):
     """A dataclass to hold tissue stoichiometry data for a set of plant cohorts.
 
     This class holds the current quantity of a given element (generally N or P) for a
@@ -33,6 +34,9 @@ class Tissue(ABC):
     The class also holds the ideal ratio of the element for that tissue type. They hold
     an entry for each cohort in the data class.
     """
+
+    tissue_name: ClassVar[str]
+    """A tissue name for derived classes."""
 
     community: Community
     """The community object that the tissue is associated with."""
@@ -113,8 +117,10 @@ class Tissue(ABC):
 
 
 @dataclass
-class FoliageTissue(Tissue):
+class FoliageTissue(TissueABC):
     """A class to hold foliage stoichiometry data for a set of plant cohorts."""
+
+    tissue_name = "foliage"
 
     turnover_ratio: NDArray[np.float64]
     """The ratio of the element in the turnover tissue (senesced foliage)."""
@@ -213,8 +219,10 @@ class FoliageTissue(Tissue):
 
 
 @dataclass
-class ReproductiveTissue(Tissue):
+class ReproductiveTissue(TissueABC):
     """Holds reproductive tissue stoichiometry data for a set of plant cohorts."""
+
+    tissue_name = "reproductive"
 
     @classmethod
     def from_pft_default_ratios(
@@ -303,8 +311,10 @@ class ReproductiveTissue(Tissue):
 
 
 @dataclass
-class WoodTissue(Tissue):
+class WoodTissue(TissueABC):
     """A class to hold wood stoichiometry data for a set of plant cohorts."""
+
+    tissue_name = "wood"
 
     @classmethod
     def from_pft_default_ratios(
@@ -385,8 +395,10 @@ class WoodTissue(Tissue):
 
 
 @dataclass
-class RootTissue(Tissue):
+class RootTissue(TissueABC):
     """A class to hold root stoichiometry data for a set of plant cohorts."""
+
+    tissue_name = "root"
 
     @classmethod
     def from_pft_default_ratios(
@@ -506,7 +518,7 @@ class StemStoichiometry(CohortMethods, PandasExporter):
 
     element: str
     """The name of the element."""
-    tissues: list[Tissue]
+    tissues: list[TissueABC]
     """Tissues for the associated cohorts."""
     community: Community
     """The community object that the stoichiometry is associated with."""
@@ -514,10 +526,13 @@ class StemStoichiometry(CohortMethods, PandasExporter):
     """The surplus of the element per cohort."""
     extra_pft_traits: ExtraTraitsPFT
     """Additional traits specific to the plant functional types."""
+    tissue_names: list[str] = field(init=False)
+    """A list giving the name of each tissue."""
 
     def __post_init__(self) -> None:
         """Initialize the element surplus for each cohort."""
         self.element_surplus = np.zeros(self.community.n_cohorts, dtype=np.float64)
+        self.tissue_names = [t.tissue_name for t in self.tissues]
 
     @classmethod
     def default_init(
@@ -525,6 +540,7 @@ class StemStoichiometry(CohortMethods, PandasExporter):
         community: Community,
         extra_pft_traits: ExtraTraitsPFT,
         element: str,
+        tissues: list[type[TissueABC]],
     ):
         """Create an instance of StemStoichiometry from the PFT stoichiometry ratios.
 
@@ -532,40 +548,25 @@ class StemStoichiometry(CohortMethods, PandasExporter):
             community: The community object that the stoichiometry is associated with.
             extra_pft_traits: Additional traits specific to the plant functional type.
             element: The name of the element (default is "N").
+            tissues: A list of tissue models to be used.
 
         Returns:
             An instance of StemStoichiometry with default tissues.
         """
-        foliage_tissue_model = FoliageTissue.from_pft_default_ratios(
-            community=community,
-            extra_pft_traits=extra_pft_traits,
-            element_name=element.lower(),
-        )
-        reproductive_tissue_model = ReproductiveTissue.from_pft_default_ratios(
-            community=community,
-            extra_pft_traits=extra_pft_traits,
-            element_name=element.lower(),
-        )
-        wood_tissue_model = WoodTissue.from_pft_default_ratios(
-            community=community,
-            extra_pft_traits=extra_pft_traits,
-            element_name=element.lower(),
-        )
-        root_tissue_model = RootTissue.from_pft_default_ratios(
-            community=community,
-            extra_pft_traits=extra_pft_traits,
-            element_name=element.lower(),
-        )
-        tissues = [
-            foliage_tissue_model,
-            reproductive_tissue_model,
-            wood_tissue_model,
-            root_tissue_model,
+
+        # Generate the default tissues
+        default_tissues: list[TissueABC] = [
+            tissue.from_pft_default_ratios(
+                community=community,
+                extra_pft_traits=extra_pft_traits,
+                element_name=element.lower(),
+            )
+            for tissue in tissues
         ]
 
         return cls(
             element=element,
-            tissues=tissues,
+            tissues=default_tissues,
             community=community,
             extra_pft_traits=extra_pft_traits,
         )
@@ -716,7 +717,7 @@ class StemStoichiometry(CohortMethods, PandasExporter):
                 )
             self.element_surplus[cohort] = 0.0
 
-    def get_tissue(self, tissue_type: str) -> Tissue:
+    def get_tissue(self, tissue_type: str) -> TissueABC:
         """Get the tissue model for a specific tissue type.
 
         Args:
@@ -725,7 +726,8 @@ class StemStoichiometry(CohortMethods, PandasExporter):
         Returns:
             The tissue model corresponding to the specified tissue type.
         """
-        for tissue in self.tissues:
-            if tissue.__class__.__name__.lower() == tissue_type.lower():
-                return tissue
-        raise ValueError(f"Tissue type '{tissue_type}' not found.")
+
+        try:
+            return self.tissues[self.tissue_names.index(tissue_type)]
+        except ValueError:
+            raise ValueError(f"Tissue type '{tissue_type}' not found.")

@@ -14,7 +14,7 @@ from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
-from pyrealm.demography.community import Cohorts
+from pyrealm.demography.community import Cohorts, Community
 from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
@@ -26,6 +26,14 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration, PyrealmConfig
+from virtual_ecosystem.models.plants.biomasses import (
+    Biomasses,
+    BiomassTissueABC,
+    FoliageBiomass,
+    ReproductiveBiomass,
+    RootBiomass,
+    WoodBiomass,
+)
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
     initialise_canopy_layers,
@@ -41,7 +49,12 @@ from virtual_ecosystem.models.plants.model_config import (
     PlantsConstants,
 )
 from virtual_ecosystem.models.plants.stoichiometry import (
+    FoliageTissue,
+    ReproductiveTissue,
+    RootTissue,
     StemStoichiometry,
+    TissueABC,
+    WoodTissue,
 )
 from virtual_ecosystem.models.plants.subcanopy import Subcanopy
 
@@ -251,6 +264,12 @@ class PlantsModel(
         self.communities: PlantCommunities
         """An instance of PlantCommunities providing dictionary access keyed by cell id
         to PlantCommunity instances for each cell."""
+        self.biomasses: dict[int, Biomasses]
+        """A dictionary keyed by cell id of the carbon and nutrient biomass of each
+        community."""
+        self.biomass_tissues: list[type[BiomassTissueABC]]
+        """A list of types of biomass subclasses that sets the tissues to be
+        modelled within the simulation."""
         self.stoichiometries: dict[int, dict[str, StemStoichiometry]]
         """A dictionary keyed by cell id giving the stoichiometry of each community."""
         self.allocations: dict[int, StemAllocation]
@@ -354,6 +373,34 @@ class PlantsModel(
             cohort_data=cohort_data, flora=self.flora, grid=self.grid
         )
 
+        # Define the set of tissues to be used in the model
+        tissues: list[type[TissueABC]] = [
+            FoliageTissue,  # foliage mass
+            ReproductiveTissue,  # reproductive mass
+            WoodTissue,  # stem mass
+            RootTissue,  # not a pyrealm allometry attribute
+        ]
+
+        # Currently two parallel tissue type definitions - one for the original
+        # stochiometry module and then one from the new biomasses module.
+        self.biomass_tissues = [
+            FoliageBiomass,  # foliage mass
+            ReproductiveBiomass,  # reproductive mass
+            WoodBiomass,  # stem mass
+            RootBiomass,  # not a pyrealm allometry attribute
+        ]
+
+        # Record the per stem biomasses of stochiometric tissues for each cohort.
+        self.biomasses = {
+            cell_id: Biomasses.default_init(
+                community=community,
+                extra_pft_traits=extra_pft_traits,
+                with_elements=["N", "P"],
+                tissues=self.biomass_tissues,
+            )
+            for cell_id, community in self.communities.items()
+        }
+
         # Check the pft propagules data
         # Some development notes:
         # - This _could_ be an optional __init__ variable that defaults to zero, but we
@@ -386,17 +433,15 @@ class PlantsModel(
         self.stoichiometries = {}
 
         for cell_id in self.communities.keys():
-            self.stoichiometries[cell_id] = {}
-            self.stoichiometries[cell_id]["N"] = StemStoichiometry.default_init(
-                self.communities[cell_id],
-                extra_pft_traits=self.extra_pft_traits,
-                element="N",
-            )
-            self.stoichiometries[cell_id]["P"] = StemStoichiometry.default_init(
-                self.communities[cell_id],
-                extra_pft_traits=self.extra_pft_traits,
-                element="P",
-            )
+            self.stoichiometries[cell_id] = {
+                element: StemStoichiometry.default_init(
+                    self.communities[cell_id],
+                    extra_pft_traits=self.extra_pft_traits,
+                    tissues=tissues,
+                    element=element,
+                )
+                for element in ["N", "P"]
+            }
 
         self.data_object_templates = {
             "cnp_pft": xr.DataArray(
@@ -1140,20 +1185,20 @@ class PlantsModel(
                 self.data["foliage_turnover_cnp"].loc[cell_id, element] += np.sum(
                     cohorts.n_individuals
                     * stoichiometries[element]
-                    .get_tissue("FoliageTissue")
+                    .get_tissue("foliage")
                     .element_turnover(stem_allocation)
                 )
                 self.data["root_turnover_cnp"].loc[cell_id, element] += np.sum(
                     cohorts.n_individuals
                     * stoichiometries[element]
-                    .get_tissue("RootTissue")
+                    .get_tissue("root")
                     .element_turnover(stem_allocation)
                 )
                 self.data[f"plant_rt_turnover_{element.lower()}_mass"][cell_id] = (
                     np.sum(
                         cohorts.n_individuals
                         * stoichiometries[element]
-                        .get_tissue("ReproductiveTissue")
+                        .get_tissue("reproductive")
                         .element_turnover(stem_allocation)
                     )
                 )
@@ -1230,21 +1275,21 @@ class PlantsModel(
                 self.data["stem_turnover_cnp"].loc[cell_id, element] = np.sum(
                     mortality
                     * self.stoichiometries[cell_id][element]
-                    .get_tissue("WoodTissue")
+                    .get_tissue("wood")
                     .actual_element_mass
                 )
 
                 self.data["foliage_turnover_cnp"].loc[cell_id, element] += np.sum(
                     mortality
                     * self.stoichiometries[cell_id][element]
-                    .get_tissue("FoliageTissue")
+                    .get_tissue("foliage")
                     .actual_element_mass
                 )
 
                 self.data["root_turnover_cnp"].loc[cell_id, element] += np.sum(
                     mortality
                     * self.stoichiometries[cell_id][element]
-                    .get_tissue("RootTissue")
+                    .get_tissue("root")
                     .actual_element_mass
                 )
 
@@ -1252,7 +1297,7 @@ class PlantsModel(
                     np.sum(
                         mortality
                         * self.stoichiometries[cell_id][element]
-                        .get_tissue("ReproductiveTissue")
+                        .get_tissue("reproductive")
                         .actual_element_mass
                     )
                 )
@@ -1304,6 +1349,26 @@ class PlantsModel(
                 # Add recruited cohorts
                 community.add_cohorts(new_data=cohorts)
 
+                # Extend biomasses.
+                # TODO - This currently uses initialisation from default ratios, but  it
+                #        should use nutrients from the reproductive mass. One step at a
+                #        time.
+                new_community = Community(
+                    cell_id=cell_id,
+                    cohorts=cohorts,
+                    flora=self.flora,
+                    cell_area=community.cell_area,
+                )
+                new_biomasses = Biomasses.default_init(
+                    community=new_community,
+                    extra_pft_traits=self.extra_pft_traits,
+                    with_elements=["N", "P"],
+                    tissues=self.biomass_tissues,
+                )
+
+                self.biomasses[cell_id].append(new_biomasses)
+
+                # Extend stochiometries
                 self.stoichiometries[cell_id]["N"].add_cohorts(
                     new_cohort_data=cohorts,
                     flora=self.flora,
