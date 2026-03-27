@@ -8,7 +8,8 @@ from _collections_abc import Callable, Mapping
 from math import ceil, exp, log, sqrt
 from typing import Literal, TypeVar, cast
 
-from numpy import timedelta64
+from numpy import mean, timedelta64
+from numpy.typing import NDArray
 
 import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.grid import Grid
@@ -2149,4 +2150,82 @@ class AnimalCohort:
             annual_mean_temp=annual_mean_temp,
             annual_temp_sd=annual_temp_sd,
             constants=self.constants,
+        )
+
+    def get_temperature(
+        self,
+        cell_id: int,
+        canopy_temperature: NDArray,
+        ground_temperature: NDArray,
+        soil_temperature: NDArray,
+    ) -> float:
+        """Mean temperature experienced by this cohort in a single grid cell.
+
+        Averages temperatures across all occupied vertical strata. The three
+        temperature arrays should be pre-computed per-cell means for each stratum.
+
+        Args:
+            cell_id: Index of the grid cell to evaluate.
+            canopy_temperature: 1-D array of per-cell mean filled canopy
+                temperatures [°C], shape ``(n_cells,)``.
+            ground_temperature: 1-D array of surface air temperatures [°C],
+                shape ``(n_cells,)``.
+            soil_temperature: 1-D array of topsoil temperatures [°C],
+                shape ``(n_cells,)``.
+
+        Returns:
+            Mean temperature across all occupied strata for the given cell [°C].
+
+        Raises:
+            ValueError: If the cohort's vertical occupancy contains no recognised
+                flags.
+        """
+        stratum_temps: list[float] = []
+
+        if self.functional_group.vertical_occupancy & VerticalOccupancy.CANOPY:
+            stratum_temps.append(float(canopy_temperature[cell_id]))
+
+        if self.functional_group.vertical_occupancy & VerticalOccupancy.GROUND:
+            stratum_temps.append(float(ground_temperature[cell_id]))
+
+        if self.functional_group.vertical_occupancy & VerticalOccupancy.SOIL:
+            stratum_temps.append(float(soil_temperature[cell_id]))
+
+        if not stratum_temps:
+            raise ValueError(
+                f"No recognised vertical occupancy flags in: "
+                f"{self.functional_group.vertical_occupancy}"
+            )
+
+        return float(mean(stratum_temps))
+
+    def get_mean_territory_temperature(
+        self,
+        canopy_temperature: NDArray,
+        ground_temperature: NDArray,
+        soil_temperature: NDArray,
+    ) -> float:
+        """Mean temperature experienced by this cohort across its full territory.
+
+        Calls :meth:`get_temperature` for each cell in the cohort's territory and
+        returns the unweighted mean.
+
+        Args:
+            canopy_temperature: 1-D array of per-cell mean filled canopy
+                temperatures [°C].
+            ground_temperature: 1-D array of surface air temperatures [°C].
+            soil_temperature: 1-D array of topsoil temperatures [°C].
+
+        Returns:
+            Mean temperature across all territory cells and occupied strata [°C].
+        """
+        return float(
+            mean(
+                [
+                    self.get_temperature(
+                        c, canopy_temperature, ground_temperature, soil_temperature
+                    )
+                    for c in self.territory
+                ]
+            )
         )

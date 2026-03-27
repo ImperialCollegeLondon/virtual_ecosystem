@@ -13,7 +13,10 @@ from math import asin, exp, log, pi
 import numpy as np
 
 from virtual_ecosystem.core.model_config import CoreConstants
-from virtual_ecosystem.models.animal.animal_traits import DietType, MetabolicType
+from virtual_ecosystem.models.animal.animal_traits import (
+    DietType,
+    MetabolicType,
+)
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
