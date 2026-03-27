@@ -2,6 +2,7 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG, ERROR, INFO
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -31,6 +32,7 @@ REQUIRED_INIT_VAR_CHECKS = (
 SETUP_MANIPULATIONS = (
     (INFO, "Adding data array for 'vapour_pressure_deficit_ref'"),
     (INFO, "Adding data array for 'vapour_pressure_ref'"),
+    (INFO, "Adding data array for 'diurnal_temperature_range'"),
     (INFO, "Adding data array for 'air_temperature'"),
     (INFO, "Adding data array for 'relative_humidity'"),
     (INFO, "Adding data array for 'vapour_pressure_deficit'"),
@@ -77,6 +79,7 @@ def test_abiotic_model_initialization(
         data=fixture_abiotic_init_data,
         core_components=fixture_core_components,
         model_constants=fixture_abiotic_constants,
+        latitude=0.0,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -111,6 +114,7 @@ def test_abiotic_model_initialization_no_data(
             empty_data,
             core_components=fixture_core_components,
             model_constants=fixture_abiotic_constants,
+            latitude=0.0,
         )
 
     # Final check that expected logging entries are produced
@@ -235,6 +239,7 @@ def test_setup_and_update_abiotic_model(
     model = AbioticModel(
         data=fixture_abiotic_init_data,
         core_components=fixture_core_components,
+        latitude=0.0,
     )
 
     # check all variables are initialised in data object
@@ -256,7 +261,7 @@ def test_setup_and_update_abiotic_model(
     # Test that soil temperature was created correctly
     expected_soil_temp = lyr_strct.from_template()
     expected_soil_temp[lyr_strct.index_all_soil] = np.array(
-        [[20.712458, 21.317566, 21.922674, 22.527783], [20.0, 20.0, 20.0, 20.0]]
+        [[21.48431, 21.832134, 22.179959, 22.527783], [20.0, 20.0, 20.0, 20.0]]
     )
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp)
 
@@ -265,10 +270,10 @@ def test_setup_and_update_abiotic_model(
     exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
         [
             [30, 30, 30, 30],
-            [29.91965, 29.946434, 29.973217, np.nan],
-            [29.414851, 29.609901, np.nan, np.nan],
-            [28.551891, np.nan, np.nan, np.nan],
-            [22.81851, 25.21234, 27.60617, 30.0],
+            [29.870794, 29.913863, 29.956931, np.nan],
+            [29.035646, 29.357097, np.nan, np.nan],
+            [27.769159, np.nan, np.nan, np.nan],
+            [25.871986, 27.247991, 28.623995, 30.0],
         ]
     )
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
@@ -333,3 +338,33 @@ def test_setup_and_update_abiotic_model(
     assert (
         (valid_values_rel_hum_clean >= 0.0) & (valid_values_rel_hum_clean <= 100.0)
     ).all()
+
+
+def test_update_warns_for_fractional_days(
+    fixture_abiotic_init_data,
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+):
+    """Test warning raised if days are not a whole number of days."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
+
+    model = AbioticModel(
+        data=fixture_abiotic_init_data,
+        core_components=fixture_core_components,
+        latitude=0.0,
+    )
+
+    model.model_timing.update_interval_seconds = 90000  # fractional day
+
+    for var in model.vars_required_for_update:
+        model.data[var] = dummy_climate_data_varying_canopy[var]
+
+    with patch(
+        "virtual_ecosystem.models.abiotic.abiotic_model.LOGGER.warning"
+    ) as mock_warn:
+        model.update(time_index=0)
+
+    messages = [call.args[0] for call in mock_warn.call_args_list]
+
+    assert any("not a whole number of days" in msg for msg in messages)

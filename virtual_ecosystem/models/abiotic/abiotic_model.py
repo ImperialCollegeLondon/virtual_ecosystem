@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -72,6 +73,7 @@ class AbioticModel(
         "aerodynamic_resistance_canopy",
         "net_radiation",
         "longwave_emission",
+        "diurnal_temperature_range",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -108,6 +110,7 @@ class AbioticModel(
         "net_radiation",
         "longwave_emission",
         "vapour_pressure",
+        "diurnal_temperature_range",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -115,6 +118,7 @@ class AbioticModel(
 
     Args:
         data: The data object to be used in the model.
+        latitude: Mean latitude of the study grid
         core_components: The core components used across models.
         model_constants: Set of constants for the abiotic model.
         pyrealm_core_constants: Additional configuration options to the pyrealm
@@ -126,6 +130,7 @@ class AbioticModel(
     def __init__(
         self,
         data: Data,
+        latitude: float,
         core_components: CoreComponents,
         model_constants: AbioticConstants = AbioticConstants(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
@@ -147,10 +152,13 @@ class AbioticModel(
         of the initial state and the full energy balance calculations."""
         self.pyrealm_core_constants: PyrealmCoreConst
         """Pyrealm core constants."""
+        self.latitude: float
+        """Latitude in degrees. This is required to generate the diurnal cycle."""
 
         # Run the setup if the model is not in deep static mode
         if self._run_setup:
             self._setup(
+                latitude=latitude,
                 model_constants=model_constants,
                 pyrealm_core_constants=pyrealm_core_constants,
                 bounds=bounds,
@@ -158,6 +166,7 @@ class AbioticModel(
 
     def _setup(
         self,
+        latitude: float,
         model_constants: AbioticConstants = AbioticConstants(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
         bounds: AbioticSimpleBounds = AbioticSimpleBounds(),
@@ -172,6 +181,7 @@ class AbioticModel(
         See __init__ for argument descriptions.
         """
 
+        self.latitude = latitude
         self.model_constants = model_constants
         self.pyrealm_core_constants = pyrealm_core_constants
         self.bounds = bounds
@@ -202,6 +212,9 @@ class AbioticModel(
             pyrealm_core_constants=pyrealm_core_constants,
             bounds=self.bounds,
         )
+
+        # Initialise diurnal temperature range
+        self.data["diurnal_temperature_range"] = self.layer_structure.from_template()
 
         # Generate initial profiles of canopy temperature and heat fluxes from soil and
         # canopy
@@ -255,6 +268,7 @@ class AbioticModel(
             data=data,
             core_components=core_components,
             static=model_configuration.static,
+            latitude=model_configuration.latitude,
             model_constants=model_configuration.constants,
             pyrealm_core_constants=core_configuration.pyrealm.core,
             bounds=model_configuration.bounds,
@@ -277,21 +291,30 @@ class AbioticModel(
             % 12
             + 1
         )
-        # TODO #1441 These placeholders should be arguments to abiotic_model
-        days = 30
-        latitude = 0.0
-        time_dim = 24
+        # Determine number of days
+        days_float: float = (
+            self.model_timing.update_interval_seconds
+            / self.core_constants.seconds_to_day
+        )
+        days: int = int(days_float // 1)
+
+        # Check if the number of days is exact and warn if not
+        if not np.allclose(days_float % 1, 0):
+            LOGGER.warning(
+                f"Update interval is not a whole number of days ({days_float}),"
+                f" partitioning inputs among {days} days."
+            )
 
         # Run microclimate model
         update_dict = run_microclimate(
             data=self.data,
             vars_updated=self.vars_updated,
             time_index=time_index,
-            time_dim=time_dim,
+            time_dim=self.core_constants.hours_per_day,
             time_interval=self.model_timing.update_interval_seconds,
             month=month,
             days=days,
-            latitude=latitude,
+            latitude=self.latitude,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
             core_constants=self.core_constants,

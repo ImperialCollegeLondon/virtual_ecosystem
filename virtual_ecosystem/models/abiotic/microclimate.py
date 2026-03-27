@@ -807,7 +807,7 @@ def run_hour_step(
         state=state, hourly_forcing=hourly_forcing, hour=hour
     )
 
-    # Update tehermodynamics
+    # Update thermodynamics
     thermo = calculate_thermodynamics(
         state=state,
         static=static,
@@ -932,7 +932,12 @@ def build_output_from_record(
 
         # detect time dimension
         if values.ndim > 1:
-            values = np.nanmean(values, axis=0)
+            if var == "diurnal_temperature_range":
+                min_value = np.nanmin(data_record["air_temperature"], axis=0)
+                max_value = np.nanmax(data_record["air_temperature"], axis=0)
+                values = max_value - min_value
+            else:
+                values = np.nanmean(values, axis=0)
 
         # assign dims
         if values.ndim == 1:
@@ -1080,6 +1085,7 @@ def run_microclimate(
                 "soil_evaporation",
                 "specific_humidity",
                 "ventilation_rate",
+                "diurnal_temperature_range",
             },
         )
 

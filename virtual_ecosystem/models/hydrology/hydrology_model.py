@@ -470,7 +470,10 @@ class HydrologyModel(
         :class:`~virtual_ecosystem.models.hydrology.model_config.HydrologyConstants`.
         """
         # Determine number of days
-        days_float: float = self.model_timing.update_interval_seconds / 86400
+        days_float: float = (
+            self.model_timing.update_interval_seconds
+            / self.core_constants.seconds_to_day
+        )
         days: int = int(days_float // 1)
 
         # Check if the number of days is exact and warn if not
@@ -553,15 +556,11 @@ class HydrologyModel(
             daily_lists["canopy_evaporation"].append(canopy_evaporation)
 
             # Precipitation that reaches the surface per day, [mm]
-            # TODO - This has extra safe guarding to prevent negative precipitation.
-            # This is a bandaid solution that should be replaced see #1267
-            precipitation_surface = np.maximum(
-                hydro_input["current_precipitation"][:, day]
-                - np.minimum(
-                    np.nansum(canopy_evaporation, axis=0),
-                    hydro_input["current_precipitation"][:, day],
-                ),
-                0.001,
+            precipitation_surface = hydro_input["current_precipitation"][
+                :, day
+            ] - np.minimum(
+                np.nansum(canopy_evaporation, axis=0),
+                hydro_input["current_precipitation"][:, day],
             )
 
             hydrology_tools.check_precipitation_surface(
