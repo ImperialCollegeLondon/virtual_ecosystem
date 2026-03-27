@@ -41,6 +41,31 @@ def ectotherm_cohort_instance(
 
 
 @pytest.fixture
+def canopy_cohort_instance(
+    shared_datadir,
+    animal_data_for_cohorts_instance,
+    constants_instance,
+):
+    """Fixture for a canopy-only cohort (swallow, index 11)."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+    return AnimalCohort(
+        fg_list[11],
+        0.1,
+        1,
+        10,
+        1,
+        animal_data_for_cohorts_instance.grid,
+        constants_instance,
+    )
+
+
+@pytest.fixture
 def prey_cohort_instance(
     herbivore_functional_group_instance,
     animal_data_for_cohorts_instance,
@@ -4058,3 +4083,108 @@ class TestAnimalCohort:
             assert cohort.sigma_f_t == pytest.approx(expected_sigma)
         else:
             assert 0.0 < cohort.sigma_f_t < 1.0
+
+    @pytest.mark.parametrize(
+        "cohort_type, canopy_t, ground_t, soil_t, cell_id, expected",
+        [
+            # GROUND only — herbivorous_mammal (index 3)
+            pytest.param(
+                "herbivore",
+                25.0,
+                20.0,
+                15.0,
+                0,
+                20.0,
+                id="ground_only_cell_0",
+            ),
+            # GROUND only, different cell — confirms cell_id indexing
+            pytest.param(
+                "herbivore",
+                25.0,
+                30.0,
+                15.0,
+                1,
+                30.0,
+                id="ground_only_cell_1",
+            ),
+            # CANOPY only — swallow (index 11)
+            pytest.param(
+                "canopy",
+                25.0,
+                20.0,
+                15.0,
+                0,
+                25.0,
+                id="canopy_only",
+            ),
+            # SOIL | GROUND | CANOPY — herbivorous_insect (index 5)
+            pytest.param(
+                "ectotherm",
+                30.0,
+                20.0,
+                10.0,
+                0,
+                20.0,
+                id="all_strata_mean",
+            ),
+        ],
+    )
+    def test_get_temperature(
+        self,
+        herbivore_cohort_instance,
+        ectotherm_cohort_instance,
+        canopy_cohort_instance,
+        cohort_type,
+        canopy_t,
+        ground_t,
+        soil_t,
+        cell_id,
+        expected,
+    ):
+        """Test per-cell temperature based on vertical occupancy."""
+        import numpy as np
+
+        cohort = {
+            "herbivore": herbivore_cohort_instance,
+            "ectotherm": ectotherm_cohort_instance,
+            "canopy": canopy_cohort_instance,
+        }[cohort_type]
+
+        n_cells = 9
+        canopy_temperature = np.full(n_cells, canopy_t)
+        ground_temperature = np.full(n_cells, ground_t)
+        soil_temperature = np.full(n_cells, soil_t)
+
+        result = cohort.get_temperature(
+            cell_id=cell_id,
+            canopy_temperature=canopy_temperature,
+            ground_temperature=ground_temperature,
+            soil_temperature=soil_temperature,
+        )
+        assert result == pytest.approx(expected)
+
+    def test_get_mean_territory_temperature(
+        self,
+        herbivore_cohort_instance,
+    ):
+        """Test that territory temperature is the mean across territory cells.
+
+        The herbivore cohort's territory covers all 9 cells of the 3x3 grid.
+        With ground temperature equal to cell index (0-8), the expected mean
+        is 4.0.
+        """
+        import numpy as np
+
+        cohort = herbivore_cohort_instance
+        n_cells = 9
+
+        ground_temperature = np.arange(n_cells, dtype=float)
+        canopy_temperature = np.zeros(n_cells)
+        soil_temperature = np.zeros(n_cells)
+
+        result = cohort.get_mean_territory_temperature(
+            canopy_temperature=canopy_temperature,
+            ground_temperature=ground_temperature,
+            soil_temperature=soil_temperature,
+        )
+        assert result == pytest.approx(4.0)

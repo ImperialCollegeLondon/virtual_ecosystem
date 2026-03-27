@@ -2722,42 +2722,33 @@ class TestAnimalModel:
     def test_update_activity_windows_community_uses_per_cell_values(
         self, prepared_animal_model_instance
     ):
-        """Test that activity windows use spatially varying per-cell climate inputs.
-
-        Sets temperatures so cohorts centred in cell 0 (warm, within ectotherm
-        window) and cell 1 (cold, outside window) receive different sigma_f_t
-        values, confirming per-cohort territory averaging rather than a single
-        broadcast value.
-        """
+        """Test that activity windows reflect spatial and strata temperature var."""
         from virtual_ecosystem.models.animal.animal_traits import MetabolicType
 
         model = prepared_animal_model_instance
         lyr_str = model.layer_structure
 
-        surface_temps = (
-            model.data["air_temperature"][lyr_str.index_surface_scalar]
-            .to_numpy()
-            .copy()
-        )
-        surface_temps[:] = 5.0  # default all cells cold
-        surface_temps[0] = 31.0  # cell 0 warm, within ectotherm window
-        model.data["air_temperature"].values[lyr_str.index_surface_scalar] = (
-            surface_temps
-        )
+        # Set all strata cold everywhere
+        warm = 31.0  # within ectotherm window (~27-35°C)
+        cold = 5.0  # well outside window
 
-        diurnal = (
-            model.data["diurnal_temperature_range"][lyr_str.index_surface_scalar]
-            .to_numpy()
-            .copy()
-        )
-        diurnal[:] = 4.0
-        model.data["diurnal_temperature_range"].values[lyr_str.index_surface_scalar] = (
-            diurnal
-        )
+        for key in ("air_temperature", "canopy_temperature", "soil_temperature"):
+            arr = model.data[key].values
+            if key == "air_temperature":
+                arr[lyr_str.index_surface_scalar, :] = cold
+                arr[lyr_str.index_surface_scalar, 0] = warm
+            elif key == "canopy_temperature":
+                arr[lyr_str.index_filled_canopy, :] = cold
+                arr[lyr_str.index_filled_canopy, 0] = warm
+            elif key == "soil_temperature":
+                arr[lyr_str.index_topsoil_scalar, :] = cold
+                arr[lyr_str.index_topsoil_scalar, 0] = warm
+
+        diurnal = model.data["diurnal_temperature_range"].values
+        diurnal[lyr_str.index_surface_scalar, :] = 4.0
 
         model.update_activity_windows_community()
 
-        # Find ectotherms centred in cell 0 (warm) and cell 1 (cold)
         ecto_centred_0 = [
             c
             for c in model.active_cohorts.values()
