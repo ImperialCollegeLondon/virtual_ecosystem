@@ -595,16 +595,16 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil low molecular weight carbon pool"
-name = "soil_c_pool_lmwc"
-unit = "kg C m^-3"
+description = "Soil low molecular weight carbon pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_lmwc"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil mineral associated organic matter pool "
-name = "soil_c_pool_maom"
-unit = "kg C m^-3"
+description = "Soil mineral associated organic matter pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_maom"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]
@@ -637,44 +637,16 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Particulate organic matter pool"
-name = "soil_c_pool_pom"
-unit = "kg C m^-3"
+description = "Particulate organic matter pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_pom"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Necrotic organic matter pool"
-name = "soil_c_pool_necromass"
-unit = "kg C m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Dissolved organic nitrogen pool"
-name = "soil_n_pool_don"
-unit = "kg N m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Particulate organic nitrogen pool"
-name = "soil_n_pool_particulate"
-unit = "kg N m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Amount of nitrogen contained in the necromass pool"
-name = "soil_n_pool_necromass"
-unit = "kg N m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Amount of nitrogen contained in the mineral associated organic matter pool"
-name = "soil_n_pool_maom"
-unit = "kg N m^-3"
+description = "Necrotic organic matter pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_necromass"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]
@@ -689,34 +661,6 @@ axis = ["spatial"]
 description = "Amount of nitrogen contained in the soil nitrate (NO3-) pool"
 name = "soil_n_pool_nitrate"
 unit = "kg N m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Dissolved organic phosphorus pool"
-name = "soil_p_pool_dop"
-unit = "kg P m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Particulate organic phosphorus pool"
-name = "soil_p_pool_particulate"
-unit = "kg P m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Amount of phosphorus contained in the necromass pool"
-name = "soil_p_pool_necromass"
-unit = "kg P m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Amount of phosphorus contained in the mineral associated organic matter pool"
-name = "soil_p_pool_maom"
-unit = "kg P m^-3"
 variable_type = "float"
 
 [[variable]]
