@@ -211,27 +211,13 @@ class BiomassTissueABC(ABC):
         """Calculate the elements needed for growth for the tissue type."""
 
     @abstractmethod
-    def tissue_turnover(
+    def get_turnover(
         self, allocation: StemAllocation
     ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the element lost to turnover for the tissue type.
+        """Calculate the elemental losses to turnover for the tissue type.
 
-        TODO - possibly retire this in favour of extract turnover? Do we ever need to
-               know what the element loss would be _without_ removing the masses?
-        """
-
-    @abstractmethod
-    def extract_turnover(
-        self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.floating]]:
-        """Extract the tissue elemental masses associated with turnover.
-
-        This method should return a dictionary of elemental masses from turnover and
-        reduce the tissue instance by those masses.
-
-        TODO: this returns Carbon too - do we want to have the return value in a
-              different format. Could return an array slice, for example, ready for
-              insertion into an array.
+        This method should return a per element array of cohort values including the
+        carbon allocation to turnover in this tissue.
         """
 
     def append(self, other: BiomassTissueABC):
@@ -245,27 +231,6 @@ class BiomassTissueABC(ABC):
         # Append the element masses from the incoming instance
         for elem_name, elem_instance in self.element_masses.items():
             elem_instance.append(other.element_masses[elem_name])
-
-    # @abstractmethod
-    # def add_cohort(
-    #     self,
-    #     stem_allometry: StemAllometry,
-    #     extra_pft_traits: ExtraTraitsPFT,
-    #     new_pft_name: str,
-    #     element: str,
-    #     cohort: int,
-    #     stem_traits: StemTraits,
-    # ) -> None:
-    #     """Add a cohort to the tissue type.
-
-    #     Args:
-    #         stem_allometry: The stem allometry object for the cohort.
-    #         extra_pft_traits: Additional traits specific to the plant functional type.
-    #         new_pft_name: The name of the new plant functional type.
-    #         element: The name of the element (e.g., "N" for nitrogen).
-    #         cohort: The index of the cohort to add.
-    #         stem_traits: The stem traits for the cohort.
-    #     """
 
 
 @dataclass
@@ -328,7 +293,7 @@ class FoliageBiomass(BiomassTissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-    def tissue_turnover(
+    def get_turnover(
         self, allocation: StemAllocation
     ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element mass lost to turnover for foliage tissue.
@@ -336,66 +301,14 @@ class FoliageBiomass(BiomassTissueABC):
         Returns:
             The element quantity lost to turnover for foliage tissue.
         """
-        return {
+        elemental_turnovers = {
             ky: (
                 (allocation.foliage_turnover * (1 / elem.turnover_ratio)).squeeze()
             ).squeeze()
             for ky, elem in self.element_masses.items()
         }
 
-    def extract_turnover(
-        self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the element mass lost to turnover for foliage tissue.
-
-        Returns:
-            The element quantity lost to turnover for foliage tissue.
-        """
-
-        elemental_turnovers = self.tissue_turnover(allocation=allocation)
-
-        self.carbon_mass -= allocation.foliage_turnover
-
-        for ky, elem in self.element_masses.items():
-            elem.actual_element_mass -= elemental_turnovers[ky]
-
         return {"C": allocation.foliage_turnover, **elemental_turnovers}
-
-    # def add_cohort(
-    #     self,
-    #     stem_allometry: StemAllometry,
-    #     extra_pft_traits: ExtraTraitsPFT,
-    #     new_pft_name: str,
-    #     element: str,
-    #     cohort: int,
-    #     stem_traits: StemTraits,
-    # ) -> None:
-    #     """Add a cohort to the foliage tissue type.
-
-    #     Args:
-    #         stem_allometry: The stem allometry object for the cohort.
-    #         extra_pft_traits: Additional traits specific to the plant functional type.
-    #         new_pft_name: The name of the new plant functional type.
-    #         element: The name of the element (e.g., "N" for nitrogen).
-    #         cohort: The index of the cohort to add.
-    #         stem_traits: The stem traits for the cohort.
-    #     """
-
-    #     self.turnover_ratio = np.append(
-    #         self.turnover_ratio,
-    #         extra_pft_traits.traits[new_pft_name][
-    #             f"leaf_turnover_c_{element.lower()}_ratio"
-    #         ],
-    #     )
-    #     self.actual_element_mass = np.append(
-    #         self.actual_element_mass, stem_allometry.foliage_mass[0][cohort]
-    #     )
-    #     self.ideal_ratio = np.append(
-    #         self.ideal_ratio,
-    #         extra_pft_traits.traits[new_pft_name][
-    #               f"foliage_c_{element.lower()}_ratio"
-    #         ],
-    #     )
 
 
 @dataclass
@@ -459,20 +372,21 @@ class ReproductiveBiomass(BiomassTissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-    def tissue_turnover(
+    def get_turnover(
         self, allocation: StemAllocation
     ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the element mass lost to turnover for foliage tissue.
+        """Calculate the element mass lost to turnover for reproductive tissue.
 
         Returns:
-            The element quantity lost to turnover for foliage tissue.
+            The element quantity lost to turnover for reproductive tissue.
         """
 
-        # TODO: Caching locally to avoid calling the property constructor twice - maybe
-        #       this should a cached property?
+        # TODO: Caching locally to avoid calling the property constructor for each
+        # element  - maybe this should a cached property?
+
         cx_ratios = self.Cx_ratio
 
-        return {
+        elemental_turnovers = {
             ky: (
                 (
                     allocation.reproductive_tissue_turnover * (1 / cx_ratios[ky])
@@ -481,53 +395,7 @@ class ReproductiveBiomass(BiomassTissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-    def extract_turnover(
-        self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the element mass lost to turnover for foliage tissue.
-
-        Returns:
-            The element quantity lost to turnover for foliage tissue.
-        """
-
-        elemental_turnovers = self.tissue_turnover(allocation=allocation)
-
-        self.carbon_mass -= allocation.reproductive_tissue_turnover
-
-        for ky, elem in self.element_masses.items():
-            elem.actual_element_mass -= elemental_turnovers[ky]
-
         return {"C": allocation.reproductive_tissue_turnover, **elemental_turnovers}
-
-    # def add_cohort(
-    #     self,
-    #     stem_allometry: StemAllometry,
-    #     extra_pft_traits: ExtraTraitsPFT,
-    #     new_pft_name: str,
-    #     element: str,
-    #     cohort: int,
-    #     stem_traits: StemTraits,
-    # ) -> None:
-    #     """Add a cohort to the reproductive tissue type.
-
-    #     Args:
-    #         stem_allometry: The stem allometry object for the cohort.
-    #         extra_pft_traits: Additional traits specific to the plant functional type.
-    #         new_pft_name: The name of the new plant functional type.
-    #         element: The name of the element (e.g., "N" for nitrogen).
-    #         cohort: The index of the cohort to add.
-    #         stem_traits: The stem traits for the cohort.
-    #     """
-    #     self.actual_element_mass = np.append(
-    #         self.actual_element_mass,
-    #         stem_allometry.reproductive_tissue_mass[0][cohort],
-    #     )
-    #     self.ideal_ratio = np.append(
-    #         self.ideal_ratio,
-    #         extra_pft_traits.traits[new_pft_name][
-    #             f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio"
-    #         ],
-    #     )
 
 
 @dataclass
@@ -583,7 +451,7 @@ class WoodBiomass(BiomassTissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-    def tissue_turnover(
+    def get_turnover(
         self, allocation: StemAllocation
     ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element mass lost to turnover for foliage tissue.
@@ -591,54 +459,12 @@ class WoodBiomass(BiomassTissueABC):
         Returns:
             The element quantity lost to turnover for foliage tissue.
         """
-        return {
+        elemental_turnovers = {
             ky: np.zeros_like(self.carbon_mass)
             for ky, elem in self.element_masses.items()
         }
 
-    def extract_turnover(
-        self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the element mass lost to turnover for stem tissue.
-
-        There is no turnover in stem tissue through time.
-
-        Returns:
-            The element quantities lost to turnover from stem tissue.
-        """
-
-        elemental_turnovers = self.tissue_turnover(allocation=allocation)
-
         return {"C": np.zeros_like(self.carbon_mass), **elemental_turnovers}
-
-    # def add_cohort(
-    #     self,
-    #     stem_allometry: StemAllometry,
-    #     extra_pft_traits: ExtraTraitsPFT,
-    #     new_pft_name: str,
-    #     element: str,
-    #     cohort: int,
-    #     stem_traits: StemTraits,
-    # ) -> None:
-    #     """Add a cohort to the wood tissue type.
-
-    #     Args:
-    #         stem_allometry: The stem allometry object for the cohort.
-    #         extra_pft_traits: Additional traits specific to the plant functional type.
-    #         new_pft_name: The name of the new plant functional type.
-    #         element: The name of the element (e.g., "N" for nitrogen).
-    #         cohort: The index of the cohort to add.
-    #         stem_traits: The stem traits for the cohort.
-    #     """
-    #     self.actual_element_mass = np.append(
-    #         self.actual_element_mass, stem_allometry.stem_mass[0][cohort]
-    #     )
-    #     self.ideal_ratio = np.append(
-    #         self.ideal_ratio,
-    #         extra_pft_traits.traits[new_pft_name][
-    #             f"deadwood_c_{element.lower()}_ratio"
-    #         ],
-    #     )
 
 
 @dataclass
@@ -711,7 +537,7 @@ class RootBiomass(BiomassTissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-    def tissue_turnover(
+    def get_turnover(
         self, allocation: StemAllocation
     ) -> dict[str, NDArray[np.floating]]:
         """Calculate the element mass lost to turnover for foliage tissue.
@@ -722,62 +548,14 @@ class RootBiomass(BiomassTissueABC):
 
         cx_ratios = self.Cx_ratio
 
-        return {
+        elemental_turnovers = {
             ky: (
                 (allocation.fine_root_turnover * (1 / cx_ratios[ky])).squeeze()
             ).squeeze()
             for ky, elem in self.element_masses.items()
         }
 
-    def extract_turnover(
-        self, allocation: StemAllocation
-    ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the element mass lost to turnover for fine root tissue.
-
-        Returns:
-            The element quantities lost to turnover from fine root tissue.
-        """
-
-        elemental_turnovers = self.tissue_turnover(allocation=allocation)
-
-        self.carbon_mass -= allocation.fine_root_turnover
-
-        for ky, elem in self.element_masses.items():
-            elem.actual_element_mass -= elemental_turnovers[ky]
-
         return {"C": allocation.fine_root_turnover, **elemental_turnovers}
-
-    # def add_cohort(
-    #     self,
-    #     stem_allometry: StemAllometry,
-    #     extra_pft_traits: ExtraTraitsPFT,
-    #     new_pft_name: str,
-    #     element: str,
-    #     cohort: int,
-    #     stem_traits: StemTraits,
-    # ) -> None:
-    #     """Add a cohort to the root tissue type.
-
-    #     Args:
-    #         stem_allometry: The stem allometry object for the cohort.
-    #         extra_pft_traits: Additional traits specific to the plant functional type.
-    #         new_pft_name: The name of the new plant functional type.
-    #         element: The name of the element (e.g., "N" for nitrogen).
-    #         cohort: The index of the cohort to add.
-    #         stem_traits: The stem traits for the cohort.
-    #     """
-    #     self.actual_element_mass = np.append(
-    #         self.actual_element_mass,
-    #         stem_allometry.foliage_mass[0][cohort]
-    #         * stem_traits.zeta[cohort]
-    #         * stem_traits.sla[cohort],
-    #     )
-    #     self.ideal_ratio = np.append(
-    #         self.ideal_ratio,
-    #         extra_pft_traits.traits[new_pft_name][
-    #             f"root_turnover_c_{element.lower()}_ratio"
-    #         ],
-    #     )
 
 
 @dataclass
@@ -911,24 +689,53 @@ class Biomasses(CohortMethods, PandasExporter):
             tissue.add_elemental_masses(needed)
             self._adjust_surpluses(needed, increase=False)
 
-    def account_for_element_loss_turnover(self, allocation: StemAllocation) -> None:
-        """Calculate the total element lost to turnover for each cohort.
+    def apply_turnover(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Apply the effects of turnover on whole stem nutrient balances.
 
-        Elements are lost from the tree in the form of turnover, and so an equivalent
-        amount of that element is required to replace what was lost. To represent this
-        process, the element is allocated from the surplus store in the same quantity
-        as turnover. This uses current ratios so that the C:x ratios are maintained.
+        This method takes a stem allocation object and returns an array per tissue of
+        the carbon and nutrient biomasses of turnover from each pool.
 
-        .. NOTE:
+        The calls to the individual `BiomassTissueABC.get_turnover` methods do not alter
+        the biomasses in the tissue pools:
 
-            These values are not subtracted from the element mass itself, as we assume
-            that the tree regrows the lost tissue in the same timestep. This means that
-            the element mass SHOULD stay the same, however the plant must have enough
-            surplus to cover the loss - hence only subtracting from the element surplus.
+        * The carbon biomass turnover explicitly models the maintenance of tissue carbon
+          biomass by replacement - an equal carbon biomass is lost to the environment
 
+        * Nutrient biomasses are lost to turnover according to the turnover ratios. If
+          the tissues are at their ideal ratio, then the elemental masses will not
+          change. However, if the nutrient inputs within a timestep are not sufficient
+          to maintain the current ratios of replacement tissue, then the tissue
+          elemental masses should decrease. This is handled by recording the lost
+          elemental masses in the stem-wide element surplus pools and balancing the
+          accumulated deficits and gains to those pools at the end of the allocation
+          process.
+
+        TODO: This needs to account for herbivory - proportional to herbivory loss?
+
+        Returns:
+            A dictionary by tissue of turnover biomass arrays
         """
-        for tissue in self.tissues:
-            self._adjust_surpluses(tissue.tissue_turnover(allocation), increase=False)
+
+        # Get turnover by tissue
+        turnover_by_tissue = {
+            tissue.tissue_name: np.stack(list(tissue.get_turnover(allocation).values()))
+            for tissue in self.tissues
+        }
+
+        # TODO - this next bit is clunky but moving the whole system over to arrays not
+        #        dicts internally will probably fix it.
+
+        # Accumulate the tissue specific turnovers into a single whole stem turnover
+        total_turnover = np.add.reduce(list(turnover_by_tissue.values()))
+
+        # This total is a CNP by cohorts array and needs to be split back to per element
+        # dictionary of arrays.
+        total_turnover_by_element = dict(zip(["C", *self.elements], total_turnover))
+        self._adjust_surpluses(total_turnover_by_element, increase=False)
+
+        return turnover_by_tissue
 
     def balance_elements(self) -> None:
         """Redistribute elemental mass across tissues and element pool.

@@ -457,6 +457,10 @@ class PlantsModel(
                 coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
             "cell": xr.zeros_like(self.data["elevation"]),
+            "pft": xr.DataArray(
+                data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
+                coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
+            ),
         }
 
         # Initialize the fruit and seed DataArrays for the data object. These values
@@ -631,11 +635,11 @@ class PlantsModel(
         self.old_stoichiometry_ratios_to_depricate()
 
         # Initialize variables that hold one value per cell
-        reset_vars = [
+        by_cell_vars = [
             "root_carbohydrate_exudation",
             "plant_symbiote_carbon_supply",
         ]
-        for var in reset_vars:
+        for var in by_cell_vars:
             self.data[var] = self.data_object_templates["cell"].copy()
 
         # Initialize variables that are stored per cell and per element
@@ -654,6 +658,10 @@ class PlantsModel(
         pft_cnp_vars = [
             "subcanopy_seedbank_litter_cnp",
             "subcanopy_seedbank_cnp",
+            "canopy_seed_cnp",
+            "canopy_seed_turnover_cnp",
+            "canopy_fruit_cnp",
+            "canopy_fruit_turnover_cnp",
         ]
         for var in pft_cnp_vars:
             self.data[var] = self.data_object_templates["cnp_pft"].copy()
@@ -1035,6 +1043,7 @@ class PlantsModel(
             community = self.communities[cell_id]
             cohorts = community.cohorts
             stoichiometries = self.stoichiometries[cell_id]
+            biomasses = self.biomasses[cell_id]
 
             # Calculate the allocation of GPP in kgC m2 per stem, since the T Model is
             # calibrated using per kg values.
@@ -1043,6 +1052,13 @@ class PlantsModel(
                 stem_allometry=community.stem_allometry,
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
+
+            # TODO: There is a hack below to stop DBH shrinking but it currently only
+            #       targets the DBH, not the rest of the allocation so these turnover
+            #       etc may still be based on shrinking tree values.
+
+            biomasses.account_for_element_loss_turnover(allocation=stem_allocation)
+
             self.stem_allocations[cell_id] = stem_allocation
 
             # ALLOCATE TO TURNOVER:
