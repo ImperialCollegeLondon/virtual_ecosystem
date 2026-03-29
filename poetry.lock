@@ -1443,14 +1443,14 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "hypothesis"
-version = "6.151.9"
+version = "6.151.10"
 description = "The property-based testing library for Python"
 optional = false
 python-versions = ">=3.10"
 groups = ["test"]
 files = [
-    {file = "hypothesis-6.151.9-py3-none-any.whl", hash = "sha256:7b7220585c67759b1b1ef839b1e6e9e3d82ed468cfc1ece43c67184848d7edd9"},
-    {file = "hypothesis-6.151.9.tar.gz", hash = "sha256:2f284428dda6c3c48c580de0e18470ff9c7f5ef628a647ee8002f38c3f9097ca"},
+    {file = "hypothesis-6.151.10-py3-none-any.whl", hash = "sha256:b0d7728f0c8c2be009f89fcdd6066f70c5439aa0f94adbb06e98261d05f49b05"},
+    {file = "hypothesis-6.151.10.tar.gz", hash = "sha256:6c9565af8b4aa3a080b508f66ce9c2a77dd613c7e9073e27fc7e4ef9f45f8a27"},
 ]
 
 [package.dependencies]
@@ -1602,14 +1602,14 @@ test = ["flaky", "ipyparallel", "pre-commit", "pytest (>=7.0,<10)", "pytest-asyn
 
 [[package]]
 name = "ipython"
-version = "9.11.0"
+version = "9.12.0"
 description = "IPython: Productive Interactive Computing"
 optional = false
 python-versions = ">=3.12"
 groups = ["devenv", "docs"]
 files = [
-    {file = "ipython-9.11.0-py3-none-any.whl", hash = "sha256:6922d5bcf944c6e525a76a0a304451b60a2b6f875e86656d8bc2dfda5d710e19"},
-    {file = "ipython-9.11.0.tar.gz", hash = "sha256:2a94bc4406b22ecc7e4cb95b98450f3ea493a76bec8896cda11b78d7752a6667"},
+    {file = "ipython-9.12.0-py3-none-any.whl", hash = "sha256:0f2701e8ee86e117e37f50563205d36feaa259d2e08d4a6bc6b6d74b18ce128d"},
+    {file = "ipython-9.12.0.tar.gz", hash = "sha256:01daa83f504b693ba523b5a407246cabde4eb4513285a3c6acaff11a66735ee4"},
 ]
 
 [package.dependencies]
@@ -5470,4 +5470,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "49a115b8ae160a8eac28fb822e3bbf1dd4e943a2e94caddf308772efb259dba9"
+content-hash = "3f8e775f238876da1d8e8b948bbb0ad277f377369e9b5bc603b7c7e9496db9c8"
