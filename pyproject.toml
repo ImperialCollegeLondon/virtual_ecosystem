@@ -62,7 +62,7 @@ types-jsonschema = "^4.26.0"
 types-tqdm = "^4.67.3.20260303"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.151.9"
+hypothesis = "^6.151.10"
 pytest = ">=7.1.2,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
