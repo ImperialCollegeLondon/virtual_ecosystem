@@ -158,6 +158,42 @@ class TestFunctionalGroup:
         )
 
 
+def test_functional_group_thermal_tolerance_defaults_to_none(
+    shared_datadir, constants_instance
+):
+    """Test that thermal tolerance attributes default to None when absent from CSV."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants=constants_instance)
+
+    # herbivorous_mammal (index 3) has no thermal tolerance values in CSV
+    fg = fg_list[3]
+    assert fg.t_opt is None
+    assert fg.t_max_crit is None
+    assert fg.t_min_crit is None
+
+
+def test_functional_group_thermal_tolerance_loaded_from_csv(
+    shared_datadir, constants_instance
+):
+    """Test that thermal tolerance values are correctly loaded from CSV."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants=constants_instance)
+
+    # thermophilic_lizard has explicit thermal tolerance values
+    fg = next(f for f in fg_list if f.name == "thermophilic_lizard")
+    assert fg.t_opt == pytest.approx(35.0)
+    assert fg.t_max_crit == pytest.approx(42.0)
+    assert fg.t_min_crit == pytest.approx(30.0)
+
+
 @pytest.mark.parametrize(
     "index, name, taxa, diet, metabolic_type, reproductive_environment,"
     "reproductive_type, development_type, development_status,"

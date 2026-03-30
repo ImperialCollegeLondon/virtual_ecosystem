@@ -799,22 +799,102 @@ def test_p_below_t_min(temperature, diurnal_temp_range, t_min_crit, expected):
 
 
 @pytest.mark.parametrize(
-    "metabolic_type, temperature, diurnal_temp_range, expected",
+    "metabolic_type, temperature, diurnal_temp_range, t_opt, t_max_crit, t_min_crit,"
+    "expected",
     [
-        pytest.param("endothermic", 0.0, 4.0, 1.0, id="endotherm_always_active"),
-        pytest.param("ectothermic", 31.0, 4.0, 1.0, id="ectotherm_fully_within_window"),
-        pytest.param("ectothermic", 10.0, 4.0, 0.0, id="ectotherm_always_too_cold"),
-        pytest.param("ectothermic", 40.0, 4.0, 0.0, id="ectotherm_always_too_hot"),
+        # Toy parameter path (t_opt/t_max_crit/t_min_crit all None)
+        pytest.param(
+            "endothermic",
+            0.0,
+            4.0,
+            None,
+            None,
+            None,
+            1.0,
+            id="endotherm_always_active",
+        ),
+        pytest.param(
+            "ectothermic",
+            31.0,
+            4.0,
+            None,
+            None,
+            None,
+            1.0,
+            id="ectotherm_fully_within_window",
+        ),
+        pytest.param(
+            "ectothermic",
+            10.0,
+            4.0,
+            None,
+            None,
+            None,
+            0.0,
+            id="ectotherm_always_too_cold",
+        ),
+        pytest.param(
+            "ectothermic",
+            40.0,
+            4.0,
+            None,
+            None,
+            None,
+            0.0,
+            id="ectotherm_always_too_hot",
+        ),
         pytest.param(
             "ectothermic",
             30.0,
             10.0,
+            None,
+            None,
+            None,
             0.5517546068733064,
             id="ectotherm_partial_overlap",
         ),
+        # CSV override path (t_opt=35, t_max_crit=42, t_min_crit=30)
+        pytest.param(
+            "ectothermic",
+            36.0,
+            4.0,
+            35.0,
+            42.0,
+            30.0,
+            1.0,
+            id="csv_override_within_window",
+        ),
+        pytest.param(
+            "ectothermic",
+            10.0,
+            4.0,
+            35.0,
+            42.0,
+            30.0,
+            0.0,
+            id="csv_override_too_cold",
+        ),
+        pytest.param(
+            "ectothermic",
+            30.0,
+            10.0,
+            35.0,
+            42.0,
+            30.0,
+            0.5,
+            id="csv_override_partial_overlap",
+        ),
     ],
 )
-def test_activity_window(metabolic_type, temperature, diurnal_temp_range, expected):
+def test_activity_window(
+    metabolic_type,
+    temperature,
+    diurnal_temp_range,
+    t_opt,
+    t_max_crit,
+    t_min_crit,
+    expected,
+):
     """Test activity window fraction across endotherm and ectotherm scenarios."""
     from virtual_ecosystem.models.animal.animal_traits import MetabolicType
     from virtual_ecosystem.models.animal.scaling_functions import activity_window
@@ -825,5 +905,8 @@ def test_activity_window(metabolic_type, temperature, diurnal_temp_range, expect
         diurnal_temp_range=diurnal_temp_range,
         annual_mean_temp=20.0,
         annual_temp_sd=5.0,
+        t_opt=t_opt,
+        t_max_crit=t_max_crit,
+        t_min_crit=t_min_crit,
     )
     assert result == pytest.approx(expected)
