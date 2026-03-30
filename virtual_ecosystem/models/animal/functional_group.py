@@ -54,6 +54,9 @@ class FunctionalGroup:
         birth_mass: float,
         adult_mass: float,
         density_individuals_m2: float | None = None,
+        t_opt: float | None = None,
+        t_max_crit: float | None = None,
+        t_min_crit: float | None = None,
         constants: AnimalConstants = AnimalConstants(),
     ) -> None:
         """The constructor for the FunctionalGroup class.
@@ -96,6 +99,12 @@ class FunctionalGroup:
         """The mass of the functional group at adulthood."""
         self.density_individuals_m2 = density_individuals_m2
         """Optional empirical density in individuals per m² for initialization."""
+        self.t_opt = t_opt
+        """Optional optimal activity temperature for ectotherms [°C]."""
+        self.t_max_crit = t_max_crit
+        """Optional upper critical temperature for ectotherms [°C]."""
+        self.t_min_crit = t_min_crit
+        """Optional lower critical temperature for ectotherms [°C]."""
         self.constants = constants
         """Animal constants."""
         self.broad_diet: DietType = self.diet.coarse_category()
