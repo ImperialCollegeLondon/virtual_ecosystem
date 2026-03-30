@@ -2136,6 +2136,17 @@ class AnimalCohort:
     ) -> None:
         """Update the activity window fraction for the current timestep.
 
+        Delegates to
+        :func:`~virtual_ecosystem.models.animal.scaling_functions.activity_window`
+        and stores the result in :attr:`sigma_f_t`. Should be called once per
+        timestep, before both :meth:`forage_cohort` and :meth:`metabolize`.
+
+        If the cohort's functional group has ``t_opt``, ``t_max_crit``, and
+        ``t_min_crit`` set from CSV input, those values are used directly.
+        Otherwise the toy climate parameters from
+        :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
+        are used to derive thermal tolerances.
+
         Args:
             temperature: Monthly mean ambient temperature [°C].
             diurnal_temp_range: Monthly mean diurnal temperature range [°C].
@@ -2149,6 +2160,9 @@ class AnimalCohort:
             diurnal_temp_range=diurnal_temp_range,
             annual_mean_temp=annual_mean_temp,
             annual_temp_sd=annual_temp_sd,
+            t_opt=self.functional_group.t_opt,
+            t_max_crit=self.functional_group.t_max_crit,
+            t_min_crit=self.functional_group.t_min_crit,
             constants=self.constants,
         )
 

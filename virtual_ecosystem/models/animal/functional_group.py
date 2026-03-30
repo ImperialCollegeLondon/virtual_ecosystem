@@ -206,6 +206,11 @@ def import_functional_groups(
     if "density_individuals_m2" not in fg_data:
         fg_data["density_individuals_m2"] = None
 
+    # Set thermal tolerance values if not provided
+    for col in ("t_opt", "t_max_crit", "t_min_crit"):
+        if col not in fg_data:
+            fg_data[col] = None
+
     # Build the functional group list - ignore mypy moaning about unpacking column
     # headers from pandas: they are all strings
     functional_group_list: list[FunctionalGroup] = [

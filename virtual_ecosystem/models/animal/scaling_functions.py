@@ -755,6 +755,9 @@ def activity_window(
     diurnal_temp_range: float,
     annual_mean_temp: float,
     annual_temp_sd: float,
+    t_opt: float | None = None,
+    t_max_crit: float | None = None,
+    t_min_crit: float | None = None,
     constants: AnimalConstants = AnimalConstants(),
 ) -> float:
     r"""Proportion of the timestep suitable for a cohort to be active.
@@ -776,6 +779,11 @@ def activity_window(
     The result is clamped to [0, 1] to guard against floating-point cases where
     ``p_above + p_below`` marginally exceeds 1.
 
+    If ``t_opt``, ``t_max_crit``, and ``t_min_crit`` are all provided they are
+    used directly, bypassing the toy-parameter derivation from climate statistics.
+    If any are ``None`` the full derivation from ``annual_mean_temp`` and
+    ``annual_temp_sd`` is used instead.
+
     Args:
         metabolic_type: Whether the cohort is endothermic or ectothermic.
         temperature: Monthly mean ambient temperature $T_C$ [°C].
@@ -784,24 +792,35 @@ def activity_window(
         annual_mean_temp: Annual mean ambient temperature $T_{Annual}^C$ [°C].
         annual_temp_sd: Standard deviation of monthly temperatures across the
             climatological year $\\sigma_{T_{Annual}^C}$ [°C].
-        constants: Animal constants supplying the four activity window parameters.
+        t_opt: Optional optimal activity temperature [°C]. If provided alongside
+            ``t_max_crit`` and ``t_min_crit``, overrides the toy-parameter
+            derivation.
+        t_max_crit: Optional upper critical temperature [°C]. See ``t_opt``.
+        t_min_crit: Optional lower critical temperature [°C]. See ``t_opt``.
+        constants: Animal constants supplying the four activity window parameters,
+            used only when ``t_opt``, ``t_max_crit``, and ``t_min_crit`` are not
+            all provided.
 
     Returns:
         Activity window fraction in [0, 1].
     """
-
     if metabolic_type == MetabolicType.ENDOTHERMIC:
         return 1.0
 
-    t_opt = t_opt_ectotherm(
-        annual_mean_temp, annual_temp_sd, constants.m_tsm, constants.c_tsm
-    )
-    t_max = t_max_crit_ectotherm(
-        annual_mean_temp, annual_temp_sd, constants.m_tol, constants.c_tol
-    )
-    t_min = t_min_crit_ectotherm(t_max, t_opt)
+    if t_opt is not None and t_max_crit is not None and t_min_crit is not None:
+        t_opt_val = t_opt
+        t_max_val = t_max_crit
+        t_min_val = t_min_crit
+    else:
+        t_opt_val = t_opt_ectotherm(
+            annual_mean_temp, annual_temp_sd, constants.m_tsm, constants.c_tsm
+        )
+        t_max_val = t_max_crit_ectotherm(
+            annual_mean_temp, annual_temp_sd, constants.m_tol, constants.c_tol
+        )
+        t_min_val = t_min_crit_ectotherm(t_max_val, t_opt_val)
 
-    p_above = p_above_t_max(temperature, diurnal_temp_range, t_max)
-    p_below = p_below_t_min(temperature, diurnal_temp_range, t_min)
+    p_above = p_above_t_max(temperature, diurnal_temp_range, t_max_val)
+    p_below = p_below_t_min(temperature, diurnal_temp_range, t_min_val)
 
     return max(0.0, 1.0 - (p_above + p_below))
