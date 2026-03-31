@@ -4,6 +4,7 @@ constants and rate equations used by AnimalCohorts in the
 """  # noqa: D205
 
 from collections.abc import Iterable
+from math import isnan
 from pathlib import Path
 
 import pandas as pd
@@ -99,11 +100,11 @@ class FunctionalGroup:
         """The mass of the functional group at adulthood."""
         self.density_individuals_m2 = density_individuals_m2
         """Optional empirical density in individuals per m² for initialization."""
-        self.t_opt = t_opt
+        self.t_opt = _none_or_float(t_opt)
         """Optional optimal activity temperature for ectotherms [°C]."""
-        self.t_max_crit = t_max_crit
+        self.t_max_crit = _none_or_float(t_max_crit)
         """Optional upper critical temperature for ectotherms [°C]."""
-        self.t_min_crit = t_min_crit
+        self.t_min_crit = _none_or_float(t_min_crit)
         """Optional lower critical temperature for ectotherms [°C]."""
         self.constants = constants
         """Animal constants."""
@@ -168,7 +169,7 @@ def import_functional_groups(
     """
 
     try:
-        fg_data = pd.read_csv(fg_csv_file)
+        fg_data = pd.read_csv(fg_csv_file, na_values=["None"])
     except FileNotFoundError:
         msg = f"Animal functional group definition file not found: {fg_csv_file!s}"
         LOGGER.error(msg)
@@ -240,3 +241,17 @@ def get_functional_group_by_name(
         if fg.name == name:
             return fg
     raise ValueError(f"No FunctionalGroup with name '{name}' found.")
+
+
+def _none_or_float(value: float | None) -> float | None:
+    """Convert NaN to None, passing through valid floats and None unchanged.
+
+    Args:
+        value: A float value or None, potentially NaN.
+
+    Returns:
+        None if the value is None or NaN, otherwise the original float.
+    """
+    if value is None or (isinstance(value, float) and isnan(value)):
+        return None
+    return value

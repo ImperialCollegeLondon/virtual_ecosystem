@@ -255,7 +255,7 @@ def test_functional_group_thermal_tolerance_loaded_from_csv(
             3,
             "herbivorous_mammal",
             "mammal",
-            "fruit_foliage",
+            "fruit_foliage_seeds",
             "endothermic",
             "terrestrial",
             "iteroparous",

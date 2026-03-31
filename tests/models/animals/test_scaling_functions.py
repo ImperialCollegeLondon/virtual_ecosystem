@@ -233,6 +233,9 @@ def test_carnivore_prey_group_selection(functional_group_list_instance):
         "dung_beetle": (0.0001, 1000.0),
         "scavenging_mammal": (0.0001, 1000.0),
         "fungivorous_mammal": (0.0001, 1000.0),
+        "herbivorous_lizard": (0.0001, 1000.0),
+        "carnivorous_snake": (0.0001, 1000.0),
+        "thermophilic_lizard": (0.0001, 1000.0),
         "carcasses": (0.0, 0.0),
         "excrement": (0.0, 0.0),
     }
