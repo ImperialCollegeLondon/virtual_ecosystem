@@ -510,3 +510,21 @@ def test_get_functional_group_by_name(
         result = get_functional_group_by_name(functional_groups, name)
         assert isinstance(result, FunctionalGroup)
         assert result.name == name
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        pytest.param(1.5, 1.5, id="valid_float"),
+        pytest.param(0.0, 0.0, id="zero_float"),
+        pytest.param(None, None, id="none"),
+        pytest.param(float("nan"), None, id="nan"),
+    ],
+)
+def test_none_or_float(value, expected):
+    """Test that NaN and None are converted to None, valid floats pass through."""
+    from virtual_ecosystem.models.animal.functional_group import _none_or_float
+
+    assert _none_or_float(value) is expected or _none_or_float(value) == pytest.approx(
+        expected
+    )
