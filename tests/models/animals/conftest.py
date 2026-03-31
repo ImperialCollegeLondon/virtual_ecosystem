@@ -776,6 +776,31 @@ def butterfly_cohort_instance(
 
 
 @pytest.fixture
+def thermophilic_lizard_cohort_instance(
+    shared_datadir,
+    animal_data_for_cohorts_instance,
+    constants_instance,
+):
+    """Fixture for a thermophilic lizard cohort with CSV thermal tolerances."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+    return AnimalCohort(
+        fg_list[19],
+        0.1,
+        1,
+        10,
+        1,
+        animal_data_for_cohorts_instance.grid,
+        constants_instance,
+    )
+
+
+@pytest.fixture
 def excrement_pool_instance():
     """Fixture for an excrement pool used in tests."""
     from virtual_ecosystem.models.animal.cnp import CNP

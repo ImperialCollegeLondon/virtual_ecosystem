@@ -4051,12 +4051,26 @@ class TestAnimalCohort:
                 "between",
                 id="ectotherm_partial_overlap",
             ),
+            # CSV override path — same climate inputs as ectotherm_fully_within_window
+            # but thermophilic_lizard has t_min_crit=30 so temp=31 is only partially
+            # within window, giving a different result than the toy parameter path
+            pytest.param(
+                "thermophilic_lizard",
+                31.0,
+                4.0,
+                20.0,
+                5.0,
+                0.6666666666666667,
+                "equal",
+                id="csv_override_partial_window",
+            ),
         ],
     )
     def test_update_activity_window(
         self,
         herbivore_cohort_instance,
         ectotherm_cohort_instance,
+        thermophilic_lizard_cohort_instance,
         cohort_type,
         temperature,
         diurnal_temp_range,
@@ -4066,11 +4080,11 @@ class TestAnimalCohort:
         check_type,
     ):
         """Test that update_activity_window sets sigma_f_t correctly."""
-        cohort = (
-            herbivore_cohort_instance
-            if cohort_type == "herbivore"
-            else ectotherm_cohort_instance
-        )
+        cohort = {
+            "herbivore": herbivore_cohort_instance,
+            "ectotherm": ectotherm_cohort_instance,
+            "thermophilic_lizard": thermophilic_lizard_cohort_instance,
+        }[cohort_type]
 
         cohort.update_activity_window(
             temperature=temperature,
