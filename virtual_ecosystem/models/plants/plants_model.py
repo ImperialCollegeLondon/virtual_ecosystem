@@ -1076,13 +1076,13 @@ class PlantsModel(
             # HANDLE ALLOCATION TO TURNOVER:
             # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
 
-            turnover = biomasses.apply_turnover(allocation=stem_allocation)
+            tissue_turnovers = biomasses.apply_turnover(allocation=stem_allocation)
 
             # Store turnover quantities in the data object, scaling per stem quantities
             # up to the number of individuals and then summing across cohorts
-            for tissue in ("foliage", "root", "reproductive"):
-                self.data[f"{tissue}_turnover_cnp"][cell_id] += (
-                    turnover[tissue] * cohorts.n_individuals
+            for tissue_name, turnover in tissue_turnovers.items():
+                self.data[f"{tissue_name}_turnover_cnp"][cell_id] += (
+                    turnover * cohorts.n_individuals
                 ).sum(axis=0)
 
             # Partition reproductive tissue into propagule and non-propagule masses and

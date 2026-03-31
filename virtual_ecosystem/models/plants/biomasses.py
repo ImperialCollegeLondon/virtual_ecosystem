@@ -205,10 +205,16 @@ class BiomassTissueABC(ABC):
         return np.stack(elemental_masses)
 
     @abstractmethod
-    def elements_needed_for_growth(
+    def apply_growth(
         self, allocation: StemAllocation
     ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the elements needed for growth for the tissue type."""
+        """Increase tissue biomasses following growth allocation for the tissue.
+
+        This method should adjust the carbon biomass following the allocation model and
+        similarly increase nutrient biomasses following the ideal ratios. The method
+        must then also return the nutrient biomass increases, so that subsequent
+        nutrient balancing can account for deficits and excesses within the stem.
+        """
 
     @abstractmethod
     def get_turnover(
@@ -216,8 +222,9 @@ class BiomassTissueABC(ABC):
     ) -> dict[str, NDArray[np.floating]]:
         """Calculate the elemental losses to turnover for the tissue type.
 
-        This method should return a per element array of cohort values including the
-        carbon allocation to turnover in this tissue.
+        This method should return dictionary keyed by elements, including carbon. The
+        values should be an array giving the per stem biomass within each cohort that is
+        lost to turnover given the allocation.
         """
 
     def append(self, other: BiomassTissueABC):
@@ -280,18 +287,25 @@ class FoliageBiomass(BiomassTissueABC):
             element_masses=element_masses,
         )
 
-    def elements_needed_for_growth(
+    def apply_growth(
         self, allocation: StemAllocation
     ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the element quantity needed for growth for foliage tissue.
+        """Increase the biomasses of foliage tissue given the allocation model.
 
         Returns:
-            The element quantity needed for growth for foliage tissue.
+            The increases in element quantities needed to support growth at the ideal
+            ratio for the tissue.
         """
-        return {
+        self.carbon_mass += allocation.delta_foliage_mass
+
+        nutrient_ideal_ratio_increase = {
             ky: (allocation.delta_foliage_mass * (1 / elem.ideal_ratio)).squeeze()
             for ky, elem in self.element_masses.items()
         }
+
+        self.add_elemental_masses(nutrient_ideal_ratio_increase)
+
+        return nutrient_ideal_ratio_increase
 
     def get_turnover(
         self, allocation: StemAllocation
@@ -355,22 +369,30 @@ class ReproductiveBiomass(BiomassTissueABC):
             element_masses=element_masses,
         )
 
-    def elements_needed_for_growth(
+    def apply_growth(
         self, allocation: StemAllocation
     ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the element quantity needed for growth for foliage tissue.
+        """Increase the biomasses of reproductive tissue given the allocation model.
 
         Returns:
-            The element quantity needed for growth for foliage tissue.
+            The increases in element quantities needed to support growth at the ideal
+            ratio for the tissue.
         """
-        return {
-            ky: (
-                allocation.delta_foliage_mass
-                * self.community.stem_traits.p_foliage_for_reproductive_tissue
-                * (1 / elem.ideal_ratio)
-            ).squeeze()
+
+        carbon_increase = (
+            allocation.delta_foliage_mass
+            * self.community.stem_traits.p_foliage_for_reproductive_tissue
+        )
+        self.carbon_mass += carbon_increase
+
+        nutrient_ideal_ratio_increase = {
+            ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
             for ky, elem in self.element_masses.items()
         }
+
+        self.add_elemental_masses(nutrient_ideal_ratio_increase)
+
+        return nutrient_ideal_ratio_increase
 
     def get_turnover(
         self, allocation: StemAllocation
@@ -441,18 +463,25 @@ class WoodBiomass(BiomassTissueABC):
             element_masses=element_masses,
         )
 
-    def elements_needed_for_growth(
+    def apply_growth(
         self, allocation: StemAllocation
     ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the element quantity needed for growth for foliage tissue.
+        """Increase the biomasses of woody tissue given the allocation model.
 
         Returns:
-            The element quantity needed for growth for foliage tissue.
+            The increases in element quantities needed to support growth at the ideal
+            ratio for the tissue.
         """
-        return {
+        self.carbon_mass += allocation.delta_stem_mass
+
+        nutrient_ideal_ratio_increase = {
             ky: (allocation.delta_stem_mass * (1 / elem.ideal_ratio)).squeeze()
             for ky, elem in self.element_masses.items()
         }
+
+        self.add_elemental_masses(nutrient_ideal_ratio_increase)
+
+        return nutrient_ideal_ratio_increase
 
     def get_turnover(
         self, allocation: StemAllocation
@@ -522,23 +551,32 @@ class RootBiomass(BiomassTissueABC):
             element_masses=element_masses,
         )
 
-    def elements_needed_for_growth(
+    def apply_growth(
         self, allocation: StemAllocation
     ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the element quantity needed for growth for foliage tissue.
+        """Increase the biomasses of root tissue given the allocation model.
 
         Returns:
-            The element quantity needed for growth for foliage tissue.
+            The increases in element quantities needed to support growth at the ideal
+            ratio for the tissue.
         """
-        return {
-            ky: (
-                allocation.delta_foliage_mass
-                * self.community.stem_traits.zeta
-                * self.community.stem_traits.sla
-                * (1 / elem.ideal_ratio)
-            ).squeeze()
+
+        carbon_increase = (
+            allocation.delta_foliage_mass
+            * self.community.stem_traits.zeta
+            * self.community.stem_traits.sla
+        )
+
+        self.carbon_mass += carbon_increase
+
+        nutrient_ideal_ratio_increase = {
+            ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
             for ky, elem in self.element_masses.items()
         }
+
+        self.add_elemental_masses(nutrient_ideal_ratio_increase)
+
+        return nutrient_ideal_ratio_increase
 
     def get_turnover(
         self, allocation: StemAllocation
@@ -677,19 +715,26 @@ class Biomasses(CohortMethods, PandasExporter):
             else:
                 self.element_surplus[elem] -= masses[elem]
 
-    def account_for_growth(self, allocation: StemAllocation) -> None:
-        """Distribute the element needed for growth to each tissue type.
+    def apply_growth(self, allocation: StemAllocation) -> None:
+        """Distribute the carbon allocated to growth and required nutrients to tissues.
 
-        This method updates the actual element mass for each tissue type based on the
-        element needed for growth calculated from the allocation.
+        This method updates the actual biomasses for each tissue type based on the
+        carbon allocation and elements needed for growth at ideal ratios, given that
+        carbon biomass.
+
+        The nutrient allocation is debited from the whole stem nutrient balance and
+        subsequent nutrient balancing is responsible for adjusting tissue values to
+        reflect nutrient excesses or deficits at the whole stem level.
 
         Args:
             allocation: The allocation object containing the growth allocation data.
         """
 
         for tissue in self.tissues:
-            needed = tissue.elements_needed_for_growth(allocation)
-            tissue.add_elemental_masses(needed)
+            # Increase the tissue biomasses
+            needed = tissue.apply_growth(allocation)
+            # Record the nutrients biomasses at ideal ratios allocated to the tissue in
+            # the whole stem balance.
             self._adjust_surpluses(needed, increase=False)
 
     def apply_turnover(
