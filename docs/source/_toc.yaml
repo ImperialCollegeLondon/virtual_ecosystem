@@ -102,6 +102,13 @@ subtrees:
               - file: development/documentation/api_generation
               - file: development/documentation/docstring_style
               - file: development/documentation/jupyter_notebooks
+          - file: development/calibration
+            entries:
+            - file: development/calibration/bug_identification
+              entries:
+                - file: development/calibration/litter_validation
+                - file: development/calibration/litter_validation_fixed
+            - file: development/calibration/debugging
 
       - file: api/virtual_ecosystem
         title: API
