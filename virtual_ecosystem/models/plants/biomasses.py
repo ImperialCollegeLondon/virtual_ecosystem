@@ -308,7 +308,7 @@ class FoliageBiomass(BiomassTissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-        return {"C": allocation.foliage_turnover, **elemental_turnovers}
+        return {"C": allocation.foliage_turnover.squeeze(), **elemental_turnovers}
 
 
 @dataclass
@@ -395,7 +395,10 @@ class ReproductiveBiomass(BiomassTissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-        return {"C": allocation.reproductive_tissue_turnover, **elemental_turnovers}
+        return {
+            "C": allocation.reproductive_tissue_turnover.squeeze(),
+            **elemental_turnovers,
+        }
 
 
 @dataclass
@@ -460,11 +463,11 @@ class WoodBiomass(BiomassTissueABC):
             The element quantity lost to turnover for foliage tissue.
         """
         elemental_turnovers = {
-            ky: np.zeros_like(self.carbon_mass)
+            ky: np.zeros_like(self.carbon_mass).squeeze()
             for ky, elem in self.element_masses.items()
         }
 
-        return {"C": np.zeros_like(self.carbon_mass), **elemental_turnovers}
+        return {"C": np.zeros_like(self.carbon_mass).squeeze(), **elemental_turnovers}
 
 
 @dataclass
@@ -555,7 +558,7 @@ class RootBiomass(BiomassTissueABC):
             for ky, elem in self.element_masses.items()
         }
 
-        return {"C": allocation.fine_root_turnover, **elemental_turnovers}
+        return {"C": allocation.fine_root_turnover.squeeze(), **elemental_turnovers}
 
 
 @dataclass
@@ -829,37 +832,3 @@ class Biomasses(CohortMethods, PandasExporter):
             self.element_surplus[elem] = np.append(
                 self.element_surplus[elem], other.element_surplus[elem]
             )
-
-    # def add_cohorts(
-    #     self,
-    #     new_cohort_data: Cohorts,
-    #     flora: Flora,
-    # ) -> None:
-    #     """Add a set of new cohorts to the Biomasses model.
-
-    #     TODO: currently using default ratios.
-
-    #     Args:
-    #         new_cohort_data: Cohort object containing information about the new
-    #             cohort.
-    #         flora: The flora object providing stem traits for the new cohort.
-    #         element: The name of the element (e.g., "N" for nitrogen).
-    #     """
-
-    #     new_stem_traits = flora.get_stem_traits(pft_names=new_cohort_data.pft_names)
-    #     new_stem_allometry = StemAllometry(
-    #         stem_traits=new_stem_traits, at_dbh=new_cohort_data._dbh_values
-    #     )
-
-    #     for i in range(new_cohort_data.n_cohorts):
-    #         for tissue in self.tissues:
-    #             tissue.add_cohort(
-    #                 stem_allometry=new_stem_allometry,
-    #                 extra_pft_traits=self.extra_pft_traits,
-    #                 new_pft_name=new_cohort_data.pft_names[i],
-    #                 element=element,
-    #                 cohort=i,
-    #                 stem_traits=new_stem_traits,
-    #             )
-
-    #         self.element_surplus = np.append(self.element_surplus, 0.0)

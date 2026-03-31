@@ -378,10 +378,10 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     )
 
 
-@pytest.mark.skip(
-    reason="The DBH increase check fails - we need to fix this but that is going "
-    "to be tricky and we need to unblock the CI."
-)
+# @pytest.mark.skip(
+#     reason="The DBH increase check fails - we need to fix this but that is going "
+#     "to be tricky and we need to unblock the CI."
+# )
 def test_PlantsModel_allocate_gpp(fxt_plants_model):
     """Test the allocate_gpp method."""
 

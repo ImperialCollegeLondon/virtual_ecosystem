@@ -1053,18 +1053,11 @@ class PlantsModel(
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
 
-            # TODO: There is a hack below to stop DBH shrinking but it currently only
-            #       targets the DBH, not the rest of the allocation so these turnover
-            #       etc may still be based on shrinking tree values.
-
-            biomasses.account_for_element_loss_turnover(allocation=stem_allocation)
-
             self.stem_allocations[cell_id] = stem_allocation
 
-            # ALLOCATE TO TURNOVER:
-            # Grow the plants by increasing the stem dbh
-            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
-            # HACK: The current code prevents stems shrinking to zero and below. This is
+            # GROW THE PLANTS by increasing the stem dbh
+            #
+            # HACK: The code below prevents stems shrinking to zero and below. This is
             #       temporary until we fix what happens with stem shrinkage and carbon
             #       starvation to something biological.
             #
@@ -1072,20 +1065,25 @@ class PlantsModel(
             #       for the moment we just want to avoid passing pyrealm negative sizes.
             #       If the np.where is removed and this is set directly, then pyrealm
             #       will detect D <= 0 and raise an exception.
+            #
+            #       The problem with this hack is that it currently only
+            #       targets the DBH, not the rest of the allocation so these turnover
+            #       etc may still be based on shrinking tree values.
 
             new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
             cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
 
-            # Store turnover quantities in the data object
-            self.data["foliage_turnover_cnp"].loc[cell_id, "C"] += np.sum(
-                stem_allocation.foliage_turnover * cohorts.n_individuals
-            )
-            self.data["root_turnover_cnp"].loc[cell_id, "C"] += np.sum(
-                stem_allocation.fine_root_turnover * cohorts.n_individuals
-            )
-            self.data["plant_reproductive_tissue_turnover"][cell_id] += np.sum(
-                stem_allocation.reproductive_tissue_turnover * cohorts.n_individuals
-            )
+            # HANDLE ALLOCATION TO TURNOVER:
+            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
+
+            turnover = biomasses.apply_turnover(allocation=stem_allocation)
+
+            # Store turnover quantities in the data object, scaling per stem quantities
+            # up to the number of individuals and then summing across cohorts
+            for tissue in ("foliage", "root", "reproductive"):
+                self.data[f"{tissue}_turnover_cnp"][cell_id] += (
+                    turnover[tissue] * cohorts.n_individuals
+                ).sum(axis=0)
 
             # Partition reproductive tissue into propagule and non-propagule masses and
             # convert the propagule mass to number of propagules
