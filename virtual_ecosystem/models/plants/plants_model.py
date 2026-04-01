@@ -32,7 +32,7 @@ from virtual_ecosystem.models.plants.biomasses import (
     FoliageBiomass,
     ReproductiveBiomass,
     RootBiomass,
-    WoodBiomass,
+    StemBiomass,
 )
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
@@ -108,6 +108,7 @@ class PlantsModel(
     vars_updated=(
         "stem_turnover_cnp",  # i.e. deadwood
         "foliage_turnover_cnp",
+        "root_turnover_cnp",
         "root_turnover_cnp",
         "canopy_fruit_n",
         "canopy_fruit_cnp",
@@ -386,7 +387,7 @@ class PlantsModel(
         self.biomass_tissues = [
             FoliageBiomass,  # foliage mass
             ReproductiveBiomass,  # reproductive mass
-            WoodBiomass,  # stem mass
+            StemBiomass,  # stem mass
             RootBiomass,  # not a pyrealm allometry attribute
         ]
 
