@@ -82,8 +82,8 @@ def input_chemistries(litter_inputs, fixture_litter_constants):
 
     input_chemistries = calculate_input_chemistries(
         litter_inputs=litter_inputs,
-        struct_to_meta_nitrogen_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
-        struct_to_meta_phosphorus_ratio=fixture_litter_constants.structural_to_metabolic_p_ratio,
+        meta_to_struct_nitrogen_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
+        meta_to_struct_phosphorus_ratio=fixture_litter_constants.metabolic_to_structural_p_ratio,
     )
 
     return input_chemistries

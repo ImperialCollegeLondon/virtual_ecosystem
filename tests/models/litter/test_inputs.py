@@ -315,8 +315,8 @@ def test_calculate_input_chemistries(fixture_litter_constants, litter_inputs):
 
     actual_chemistries = calculate_input_chemistries(
         litter_inputs=litter_inputs,
-        struct_to_meta_nitrogen_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
-        struct_to_meta_phosphorus_ratio=fixture_litter_constants.structural_to_metabolic_p_ratio,
+        meta_to_struct_nitrogen_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
+        meta_to_struct_phosphorus_ratio=fixture_litter_constants.metabolic_to_structural_p_ratio,
     )
 
     # Convert to a dict to check the values
@@ -390,7 +390,7 @@ def test_calculate_litter_input_nutrient_masses(
 
     actual_nutrient_masses = calculate_litter_input_nutrient_masses(
         litter_inputs=litter_inputs,
-        struct_to_meta_nutrient_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
+        meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
         nutrient="nitrogen",
     )
 
@@ -411,7 +411,7 @@ def test_calculate_litter_input_nutrient_masses_bad_input(
     with pytest.raises(ValueError):
         _ = calculate_litter_input_nutrient_masses(
             litter_inputs=litter_inputs,
-            struct_to_meta_nutrient_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
+            meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
             nutrient="oxygen",
         )
 
@@ -421,22 +421,73 @@ def test_calculate_litter_input_nutrient_masses_bad_input(
     log_check(caplog, expected_log)
 
 
-def test_calculate_nutrient_split_between_litter_pools(
+def test_find_nutrient_split_between_litter_pools(
     dummy_litter_data, fixture_litter_constants, litter_inputs
 ):
-    """Check the function to calculate the nutrient split between litter pools."""
+    """Check the function to find the nutrient split between litter pools."""
     from virtual_ecosystem.models.litter.inputs import (
-        calculate_nutrient_split_between_litter_pools,
+        find_nutrient_split_between_litter_pools,
     )
 
     expected_n_meta = np.array([6.331932287, 2.81123962, 0.0468426692, 4.22192613])
     expected_n_struct = np.array([0.8858875316, 0.91902302, 0.009277350, 1.214462735])
 
-    actual_n_meta, actual_n_struct = calculate_nutrient_split_between_litter_pools(
+    actual_n_meta, actual_n_struct = find_nutrient_split_between_litter_pools(
         input_carbon_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "C"],
         input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
         metabolic_split=litter_inputs.roots_meta_split,
-        struct_to_meta_nutrient_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
+        meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
+    )
+
+    # Standard checks of the produced values
+    assert np.allclose(actual_n_meta, expected_n_meta)
+    assert np.allclose(actual_n_struct, expected_n_struct)
+
+
+def test_find_nutrient_split_between_litter_pools_bad_input(
+    dummy_litter_data, fixture_litter_constants, litter_inputs
+):
+    """Check the function to find the nutrient split handles bad input correctly."""
+    from virtual_ecosystem.models.litter.inputs import (
+        find_nutrient_split_between_litter_pools,
+    )
+
+    # One carbon input is missing
+    input_carbon_rate = np.array([218.7, 0.0, 2.43, 201.69])
+    # In one case all flow is to metabolic
+    metabolic_split = np.array([0.588394858, 0.379571377, 1.0, 0.410125012])
+
+    expected_n_meta = np.array([6.331932287, 0.0, 0.0561200192, 4.22192613])
+    expected_n_struct = np.array([0.8858875316, 0.0, 0.0, 1.214462735])
+
+    actual_n_meta, actual_n_struct = find_nutrient_split_between_litter_pools(
+        input_carbon_rate=input_carbon_rate,
+        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
+        metabolic_split=metabolic_split,
+        meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
+    )
+
+    # Standard checks of the produced values
+    assert np.allclose(actual_n_meta, expected_n_meta)
+    assert np.allclose(actual_n_struct, expected_n_struct)
+
+
+def test_calculate_nutrient_split(
+    dummy_litter_data, fixture_litter_constants, litter_inputs
+):
+    """Check the function to calculate the nutrient split between litter pools."""
+    from virtual_ecosystem.models.litter.inputs import calculate_nutrient_split
+
+    expected_n_meta = np.array([6.331932287, 2.81123962, 0.0468426692, 4.22192613])
+    expected_n_struct = np.array([0.8858875316, 0.91902302, 0.009277350, 1.214462735])
+
+    actual_n_meta, actual_n_struct = calculate_nutrient_split(
+        carbon_input_meta=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
+        * litter_inputs.roots_meta_split,
+        carbon_input_struct=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
+        * (1 - litter_inputs.roots_meta_split),
+        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
+        meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
     )
 
     # Standard checks of the produced values
