@@ -159,7 +159,7 @@ class LitterConstants(Configuration):
     """Ratio of phosphorus concentrations for input to metabolic and structural litter.
     
     This follows the same logic as for phosphorus (see
-    :attr:`LitterConstants.structural_to_metabolic_n_ratio`). The default value used is
+    :attr:`LitterConstants.metabolic_to_structural_n_ratio`). The default value used is
     the same as for the nitrogen case as we saw no sense treating them differently.
     """
 
