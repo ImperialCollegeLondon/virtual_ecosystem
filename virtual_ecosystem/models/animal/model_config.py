@@ -323,8 +323,8 @@ class AnimalConstants(Configuration):
     realised mortality rate to the maximum rate."""
 
     zeta_st: float = 0.05  # zeta_st [Madingley] [unitless]
-    """The scaling parameter of the logistic function describing the ratio of the realised 
-    starvation mortality rate to the maximum starvation mortality rate."""
+    """The scaling parameter of the logistic function describing the ratio of the 
+    realised starvation mortality rate to the maximum starvation mortality rate."""
 
     metamorph_mortality: float = 0.1  # toy [unitless]
     """The mortality proportion inflicted on a larval cohort undergoing
