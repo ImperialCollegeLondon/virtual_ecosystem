@@ -420,12 +420,14 @@ class SoilPool:
                 halt [m]
         """
 
-        carbon_stock = data["soil_c_pool_pom"].sel(cell_id=self.cell_id).item()
+        carbon_stock = (
+            data["soil_cnp_pool_pom"].sel(cell_id=self.cell_id, element="C").item()
+        )
         nitrogen_stock = (
-            data["soil_n_pool_particulate"].sel(cell_id=self.cell_id).item()
+            data["soil_cnp_pool_pom"].sel(cell_id=self.cell_id, element="N").item()
         )
         phosphorus_stock = (
-            data["soil_p_pool_particulate"].sel(cell_id=self.cell_id).item()
+            data["soil_cnp_pool_pom"].sel(cell_id=self.cell_id, element="P").item()
         )
 
         # Convert stocks (kg m^-3) into masses by multiplying by grid square area and by

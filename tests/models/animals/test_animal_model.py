@@ -450,7 +450,7 @@ class TestAnimalModel:
         """Test that trying to populate a negative soil pool causes an error."""
         from xarray import DataArray
 
-        animal_model_instance.data["soil_c_pool_pom"] = DataArray(
+        animal_model_instance.data["soil_cnp_pool_pom"].loc[:, "C"] = DataArray(
             np.full(9, -3.75), dims=["cell_id"]
         )
 
@@ -473,6 +473,7 @@ class TestAnimalModel:
         from copy import deepcopy
 
         import numpy as np
+        from xarray import DataArray
 
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
         from virtual_ecosystem.models.animal.decay import SoilPool
@@ -491,22 +492,31 @@ class TestAnimalModel:
         new_data = deepcopy(litter_soil_data_instance)
         pom_change = 0.03
         pom_c_n_ratio = (
-            litter_soil_data_instance["soil_c_pool_pom"]
-            / litter_soil_data_instance["soil_n_pool_particulate"]
+            litter_soil_data_instance["soil_cnp_pool_pom"].loc[:, "C"]
+            / litter_soil_data_instance["soil_cnp_pool_pom"].loc[:, "N"]
         )
         pom_c_p_ratio = (
-            litter_soil_data_instance["soil_c_pool_pom"]
-            / litter_soil_data_instance["soil_p_pool_particulate"]
+            litter_soil_data_instance["soil_cnp_pool_pom"].loc[:, "C"]
+            / litter_soil_data_instance["soil_cnp_pool_pom"].loc[:, "P"]
         )
-        new_data["soil_c_pool_pom"] = (
-            litter_soil_data_instance["soil_c_pool_pom"] - pom_change
+        new_data["soil_cnp_pool_pom"] = DataArray(
+            np.stack(
+                [
+                    litter_soil_data_instance["soil_cnp_pool_pom"].loc[:, "C"]
+                    - pom_change,
+                    litter_soil_data_instance["soil_cnp_pool_pom"].loc[:, "N"]
+                    - (pom_change / pom_c_n_ratio),
+                    litter_soil_data_instance["soil_cnp_pool_pom"].loc[:, "P"]
+                    - (pom_change / pom_c_p_ratio),
+                ],
+                axis=1,
+            ),
+            dims=("cell_id", "element"),
+            coords=dict(
+                cell_id=np.arange(litter_soil_data_instance.grid.n_cells),
+                element=["C", "N", "P"],
+            ),
         )
-        new_data["soil_n_pool_particulate"] = litter_soil_data_instance[
-            "soil_n_pool_particulate"
-        ] - (pom_change / pom_c_n_ratio)
-        new_data["soil_p_pool_particulate"] = litter_soil_data_instance[
-            "soil_p_pool_particulate"
-        ] - (pom_change / pom_c_p_ratio)
         new_data["soil_c_pool_bacteria"] = (
             litter_soil_data_instance["soil_c_pool_bacteria"] - 0.55
         )

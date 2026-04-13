@@ -1010,6 +1010,7 @@ def test_run_microclimate(
         "atmospheric_pressure",
         "atmospheric_co2",
         "net_radiation",
+        "diurnal_temperature_range",
     )
     time_interval = 3600
     time_index = 0
@@ -1068,6 +1069,12 @@ def test_run_microclimate(
     valid = air_temp[~np.isnan(air_temp)]
     assert np.all(valid > 0)
     assert np.all(valid < 60)
+
+    # Air temperature diurnal range [°C]
+    air_temp = get_values(result["diurnal_temperature_range"])
+    valid = air_temp[~np.isnan(air_temp)]
+    assert np.all(valid > 0)
+    assert np.all(valid < 20)
 
     # Relative humidity [%]
     rh = get_values(result["relative_humidity"])

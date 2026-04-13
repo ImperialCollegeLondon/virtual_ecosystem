@@ -20,28 +20,16 @@ def dummy_carbon_data(fixture_core_components):
     # of the physical environment: pH, bulk density, soil moisture, soil temperature,
     # percentage clay in soil.
     data_values = {
-        "soil_c_pool_lmwc": [0.05, 0.02, 0.1, 0.005],
-        "soil_c_pool_maom": [2.5, 1.7, 4.5, 0.5],
         "soil_c_pool_bacteria": [5.8, 2.3, 11.3, 1.0],
         "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
         "soil_c_pool_arbuscular_mycorrhiza": [0.65, 1.47, 3.92, 9.04],
         "soil_c_pool_ectomycorrhiza": [0.47, 1.32, 4.2, 3.77],
-        "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
-        "soil_c_pool_necromass": [0.058, 0.015, 0.093, 0.105],
         "soil_enzyme_pom_bacteria": [0.022679, 0.009576, 0.050051, 0.003010],
         "soil_enzyme_maom_bacteria": [0.0356, 0.0117, 0.02509, 0.00456],
         "soil_enzyme_pom_fungi": [0.02607, 0.00575, 0.00646, 0.00441],
         "soil_enzyme_maom_fungi": [0.008669, 0.006826, 0.003807, 0.002163],
-        "soil_n_pool_don": [0.000571428, 0.00142857, 0.00014285, 0.002857142],
-        "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
-        "soil_n_pool_necromass": [0.00288462, 0.01788462, 0.02019231, 0.01115385],
-        "soil_n_pool_maom": [0.86538462, 0.48076923, 0.32692308, 0.09615385],
         "soil_n_pool_ammonium": [6.9619638e-5, 0.0049914624, 0.000229067, 0.0051955339],
         "soil_n_pool_nitrate": [0.0024219014, 0.0044442996, 0.0003428348, 0.0131405173],
-        "soil_p_pool_dop": [5.714e-6, 2.2857120e-5, 5.7142800e-5, 1.1428568e-4],
-        "soil_p_pool_particulate": [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
-        "soil_p_pool_necromass": [0.00080769, 0.00011538, 0.00071538, 0.00044615],
-        "soil_p_pool_maom": [0.01307692, 0.03461538, 0.01923077, 0.00384615],
         "soil_p_pool_primary": [0.0019594, 0.00535662, 0.00277434, 0.00059892],
         "soil_p_pool_secondary": [0.00705668, 0.03816896, 0.01152589, 0.00733107],
         "soil_p_pool_labile": [1.0582393e-5, 3.252961e-5, 6.806745e-5, 1.945635e-4],
@@ -64,6 +52,52 @@ def dummy_carbon_data(fixture_core_components):
 
     for var_name, var_values in data_values.items():
         data[var_name] = DataArray(var_values, dims=["cell_id"])
+
+    # Add the pools that are biomass triplets in
+    data["soil_cnp_pool_lmwc"] = DataArray(
+        data=np.stack(
+            [
+                [0.05, 0.02, 0.1, 0.005],
+                [0.000571428, 0.00142857, 0.00014285, 0.002857142],
+                [5.714e-6, 2.2857120e-5, 5.7142800e-5, 1.1428568e-4],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    data["soil_cnp_pool_maom"] = DataArray(
+        data=np.stack(
+            [
+                [2.5, 1.7, 4.5, 0.5],
+                [0.86538462, 0.48076923, 0.32692308, 0.09615385],
+                [0.01307692, 0.03461538, 0.01923077, 0.00384615],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    data["soil_cnp_pool_pom"] = DataArray(
+        data=np.stack(
+            [
+                [0.1, 1.0, 0.7, 0.35],
+                [0.00714285, 0.00071425, 0.00285714, 0.01428571],
+                [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    data["soil_cnp_pool_necromass"] = DataArray(
+        data=np.stack(
+            [
+                [0.058, 0.015, 0.093, 0.105],
+                [0.00288462, 0.01788462, 0.02019231, 0.01115385],
+                [0.00080769, 0.00011538, 0.00071538, 0.00044615],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     # The layer dependent data has to be handled separately - at present all of these
     # are defined only for the topsoil layer
@@ -259,15 +293,22 @@ def soil_pool_data(dummy_carbon_data):
         "new_emf_n_supply",
         "new_emf_p_supply",
     ]
+    elements = {"C": "carbon", "N": "nitrogen", "P": "phosphorus"}
 
     pools = {
         **{
-            var: pool
+            f"{var}_{full_name}": pool.loc[:, code]
+            for code, full_name in elements.items()
             for var, pool in dummy_carbon_data.data.items()
-            if var in SoilModel.vars_updated
+            if var in SoilModel.vars_updated and var.startswith("soil_cnp_")
         },
         **{
-            name: np.zeros_like(dummy_carbon_data["soil_c_pool_lmwc"])
+            var: pool
+            for var, pool in dummy_carbon_data.data.items()
+            if var in SoilModel.vars_updated and not var.startswith("soil_cnp_")
+        },
+        **{
+            name: np.zeros_like(dummy_carbon_data["soil_c_pool_bacteria"])
             for name in refreshed_variables
         },
     }
@@ -302,7 +343,7 @@ def necromass_breakdown(dummy_carbon_data, fixture_soil_constants):
     from virtual_ecosystem.models.soil.pools import calculate_necromass_breakdown
 
     return calculate_necromass_breakdown(
-        soil_c_pool_necromass=dummy_carbon_data["soil_c_pool_necromass"],
+        soil_c_pool_necromass=dummy_carbon_data["soil_cnp_pool_necromass"].loc[:, "C"],
         necromass_decay_rate=fixture_soil_constants.necromass_decay_rate,
     )
 
@@ -313,7 +354,7 @@ def necromass_sorption(dummy_carbon_data, fixture_soil_constants):
     from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
 
     return calculate_sorption_to_maom(
-        soil_c_pool=dummy_carbon_data["soil_c_pool_necromass"],
+        soil_c_pool=dummy_carbon_data["soil_cnp_pool_necromass"].loc[:, "C"],
         sorption_rate_constant=fixture_soil_constants.necromass_sorption_rate,
     )
 
@@ -324,7 +365,7 @@ def lmwc_sorption(dummy_carbon_data, fixture_soil_constants):
     from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
 
     return calculate_sorption_to_maom(
-        soil_c_pool=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_c_pool=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
         sorption_rate_constant=fixture_soil_constants.lmwc_sorption_rate,
     )
 
@@ -335,7 +376,7 @@ def maom_desorption(dummy_carbon_data, fixture_soil_constants):
     from virtual_ecosystem.models.soil.pools import calculate_maom_desorption
 
     return calculate_maom_desorption(
-        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
+        soil_c_pool_maom=dummy_carbon_data["soil_cnp_pool_maom"].loc[:, "C"],
         desorption_rate_constant=fixture_soil_constants.maom_desorption_rate,
     )
 
@@ -394,7 +435,6 @@ def biomass_losses(soil_pool_data, functional_groups, averaged_soil_temp):
 
 @pytest.fixture
 def growth_rates(
-    dummy_carbon_data,
     fixture_soil_constants,
     environmental_factors,
     functional_groups,
@@ -407,11 +447,11 @@ def growth_rates(
     from virtual_ecosystem.models.soil.pools import calculate_nutrient_uptake_rates
 
     bacterial_growth, _ = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
-        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_c_pool_lmwc=soil_pool_data.soil_cnp_pool_lmwc_carbon,
+        soil_n_pool_don=soil_pool_data.soil_cnp_pool_lmwc_nitrogen,
         soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
         soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
-        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_dop=soil_pool_data.soil_cnp_pool_lmwc_phosphorus,
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_bacteria,
         external_carbon_supply=None,
@@ -422,11 +462,11 @@ def growth_rates(
         functional_group=functional_groups["bacteria"],
     )
     saprotrophic_fungal_growth, _ = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
-        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_c_pool_lmwc=soil_pool_data.soil_cnp_pool_lmwc_carbon,
+        soil_n_pool_don=soil_pool_data.soil_cnp_pool_lmwc_nitrogen,
         soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
         soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
-        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_dop=soil_pool_data.soil_cnp_pool_lmwc_phosphorus,
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_saprotrophic_fungi,
         external_carbon_supply=None,
@@ -437,11 +477,11 @@ def growth_rates(
         functional_group=functional_groups["saprotrophic_fungi"],
     )
     arbuscular_mycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
-        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_c_pool_lmwc=soil_pool_data.soil_cnp_pool_lmwc_carbon,
+        soil_n_pool_don=soil_pool_data.soil_cnp_pool_lmwc_nitrogen,
         soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
         soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
-        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_dop=soil_pool_data.soil_cnp_pool_lmwc_phosphorus,
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_arbuscular_mycorrhiza,
         external_carbon_supply=carbon_supply_from_plants.arbuscular_mycorrhiza,
@@ -452,11 +492,11 @@ def growth_rates(
         functional_group=functional_groups["arbuscular_mycorrhiza"],
     )
     ectomycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
-        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_c_pool_lmwc=soil_pool_data.soil_cnp_pool_lmwc_carbon,
+        soil_n_pool_don=soil_pool_data.soil_cnp_pool_lmwc_nitrogen,
         soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
         soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
-        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_dop=soil_pool_data.soil_cnp_pool_lmwc_phosphorus,
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_ectomycorrhiza,
         external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
@@ -509,11 +549,11 @@ def max_uptake_rates(
     from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
 
     return calculate_maximum_uptake_rates(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
+        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "N"],
         soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "P"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
         water_factor=environmental_factors.water,

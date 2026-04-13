@@ -719,6 +719,11 @@ def dummy_climate_data(fixture_core_components):
         [30.0, 29.8, 28.9, 27.2, 22.0]
     )[:, None]
 
+    data["diurnal_temperature_range"] = from_template()
+    data["diurnal_temperature_range"][lyr_str.index_filled_atmosphere] = np.array(
+        [5, 4, 3, 2, 1]
+    )[:, None]
+
     data["soil_temperature"] = from_template()
     data["soil_temperature"][lyr_str.index_all_soil] = 20.0
 
@@ -837,6 +842,12 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [29.8, 29.8, 29.8, np.nan],
         [28.9, 28.9, np.nan, np.nan],
         [27.2, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["diurnal_temperature_range"][index_filled_canopy] = [
+        [4, 4, 4, np.nan],
+        [3, 3, np.nan, np.nan],
+        [2, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["relative_humidity"][index_filled_canopy] = [
