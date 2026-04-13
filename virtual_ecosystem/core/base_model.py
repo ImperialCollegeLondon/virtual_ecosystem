@@ -104,13 +104,15 @@ from __future__ import annotations
 import pkgutil
 from abc import ABC, abstractmethod
 from importlib import import_module
-from typing import Any
+from types import ModuleType
+from typing import Any, TypeVar
 
 import pint
 
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import (
     CoreComponents,
+    DisturbanceTiming,
     LayerStructure,
     ModelTiming,
 )
@@ -781,9 +783,17 @@ def to_camel_case(snake_str: str) -> str:
     return "".join(x.capitalize() for x in snake_str.lower().split("_"))
 
 
-def _discover_models() -> list[type[BaseModel]]:
-    """Discover all the models in Virtual Ecosystem."""
-    import virtual_ecosystem.models as models
+T = TypeVar("T")
+
+
+def _discover_models(models: ModuleType, of_type: type[T]) -> list[type[T]]:
+    """Discover all the models in Virtual Ecosystem.
+
+    We use the generic T type to ensure that the types of the inputs and the
+    outputs are linked together. In practice, T will be either
+    :attr:`~virtual_ecosystem.core.base_model.BaseModel` or
+    :attr:`~virtual_ecosystem.core.base_model.BaseDisturbance`.
+    """
 
     models_found = []
     for mod in pkgutil.iter_modules(models.__path__):
@@ -799,13 +809,232 @@ def _discover_models() -> list[type[BaseModel]]:
             continue
 
         mod_class_name = to_camel_case(mod.name) + "Model"
-        if hasattr(module, mod_class_name):
+        if hasattr(module, mod_class_name) and issubclass(
+            getattr(module, mod_class_name), of_type
+        ):
             models_found.append(getattr(module, mod_class_name))
         else:
             LOGGER.warning(
-                f"No model class '{mod_class_name}' found in module "
-                f"'{models.__name__}.{mod.name}.{mod.name}_model'."
+                f"No model class '{mod_class_name}' of type `{of_type}` found in module"
+                f" '{models.__name__}.{mod.name}.{mod.name}_model'."
             )
             continue
 
     return models_found
+
+
+def discover_models() -> list[type[BaseModel]]:
+    """Discover all the models in Virtual Ecosystem."""
+    import virtual_ecosystem.models as models
+
+    return _discover_models(models, BaseModel)  # type: ignore[type-abstract]
+
+
+class BaseDisturbance(ABC):
+    """A superclass for all Virtual Ecosystem disturbance models.
+
+    This abstract base class defines the shared common methods and attributes used as an
+    API across all Virtual Ecosystem disturbance models. This includes functions to
+    setup and run the specific model.
+
+    The base class defines the core abstract methods that must be defined in subclasses
+    as well as shared helper functions.
+
+    Args:
+        data: A :class:`~virtual_ecosystem.core.data.Data` instance containing
+            variables to be used in the model.
+        core_components: A
+            :class:`~virtual_ecosystem.core.core_components.CoreComponents`
+            instance containing shared core elements used throughout models.
+    """
+
+    model_name: str
+    """The model name.
+
+    This class attribute sets the name used to refer to identify the disturbance class
+    in the disturbance registry, within the configuration settings and in logging
+    messages.
+    """
+
+    disturbed_models: tuple[str, ...]
+    """A list of model names that this disturbance will affect.
+    
+    This list will be used to validate the configuration - check that all the models
+    to disturb are available in the simulation - as well at runtime to select those 
+    models when creating an instance of the disturbance."""
+
+    data_variables_disturbed: tuple[str, ...]
+    """A list of data variables that will be updated.
+    
+    This list will be used to validate the configuration and ensure that all the
+    variables to be disturbed will be available in the simulation. Disturbance models
+    do not create new variables.
+    """
+
+    def __init__(
+        self,
+        data: Data,
+        models: dict[str, BaseModel],
+        disturbance_timing: DisturbanceTiming,
+        **kwargs,
+    ):
+        """Performs core initialization for BaseModel subclasses.
+
+        This method **must** be called in the ``__init__`` method of all subclasses.
+
+        * ``data``: the provided :class:`~virtual_ecosystem.core.data.Data` instance.
+        * ``models``: dictionary of
+          :class:`~virtual_ecosystem.core.base_model.BaseModel` instances of the models
+          available in the simulation.
+        * ``disturbance_timing``: the
+          :class:`~virtual_ecosystem.core.core_components.DisturbanceTiming` instance.
+        """
+        self.data = data
+        """A Data instance providing access to the shared simulation data."""
+        self.timing = disturbance_timing
+        """The DisturbanceTiming details used in the model."""
+        self._repr: list[tuple[str, ...]] = [("timing", "_run_at")]
+        """A list of attributes to be included in the class __repr__ output"""
+
+        missing = set(self.disturbed_models).difference(models.keys())
+        if missing:
+            raise ConfigurationError(
+                f"Models {missing} required by disturbance {self.model_name}"
+                "not available."
+            )
+        self.models = {
+            name: model
+            for name, model in models.items()
+            if name in self.disturbed_models
+        }
+        """The models this disturbance will disturb."""
+
+    @classmethod
+    def __init_subclass__(
+        cls,
+        model_name: str,
+        disturbed_models: tuple[str, ...],
+        data_variables_disturbed: tuple[str, ...],
+    ):
+        """Checks the disturbed models and variables are all known.
+
+        If so, it adds the disturbance to the registry.
+        """
+        cls.model_name = cls._check_model_name(model_name)
+        cls.disturbed_models = cls._check_attributes(disturbed_models)
+        cls.data_variables_disturbed = cls._check_attributes(data_variables_disturbed)
+
+    @classmethod
+    def _check_model_name(cls, model_name: str) -> str:
+        """Check the model_name attribute is valid.
+
+        Args:
+            model_name: The
+                :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_name`
+                attribute to be used for a subclass.
+
+        Raises:
+            ValueError: the model_name is not a string.
+
+        Returns:
+            The provided ``model_name`` if valid
+        """
+
+        if not isinstance(model_name, str):
+            excep = TypeError(
+                f"Class attribute model_name in {cls.__name__} is not a string"
+            )
+            LOGGER.error(excep)
+            raise excep
+
+        return model_name
+
+    @classmethod
+    def _check_attributes(cls, attribute_value: tuple[str, ...]) -> tuple[str, ...]:
+        """Check that disturbance variables and models attributes are valid.
+
+        They both need to be tuples of strings, so we make sure that is the case
+        when creating the class.
+
+        Args:
+            attribute_value: The provided value for the attribute
+
+        Raises:
+            TypeError: the value of the model attribute has the wrong type structure.
+
+        Returns:
+            The validated variables attribute value
+        """
+
+        # Check the structure
+        if isinstance(attribute_value, tuple) and all(
+            isinstance(vname, str) for vname in attribute_value
+        ):
+            return attribute_value
+
+        to_raise = TypeError(
+            f"Class attribute {attribute_value} has the wrong "
+            f"structure in {cls.__name__}"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    @classmethod
+    @abstractmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        models: dict[str, BaseModel],
+    ) -> BaseDisturbance:
+        """Factory function to unpack config and initialise a model instance."""
+
+    def disturb(self, time_index: int) -> None:
+        """Run the disturbance, updating the self.data and/or self.models as needed.
+
+        First, the timing is checked, returning if the disturbance shall not be run
+        at this timestep. Otherwise, it calls the inner _disturb method where the actual
+        disturbance is executed.
+
+        Args:
+            time_index: The index of the current timestep.
+        """
+        if not self.timing.check_run(time_index):
+            return
+        self._disturb(time_index)
+
+    @abstractmethod
+    def _disturb(self, time_index: int) -> None:
+        """Run the disturbance, updating the self.data and/or self.models as needed.
+
+        Args:
+            time_index: The index of the current timestep.
+        """
+
+    def __repr__(self) -> str:
+        """Represent a Disturbance as a string from the attributes listed in _repr.
+
+        Each entry in self._repr is a tuple of strings providing a path through the
+        model hierarchy. The method assembles the tips of each path into a repr string.
+        """
+
+        repr_elements: list[str] = []
+
+        for repr_entry in self._repr:
+            obj = self
+            for attr in repr_entry:
+                obj = getattr(obj, attr)
+            repr_elements.append(f"{attr}={obj}")
+
+        # Add all args to the function signature
+        repr_string = ", ".join(repr_elements)
+
+        return f"{self.__class__.__name__}({repr_string})"
+
+
+def discover_disturbances() -> list[type[BaseDisturbance]]:
+    """Discover all the disturbances in Virtual Ecosystem."""
+    import virtual_ecosystem.disturbances as disturbances
+
+    return _discover_models(disturbances, BaseDisturbance)  # type: ignore[type-abstract]
