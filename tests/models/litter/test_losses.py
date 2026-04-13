@@ -69,7 +69,9 @@ def test_calculate_carbon_pool_loss(
     expected_loss = [0.00921022, 0.00446856, 0.00223770, 0.00214006]
 
     actual_loss = calculate_carbon_pool_loss(
-        old_pool_size=post_consumption_pools["above_metabolic"].loc[:, "C"].to_numpy(),
+        old_pool_size=post_consumption_pools["above_metabolic"]
+        .sel(element="C")
+        .to_numpy(),
         final_pool_size=updated_pools["above_metabolic"],
         input_rate=litter_inputs.above_metabolic,
         update_interval=2.0,
@@ -105,10 +107,10 @@ def test_calculate_nutrient_pool_loss(
 
     actual_nutrient_loss = calculate_nutrient_pool_loss(
         initial_pool_carbon=post_consumption_pools["above_metabolic"]
-        .loc[:, "C"]
+        .sel(element="C")
         .to_numpy(),
         initial_pool_nutrient=post_consumption_pools["above_metabolic"]
-        .loc[:, "N"]
+        .sel(element="N")
         .to_numpy(),
         carbon_loss=carbon_loss,
         input_rate_carbon=litter_inputs.above_metabolic,
@@ -147,7 +149,7 @@ def test_calculate_lignin_pool_loss(
 
     actual_lignin_loss = calculate_lignin_pool_loss(
         initial_pool_size=post_consumption_pools["above_structural"]
-        .loc[:, "C"]
+        .sel(element="C")
         .to_numpy(),
         carbon_loss=carbon_loss,
         input_rate=litter_inputs.above_structural,
