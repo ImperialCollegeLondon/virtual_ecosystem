@@ -40,9 +40,6 @@ Advection at the top of the canopy is currently not considered as we don't have
 have horizontal exchange between grid cells and air above canopy values would be
 unrealistic.
 
-TODO plants use a fraction of the absorbed radiation of photosynthesis, this needs to be
-subtracted from the energy balance
-
 """  # noqa: D205, D415
 
 import numpy as np
@@ -889,9 +886,9 @@ def calculate_latent_heat_flux(
 def calculate_total_absorbed_shortwave_radiation(
     downward_shortwave_radiation: NDArray[np.floating],
     shortwave_absorption_by_canopy: NDArray[np.floating],
-    fraction_par_used: float = 0.1,
-    leaf_absorptance_non_par: float = 0.5,
-    par_fraction: float = 0.48,
+    fraction_par_used: float,
+    leaf_absorptance_non_par: float,
+    par_fraction: float,
 ) -> NDArray[np.floating]:
     """Compute total absorbed shortwave radiation contributing to leaf energy balance.
 
