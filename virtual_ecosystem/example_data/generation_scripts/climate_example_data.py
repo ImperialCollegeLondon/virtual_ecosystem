@@ -35,20 +35,40 @@ def annual_cycle(
 
 # Variable definitions (mean, amplitude of annual cycle, noise)
 var_specs = {
-    "air_temperature_ref": {"mean": 23.0, "amp": 10.0, "noise": 0.5},  # °C
-    "relative_humidity_ref": {"mean": 85.0, "amp": 15.0, "noise": 2.0},  # %
-    "precipitation": {"mean": 200.0, "amp": 450.0, "noise": 30.0},  # mm
-    "atmospheric_pressure_ref": {"mean": 101.0, "amp": 1.0, "noise": 0.5},  # kPa
-    "atmospheric_co2_ref": {"mean": 400.0, "amp": 0.0, "noise": 0.0},  # ppm (fixed)
-    "wind_speed_ref": {"mean": 0.15, "amp": 0.05, "noise": 0.05},  # m/s
-    "downward_longwave_radiation": {"mean": 400.0, "amp": 20.0, "noise": 5.0},  # W/m²
+    "air_temperature_ref": {"mean": 23.0, "amp": 10.0, "noise": 0.5},
+    "relative_humidity_ref": {
+        "mean": 85.0,
+        "amp": 15.0,
+        "noise": 2.0,
+        "min": 0.0,
+        "max": 100.0,
+    },
+    "precipitation": {"mean": 200.0, "amp": 450.0, "noise": 30.0, "min": 0.0},
+    "atmospheric_pressure_ref": {"mean": 101.0, "amp": 1.0, "noise": 0.5},
+    "atmospheric_co2_ref": {"mean": 400.0, "amp": 0.0, "noise": 0.0, "min": 0.0},
+    "wind_speed_ref": {"mean": 0.15, "amp": 0.05, "noise": 0.05, "min": 0.0},
+    "downward_longwave_radiation": {
+        "mean": 400.0,
+        "amp": 20.0,
+        "noise": 5.0,
+        "min": 0.0,
+    },
 }
 
 # Loop to fill data
 for var, specs in var_specs.items():
     cycle = annual_cycle(months, amplitude=specs["amp"])
     noise = np.random.normal(0, specs["noise"], size=(n_cells, n_dates))
+
     values = specs["mean"] + cycle + noise
+
+    # Apply bounds if defined
+    vmin = specs.get("min", None)
+    vmax = specs.get("max", None)
+
+    if vmin is not None or vmax is not None:
+        values = np.clip(values, vmin, vmax)
+
     data[var] = DataArray(
         data=values,
         coords={"cell_id": cell_id, "time_index": time_index},

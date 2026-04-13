@@ -70,12 +70,10 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.todo",
     "sphinxcontrib.bibtex",
-    "sphinxcontrib.mermaid",
     "myst_nb",
     "sphinx_rtd_theme",
     "sphinx_external_toc",
     "sphinx_design",
-    "hoverxref.extension",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
@@ -200,10 +198,11 @@ nitpick_ignore = [
     ("py:class", "REQUIRED_MICROBIAL_GROUPS"),
     ("py:class", "HIGHER_TAXONOMIC_GROUPS"),
     ("py:class", "dir"),
-    # FOR PITY'S SAKE, SPHINX - why can you not find DIRPATH_PLACEHOLDER when you _can_
-    # find FILEPATH_PLACEHOLDER, which is defined in the same way, in the same file and
-    # when both do actually appear in the API docs? It's right there.
+    # FOR PITY'S SAKE, SPHINX - not finding types
+    ("py:class", "FILEPATH_PLACEHOLDER"),
+    ("py:class", "GRID_STRUCTURE_SIG"),
     ("py:class", "DIRPATH_PLACEHOLDER"),
+    ("py:class", "SubcanopyNutrients"),
     ("py:class", "PyrealmCoreConst"),
     # Typing on animal.model_config
     ("py:class", "virtual_ecosystem.models.animal.animal_traits.Annotated"),
@@ -214,6 +213,7 @@ nitpick_ignore = [
     # to that major version
     ("py:class", "pandas.core.frame.DataFrame"),
 ]
+
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -303,11 +303,6 @@ html_css_files = [
 html_sidebars = {
     "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
 }
-
-# Configure hoverxref
-hoverxref_roles = ["term"]
-
-hoverxref_role_types = {"term": "tooltip"}
 
 # Allow for longer runtime
 nb_execution_mode = "force"
