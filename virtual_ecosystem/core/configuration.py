@@ -121,7 +121,7 @@ class CompiledConfiguration(Configuration):
     """A dictionary of the requested modules in the simulation and their
     VirtualEcosystem BaseModel classes."""
 
-    def get_subconfiguration(self, name: str, _: Callable[..., T]) -> T:
+    def get_subconfiguration(self, name: str, as_class: Callable[..., T]) -> T:
         """Get a named subconfiguration object from a compiled configuration.
 
         This method can be used to extract model configurations or the core
@@ -139,14 +139,19 @@ class CompiledConfiguration(Configuration):
 
         Args:
             name: The required subconfiguration.
-            _: The class of objected returned by the method. This is not used by the
-                method itself but is used to support static typing of the return value.
+            as_class: The class of objected returned by the method. This is not used by
+            the method itself but is used to support static typing of the return value.
         """
 
         try:
             return getattr(self, name)
         except AttributeError:
-            raise AttributeError(f"Model configuration for {name} not loaded")
+            if disturbance := self.get_disturbance_config():
+                return disturbance.get_subconfiguration(name, as_class)
+            else:
+                raise AttributeError(
+                    f"Model or disturbance configuration for {name} not loaded"
+                )
 
     def export_toml(self, path: Path):
         """TOML export method for a compiled configuration.
@@ -157,6 +162,10 @@ class CompiledConfiguration(Configuration):
 
         with open(path, "wb") as destination:
             tomli_w.dump(self.model_dump(mode="json"), destination)
+
+    def get_disturbance_config(self) -> CompiledConfiguration | None:
+        """Get the compile configuration for disturbances, if any."""
+        return getattr(self, "disturbance", None)
 
 
 class ModelConfigurationRoot(Configuration):
@@ -191,13 +200,13 @@ class DisturbanceConfigurationRoot(Configuration):
     It also validates the timing fields to ensure that at least one of them is set.
     """
 
-    run_at: int | list[int] | None = None
+    run_at: int | tuple[int, ...] = ()
     """Define time indices to run at specific times.
     
     Either a single integer or a list of integers indicating the time indices when the
     disturbance is to run.
     """
-    run_every: tuple[int, ...] | None = None
+    run_every: tuple[int, ...] = ()
     """Define a range of indices to run the disturbance.
     
     A tuple of integers indicating (start), or (start, step), or (start, step, stop),
@@ -205,12 +214,18 @@ class DisturbanceConfigurationRoot(Configuration):
     run can be constructed. If not provided, 'step' defaults to 1 and 'stop' defaults to
     the last time index. 'start' must always be provided."""
 
+    priority: int = 0
+    """Priority for the disturbance. 
+
+    Every disturbance model must have a different priority.
+    """
+
     @model_validator(mode="after")
-    def timing_options_are_not_both_none(self) -> DisturbanceConfigurationRoot:
+    def timing_options_are_not_both_empty(self) -> DisturbanceConfigurationRoot:
         """Validate the timing options of the configuration."""
-        if self.run_at is None and self.run_every is None:
+        if self.run_at == () and self.run_every == ():
             raise ValueError(
-                "Timing options 'run_at' and 'run_every' cannot be both None."
+                "Timing options 'run_at' and 'run_every' cannot be both ()."
             )
         return self
 

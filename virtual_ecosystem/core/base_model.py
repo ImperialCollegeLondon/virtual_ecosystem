@@ -893,6 +893,8 @@ class BaseDisturbance(ABC):
         """A Data instance providing access to the shared simulation data."""
         self.timing = disturbance_timing
         """The DisturbanceTiming details used in the model."""
+        self._repr: list[tuple[str, ...]] = [("timing", "_run_at")]
+        """A list of attributes to be included in the class __repr__ output"""
 
         missing = set(self.disturbed_models).difference(models.keys())
         if missing:
@@ -1009,6 +1011,26 @@ class BaseDisturbance(ABC):
         Args:
             time_index: The index of the current timestep.
         """
+
+    def __repr__(self) -> str:
+        """Represent a Disturbance as a string from the attributes listed in _repr.
+
+        Each entry in self._repr is a tuple of strings providing a path through the
+        model hierarchy. The method assembles the tips of each path into a repr string.
+        """
+
+        repr_elements: list[str] = []
+
+        for repr_entry in self._repr:
+            obj = self
+            for attr in repr_entry:
+                obj = getattr(obj, attr)
+            repr_elements.append(f"{attr}={obj}")
+
+        # Add all args to the function signature
+        repr_string = ", ".join(repr_elements)
+
+        return f"{self.__class__.__name__}({repr_string})"
 
 
 def discover_disturbances() -> list[type[BaseDisturbance]]:

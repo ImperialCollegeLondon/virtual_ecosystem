@@ -7,6 +7,7 @@ these components to be cascaded down to individual model subclass instances via 
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import InitVar, dataclass, field
 
 import numpy as np
@@ -625,8 +626,8 @@ class DisturbanceTiming:
     def __init__(
         self,
         model_timing: ModelTiming,
-        run_at: int | list[int] | None = None,
-        run_every: tuple[int, ...] | None = None,
+        run_at: int | tuple[int, ...] = (),
+        run_every: tuple[int, ...] = (),
     ) -> None:
         """Constructor for the DisturbanceTiming class.
 
@@ -634,7 +635,7 @@ class DisturbanceTiming:
 
         Args:
             model_timing: The timing for the models.
-            run_at: Either a single integer or a list of integers indicating the time
+            run_at: Either a single integer or a tuple of integers indicating the time
                 indices when the disturbance is to run.
             run_every: A tuple of integers indicating (start), or (start, step), or
                 (start, step, stop), from where a list of integers indicating the time
@@ -644,10 +645,10 @@ class DisturbanceTiming:
 
         """
 
-        if run_at is not None:
-            self._run_at = sorted(run_at) if isinstance(run_at, list) else [run_at]
+        if run_at != ():
+            self._run_at = sorted(run_at) if isinstance(run_at, Iterable) else [run_at]
 
-        elif run_every is not None:
+        elif run_every != ():
             match len(run_every):
                 case 1:
                     start = run_every[0]
