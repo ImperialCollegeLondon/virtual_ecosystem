@@ -19,26 +19,6 @@ from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
 
-def compute_weights_from_absorbed_radiation(
-    radiation: NDArray[np.floating],
-) -> NDArray[np.floating]:
-    """Convert a 2D radiation array into normalized weights that sum to 1.
-
-    Args:
-        radiation: 2D array of absorbed radiation values for each layer and cell
-
-    Returns:
-        2D array of normalized weights corresponding to the absorbed radiation. Raises
-            ValueError when total radiation is zero or NaN
-    """
-    total = np.nansum(radiation)
-
-    if total == 0:
-        raise ValueError("Total radiation is zero — cannot normalize.")
-
-    return radiation / total
-
-
 def prepare_static_inputs(
     data: Data,
     idx: SimpleNamespace,
@@ -103,7 +83,9 @@ def prepare_static_inputs(
 
     # Absorbed longwave radiation by canopy based on shortwave absorption, [W m-2]
     shortwave_absorption = data["shortwave_absorption"].to_numpy()
-    weights = compute_weights_from_absorbed_radiation(radiation=shortwave_absorption)
+    weights = abiotic_tools.compute_weights_from_absorbed_radiation(
+        radiation=shortwave_absorption
+    )
 
     downward_longwave = (
         data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
