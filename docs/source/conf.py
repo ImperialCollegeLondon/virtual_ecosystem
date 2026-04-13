@@ -68,12 +68,10 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.todo",
     "sphinxcontrib.bibtex",
-    "sphinxcontrib.mermaid",
     "myst_nb",
     "pydata_sphinx_theme",
     "sphinx_external_toc",
     "sphinx_design",
-    "hoverxref.extension",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
@@ -316,11 +314,6 @@ html_css_files = [
     "css/custom.css",
 ]
 
-
-# Configure hoverxref
-hoverxref_roles = ["term"]
-
-hoverxref_role_types = {"term": "tooltip"}
 
 # Allow for longer runtime
 nb_execution_mode = "force"
