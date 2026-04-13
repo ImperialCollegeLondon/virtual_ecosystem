@@ -65,28 +65,20 @@ class SoilModel(
     model_name="soil",
     model_update_bounds=("30 minutes", "3 months"),
     vars_required_for_init=(
-        "soil_c_pool_maom",
-        "soil_c_pool_lmwc",
+        "soil_cnp_pool_maom",
+        "soil_cnp_pool_lmwc",
+        "soil_cnp_pool_pom",
+        "soil_cnp_pool_necromass",
         "soil_c_pool_bacteria",
         "soil_c_pool_saprotrophic_fungi",
         "soil_c_pool_arbuscular_mycorrhiza",
         "soil_c_pool_ectomycorrhiza",
-        "soil_c_pool_pom",
-        "soil_c_pool_necromass",
         "soil_enzyme_pom_bacteria",
         "soil_enzyme_maom_bacteria",
         "soil_enzyme_pom_fungi",
         "soil_enzyme_maom_fungi",
-        "soil_n_pool_don",
-        "soil_n_pool_particulate",
-        "soil_n_pool_necromass",
-        "soil_n_pool_maom",
         "soil_n_pool_ammonium",
         "soil_n_pool_nitrate",
-        "soil_p_pool_dop",
-        "soil_p_pool_particulate",
-        "soil_p_pool_necromass",
-        "soil_p_pool_maom",
         "soil_p_pool_primary",
         "soil_p_pool_secondary",
         "soil_p_pool_labile",
@@ -107,28 +99,20 @@ class SoilModel(
         "production_of_fungal_fruiting_bodies",
     ),
     vars_required_for_update=(
-        "soil_c_pool_maom",
-        "soil_c_pool_lmwc",
+        "soil_cnp_pool_maom",
+        "soil_cnp_pool_lmwc",
+        "soil_cnp_pool_pom",
+        "soil_cnp_pool_necromass",
         "soil_c_pool_bacteria",
         "soil_c_pool_saprotrophic_fungi",
         "soil_c_pool_arbuscular_mycorrhiza",
         "soil_c_pool_ectomycorrhiza",
-        "soil_c_pool_pom",
-        "soil_c_pool_necromass",
         "soil_enzyme_pom_bacteria",
         "soil_enzyme_maom_bacteria",
         "soil_enzyme_pom_fungi",
         "soil_enzyme_maom_fungi",
-        "soil_n_pool_don",
-        "soil_n_pool_particulate",
-        "soil_n_pool_necromass",
-        "soil_n_pool_maom",
         "soil_n_pool_ammonium",
         "soil_n_pool_nitrate",
-        "soil_p_pool_dop",
-        "soil_p_pool_particulate",
-        "soil_p_pool_necromass",
-        "soil_p_pool_maom",
         "soil_p_pool_primary",
         "soil_p_pool_secondary",
         "soil_p_pool_labile",
@@ -158,28 +142,20 @@ class SoilModel(
         "decomposed_carcasses_cnp",
     ),
     vars_updated=(
-        "soil_c_pool_maom",
-        "soil_c_pool_lmwc",
+        "soil_cnp_pool_maom",
+        "soil_cnp_pool_lmwc",
+        "soil_cnp_pool_pom",
+        "soil_cnp_pool_necromass",
         "soil_c_pool_bacteria",
         "soil_c_pool_saprotrophic_fungi",
         "soil_c_pool_arbuscular_mycorrhiza",
         "soil_c_pool_ectomycorrhiza",
-        "soil_c_pool_pom",
-        "soil_c_pool_necromass",
         "soil_enzyme_pom_bacteria",
         "soil_enzyme_maom_bacteria",
         "soil_enzyme_pom_fungi",
         "soil_enzyme_maom_fungi",
-        "soil_n_pool_don",
-        "soil_n_pool_particulate",
-        "soil_n_pool_necromass",
-        "soil_n_pool_maom",
         "soil_n_pool_ammonium",
         "soil_n_pool_nitrate",
-        "soil_p_pool_dop",
-        "soil_p_pool_particulate",
-        "soil_p_pool_necromass",
-        "soil_p_pool_maom",
         "soil_p_pool_primary",
         "soil_p_pool_secondary",
         "soil_p_pool_labile",
@@ -304,7 +280,7 @@ class SoilModel(
         # Check that soil pool data is appropriately bounded
         if not self._all_pools_positive():
             to_raise = InitialisationError(
-                "Initial carbon pools contain at least one negative value!"
+                "Initial soil pools contain at least one negative value!"
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -453,17 +429,35 @@ class SoilModel(
         update_time = self.model_timing.update_interval_quantity.to("days").magnitude
         t_span = (0.0, update_time)
 
+        # Find all variables that get updated, and then subset this into singlets and
+        # biomass triplets
+        updated_variable_names = [
+            name
+            for name in map(str, self.data.data.keys())
+            if name in self.vars_updated and name not in self.vars_populated_by_init
+        ]
+        updated_biomass_triplets = [
+            name for name in updated_variable_names if name.startswith("soil_cnp_")
+        ]
+        updated_singlets = [
+            name for name in updated_variable_names if not name.startswith("soil_cnp_")
+        ]
+
+        elements = {"C": "carbon", "N": "nitrogen", "P": "phosphorus"}
+
         # Construct vector of initial values y0. Zeros are added to the end for all the
         # non-data object variables
         y0 = np.concatenate(
             (
                 np.concatenate(
                     [
-                        self.data[name].to_numpy()
-                        for name in map(str, self.data.data.keys())
-                        if name in self.vars_updated
-                        and name not in self.vars_populated_by_init
+                        self.data[name].loc[:, element].to_numpy()
+                        for element in elements.keys()
+                        for name in updated_biomass_triplets
                     ]
+                ),
+                np.concatenate(
+                    [self.data[name].to_numpy() for name in updated_singlets]
                 ),
                 np.zeros(len(self.refreshed_variables) * self.data.grid.n_cells),
             )
@@ -472,10 +466,11 @@ class SoilModel(
         # Find and store order of pools (refreshed variables go at the end)
         delta_pools_ordered = {
             **{
-                name: np.array([])
-                for name in map(str, self.data.data.keys())
-                if name in self.vars_updated and name not in self.vars_populated_by_init
+                f"{name}_{element}": np.array([])
+                for element in elements.values()
+                for name in updated_biomass_triplets
             },
+            **{name: np.array([]) for name in updated_singlets},
             **{name: np.array([]) for name in self.refreshed_variables},
         }
 
@@ -527,13 +522,38 @@ class SoilModel(
         # Construct index slices
         slices = make_slices(no_cells, round(len(y0) / no_cells))
 
-        # Construct dictionary of data arrays
-        new_c_pools = {
+        # Non-triplet pools can just be straightforwardly extracted and converted into a
+        # DataArray
+        new_soil_pools = {
             str(pool): DataArray(output.y[slc, -1], dims="cell_id")
             for slc, pool in zip(slices, delta_pools_ordered.keys())
+            if not pool.startswith("soil_cnp_")
         }
 
-        return new_c_pools
+        # The slices associated with triplet pools first have to be extracted and
+        # stored, and then converted back into triplet DataArrays
+        triplet_slices = {
+            str(pool): output.y[slc, -1]
+            for slc, pool in zip(slices, delta_pools_ordered.keys())
+            if pool.startswith("soil_cnp_")
+        }
+        triplet_pools = {
+            var: DataArray(
+                np.stack(
+                    [
+                        triplet_slices[f"{var}_carbon"],
+                        triplet_slices[f"{var}_nitrogen"],
+                        triplet_slices[f"{var}_phosphorus"],
+                    ],
+                    axis=1,
+                ),
+                dims=("cell_id", "element"),
+                coords=dict(element=np.array(["C", "N", "P"])),
+            )
+            for var in updated_biomass_triplets
+        }
+
+        return new_soil_pools | triplet_pools
 
     def check_for_unexpected_nan_values(self, var: str) -> bool:
         """Check if there are unexpected NaN values in the data for a specific variable.
@@ -713,11 +733,11 @@ class SoilModel(
         )
 
         initial_ecto_n, initial_ecto_p = estimate_past_mycorrhizal_supply(
-            soil_c_pool_lmwc=self.data["soil_c_pool_lmwc"].to_numpy(),
-            soil_n_pool_don=self.data["soil_n_pool_don"].to_numpy(),
+            soil_c_pool_lmwc=self.data["soil_cnp_pool_lmwc"].loc[:, "C"].to_numpy(),
+            soil_n_pool_don=self.data["soil_cnp_pool_lmwc"].loc[:, "N"].to_numpy(),
             soil_n_pool_ammonium=self.data["soil_n_pool_ammonium"].to_numpy(),
             soil_n_pool_nitrate=self.data["soil_n_pool_nitrate"].to_numpy(),
-            soil_p_pool_dop=self.data["soil_p_pool_dop"].to_numpy(),
+            soil_p_pool_dop=self.data["soil_cnp_pool_lmwc"].loc[:, "P"].to_numpy(),
             soil_p_pool_labile=self.data["soil_p_pool_labile"].to_numpy(),
             microbe_pool_size=self.data["soil_c_pool_ectomycorrhiza"].to_numpy(),
             soil_temp=averaged_soil_temperature,
@@ -725,11 +745,11 @@ class SoilModel(
             env_factors=env_factors,
         )
         initial_arbuscular_n, initial_arbuscular_p = estimate_past_mycorrhizal_supply(
-            soil_c_pool_lmwc=self.data["soil_c_pool_lmwc"].to_numpy(),
-            soil_n_pool_don=self.data["soil_n_pool_don"].to_numpy(),
+            soil_c_pool_lmwc=self.data["soil_cnp_pool_lmwc"].loc[:, "C"].to_numpy(),
+            soil_n_pool_don=self.data["soil_cnp_pool_lmwc"].loc[:, "N"].to_numpy(),
             soil_n_pool_ammonium=self.data["soil_n_pool_ammonium"].to_numpy(),
             soil_n_pool_nitrate=self.data["soil_n_pool_nitrate"].to_numpy(),
-            soil_p_pool_dop=self.data["soil_p_pool_dop"].to_numpy(),
+            soil_p_pool_dop=self.data["soil_cnp_pool_lmwc"].loc[:, "P"].to_numpy(),
             soil_p_pool_labile=self.data["soil_p_pool_labile"].to_numpy(),
             microbe_pool_size=self.data["soil_c_pool_arbuscular_mycorrhiza"].to_numpy(),
             soil_temp=averaged_soil_temperature,

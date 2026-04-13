@@ -73,6 +73,7 @@ class AbioticModel(
         "aerodynamic_resistance_canopy",
         "net_radiation",
         "longwave_emission",
+        "diurnal_temperature_range",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -109,6 +110,7 @@ class AbioticModel(
         "net_radiation",
         "longwave_emission",
         "vapour_pressure",
+        "diurnal_temperature_range",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -210,6 +212,9 @@ class AbioticModel(
             pyrealm_core_constants=pyrealm_core_constants,
             bounds=self.bounds,
         )
+
+        # Initialise diurnal temperature range
+        self.data["diurnal_temperature_range"] = self.layer_structure.from_template()
 
         # Generate initial profiles of canopy temperature and heat fluxes from soil and
         # canopy

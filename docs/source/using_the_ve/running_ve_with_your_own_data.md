@@ -228,7 +228,7 @@ ve_example_data = xarray.load_dataset("/tmp/ve_example/data/example_soil_data.nc
 ```{code-cell} ipython3
 :tags: [hide-input]
 
-ve_example_data["soil_c_pool_lmwc"]
+ve_example_data["soil_cnp_pool_lmwc"]
 ```
 
 Because the formats are so similar, input data must be provided as `netCDF` files, which
