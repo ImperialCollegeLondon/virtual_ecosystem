@@ -28,6 +28,7 @@ def test_calculate_all_pool_updates(
         "new_emf_n_supply",
         "new_emf_p_supply",
     ]
+    elements = {"C": "carbon", "N": "nitrogen", "P": "phosphorus"}
 
     # Find and store order of pools (this requires loads of steps because it needs to
     # work with the integrator)
@@ -35,9 +36,18 @@ def test_calculate_all_pool_updates(
         (
             np.concatenate(
                 [
+                    dummy_carbon_data[name].loc[:, element].to_numpy()
+                    for element in elements.keys()
+                    for name in SoilModel.vars_updated
+                    if name.startswith("soil_cnp_")
+                ]
+            ),
+            np.concatenate(
+                [
                     dummy_carbon_data[name].to_numpy()
                     for name in map(str, dummy_carbon_data.data.keys())
                     if name in SoilModel.vars_updated
+                    if not name.startswith("soil_cnp_")
                 ]
             ),
             np.zeros(len(refreshed_variables) * dummy_carbon_data.grid.n_cells),
@@ -45,9 +55,16 @@ def test_calculate_all_pool_updates(
     )
     delta_pools_ordered = {
         **{
+            f"{name}_{element}": np.array([])
+            for element in elements.values()
+            for name in SoilModel.vars_updated
+            if name.startswith("soil_cnp_")
+        },
+        **{
             name: np.array([])
             for name in map(str, dummy_carbon_data.data.keys())
             if name in SoilModel.vars_updated
+            if not name.startswith("soil_cnp_")
         },
         **{name: np.array([]) for name in refreshed_variables},
     }
@@ -66,8 +83,13 @@ def test_calculate_all_pool_updates(
     )
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.14736524, 0.76933205, 0.26335729, 0.07947176],
-        "soil_c_pool_maom": [3.7894322e-2, 4.8705495e-3, 5.67937268e-2, 7.27579158e-2],
+        "soil_cnp_pool_lmwc_carbon": [0.14736524, 0.76933205, 0.26335729, 0.07947176],
+        "soil_cnp_pool_maom_carbon": [
+            3.7894322e-2,
+            4.8705495e-3,
+            5.67937268e-2,
+            7.27579158e-2,
+        ],
         "soil_c_pool_bacteria": [
             -0.048350513,
             -0.0172513872,
@@ -92,8 +114,18 @@ def test_calculate_all_pool_updates(
             -0.03157447,
             -0.02414548,
         ],
-        "soil_c_pool_pom": [-0.007886552416, -0.0349077207, -0.02708249, -0.001980103],
-        "soil_c_pool_necromass": [0.0059195, 0.09042042, 0.08573325, 0.02066319],
+        "soil_cnp_pool_pom_carbon": [
+            -0.007886552416,
+            -0.0349077207,
+            -0.02708249,
+            -0.001980103,
+        ],
+        "soil_cnp_pool_necromass_carbon": [
+            0.0059195,
+            0.09042042,
+            0.08573325,
+            0.02066319,
+        ],
         "soil_enzyme_pom_bacteria": [-5.44018e-4, -2.2835e-4, -1.19517e-3, -7.21028e-5],
         "soil_enzyme_maom_bacteria": [-8.54122e-4, -2.79326e-4, -5.9611e-4, -1.0930e-4],
         "soil_enzyme_pom_fungi": [
@@ -108,16 +140,46 @@ def test_calculate_all_pool_updates(
             -5.40629537e-05,
             -3.31618203e-05,
         ],
-        "soil_n_pool_don": [0.00169496, 0.0057789, 0.00535622, 0.00547371],
-        "soil_n_pool_particulate": [-8.93527e-5, 5.102785e-5, 9.028158e-5, 5.163279e-6],
-        "soil_n_pool_necromass": [7.37406e-3, -1.87488e-3, 4.96976e-3, -1.53633e-7],
-        "soil_n_pool_maom": [1.183733e-3, 1.082948e-2, 1.343197e-2, 7.72882e-3],
+        "soil_cnp_pool_lmwc_nitrogen": [0.00169496, 0.0057789, 0.00535622, 0.00547371],
+        "soil_cnp_pool_pom_nitrogen": [
+            -8.93527e-5,
+            5.102785e-5,
+            9.028158e-5,
+            5.163279e-6,
+        ],
+        "soil_cnp_pool_necromass_nitrogen": [
+            7.37406e-3,
+            -1.87488e-3,
+            4.96976e-3,
+            -1.53633e-7,
+        ],
+        "soil_cnp_pool_maom_nitrogen": [
+            1.183733e-3,
+            1.082948e-2,
+            1.343197e-2,
+            7.72882e-3,
+        ],
         "soil_n_pool_ammonium": [0.00014578, 0.00824912, -0.00018991, -0.00027484],
         "soil_n_pool_nitrate": [-0.00562716, -0.00584054, -0.00202432, -0.00157849],
-        "soil_p_pool_dop": [0.00022614, 0.00016408, 0.00021213, 0.00038847],
-        "soil_p_pool_particulate": [6.804384e-6, -6.47598e-6, -9.0058e-7, 1.583258e-7],
-        "soil_p_pool_necromass": [0.00225261, 0.00282114, 0.00596048, 0.0014114],
-        "soil_p_pool_maom": [5.47518e-4, -3.2943e-5, 4.6272e-4, 3.0915e-4],
+        "soil_cnp_pool_lmwc_phosphorus": [
+            0.00022614,
+            0.00016408,
+            0.00021213,
+            0.00038847,
+        ],
+        "soil_cnp_pool_pom_phosphorus": [
+            6.804384e-6,
+            -6.47598e-6,
+            -9.0058e-7,
+            1.583258e-7,
+        ],
+        "soil_cnp_pool_necromass_phosphorus": [
+            0.00225261,
+            0.00282114,
+            0.00596048,
+            0.0014114,
+        ],
+        "soil_cnp_pool_maom_phosphorus": [5.47518e-4, -3.2943e-5, 4.6272e-4, 3.0915e-4],
         "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
         "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
         "soil_p_pool_labile": [
@@ -200,15 +262,26 @@ def test_to_per_volume(
         "new_emf_p_supply",
     ]
 
+    elements = {"C": "carbon", "N": "nitrogen", "P": "phosphorus"}
+
     # Find and store order of pools (this requires loads of steps because it needs to
     # work with the integrator)
     y0 = np.concatenate(
         (
             np.concatenate(
                 [
+                    dummy_carbon_data[name].loc[:, element].to_numpy()
+                    for element in elements.keys()
+                    for name in SoilModel.vars_updated
+                    if name.startswith("soil_cnp_")
+                ]
+            ),
+            np.concatenate(
+                [
                     dummy_carbon_data[name].to_numpy()
                     for name in map(str, dummy_carbon_data.data.keys())
                     if name in SoilModel.vars_updated
+                    if not name.startswith("soil_cnp_")
                 ]
             ),
             np.zeros(len(refreshed_variables) * dummy_carbon_data.grid.n_cells),
@@ -216,9 +289,16 @@ def test_to_per_volume(
     )
     delta_pools_ordered = {
         **{
+            f"{name}_{element}": np.array([])
+            for element in elements.values()
+            for name in SoilModel.vars_updated
+            if name.startswith("soil_cnp_")
+        },
+        **{
             name: np.array([])
             for name in map(str, dummy_carbon_data.data.keys())
             if name in SoilModel.vars_updated
+            if not name.startswith("soil_cnp_")
         },
         **{name: np.array([]) for name in refreshed_variables},
     }
@@ -432,9 +512,9 @@ def test_calculate_nutrient_removal_by_water(
     }
 
     actual_removal = calculate_nutrient_removal_by_water(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
-        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
+        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "N"],
+        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "P"],
         soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
@@ -471,9 +551,9 @@ def test_negative_nutrient_removal_by_water(
     expected_labile_P = [2.274653e-11, 4.130485e-10, 6.749199e-9, 0.0]
 
     actual_removal = calculate_nutrient_removal_by_water(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
-        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
+        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
+        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
         soil_n_pool_ammonium=ammonium_data,
         soil_n_pool_nitrate=nitrate_data,
         soil_p_pool_labile=labile_p_data,
@@ -684,7 +764,7 @@ def test_calculate_enzyme_mediated_decomposition(
     expected_decomp = [3.39844565e-4, 8.91990315e-3, 1.66740158e-2, 4.14247999e-5]
 
     actual_decomp = calculate_enzyme_mediated_decomposition(
-        soil_c_pool=dummy_carbon_data["soil_c_pool_pom"],
+        soil_c_pool=dummy_carbon_data["soil_cnp_pool_pom"].loc[:, "C"],
         soil_enzyme=dummy_carbon_data["soil_enzyme_pom_bacteria"],
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
@@ -704,7 +784,7 @@ def test_calculate_maom_desorption(dummy_carbon_data, fixture_soil_constants):
     expected_desorption = [2.5e-5, 1.7e-5, 4.5e-5, 5.0e-6]
 
     actual_desorption = calculate_maom_desorption(
-        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
+        soil_c_pool_maom=dummy_carbon_data["soil_cnp_pool_maom"].loc[:, "C"],
         desorption_rate_constant=fixture_soil_constants.maom_desorption_rate,
     )
 
@@ -715,12 +795,12 @@ def test_calculate_maom_desorption(dummy_carbon_data, fixture_soil_constants):
     "pool_name,sorption_rate_constant,expected_sorption",
     [
         (
-            "soil_c_pool_lmwc",
+            "soil_cnp_pool_lmwc",
             "lmwc_sorption_rate",
             [5.0e-5, 2.0e-5, 0.0001, 5.0e-6],
         ),
         (
-            "soil_c_pool_necromass",
+            "soil_cnp_pool_necromass",
             "necromass_sorption_rate",
             [0.04020253647, 0.01039720771, 0.06446268779, 0.07278045396],
         ),
@@ -738,7 +818,7 @@ def test_calculate_sorption_to_maom(
     from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
 
     actual_sorption = calculate_sorption_to_maom(
-        soil_c_pool=dummy_carbon_data[pool_name],
+        soil_c_pool=dummy_carbon_data[pool_name].loc[:, "C"],
         sorption_rate_constant=getattr(fixture_soil_constants, sorption_rate_constant),
     )
 
@@ -753,7 +833,7 @@ def test_calculate_necromass_breakdown(dummy_carbon_data, fixture_soil_constants
     expected_breakdown = [0.0134008455, 0.0034657359, 0.0214875626, 0.0242601513]
 
     actual_breakdown = calculate_necromass_breakdown(
-        soil_c_pool_necromass=dummy_carbon_data["soil_c_pool_necromass"],
+        soil_c_pool_necromass=dummy_carbon_data["soil_cnp_pool_necromass"].loc[:, "C"],
         necromass_decay_rate=fixture_soil_constants.necromass_decay_rate,
     )
 
@@ -780,15 +860,7 @@ def test_calculate_litter_mineralisation_fluxes(
     }
 
     actual_fluxes = calculate_litter_mineralisation_fluxes(
-        litter_C_mineralisation_rate=dummy_carbon_data[
-            "litter_C_mineralisation_rate"
-        ].to_numpy(),
-        litter_N_mineralisation_rate=dummy_carbon_data[
-            "litter_N_mineralisation_rate"
-        ].to_numpy(),
-        litter_P_mineralisation_rate=dummy_carbon_data[
-            "litter_P_mineralisation_rate"
-        ].to_numpy(),
+        litter_mineralisation_rates=dummy_carbon_data["litter_mineralisation_rate_cnp"],
         constants=fixture_soil_constants,
     )
 
@@ -811,7 +883,9 @@ def test_calculate_litter_mineralisation_split(
     expected_particulate = [0.00211787841, 0.001058939205, 0.000489265, 0.00549175]
 
     actual_particulate, expected_dissolved = calculate_litter_mineralisation_split(
-        mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
+        mineralisation_rate=dummy_carbon_data["litter_mineralisation_rate_cnp"]
+        .loc[:, "C"]
+        .to_numpy(),
         litter_leaching_coefficient=fixture_soil_constants.litter_leaching_fraction_carbon,
     )
 
@@ -830,8 +904,8 @@ def test_calculate_soil_nutrient_mineralisation(
     expected_rate = [0.00013585646, 2.16036801e-5, 1.030577177e-4, 1.15848952e-5]
 
     actual_rate = calculate_soil_nutrient_mineralisation(
-        pool_carbon=dummy_carbon_data["soil_c_pool_pom"],
-        pool_nutrient=dummy_carbon_data["soil_n_pool_particulate"],
+        pool_carbon=dummy_carbon_data["soil_cnp_pool_pom"].loc[:, "C"],
+        pool_nutrient=dummy_carbon_data["soil_cnp_pool_pom"].loc[:, "N"],
         breakdown_rate=enzyme_mediated_rates.pom_to_lmwc,
     )
 
@@ -876,9 +950,9 @@ def test_find_necromass_nutrient_outflows(
     }
 
     actual_rates = find_necromass_nutrient_outflows(
-        necromass_carbon=dummy_carbon_data["soil_c_pool_necromass"],
-        necromass_nitrogen=dummy_carbon_data["soil_n_pool_necromass"],
-        necromass_phosphorus=dummy_carbon_data["soil_p_pool_necromass"],
+        necromass_carbon=dummy_carbon_data["soil_cnp_pool_necromass"].loc[:, "C"],
+        necromass_nitrogen=dummy_carbon_data["soil_cnp_pool_necromass"].loc[:, "N"],
+        necromass_phosphorus=dummy_carbon_data["soil_cnp_pool_necromass"].loc[:, "P"],
         necromass_decay=necromass_breakdown,
         necromass_sorption=necromass_sorption,
     )
@@ -903,12 +977,12 @@ def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
     }
 
     actual_transfers = calculate_net_nutrient_transfers_from_maom_to_lmwc(
-        lmwc_carbon=dummy_carbon_data["soil_c_pool_lmwc"],
-        lmwc_nitrogen=dummy_carbon_data["soil_n_pool_don"],
-        lmwc_phosphorus=dummy_carbon_data["soil_p_pool_dop"],
-        maom_carbon=dummy_carbon_data["soil_c_pool_maom"],
-        maom_nitrogen=dummy_carbon_data["soil_n_pool_maom"],
-        maom_phosphorus=dummy_carbon_data["soil_p_pool_maom"],
+        lmwc_carbon=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
+        lmwc_nitrogen=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "N"],
+        lmwc_phosphorus=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "P"],
+        maom_carbon=dummy_carbon_data["soil_cnp_pool_maom"].loc[:, "C"],
+        maom_nitrogen=dummy_carbon_data["soil_cnp_pool_maom"].loc[:, "N"],
+        maom_phosphorus=dummy_carbon_data["soil_cnp_pool_maom"].loc[:, "P"],
         maom_breakdown=enzyme_mediated_rates.maom_to_lmwc,
         maom_desorption=maom_desorption,
         lmwc_sorption=lmwc_sorption,

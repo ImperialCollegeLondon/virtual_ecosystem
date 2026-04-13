@@ -150,6 +150,10 @@ class HydrologyModel(
         core_components: CoreComponents,
         initial_soil_moisture: float,
         initial_groundwater_saturation: float,
+        p_wet_wet: float,
+        p_wet_dry: float,
+        rainfall_shape_parameter: float,
+        rainfall_scale_parameter: float,
         model_constants: HydrologyConstants = HydrologyConstants(),
         abiotic_constants: AbioticConstants = AbioticConstants(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
@@ -168,6 +172,14 @@ class HydrologyModel(
         cells identical."""
         self.initial_groundwater_saturation: float
         """Initial level of groundwater saturation for all layers identical."""
+        self.p_wet_wet: float
+        """Probability a wet day follows a wet day."""
+        self.p_wet_dry: float
+        """Probability a wet day follows a dry day."""
+        self.rainfall_shape_parameter: float
+        """Shape parameter of Gamma distribution controlling rainfall variability."""
+        self.rainfall_scale_parameter: float
+        """Scale parameter of Gamma distribution controlling magnitude of rainfall."""
         self.model_constants: HydrologyConstants
         """Set of constants for the hydrology model"""
         self.pyrealm_core_constants: PyrealmCoreConst
@@ -184,6 +196,10 @@ class HydrologyModel(
             self._setup(
                 initial_soil_moisture=initial_soil_moisture,
                 initial_groundwater_saturation=initial_groundwater_saturation,
+                p_wet_wet=p_wet_wet,
+                p_wet_dry=p_wet_dry,
+                rainfall_shape_parameter=rainfall_shape_parameter,
+                rainfall_scale_parameter=rainfall_scale_parameter,
                 model_constants=model_constants,
                 abiotic_constants=abiotic_constants,
                 pyrealm_core_constants=pyrealm_core_constants,
@@ -193,6 +209,10 @@ class HydrologyModel(
         self,
         initial_soil_moisture: float,
         initial_groundwater_saturation: float,
+        p_wet_wet: float,
+        p_wet_dry: float,
+        rainfall_shape_parameter: float,
+        rainfall_scale_parameter: float,
         model_constants: HydrologyConstants = HydrologyConstants(),
         abiotic_constants: AbioticConstants = AbioticConstants(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
@@ -214,6 +234,10 @@ class HydrologyModel(
 
         self.initial_soil_moisture = initial_soil_moisture
         self.initial_groundwater_saturation = initial_groundwater_saturation
+        self.p_wet_wet = p_wet_wet
+        self.p_wet_dry = p_wet_dry
+        self.rainfall_shape_parameter = rainfall_shape_parameter
+        self.rainfall_scale_parameter = rainfall_scale_parameter
         self.model_constants = model_constants
         self.abiotic_constants = abiotic_constants
         self.pyrealm_core_constants = pyrealm_core_constants
@@ -247,11 +271,12 @@ class HydrologyModel(
         )
 
         # Make initial guess of the matric potential based on the soil moisture
+        soil_moisture_ini = (
+            self.data["soil_moisture"][self.layer_structure.index_all_soil].to_numpy()
+            / self.soil_layer_thickness_mm
+        )
         effective_saturation = hydrology_tools.calculate_effective_saturation(
-            soil_moisture=self.data["soil_moisture"][
-                self.layer_structure.index_all_soil
-            ].to_numpy()
-            / self.soil_layer_thickness_mm,
+            soil_moisture=soil_moisture_ini,
             soil_moisture_saturation=self.model_constants.soil_moisture_saturation,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
         )
@@ -337,6 +362,10 @@ class HydrologyModel(
             static=hydrology_configuration.static,
             initial_soil_moisture=hydrology_configuration.initial_soil_moisture,
             initial_groundwater_saturation=hydrology_configuration.initial_groundwater_saturation,
+            p_wet_wet=hydrology_configuration.p_wet_wet,
+            p_wet_dry=hydrology_configuration.p_wet_dry,
+            rainfall_shape_parameter=hydrology_configuration.rainfall_shape_parameter,
+            rainfall_scale_parameter=hydrology_configuration.rainfall_scale_parameter,
             model_constants=hydrology_configuration.constants,
             abiotic_constants=abiotic_constants,
             pyrealm_core_constants=core_configuration.pyrealm.core,
@@ -441,7 +470,10 @@ class HydrologyModel(
         :class:`~virtual_ecosystem.models.hydrology.model_config.HydrologyConstants`.
         """
         # Determine number of days
-        days_float: float = self.model_timing.update_interval_seconds / 86400
+        days_float: float = (
+            self.model_timing.update_interval_seconds
+            / self.core_constants.seconds_to_day
+        )
         days: int = int(days_float // 1)
 
         # Check if the number of days is exact and warn if not
@@ -464,6 +496,10 @@ class HydrologyModel(
             soil_layer_thickness_mm=self.soil_layer_thickness_mm,
             soil_moisture_saturation=self.model_constants.soil_moisture_saturation,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
+            p_wet_wet=self.p_wet_wet,
+            p_wet_dry=self.p_wet_dry,
+            shape_parameter=self.rainfall_shape_parameter,
+            scale_parameter=self.rainfall_scale_parameter,
         )
 
         # Calculate psychrometric constant
@@ -520,15 +556,11 @@ class HydrologyModel(
             daily_lists["canopy_evaporation"].append(canopy_evaporation)
 
             # Precipitation that reaches the surface per day, [mm]
-            # TODO - This has extra safe guarding to prevent negative precipitation.
-            # This is a bandaid solution that should be replaced see #1267
-            precipitation_surface = np.maximum(
-                hydro_input["current_precipitation"][:, day]
-                - np.minimum(
-                    np.nansum(canopy_evaporation, axis=0),
-                    hydro_input["current_precipitation"][:, day],
-                ),
-                0.001,
+            precipitation_surface = hydro_input["current_precipitation"][
+                :, day
+            ] - np.minimum(
+                np.nansum(canopy_evaporation, axis=0),
+                hydro_input["current_precipitation"][:, day],
             )
 
             hydrology_tools.check_precipitation_surface(

@@ -353,101 +353,6 @@ class FungalFruitPool:
         return total_decay
 
 
-class LitterPool:
-    """Interface between litter model variables in ``Data`` and the animal module.
-
-    One :class:`LitterPool` instance now represents **one litter type *in one grid
-    cell***.
-    """
-
-    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
-    """Vertical position of litter pool."""
-
-    def __init__(
-        self,
-        pool_name: str,
-        cell_id: int,
-        data: "Data",
-        cell_area: float,
-    ) -> None:
-        self.pool_name = pool_name
-        self.cell_id = cell_id
-        self.cell_area = cell_area
-
-        carbon_stock = (
-            data[f"litter_pool_{pool_name}"].sel(cell_id=cell_id).item()
-        )  # kg C m⁻²
-        self.c_n_ratio = data[f"c_n_ratio_{pool_name}"].sel(cell_id=cell_id).item()
-        self.c_p_ratio = data[f"c_p_ratio_{pool_name}"].sel(cell_id=cell_id).item()
-
-        if min(self.c_n_ratio, self.c_p_ratio) <= 0:
-            raise ValueError(
-                f"{pool_name}: non-positive C:N or C:P ratio in cell {cell_id}."
-            )
-
-        # Convert to absolute mass (kg) and build stoichiometry
-        carbon_mass = carbon_stock * cell_area
-        self.mass_cnp = CNP(
-            C=carbon_mass,
-            N=carbon_mass / self.c_n_ratio,
-            P=carbon_mass / self.c_p_ratio,
-        )
-
-        # Sanity-check
-        if self.mass_cnp.total < 0:
-            raise ValueError(
-                f"{pool_name}: negative mass detected in cell {cell_id} "
-                f"({self.mass_cnp})."
-            )
-
-    @property
-    def mass_current(self) -> float:
-        """Return current carbon mass in the pool [kg]."""
-        return self.mass_cnp.C
-
-    def get_eaten(
-        self,
-        consumed_mass: float,
-        detritivore: "Consumer",
-    ) -> tuple[dict[str, float], dict[str, float]]:
-        """Remove biomass when a cohort consumes this litter pool.
-
-        Args:
-            consumed_mass: Target wet-mass to consume **after** mechanical efficiency is
-              applied (kg).  Any attempt to over-consume is automatically capped.
-            detritivore: The cohort that is feeding used only to obtain mechanical
-              efficiency.
-
-        Returns:
-            Dictionary of element masses actually assimilated, keys ``C``,
-            ``N``, ``P`` (kg).
-        """
-        if consumed_mass < 0:
-            raise ValueError("consumed_mass must be non-negative")
-
-        total_available = self.mass_cnp.total
-        mech_eff = detritivore.functional_group.mechanical_efficiency
-        actual = min(consumed_mass, total_available) * mech_eff
-
-        frac_C = self.mass_cnp.C / total_available
-        frac_N = self.mass_cnp.N / total_available
-        frac_P = self.mass_cnp.P / total_available
-
-        taken = {
-            "C": actual * frac_C,
-            "N": actual * frac_N,
-            "P": actual * frac_P,
-        }
-
-        # in-place update
-        self.mass_cnp.update(
-            C=-taken["C"],
-            N=-taken["N"],
-            P=-taken["P"],
-        )
-        return taken, {}
-
-
 class SoilPool:
     """Interface between litter model variables in ``Data`` and the animal module.
 
@@ -515,12 +420,14 @@ class SoilPool:
                 halt [m]
         """
 
-        carbon_stock = data["soil_c_pool_pom"].sel(cell_id=self.cell_id).item()
+        carbon_stock = (
+            data["soil_cnp_pool_pom"].sel(cell_id=self.cell_id, element="C").item()
+        )
         nitrogen_stock = (
-            data["soil_n_pool_particulate"].sel(cell_id=self.cell_id).item()
+            data["soil_cnp_pool_pom"].sel(cell_id=self.cell_id, element="N").item()
         )
         phosphorus_stock = (
-            data["soil_p_pool_particulate"].sel(cell_id=self.cell_id).item()
+            data["soil_cnp_pool_pom"].sel(cell_id=self.cell_id, element="P").item()
         )
 
         # Convert stocks (kg m^-3) into masses by multiplying by grid square area and by

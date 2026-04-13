@@ -223,7 +223,7 @@ currently based at SEARRP in Kota Kinabalu (Malaysia).
 
 Hao Ran is a (mostly plant) community ecologist who works on forest dynamics, functional
 traits and statistical modelling. He helps with the soil models of Virtual Ecosystem and
-is currently based in Aotearoa New Zealand.
+is currently based in Kuala Lumpur, Malaysia.
 :::
 
 :::{grid-item-card} Dr. Nicholas Wei Cheng Tan
@@ -237,8 +237,8 @@ is currently based in Aotearoa New Zealand.
 
 Nicholas is an animal ecologist with interests in phenotypic evolution and the effects
 of climate and land use change on biodiversity. He is one of the data scientists for the
-Virtual Ecosystem, with a focus on the animal model. Nicholas is currently based in
-Johannesburg, South Africa.
+Virtual Ecosystem, with a focus on the animal model. Nicholas is currently based at
+SEARRP in Kota Kinabalu, Malaysia.
 :::
 
 :::{grid-item-card} Dr. Arne Scheire

@@ -41,10 +41,10 @@ file_path = "../data/example_soil_data.nc"
 var_name = "clay_fraction"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_c_pool_lmwc"
+var_name = "soil_cnp_pool_lmwc"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_c_pool_maom"
+var_name = "soil_cnp_pool_maom"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_bacteria"
@@ -59,10 +59,10 @@ file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_ectomycorrhiza"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_c_pool_pom"
+var_name = "soil_cnp_pool_pom"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_c_pool_necromass"
+var_name = "soil_cnp_pool_necromass"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
 var_name = "soil_enzyme_pom_bacteria"
@@ -77,34 +77,10 @@ file_path = "../data/example_soil_data.nc"
 var_name = "soil_enzyme_maom_fungi"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_n_pool_don"
-[[core.data.variable]]
-file_path = "../data/example_soil_data.nc"
-var_name = "soil_n_pool_particulate"
-[[core.data.variable]]
-file_path = "../data/example_soil_data.nc"
-var_name = "soil_n_pool_necromass"
-[[core.data.variable]]
-file_path = "../data/example_soil_data.nc"
-var_name = "soil_n_pool_maom"
-[[core.data.variable]]
-file_path = "../data/example_soil_data.nc"
 var_name = "soil_n_pool_ammonium"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
 var_name = "soil_n_pool_nitrate"
-[[core.data.variable]]
-file_path = "../data/example_soil_data.nc"
-var_name = "soil_p_pool_dop"
-[[core.data.variable]]
-file_path = "../data/example_soil_data.nc"
-var_name = "soil_p_pool_particulate"
-[[core.data.variable]]
-file_path = "../data/example_soil_data.nc"
-var_name = "soil_p_pool_necromass"
-[[core.data.variable]]
-file_path = "../data/example_soil_data.nc"
-var_name = "soil_p_pool_maom"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_primary"
@@ -121,19 +97,19 @@ var_name = "fungal_fruiting_bodies"
 # Litter 
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_above_metabolic"
+var_name = "litter_pool_above_metabolic_cnp"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_above_structural"
+var_name = "litter_pool_above_structural_cnp"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_woody"
+var_name = "litter_pool_woody_cnp"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_below_metabolic"
+var_name = "litter_pool_below_metabolic_cnp"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
-var_name = "litter_pool_below_structural"
+var_name = "litter_pool_below_structural_cnp"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
 var_name = "lignin_above_structural"
@@ -143,33 +119,3 @@ var_name = "lignin_woody"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
 var_name = "lignin_below_structural"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_n_ratio_above_metabolic"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_n_ratio_above_structural"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_n_ratio_woody"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_n_ratio_below_metabolic"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_n_ratio_below_structural"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_p_ratio_above_metabolic"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_p_ratio_above_structural"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_p_ratio_woody"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_p_ratio_below_metabolic"
-[[core.data.variable]]
-file_path = "../data/example_litter_data.nc"
-var_name = "c_p_ratio_below_structural"

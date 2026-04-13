@@ -4,7 +4,7 @@ classes that are used to define configuration settings for a model.
 
 Each model must define an object ``model_name.model_config.ModelConfiguration``. For the
 science models, this object **must** inherit from :class:`ModelConfigurationRoot`, which
-provides the common ``static`` setting. The `core.model_config.ModelConfiguration`
+provides the common ``static`` setting. The ``core.model_config.ModelConfiguration``
 configuration instead directly uses :class:`Configuration` since it cannot be run in
 static mode. The ``model_name.model_config`` module can then include other
 :class:`Configuration` classes that are used as nested fields within the root
@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, TypeAlias, TypeVar
+from typing import Annotated, Any, ClassVar, TypeVar
 
 import tomli_w
 from pydantic import (
@@ -64,7 +64,7 @@ def placeholder_validator(path: str) -> str:
 #       from the text elements from the Annotated pattern. Currently tackled using
 #       nitpick ignore.
 
-FILEPATH_PLACEHOLDER: TypeAlias = Annotated[
+type FILEPATH_PLACEHOLDER = Annotated[
     FilePath,
     Field(default=Path("<FILEPATH_PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),
@@ -78,7 +78,7 @@ default.
 """
 
 
-DIRPATH_PLACEHOLDER: TypeAlias = Annotated[
+type DIRPATH_PLACEHOLDER = Annotated[
     DirectoryPath,
     Field(default=Path("<DIRPATH_PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),

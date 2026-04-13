@@ -48,12 +48,6 @@ def initialise_atmosphere_for_hydrology(
             model_constants.initial_aerodynamic_resistance_soil,
         ),
         (
-            "aerodynamic_resistance_canopy",
-            layer_structure.index_filled_canopy,
-            layer_structure.index_surface_scalar,
-            core_constants.initial_aerodynamic_resistance_canopy,
-        ),
-        (
             "stomatal_conductance",
             layer_structure.index_filled_canopy,
             layer_structure.index_surface_scalar,
@@ -66,6 +60,14 @@ def initialise_atmosphere_for_hydrology(
         layer[index] = value
         layer[index_surface] = value
         output[key] = layer
+
+    output["aerodynamic_resistance_canopy"] = DataArray(
+        np.repeat(
+            core_constants.initial_aerodynamic_resistance_canopy,
+            data["air_temperature_ref"].shape[0],
+        ),
+        dims="cell_id",
+    )
 
     # Extract air temperature and pressure
     air_temp = data["air_temperature_ref"].isel(time_index=0).to_numpy()
@@ -112,6 +114,10 @@ def setup_hydrology_input_current_timestep(
     soil_layer_thickness_mm: NDArray[np.floating],
     soil_moisture_saturation: float | NDArray[np.floating],
     soil_moisture_residual: float | NDArray[np.floating],
+    p_wet_wet: float,
+    p_wet_dry: float,
+    shape_parameter: float,
+    scale_parameter: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
 
@@ -151,6 +157,12 @@ def setup_hydrology_input_current_timestep(
         soil_layer_thickness_mm: The thickness of the soil layer, [mm]
         soil_moisture_saturation: Soil moisture saturation, unitless
         soil_moisture_residual: Soil moisture residual, unitless
+        p_wet_wet: Probability a wet day follows a wet day.
+        p_wet_dry: Probability a wet day follows a dry day.
+        shape_parameter: Shape parameter of the Gamma distribution controlling
+            rainfall variability.
+        scale_parameter: Scale parameter of the Gamma distribution controlling
+            absolute magnitude of rainfall.
 
     Returns:
         dictionary with all variables that are required to run one hydrology update()
@@ -160,9 +172,15 @@ def setup_hydrology_input_current_timestep(
     output = {}
 
     # Get atmospheric variables
+    # Generate daily rainfall, [mm]
+    input_rainfall = data["precipitation"].isel(time_index=time_index).to_numpy()
     output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
-        (data["precipitation"].isel(time_index=time_index)).to_numpy(),
+        total_monthly_rainfall=input_rainfall,
         num_days=days,
+        p_wet_wet=p_wet_wet,
+        p_wet_dry=p_wet_dry,
+        shape_parameter=shape_parameter,
+        scale_parameter=scale_parameter,
         seed=seed,
     )
 
@@ -176,6 +194,7 @@ def setup_hydrology_input_current_timestep(
         ("surface_pressure", "atmospheric_pressure"),
     ):
         output[out_var] = data[in_var][layer_structure.index_surface_scalar].to_numpy()
+
     # Get inputs from plant model
     output["leaf_area_index_sum"] = np.nansum(
         data["leaf_area_index"].to_numpy(), axis=0

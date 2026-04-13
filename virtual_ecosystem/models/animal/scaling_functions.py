@@ -86,6 +86,7 @@ def metabolic_rate(
     mass and an exponential relationship with temperature.
 
     TODO: Implement activity windows to properly parameterize sigma.
+    TODO: double check unit alignment
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
@@ -295,18 +296,18 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
 
     Args:
         alpha_0_herb: Effective rate per unit body mass at which a herbivore searches
-          its environment.
-        mass: The current body mass of the foraging herbivore.
+          its environment in m2/(day*g).
+        mass: The current body mass of the foraging herbivore in g.
 
     Returns:
-        A float of the effective search rate in [ha/day]
+        A float of the effective search rate in [m2/day].
 
     """
 
     return alpha_0_herb * mass
 
 
-def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> float:
+def k_i_k(alpha_i_k: float, B_k_t: float, A_cell: float) -> float:
     """The potential biomass (g) of plant k eaten by cohort i, per day.
 
     TODO: update name
@@ -316,8 +317,6 @@ def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> f
     Args:
         alpha_i_k: Effective rate at which an individual herbivore searches its
           environment.
-        phi_herb_t: Fraction of the total plant stock that is available to any one
-          herbivore cohort (default 0.1)
         B_k_t: Plant resource bool biomass.
         A_cell: The area of one cell [standard = 1 ha]
 
@@ -327,7 +326,7 @@ def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> f
 
     """
 
-    return alpha_i_k * ((phi_herb_t * B_k_t) / A_cell) ** 2
+    return alpha_i_k * ((B_k_t) / A_cell) ** 2
 
 
 def H_i_k(h_herb_0: float, M_ref: float, M_i_t: float, b_herb: float) -> float:
@@ -367,7 +366,7 @@ def theta_opt_i(
     Args:
         theta_opt_min_f: The minimum optimal prey-predator body mass ratio.
         theta_opt_f: The mean optimal prey-predator body mass ratio, from which actual
-          cohort optima are drawn.
+            cohort optima are drawn.
         sigma_opt_f: The standard deviation of optimal predator-prey mass ratios among
           cohorts.
 
@@ -395,7 +394,7 @@ def w_bar_i_j(
         mass_predator: Current mass of the predator..
         mass_prey: Current mass of the prey.
         theta_opt_i: The optimum predator-prey mass ratio.
-        sigma_opt_pred_prey: The standard deviation of the mass ration.
+        sigma_opt_pred_prey: The standard deviation of the mass ratio.
 
     Returns:
         A float probability [0.0-1.0] that a predation encounter is successful.
@@ -422,44 +421,45 @@ def alpha_i_j(alpha_0_pred: float, mass: float, w_bar_i_j: float) -> float:
 
     Args:
         alpha_0_pred: Constant describing effective rate per unit body mass at which any
-          predator searches its environment in ha/(day*g).
+          predator searches its environment in m2/(day*g).
         mass: The current body mass of the foraging herbivore.
         w_bar_i_j: The probability of successfully capturing a prey item.
 
     Returns:
-        A float of the effective search rate in [ha/day]
+        A float of the effective search rate in [m2/day]
 
     """
 
     return alpha_0_pred * mass * w_bar_i_j
 
 
-def k_i_j(alpha_i_j: float, N_i_t: float, A_cell: float, theta_i_j: float) -> float:
+def k_i_j(
+    alpha_i_j: float, N_i_t: float, intersection_area: float, theta_i_j: float
+) -> float:
     """Potential number of prey items eaten off j by i.
 
-    TODO: double check output needs to be float, might be int
     TODO: update name
 
     Madingley
 
     Args:
         alpha_i_j: Rate at which an individual predator searches its environment and
-          kills prey.
+            kills prey in m2/(day*g).
         N_i_t: Number of consumer individuals.
-        A_cell: The area of a grid cell.
+        intersection_area: The overlapping area between predator and prey territories
+          in m2.
         theta_i_j: The cumulative density of organisms with a mass lying within the
-              same predator specific mass bin.
+            same predator specific mass bin.
 
     Returns:
         Potential number of prey items eaten off j by i [integer number of individuals]
-
-
     """
+    return alpha_i_j * (N_i_t / intersection_area) * theta_i_j
 
-    return alpha_i_j * (N_i_t / A_cell) * theta_i_j
 
-
-def H_i_j(h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float) -> float:
+def H_i_j(
+    h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float, prey_mass: float
+) -> float:
     """Handling time of prey cohort j by cohort i.
 
     Time (days) for an individual of cohort i to handle 1 individual of cohort j.
@@ -475,13 +475,14 @@ def H_i_j(h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float) -> float:
         M_i_t: Current predator mass.
         b_pred: Exponent of the power-law function relating the handling time of
           prey to predator mass.
+        prey_mass: the mass of prey being handled.
 
     Returns:
         A float of the handling time (days).
 
     """
 
-    return h_pred_0 * ((M_ref / M_i_t) ** b_pred) * M_i_t
+    return h_pred_0 * ((M_ref / M_i_t) ** b_pred) * prey_mass
 
 
 def juvenile_dispersal_speed(
@@ -507,35 +508,26 @@ def juvenile_dispersal_speed(
     return V_disp * (current_mass / M_disp_ref) ** o_disp
 
 
-def territory_size(mass: float) -> float:
-    """This function provides allometric scaling for territory size.
+def territory_size(
+    mass_kg: float,
+    terms: tuple[float, float],
+) -> float:
+    """Allometric scaling of territory size from body mass.
 
-    TODO: Replace this toy scaling with a real allometry
-    TODO: decide if this allometry will be based on current mass or adult mass
+    TODO: Decide whether to use current mass or adult mass.
 
     Args:
-        mass: The mass of the animal cohort
+        mass_kg: Body mass of the animal [kg].
+        terms: A tuple (intercept, exponent) for the log-log scaling relationship,
+            where intercept and exponent act on ln(BM_g).
 
     Returns:
-        The size of the cohort's territory in hectares
+        Territory size [m²].
     """
 
-    if mass < 10.0:
-        territory = 1.0
-    elif 10.0 <= mass < 25.0:
-        territory = 2.0
-    elif 25.0 <= mass < 50.0:
-        territory = 5.0
-    elif 50.0 <= mass < 100.0:
-        territory = 10.0
-    elif 100.0 <= mass < 200.0:
-        territory = 15.0
-    elif 200.0 <= mass < 500.0:
-        territory = 20.0
-    else:
-        territory = 30.0
-
-    return territory
+    intercept, exponent = terms
+    ln_territory_ha = intercept + exponent * log(mass_kg * 1000)
+    return exp(ln_territory_ha) * 10_000
 
 
 def bfs_territory(

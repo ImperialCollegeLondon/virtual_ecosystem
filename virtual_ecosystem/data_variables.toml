@@ -2,7 +2,7 @@
 axis = [] # ["community_id", "functional_group_id"]
 description = "Density of animal populations."
 name = "population_densities"
-unit = "???"
+unit = "individual m-2"
 variable_type = "float"
 
 [[variable]]
@@ -23,6 +23,13 @@ variable_type = "float"
 axis = ["spatial", "time"]
 description = "Air temperature at reference height (2m)"
 name = "air_temperature_ref"
+unit = "C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Diurnal air temperature range"
+name = "diurnal_temperature_range"
 unit = "C"
 variable_type = "float"
 
@@ -588,16 +595,16 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil low molecular weight carbon pool"
-name = "soil_c_pool_lmwc"
-unit = "kg C m^-3"
+description = "Soil low molecular weight carbon pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_lmwc"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil mineral associated organic matter pool "
-name = "soil_c_pool_maom"
-unit = "kg C m^-3"
+description = "Soil mineral associated organic matter pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_maom"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]
@@ -630,44 +637,16 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Particulate organic matter pool"
-name = "soil_c_pool_pom"
-unit = "kg C m^-3"
+description = "Particulate organic matter pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_pom"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Necrotic organic matter pool"
-name = "soil_c_pool_necromass"
-unit = "kg C m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Dissolved organic nitrogen pool"
-name = "soil_n_pool_don"
-unit = "kg N m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Particulate organic nitrogen pool"
-name = "soil_n_pool_particulate"
-unit = "kg N m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Amount of nitrogen contained in the necromass pool"
-name = "soil_n_pool_necromass"
-unit = "kg N m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Amount of nitrogen contained in the mineral associated organic matter pool"
-name = "soil_n_pool_maom"
-unit = "kg N m^-3"
+description = "Necrotic organic matter pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_necromass"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]
@@ -682,34 +661,6 @@ axis = ["spatial"]
 description = "Amount of nitrogen contained in the soil nitrate (NO3-) pool"
 name = "soil_n_pool_nitrate"
 unit = "kg N m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Dissolved organic phosphorus pool"
-name = "soil_p_pool_dop"
-unit = "kg P m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Particulate organic phosphorus pool"
-name = "soil_p_pool_particulate"
-unit = "kg P m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Amount of phosphorus contained in the necromass pool"
-name = "soil_p_pool_necromass"
-unit = "kg P m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Amount of phosphorus contained in the mineral associated organic matter pool"
-name = "soil_p_pool_maom"
-unit = "kg P m^-3"
 variable_type = "float"
 
 [[variable]]
@@ -742,58 +693,44 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Above ground metabolic litter pool"
-name = "litter_pool_above_metabolic"
-unit = "kg C m^-2"
+description = "Above ground metabolic litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_above_metabolic_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Above ground structural litter pool"
-name = "litter_pool_above_structural"
-unit = "kg C m^-2"
+description = "Above ground structural litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_above_structural_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Woody litter pool"
-name = "litter_pool_woody"
-unit = "kg C m^-2"
+description = "Woody litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_woody_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Below ground metabolic litter pool"
-name = "litter_pool_below_metabolic"
-unit = "kg C m^-2"
+description = "Below ground metabolic litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_below_metabolic_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Below ground structural litter pool"
-name = "litter_pool_below_structural"
-unit = "kg C m^-2"
+description = "Below ground structural litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_below_structural_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of carbon addition to soil from litter"
-name = "litter_C_mineralisation_rate"
-unit = "kg C m^-3 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate of nitrogen addition to soil from litter"
-name = "litter_N_mineralisation_rate"
-unit = "kg N m^-3 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate of phosphorus addition to soil from litter"
-name = "litter_P_mineralisation_rate"
-unit = "kg P m^-3 day^-1"
+description = "Rate of carbon, nitrogen and phosphorus addition to soil from litter"
+name = "litter_mineralisation_rate_cnp"
+unit = "kg m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
@@ -815,76 +752,6 @@ axis = ["spatial"]
 description = "Proportion of dead wood pool which is lignin"
 name = "lignin_woody"
 unit = "kg lignin C (kg C)^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon nitrogen ratio of above ground metabolic pool"
-name = "c_n_ratio_above_metabolic"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon nitrogen ratio of above ground structural pool"
-name = "c_n_ratio_above_structural"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon nitrogen ratio of below ground metabolic pool"
-name = "c_n_ratio_below_metabolic"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon nitrogen ratio of below ground structural pool"
-name = "c_n_ratio_below_structural"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon nitrogen ratio of woody litter pool"
-name = "c_n_ratio_woody"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon phosphorus ratio of above ground metabolic pool"
-name = "c_p_ratio_above_metabolic"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon phosphorus ratio of above ground structural pool"
-name = "c_p_ratio_above_structural"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon phosphorus ratio of below ground metabolic pool"
-name = "c_p_ratio_below_metabolic"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon phosphorus ratio of below ground structural pool"
-name = "c_p_ratio_below_structural"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon phosphorus ratio of woody litter pool"
-name = "c_p_ratio_woody"
-unit = "-"
 variable_type = "float"
 
 [[variable]]
@@ -917,58 +784,44 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of above-ground metabolic litter that has been consumed by animals"
-name = "litter_consumption_above_metabolic"
-unit = "kg C m^-2"
+description = "Amount of above-ground metabolic litter that has been consumed by animals, in carbon, nitrogen and phosphorus terms"
+name = "litter_consumed_above_metabolic_cnp"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of above-ground structural litter that has been consumed by animals"
-name = "litter_consumption_above_structural"
-unit = "kg C m^-2"
+description = "Amount of above-ground structural litter that has been consumed by animals, in carbon, nitrogen and phosphorus terms"
+name = "litter_consumed_above_structural_cnp"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of woody litter that has been consumed by animals"
-name = "litter_consumption_woody"
-unit = "kg C m^-2"
+description = "Amount of woody litter that has been consumed by animals, in carbon, nitrogen and phosphorus terms"
+name = "litter_consumed_woody_cnp"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of below-ground metabolic litter that has been consumed by animals"
-name = "litter_consumption_below_metabolic"
-unit = "kg C m^-2"
+description = "Amount of below-ground metabolic litter that has been consumed by animals, in carbon, nitrogen and phosphorus terms"
+name = "litter_consumed_below_metabolic_cnp"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of below-ground structural litter that has been consumed by animals"
-name = "litter_consumption_below_structural"
-unit = "kg C m^-2"
+description = "Amount of below-ground structural litter that has been consumed by animals, in carbon, nitrogen and phosphorus terms"
+name = "litter_consumed_below_structural_cnp"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate at which carbon component of soil particulate organic matter is being consumed by animals"
-name = "animal_pom_consumption_carbon"
-unit = "kg C m^-3 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate at which nitrogen component of soil particulate organic matter is being consumed by animals"
-name = "animal_pom_consumption_nitrogen"
-unit = "kg N m^-3 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate at which phosphorus component of soil particulate organic matter is being consumed by animals"
-name = "animal_pom_consumption_phosphorus"
-unit = "kg P m^-3 day^-1"
+description = "Rate at which carbon, nitrogen and phosphorus components of soil particulate organic matter are consumed by animals"
+name = "animal_pom_consumption_cnp"
+unit = "kg m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
@@ -1183,7 +1036,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "The fraction of clay in soil"
+description = "The fraction of clay in soil. This is a proportion between 0 and 1."
 name = "clay_fraction"
 unit = "-"
 variable_type = "float"

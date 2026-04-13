@@ -34,16 +34,6 @@ LMWC
   cell membranes. Thus, the availability of this type of organic matter strongly
   determines microbial growth rates.
 
-DON
-  Dissolved Organic Nitrogen. Nitrogen associated with soil carbon that is in a form
-  that can readily dissolve. The carbon in this form is considered to be low molecular
-  weight carbon and so this is essentially the nitrogen content of the {term}`LMWC` pool.
-
-DOP
-  Dissolved Organic Phosphorus. Phosphorus associated with soil carbon that is in a form
-  that can readily dissolve. The carbon in this form is considered to be low molecular
-  weight carbon and so this is essentially the phosphorus content of the {term}`LMWC` pool.
-
 soil moisture
   The amount of water held in the soil, typically expressed as volumetric water content
   (m3/m3 or %) or as depth of water per unit area (mm).

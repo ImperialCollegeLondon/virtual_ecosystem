@@ -19,7 +19,7 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.11.9
+  version: 3.12
 ---
 
 # The hydrology model implementation
@@ -51,8 +51,8 @@ Calculating hydrological processes at coarse time scales is problematic and so t
 hydrology model uses an internal daily time step to model hydrology. When the model is
 run with a coarser update interval - and hence the precipitation and transpiration
 inputs are totals over more than one day - the hydrology model partitions the input data
- into daily values. Precipitation is randomly partitioned between days and the total
- transpiration is evenly divided across days.
+ into daily values. Precipitation is partitioned between days assuming a gamma
+ distribution and the total evapotranspiration is evenly divided across days.
 
 The values returned by the hydrology model are then monthly means or monthly accumulated
 values.
@@ -112,6 +112,88 @@ Subsurface stormflow (Q2) and interflow (Q3) are currently not implemented; the
 total runoff is calculated as the sum of surface runoff (Q1) and the flows out of the
 groundwater buckets (=subsurface runoff, Q4+Q5).
 :::
+
+### Rainfall generator
+
+To generate daily rainfall, we combine three steps: rainfall occurrence is simulated
+using a first-order Markov chain, rainfall intensity on wet days is drawn from a Gamma
+distribution, and a final scaling step is applied {cite:p}`katz_precipitation_1977`.
+Together, these components provide a simple yet realistic stochastic rainfall model.
+
+#### Wet/Dry rainfall occurrence model
+
+A Markov chain is a stochastic (random) process in which the probability of the
+current state depends only on the previous state, not on the full history. This is known
+as the *Markov property*.
+
+Let $S_t$ be the rainfall state on day $t$:
+
+$$
+S_t =
+\begin{cases}
+1 & \text{wet day} \\
+0 & \text{dry day}
+\end{cases}
+$$
+
+Because this is a first-order Markov chain, the probability of rain today depends only
+on whether it rained yesterday:
+
+$$
+P(S_t = 1 \mid S_{t-1} = 1) = p_{ww}
+$$
+
+$$
+P(S_t = 1 \mid S_{t-1} = 0) = p_{wd}
+$$
+
+where:
+
+- $p_{ww}$ is the probability that a wet day follows a wet day,
+- $p_{wd}$ is the probability that a wet day follows a dry day.
+
+This structure captures the tendency of rainfall to occur in clusters (e.g., wet spells
+and dry spells), which would not be reproduced by independent random sampling.
+
+#### Rainfall intensity model
+
+On days classified as wet ($S_t = 1$), rainfall amounts are generated independently from
+a Gamma distribution:
+
+$$
+x_i \sim \text{Gamma}(k, \theta)
+$$
+
+The Gamma distribution is commonly used for rainfall because:
+
+- it only produces positive values,
+- it can represent skewed distributions (many small events, few large ones),
+- its shape can be adjusted using parameters.
+
+where:
+
+- $k$ is the shape parameter (controls variability),
+- $\theta$ is the scale parameter (controls magnitude).
+
+#### Monthly scaling
+
+The sampled daily intensities $x_i$ are relative values and do not yet match a target
+monthly rainfall total. To ensure consistency with observed or prescribed totals, they
+are rescaled:
+
+$$
+r_i = \frac{x_i}{\sum_{j=1}^{n} x_j} \, P
+$$
+
+where:
+
+- $r_i$ is the rainfall on day $i$ [mm],
+- $x_i$ is the sampled Gamma intensity,
+- $P$ is the total monthly rainfall [mm],
+- $n$ is the number of wet days in the month.
+
+This scaling preserves the relative distribution of rainfall across wet days while
+ensuring that the total rainfall equals the desired monthly value.
 
 ### Canopy interception
 
@@ -449,8 +531,8 @@ then combine them into total runoff, which can be converted to river discharge r
 
 Water moving over the land surface into the river channel. For each cell, this includes:
 
-* Local surface runoff: water generated within the cell during the current timestep.
-* Upstream surface runoff: surface runoff generated in all upstream cells during the
+- Local surface runoff: water generated within the cell during the current timestep.
+- Upstream surface runoff: surface runoff generated in all upstream cells during the
   same timestep.
 
 #### Subsurface runoff ($R_{subsurface}$)
@@ -458,9 +540,9 @@ Water moving over the land surface into the river channel. For each cell, this i
 Water moving laterally through soil and groundwater pathways towards the river channel.
 For each cell, this includes:
 
-* Local subsurface runoff: lateral + baseflow generated in the cell during the current
+- Local subsurface runoff: lateral + baseflow generated in the cell during the current
   timestep.
-* Upstream subsurface runoff: subsurface runoff generated in upstream cells during the
+- Upstream subsurface runoff: subsurface runoff generated in upstream cells during the
   same timestep.
 
 #### Total runoff ($R_{total}$) and river discharge rate
