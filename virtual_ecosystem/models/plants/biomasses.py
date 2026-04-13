@@ -46,7 +46,7 @@ RootBiomass:
     ideal_ratio: not defined - identical to turnover ratio
     turnover_ratio: root_turnover_c_{elem.lower()}_ratio
 
-WoodBiomass
+StemBiomass
     # No turnover at present, so same ratios doesn't really make sense, but if there was
       turnover it probably would be at these ratios.
 
@@ -424,10 +424,10 @@ class ReproductiveBiomass(BiomassTissueABC):
 
 
 @dataclass
-class WoodBiomass(BiomassTissueABC):
-    """A class to hold wood stoichiometry data for a set of plant cohorts."""
+class StemBiomass(BiomassTissueABC):
+    """A class to hold stem stoichiometry data for a set of plant cohorts."""
 
-    tissue_name = "wood"
+    tissue_name = "stem"
 
     @classmethod
     def from_pft_default_ratios(

@@ -32,7 +32,7 @@ from virtual_ecosystem.models.plants.biomasses import (
     FoliageBiomass,
     ReproductiveBiomass,
     RootBiomass,
-    WoodBiomass,
+    StemBiomass,
 )
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
@@ -108,6 +108,7 @@ class PlantsModel(
     vars_updated=(
         "stem_turnover_cnp",  # i.e. deadwood
         "foliage_turnover_cnp",
+        "root_turnover_cnp",
         "root_turnover_cnp",
         "canopy_fruit_n",
         "canopy_fruit_cnp",
@@ -386,7 +387,7 @@ class PlantsModel(
         self.biomass_tissues = [
             FoliageBiomass,  # foliage mass
             ReproductiveBiomass,  # reproductive mass
-            WoodBiomass,  # stem mass
+            StemBiomass,  # stem mass
             RootBiomass,  # not a pyrealm allometry attribute
         ]
 
@@ -457,6 +458,10 @@ class PlantsModel(
                 coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
             "cell": xr.zeros_like(self.data["elevation"]),
+            "pft": xr.DataArray(
+                data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
+                coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
+            ),
         }
 
         # Initialize the fruit and seed DataArrays for the data object. These values
@@ -631,11 +636,11 @@ class PlantsModel(
         self.old_stoichiometry_ratios_to_depricate()
 
         # Initialize variables that hold one value per cell
-        reset_vars = [
+        by_cell_vars = [
             "root_carbohydrate_exudation",
             "plant_symbiote_carbon_supply",
         ]
-        for var in reset_vars:
+        for var in by_cell_vars:
             self.data[var] = self.data_object_templates["cell"].copy()
 
         # Initialize variables that are stored per cell and per element
@@ -654,6 +659,10 @@ class PlantsModel(
         pft_cnp_vars = [
             "subcanopy_seedbank_litter_cnp",
             "subcanopy_seedbank_cnp",
+            "canopy_seeds_cnp",
+            "canopy_seed_turnover_cnp",
+            "canopy_fruit_cnp",
+            "canopy_fruit_turnover_cnp",
         ]
         for var in pft_cnp_vars:
             self.data[var] = self.data_object_templates["cnp_pft"].copy()
@@ -1035,6 +1044,7 @@ class PlantsModel(
             community = self.communities[cell_id]
             cohorts = community.cohorts
             stoichiometries = self.stoichiometries[cell_id]
+            biomasses = self.biomasses[cell_id]
 
             # Calculate the allocation of GPP in kgC m2 per stem, since the T Model is
             # calibrated using per kg values.
@@ -1043,12 +1053,12 @@ class PlantsModel(
                 stem_allometry=community.stem_allometry,
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
+
             self.stem_allocations[cell_id] = stem_allocation
 
-            # ALLOCATE TO TURNOVER:
-            # Grow the plants by increasing the stem dbh
-            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
-            # HACK: The current code prevents stems shrinking to zero and below. This is
+            # GROW THE PLANTS by increasing the stem dbh
+            #
+            # HACK: The code below prevents stems shrinking to zero and below. This is
             #       temporary until we fix what happens with stem shrinkage and carbon
             #       starvation to something biological.
             #
@@ -1056,20 +1066,25 @@ class PlantsModel(
             #       for the moment we just want to avoid passing pyrealm negative sizes.
             #       If the np.where is removed and this is set directly, then pyrealm
             #       will detect D <= 0 and raise an exception.
+            #
+            #       The problem with this hack is that it currently only
+            #       targets the DBH, not the rest of the allocation so these turnover
+            #       etc may still be based on shrinking tree values.
 
             new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
             cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
 
-            # Store turnover quantities in the data object
-            self.data["foliage_turnover_cnp"].loc[cell_id, "C"] += np.sum(
-                stem_allocation.foliage_turnover * cohorts.n_individuals
-            )
-            self.data["root_turnover_cnp"].loc[cell_id, "C"] += np.sum(
-                stem_allocation.fine_root_turnover * cohorts.n_individuals
-            )
-            self.data["plant_reproductive_tissue_turnover"][cell_id] += np.sum(
-                stem_allocation.reproductive_tissue_turnover * cohorts.n_individuals
-            )
+            # HANDLE ALLOCATION TO TURNOVER:
+            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
+
+            tissue_turnovers = biomasses.apply_turnover(allocation=stem_allocation)
+
+            # Store turnover quantities in the data object, scaling per stem quantities
+            # up to the number of individuals and then summing across cohorts
+            for tissue_name, turnover in tissue_turnovers.items():
+                self.data[f"{tissue_name}_turnover_cnp"][cell_id] += (
+                    turnover * cohorts.n_individuals
+                ).sum(axis=0)
 
             # Partition reproductive tissue into propagule and non-propagule masses and
             # convert the propagule mass to number of propagules
