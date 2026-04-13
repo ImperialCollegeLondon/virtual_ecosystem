@@ -258,6 +258,7 @@ class FoliageBiomass(BiomassTissueABC):
 
         element_masses: dict[str, Element] = {}
 
+        carbon_mass = community.stem_allometry.foliage_mass.squeeze()
         for elem in with_elements:
             ideal_ratio = np.array(
                 [
@@ -277,15 +278,12 @@ class FoliageBiomass(BiomassTissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.foliage_mass.squeeze()
-                / ideal_ratio,
+                actual_element_mass=carbon_mass / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
         return cls(
-            carbon_mass=community.stem_allometry.foliage_mass.copy(),
-            community=community,
-            element_masses=element_masses,
+            carbon_mass=carbon_mass, community=community, element_masses=element_masses
         )
 
     def apply_growth(
@@ -344,6 +342,8 @@ class ReproductiveBiomass(BiomassTissueABC):
 
         element_masses: dict[str, Element] = {}
 
+        carbon_mass = community.stem_allometry.reproductive_tissue_mass.squeeze()
+
         for elem in with_elements:
             ideal_ratio = np.array(
                 [
@@ -359,15 +359,12 @@ class ReproductiveBiomass(BiomassTissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.reproductive_tissue_mass.squeeze()
-                / ideal_ratio,
+                actual_element_mass=carbon_mass / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
         return cls(
-            carbon_mass=community.stem_allometry.reproductive_tissue_mass,
-            community=community,
-            element_masses=element_masses,
+            carbon_mass=carbon_mass, community=community, element_masses=element_masses
         )
 
     def apply_growth(
@@ -442,6 +439,8 @@ class StemBiomass(BiomassTissueABC):
 
         element_masses: dict[str, Element] = {}
 
+        carbon_mass = community.stem_allometry.stem_mass.squeeze()
+
         for elem in with_elements:
             ideal_ratio = np.array(
                 [
@@ -454,15 +453,12 @@ class StemBiomass(BiomassTissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.stem_mass.squeeze()
-                / ideal_ratio,
+                actual_element_mass=carbon_mass / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
         return cls(
-            carbon_mass=community.stem_allometry.stem_mass,
-            community=community,
-            element_masses=element_masses,
+            carbon_mass=carbon_mass, community=community, element_masses=element_masses
         )
 
     def apply_growth(

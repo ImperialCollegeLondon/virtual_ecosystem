@@ -119,9 +119,7 @@ class PlantsModel(
         "fallen_seeds_per_fruit",
         "fallen_seeds_cnp",
         "fallen_non_propagule_c_mass",  # NOTE - will be deprecated in #1132
-        "plant_rt_turnover_n_mass",  # NOTE - will be deprecated in #1132
-        "plant_rt_turnover_p_mass",  # NOTE - will be deprecated in #1132
-        "plant_reproductive_tissue_turnover",  # NOTE - will be deprecated in #1132
+        "plant_reproductive_tissue_turnover_cnp",
         "subcanopy_seedbank_litter_cnp",
         "subcanopy_vegetation_litter_cnp",
         "subcanopy_vegetation_cnp",
@@ -160,10 +158,10 @@ class PlantsModel(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
-        "plant_reproductive_tissue_turnover",
+        "plant_reproductive_tissue_turnover_cnp",
         "plant_reproductive_tissue_lignin",
-        "plant_rt_turnover_n_mass",
-        "plant_rt_turnover_p_mass",
+        "plant_rt_turnover_n_mass",  # to deprecate
+        "plant_rt_turnover_p_mass",  # to deprecate
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "root_lignin",
@@ -408,7 +406,7 @@ class PlantsModel(
         #   don't currently have optional __init__ variables.
         # - The axis name checking here is something that the axis validation in data
         #   loading should do, but the information (PFT names) needed to validate it
-        #   there is not part of the core configuration, so even when we pass
+        #   there is not part of the core configuration, so evmoen when we pass
         #   CoreComponents to the axis validation it won't be available (unless we
         #   duplicate that information as part of the core, which might not be the
         #   maddest thing ever).
@@ -648,6 +646,7 @@ class PlantsModel(
             "stem_turnover_cnp",
             "foliage_turnover_cnp",
             "root_turnover_cnp",
+            "plant_reproductive_tissue_turnover_cnp",
             "canopy_fruit_cnp",
             "subcanopy_vegetation_litter_cnp",
             "subcanopy_vegetation_cnp",
@@ -660,9 +659,9 @@ class PlantsModel(
             "subcanopy_seedbank_litter_cnp",
             "subcanopy_seedbank_cnp",
             "canopy_seeds_cnp",
-            "canopy_seed_turnover_cnp",
+            # "canopy_seed_turnover_cnp",
             "canopy_fruit_cnp",
-            "canopy_fruit_turnover_cnp",
+            # "canopy_fruit_turnover_cnp",
         ]
         for var in pft_cnp_vars:
             self.data[var] = self.data_object_templates["cnp_pft"].copy()
@@ -1250,8 +1249,8 @@ class PlantsModel(
         calculates the number of individuals that have died in each cohort and updates
         the cohort data accordingly.
 
-        The function then updates deadwood production and adds the other dead plant
-        material to the tissue turnover pools.
+        The function then transfers the biomasses of dead stems into tissue turnover
+        pools.
         """
 
         # Loop over each grid cell
@@ -1265,60 +1264,20 @@ class PlantsModel(
                 self.per_update_interval_stem_mortality_probability,
             )
 
-            # Decrease size of cohorts based on mortality
-            cohorts.n_individuals = cohorts.n_individuals - mortality
+            if mortality.sum() > 0:
+                # Decrease size of cohorts based on mortality
+                cohorts.n_individuals = cohorts.n_individuals - mortality
 
-            # Update turnover to include the dead plant material
-            self.data["stem_turnover_cnp"].loc[cell_id, "C"] = np.sum(
-                mortality * community.stem_allometry.stem_mass
-            )
-            self.data["foliage_turnover_cnp"].loc[cell_id, "C"] += np.sum(
-                mortality * community.stem_allometry.foliage_mass
-            )
-            self.data["root_turnover_cnp"].loc[cell_id, "C"] += np.sum(
-                mortality
-                * community.stem_allometry.foliage_mass
-                * community.stem_traits.zeta
-                * community.stem_traits.sla
-            )
-            self.data["plant_reproductive_tissue_turnover"][cell_id] += np.sum(
-                mortality * community.stem_allometry.reproductive_tissue_mass
-            )
+                # Get the biomasses of the tissues in the dead stems
+                biomasses_of_dead_stems = self.biomasses[cell_id]
 
-            # Update N and P masses to include dead plant material
-            for element in ["N", "P"]:
-                self.data["stem_turnover_cnp"].loc[cell_id, element] = np.sum(
-                    mortality
-                    * self.stoichiometries[cell_id][element]
-                    .get_tissue("wood")
-                    .actual_element_mass
-                )
-
-                self.data["foliage_turnover_cnp"].loc[cell_id, element] += np.sum(
-                    mortality
-                    * self.stoichiometries[cell_id][element]
-                    .get_tissue("foliage")
-                    .actual_element_mass
-                )
-
-                self.data["root_turnover_cnp"].loc[cell_id, element] += np.sum(
-                    mortality
-                    * self.stoichiometries[cell_id][element]
-                    .get_tissue("root")
-                    .actual_element_mass
-                )
-
-                self.data[f"plant_rt_turnover_{element.lower()}_mass"][cell_id] += (
-                    np.sum(
-                        mortality
-                        * self.stoichiometries[cell_id][element]
-                        .get_tissue("reproductive")
-                        .actual_element_mass
-                    )
-                )
-
-            # TODO - also need to add standing foliage, fine root and reproductive
-            #        tissue masses to the respective pools and check units of pools.
+                # Iterate over the tissues moving biomass into the turnover CNP arrays:
+                # multiply stems by the number dead and then collapse across cohorts to
+                # give total elemental contributions.
+                for tissue in biomasses_of_dead_stems.tissues:
+                    self.data[f"{tissue.tissue_name}_turnover_cnp"][cell_id] += (
+                        tissue.as_array(with_carbon=True) * mortality
+                    ).sum(axis=1)
 
     def apply_recruitment(self) -> None:
         """Apply recruitment to plant cohorts.
