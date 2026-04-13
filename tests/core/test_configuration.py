@@ -22,6 +22,11 @@ def test_pydantic_models(tmp_path):
         ("virtual_ecosystem.models.litter", "LitterConfiguration"),
         ("virtual_ecosystem.models.plants", "PlantsConfiguration"),
         ("virtual_ecosystem.models.soil", "SoilConfiguration"),
+        ("virtual_ecosystem.models.testing", "TestingConfiguration"),
+        (
+            "virtual_ecosystem.disturbances.disturbance_testing",
+            "DisturbanceTestingConfiguration",
+        ),
     )
 
     submodel_details = {}

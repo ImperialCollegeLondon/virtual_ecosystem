@@ -34,7 +34,12 @@ from pydantic import ValidationError, create_model
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
+from virtual_ecosystem.core.registry import (
+    DISTURBANCE_REGISTRY,
+    MODULE_REGISTRY,
+    register_disturbance,
+    register_module,
+)
 
 
 def merge_configuration_dicts(
@@ -494,7 +499,7 @@ class ConfigurationLoader:
 
 
 def build_configuration_model(
-    requested_modules: list[str],
+    requested_modules: list[str], requested_disturbances: list[str]
 ) -> type[CompiledConfiguration]:
     """Build a configuration model for a simulation.
 
@@ -526,15 +531,41 @@ def build_configuration_model(
         )
         register_module(module)
 
+    # Register requested disturbances in the same way
+    for disturbance in requested_disturbances:
+        disturbance = f"virtual_ecosystem.disturbances.{disturbance}"
+        register_disturbance(disturbance)
+
     # Create a list of submodels in the configuration.
-    submodels = (
+    submodels = [
         (module, MODULE_REGISTRY[module].config) for module in requested_modules
-    )
+    ]
+
+    # And the same with the disturbances
+    subdisturbance_models = [
+        (disturbance, DISTURBANCE_REGISTRY[disturbance].config)
+        for disturbance in requested_disturbances
+    ]
 
     # Use pydantic create_model to dynamically generate a model with a field for each
     # requested module
     #  Mypy does not like this, but it seems to be used as intended:
     # https://docs.pydantic.dev/latest/concepts/models/#dynamic-model-creation
+    # First the disturbances, if any
+    if subdisturbance_models:
+        combined_disturbance_model = create_model(
+            "CompiledConfiguration",
+            __base__=CompiledConfiguration,
+            **{fname: (cname, cname()) for fname, cname in subdisturbance_models},
+        )  # type: ignore[call-overload]
+        # Populate the _model_classes class variable with the required dictionary of VE
+        # BaseDisturbance models by requested model name.
+        combined_disturbance_model._model_classes = {
+            m: DISTURBANCE_REGISTRY[m].model for m in requested_disturbances
+        }
+        submodels.append(("disturbance", combined_disturbance_model))
+
+    # And now, the normal models
     combined_model = create_model(
         "CompiledConfiguration",
         __base__=CompiledConfiguration,
@@ -568,11 +599,15 @@ def generate_configuration(data: dict[str, Any] = {}) -> CompiledConfiguration:
     Args:
         data: A dictionary of unvalidated configuration data.
     """
+    requested_modules = list(data.keys())
+    if "disturbance" in requested_modules:
+        requested_modules.remove("disturbance")
 
     # Build the configuration model from the compiled configuration
     try:
         ConfigurationModel = build_configuration_model(
-            requested_modules=list(data.keys())
+            requested_modules=requested_modules,
+            requested_disturbances=list(data.get("disturbance", {}).keys()),
         )
     except (ModuleNotFoundError, RuntimeError) as err:
         LOGGER.critical(str(err))
