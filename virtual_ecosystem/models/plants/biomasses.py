@@ -277,7 +277,8 @@ class FoliageBiomass(BiomassTissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.foliage_mass / ideal_ratio,
+                actual_element_mass=community.stem_allometry.foliage_mass.squeeze()
+                / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
@@ -329,7 +330,7 @@ class FoliageBiomass(BiomassTissueABC):
 class ReproductiveBiomass(BiomassTissueABC):
     """Holds reproductive tissue stoichiometry data for a set of plant cohorts."""
 
-    tissue_name = "reproductive"
+    tissue_name = "plant_reproductive_tissue"
 
     @classmethod
     def from_pft_default_ratios(
@@ -358,7 +359,7 @@ class ReproductiveBiomass(BiomassTissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.reproductive_tissue_mass
+                actual_element_mass=community.stem_allometry.reproductive_tissue_mass.squeeze()
                 / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
@@ -453,7 +454,8 @@ class StemBiomass(BiomassTissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.stem_mass / ideal_ratio,
+                actual_element_mass=community.stem_allometry.stem_mass.squeeze()
+                / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
@@ -522,7 +524,7 @@ class RootBiomass(BiomassTissueABC):
             community.stem_allometry.foliage_mass
             * community.stem_traits.zeta
             * community.stem_traits.sla
-        )
+        ).squeeze()
 
         for elem in with_elements:
             ideal_ratio = np.array(
