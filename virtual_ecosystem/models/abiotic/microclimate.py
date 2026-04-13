@@ -224,6 +224,7 @@ def generate_hourly_forcing(
     month: int,
     days: int,
     latitude: float,
+    abiotic_constants: AbioticConstants,
 ) -> dict[str, Any]:
     """Generate hourly profiles for atmospheric forcing variables.
 
@@ -238,16 +239,28 @@ def generate_hourly_forcing(
         month: Current month (1-12)
         days: Number of days per month
         latitude: Latitude of the location, [degrees]
+        abiotic_constants: Set of constants for abiotic model
 
     Returns:
         Dictionary with generated hourly profiles for atmospheric forcing variables
     """
+    total_shortwave_absorption = (
+        energy_balance.calculate_total_absorbed_shortwave_radiation(
+            downward_shortwave_radiation=data["downward_shortwave_radiation"]
+            .isel(time_index=time_index)
+            .to_numpy(),
+            shortwave_absorption_by_canopy=data["shortwave_absorption"].to_numpy(),
+            fraction_par_used=abiotic_constants.fraction_par_used_for_photosynthesis,
+            leaf_absorptance_non_par=abiotic_constants.leaf_absorptance_non_par,
+            par_fraction=abiotic_constants.par_fraction_of_shortwave_radiation,
+        )
+    )
 
     return abiotic_tools.generate_diurnal_cycle_from_monthly_data(
         monthly_air_temperature=data["air_temperature_ref"]
         .isel(time_index=time_index)
         .to_numpy(),
-        monthly_shortwave_absorption=data["shortwave_absorption"].to_numpy(),
+        monthly_shortwave_absorption=total_shortwave_absorption,
         monthly_relative_humidity=data["relative_humidity_ref"]
         .isel(time_index=time_index)
         .to_numpy(),
@@ -1027,6 +1040,7 @@ def run_microclimate(
         month=month,
         days=days,
         latitude=latitude,
+        abiotic_constants=abiotic_constants,
     )
 
     # Initialize hourly record for microclimate model

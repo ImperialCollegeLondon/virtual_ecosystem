@@ -177,6 +177,17 @@ class AbioticConstants(AbioticSharedConstants):
     """Maximum turbulent mixing coefficients, [m2 s-1].
     """
 
+    fraction_par_used_for_photosynthesis: float = 0.5
+    """Fraction of photosynthetically active radiation used for photosynthesis,
+    dimensionless."""
+
+    leaf_absorptance_non_par: float = 0.5
+    """Leaf absorptance for non-photosynthetically active radiation, dimensionless."""
+
+    par_fraction_of_shortwave_radiation: float = 0.5
+    """Fraction of shortwave radiation that is photosynthetically active,
+    dimensionless."""
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""

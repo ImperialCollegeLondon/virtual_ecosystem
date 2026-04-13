@@ -175,13 +175,18 @@ def test_generate_hourly_forcing(
     dummy_climate_data_varying_canopy,
     fixture_static_inputs,
     fixture_core_components,
+    fixture_abiotic_constants,
 ):
     """Test generate_hourly_forcing with prepared static inputs."""
 
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_total_absorbed_shortwave_radiation,
+    )
     from virtual_ecosystem.models.abiotic.microclimate import generate_hourly_forcing
 
     data = dummy_climate_data_varying_canopy
     static_inputs = fixture_static_inputs
+    abiotic_constants = fixture_abiotic_constants
     time_index = 0
     month = 2
     days = 30
@@ -194,6 +199,7 @@ def test_generate_hourly_forcing(
         month=month,
         days=days,
         latitude=latitude,
+        abiotic_constants=abiotic_constants,
     )
 
     # Shape checks
@@ -230,20 +236,30 @@ def test_generate_hourly_forcing(
     mask = ~np.isnan(static_inputs["evapotranspiration"])
 
     monthly_sum_et = np.nansum(forcing["evapotranspiration_hourly"], axis=0) * 30
-    monthly_sum_sw_abs = np.nansum(forcing["shortwave_absorption_hourly"], axis=0)
     monthly_sum_soil_evap = np.nansum(forcing["soil_evaporation_hourly"], axis=0) * 30
 
-    assert np.allclose(
+    np.testing.assert_allclose(
         monthly_sum_et[mask], static_inputs["evapotranspiration"][mask], rtol=1e-5
     )
-    assert np.allclose(
-        monthly_sum_sw_abs[mask],
-        data["shortwave_absorption"].to_numpy()[mask],
-        rtol=1e-5,
-    )
-    assert np.allclose(
+    np.testing.assert_allclose(
         monthly_sum_soil_evap,
         data["soil_evaporation"].to_numpy(),
+        rtol=1e-5,
+    )
+
+    monthly_sum_sw_abs = np.nansum(forcing["shortwave_absorption_hourly"], axis=0)
+    total_shortwave_absorption = calculate_total_absorbed_shortwave_radiation(
+        downward_shortwave_radiation=data["downward_shortwave_radiation"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        shortwave_absorption_by_canopy=data["shortwave_absorption"].to_numpy(),
+        fraction_par_used=abiotic_constants.fraction_par_used_for_photosynthesis,
+        leaf_absorptance_non_par=abiotic_constants.leaf_absorptance_non_par,
+        par_fraction=abiotic_constants.par_fraction_of_shortwave_radiation,
+    )
+    np.testing.assert_allclose(
+        np.nansum(total_shortwave_absorption),
+        np.nansum(monthly_sum_sw_abs),
         rtol=1e-5,
     )
 
@@ -702,6 +718,7 @@ def test_run_hour_step_orchestration(
         month=1,
         days=days,
         latitude=0,
+        abiotic_constants=abiotic_constants,
     )
     wind = calculate_wind_profiles(
         static=static,
