@@ -128,38 +128,39 @@ pools. For lignin it is straightforward, as by definition only woody and structu
 pools contain lignin. So, all lignin from input biomass is added to the relevant
 structural (or woody) pool and none of it is added to the metabolic pools.
 
-The situation is more complex for nitrogen and phosphorus, as litter pools are not
-defined in terms of their nitrogen and phosphorus contents. Furthermore, the division
-between metabolic and structural litter is a modelling convenience rather than a
-measurable split, so pool elemental proportions cannot be determined based on empirical
-data. Instead, following {cite:t}`kirschbaum_modelling_2002`, we assume
-that the nutrient concentrations of the inputs to a structural/metabolic pool pair
-always follow a fixed ratio,
+The situation is more complex for nitrogen and phosphorus, as both litter pools contain
+them. Furthermore, the division between metabolic and structural litter is a modelling
+convenience rather than an empirically measurable split. We use a simple relation (see
+above) to determine the fraction of the carbon mass flows to metabolic ($f_m$) and
+structural litter ($f_s$), while in theory this relation could be extended to also
+predict nitrogen and phosphorus flow, doing so would introduce a large number of
+parameters that cannot be estimated based on empirical data. So, in order to keep the
+number of unmeasurable parameters down, we assume (following
+{cite:t}`kirschbaum_modelling_2002`) that the nutrient concentrations of the inputs to a
+metabolic/structural pool pair always follow a fixed ratio,
 
-$$\rho = \frac{r_s}{r_m},$$
+$$\rho = \frac{r_m}{r_s},$$
 
-where $r_m$ is the carbon:nutrient ratio of the input to the metabolic litter pool,
-$r_s$ is the carbon:nutrient ratio of the input to the corresponding structural litter
-pool, and $\rho$ is their ratio. Based on this, the nutrient concentrations that
-flow into each pool is therefore
+where $r_m$ is the concentration of the nutrient (relative to the carbon mass) in the
+input to the metabolic litter pool, $r_s$ is the concentration in the input to the
+corresponding structural litter pool, and $\rho$ is their ratio. Based on this, the
+nutrient mass that flow into each pool is therefore
 
-$$r_m = r_i * f_{m,i} + r_i *\frac{(1 - f_{m,i})}{\rho}$$
+$$n_s = n_T / (1 + \rho * (C_m/C_s))$$
 
 and
 
-$$r_s = \rho*r_m$$
+$$n_m = \rho * (C_m/C_s) * n_s$$
 
-where $r_i$ is the carbon:nutrient ratio of the total input (to both pools). The first
-term of the first equation captures how much nutrient will flow to the metabolic pool
-for a given input concentration ($r_m$), the second term then captures how much nutrient
-would have to flow to the structural pool to maintain the ratio ($\rho$). This equation
+where $n_T$ is the total nutrient input (to both pools), and $C_m$ and $C_s$ are the
+carbon flows to the metabolic and structural pools, respectively. The equations above
 will only be satisfied when the sum of the nutrient input flows to the pools matches the
 total input. At present, we allow $\rho$ to vary between nutrients but not between
 strata (above- vs below-ground). These values are set in
-{attr}`structural_to_metabolic_n_ratio
-<virtual_ecosystem.models.litter.model_config.LitterConstants.structural_to_metabolic_n_ratio>`
-and {attr}`structural_to_metabolic_p_ratio
-<virtual_ecosystem.models.litter.model_config.LitterConstants.structural_to_metabolic_p_ratio>`.
+{attr}`metabolic_to_structural_n_ratio
+<virtual_ecosystem.models.litter.model_config.LitterConstants.metabolic_to_structural_n_ratio>`
+and {attr}`metabolic_to_structural_p_ratio
+<virtual_ecosystem.models.litter.model_config.LitterConstants.metabolic_to_structural_p_ratio>`.
 It is important to note, that the choice of these ratios will only affect the nitrogen
 and phosphorus mineralisation rates and not the broader litter decay dynamics. This is
 because the nitrogen and phosphorus concentrations do not directly affect pool decay
