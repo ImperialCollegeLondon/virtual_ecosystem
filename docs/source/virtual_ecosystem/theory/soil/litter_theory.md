@@ -130,10 +130,14 @@ structural (or woody) pool and none of it is added to the metabolic pools.
 
 The situation is more complex for nitrogen and phosphorus, as both litter pools contain
 them. Furthermore, the division between metabolic and structural litter is a modelling
-convenience rather than a measurable split, so pool elemental proportions cannot be
-determined based on empirical data. Instead, following
-{cite:t}`kirschbaum_modelling_2002`, we assume that the nutrient concentrations of the
-inputs to a metabolic/structural pool pair always follow a fixed ratio,
+convenience rather than an empirically measurable split. We use a simple relation (see
+above) to determine the fraction of the carbon mass flows to metabolic ($f_m$) and
+structural litter ($f_s$), while in theory this relation could be extended to also
+predict nitrogen and phosphorus flow, doing so would introduce a large number of
+parameters that cannot be estimated based on empirical data. So, in order to keep the
+number of unmeasurable parameters down, we assume (following
+{cite:t}`kirschbaum_modelling_2002`) that the nutrient concentrations of the inputs to a
+metabolic/structural pool pair always follow a fixed ratio,
 
 $$\rho = \frac{r_m}{r_s},$$
 
