@@ -170,7 +170,7 @@ def _register_module[T](
         model = _get_model(module_name, module_name_short, of_type)
 
     # Find and register the model configuration
-    model_config_class = _get_model_configuration_class(
+    model_config_class = get_model_configuration_class(
         module_name=module_name, module_name_short=module_name_short
     )
 
@@ -240,7 +240,7 @@ def _get_model[T](
     return model
 
 
-def _get_model_configuration_class(module_name: str, module_name_short: str):
+def get_model_configuration_class(module_name: str, module_name_short: str):
     """Get the root configuration class for a model.
 
     Discovery is name based, with the function attempting to retrieve a class based on
