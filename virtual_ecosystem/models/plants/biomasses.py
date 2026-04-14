@@ -729,7 +729,8 @@ class Biomasses(CohortMethods, PandasExporter):
         """
 
         for tissue in self.tissues:
-            # Increase the tissue biomasses
+            # Increase the tissue biomasses and record the nutrient masses required to
+            # add that mass at ideal ratios.
             needed = tissue.apply_growth(allocation)
             # Record the nutrients biomasses at ideal ratios allocated to the tissue in
             # the whole stem balance.
