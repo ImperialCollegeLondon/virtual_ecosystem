@@ -255,7 +255,7 @@ def calculate_updated_pools(
             input_rate=litter_inputs.above_metabolic,
             decay_rate=decay_rates["metabolic_above"],
             initial_pool=post_consumption_pools["above_metabolic"]
-            .loc[:, "C"]
+            .sel(element="C")
             .to_numpy(),
             update_interval=update_interval,
         ),
@@ -263,21 +263,21 @@ def calculate_updated_pools(
             input_rate=litter_inputs.above_structural,
             decay_rate=decay_rates["structural_above"],
             initial_pool=post_consumption_pools["above_structural"]
-            .loc[:, "C"]
+            .sel(element="C")
             .to_numpy(),
             update_interval=update_interval,
         ),
         "woody": calculate_final_pool_size(
             input_rate=litter_inputs.woody,
             decay_rate=decay_rates["woody"],
-            initial_pool=post_consumption_pools["woody"].loc[:, "C"].to_numpy(),
+            initial_pool=post_consumption_pools["woody"].sel(element="C").to_numpy(),
             update_interval=update_interval,
         ),
         "below_metabolic": calculate_final_pool_size(
             input_rate=litter_inputs.below_metabolic,
             decay_rate=decay_rates["metabolic_below"],
             initial_pool=post_consumption_pools["below_metabolic"]
-            .loc[:, "C"]
+            .sel(element="C")
             .to_numpy(),
             update_interval=update_interval,
         ),
@@ -285,7 +285,7 @@ def calculate_updated_pools(
             input_rate=litter_inputs.below_structural,
             decay_rate=decay_rates["structural_below"],
             initial_pool=post_consumption_pools["below_structural"]
-            .loc[:, "C"]
+            .sel(element="C")
             .to_numpy(),
             update_interval=update_interval,
         ),
