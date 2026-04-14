@@ -105,7 +105,7 @@ import pkgutil
 from abc import ABC, abstractmethod
 from importlib import import_module
 from types import ModuleType
-from typing import Any, TypeVar
+from typing import Any
 
 import pint
 
@@ -783,10 +783,7 @@ def to_camel_case(snake_str: str) -> str:
     return "".join(x.capitalize() for x in snake_str.lower().split("_"))
 
 
-T = TypeVar("T")
-
-
-def _discover_models(models: ModuleType, of_type: type[T]) -> list[type[T]]:
+def _discover_models[T](models: ModuleType, of_type: type[T]) -> list[type[T]]:
     """Discover all the models in Virtual Ecosystem.
 
     We use the generic T type to ensure that the types of the inputs and the

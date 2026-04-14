@@ -12,7 +12,7 @@ function, which is used to populate the registry with the components of a given 
 
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Any, TypeVar
+from typing import Any
 
 from virtual_ecosystem.core.base_model import to_camel_case
 from virtual_ecosystem.core.configuration import Configuration
@@ -134,13 +134,10 @@ def register_disturbance(module_name: str) -> None:
     )
 
 
-_T = TypeVar("_T")
-
-
-def _register_module(
+def _register_module[T](
     module_name: str,
     registry: dict[str, ModuleInfo],
-    of_type: type[_T],
+    of_type: type[T],
 ) -> None:
     """Internal function to register models and disturbances.
 
@@ -186,10 +183,10 @@ def _register_module(
     )
 
 
-def _get_model(
+def _get_model[T](
     module_name: str,
     module_name_short: str,
-    of_type: type[_T],
+    of_type: type[T],
 ):
     """Get the main model class for a model.
 
