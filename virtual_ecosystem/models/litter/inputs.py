@@ -154,29 +154,31 @@ def combine_input_sources(
 
     # Calculate totals for each plant matter type
     leaf_total = convert_to_input_masses_to_rates_per_area(
-        data["foliage_turnover_cnp"].loc[:, "C"]
-        + data["herbivory_waste_leaf_cnp"].loc[:, "C"],
+        data["foliage_turnover_cnp"].sel(element="C")
+        + data["herbivory_waste_leaf_cnp"].sel(element="C"),
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
     root_total = convert_to_input_masses_to_rates_per_area(
-        data["root_turnover_cnp"].loc[:, "C"],
+        data["root_turnover_cnp"].sel(element="C"),
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
     deadwood_total = convert_to_input_masses_to_rates_per_area(
-        data["stem_turnover_cnp"].loc[:, "C"],
+        data["stem_turnover_cnp"].sel(element="C"),
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
 
     # Calculate lignin concentrations for each combined pool
     leaf_lignin = merge_input_lignin_proportions(
-        turnover_mass=data["foliage_turnover_cnp"].loc[:, "C"].to_numpy(),
-        herbivory_waste_mass=data["herbivory_waste_leaf_cnp"].loc[:, "C"].to_numpy(),
+        turnover_mass=data["foliage_turnover_cnp"].sel(element="C").to_numpy(),
+        herbivory_waste_mass=data["herbivory_waste_leaf_cnp"]
+        .sel(element="C")
+        .to_numpy(),
         total_mass=(
-            data["foliage_turnover_cnp"].loc[:, "C"]
-            + data["herbivory_waste_leaf_cnp"].loc[:, "C"]
+            data["foliage_turnover_cnp"].sel(element="C")
+            + data["herbivory_waste_leaf_cnp"].sel(element="C")
         ).to_numpy(),
         turnover_lignin_proportion=data["senesced_leaf_lignin"].to_numpy(),
         herbivory_waste_lignin_proportion=data[
@@ -188,36 +190,36 @@ def combine_input_sources(
 
     # Calculate leaf nitrogen concentrations for each combined pool
     leaf_nitrogen = convert_to_input_masses_to_rates_per_area(
-        data["foliage_turnover_cnp"].loc[:, "N"]
-        + data["herbivory_waste_leaf_cnp"].loc[:, "N"],
+        data["foliage_turnover_cnp"].sel(element="N")
+        + data["herbivory_waste_leaf_cnp"].sel(element="N"),
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
     root_nitrogen = convert_to_input_masses_to_rates_per_area(
-        data["root_turnover_cnp"].loc[:, "N"],
+        data["root_turnover_cnp"].sel(element="N"),
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
     deadwood_nitrogen = convert_to_input_masses_to_rates_per_area(
-        data["stem_turnover_cnp"].loc[:, "N"],
+        data["stem_turnover_cnp"].sel(element="N"),
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
 
     # Calculate leaf phosphorus concentrations for each combined pool
     leaf_phosphorus = convert_to_input_masses_to_rates_per_area(
-        data["foliage_turnover_cnp"].loc[:, "P"]
-        + data["herbivory_waste_leaf_cnp"].loc[:, "P"],
+        data["foliage_turnover_cnp"].sel(element="P")
+        + data["herbivory_waste_leaf_cnp"].sel(element="P"),
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
     root_phosphorus = convert_to_input_masses_to_rates_per_area(
-        data["root_turnover_cnp"].loc[:, "P"],
+        data["root_turnover_cnp"].sel(element="P"),
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
     deadwood_phosphorus = convert_to_input_masses_to_rates_per_area(
-        data["stem_turnover_cnp"].loc[:, "P"],
+        data["stem_turnover_cnp"].sel(element="P"),
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )

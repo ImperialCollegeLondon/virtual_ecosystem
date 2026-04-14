@@ -297,7 +297,7 @@ def soil_pool_data(dummy_carbon_data):
 
     pools = {
         **{
-            f"{var}_{full_name}": pool.loc[:, code]
+            f"{var}_{full_name}": pool.sel(element=code)
             for code, full_name in elements.items()
             for var, pool in dummy_carbon_data.data.items()
             if var in SoilModel.vars_updated and var.startswith("soil_cnp_")
@@ -343,7 +343,9 @@ def necromass_breakdown(dummy_carbon_data, fixture_soil_constants):
     from virtual_ecosystem.models.soil.pools import calculate_necromass_breakdown
 
     return calculate_necromass_breakdown(
-        soil_c_pool_necromass=dummy_carbon_data["soil_cnp_pool_necromass"].loc[:, "C"],
+        soil_c_pool_necromass=dummy_carbon_data["soil_cnp_pool_necromass"].sel(
+            element="C"
+        ),
         necromass_decay_rate=fixture_soil_constants.necromass_decay_rate,
     )
 
@@ -354,7 +356,7 @@ def necromass_sorption(dummy_carbon_data, fixture_soil_constants):
     from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
 
     return calculate_sorption_to_maom(
-        soil_c_pool=dummy_carbon_data["soil_cnp_pool_necromass"].loc[:, "C"],
+        soil_c_pool=dummy_carbon_data["soil_cnp_pool_necromass"].sel(element="C"),
         sorption_rate_constant=fixture_soil_constants.necromass_sorption_rate,
     )
 
@@ -365,7 +367,7 @@ def lmwc_sorption(dummy_carbon_data, fixture_soil_constants):
     from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
 
     return calculate_sorption_to_maom(
-        soil_c_pool=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
+        soil_c_pool=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
         sorption_rate_constant=fixture_soil_constants.lmwc_sorption_rate,
     )
 
@@ -376,7 +378,7 @@ def maom_desorption(dummy_carbon_data, fixture_soil_constants):
     from virtual_ecosystem.models.soil.pools import calculate_maom_desorption
 
     return calculate_maom_desorption(
-        soil_c_pool_maom=dummy_carbon_data["soil_cnp_pool_maom"].loc[:, "C"],
+        soil_c_pool_maom=dummy_carbon_data["soil_cnp_pool_maom"].sel(element="C"),
         desorption_rate_constant=fixture_soil_constants.maom_desorption_rate,
     )
 
@@ -549,11 +551,11 @@ def max_uptake_rates(
     from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
 
     return calculate_maximum_uptake_rates(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
-        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "N"],
+        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
+        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="N"),
         soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "P"],
+        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="P"),
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
         water_factor=environmental_factors.water,

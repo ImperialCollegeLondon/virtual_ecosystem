@@ -142,7 +142,7 @@ def test_calculate_updated_pool_lignin_proportion(
 
     actual_lignin = calculate_updated_pool_lignin_proportion(
         initial_carbon=post_consumption_pools["above_structural"]
-        .loc[:, "C"]
+        .sel(element="C")
         .to_numpy(),
         input_carbon_rate=litter_inputs.above_structural,
         carbon_loss=litter_losses.above_structural_carbon,
