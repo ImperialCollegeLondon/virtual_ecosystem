@@ -151,6 +151,7 @@ class PlantsModel(
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
         "plant_reproductive_tissue_turnover_cnp",
+        "plant_reproductive_tissue_turnover",
         "plant_reproductive_tissue_lignin",
         "plant_rt_turnover_n_mass",  # to deprecate
         "plant_rt_turnover_p_mass",  # to deprecate
@@ -1050,7 +1051,7 @@ class PlantsModel(
             for tissue_name, turnover in tissue_turnovers.items():
                 self.data[f"{tissue_name}_turnover_cnp"][cell_id] += (
                     turnover * cohorts.n_individuals
-                ).sum(axis=0)
+                ).sum(axis=1)
 
             # HANDLE ALLOCATION TO GROWTH
             biomasses.apply_growth(allocation=stem_allocation)

@@ -295,7 +295,7 @@ class FoliageBiomass(BiomassTissueABC):
             The increases in element quantities needed to support growth at the ideal
             ratio for the tissue.
         """
-        self.carbon_mass += allocation.delta_foliage_mass
+        self.carbon_mass += allocation.delta_foliage_mass.squeeze()
 
         nutrient_ideal_ratio_increase = {
             ky: (allocation.delta_foliage_mass * (1 / elem.ideal_ratio)).squeeze()
@@ -381,7 +381,7 @@ class ReproductiveBiomass(BiomassTissueABC):
             allocation.delta_foliage_mass
             * self.community.stem_traits.p_foliage_for_reproductive_tissue
         )
-        self.carbon_mass += carbon_increase
+        self.carbon_mass += carbon_increase.squeeze()
 
         nutrient_ideal_ratio_increase = {
             ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
@@ -470,7 +470,7 @@ class StemBiomass(BiomassTissueABC):
             The increases in element quantities needed to support growth at the ideal
             ratio for the tissue.
         """
-        self.carbon_mass += allocation.delta_stem_mass
+        self.carbon_mass += allocation.delta_stem_mass.squeeze()
 
         nutrient_ideal_ratio_increase = {
             ky: (allocation.delta_stem_mass * (1 / elem.ideal_ratio)).squeeze()
@@ -565,7 +565,7 @@ class RootBiomass(BiomassTissueABC):
             * self.community.stem_traits.sla
         )
 
-        self.carbon_mass += carbon_increase
+        self.carbon_mass += carbon_increase.squeeze()
 
         nutrient_ideal_ratio_increase = {
             ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
