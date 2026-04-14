@@ -140,7 +140,8 @@ class CompiledConfiguration(Configuration):
         Args:
             name: The required subconfiguration.
             as_class: The class of objected returned by the method. This is not used by
-            the method itself but is used to support static typing of the return value.
+                the method itself but is used to support static typing of the return
+                value.
         """
 
         try:
