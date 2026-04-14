@@ -112,7 +112,9 @@ class LitterChemistry:
         """
 
         new_lignin_proportion_above_struct = calculate_updated_pool_lignin_proportion(
-            initial_carbon=original_pools["above_structural"].loc[:, "C"].to_numpy(),
+            initial_carbon=original_pools["above_structural"]
+            .sel(element="C")
+            .to_numpy(),
             input_carbon_rate=litter_inputs.above_structural,
             carbon_loss=litter_losses.above_structural_carbon,
             initial_lignin_proportion=self.data["lignin_above_structural"].to_numpy(),
@@ -121,7 +123,7 @@ class LitterChemistry:
             update_interval=update_interval,
         )
         new_lignin_proportion_woody = calculate_updated_pool_lignin_proportion(
-            initial_carbon=original_pools["woody"].loc[:, "C"].to_numpy(),
+            initial_carbon=original_pools["woody"].sel(element="C").to_numpy(),
             input_carbon_rate=litter_inputs.woody,
             carbon_loss=litter_losses.woody_carbon,
             initial_lignin_proportion=self.data["lignin_woody"].to_numpy(),
@@ -130,7 +132,9 @@ class LitterChemistry:
             update_interval=update_interval,
         )
         new_lignin_proportion_below_struct = calculate_updated_pool_lignin_proportion(
-            initial_carbon=original_pools["below_structural"].loc[:, "C"].to_numpy(),
+            initial_carbon=original_pools["below_structural"]
+            .sel(element="C")
+            .to_numpy(),
             input_carbon_rate=litter_inputs.below_structural,
             carbon_loss=litter_losses.below_structural_carbon,
             initial_lignin_proportion=self.data["lignin_below_structural"].to_numpy(),
@@ -185,7 +189,7 @@ def calculate_updated_nutrient_pools(
     ]
 
     return {
-        f"{pool}_{full_name}": original_pools[f"{pool}"].loc[:, abbrev].to_numpy()
+        f"{pool}_{full_name}": original_pools[f"{pool}"].sel(element=abbrev).to_numpy()
         + getattr(input_chemistries, f"{pool}_{full_name}") * update_interval
         - getattr(litter_losses, f"{pool}_{full_name}")
         for abbrev, full_name in elements.items()

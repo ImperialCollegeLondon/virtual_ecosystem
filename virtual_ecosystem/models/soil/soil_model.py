@@ -451,7 +451,7 @@ class SoilModel(
             (
                 np.concatenate(
                     [
-                        self.data[name].loc[:, element].to_numpy()
+                        self.data[name].sel(element=element).to_numpy()
                         for element in elements.keys()
                         for name in updated_biomass_triplets
                     ]
@@ -733,11 +733,13 @@ class SoilModel(
         )
 
         initial_ecto_n, initial_ecto_p = estimate_past_mycorrhizal_supply(
-            soil_c_pool_lmwc=self.data["soil_cnp_pool_lmwc"].loc[:, "C"].to_numpy(),
-            soil_n_pool_don=self.data["soil_cnp_pool_lmwc"].loc[:, "N"].to_numpy(),
+            soil_c_pool_lmwc=self.data["soil_cnp_pool_lmwc"]
+            .sel(element="C")
+            .to_numpy(),
+            soil_n_pool_don=self.data["soil_cnp_pool_lmwc"].sel(element="N").to_numpy(),
             soil_n_pool_ammonium=self.data["soil_n_pool_ammonium"].to_numpy(),
             soil_n_pool_nitrate=self.data["soil_n_pool_nitrate"].to_numpy(),
-            soil_p_pool_dop=self.data["soil_cnp_pool_lmwc"].loc[:, "P"].to_numpy(),
+            soil_p_pool_dop=self.data["soil_cnp_pool_lmwc"].sel(element="P").to_numpy(),
             soil_p_pool_labile=self.data["soil_p_pool_labile"].to_numpy(),
             microbe_pool_size=self.data["soil_c_pool_ectomycorrhiza"].to_numpy(),
             soil_temp=averaged_soil_temperature,
@@ -745,11 +747,13 @@ class SoilModel(
             env_factors=env_factors,
         )
         initial_arbuscular_n, initial_arbuscular_p = estimate_past_mycorrhizal_supply(
-            soil_c_pool_lmwc=self.data["soil_cnp_pool_lmwc"].loc[:, "C"].to_numpy(),
-            soil_n_pool_don=self.data["soil_cnp_pool_lmwc"].loc[:, "N"].to_numpy(),
+            soil_c_pool_lmwc=self.data["soil_cnp_pool_lmwc"]
+            .sel(element="C")
+            .to_numpy(),
+            soil_n_pool_don=self.data["soil_cnp_pool_lmwc"].sel(element="N").to_numpy(),
             soil_n_pool_ammonium=self.data["soil_n_pool_ammonium"].to_numpy(),
             soil_n_pool_nitrate=self.data["soil_n_pool_nitrate"].to_numpy(),
-            soil_p_pool_dop=self.data["soil_cnp_pool_lmwc"].loc[:, "P"].to_numpy(),
+            soil_p_pool_dop=self.data["soil_cnp_pool_lmwc"].sel(element="P").to_numpy(),
             soil_p_pool_labile=self.data["soil_p_pool_labile"].to_numpy(),
             microbe_pool_size=self.data["soil_c_pool_arbuscular_mycorrhiza"].to_numpy(),
             soil_temp=averaged_soil_temperature,
