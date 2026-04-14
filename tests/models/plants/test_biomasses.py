@@ -759,7 +759,7 @@ def test_Biomasses_from_community(fixture_community, extra_pft_traits):
     for tissue_name, allom_attr in (
         ("foliage", "foliage_mass"),
         ("stem", "stem_mass"),
-        ("reproductive", "reproductive_tissue_mass"),
+        ("plant_reproductive_tissue", "reproductive_tissue_mass"),
         ("root", "fine_root_mass"),
     ):
         tissue = biomasses.get_tissue(tissue_name)
