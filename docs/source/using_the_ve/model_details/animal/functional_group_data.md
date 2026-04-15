@@ -126,10 +126,6 @@ excretion type), population metrics and ecological traits (e.g., diet compositio
 habitat use, and vertical occupancy). However, trait data for many tropical taxa remain
 incomplete, and therefore trait estimation and ecological inference are often required.
 
-TODO - I couldn't find the "Hendriks and Muller, 2008" paper mentioned below, so I
-couldn't add it in as a proper reference. Nick please let me know what this paper is so
-I can fix this
-
 For our preparation of site-specific simulations such as the Maliau simulation, we used
 commonly found species as representatives for each functional group to estimate
 parameters such as adult body mass. In the case where adult body mass is unavailable,
@@ -139,9 +135,9 @@ reptiles), body mass may be estimated from body length using published allometri
 relationships (e.g., {cite:t}`sohlstrom_applying_2018` for invertebrates). Another
 example where information is lacking, such as birth mass, which is rarely reported in
 ecological literature. In such cases, birth mass is estimated using proportional
-relationships relative to adult mass or taxonomic generalisations (e.g., Hendriks and
-Muller, 2008), and then all body mass values are converted to kilograms to match the
-unit requirements of the model.
+relationships relative to adult mass or taxonomic generalisations (e.g.,
+{cite:t}`hendriks_scaling_2008`), and then all body mass values are converted to
+kilograms to match the unit requirements of the model.
 
 Metabolic type currently assigned based on taxonomic classification, with mammals and
 birds treated as endotherms and reptiles, amphibians, and most invertebrates treated as
