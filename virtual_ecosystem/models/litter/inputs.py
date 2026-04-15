@@ -515,8 +515,8 @@ class InputChemistries:
 
 def calculate_input_chemistries(
     litter_inputs: LitterInputs,
-    struct_to_meta_nitrogen_ratio: float,
-    struct_to_meta_phosphorus_ratio: float,
+    meta_to_struct_nitrogen_ratio: float,
+    meta_to_struct_phosphorus_ratio: float,
 ) -> InputChemistries:
     """Calculate the chemistries of the input to each litter pool.
 
@@ -525,10 +525,10 @@ def calculate_input_chemistries(
             plant biomass type, the proportion of the input that goes to the relevant
             metabolic pool for each input type (expect deadwood) and the total input
             into each litter pool.
-        struct_to_meta_nitrogen_ratio: Ratio of the carbon to nitrogen ratios of
-            structural vs metabolic litter pools [unitless]
-        struct_to_meta_phosphorus_ratio: Ratio of the carbon to phosphorus ratios of
-            structural vs metabolic litter pools [unitless]
+        meta_to_struct_nitrogen_ratio: Ratio of nitrogen concentrations for inputs to
+            the metabolic and structural litter pools [unitless]
+        meta_to_struct_phosphorus_ratio: Ratio of phosphorus concentrations for inputs
+            to the metabolic and structural litter pools [unitless]
 
     Returns:
         An InputChemistries instance containing the input chemistry for each litter pool
@@ -540,12 +540,12 @@ def calculate_input_chemistries(
     )
     input_c_n_ratios = calculate_litter_input_nutrient_masses(
         litter_inputs=litter_inputs,
-        struct_to_meta_nutrient_ratio=struct_to_meta_nitrogen_ratio,
+        meta_to_struct_nutrient_ratio=meta_to_struct_nitrogen_ratio,
         nutrient="nitrogen",
     )
     input_c_p_ratios = calculate_litter_input_nutrient_masses(
         litter_inputs=litter_inputs,
-        struct_to_meta_nutrient_ratio=struct_to_meta_phosphorus_ratio,
+        meta_to_struct_nutrient_ratio=meta_to_struct_phosphorus_ratio,
         nutrient="phosphorus",
     )
 
@@ -603,7 +603,7 @@ def calculate_litter_input_lignin_concentrations(
 
 
 def calculate_litter_input_nutrient_masses(
-    litter_inputs: LitterInputs, struct_to_meta_nutrient_ratio: float, nutrient: str
+    litter_inputs: LitterInputs, meta_to_struct_nutrient_ratio: float, nutrient: str
 ) -> dict[str, NDArray[np.floating]]:
     """Calculate the nutrient mass for each plant biomass to litter flow.
 
@@ -616,8 +616,9 @@ def calculate_litter_input_nutrient_masses(
             plant biomass type, the proportion of the input that goes to the relevant
             metabolic pool for each input type (expect deadwood) and the total input
             into each litter pool.
-        struct_to_meta_nutrient_ratio: Ratio of the carbon to nutrient ratios of
-            structural vs metabolic litter pools [unitless]
+        meta_to_struct_nutrient_ratio: Ratio of the nutrient concentrations (relative to
+            carbon mass) for the inputs to the metabolic and structural litter pools
+            [unitless]
         nutrient: Nutrient to calculate flows for (options are nitrogen and phosphorus)
 
     Returns:
@@ -630,23 +631,19 @@ def calculate_litter_input_nutrient_masses(
         LOGGER.error(to_raise)
         raise to_raise
 
-    # Calculate c_n_ratio split for each (non-wood) input biomass type
-    root_nutrient_meta, root_nutrient_struct = (
-        calculate_nutrient_split_between_litter_pools(
-            input_carbon_rate=litter_inputs.root_mass,
-            input_nutrient_rate=getattr(litter_inputs, f"root_{nutrient}"),
-            metabolic_split=litter_inputs.roots_meta_split,
-            struct_to_meta_nutrient_ratio=struct_to_meta_nutrient_ratio,
-        )
+    # Calculate nutrient split for each (non-wood) input biomass type
+    root_nutrient_meta, root_nutrient_struct = find_nutrient_split_between_litter_pools(
+        input_carbon_rate=litter_inputs.root_mass,
+        input_nutrient_rate=getattr(litter_inputs, f"root_{nutrient}"),
+        metabolic_split=litter_inputs.roots_meta_split,
+        meta_to_struct_nutrient_ratio=meta_to_struct_nutrient_ratio,
     )
 
-    leaf_nutrient_meta, leaf_nutrient_struct = (
-        calculate_nutrient_split_between_litter_pools(
-            input_carbon_rate=litter_inputs.leaf_mass,
-            input_nutrient_rate=getattr(litter_inputs, f"leaf_{nutrient}"),
-            metabolic_split=litter_inputs.leaves_meta_split,
-            struct_to_meta_nutrient_ratio=struct_to_meta_nutrient_ratio,
-        )
+    leaf_nutrient_meta, leaf_nutrient_struct = find_nutrient_split_between_litter_pools(
+        input_carbon_rate=litter_inputs.leaf_mass,
+        input_nutrient_rate=getattr(litter_inputs, f"leaf_{nutrient}"),
+        metabolic_split=litter_inputs.leaves_meta_split,
+        meta_to_struct_nutrient_ratio=meta_to_struct_nutrient_ratio,
     )
 
     return {
@@ -658,48 +655,108 @@ def calculate_litter_input_nutrient_masses(
     }
 
 
-def calculate_nutrient_split_between_litter_pools(
+def find_nutrient_split_between_litter_pools(
     input_carbon_rate: NDArray[np.floating],
     input_nutrient_rate: NDArray[np.floating],
     metabolic_split: NDArray[np.floating],
-    struct_to_meta_nutrient_ratio: float,
+    meta_to_struct_nutrient_ratio: float,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
-    """Function to calculate the split of input nutrients between litter pools.
+    """Function to find the split of input nutrients between litter pools.
 
-    Following :cite:t:`kirschbaum_modelling_2002`, we assume that the nutrient content
-    of the structural and metabolic litter pools are in a fixed proportion. This ratio
-    can vary between nutrients but doesn't vary between above and below ground pools.
-    This is a simplifying assumption to allow us to capture the faster turnover of
-    nutrients relative to carbon, without having to build (and parametrise) a model
-    where every nutrient effects decay rate of every pool.
+    Following :cite:t:`kirschbaum_modelling_2002`, we assume that the nutrient
+    concentrations of inputs to the structural and metabolic litter pools are in a fixed
+    proportion. This ratio can vary between nutrients but doesn't vary between above and
+    below ground pools. This simplifying assumption allows us to capture litter
+    mineralisation dynamics for specific elements without having to build (and
+    parametrise) a model where every nutrient effects decay rate of every pool.
+
+    This function explicitly handle the edge case where there is no carbon flow to
+    structural litter. How this is done depends on whether there is a carbon flow to
+    metabolic litter. If there is, then all nutrient flow goes to the metabolic litter.
+    If there isn't, then there is no nutrient flow to either pool.
 
     Args:
         input_carbon_rate: Rate of carbon input [kg C m^-2 day^-1]
         input_nutrient_rate: Rate of nutrient input [kg nut m^-2 day^-1]
         metabolic_split: Proportion of organic matter input that flows to the metabolic
             litter pool [unitless]
-        struct_to_meta_nutrient_ratio: Ratio of the carbon to nutrient ratios of
-            structural vs metabolic litter pools [unitless]
+        meta_to_struct_nutrient_ratio: Ratio of the nutrient concentrations (relative to
+            carbon mass) for the inputs to the metabolic and structural litter pools
+            [unitless]
 
     Returns:
         A tuple containing the nutrient input rate to the metabolic and structural
         litter pools [kg nut m^-2 day^-1], in that order.
     """
 
-    # Calculate carbon:nutrient ratio based on the input masses
-    input_c_nut_ratio = input_carbon_rate / input_nutrient_rate
+    # Calculate rate of carbon input to each pool
+    carbon_input_meta = input_carbon_rate * metabolic_split
+    carbon_input_struct = input_carbon_rate * (1 - metabolic_split)
 
-    # Find the ratios for each compartment
-    c_nut_ratio_meta_input = input_c_nut_ratio * (
-        metabolic_split + (1 - metabolic_split) / struct_to_meta_nutrient_ratio
+    meta_nutrient_mass = np.empty_like(carbon_input_meta)
+    struct_nutrient_mass = np.empty_like(carbon_input_struct)
+
+    # Defining masks to avoid zero flow edge cases
+    struct_input = carbon_input_struct != 0
+    only_meta_input = (carbon_input_meta != 0) & (carbon_input_struct == 0)
+    no_input = (carbon_input_meta == 0) & (carbon_input_struct == 0)
+
+    # Calculate actual split in cases where there is flow to the structural pool
+    meta_nutrient, struct_nutrient = calculate_nutrient_split(
+        carbon_input_meta[struct_input],
+        carbon_input_struct[struct_input],
+        input_nutrient_rate[struct_input],
+        meta_to_struct_nutrient_ratio,
     )
+    meta_nutrient_mass[struct_input] = meta_nutrient
+    struct_nutrient_mass[struct_input] = struct_nutrient
 
-    c_nut_ratio_struct_input = struct_to_meta_nutrient_ratio * c_nut_ratio_meta_input
+    # If all carbon goes to metabolic litter all nutrients do as well
+    meta_nutrient_mass[only_meta_input] = input_nutrient_rate[only_meta_input]
+    struct_nutrient_mass[only_meta_input] = 0
 
-    # Convert these back to masses
-    meta_nutrient_mass = metabolic_split * input_carbon_rate / c_nut_ratio_meta_input
-    struct_nutrient_mass = (
-        (1 - metabolic_split) * input_carbon_rate / c_nut_ratio_struct_input
-    )
+    # No carbon input means no nutrient input
+    meta_nutrient_mass[no_input] = 0
+    struct_nutrient_mass[no_input] = 0
 
     return (meta_nutrient_mass, struct_nutrient_mass)
+
+
+def calculate_nutrient_split(
+    carbon_input_meta: NDArray[np.floating],
+    carbon_input_struct: NDArray[np.floating],
+    input_nutrient_rate: NDArray[np.floating],
+    meta_to_struct_nutrient_ratio: float,
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    """Calculate the split of nutrients between metabolic and structural litter pools.
+
+    The calculation of this split derives from :cite:t:`kirschbaum_modelling_2002`, and
+    assumes that the nutrient concentrations of inputs to the structural and metabolic
+    litter pools are in a fixed proportion.
+
+    Args:
+        carbon_input_meta: Rate of carbon input to the metabolic pool [kg C m^-2 day^-1]
+        carbon_input_struct: Rate of carbon input to the structural pool [kg C m^-2
+            day^-1]
+        input_nutrient_rate: Total rate of nutrient input [kg nut m^-2 day^-1]
+        meta_to_struct_nutrient_ratio: Ratio of the nutrient concentrations (relative to
+            carbon mass) for the inputs to the metabolic and structural litter pools
+            [unitless]
+
+    Returns:
+        A tuple containing the rate of nutrient flow to the metabolic and structural
+        litter pools, respectively [kg nut m^-2 day^-1]
+    """
+
+    # Find ratio of the carbon contents of the two pools
+    ratio_meta_to_struct = carbon_input_meta / carbon_input_struct
+
+    # The product of the ratio of carbon inputs and the ratio of the nutrient
+    # concentrations is found and used to calculate the nutrient mass in each litter
+    # pool
+    product_of_ratios = ratio_meta_to_struct * meta_to_struct_nutrient_ratio
+
+    struct_nutrient_mass = input_nutrient_rate / (1 + product_of_ratios)
+    meta_nutrient_mass = product_of_ratios * struct_nutrient_mass
+
+    return meta_nutrient_mass, struct_nutrient_mass
