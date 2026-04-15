@@ -663,6 +663,7 @@ def dummy_climate_data(fixture_core_components):
         "precipitation": 200.0,  # mm month-1
         "downward_shortwave_radiation": 220.0,  # W m-2 (24h monthly mean)
         "downward_longwave_radiation": 400.0,  # W m-2 (24h monthly mean)
+        "mean_annual_temperature": 20.0,  # C
     }
 
     for var, value in ref_values.items():
@@ -689,7 +690,6 @@ def dummy_climate_data(fixture_core_components):
         "mean_mixing_length": 1.3,  # m
         "aerodynamic_resistance_soil": 50.0,  # s m-1
         "aerodynamic_resistance_canopy": 30.0,  # s m-1
-        "mean_annual_temperature": 20.0,  # C
         "ground_heat_flux": 20.0,
         "conductive_flux_understorey": 50.0,
     }
