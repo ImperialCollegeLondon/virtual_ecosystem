@@ -195,7 +195,7 @@ def test_interpolate_soil_temperature(dummy_climate_data, fixture_core_component
     result = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
         surface_temperature=surface_temperature,
-        mean_annual_temperature=data["mean_annual_temperature"],
+        mean_annual_temperature=data["mean_annual_temperature"].isel(time_index=0),
         layer_structure=lyr_strct,
         upper_bound=50.0,
         lower_bound=-10.0,
