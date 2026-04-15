@@ -401,7 +401,7 @@ def test_calculate_solute_removal_by_soil_water(
     exit_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])
 
     actual_rate = calculate_solute_removal_by_soil_water(
-        solute_density=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
+        solute_density=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
         exit_rate=exit_flow_per_day,
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar

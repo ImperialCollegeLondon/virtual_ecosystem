@@ -1,5 +1,7 @@
 """Configuration for the litter model."""
 
+from pydantic import Field
+
 from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
 
@@ -142,21 +144,22 @@ class LitterConstants(Configuration):
     converted to a mass terms ratio by using their atomic masses.
     """
 
-    structural_to_metabolic_n_ratio: float = 5.0
-    """Ratio of the carbon to nitrogen ratios of structural vs metabolic litter pools.
+    metabolic_to_structural_n_ratio: float = Field(default=5.0, ge=0.0)
+    """Ratio of nitrogen concentrations for input to metabolic and structural litter.
     
     Following :cite:t:`kirschbaum_modelling_2002`, we assume that the nitrogen
-    concentrations of the structural and metabolic litter pools are in a fixed
-    proportion. This parameter sets how many times higher the carbon to nitrogen ratio
-    of each structural pool is relative to its corresponding metabolic pool. The default
-    value is also taken from :cite:t:`kirschbaum_modelling_2002`.
+    concentrations (relative to the carbon mass) of inputs to the metabolic and
+    structural litter pools are in a fixed proportion. This parameter sets how many
+    times higher the nitrogen concentration is for inputs to the metabolic pool relative
+    to inputs to the corresponding structural pool. The default value is also taken from
+    :cite:t:`kirschbaum_modelling_2002`.
     """
 
-    structural_to_metabolic_p_ratio: float = 5.0
-    """Ratio of the carbon to phosphorus ratios of structural vs metabolic litter pools.
+    metabolic_to_structural_p_ratio: float = Field(default=5.0, ge=0.0)
+    """Ratio of phosphorus concentrations for input to metabolic and structural litter.
     
-    This follows the same logic as for nitrogen (see
-    :attr:`LitterConstants.structural_to_metabolic_n_ratio`). The default value used is
+    This follows the same logic as for phosphorus (see
+    :attr:`LitterConstants.metabolic_to_structural_n_ratio`). The default value used is
     the same as for the nitrogen case as we saw no sense treating them differently.
     """
 

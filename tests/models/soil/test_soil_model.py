@@ -151,7 +151,7 @@ def test_soil_model_initialization_bounds_error(
 
     with pytest.raises(InitialisationError):
         # Put incorrect data in for lmwc
-        dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"] = DataArray(
+        dummy_carbon_data["soil_cnp_pool_lmwc"].loc[dict(element="C")] = DataArray(
             [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
         )
 
@@ -201,7 +201,7 @@ def test_soil_model_all_pools_positive(
     assert soil_model._all_pools_positive()
 
     # Change data to be incorrect for necromass
-    dummy_carbon_data["soil_cnp_pool_necromass"].loc[:, "C"] = DataArray(
+    dummy_carbon_data["soil_cnp_pool_necromass"].loc[dict(element="C")] = DataArray(
         [0.05, -0.02, 0.1, 0.005], dims=["cell_id"]
     )
 
@@ -1011,7 +1011,7 @@ def test_construct_full_soil_model(
         (
             np.concatenate(
                 [
-                    dummy_carbon_data[name].loc[:, element].to_numpy()
+                    dummy_carbon_data[name].sel(element=element).to_numpy()
                     for element in elements.keys()
                     for name in SoilModel.vars_updated
                     if name.startswith("soil_cnp_")
@@ -1111,11 +1111,11 @@ def test_estimate_past_mycorrhizal_supply(
     expected_p_supply = [5.6815677e-8, 2.13568584e-6, 5.67834718e-6, 2.42661124e-6]
 
     actual_n_supply, actual_p_supply = estimate_past_mycorrhizal_supply(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
-        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "N"],
+        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
+        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="N"),
         soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "P"],
+        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="P"),
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         microbe_pool_size=dummy_carbon_data["soil_c_pool_ectomycorrhiza"],
         soil_temp=averaged_soil_temp,

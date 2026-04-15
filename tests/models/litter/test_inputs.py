@@ -65,7 +65,7 @@ def test_convert_to_input_masses_to_rates_per_area(
     expected_input_rate = [0.0375, 0.0495, 0.0315, 0.0165]
 
     actual_input_rate = convert_to_input_masses_to_rates_per_area(
-        input_mass=dummy_litter_data["stem_turnover_cnp"].loc[:, "C"],
+        input_mass=dummy_litter_data["stem_turnover_cnp"].sel(element="C"),
         cell_area=fixture_litter_model.grid.cell_area,
         update_interval=2.0,
     )
@@ -160,10 +160,10 @@ def test_split_pool_into_metabolic_and_structural_litter(
     expected_split = [0.812403025, 0.640197595, 0.424077745, 0.0089426731]
 
     actual_split = split_pool_into_metabolic_and_structural_litter(
-        input_carbon=dummy_litter_data["foliage_turnover_cnp"].loc[:, "C"],
+        input_carbon=dummy_litter_data["foliage_turnover_cnp"].sel(element="C"),
         lignin_proportion=dummy_litter_data["senesced_leaf_lignin"],
-        input_nitrogen=dummy_litter_data["foliage_turnover_cnp"].loc[:, "N"],
-        input_phosphorus=dummy_litter_data["foliage_turnover_cnp"].loc[:, "P"],
+        input_nitrogen=dummy_litter_data["foliage_turnover_cnp"].sel(element="N"),
+        input_phosphorus=dummy_litter_data["foliage_turnover_cnp"].sel(element="P"),
         max_metabolic_fraction=fixture_litter_constants.max_metabolic_fraction_of_input,
         split_sensitivity_nitrogen=fixture_litter_constants.metabolic_split_nitrogen_sensitivity,
         split_sensitivity_phosphorus=fixture_litter_constants.metabolic_split_phosphorus_sensitivity,
@@ -196,10 +196,10 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
 
     with pytest.raises(ValueError):
         split_pool_into_metabolic_and_structural_litter(
-            input_carbon=dummy_litter_data["foliage_turnover_cnp"].loc[:, "C"],
+            input_carbon=dummy_litter_data["foliage_turnover_cnp"].sel(element="C"),
             lignin_proportion=lignin_proportions,
-            input_nitrogen=dummy_litter_data["foliage_turnover_cnp"].loc[:, "N"],
-            input_phosphorus=dummy_litter_data["foliage_turnover_cnp"].loc[:, "P"],
+            input_nitrogen=dummy_litter_data["foliage_turnover_cnp"].sel(element="N"),
+            input_phosphorus=dummy_litter_data["foliage_turnover_cnp"].sel(element="P"),
             max_metabolic_fraction=fixture_litter_constants.max_metabolic_fraction_of_input,
             split_sensitivity_nitrogen=fixture_litter_constants.metabolic_split_nitrogen_sensitivity,
             split_sensitivity_phosphorus=fixture_litter_constants.metabolic_split_phosphorus_sensitivity,
@@ -218,10 +218,12 @@ def test_merge_input_lignin_proportions(dummy_litter_data):
     expected_proportions = [0.05008879, 0.10125, 0.29641509, 0.53971154]
 
     actual_proportions = merge_input_lignin_proportions(
-        turnover_mass=dummy_litter_data["foliage_turnover_cnp"].loc[:, "C"],
-        herbivory_waste_mass=dummy_litter_data["herbivory_waste_leaf_cnp"].loc[:, "C"],
-        total_mass=dummy_litter_data["foliage_turnover_cnp"].loc[:, "C"]
-        + dummy_litter_data["herbivory_waste_leaf_cnp"].loc[:, "C"],
+        turnover_mass=dummy_litter_data["foliage_turnover_cnp"].sel(element="C"),
+        herbivory_waste_mass=dummy_litter_data["herbivory_waste_leaf_cnp"].sel(
+            element="C"
+        ),
+        total_mass=dummy_litter_data["foliage_turnover_cnp"].sel(element="C")
+        + dummy_litter_data["herbivory_waste_leaf_cnp"].sel(element="C"),
         turnover_lignin_proportion=dummy_litter_data["senesced_leaf_lignin"],
         herbivory_waste_lignin_proportion=dummy_litter_data[
             "herbivory_waste_leaf_lignin"
@@ -237,15 +239,17 @@ def test_average_nutrient_ratios(dummy_litter_data):
     expected_proportions = [15.00583994, 32.23584906, 39.05894298, 47.80986065]
 
     actual_proportions = average_nutrient_ratios(
-        mass_1=dummy_litter_data["foliage_turnover_cnp"].loc[:, "C"].to_numpy(),
-        mass_2=dummy_litter_data["herbivory_waste_leaf_cnp"].loc[:, "C"].to_numpy(),
+        mass_1=dummy_litter_data["foliage_turnover_cnp"].sel(element="C").to_numpy(),
+        mass_2=dummy_litter_data["herbivory_waste_leaf_cnp"]
+        .sel(element="C")
+        .to_numpy(),
         nutrient_ratio_1=(
-            dummy_litter_data["foliage_turnover_cnp"].loc[:, "C"]
-            / dummy_litter_data["foliage_turnover_cnp"].loc[:, "N"]
+            dummy_litter_data["foliage_turnover_cnp"].sel(element="C")
+            / dummy_litter_data["foliage_turnover_cnp"].sel(element="N")
         ),
         nutrient_ratio_2=(
-            dummy_litter_data["herbivory_waste_leaf_cnp"].loc[:, "C"]
-            / dummy_litter_data["herbivory_waste_leaf_cnp"].loc[:, "N"]
+            dummy_litter_data["herbivory_waste_leaf_cnp"].sel(element="C")
+            / dummy_litter_data["herbivory_waste_leaf_cnp"].sel(element="N")
         ),
     )
     assert np.allclose(actual_proportions, expected_proportions)
@@ -315,8 +319,8 @@ def test_calculate_input_chemistries(fixture_litter_constants, litter_inputs):
 
     actual_chemistries = calculate_input_chemistries(
         litter_inputs=litter_inputs,
-        struct_to_meta_nitrogen_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
-        struct_to_meta_phosphorus_ratio=fixture_litter_constants.structural_to_metabolic_p_ratio,
+        meta_to_struct_nitrogen_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
+        meta_to_struct_phosphorus_ratio=fixture_litter_constants.metabolic_to_structural_p_ratio,
     )
 
     # Convert to a dict to check the values
@@ -390,7 +394,7 @@ def test_calculate_litter_input_nutrient_masses(
 
     actual_nutrient_masses = calculate_litter_input_nutrient_masses(
         litter_inputs=litter_inputs,
-        struct_to_meta_nutrient_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
+        meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
         nutrient="nitrogen",
     )
 
@@ -411,7 +415,7 @@ def test_calculate_litter_input_nutrient_masses_bad_input(
     with pytest.raises(ValueError):
         _ = calculate_litter_input_nutrient_masses(
             litter_inputs=litter_inputs,
-            struct_to_meta_nutrient_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
+            meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
             nutrient="oxygen",
         )
 
@@ -421,22 +425,73 @@ def test_calculate_litter_input_nutrient_masses_bad_input(
     log_check(caplog, expected_log)
 
 
-def test_calculate_nutrient_split_between_litter_pools(
+def test_find_nutrient_split_between_litter_pools(
     dummy_litter_data, fixture_litter_constants, litter_inputs
 ):
-    """Check the function to calculate the nutrient split between litter pools."""
+    """Check the function to find the nutrient split between litter pools."""
     from virtual_ecosystem.models.litter.inputs import (
-        calculate_nutrient_split_between_litter_pools,
+        find_nutrient_split_between_litter_pools,
     )
 
     expected_n_meta = np.array([6.331932287, 2.81123962, 0.0468426692, 4.22192613])
     expected_n_struct = np.array([0.8858875316, 0.91902302, 0.009277350, 1.214462735])
 
-    actual_n_meta, actual_n_struct = calculate_nutrient_split_between_litter_pools(
-        input_carbon_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "C"],
-        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
+    actual_n_meta, actual_n_struct = find_nutrient_split_between_litter_pools(
+        input_carbon_rate=dummy_litter_data["root_turnover_cnp"].sel(element="C"),
+        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].sel(element="N"),
         metabolic_split=litter_inputs.roots_meta_split,
-        struct_to_meta_nutrient_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
+        meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
+    )
+
+    # Standard checks of the produced values
+    assert np.allclose(actual_n_meta, expected_n_meta)
+    assert np.allclose(actual_n_struct, expected_n_struct)
+
+
+def test_find_nutrient_split_between_litter_pools_bad_input(
+    dummy_litter_data, fixture_litter_constants, litter_inputs
+):
+    """Check the function to find the nutrient split handles bad input correctly."""
+    from virtual_ecosystem.models.litter.inputs import (
+        find_nutrient_split_between_litter_pools,
+    )
+
+    # One carbon input is missing
+    input_carbon_rate = np.array([218.7, 0.0, 2.43, 201.69])
+    # In one case all flow is to metabolic
+    metabolic_split = np.array([0.588394858, 0.379571377, 1.0, 0.410125012])
+
+    expected_n_meta = np.array([6.331932287, 0.0, 0.0561200192, 4.22192613])
+    expected_n_struct = np.array([0.8858875316, 0.0, 0.0, 1.214462735])
+
+    actual_n_meta, actual_n_struct = find_nutrient_split_between_litter_pools(
+        input_carbon_rate=input_carbon_rate,
+        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
+        metabolic_split=metabolic_split,
+        meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
+    )
+
+    # Standard checks of the produced values
+    assert np.allclose(actual_n_meta, expected_n_meta)
+    assert np.allclose(actual_n_struct, expected_n_struct)
+
+
+def test_calculate_nutrient_split(
+    dummy_litter_data, fixture_litter_constants, litter_inputs
+):
+    """Check the function to calculate the nutrient split between litter pools."""
+    from virtual_ecosystem.models.litter.inputs import calculate_nutrient_split
+
+    expected_n_meta = np.array([6.331932287, 2.81123962, 0.0468426692, 4.22192613])
+    expected_n_struct = np.array([0.8858875316, 0.91902302, 0.009277350, 1.214462735])
+
+    actual_n_meta, actual_n_struct = calculate_nutrient_split(
+        carbon_input_meta=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
+        * litter_inputs.roots_meta_split,
+        carbon_input_struct=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
+        * (1 - litter_inputs.roots_meta_split),
+        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
+        meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
     )
 
     # Standard checks of the produced values
