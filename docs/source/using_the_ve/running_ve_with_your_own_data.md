@@ -323,7 +323,9 @@ data will have specific model configuration settings. For example:
   path set in the [plants model configuration
   options](./model_details/plants/plants_config.md#plant-cohort-data)
 
-* The animal model also requires a defined initial cohort structure.
+* The animal model also requires a set of defined [functional
+  groups](./model_details/animal/functional_group_data.md). These are defined in a CSV
+  file with the path provided as part of the animal model configuration.
 
 * The soil model requires [parameter estimates for the microbial functional groups and
   enzyme classes](./model_details/decay/default_microbial_params.md) that it uses.

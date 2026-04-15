@@ -18,10 +18,11 @@ model](./animal_config.md).
 
 ## Preparing the input data for the animal model
 
-The data you need to provide to the animal model will be cohort data. TODO - This will
-be described in more detail in future, probably using a separate page
+The primary data you need to provide to the animal model will be a [description of the
+functional groups](./functional_group_data.md) found in your study area. This is
+provided as a CSV file.
 
-Because of this, the `animal` model makes very limited use of array data, with required
+The `animal` model makes very limited use of array data, with required
 variables primarily being resource pools originating from other models (which should be
 provided by those models) You can check the required variables using the [variables
-table](../../variables/variables.md)).
+table](../../variables/variables.md).
