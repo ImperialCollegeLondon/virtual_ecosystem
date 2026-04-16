@@ -823,7 +823,6 @@ class Biomasses(CohortMethods, PandasExporter):
         )
 
         LOGGER.debug(f"820:  {tissue_element_deficits!r}")
-        raise RuntimeError("ARGH!")
 
         tissue_relative_deficits = np.where(
             np.isnan(tissue_relative_deficits), 0, tissue_relative_deficits
