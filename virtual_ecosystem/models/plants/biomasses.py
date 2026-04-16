@@ -816,16 +816,17 @@ class Biomasses(CohortMethods, PandasExporter):
         )
 
         # Calculate the redistribution of pool surpluses (positive values) to tissues
-        # weighted by their relative deficits. This will be np.nan if an element within
-        # a tissue is _at_ the ideal ratio.
-        tissue_relative_deficits = (
-            tissue_element_deficits / tissue_element_deficits.sum(axis=0)
-        )
+        # weighted by their relative deficits within the whole stem. This is problematic
+        # when the whole stem deficit is zero (can be -inf, nan or inf depending on the
+        # numerator), so explicitly handle zero stem deficits in a way that doesn't
+        # raise warnings and sets the relative deficit to zero.
 
-        LOGGER.debug(f"820:  {tissue_element_deficits!r}")
-
-        tissue_relative_deficits = np.where(
-            np.isnan(tissue_relative_deficits), 0, tissue_relative_deficits
+        stem_deficits = tissue_element_deficits.sum(axis=0)
+        tissue_relative_deficits = np.divide(
+            tissue_element_deficits,
+            stem_deficits,
+            out=np.zeros_like(tissue_element_deficits),
+            where=stem_deficits != 0,
         )
 
         pool_surpluses_to_tissues = stem_pools * tissue_relative_deficits
