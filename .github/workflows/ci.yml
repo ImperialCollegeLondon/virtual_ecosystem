@@ -51,7 +51,7 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: failed_tests_ve_run_cli_log
-        path: ${{ env.RUNNER_TEMP }}/log_file.log
+        path: ${{ runner.temp }}/log_file.log
         archive: false
         retention-days: 1
 
