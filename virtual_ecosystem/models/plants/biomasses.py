@@ -58,6 +58,13 @@ StemBiomass
     turnover_ratio: not defined (because there is no turnover)
 
 
+TODO - factor out mass accessor functions (get_biomass etc) as in the lists above and
+       then make those limited functions the abstract methods so that all the logic can
+       be shared in base class methods.
+
+TODO - make this all run on 2D CNP arrays (remove Element?) Have single arrays giving
+       biomasses and ideal and turnover ratios.
+
 """  # noqa: D205
 
 from __future__ import annotations
@@ -343,6 +350,111 @@ class ReproductiveBiomass(BiomassTissueABC):
         element_masses: dict[str, Element] = {}
 
         carbon_mass = community.stem_allometry.reproductive_tissue_mass.squeeze()
+
+        for elem in with_elements:
+            ideal_ratio = np.array(
+                [
+                    extra_pft_traits.traits[name][
+                        f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
+                    ]
+                    for name in pft_names
+                ]
+            )
+            # Turnover ratio is identical to ideal ratio
+            turnover_ratio = ideal_ratio
+
+            element_masses[elem] = Element(
+                name=elem,
+                ideal_ratio=ideal_ratio,
+                actual_element_mass=carbon_mass / ideal_ratio,
+                turnover_ratio=turnover_ratio,
+            )
+
+        return cls(
+            carbon_mass=carbon_mass, community=community, element_masses=element_masses
+        )
+
+    def apply_growth(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Increase the biomasses of reproductive tissue given the allocation model.
+
+        Returns:
+            The increases in element quantities needed to support growth at the ideal
+            ratio for the tissue.
+        """
+
+        carbon_increase = (
+            allocation.delta_foliage_mass
+            * self.community.stem_traits.p_foliage_for_reproductive_tissue
+        )
+        self.carbon_mass += carbon_increase.squeeze()
+
+        nutrient_ideal_ratio_increase = {
+            ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
+            for ky, elem in self.element_masses.items()
+        }
+
+        self.add_elemental_masses(nutrient_ideal_ratio_increase)
+
+        return nutrient_ideal_ratio_increase
+
+    def get_turnover(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Calculate the element mass lost to turnover for reproductive tissue.
+
+        Returns:
+            The element quantity lost to turnover for reproductive tissue.
+        """
+
+        # TODO: Caching locally to avoid calling the property constructor for each
+        # element  - maybe this should a cached property?
+
+        cx_ratios = self.Cx_ratio
+
+        elemental_turnovers = {
+            ky: (
+                (
+                    allocation.reproductive_tissue_turnover * (1 / cx_ratios[ky])
+                ).squeeze()
+            ).squeeze()
+            for ky, elem in self.element_masses.items()
+        }
+
+        return {
+            "C": allocation.reproductive_tissue_turnover.squeeze(),
+            **elemental_turnovers,
+        }
+
+
+@dataclass
+class FruitBiomass(BiomassTissueABC):
+    """Holds fruit tissue stoichiometry data for a set of plant cohorts."""
+
+    tissue_name = "plant_reproductive_tissue"
+
+    @classmethod
+    def from_pft_default_ratios(
+        cls,
+        community: Community,
+        extra_pft_traits: ExtraTraitsPFT,
+        with_elements: list[str],
+    ):
+        """Create a default instance of FoliageBiomass based on the PFT traits."""
+        pft_names = community.cohorts.pft_names
+
+        element_masses: dict[str, Element] = {}
+
+        # Get the proportion of reproductive tissue allocated to fruit flesh
+        flesh_fruit_fraction = [
+            extra_pft_traits.traits[name]["flesh_fruit_fraction"] for name in pft_names
+        ]
+
+        carbon_mass = (
+            community.stem_allometry.reproductive_tissue_mass.squeeze()
+            * flesh_fruit_fraction
+        )
 
         for elem in with_elements:
             ideal_ratio = np.array(
