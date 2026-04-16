@@ -46,6 +46,15 @@ jobs:
     - name: Run tests
       run: poetry run pytest --cov-report xml
 
+    - name: Archive log for error checking on failure
+      if: failure()
+      uses: actions/upload-artifact@v7
+      with:
+        name: failed_tests_ve_run_cli_log
+        path: ${{ env.RUNNER_TEMP }}/log_file.log
+        archive: false
+        retention-days: 1
+
     - name: Upload coverage to Codecov
       if: >- 
           ${{ ! (

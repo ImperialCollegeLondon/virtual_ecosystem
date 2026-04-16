@@ -72,6 +72,7 @@ from pyrealm.demography.community import Community
 from pyrealm.demography.core import CohortMethods, PandasExporter
 from pyrealm.demography.tmodel import StemAllocation
 
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
 
 
@@ -414,6 +415,8 @@ class ReproductiveBiomass(BiomassTissueABC):
             ).squeeze()
             for ky, elem in self.element_masses.items()
         }
+
+        LOGGER.debug(f"412: {cx_ratios!r}, {allocation.reproductive_tissue_turnover!r}")
 
         return {
             "C": allocation.reproductive_tissue_turnover.squeeze(),
@@ -818,6 +821,10 @@ class Biomasses(CohortMethods, PandasExporter):
         tissue_relative_deficits = (
             tissue_element_deficits / tissue_element_deficits.sum(axis=0)
         )
+
+        LOGGER.debug(f"820:  {tissue_element_deficits!r}")
+        raise RuntimeError("ARGH!")
+
         tissue_relative_deficits = np.where(
             np.isnan(tissue_relative_deficits), 0, tissue_relative_deficits
         )
