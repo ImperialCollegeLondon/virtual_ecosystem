@@ -836,6 +836,7 @@ class Biomasses(CohortMethods, PandasExporter):
         pool_surpluses_to_tissues = np.minimum(
             tissue_element_deficits, pool_surpluses_to_tissues
         )
+
         # - don't drain tissues below zero.
         pool_deficits_to_tissues = np.maximum(
             -tissue_element_masses, pool_deficits_to_tissues
