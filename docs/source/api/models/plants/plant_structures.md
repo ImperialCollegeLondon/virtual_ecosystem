@@ -59,14 +59,6 @@ This page documents submodules of the `plants` module used to support the centra
     :members:
 ```
 
-## The plants {mod}`~virtual_ecosystem.models.plants.stoichiometry` module
-
-```{eval-rst}
-.. automodule:: virtual_ecosystem.models.plants.stoichiometry
-    :autosummary:
-    :members:
-```
-
 ## The plants {mod}`~virtual_ecosystem.models.plants.biomasses` module
 
 ```{eval-rst}
