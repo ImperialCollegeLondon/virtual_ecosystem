@@ -46,7 +46,7 @@ RootBiomass:
     ideal_ratio: not defined - identical to turnover ratio
     turnover_ratio: root_turnover_c_{elem.lower()}_ratio
 
-WoodBiomass
+StemBiomass
     # No turnover at present, so same ratios doesn't really make sense, but if there was
       turnover it probably would be at these ratios.
 
@@ -72,6 +72,7 @@ from pyrealm.demography.community import Community
 from pyrealm.demography.core import CohortMethods, PandasExporter
 from pyrealm.demography.tmodel import StemAllocation
 
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
 
 
@@ -258,6 +259,7 @@ class FoliageBiomass(BiomassTissueABC):
 
         element_masses: dict[str, Element] = {}
 
+        carbon_mass = community.stem_allometry.foliage_mass.squeeze()
         for elem in with_elements:
             ideal_ratio = np.array(
                 [
@@ -277,14 +279,12 @@ class FoliageBiomass(BiomassTissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.foliage_mass / ideal_ratio,
+                actual_element_mass=carbon_mass / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
         return cls(
-            carbon_mass=community.stem_allometry.foliage_mass.copy(),
-            community=community,
-            element_masses=element_masses,
+            carbon_mass=carbon_mass, community=community, element_masses=element_masses
         )
 
     def apply_growth(
@@ -296,7 +296,7 @@ class FoliageBiomass(BiomassTissueABC):
             The increases in element quantities needed to support growth at the ideal
             ratio for the tissue.
         """
-        self.carbon_mass += allocation.delta_foliage_mass
+        self.carbon_mass += allocation.delta_foliage_mass.squeeze()
 
         nutrient_ideal_ratio_increase = {
             ky: (allocation.delta_foliage_mass * (1 / elem.ideal_ratio)).squeeze()
@@ -329,7 +329,7 @@ class FoliageBiomass(BiomassTissueABC):
 class ReproductiveBiomass(BiomassTissueABC):
     """Holds reproductive tissue stoichiometry data for a set of plant cohorts."""
 
-    tissue_name = "reproductive"
+    tissue_name = "plant_reproductive_tissue"
 
     @classmethod
     def from_pft_default_ratios(
@@ -342,6 +342,8 @@ class ReproductiveBiomass(BiomassTissueABC):
         pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
+
+        carbon_mass = community.stem_allometry.reproductive_tissue_mass.squeeze()
 
         for elem in with_elements:
             ideal_ratio = np.array(
@@ -358,15 +360,12 @@ class ReproductiveBiomass(BiomassTissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.reproductive_tissue_mass
-                / ideal_ratio,
+                actual_element_mass=carbon_mass / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
         return cls(
-            carbon_mass=community.stem_allometry.reproductive_tissue_mass,
-            community=community,
-            element_masses=element_masses,
+            carbon_mass=carbon_mass, community=community, element_masses=element_masses
         )
 
     def apply_growth(
@@ -383,7 +382,7 @@ class ReproductiveBiomass(BiomassTissueABC):
             allocation.delta_foliage_mass
             * self.community.stem_traits.p_foliage_for_reproductive_tissue
         )
-        self.carbon_mass += carbon_increase
+        self.carbon_mass += carbon_increase.squeeze()
 
         nutrient_ideal_ratio_increase = {
             ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
@@ -417,6 +416,8 @@ class ReproductiveBiomass(BiomassTissueABC):
             for ky, elem in self.element_masses.items()
         }
 
+        LOGGER.debug(f"412: {cx_ratios!r}, {allocation.reproductive_tissue_turnover!r}")
+
         return {
             "C": allocation.reproductive_tissue_turnover.squeeze(),
             **elemental_turnovers,
@@ -424,10 +425,10 @@ class ReproductiveBiomass(BiomassTissueABC):
 
 
 @dataclass
-class WoodBiomass(BiomassTissueABC):
-    """A class to hold wood stoichiometry data for a set of plant cohorts."""
+class StemBiomass(BiomassTissueABC):
+    """A class to hold stem stoichiometry data for a set of plant cohorts."""
 
-    tissue_name = "wood"
+    tissue_name = "stem"
 
     @classmethod
     def from_pft_default_ratios(
@@ -441,6 +442,8 @@ class WoodBiomass(BiomassTissueABC):
 
         element_masses: dict[str, Element] = {}
 
+        carbon_mass = community.stem_allometry.stem_mass.squeeze()
+
         for elem in with_elements:
             ideal_ratio = np.array(
                 [
@@ -453,14 +456,12 @@ class WoodBiomass(BiomassTissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=community.stem_allometry.stem_mass / ideal_ratio,
+                actual_element_mass=carbon_mass / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
         return cls(
-            carbon_mass=community.stem_allometry.stem_mass,
-            community=community,
-            element_masses=element_masses,
+            carbon_mass=carbon_mass, community=community, element_masses=element_masses
         )
 
     def apply_growth(
@@ -472,7 +473,7 @@ class WoodBiomass(BiomassTissueABC):
             The increases in element quantities needed to support growth at the ideal
             ratio for the tissue.
         """
-        self.carbon_mass += allocation.delta_stem_mass
+        self.carbon_mass += allocation.delta_stem_mass.squeeze()
 
         nutrient_ideal_ratio_increase = {
             ky: (allocation.delta_stem_mass * (1 / elem.ideal_ratio)).squeeze()
@@ -522,7 +523,7 @@ class RootBiomass(BiomassTissueABC):
             community.stem_allometry.foliage_mass
             * community.stem_traits.zeta
             * community.stem_traits.sla
-        )
+        ).squeeze()
 
         for elem in with_elements:
             ideal_ratio = np.array(
@@ -567,7 +568,7 @@ class RootBiomass(BiomassTissueABC):
             * self.community.stem_traits.sla
         )
 
-        self.carbon_mass += carbon_increase
+        self.carbon_mass += carbon_increase.squeeze()
 
         nutrient_ideal_ratio_increase = {
             ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
@@ -731,7 +732,8 @@ class Biomasses(CohortMethods, PandasExporter):
         """
 
         for tissue in self.tissues:
-            # Increase the tissue biomasses
+            # Increase the tissue biomasses and record the nutrient masses required to
+            # add that mass at ideal ratios.
             needed = tissue.apply_growth(allocation)
             # Record the nutrients biomasses at ideal ratios allocated to the tissue in
             # the whole stem balance.
@@ -814,13 +816,17 @@ class Biomasses(CohortMethods, PandasExporter):
         )
 
         # Calculate the redistribution of pool surpluses (positive values) to tissues
-        # weighted by their relative deficits. This will be np.nan if an element within
-        # a tissue is _at_ the ideal ratio.
-        tissue_relative_deficits = (
-            tissue_element_deficits / tissue_element_deficits.sum(axis=0)
-        )
-        tissue_relative_deficits = np.where(
-            np.isnan(tissue_relative_deficits), 0, tissue_relative_deficits
+        # weighted by their relative deficits within the whole stem. This is problematic
+        # when the whole stem deficit is zero (can be -inf, nan or inf depending on the
+        # numerator), so explicitly handle zero stem deficits in a way that doesn't
+        # raise warnings and sets the relative deficit to zero.
+
+        stem_deficits = tissue_element_deficits.sum(axis=0)
+        tissue_relative_deficits = np.divide(
+            tissue_element_deficits,
+            stem_deficits,
+            out=np.zeros_like(tissue_element_deficits),
+            where=stem_deficits != 0,
         )
 
         pool_surpluses_to_tissues = stem_pools * tissue_relative_deficits
@@ -830,6 +836,7 @@ class Biomasses(CohortMethods, PandasExporter):
         pool_surpluses_to_tissues = np.minimum(
             tissue_element_deficits, pool_surpluses_to_tissues
         )
+
         # - don't drain tissues below zero.
         pool_deficits_to_tissues = np.maximum(
             -tissue_element_masses, pool_deficits_to_tissues

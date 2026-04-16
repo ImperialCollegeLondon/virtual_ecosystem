@@ -385,6 +385,9 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
 def test_PlantsModel_allocate_gpp(fxt_plants_model):
     """Test the allocate_gpp method."""
 
+    # Populate the data variables required for update
+    fxt_plants_model.reset_update_vars()
+
     # Provide GPP values
     fxt_plants_model.per_stem_gpp = {
         cell_id: np.array([55]) for cell_id in fxt_plants_model.communities.keys()
@@ -507,18 +510,30 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
 
     # Check the values in the stoichiometry surplus
     assert np.allclose(
-        fxt_plants_model.stoichiometries[0]["N"].element_surplus,
+        fxt_plants_model.biomasses[0].element_surplus["N"],
         expected_ammonium[0].item() + expected_nitrate[0].item(),
     )
     assert np.allclose(
-        fxt_plants_model.stoichiometries[0]["P"].element_surplus,
+        fxt_plants_model.biomasses[0].element_surplus["P"],
         expected_phosphorus[0].item(),
     )
 
 
-def test_PlantsModel_apply_mortality(fxt_plants_model):
+def test_PlantsModel_apply_mortality(mocker, fxt_plants_model):
     """Test the apply_mortality method of the plants model."""
 
+    # Patch the RNG in mortality to kill one of every cohort - easier calculation of
+    # expected values and make sure there is actual mortality in all cohorts. Using
+    # side_effect with an iterable returns each value in turn, so matches the mortality
+    # to the number of cohorts in each community.
+    mocker.patch(
+        "numpy.random.binomial",
+        side_effect=[
+            np.array([1] * c.n_cohorts) for _, c in fxt_plants_model.communities.items()
+        ],
+    )
+
+    # Record the original population sizes.
     original_population = {
         cell_id: fxt_plants_model.communities[cell_id].cohorts.n_individuals.copy()
         for cell_id in fxt_plants_model.communities.keys()
@@ -526,26 +541,22 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
 
     fxt_plants_model.reset_update_vars()
 
-    # Check reset
+    # Check mortality
     fxt_plants_model.apply_mortality()
 
     for cell_id in fxt_plants_model.communities.keys():
-        community = fxt_plants_model.communities[cell_id]
+        # All cohorts are one individual smaller
+        assert_allclose(
+            original_population[cell_id],
+            fxt_plants_model.communities[cell_id].cohorts.n_individuals + 1,
+        )
 
-        mortality = (
-            original_population[cell_id]
-            - fxt_plants_model.communities[cell_id].cohorts.n_individuals
-        )
-        deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
-
-        assert np.all(
-            original_population[cell_id]
-            >= fxt_plants_model.communities[cell_id].cohorts.n_individuals
-        )
-        assert (
-            fxt_plants_model.data["stem_turnover_cnp"].loc[cell_id, "C"]
-            == deadwood_mass
-        )
+        # Check the turnovers are now equal to the sums of a single stem of each cohort
+        for tissue in fxt_plants_model.biomasses[cell_id].tissues:
+            assert_allclose(
+                fxt_plants_model.data[f"{tissue.tissue_name}_turnover_cnp"][cell_id],
+                tissue.as_array(with_carbon=True).sum(axis=1),
+            )
 
 
 def test_PlantsModel_apply_recruitment(fxt_plants_model):

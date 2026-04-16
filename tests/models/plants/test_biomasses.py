@@ -60,7 +60,7 @@ def fixture_biomasses(fixture_community):
         FoliageBiomass,
         ReproductiveBiomass,
         RootBiomass,
-        WoodBiomass,
+        StemBiomass,
     )
 
     foliage = FoliageBiomass(
@@ -107,7 +107,7 @@ def fixture_biomasses(fixture_community):
         },
     )
 
-    wood = WoodBiomass(
+    wood = StemBiomass(
         community=fixture_community,
         carbon_mass=fixture_community.stem_allometry.stem_mass.copy(),
         element_masses={
@@ -268,7 +268,7 @@ def test_Biomasses_append(fixture_biomasses):
     argvalues=(
         ("FoliageBiomass", "foliage_mass"),
         ("RootBiomass", "fine_root_mass"),
-        ("WoodBiomass", "stem_mass"),
+        ("StemBiomass", "stem_mass"),
         ("ReproductiveBiomass", "reproductive_tissue_mass"),
     ),
 )
@@ -639,10 +639,10 @@ def test_ReproductiveBiomass_functions(fixture_community, fixture_stem_allocatio
         )
 
 
-def test_WoodBiomass_functions(fixture_community, fixture_stem_allocation):
-    """Test the WoodBiomass class functions."""
+def test_StemBiomass_functions(fixture_community, fixture_stem_allocation):
+    """Test the StemBiomass class functions."""
 
-    from virtual_ecosystem.models.plants.biomasses import Element, WoodBiomass
+    from virtual_ecosystem.models.plants.biomasses import Element, StemBiomass
 
     initial_element_masses = np.array([10.0, 20.0])
     # initial_foliage_mass = np.array([50.0, 80.0])
@@ -651,7 +651,7 @@ def test_WoodBiomass_functions(fixture_community, fixture_stem_allocation):
     ideal_ratio = np.array([5.0, 6.0])
     turnover_ratio = ideal_ratio
 
-    tissue = WoodBiomass(
+    tissue = StemBiomass(
         community=fixture_community,
         carbon_mass=fixture_community.stem_allometry.stem_mass.copy(),
         element_masses={
@@ -744,22 +744,22 @@ def test_Biomasses_from_community(fixture_community, extra_pft_traits):
         FoliageBiomass,
         ReproductiveBiomass,
         RootBiomass,
-        WoodBiomass,
+        StemBiomass,
     )
 
     biomasses = Biomasses.default_init(
         community=fixture_community,
         extra_pft_traits=extra_pft_traits,
         with_elements=["N", "P"],
-        tissues=[FoliageBiomass, ReproductiveBiomass, WoodBiomass, RootBiomass],
+        tissues=[FoliageBiomass, ReproductiveBiomass, StemBiomass, RootBiomass],
     )
 
     # Check the biomasses are all populated correctly and the element masses are at the
     # ideal ratios
     for tissue_name, allom_attr in (
         ("foliage", "foliage_mass"),
-        ("wood", "stem_mass"),
-        ("reproductive", "reproductive_tissue_mass"),
+        ("stem", "stem_mass"),
+        ("plant_reproductive_tissue", "reproductive_tissue_mass"),
         ("root", "fine_root_mass"),
     ):
         tissue = biomasses.get_tissue(tissue_name)
@@ -1172,7 +1172,7 @@ def test_balance_elements(
         Biomasses,
         Element,
         FoliageBiomass,
-        WoodBiomass,
+        StemBiomass,
     )
 
     # Unpack the inputs from the fixture
@@ -1211,7 +1211,7 @@ def test_balance_elements(
         },
     )
 
-    wood = WoodBiomass(
+    wood = StemBiomass(
         community=fixture_community,
         carbon_mass=np.tile(BALANCE_WOOD_C, n_cases),
         element_masses={
@@ -1248,7 +1248,7 @@ def test_balance_elements(
     foliage = biomasses.get_tissue("foliage").as_array()
     assert np.allclose(foliage, expected_foliage)
 
-    wood = biomasses.get_tissue("wood").as_array()
+    wood = biomasses.get_tissue("stem").as_array()
     assert np.allclose(wood, expected_wood)
 
     pool = np.stack(list(biomasses.element_surplus.values()))
