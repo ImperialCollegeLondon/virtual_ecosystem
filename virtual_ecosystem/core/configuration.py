@@ -13,7 +13,7 @@ configuration class.
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, TypeVar
+from typing import Annotated, Any, ClassVar, TypeAlias, TypeVar
 
 import tomli_w
 from pydantic import (
@@ -58,7 +58,11 @@ def placeholder_validator(path: str) -> str:
 #       from the text elements from the Annotated pattern. Currently tackled using
 #       nitpick ignore.
 
-type FILEPATH_PLACEHOLDER = Annotated[
+# Note about the noqa UP040 - these should use the Python 3.12+ type syntax, but this
+# causes a bunch of pydantic warnings. This implementation is a bit hacky so something
+# to look again at.
+
+FILEPATH_PLACEHOLDER: TypeAlias = Annotated[  # noqa: UP040
     FilePath,
     Field(default=Path("<FILEPATH_PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),
@@ -72,7 +76,7 @@ default.
 """
 
 
-type DIRPATH_PLACEHOLDER = Annotated[
+DIRPATH_PLACEHOLDER: TypeAlias = Annotated[  # noqa: UP040
     DirectoryPath,
     Field(default=Path("<DIRPATH_PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),
