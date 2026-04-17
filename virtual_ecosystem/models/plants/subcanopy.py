@@ -4,7 +4,7 @@ surface layer of the model vertical structure. The second is a pool of subcanopy
 seedbank biomass.
 
 Both pools use a simplified stiochiometric system: this is defined independently of the
-:mod:`virtual_ecosystem.models.plants.stoichiometry` module, as that class explicitly
+:mod:`virtual_ecosystem.models.plants.biomasses` module, as that class explicitly
 handles communities of cohorts with multiple tissue types. The subcanopy has much
 simpler structure with two stoichiometric masses per grid cell and so the dynamics are
 more easily handled by a separate implementation.
@@ -18,6 +18,10 @@ The module implements the following classes:
 * The :class:`Subcanopy` then maintains subcanopy biomass pools for the vegetation and
   seedbank and provides methods to update the light gathering and ecological dynamics of
   the subcanopy at each update step.
+
+TODO - lot more overlap between the SubcanopyBiomass and Biomasses classes than there
+       used to be with the old stoichiometry module - can we replace the code here with
+       a new tissue? The problem is the lack of a community object to initialise.
 
 """  # noqa:  D205
 

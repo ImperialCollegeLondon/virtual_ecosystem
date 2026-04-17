@@ -384,13 +384,12 @@ class PlantsModel(
             for cell_id, community in self.communities.items()
         }
 
-        # Check the pft propagules data
-        # Some development notes:
+        # Check the pft propagules data Some development notes:
         # - This _could_ be an optional __init__ variable that defaults to zero, but we
         #   don't currently have optional __init__ variables.
         # - The axis name checking here is something that the axis validation in data
         #   loading should do, but the information (PFT names) needed to validate it
-        #   there is not part of the core configuration, so evmoen when we pass
+        #   there is not part of the core configuration, so even when we pass
         #   CoreComponents to the axis validation it won't be available (unless we
         #   duplicate that information as part of the core, which might not be the
         #   maddest thing ever).
