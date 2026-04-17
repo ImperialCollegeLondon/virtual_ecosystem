@@ -265,8 +265,12 @@ but in short the possible dimensions are:
 
 The first thing you need to do to prepare your files is to look at the required
 variables for each science model that you want to include in the simulation and make a
-list of those variables. Details of the variables required by each model can be found in
-the [data variables](./variables/variables.md) page.
+list of those variables.
+
+Details of the variables required to setup each model can be found in the [data
+variables](./variables/variables.md) page. Note that you only have to provide and
+configure the input variables shown in that table in bold. The other setup variables for
+a model will have been calculated by the setup process of earlier models.
 
 ```{warning}
 The `axis` field in that data is currently **not to be trusted** - we have
@@ -281,6 +285,24 @@ for compiling this data varies dramatically by model, and you should refer to th
 specific setup documentation](./model_details/overview.md) to understand how to compile
 data for the specific models you are interested in. You can also consult the [example
 data](./example_data.md) page for examples of NetCDF input files.
+
+:::{important}
+Input variables are usually clearly thematically linked to the scientific domain of a
+single model. However, in some cases models require less obvious data. For example:
+
+* The plants model requires shortwave downwelling radiation. Although this seems like an
+  abiotic variable, it is required for modelling plant growth and the plants model
+  partitions radiation within the canopy.
+
+* The animal model requires fungal fruiting body densities for consumption by
+  fungivores. The soil and litter models update these values but the data is first
+  required by the animal model.
+
+Collecting data for a simulation is likely to involve a data science team with different
+domain knowledge for the different models. You may not want to break down data
+collection tasks strictly by model and instead identify variables that may require
+domain knowledge from elsewhere in the team.
+:::
 
 ### Configuring array data inputs
 

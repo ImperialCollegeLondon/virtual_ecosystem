@@ -346,6 +346,7 @@ def add_datatable_to_variables_page(app, page_name, template_name, context, doct
         #   we use to provide drop downs for further details.
         # - js/variable_table.js is the configuration and logic that powers our specific
         #   DataTable instance.
+        app.add_js_file("https://code.jquery.com/jquery-4.0.0.min.js")
         app.add_js_file("https://cdn.datatables.net/2.3.5/js/dataTables.min.js")
         app.add_js_file(
             "https://cdn.datatables.net/responsive/3.0.7/js/dataTables.responsive.min.js"

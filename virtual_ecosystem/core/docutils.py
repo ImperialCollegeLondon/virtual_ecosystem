@@ -5,6 +5,7 @@ None of the functions defined here are intended for use outside of the documenta
 import tomllib
 from copy import deepcopy
 from importlib import resources
+from itertools import chain
 from textwrap import indent
 
 import dominate.tags as dt
@@ -173,6 +174,7 @@ def variable_table():
     # Build the source data into a dictionary of variables in the right field order and
     # with the additional usage fields.
     known_vars = {}
+
     for var in source_vars:
         new_var = {f: var[f] for f in field_order}
         new_var.update(deepcopy(variable_attributes))
@@ -186,6 +188,12 @@ def variable_table():
 
             for var_name in vars:
                 known_vars[var_name][field_name].append(this_model.model_name)
+
+    # Identify which variables are required as input data - appear in
+    # vars_required_for_init but not in vars_populated_by_init
+    req_init_vars = set(chain.from_iterable([m.vars_required_for_init for m in models]))
+    pop_init_vars = set(chain.from_iterable([m.vars_populated_by_init for m in models]))
+    input_vars = req_init_vars - pop_init_vars
 
     # Get a table head using DataTables classes that control the logic of how columns
     # are handled by Responsive wrapping of columns
@@ -213,6 +221,10 @@ def variable_table():
         )
     )
 
+    # Style the input variables in bold
+    for ivar in input_vars:
+        known_vars[ivar]["name"] = dt.b(known_vars[ivar]["name"])
+
     # Populate TR elements for each variable, adding an initial empty column with class
     # dt-control that will be used by DataTables to contain the responsive child row
     # holding the data from the rows marked with `class="none"` above.
@@ -223,7 +235,7 @@ def variable_table():
             [
                 dt.td(),
                 *[
-                    dt.td(v if isinstance(v, str) else ",".join(v))
+                    dt.td(v if isinstance(v, str | dt.b) else ",".join(v))
                     for v in var.values()
                 ],
             ]
