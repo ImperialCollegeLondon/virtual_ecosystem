@@ -120,11 +120,14 @@ class BiomassTissueABC(ABC):
 
     community: Community
     """The community object that the tissue is associated with."""
+    extra_pft_traits: ExtraTraitsPFT
     # TODO: consider where best to store shared attributes like community.
 
     carbon_mass: NDArray[np.floating]
-
+    """An 1D array of tissue carbon mass for each stem in cohorts in the community."""
     element_masses: dict[str, Element]
+    """A dictionary of Elements containing nutrient masses each stem in cohorts in the
+    community."""
 
     @classmethod
     @abstractmethod
@@ -291,7 +294,10 @@ class FoliageBiomass(BiomassTissueABC):
             )
 
         return cls(
-            carbon_mass=carbon_mass, community=community, element_masses=element_masses
+            carbon_mass=carbon_mass,
+            extra_pft_traits=extra_pft_traits,
+            community=community,
+            element_masses=element_masses,
         )
 
     def apply_growth(
@@ -372,7 +378,10 @@ class ReproductiveBiomass(BiomassTissueABC):
             )
 
         return cls(
-            carbon_mass=carbon_mass, community=community, element_masses=element_masses
+            carbon_mass=carbon_mass,
+            extra_pft_traits=extra_pft_traits,
+            community=community,
+            element_masses=element_masses,
         )
 
     def apply_growth(
@@ -479,7 +488,10 @@ class FruitBiomass(BiomassTissueABC):
             )
 
         return cls(
-            carbon_mass=carbon_mass, community=community, element_masses=element_masses
+            carbon_mass=carbon_mass,
+            extra_pft_traits=extra_pft_traits,
+            community=community,
+            element_masses=element_masses,
         )
 
     def apply_growth(
@@ -573,7 +585,10 @@ class StemBiomass(BiomassTissueABC):
             )
 
         return cls(
-            carbon_mass=carbon_mass, community=community, element_masses=element_masses
+            carbon_mass=carbon_mass,
+            extra_pft_traits=extra_pft_traits,
+            community=community,
+            element_masses=element_masses,
         )
 
     def apply_growth(
@@ -660,6 +675,7 @@ class RootBiomass(BiomassTissueABC):
         return cls(
             # carbon_mass=community.stem_allometry.fine_root_mass,
             carbon_mass=fine_root_mass,
+            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
