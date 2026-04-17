@@ -58,9 +58,9 @@ def placeholder_validator(path: str) -> str:
 #       from the text elements from the Annotated pattern. Currently tackled using
 #       nitpick ignore.
 
-
-# type FILEPATH_PLACEHOLDER = Annotated[
-# but pydantic currently doesn't like this.
+# Note about the noqa UP040 - these should use the Python 3.12+ type syntax, but this
+# causes a bunch of pydantic warnings. This implementation is a bit hacky so something
+# to look again at.
 
 FILEPATH_PLACEHOLDER: TypeAlias = Annotated[  # noqa: UP040
     FilePath,
