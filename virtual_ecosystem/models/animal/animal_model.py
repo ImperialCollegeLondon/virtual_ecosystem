@@ -309,7 +309,8 @@ class AnimalModel(
         self.migrated_cohorts = {}
         self.aquatic_cohorts = {}
 
-        self.target_cohorts_per_fg = len(self.data.grid.cell_id)
+        # self.target_cohorts_per_fg = len(self.data.grid.cell_id)
+        self.target_cohorts_per_fg = 10
         """The target number of cohorts per functional group in each grid cell."""
         self.minimum_cohort_size = 5
         """The minimum number of individuals to initialize a cohort at init."""
