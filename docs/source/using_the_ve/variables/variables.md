@@ -63,8 +63,8 @@ The variables required to set up a model can be further split into two classes:
 
 * **Input variables**: these are the variables that you will need to provide through the
   [model data
-  configuration](../running_ve_with_your_own_data.html#configuring-array-data-inputs)
-  for a simulation. These variables are shown in bold in the table below.
+  configuration](../running_ve_with_your_own_data.md#configuring-array-data-inputs) for
+  a simulation. These variables are shown in bold in the table below.
 * **Calculated variables**: these variables are calculated  from the input variables by
   the setup process of another model.
 
