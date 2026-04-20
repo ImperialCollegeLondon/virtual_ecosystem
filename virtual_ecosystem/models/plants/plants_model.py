@@ -115,7 +115,7 @@ class PlantsModel(
         "fallen_seeds_cnp",
         "canopy_foliage_cnp",
         "fallen_non_propagule_c_mass",  # NOTE - will be deprecated in #1132
-        "plant_reproductive_tissue_turnover_cnp",
+        # "plant_reproductive_tissue_turnover_cnp",
         "subcanopy_seedbank_litter_cnp",
         "subcanopy_vegetation_litter_cnp",
         "subcanopy_vegetation_cnp",
@@ -156,7 +156,7 @@ class PlantsModel(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
-        "plant_reproductive_tissue_turnover_cnp",
+        # "plant_reproductive_tissue_turnover_cnp",
         "plant_reproductive_tissue_turnover",
         "plant_reproductive_tissue_lignin",
         "plant_rt_turnover_n_mass",  # to deprecate
@@ -1280,8 +1280,8 @@ class PlantsModel(
                     ).sum(axis=1)
 
                 # 2. Fruit and seed biomasses are stored by PFT so need pooling by PFT.
-                #    TODO - A lot of structural overlap here with allocate turnover in
-                #           GPP. Can we share code here.
+                #    TODO - Some structural overlap here with allocate turnover in GPP.
+                #           Can we share code here? Need a collapse_by_pft method?
                 cohort_pft_bool_idx = [
                     cohorts.pft_names == pft for pft in self.flora.name
                 ]
