@@ -40,9 +40,9 @@ dependencies = [
   "scipy (>=1.13)", # SPEC0
   "tomli-w  (>1.0)",
   "tqdm (>4.66)",
-  "xarray (>=2024.3)", # SPEC0
+  "xarray (>=2026.4.0)", # SPEC0
   "types-tabulate (>0.9)",
-  "pydantic (>=2.12.0,<3.0.0)",
+  "pydantic (>=2.13.2,<3.0.0)",
   "bottleneck (>=1.6.0,<2.0.0)",
 ]
 
@@ -59,11 +59,11 @@ requires-poetry = ">=2.0"
 [tool.poetry.group.types.dependencies]
 types-dataclasses = "^0.6.6"
 types-jsonschema = "^4.26.0"
-types-tqdm = "^4.67.3.20260402"
+types-tqdm = "^4.67.3.20260408"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.151.10"
-pytest = ">=7.1.2,<10.0.0"
+hypothesis = "^6.152.1"
+pytest = ">=9.0.3,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
 pytest-mock = "^3.15.1"
@@ -78,9 +78,9 @@ jupyterlab = "^4.5.5"
 jupyterlab-myst = "^2.6.0" 
 jupytext = "^1.19.1" 
 matplotlib = ">=3.9" # SPEC0
-mypy = "^1.20.0" 
+mypy = "^1.20.1" 
 pre-commit = ">=3,<5" 
-ruff = ">=0.9.1,<0.16.0" 
+ruff = ">=0.15.11,<0.16.0" 
 
 [tool.poetry.group.docs.dependencies]
 autodocsumm = "^0.2.8"
