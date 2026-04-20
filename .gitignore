@@ -53,7 +53,7 @@ coverage.xml
 reports
 
 # Profiling data:
-profiling/cProfile_outputs/*/
+data/ve_example/*
 
 # Translations
 *.mo

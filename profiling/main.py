@@ -6,8 +6,20 @@ See the general Python docs for further information on virtual environments and 
 import datetime, os, subprocess, shutil
 
 
-# Designate the path from theroot directory.
-path = "profiling"
+# Set custom variables.
+"""Python version, can be written as "3.14" or "3_14"."""
+ver = "3.13"
+ver = ver.replace(".", "_")
+
+"""How many steps to run, can be an integer where negative values means no truncation."""
+truncation = 0
+
+"""The OS you are running the code on. Options: "windows", "linux", "mac"."""
+user_os = "windows"
+
+
+# Designate the path from the root directory.
+path = "data/ve_example"
 
 # Check example data exists to start the simulation.
 if not os.path.exists(f"{path}/config"):
@@ -37,16 +49,6 @@ for filename in os.listdir(out_folder):
         print("Failed to delete %s. Reason: %s" % (file_path, e))
 
 
-# Set custom variables.
-user_os = "windows"  # options: "windows", "linux", "mac".
-"""Python version, can be written as "3.14" or "3_14"."""
-ver = "3.14"
-ver = ver.replace(".", "_")
-
-"""How many steps to run, can be an integer or `None`."""
-truncation = 0
-
-
 # Generate terminal command to run `ve_run_cli()` via cProfile.
 output_name = f"VE__python{ver}__truncated_at_step_{truncation}"
 
@@ -54,10 +56,11 @@ output_name = f"VE__python{ver}__truncated_at_step_{truncation}"
 time_stamp = (datetime.datetime.now()).strftime("%Y-%m-%d_at_%H-%M")
 
 command_options = {
-    "windows": f".\\ve{ver}\\Scripts\\python.exe -m cProfile -o {profiler_folder}/{output_name}.prof {path}/run.py --ver={ver} --path={path} --truncate={truncation}",
-    "linux": f"./ve{ver}/bin/python -m cProfile -o {profiler_folder}/{output_name}.prof {path}/run.py --ver={ver} --path={path} --truncate={truncation}",
-    "mac": f"./ve{ver}/bin/python -m cProfile -o {profiler_folder}/{output_name}.prof {path}/run.py --ver={ver} --path={path} --truncate={truncation}",
+    "windows": f".\\ve{ver}\\Scripts\\python.exe -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}",
+    "linux": f"./ve{ver}/bin/python -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}",
 }
+command_options["mac"] = command_options["linux"]
+
 command = command_options.get(user_os, None)
 if command is None:
     raise ValueError(
