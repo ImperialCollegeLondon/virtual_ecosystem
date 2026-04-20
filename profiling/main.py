@@ -16,7 +16,7 @@ import datetime, os, subprocess, shutil
 
 # Set custom variables.
 """Python version, can be written as "3.14" or "3_14"."""
-ver = "3.12"
+ver = "3.13"
 ver = ver.replace(".", "_")
 
 """How many steps to run, can be an integer where negative values means no truncation."""
@@ -64,8 +64,13 @@ output_name = f"VirEco__py{ver}__truncated_at_step_{truncation}"
 time_stamp = (datetime.datetime.now()).strftime("%Y-%m-%d_at_%H-%M")
 
 command_options = {
+<<<<<<< HEAD
     "windows": f".\\.venv\\Python{ver}\\Scripts\\python.exe -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}",
     "linux": f"./.venv/Python{ver}/bin/python -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}",
+=======
+    "windows": f".\\ve{ver}\\Scripts\\python.exe -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}",
+    "linux": f"./ve{ver}/bin/python -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}",
+>>>>>>> 6af072624c405525f12e6836d39e5a7d7680b065
 }
 command_options["mac"] = command_options["linux"]
 
