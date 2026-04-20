@@ -4099,7 +4099,8 @@ class TestAnimalCohort:
             assert 0.0 < cohort.sigma_f_t < 1.0
 
     @pytest.mark.parametrize(
-        "cohort_type, canopy_t, ground_t, soil_t, cell_id, expected",
+        "cohort_type, canopy_t, ground_t, soil_t, canopy_d, ground_d, soil_d, "
+        "cell_id, expected_temp, expected_diurnal",
         [
             # GROUND only — herbivorous_mammal (index 3)
             pytest.param(
@@ -4107,8 +4108,12 @@ class TestAnimalCohort:
                 25.0,
                 20.0,
                 15.0,
+                8.0,
+                5.0,
+                2.0,
                 0,
                 20.0,
+                5.0,
                 id="ground_only_cell_0",
             ),
             # GROUND only, different cell — confirms cell_id indexing
@@ -4117,8 +4122,12 @@ class TestAnimalCohort:
                 25.0,
                 30.0,
                 15.0,
+                8.0,
+                5.0,
+                2.0,
                 1,
                 30.0,
+                5.0,
                 id="ground_only_cell_1",
             ),
             # CANOPY only — swallow (index 11)
@@ -4127,8 +4136,12 @@ class TestAnimalCohort:
                 25.0,
                 20.0,
                 15.0,
+                8.0,
+                5.0,
+                2.0,
                 0,
                 25.0,
+                8.0,
                 id="canopy_only",
             ),
             # SOIL | GROUND | CANOPY — herbivorous_insect (index 5)
@@ -4137,13 +4150,17 @@ class TestAnimalCohort:
                 30.0,
                 20.0,
                 10.0,
+                8.0,
+                4.0,
+                2.0,
                 0,
                 20.0,
+                4.666666666666667,
                 id="all_strata_mean",
             ),
         ],
     )
-    def test_get_temperature(
+    def test_get_stratum_climate(
         self,
         herbivore_cohort_instance,
         ectotherm_cohort_instance,
@@ -4152,10 +4169,14 @@ class TestAnimalCohort:
         canopy_t,
         ground_t,
         soil_t,
+        canopy_d,
+        ground_d,
+        soil_d,
         cell_id,
-        expected,
+        expected_temp,
+        expected_diurnal,
     ):
-        """Test per-cell temperature based on vertical occupancy."""
+        """Test per-cell temperature and diurnal range based on vertical occupancy."""
         import numpy as np
 
         cohort = {
@@ -4165,40 +4186,71 @@ class TestAnimalCohort:
         }[cohort_type]
 
         n_cells = 9
-        canopy_temperature = np.full(n_cells, canopy_t)
-        ground_temperature = np.full(n_cells, ground_t)
-        soil_temperature = np.full(n_cells, soil_t)
-
-        result = cohort.get_temperature(
+        result_temp, result_diurnal = cohort.get_stratum_climate(
             cell_id=cell_id,
-            canopy_temperature=canopy_temperature,
-            ground_temperature=ground_temperature,
-            soil_temperature=soil_temperature,
+            canopy_temperature=np.full(n_cells, canopy_t),
+            ground_temperature=np.full(n_cells, ground_t),
+            soil_temperature=np.full(n_cells, soil_t),
+            canopy_diurnal_range=np.full(n_cells, canopy_d),
+            ground_diurnal_range=np.full(n_cells, ground_d),
+            soil_diurnal_range=np.full(n_cells, soil_d),
         )
-        assert result == pytest.approx(expected)
 
-    def test_get_mean_territory_temperature(
+        assert result_temp == pytest.approx(expected_temp)
+        assert result_diurnal == pytest.approx(expected_diurnal)
+
+    def test_get_mean_territory_climate(
         self,
         herbivore_cohort_instance,
     ):
-        """Test that territory temperature is the mean across territory cells.
-
-        The herbivore cohort's territory covers all 9 cells of the 3x3 grid.
-        With ground temperature equal to cell index (0-8), the expected mean
-        is 4.0.
-        """
+        """Test that territory temperature and diurnal range are means across cells."""
         import numpy as np
 
         cohort = herbivore_cohort_instance
         n_cells = 9
 
         ground_temperature = np.arange(n_cells, dtype=float)
+        ground_diurnal_range = np.arange(n_cells, dtype=float)
         canopy_temperature = np.zeros(n_cells)
+        canopy_diurnal_range = np.zeros(n_cells)
         soil_temperature = np.zeros(n_cells)
+        soil_diurnal_range = np.zeros(n_cells)
 
-        result = cohort.get_mean_territory_temperature(
+        result_temp, result_diurnal = cohort.get_mean_territory_climate(
             canopy_temperature=canopy_temperature,
             ground_temperature=ground_temperature,
             soil_temperature=soil_temperature,
+            canopy_diurnal_range=canopy_diurnal_range,
+            ground_diurnal_range=ground_diurnal_range,
+            soil_diurnal_range=soil_diurnal_range,
         )
-        assert result == pytest.approx(4.0)
+
+        assert result_temp == pytest.approx(4.0)
+        assert result_diurnal == pytest.approx(4.0)
+
+    def test_get_mean_territory_climate_multi_strata(
+        self,
+        ectotherm_cohort_instance,
+    ):
+        """Test territory climate averaging for a cohort occupying all three strata.
+
+        Uses spatially varying arrays where each stratum scales cell index by a
+        different factor, confirming both strata averaging and territory averaging
+        interact correctly.
+        """
+        import numpy as np
+
+        cohort = ectotherm_cohort_instance
+        n_cells = 9
+
+        result_temp, result_diurnal = cohort.get_mean_territory_climate(
+            canopy_temperature=np.arange(n_cells, dtype=float) * 2,
+            ground_temperature=np.arange(n_cells, dtype=float),
+            soil_temperature=np.arange(n_cells, dtype=float) * 0.5,
+            canopy_diurnal_range=np.arange(n_cells, dtype=float) * 2,
+            ground_diurnal_range=np.arange(n_cells, dtype=float),
+            soil_diurnal_range=np.arange(n_cells, dtype=float) * 0.5,
+        )
+
+        assert result_temp == pytest.approx(1.1666666666666667)
+        assert result_diurnal == pytest.approx(1.1666666666666667)

@@ -2722,15 +2722,20 @@ class TestAnimalModel:
     def test_update_activity_windows_community_uses_per_cell_values(
         self, prepared_animal_model_instance
     ):
-        """Test that activity windows reflect spatial and strata temperature var."""
+        """Test that activity windows reflect spatial and strata temperature variation.
+
+        Ectotherm insects have a 1-cell territory. Setting all three strata warm
+        in cell 0 and cold everywhere else — including diurnal range — means
+        ectotherms centred in cell 0 should have a larger sigma_f_t than those
+        centred in cell 1.
+        """
         from virtual_ecosystem.models.animal.animal_traits import MetabolicType
 
         model = prepared_animal_model_instance
         lyr_str = model.layer_structure
 
-        # Set all strata cold everywhere
-        warm = 31.0  # within ectotherm window (~27-35°C)
-        cold = 5.0  # well outside window
+        warm = 31.0
+        cold = 5.0
 
         for key in ("air_temperature", "canopy_temperature", "soil_temperature"):
             arr = model.data[key].values
@@ -2745,7 +2750,9 @@ class TestAnimalModel:
                 arr[lyr_str.index_topsoil_scalar, 0] = warm
 
         diurnal = model.data["diurnal_temperature_range"].values
+        diurnal[lyr_str.index_filled_canopy, :] = 4.0
         diurnal[lyr_str.index_surface_scalar, :] = 4.0
+        diurnal[lyr_str.index_topsoil_scalar, :] = 4.0
 
         model.update_activity_windows_community()
 
