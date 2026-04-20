@@ -1048,8 +1048,6 @@ class PlantsModel(
             cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
 
             # HANDLE ALLOCATION TO TURNOVER:
-            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
-
             tissue_turnovers = biomasses.apply_turnover(allocation=stem_allocation)
 
             # Store turnover quantities for tissues aggregated across cohorts in the
@@ -1104,8 +1102,8 @@ class PlantsModel(
                         total_standing_biomass[:, col_idx].sum(axis=1)
                     )
 
-            # 2. Standing biomass of foliage stored as aggregated mass (could go to per
-            #    PFT?)
+            # 2. Standing biomass of foliage stored as aggregated mass across all
+            #    cohorts (could go to per PFT and enable targeted folivory).
             canopy_foliage_biomass = (
                 self.biomasses[cell_id].get_tissue("foliage").as_array(with_carbon=True)
             )

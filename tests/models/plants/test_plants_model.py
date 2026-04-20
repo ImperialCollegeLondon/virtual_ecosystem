@@ -402,27 +402,56 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model):
     fxt_plants_model.allocate_gpp()
 
     for cell_id in fxt_plants_model.communities.keys():
-        # TODO: eventually have tests with more meaningful values
-        # BUG: This assert is failing spectacularly. The test has been set to skip until
-        #      we can fix this properly.
+        # TODO: Eventually have tests with more meaningful values
+        #       Pretty sure this is still wrong but no longer shrinking :-)
 
         # Check that dbh is >= previous dbh (plants should not shrink!)
-        assert (
-            fxt_plants_model.communities[cell_id].cohorts.dbh_values
-            >= prev_dbh_values[cell_id]
-        ).all()
-
-        # Ensure that leaf and root turnover exist and are > 0
-        assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
-        assert fxt_plants_model.data["root_turnover"][cell_id] > 0
-        assert np.all(fxt_plants_model.data["plant_pft_propagules"][cell_id] >= 100)
-        assert fxt_plants_model.data["fallen_non_propagule_c_mass"][cell_id] > 0
-        assert np.all(fxt_plants_model.data["canopy_n_propagules"][cell_id] >= 0)
         assert np.all(
-            fxt_plants_model.data["canopy_non_propagule_c_mass"][cell_id] >= 0
-        )  # For cell_id = 1, only one of the two PFTs is present.
-        assert fxt_plants_model.data["root_carbohydrate_exudation"][cell_id] > 0
-        assert fxt_plants_model.data["plant_symbiote_carbon_supply"][cell_id] > 0
+            np.greater_equal(
+                fxt_plants_model.communities[cell_id].cohorts.dbh_values,
+                prev_dbh_values[cell_id],
+            )
+        )
+
+    # Ensure that non PFT turnovers are > 0 ...
+    assert np.all(np.greater(fxt_plants_model.data["foliage_turnover_cnp"], 0))
+    assert np.all(np.greater(fxt_plants_model.data["root_turnover_cnp"], 0))
+    # ... except for stem turnover which currently has no turnover
+    # (NOTE - this could change if we add branchfall)
+    assert np.allclose(fxt_plants_model.data["stem_turnover_cnp"], 0)
+
+    # Check carbon supply to soil
+    assert np.all(np.greater(fxt_plants_model.data["root_carbohydrate_exudation"], 0))
+    assert np.all(np.greater(fxt_plants_model.data["plant_symbiote_carbon_supply"], 0))
+
+    # Check that canopy foliage CNP is populated
+    assert np.all(np.greater(fxt_plants_model.data["canopy_foliage_cnp"], 0))
+
+    # Check the PFT structured arrays - These are trickier because values can and should
+    # be zero if the PFT is not in a cell but that's a good feature of the test
+
+    # Calculate a boolean mask that shows which cells are expected to be populated
+    mask = fxt_plants_model.data_object_templates["cnp_pft"].copy().astype(bool)
+    for cid in mask.cell_id.values:
+        for pft in mask.pft.values:
+            if pft in fxt_plants_model.communities[cid].cohorts.pft_names:
+                mask.loc[dict(cell_id=cid, pft=pft)] = True
+    default_out = np.ones_like(mask)
+
+    for var in [
+        "fruit_turnover_cnp",
+        "seed_turnover_cnp",
+        "canopy_seed_cnp",
+        "canopy_fruit_cnp",
+    ]:
+        # Filled in where the pft is present
+        assert np.all(
+            np.greater(fxt_plants_model.data[var], 0, where=mask, out=default_out)
+        )
+        # Otherwise empty
+        assert np.all(
+            np.equal(fxt_plants_model.data[var], 0, where=~mask, out=default_out)
+        )
 
 
 def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
