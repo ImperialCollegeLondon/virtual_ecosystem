@@ -444,7 +444,7 @@ class ReproductiveBiomass(BiomassTissueABC):
 class FruitBiomass(BiomassTissueABC):
     """Holds fruit tissue stoichiometry data for a set of plant cohorts."""
 
-    tissue_name = "plant_fruit_tissue"
+    tissue_name = "fruit"
 
     @classmethod
     def from_pft_default_ratios(
@@ -460,7 +460,7 @@ class FruitBiomass(BiomassTissueABC):
 
         # Get the proportion of reproductive tissue allocated to fruit
         fruit_fraction = [
-            extra_pft_traits.traits[name]["flesh_fruit_fraction"] for name in pft_names
+            extra_pft_traits.traits[name]["fruit_flesh_fraction"] for name in pft_names
         ]
 
         carbon_mass = (
@@ -504,7 +504,7 @@ class FruitBiomass(BiomassTissueABC):
         """
 
         fruit_fraction = [
-            self.extra_pft_traits.traits[name]["flesh_fruit_fraction"]
+            self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
             for name in self.community.cohorts.pft_names
         ]
 
@@ -524,12 +524,43 @@ class FruitBiomass(BiomassTissueABC):
 
         return nutrient_ideal_ratio_increase
 
+    def get_turnover(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Calculate the element mass lost to turnover for reproductive tissue.
+
+        Returns:
+            The element quantity lost to turnover for reproductive tissue.
+        """
+
+        # TODO: Caching locally to avoid calling the property constructor for each
+        # element  - maybe this should a cached property?
+
+        cx_ratios = self.Cx_ratio
+
+        # Get the proportion of reproductive tissue allocated to fruit
+        fruit_fraction = [
+            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
+            for name in self.community.cohorts.pft_names
+        ]
+
+        carbon_turnover = (
+            allocation.reproductive_tissue_turnover.squeeze() * fruit_fraction
+        )
+
+        elemental_turnovers = {
+            ky: ((carbon_turnover * (1 / cx_ratios[ky])).squeeze()).squeeze()
+            for ky, elem in self.element_masses.items()
+        }
+
+        return {"C": carbon_turnover, **elemental_turnovers}
+
 
 @dataclass
 class SeedBiomass(BiomassTissueABC):
     """Holds fruit tissue stoichiometry data for a set of plant cohorts."""
 
-    tissue_name = "plant_seed_tissue"
+    tissue_name = "seed"
 
     @classmethod
     def from_pft_default_ratios(
@@ -545,7 +576,7 @@ class SeedBiomass(BiomassTissueABC):
 
         # Get the proportion of reproductive tissue allocated to seed
         seed_fraction = [
-            1 - extra_pft_traits.traits[name]["flesh_fruit_fraction"]
+            1 - extra_pft_traits.traits[name]["fruit_flesh_fraction"]
             for name in pft_names
         ]
 
@@ -591,8 +622,8 @@ class SeedBiomass(BiomassTissueABC):
 
         # Get the proportion of reproductive tissue allocated to seed
         seed_fraction = [
-            1 - self.extra_pft_traits.traits[name]["flesh_fruit_fraction"]
-            for name in self.community.cohort.pft_names
+            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
+            for name in self.community.cohorts.pft_names
         ]
 
         carbon_increase = (
@@ -625,19 +656,22 @@ class SeedBiomass(BiomassTissueABC):
 
         cx_ratios = self.Cx_ratio
 
+        # Get the proportion of reproductive tissue allocated to seed
+        seed_fraction = [
+            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
+            for name in self.community.cohorts.pft_names
+        ]
+
+        carbon_turnover = (
+            allocation.reproductive_tissue_turnover.squeeze() * seed_fraction
+        )
+
         elemental_turnovers = {
-            ky: (
-                (
-                    allocation.reproductive_tissue_turnover * (1 / cx_ratios[ky])
-                ).squeeze()
-            ).squeeze()
+            ky: ((carbon_turnover * (1 / cx_ratios[ky])).squeeze()).squeeze()
             for ky, elem in self.element_masses.items()
         }
 
-        return {
-            "C": allocation.reproductive_tissue_turnover.squeeze(),
-            **elemental_turnovers,
-        }
+        return {"C": carbon_turnover, **elemental_turnovers}
 
 
 @dataclass

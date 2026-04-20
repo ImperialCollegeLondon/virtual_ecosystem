@@ -30,8 +30,9 @@ from virtual_ecosystem.models.plants.biomasses import (
     Biomasses,
     BiomassTissueABC,
     FoliageBiomass,
-    ReproductiveBiomass,
+    FruitBiomass,
     RootBiomass,
+    SeedBiomass,
     StemBiomass,
 )
 from virtual_ecosystem.models.plants.canopy import (
@@ -75,10 +76,11 @@ class PlantsModel(
         "fallen_fruit_cnp",
         "fallen_seeds_per_fruit",
         "fallen_fruit_n",
-        "canopy_seeds_cnp",
+        "canopy_seed_cnp",
         "canopy_fruit_cnp",
         "canopy_seeds_per_fruit",
         "canopy_fruit_n",
+        "canopy_foliage_cnp",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -101,15 +103,17 @@ class PlantsModel(
         "stem_turnover_cnp",  # i.e. deadwood
         "foliage_turnover_cnp",
         "root_turnover_cnp",
-        "root_turnover_cnp",
+        "seed_turnover_cnp",
+        "fruit_turnover_cnp",
         "canopy_fruit_n",
         "canopy_fruit_cnp",
         "canopy_seeds_per_fruit",
-        "canopy_seeds_cnp",
+        "canopy_seed_cnp",
         "fallen_fruit_n",
         "fallen_fruit_cnp",
         "fallen_seeds_per_fruit",
         "fallen_seeds_cnp",
+        "canopy_foliage_cnp",
         "fallen_non_propagule_c_mass",  # NOTE - will be deprecated in #1132
         "plant_reproductive_tissue_turnover_cnp",
         "subcanopy_seedbank_litter_cnp",
@@ -143,6 +147,8 @@ class PlantsModel(
         "stem_turnover_cnp",
         "foliage_turnover_cnp",
         "root_turnover_cnp",
+        "seed_turnover_cnp",
+        "fruit_turnover_cnp",
         "fallen_n_propagules",
         "canopy_n_propagules",
         "canopy_non_propagule_c_mass",
@@ -366,7 +372,8 @@ class PlantsModel(
         # Define the set of tissues to be tracked for each stem.
         self.biomass_tissues = [
             FoliageBiomass,  # foliage mass
-            ReproductiveBiomass,  # reproductive mass
+            FruitBiomass,  # plant fruit tissue
+            SeedBiomass,  # plant seed tissue
             StemBiomass,  # stem mass
             RootBiomass,  # not a pyrealm allometry attribute
         ]
@@ -433,8 +440,8 @@ class PlantsModel(
         vars_to_initialize = [
             "canopy_fruit_n",
             "canopy_fruit_cnp",
-            "canopy_seeds_per_fruit",
-            "canopy_seeds_cnp",
+            "canopy_seeds_per_fruit",  # TODO - same as fallen seeds per fruit
+            "canopy_seed_cnp",
             "fallen_fruit_n",
             "fallen_fruit_cnp",
             "fallen_seeds_per_fruit",
@@ -442,6 +449,8 @@ class PlantsModel(
         ]
         for var_name in vars_to_initialize:
             self.data[var_name] = self.data_object_templates["cnp_pft"].copy()
+
+        self.data["canopy_foliage_cnp"] = self.data_object_templates["cnp"].copy()
 
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
@@ -612,22 +621,20 @@ class PlantsModel(
             "stem_turnover_cnp",
             "foliage_turnover_cnp",
             "root_turnover_cnp",
-            "plant_reproductive_tissue_turnover_cnp",
-            "canopy_fruit_cnp",
             "subcanopy_vegetation_litter_cnp",
             "subcanopy_vegetation_cnp",
+            "subcanopy_seedbank_litter_cnp",
+            "subcanopy_seedbank_cnp",
         ]
         for var in cnp_vars:
             self.data[var] = self.data_object_templates["cnp"].copy()
 
         # Initialize variables that are stored by cell x PFT x CNP
         pft_cnp_vars = [
-            "subcanopy_seedbank_litter_cnp",
-            "subcanopy_seedbank_cnp",
-            "canopy_seeds_cnp",
-            # "canopy_seed_turnover_cnp",
+            "canopy_seed_cnp",
+            "seed_turnover_cnp",
             "canopy_fruit_cnp",
-            # "canopy_fruit_turnover_cnp",
+            "fruit_turnover_cnp",
         ]
         for var in pft_cnp_vars:
             self.data[var] = self.data_object_templates["cnp_pft"].copy()
@@ -1045,12 +1052,66 @@ class PlantsModel(
 
             tissue_turnovers = biomasses.apply_turnover(allocation=stem_allocation)
 
-            # Store turnover quantities in the data object, scaling per stem quantities
-            # up to the number of individuals and then summing across cohorts
-            for tissue_name, turnover in tissue_turnovers.items():
-                self.data[f"{tissue_name}_turnover_cnp"][cell_id] += (
-                    turnover * cohorts.n_individuals
+            # Store turnover quantities for tissues aggregated across cohorts in the
+            # data object:
+            # * scale per stem quantities up to the number of individuals,
+            # * sum across cohorts
+            for aggregated_tissue in ("stem", "foliage", "root"):
+                self.data[f"{aggregated_tissue}_turnover_cnp"][cell_id] += (
+                    tissue_turnovers[aggregated_tissue] * cohorts.n_individuals
                 ).sum(axis=1)
+
+            # Expose biomasses that are affected by herbivory:
+            # TODO handle herbivory
+
+            # 1. Reproductive structures stored by PFT, storing turnover as fruit fall
+            #   to the ground and standing biomass as canopy fruit biomass.
+            #
+            # Get boolean indices for each pft giving the columns of the cohort biomass
+            # data that belong to the PFT.
+            #
+            # * The order of the PFTs in this list of indices matches the order of the
+            #   PFT axis in self.data, so enumerate() over the sequence iterates over
+            #   the PFT axis correctly.
+            # * This also works when a PFT is not present - the resulting boolean column
+            #   index just contains False, but using the index gives a (0, 3) array of
+            #   cohorts by elements - and a sum can be taken across the 0 length
+            #   dimension to give a total zero.
+            cohort_pft_bool_idx = [cohorts.pft_names == pft for pft in self.flora.name]
+
+            for by_pft_tissue in ("fruit", "seed"):
+                # Calculate the total turnover and standing biomass in each cohort
+                total_turnover_biomass = (
+                    tissue_turnovers[by_pft_tissue] * cohorts.n_individuals
+                )
+                total_standing_biomass = (
+                    self.biomasses[cell_id]
+                    .get_tissue(by_pft_tissue)
+                    .as_array(with_carbon=True)
+                    * cohorts.n_individuals
+                )
+
+                for pft_idx, col_idx in enumerate(cohort_pft_bool_idx):
+                    # Extract the cohorts for this PFT and sum across them and insert
+                    # into xxx_turnover_cnp arrays
+                    self.data[f"{by_pft_tissue}_turnover_cnp"][cell_id][pft_idx] = (
+                        total_turnover_biomass[:, col_idx].sum(axis=1)
+                    )
+
+                    # Same but for the standing canopy biomass inserted into
+                    # canopy_xxx_cnp arrays
+                    self.data[f"canopy_{by_pft_tissue}_cnp"][cell_id][pft_idx] = (
+                        total_standing_biomass[:, col_idx].sum(axis=1)
+                    )
+
+            # 2. Standing biomass of foliage stored as aggregated mass (could go to per
+            #    PFT?)
+            canopy_foliage_biomass = (
+                self.biomasses[cell_id].get_tissue("foliage").as_array(with_carbon=True)
+            )
+            self.data["canopy_foliage_cnp"][cell_id] = (
+                canopy_foliage_biomass * cohorts.n_individuals
+            ).sum(axis=1)
 
             # HANDLE ALLOCATION TO GROWTH
             biomasses.apply_growth(allocation=stem_allocation)

@@ -959,6 +959,20 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Biomasses of plant fruit tissue turnover"
+name = "fruit_turnover_cnp"
+unit = "kg C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Biomasses of plant seed tissue turnover"
+name = "seed_turnover_cnp"
+unit = "kg C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Rate at which plants are supplying carbon to their soil-living symbiotic partners"
 name = "plant_symbiote_carbon_supply"
 unit = "kg C m^-2 day^-1"
@@ -1219,7 +1233,7 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "C, N, and P of each seed PFT"
-name = "canopy_seeds_cnp"
+name = "canopy_seed_cnp"
 unit = "kg"
 variable_type = "float"
 
@@ -1255,6 +1269,13 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Average C, N, and P masses of each seed in a PFT"
 name = "fallen_seeds_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy foliage"
+name = "canopy_foliage_cnp"
 unit = "kg"
 variable_type = "float"
 
