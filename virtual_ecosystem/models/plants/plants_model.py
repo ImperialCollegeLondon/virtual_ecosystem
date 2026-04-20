@@ -1268,12 +1268,39 @@ class PlantsModel(
                 biomasses_of_dead_stems = self.biomasses[cell_id]
 
                 # Iterate over the tissues moving biomass into the turnover CNP arrays:
-                # multiply stem biomasses by the number of dead individuals and then
-                # sum across cohorts to give total elemental contributions.
-                for tissue in biomasses_of_dead_stems.tissues:
-                    self.data[f"{tissue.tissue_name}_turnover_cnp"][cell_id] += (
-                        tissue.as_array(with_carbon=True) * mortality
+                # 1. For stem, foliage and root biomass multiply stem biomasses by the
+                #    number of dead individuals and then sum across cohorts to give
+                #    total aggregated elemental contributions:
+                for aggregated_tissue in ("stem", "foliage", "root"):
+                    self.data[f"{aggregated_tissue}_turnover_cnp"][cell_id] += (
+                        biomasses_of_dead_stems.get_tissue(aggregated_tissue).as_array(
+                            with_carbon=True
+                        )
+                        * mortality
                     ).sum(axis=1)
+
+                # 2. Fruit and seed biomasses are stored by PFT so need pooling by PFT.
+                #    TODO - A lot of structural overlap here with allocate turnover in
+                #           GPP. Can we share code here.
+                cohort_pft_bool_idx = [
+                    cohorts.pft_names == pft for pft in self.flora.name
+                ]
+
+                for by_pft_tissue in ("fruit", "seed"):
+                    # Calculate the total turnover and standing biomass in each cohort
+                    total_turnover_biomass = (
+                        biomasses_of_dead_stems.get_tissue(by_pft_tissue).as_array(
+                            with_carbon=True
+                        )
+                        * mortality
+                    )
+
+                    for pft_idx, col_idx in enumerate(cohort_pft_bool_idx):
+                        # Extract the cohorts for this PFT and sum across them and
+                        # insert into xxx_turnover_cnp arrays
+                        self.data[f"{by_pft_tissue}_turnover_cnp"][cell_id][pft_idx] = (
+                            total_turnover_biomass[:, col_idx].sum(axis=1)
+                        )
 
     def apply_recruitment(self) -> None:
         """Apply recruitment to plant cohorts.

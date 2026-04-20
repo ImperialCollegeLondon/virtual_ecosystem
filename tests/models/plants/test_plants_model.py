@@ -581,11 +581,30 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model):
         )
 
         # Check the turnovers are now equal to the sums of a single stem of each cohort
-        for tissue in fxt_plants_model.biomasses[cell_id].tissues:
+        for var in ["stem", "foliage", "root"]:
+            tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
             assert_allclose(
-                fxt_plants_model.data[f"{tissue.tissue_name}_turnover_cnp"][cell_id],
+                fxt_plants_model.data[f"{var}_turnover_cnp"][cell_id],
                 tissue.as_array(with_carbon=True).sum(axis=1),
             )
+
+        # More complex for fruit and seed - need to calculate per PFT values so need to
+        # sum across the columns in the tissue biomasses for each PFT
+        for var in ["fruit", "seed"]:
+            tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
+            # collapse tissue by pft
+            for idx, pft in enumerate(fxt_plants_model.flora.name):
+                cohorts_this_pft = (
+                    fxt_plants_model.communities[cell_id].cohorts.pft_names == pft
+                )
+                pft_biomass = tissue.as_array(with_carbon=True)[
+                    :, cohorts_this_pft
+                ].sum(axis=1)
+
+                assert_allclose(
+                    fxt_plants_model.data[f"{var}_turnover_cnp"][cell_id, idx, :],
+                    pft_biomass,
+                )
 
 
 def test_PlantsModel_apply_recruitment(fxt_plants_model):
