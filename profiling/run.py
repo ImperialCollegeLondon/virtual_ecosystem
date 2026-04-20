@@ -22,7 +22,7 @@ if __name__ == "__main__":
         "--out",
         f"{path}/out",
         "--logfile",
-        f"{path}/logfile.log",
+        f"{path}/logfile{ver}.log",
     ]
     if truncate >= 0:
         ve_run_args.extend(

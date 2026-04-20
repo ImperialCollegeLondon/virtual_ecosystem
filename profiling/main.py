@@ -1,13 +1,33 @@
 """Running the Virtual Ecosystem via the `ve_run_cli()` with a specified Python version, then saving the profiling outs from `cProfile`.
 
-Call this script in the terminal with `python profiling/main.py` after installing the specified Python version has a virtual environment directory installed.
+Call this script in the terminal with `python profiling/main.py` after installing the specified Python version is installed in a virtual environment with dependencies.
+
+Managing virtual environments:
+1) Create a local `.venv/` folder.
+2) To create a virtual environment for, e.g., Python 3.12, make sure you have it installed globally and then run the command `python3.12 -m venv .venv/Python3_12`.
+3) To run the virtual-ecosystem with this virtual environment, activate it with a command like `source .venv/Python3_12/bin/activate` and then run `poetry install`.
+* The specific command to activate your virtual environment will vary based on your OS.
+4) Run `python profiling/main.py` in any Python terminal.
+
 See the general Python docs for further information on virtual environments and installation: https://docs.python.org/dev/tutorial/venv.html#tut-venv"""
 
 import datetime, os, subprocess, shutil
 
 
-# Designate the path from theroot directory.
-path = "profiling"
+# Set custom variables.
+"""Python version, can be written as "3.14" or "3_14"."""
+ver = "3.12"
+ver = ver.replace(".", "_")
+
+"""How many steps to run, can be an integer where negative values means no truncation."""
+truncation = 0
+
+"""The OS you are running the code on. Options: "windows", "linux", "mac"."""
+user_os = "windows"
+
+
+# Designate the path from the root directory.
+path = "data/ve_example"
 
 # Check example data exists to start the simulation.
 if not os.path.exists(f"{path}/config"):
@@ -37,27 +57,18 @@ for filename in os.listdir(out_folder):
         print("Failed to delete %s. Reason: %s" % (file_path, e))
 
 
-# Set custom variables.
-user_os = "windows"  # options: "windows", "linux", "mac".
-"""Python version, can be written as "3.14" or "3_14"."""
-ver = "3.14"
-ver = ver.replace(".", "_")
-
-"""How many steps to run, can be an integer or `None`."""
-truncation = 0
-
-
 # Generate terminal command to run `ve_run_cli()` via cProfile.
-output_name = f"VE__python{ver}__truncated_at_step_{truncation}"
+output_name = f"VirEco__py{ver}__truncated_at_step_{truncation}"
 
 # Note: the `time_stamp` variable cannot contain colons (:) in Windows as these are not valid characters for that OS.
 time_stamp = (datetime.datetime.now()).strftime("%Y-%m-%d_at_%H-%M")
 
 command_options = {
-    "windows": f".\\ve{ver}\\Scripts\\python.exe -m cProfile -o {profiler_folder}/{output_name}.prof {path}/run.py --ver={ver} --path={path} --truncate={truncation}",
-    "linux": f"./ve{ver}/bin/python -m cProfile -o {profiler_folder}/{output_name}.prof {path}/run.py --ver={ver} --path={path} --truncate={truncation}",
-    "mac": f"./ve{ver}/bin/python -m cProfile -o {profiler_folder}/{output_name}.prof {path}/run.py --ver={ver} --path={path} --truncate={truncation}",
+    "windows": f".\\.venv\\Python{ver}\\Scripts\\python.exe -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}",
+    "linux": f"./.venv/Python{ver}/bin/python -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}",
 }
+command_options["mac"] = command_options["linux"]
+
 command = command_options.get(user_os, None)
 if command is None:
     raise ValueError(
