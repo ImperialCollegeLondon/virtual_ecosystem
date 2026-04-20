@@ -11,6 +11,7 @@ from collections.abc import Sequence
 from math import asin, exp, log, pi
 
 import numpy as np
+from scipy.special import expit
 
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import (
@@ -288,7 +289,7 @@ def starvation_mortality(
     M_i_t = mass_current
     M_i_max = mass_max
     k = -(M_i_t - J_st * M_i_max) / (zeta_st * M_i_max)  # extra step to follow source
-    u_st = lambda_max / (1 + exp(-k))
+    u_st = lambda_max * expit(k)
 
     return u_st
 

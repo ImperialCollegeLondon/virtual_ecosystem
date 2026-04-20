@@ -30,7 +30,6 @@ from typing import Any, cast
 from numpy import (
     array,
     float32,
-    mean,
     nanmean,
     random,
     stack,
@@ -1852,12 +1851,16 @@ class AnimalModel(
     def update_activity_windows_community(self) -> None:
         """Update the activity window fraction for all cohorts in all communities.
 
+        Per-stratum temperatures and diurnal ranges are pre-computed once per
+        timestep as per-cell means, then it the climate experienced by each cohort based
+        on its vertical occupancy. Both variables are averaged across all
+        territory cells.
+
         Note:
-            Diurnal temperature range is sourced dynamically from the abiotic model.
-            Annual mean temperature and annual temperature SD are currently placeholder
-            constants from
-            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants` and
-            should be replaced once the abiotic model exposes those fields.
+            Annual mean temperature and annual temperature SD are currently
+            placeholder constants from
+            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
+            and should be replaced once the abiotic model exposes those fields.
         """
         lyr = self.layer_structure
 
@@ -1865,25 +1868,33 @@ class AnimalModel(
             self.data["canopy_temperature"][lyr.index_filled_canopy].to_numpy(),
             axis=0,
         )
-
         ground_temp = self.data["air_temperature"][lyr.index_surface_scalar].to_numpy()
-
         soil_temp = self.data["soil_temperature"][lyr.index_topsoil_scalar].to_numpy()
 
-        diurnal_temp_range = self.data["diurnal_temperature_range"][
+        canopy_diurnal = nanmean(
+            self.data["diurnal_temperature_range"][lyr.index_filled_canopy].to_numpy(),
+            axis=0,
+        )
+        ground_diurnal = self.data["diurnal_temperature_range"][
             lyr.index_surface_scalar
+        ].to_numpy()
+        soil_diurnal = self.data["diurnal_temperature_range"][
+            lyr.index_topsoil_scalar
         ].to_numpy()
 
         for cohort in self.active_cohorts.values():
-            territory_temperature = cohort.get_mean_territory_temperature(
-                canopy_temp, ground_temp, soil_temp
+            temperature, diurnal_range = cohort.get_mean_territory_climate(
+                canopy_temp,
+                ground_temp,
+                soil_temp,
+                canopy_diurnal,
+                ground_diurnal,
+                soil_diurnal,
             )
-            territory_diurnal_range = float(
-                mean([diurnal_temp_range[c] for c in cohort.territory])
-            )
+
             cohort.update_activity_window(
-                temperature=territory_temperature,
-                diurnal_temp_range=territory_diurnal_range,
+                temperature=temperature,
+                diurnal_temp_range=diurnal_range,
                 annual_mean_temp=cohort.constants.placeholder_annual_mean_temp,
                 annual_temp_sd=cohort.constants.placeholder_annual_temp_sd,
             )
