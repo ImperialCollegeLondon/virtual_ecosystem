@@ -1,0 +1,121 @@
+[core.data_output_options]
+save_initial_state = true
+
+# Climate data
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "air_temperature_ref"
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "relative_humidity_ref"
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "atmospheric_pressure_ref"
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "precipitation"
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "atmospheric_co2_ref"
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "mean_annual_temperature"
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "wind_speed_ref"
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "downward_longwave_radiation"
+
+# Elevation
+[[core.data.variable]]
+file_path = "../data/example_elevation_data.nc"
+var_name = "elevation"
+
+# Soil
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "pH"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "clay_fraction"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_cnp_pool_lmwc"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_cnp_pool_maom"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_c_pool_bacteria"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_c_pool_saprotrophic_fungi"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_c_pool_arbuscular_mycorrhiza"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_c_pool_ectomycorrhiza"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_cnp_pool_pom"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_cnp_pool_necromass"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_enzyme_pom_bacteria"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_enzyme_maom_bacteria"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_enzyme_pom_fungi"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_enzyme_maom_fungi"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_n_pool_ammonium"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_n_pool_nitrate"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_p_pool_primary"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_p_pool_secondary"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_p_pool_labile"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "fungal_fruiting_bodies"
+
+# Litter 
+[[core.data.variable]]
+file_path = "../data/example_litter_data.nc"
+var_name = "litter_pool_above_metabolic_cnp"
+[[core.data.variable]]
+file_path = "../data/example_litter_data.nc"
+var_name = "litter_pool_above_structural_cnp"
+[[core.data.variable]]
+file_path = "../data/example_litter_data.nc"
+var_name = "litter_pool_woody_cnp"
+[[core.data.variable]]
+file_path = "../data/example_litter_data.nc"
+var_name = "litter_pool_below_metabolic_cnp"
+[[core.data.variable]]
+file_path = "../data/example_litter_data.nc"
+var_name = "litter_pool_below_structural_cnp"
+[[core.data.variable]]
+file_path = "../data/example_litter_data.nc"
+var_name = "lignin_above_structural"
+[[core.data.variable]]
+file_path = "../data/example_litter_data.nc"
+var_name = "lignin_woody"
+[[core.data.variable]]
+file_path = "../data/example_litter_data.nc"
+var_name = "lignin_below_structural"

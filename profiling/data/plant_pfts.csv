@@ -1,0 +1,3 @@
+name,a_hd,ca_ratio,h_max,lai,par_ext,resp_f,resp_r,resp_s,rho_s,sla,tau_f,tau_r,yld,zeta,f_g,m,n,tau_rt,resp_rt,gpp_topslice,p_foliage_for_reproductive_tissue,deadwood_c_n_ratio,deadwood_c_p_ratio,leaf_turnover_c_n_ratio,leaf_turnover_c_p_ratio,plant_reproductive_tissue_turnover_c_n_ratio,plant_reproductive_tissue_turnover_c_p_ratio,root_turnover_c_p_ratio,root_turnover_c_n_ratio,foliage_c_n_ratio,foliage_c_p_ratio
+broadleaf,116,390.43,25.33,1.8,0.5,0.1,0.913,0.044,200,14,4,1.04,0.6,0.17,0.02,2,5,1,0.05,0.1,0.05,60.7,856.5,25.5,415,12.5,125.5,656.7,45.6,15,300
+shrub,116,390.43,15.33,1.8,0.5,0.1,0.913,0.044,200,14,4,1.04,0.6,0.17,0.02,2,5,1,0.05,0.1,0.05,60.7,856.5,25.5,415,12.5,125.5,656.7,45.6,15,300

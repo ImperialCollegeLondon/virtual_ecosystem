@@ -52,6 +52,9 @@ coverage.xml
 .pytest_cache/
 reports
 
+# Profiling data:
+profiling/cProfile_outputs/*/
+
 # Translations
 *.mo
 *.pot

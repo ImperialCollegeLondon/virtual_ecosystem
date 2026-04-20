@@ -1,0 +1,17 @@
+[plants]
+cohort_data_path = "../data/example_plant_cohorts.csv"
+pft_definitions_path = "../data/plant_pfts.csv"
+
+# Plant data
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "plant_pft_propagules"
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "downward_shortwave_radiation"
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "subcanopy_vegetation_biomass"
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "subcanopy_seedbank_biomass"

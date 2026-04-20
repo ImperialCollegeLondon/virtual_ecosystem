@@ -1,0 +1,847 @@
+[animal]
+static = false
+functional_group_definitions_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\animal_functional_groups.csv"
+
+[animal.constants]
+density_scaling_method = "madingley"
+madingley_biomass_scaling_terms = [
+    0.6,
+    300000.0,
+]
+metabolic_scaling_coefficients = [
+    0.037,
+    0.5,
+    0.69,
+]
+birth_mass_threshold = 1.5
+flow_to_reproductive_mass_threshold = 1.0
+dispersal_mass_threshold = 0.8
+energy_percentile_threshold = 0.5
+tau_f = 0.5
+sigma_f_t = 1.0
+alpha_0_herb = 1e-07
+alpha_0_pred = 0.01
+b_herb = 0.7
+b_pred = 0.05
+M_herb_ref = 1.0
+h_herb_0 = 0.7
+M_pred_ref = 1.0
+sigma_opt_pred_prey = 0.7
+theta_opt_min_f = 0.01
+theta_opt_f = 0.1
+sigma_opt_f = 0.02
+N_sigma_opt_pred_prey = 3.0
+h_pred_0 = 0.5
+m_tol = 1.6
+c_tol = 6.61
+m_tsm = 1.53
+c_tsm = 1.51
+M_disp_ref = 1.0
+V_disp = 0.0278
+o_disp = 0.48
+beta_responsive_bodymass = 0.8
+semelparity_mass_loss = 0.5
+u_bg = 0.001
+lambda_se = 0.003
+lambda_max = 1.0
+J_st = 0.6
+zeta_st = 0.05
+metamorph_mortality = 0.1
+carbon_excreta_proportion = 0.9
+nitrogen_excreta_proportion = 0.1
+decay_rate_excrement = 0.25
+scavenging_rate_excrement = 0.25
+decay_rate_carcasses = 0.0625
+scavenging_rate_carcasses = 0.25
+migration_mortality = 0.1
+aquatic_mortality = 0.1
+aquatic_residence_time = 60.0
+migration_residence_time = 60.0
+seasonal_migration_probability = 0.083
+
+[animal.constants.damuths_law_terms.mammal]
+HERBIVORE = [
+    -0.75,
+    4.23,
+]
+CARNIVORE = [
+    -0.75,
+    1.0,
+]
+OMNIVORE = [
+    -0.75,
+    3.0,
+]
+
+[animal.constants.damuths_law_terms.bird]
+HERBIVORE = [
+    -0.75,
+    5.0,
+]
+CARNIVORE = [
+    -0.75,
+    2.0,
+]
+OMNIVORE = [
+    -0.75,
+    3.0,
+]
+
+[animal.constants.damuths_law_terms.invertebrate]
+HERBIVORE = [
+    -0.75,
+    5.0,
+]
+CARNIVORE = [
+    -0.75,
+    2.0,
+]
+OMNIVORE = [
+    -0.75,
+    3.0,
+]
+
+[animal.constants.damuths_law_terms.amphibian]
+HERBIVORE = [
+    -0.75,
+    5.0,
+]
+CARNIVORE = [
+    -0.75,
+    2.0,
+]
+OMNIVORE = [
+    -0.75,
+    3.0,
+]
+
+[animal.constants.metabolic_rate_terms.endothermic]
+basal = [
+    41900000000.0,
+    0.69,
+]
+field = [
+    908000000000.0,
+    0.7,
+]
+
+[animal.constants.metabolic_rate_terms.ectothermic]
+basal = [
+    41900000000.0,
+    0.69,
+]
+field = [
+    149000000000.0,
+    0.88,
+]
+
+[animal.constants.energy_density]
+meat = 7000.0
+plant = 18200000.0
+
+[animal.constants.conversion_efficiency]
+HERBIVORE = 0.1
+CARNIVORE = 0.25
+OMNIVORE = 0.175
+
+[animal.constants.mechanical_efficiency]
+HERBIVORE = 0.9
+CARNIVORE = 0.8
+OMNIVORE = 0.85
+
+[animal.constants.prey_mass_scaling_terms.endothermic]
+mammal = [
+    1.0,
+    1.0,
+]
+bird = [
+    1.0,
+    1.0,
+]
+
+[animal.constants.prey_mass_scaling_terms.ectothermic]
+invertebrate = [
+    1.0,
+    1.0,
+]
+amphibian = [
+    1.0,
+    1.0,
+]
+
+[animal.constants.cnp_proportion_terms.mammal]
+C = 0.5
+N = 0.3
+P = 0.2
+
+[animal.constants.cnp_proportion_terms.bird]
+C = 0.4
+N = 0.3
+P = 0.3
+
+[animal.constants.cnp_proportion_terms.invertebrate]
+C = 0.4
+N = 0.2
+P = 0.4
+
+[animal.constants.cnp_proportion_terms.amphibian]
+C = 0.4
+N = 0.2
+P = 0.4
+
+[animal.constants.territory_size_terms.endothermic]
+mammal = [
+    -6.09,
+    1.13,
+]
+bird = [
+    -6.09,
+    1.13,
+]
+
+[animal.constants.territory_size_terms.ectothermic]
+invertebrate = [
+    -6.09,
+    1.13,
+]
+amphibian = [
+    -6.09,
+    1.13,
+]
+
+[animal.cohort_data_export]
+enabled = true
+cohort_attributes = [
+    "time",
+    "cohort_id",
+    "functional_group",
+    "diet_type",
+    "development_type",
+    "age",
+    "individuals",
+    "is_alive",
+    "is_mature",
+    "time_to_maturity",
+    "time_since_maturity",
+    "location_status",
+    "centroid_key",
+    "territory_size",
+    "territory",
+    "occupancy_proportion",
+    "largest_mass_achieved",
+    "mass_carbon",
+    "mass_nitrogen",
+    "mass_phosphorus",
+    "reproductive_mass_carbon",
+    "reproductive_mass_nitrogen",
+    "reproductive_mass_phosphorus",
+]
+float_format = "%0.5f"
+
+[core.constants]
+standard_pressure = 101.325
+standard_mole = 44.642
+molar_heat_capacity_air = 29.19
+gravity = 6.6743e-11
+boltzmann_constant = 1.380649e-23
+stefan_boltzmann_constant = 5.6703744191844314e-08
+von_karmans_constant = 0.4
+max_depth_of_microbial_activity = 0.25
+meters_to_mm = 1000.0
+molecular_weight_air = 28.96
+gas_constant_water_vapour = 461.51
+seconds_to_day = 86400.0
+seconds_to_hour = 3600.0
+hours_per_day = 24
+characteristic_dimension_leaf = 0.01
+specific_gas_constant_dry_air = 287.05
+molecular_weight_ratio_water_to_dry_air = 0.622
+conductance_to_resistance_conversion_factor = 40.9
+density_water = 1000.0
+fungal_fruiting_bodies_c_n_ratio = 10.0
+fungal_fruiting_bodies_c_p_ratio = 75.0
+fungal_fruiting_bodies_decay_rate = 0.013862943611198907
+air_volumetric_heat_capacity = 1200.0
+initial_aerodynamic_resistance_canopy = 12.1
+
+[core.grid]
+grid_type = "square"
+cell_area = 8100.0
+cell_nx = 9
+cell_ny = 9
+xoff = -45.0
+yoff = -45.0
+
+[core.data_output_options]
+save_initial_state = true
+save_continuous_data = true
+save_final_state = true
+save_merged_config = true
+out_path = "profiling\\out"
+out_initial_file_name = "initial_state.nc"
+out_folder_continuous = "."
+out_continuous_file_name = "all_continuous_data.nc"
+out_final_file_name = "final_state.nc"
+out_merge_file_name = "ve_full_model_configuration.toml"
+
+[core.layers]
+soil_layers = [
+    -0.25,
+    -1.0,
+]
+canopy_layers = 10
+above_canopy_height_offset = 2.0
+subcanopy_layer_height = 1.5
+surface_layer_height = 0.1
+
+[core.timing]
+start_date = "2013-01-01"
+update_interval = "1 month"
+run_length = "2 years"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_climate_data.nc"
+var_name = "air_temperature_ref"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_climate_data.nc"
+var_name = "relative_humidity_ref"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_climate_data.nc"
+var_name = "atmospheric_pressure_ref"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_climate_data.nc"
+var_name = "precipitation"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_climate_data.nc"
+var_name = "atmospheric_co2_ref"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_climate_data.nc"
+var_name = "mean_annual_temperature"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_climate_data.nc"
+var_name = "wind_speed_ref"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_climate_data.nc"
+var_name = "downward_longwave_radiation"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_elevation_data.nc"
+var_name = "elevation"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "pH"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "clay_fraction"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_cnp_pool_lmwc"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_cnp_pool_maom"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_c_pool_bacteria"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_c_pool_saprotrophic_fungi"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_c_pool_arbuscular_mycorrhiza"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_c_pool_ectomycorrhiza"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_cnp_pool_pom"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_cnp_pool_necromass"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_enzyme_pom_bacteria"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_enzyme_maom_bacteria"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_enzyme_pom_fungi"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_enzyme_maom_fungi"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_n_pool_ammonium"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_n_pool_nitrate"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_p_pool_primary"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_p_pool_secondary"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "soil_p_pool_labile"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_soil_data.nc"
+var_name = "fungal_fruiting_bodies"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_litter_data.nc"
+var_name = "litter_pool_above_metabolic_cnp"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_litter_data.nc"
+var_name = "litter_pool_above_structural_cnp"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_litter_data.nc"
+var_name = "litter_pool_woody_cnp"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_litter_data.nc"
+var_name = "litter_pool_below_metabolic_cnp"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_litter_data.nc"
+var_name = "litter_pool_below_structural_cnp"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_litter_data.nc"
+var_name = "lignin_above_structural"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_litter_data.nc"
+var_name = "lignin_woody"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_litter_data.nc"
+var_name = "lignin_below_structural"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_plant_data.nc"
+var_name = "plant_pft_propagules"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_plant_data.nc"
+var_name = "downward_shortwave_radiation"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_plant_data.nc"
+var_name = "subcanopy_vegetation_biomass"
+
+[[core.data.variable]]
+file_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_plant_data.nc"
+var_name = "subcanopy_seedbank_biomass"
+
+[core.debug]
+truncate_run_at_update = 0
+
+[plants]
+static = false
+pft_definitions_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\plant_pfts.csv"
+cohort_data_path = "C:\\Users\\okirk\\Documents\\CODE\\virtual_ecosystem\\profiling\\data\\example_plant_cohorts.csv"
+
+[plants.community_data_export]
+required_data = []
+cohort_attributes = []
+community_canopy_attributes = []
+stem_canopy_attributes = []
+float_format = "%0.5f"
+
+[plants.constants]
+per_stem_annual_mortality_probability = 0.1
+per_propagule_annual_recruitment_probability = 0.2
+dsr_to_ppfd = 2.04
+stem_lignin = 0.545
+senesced_leaf_lignin = 0.05
+plant_reproductive_tissue_lignin = 0.01
+root_lignin = 0.2
+subcanopy_extinction_coef = 0.5
+subcanopy_specific_leaf_area = 14.0
+subcanopy_respiration_fraction = 0.1
+subcanopy_yield = 0.6
+subcanopy_reproductive_allocation = 0.1
+subcanopy_sprout_rate = 0.1
+subcanopy_sprout_yield = 0.5
+subcanopy_vegetation_turnover = 1.0
+subcanopy_seedbank_turnover = 0.25
+subcanopy_seedbank_c_n_ratio = 20.0
+subcanopy_seedbank_c_p_ratio = 50.0
+subcanopy_vegetation_c_n_ratio = 20.0
+subcanopy_vegetation_c_p_ratio = 50.0
+subcanopy_vegetation_lignin = 0.2
+subcanopy_seedbank_lignin = 0.2
+root_exudates = 0.5
+propagule_mass_portion = 0.5
+carbon_mass_per_propagule = 1.0
+
+[soil]
+static = false
+enzyme_class_definition_path = ""
+microbial_group_definition_path = ""
+
+[soil.constants]
+reference_cue_logit = 0.094
+cue_reference_temp = 20.0
+logit_cue_with_temperature = -0.039
+soil_microbe_water_potential_optimum = -3.0
+soil_microbe_water_potential_halt = -15800.0
+microbial_water_response_curvature = 1.47
+min_pH_microbes = 2.5
+lowest_optimal_pH_microbes = 4.5
+highest_optimal_pH_microbes = 7.5
+max_pH_microbes = 11.0
+base_soil_protection = 0.694
+soil_protection_with_clay = 1.36
+solubility_coefficient_lmwc = 0.05
+solubility_coefficient_ammonium = 0.05
+solubility_coefficient_nitrate = 1.0
+solubility_coefficient_labile_p = 0.005
+necromass_decay_rate = 0.23104906018664842
+maom_desorption_rate = 1e-05
+lmwc_sorption_rate = 0.001
+necromass_sorption_rate = 0.6931471805599453
+litter_leaching_fraction_carbon = 0.0015
+litter_leaching_fraction_nitrogen = 0.0015
+litter_leaching_fraction_phosphorus = 0.0001
+organic_proportion_litter_nitrogen_leaching = 1.0
+organic_proportion_litter_phosphorus_leaching = 1.0
+ammonium_mineralisation_proportion = 0.9
+tectonic_uplift_rate_phosphorus = 0.0
+ammonia_volatilisation_rate_constant = 8.64e-05
+nitrification_rate_constant = 0.08639999999999999
+denitrification_rate_constant = 0.21600000000000003
+nitrification_optimum_temperature = 311.15
+nitrification_maximum_temperature = 343.15
+nitrification_thermal_sensitivity = 12
+denitrification_infinite_temperature_factor = 93.34598
+denitrification_minimum_temperature = 227.12999999999997
+denitrification_thermal_sensitivity = 308.56
+nitrogen_fixation_cost_zero_celcius = 59.19651970522086
+nitrogen_fixation_cost_infinite_temp_offset = -0.8034802947791453
+nitrogen_fixation_cost_thermal_sensitivity = 0.27
+nitrogen_fixation_cost_equality_temperature = 50.28
+free_living_N_fixation_reference_rate = 4.106776180698152e-06
+free_living_N_fixation_reference_temp = 293.15
+free_living_N_fixation_q10_coefficent = 3.0
+primary_phosphorus_breakdown_rate = 2.2831050228310502e-07
+secondary_phosphorus_breakdown_rate = 7.407407407407407e-05
+labile_phosphorus_sorption_rate = 0.0016666666666666668
+ammonium_deposition_rate = 4.1067761806981517e-07
+phosphorus_deposition_rate = 1.3689253935660508e-08
+nitrogen_fixer_supply_fraction = 0.3
+ectomycorrhiza_supply_fraction = 0.25
+
+[[soil.enzyme_class_definition]]
+source = "bacteria"
+substrate = "pom"
+maximum_rate = 60.0
+half_saturation_constant = 70.0
+activation_energy_rate = 37000.0
+activation_energy_saturation = 30000.0
+reference_temperature = 12.0
+turnover_rate = 0.024
+c_n_ratio = 5.2
+c_p_ratio = 16.0
+
+[[soil.enzyme_class_definition]]
+source = "bacteria"
+substrate = "maom"
+maximum_rate = 24.0
+half_saturation_constant = 350.0
+activation_energy_rate = 47000.0
+activation_energy_saturation = 30000.0
+reference_temperature = 12.0
+turnover_rate = 0.024
+c_n_ratio = 5.2
+c_p_ratio = 16.0
+
+[[soil.enzyme_class_definition]]
+source = "fungi"
+substrate = "pom"
+maximum_rate = 120.0
+half_saturation_constant = 35.0
+activation_energy_rate = 37000.0
+activation_energy_saturation = 30000.0
+reference_temperature = 12.0
+turnover_rate = 0.024
+c_n_ratio = 6.5
+c_p_ratio = 40.0
+
+[[soil.enzyme_class_definition]]
+source = "fungi"
+substrate = "maom"
+maximum_rate = 48.0
+half_saturation_constant = 175.0
+activation_energy_rate = 47000.0
+activation_energy_saturation = 30000.0
+reference_temperature = 12.0
+turnover_rate = 0.024
+c_n_ratio = 6.5
+c_p_ratio = 40.0
+
+[[soil.microbial_group_definition]]
+name = "bacteria"
+taxonomic_group = "bacteria"
+max_uptake_rate_labile_C = 0.04
+activation_energy_uptake_rate = 47000.0
+half_sat_labile_C_uptake = 0.364
+activation_energy_uptake_saturation = 30000.0
+max_uptake_rate_ammonium = 0.005
+half_sat_ammonium_uptake = 0.02275
+max_uptake_rate_nitrate = 0.0005
+half_sat_nitrate_uptake = 0.02275
+max_uptake_rate_labile_p = 0.0025
+half_sat_labile_p_uptake = 0.02275
+turnover_rate = 0.005
+activation_energy_turnover = 20000.0
+reference_temperature = 12.0
+c_n_ratio = 5.2
+c_p_ratio = 16.0
+reproductive_allocation = 0.0
+symbiote_nitrogen_uptake_fraction = 0.0
+symbiote_phosphorus_uptake_fraction = 0.0
+
+[soil.microbial_group_definition.enzyme_production]
+pom = 0.005
+maom = 0.005
+
+[[soil.microbial_group_definition]]
+name = "saprotrophic_fungi"
+taxonomic_group = "fungi"
+max_uptake_rate_labile_C = 0.04
+activation_energy_uptake_rate = 47000.0
+half_sat_labile_C_uptake = 0.364
+activation_energy_uptake_saturation = 30000.0
+max_uptake_rate_ammonium = 0.005
+half_sat_ammonium_uptake = 0.02275
+max_uptake_rate_nitrate = 0.0005
+half_sat_nitrate_uptake = 0.02275
+max_uptake_rate_labile_p = 0.0025
+half_sat_labile_p_uptake = 0.02275
+turnover_rate = 0.005
+activation_energy_turnover = 20000.0
+reference_temperature = 12.0
+c_n_ratio = 6.5
+c_p_ratio = 40.0
+reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.0
+symbiote_phosphorus_uptake_fraction = 0.0
+
+[soil.microbial_group_definition.enzyme_production]
+pom = 0.005
+maom = 0.005
+
+[[soil.microbial_group_definition]]
+name = "arbuscular_mycorrhiza"
+taxonomic_group = "fungi"
+max_uptake_rate_labile_C = 0.04
+activation_energy_uptake_rate = 47000.0
+half_sat_labile_C_uptake = 0.364
+activation_energy_uptake_saturation = 30000.0
+max_uptake_rate_ammonium = 0.005
+half_sat_ammonium_uptake = 0.02275
+max_uptake_rate_nitrate = 0.0005
+half_sat_nitrate_uptake = 0.02275
+max_uptake_rate_labile_p = 0.0025
+half_sat_labile_p_uptake = 0.02275
+turnover_rate = 0.005
+activation_energy_turnover = 20000.0
+reference_temperature = 12.0
+c_n_ratio = 18.0
+c_p_ratio = 120.0
+reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.2
+symbiote_phosphorus_uptake_fraction = 0.2
+
+[soil.microbial_group_definition.enzyme_production]
+pom = 0.0
+maom = 0.0
+
+[[soil.microbial_group_definition]]
+name = "ectomycorrhiza"
+taxonomic_group = "fungi"
+max_uptake_rate_labile_C = 0.04
+activation_energy_uptake_rate = 47000.0
+half_sat_labile_C_uptake = 0.364
+activation_energy_uptake_saturation = 30000.0
+max_uptake_rate_ammonium = 0.005
+half_sat_ammonium_uptake = 0.02275
+max_uptake_rate_nitrate = 0.0005
+half_sat_nitrate_uptake = 0.02275
+max_uptake_rate_labile_p = 0.0025
+half_sat_labile_p_uptake = 0.02275
+turnover_rate = 0.005
+activation_energy_turnover = 20000.0
+reference_temperature = 12.0
+c_n_ratio = 18.0
+c_p_ratio = 120.0
+reproductive_allocation = 0.1
+symbiote_nitrogen_uptake_fraction = 0.2
+symbiote_phosphorus_uptake_fraction = 0.2
+
+[soil.microbial_group_definition.enzyme_production]
+pom = 0.02
+maom = 0.02
+
+[hydrology]
+static = false
+initial_soil_moisture = 0.5
+initial_groundwater_saturation = 0.9
+p_wet_wet = 0.6
+p_wet_dry = 0.3
+rainfall_shape_parameter = 1.5
+rainfall_scale_parameter = 1.0
+
+[hydrology.constants]
+soil_moisture_residual = 0.175
+soil_moisture_saturation = 0.51
+saturated_hydraulic_conductivity = 3.5e-05
+van_genuchten_nonlinearily_parameter = 1.598
+intercept_parameters = [
+    0.935,
+    0.498,
+    0.00575,
+]
+veg_density_param = 0.046
+groundwater_capacity = 500.0
+bypass_flow_coefficient = 1.0
+extinction_coefficient_global_radiation = 0.74
+max_percolation_rate_uzlz = 2.7
+groundwater_loss = 1.0
+reservoir_const_upper_groundwater = 20.0
+reservoir_const_lower_groundwater = 20.0
+initial_aerodynamic_resistance_soil = 12.5
+drag_coefficient_evaporation = 0.2
+initial_stomatal_conductance = 1000.0
+pore_connectivity_parameter = 0.5
+air_entry_potential_inverse = 0.042
+m_to_kpa = 9.804
+
+[abiotic]
+static = false
+latitude = 0.0
+
+[abiotic.constants]
+leaf_emissivity = 0.98
+soil_emissivity = 0.95
+leaf_albedo = 0.15
+bulk_density_soil = 1175.0
+wind_reference_height = 10.0
+latent_heat_vap_equ_factors = [
+    1918460.0,
+    33.91,
+]
+zero_plane_scaling_parameter = 7.5
+substrate_surface_roughness_length = 0.003
+roughness_element_drag_coefficient = 0.3
+roughness_sublayer_depth_parameter = 0.193
+max_ratio_wind_to_friction_velocity = 0.3
+min_windspeed_below_canopy = 0.1
+min_roughness_length = 0.01
+soil_thermal_conductivity = 1.206
+specific_heat_capacity_soil = 881.0
+surface_albedo = 0.125
+saturated_pressure_slope_parameters = [
+    4098.0,
+    0.6108,
+    17.27,
+    237.3,
+]
+dry_air_factor = 0.378
+initial_flux_value = 0.001
+coefficient_aerodynamic_resistance_understorey = 33.0
+understorey_thermal_conductivity = 10.0
+specific_heat_capacity_understorey = 3500.0
+leaf_mass_per_area_understorey = 0.07
+aerodynamic_resistance_canopy_night = 50.0
+aerodynamic_resistance_soil_night = 50.0
+aerodynamic_resistance_canopy_day = 20.0
+max_mixing_coefficient = 1000.0
+
+[abiotic.bounds]
+air_temperature = [
+    -20.0,
+    80.0,
+    -1.27,
+]
+relative_humidity = [
+    0.0,
+    100.0,
+    5.4,
+]
+vapour_pressure_deficit = [
+    0.0,
+    10.0,
+    -252.24,
+]
+wind_speed = [
+    0.001,
+    100.0,
+    -0.1,
+]
+soil_temperature = [
+    -10.0,
+    50.0,
+]
+
+[abiotic.simple_constants]
+leaf_emissivity = 0.98
+soil_emissivity = 0.95
+placeholder = 10.0
+
+[litter]
+static = false
+
+[litter.constants]
+litter_decomp_reference_temp = 40.0
+litter_decomp_offset_temp = 31.79
+litter_decomp_temp_response = 3.36
+litter_decay_water_potential_optimum = -10.0
+litter_decay_water_potential_halt = -28800.0
+moisture_response_curvature = 1.0
+litter_decay_constant_metabolic_above = 0.08
+litter_decay_constant_structural_above = 0.021714285714285714
+litter_decay_constant_woody = 0.006666666666666667
+litter_decay_constant_metabolic_below = 0.1
+litter_decay_constant_structural_below = 0.02702702702702703
+cue_metabolic = 0.45
+cue_structural_above_ground = 0.55
+cue_woody = 0.55
+cue_structural_below_ground = 0.45
+lignin_inhibition_factor = -5.0
+max_metabolic_fraction_of_input = 0.85
+metabolic_split_nitrogen_sensitivity = 0.018
+metabolic_split_phosphorus_sensitivity = 0.0011613
+metabolic_to_structural_n_ratio = 5.0
+metabolic_to_structural_p_ratio = 5.0
