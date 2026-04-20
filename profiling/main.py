@@ -16,7 +16,7 @@ import datetime, os, subprocess, shutil
 
 # Set custom variables.
 """Python version, can be written as "3.14" or "3_14"."""
-ver = "3.12"
+ver = "3.13"
 ver = ver.replace(".", "_")
 
 """How many steps to run, can be an integer where negative values means no truncation."""
