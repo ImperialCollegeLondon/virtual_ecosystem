@@ -397,3 +397,166 @@ def test_LayerStructure_set_filled_canopy():
     exp_flux_layers = np.repeat(False, layer_structure.n_layers)
     exp_flux_layers[np.concatenate([np.arange(1, 9), [11, 12]])] = True
     assert np.allclose(layer_structure.index_flux_layers, exp_flux_layers)
+
+
+@pytest.mark.parametrize(
+    argnames="config, disturbance_timing, expected_run_at, raises",
+    argvalues=[
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_at": 5},
+            [5],
+            does_not_raise(),
+            id="run once",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_at": [5, 6, 8, 9]},
+            [5, 6, 8, 9],
+            does_not_raise(),
+            id="run several",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_every": (5,)},
+            [5, 6, 7, 8, 9, 10, 11, 12],
+            does_not_raise(),
+            id="run several, default step",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_every": (5, 3)},
+            [5, 8, 11],
+            does_not_raise(),
+            id="run several, custom step",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_every": (5, 3, 10)},
+            [5, 8],
+            does_not_raise(),
+            id="run several, custom step and stop",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {},
+            [],
+            pytest.raises(
+                ValueError, match=r"either 'run_at' or 'run_every' must be provided."
+            ),
+            id="invalid input",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_every": (1, 2, 3, 4)},
+            [],
+            pytest.raises(
+                ValueError, match=r"'run_every' must have 1, 2 or 3 elements"
+            ),
+            id="wrong elements",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_at": [5, 10, 13]},
+            [],
+            pytest.raises(ValueError, match=r"'run_at' values must be between 0 and"),
+            id="invalid indices",
+        ),
+    ],
+)
+def test_disturbance_timing(config, disturbance_timing, expected_run_at, raises):
+    """Test the constructor of the DisturbanceTiming class."""
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
+    from virtual_ecosystem.core.core_components import CoreComponents, DisturbanceTiming
+
+    cfg_data = ConfigurationLoader(cfg_strings=config)
+    cfg = generate_configuration(cfg_data.data)
+
+    core_components = CoreComponents(config=cfg.core)
+    model_timing = core_components.model_timing
+
+    with raises:
+        dtiming = DisturbanceTiming(model_timing, **disturbance_timing)
+        assert dtiming._run_at == expected_run_at
+
+
+@pytest.mark.parametrize(
+    argnames="config, disturbance_timing, time_index, should_run",
+    argvalues=[
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_at": [5, 7, 9]},
+            5,
+            True,
+            id="run disturbance",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 days"
+            run_length = "1 years"
+            """,
+            {"run_at": [5, 7, 9]},
+            6,
+            False,
+            id="not run disturbance",
+        ),
+    ],
+)
+def test_disturbance_timing_check_run(
+    config, disturbance_timing, time_index, should_run
+):
+    """Test the check run method of the DirsturbanceTiming class."""
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
+    from virtual_ecosystem.core.core_components import CoreComponents, DisturbanceTiming
+
+    cfg_data = ConfigurationLoader(cfg_strings=config)
+    cfg = generate_configuration(cfg_data.data)
+
+    core_components = CoreComponents(config=cfg.core)
+    model_timing = core_components.model_timing
+
+    dtiming = DisturbanceTiming(model_timing, **disturbance_timing)
+    assert dtiming.check_run(time_index) == should_run

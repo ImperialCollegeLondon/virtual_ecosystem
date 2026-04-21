@@ -89,6 +89,20 @@ def reset_module_registry():
     MODULE_REGISTRY.clear()
 
 
+@pytest.fixture(autouse=True)
+def reset_disturbance_registry():
+    """Reset the disturbance registry.
+
+    The register_disturbance function updates the DISTURBANCE_REGISTRY, which persists
+    between tests. This autouse fixture is used to ensure that the registry is always
+    cleared before tests start, so that the correct registration of disturbances within
+    tests is enforced.
+    """
+    from virtual_ecosystem.core.registry import DISTURBANCE_REGISTRY
+
+    DISTURBANCE_REGISTRY.clear()
+
+
 # Shared fixtures
 
 FIXTURE_ROOT_DATA_DIR = Path(__file__).parent / "data"
