@@ -14,7 +14,7 @@ from IPython.display import display_markdown
 from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
 
-from virtual_ecosystem.core.base_model import _discover_models
+from virtual_ecosystem.core.base_model import discover_models
 from virtual_ecosystem.core.configuration import Configuration
 
 RST_TO_MD = [
@@ -147,7 +147,7 @@ def variable_table():
     """
 
     # Get the full set of models
-    models = [m for m in _discover_models() if m.model_name != "testing"]
+    models = [m for m in discover_models() if m.model_name != "testing"]
 
     # Load the full set of data variables
     with open(

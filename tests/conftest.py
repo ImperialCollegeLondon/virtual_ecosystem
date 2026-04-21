@@ -89,6 +89,20 @@ def reset_module_registry():
     MODULE_REGISTRY.clear()
 
 
+@pytest.fixture(autouse=True)
+def reset_disturbance_registry():
+    """Reset the disturbance registry.
+
+    The register_disturbance function updates the DISTURBANCE_REGISTRY, which persists
+    between tests. This autouse fixture is used to ensure that the registry is always
+    cleared before tests start, so that the correct registration of disturbances within
+    tests is enforced.
+    """
+    from virtual_ecosystem.core.registry import DISTURBANCE_REGISTRY
+
+    DISTURBANCE_REGISTRY.clear()
+
+
 # Shared fixtures
 
 FIXTURE_ROOT_DATA_DIR = Path(__file__).parent / "data"
@@ -600,12 +614,14 @@ def dummy_litter_data(fixture_core_components):
     )
 
     data["root_turnover_cnp"] = DataArray(
-        data=[
-            [218.7, 7.2178, 0.333029],
-            [170.1, 3.73026, 0.377497],
-            [2.43, 0.05612, 0.0055568],
-            [201.69, 5.43639, 0.5423232],
-        ],
+        data=np.stack(
+            [
+                [218.7, 170.1, 2.43, 201.69],
+                [7.2178, 3.73026, 0.05612, 5.43639],
+                [0.333029, 0.377497, 0.0055568, 0.5423232],
+            ],
+            axis=1,
+        ),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
@@ -661,6 +677,7 @@ def dummy_climate_data(fixture_core_components):
         "precipitation": 200.0,  # mm month-1
         "downward_shortwave_radiation": 220.0,  # W m-2 (24h monthly mean)
         "downward_longwave_radiation": 400.0,  # W m-2 (24h monthly mean)
+        "mean_annual_temperature": 20.0,  # C
     }
 
     for var, value in ref_values.items():
@@ -687,7 +704,6 @@ def dummy_climate_data(fixture_core_components):
         "mean_mixing_length": 1.3,  # m
         "aerodynamic_resistance_soil": 50.0,  # s m-1
         "aerodynamic_resistance_canopy": 30.0,  # s m-1
-        "mean_annual_temperature": 20.0,  # C
         "ground_heat_flux": 20.0,
         "conductive_flux_understorey": 50.0,
     }
