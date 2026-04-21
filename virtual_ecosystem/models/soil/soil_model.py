@@ -578,7 +578,7 @@ class SoilModel(
         else:
             subset = self.data[var]
 
-        return bool((subset.isnull() | np.isinf(subset)).any())
+        return bool( ~ np.all(np.isfinite(subset)))
 
     def convert_fruiting_body_production_to_rate(
         self, total_production: DataArray
