@@ -140,9 +140,8 @@ phosphorus_deposition_rate = 2.0e-05 # High rate for Amazon Rainforest
 You **only** need to provide values for constants that you wish to change (i.e. the site
 specific ones, and any for which you disagree with our choice of default values). All
 constants that you don't provide values for will just use the default value. Details of
-all Virtual Ecosystem constants and their default values can be found in the
-[configuration options reference
-documentation](./model_details/science_model_configuration).
+all Virtual Ecosystem constants and their default values can be found in the [model
+specific setup details documentation](./model_details/overview).
 
 ## Changing the core simulation setup
 
@@ -346,7 +345,9 @@ data will have specific model configuration settings. For example:
   path set in the [plants model configuration
   options](./model_details/plants/plants_config.md#plant-cohort-data)
 
-* The animal model also requires a defined initial cohort structure.
+* The animal model also requires a set of defined [functional
+  groups](./model_details/animal/functional_group_data.md). These are defined in a CSV
+  file with the path provided as part of the animal model configuration.
 
 * The soil model requires [parameter estimates for the microbial functional groups and
   enzyme classes](./model_details/decay/default_microbial_params.md) that it uses.
