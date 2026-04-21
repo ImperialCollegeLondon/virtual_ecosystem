@@ -129,3 +129,34 @@ def test_update_groundwater_storage(dummy_climate_data, fixture_hydrology_consta
     np.testing.assert_allclose(result["groundwater_storage"], exp_groundwat, rtol=1e-05)
     np.testing.assert_allclose(result["subsurface_flow"], exp_upper_flow, rtol=1e-05)
     np.testing.assert_allclose(result["baseflow"], exp_lower_flow, rtol=1e-5)
+
+
+def test_upper_flow_clamped_to_zero(fixture_hydrology_constants):
+    """Ensure negative groundwater outflow is clamped to zero."""
+
+    from virtual_ecosystem.models.hydrology.below_ground import (
+        update_groundwater_storage,
+    )
+
+    # Force a negative scenario
+    groundwater_storage = np.array(
+        [
+            [-10, -5, -1, -0.1],  # upper zone goes negative
+            [100, 100, 100, 100],  # lower zone normal
+        ]
+    )
+
+    result = update_groundwater_storage(
+        groundwater_storage=groundwater_storage,
+        vertical_flow_to_groundwater=np.zeros(4),
+        bypass_flow=np.zeros(4),
+        max_percolation_rate_uzlz=fixture_hydrology_constants.max_percolation_rate_uzlz,
+        groundwater_loss=fixture_hydrology_constants.groundwater_loss,
+        reservoir_const_upper_groundwater=fixture_hydrology_constants.reservoir_const_upper_groundwater,
+        reservoir_const_lower_groundwater=fixture_hydrology_constants.reservoir_const_lower_groundwater,
+    )
+
+    # This is the key assertion:
+    assert np.all(result["subsurface_flow"] >= 0)
+    assert np.all(result["baseflow"] >= 0)
+    assert np.all(result["groundwater_storage"][0] >= 0)

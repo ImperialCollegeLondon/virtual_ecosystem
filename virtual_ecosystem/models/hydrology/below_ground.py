@@ -357,15 +357,17 @@ def update_groundwater_storage(
     )
 
     # Calculate outflow from the upper zone to the channel, [mm]
-    output["subsurface_flow"] = upper_zone / reservoir_const_upper_groundwater
+    output["subsurface_flow"] = np.maximum(
+        0.0, upper_zone / reservoir_const_upper_groundwater
+    )
 
-    # Update water stored in lower zone, [mm]
+    # Update water stored in lower zone, [mm], must be >=0
     lower_zone = np.array(
         groundwater_storage[1] + percolation_to_lower_zone - groundwater_loss
     )
 
-    # Calculate outflow from the lower zone to the channel, [mm]
-    output["baseflow"] = lower_zone / reservoir_const_lower_groundwater
+    # Calculate outflow from the lower zone to the channel, [mm], must be >=0
+    output["baseflow"] = np.maximum(0.0, lower_zone / reservoir_const_lower_groundwater)
 
     # Update ground water storage
     output["groundwater_storage"] = np.vstack((upper_zone, lower_zone))
