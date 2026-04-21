@@ -474,18 +474,18 @@ class SoilModel(
             **{name: np.array([]) for name in self.refreshed_variables},
         }
 
-        # Check if any values used by the soil model integration have NaN values (these
-        # can stall the integration)
-        unexpected_nans = set()
+        # Check if any values used by the soil model integration have invalid values
+        # (e.g. NaN or Inf values, as these can stall the integration)
+        invalid_values = set()
 
         for var in self.vars_required_for_update:
-            if self.check_for_unexpected_nan_values(var=var):
-                unexpected_nans.add(var)
+            if self.check_for_invalid_input_values(var=var):
+                invalid_values.add(var)
 
-        if unexpected_nans:
+        if invalid_values:
             to_raise_nan = ValueError(
                 "Soil model integration cannot proceed because the following "
-                f"variables have unexpected NaN values: {unexpected_nans}"
+                f"variables contain invalid values (e.g. NaN or Inf): {invalid_values}"
             )
             LOGGER.error(to_raise_nan)
             raise to_raise_nan
@@ -555,18 +555,20 @@ class SoilModel(
 
         return new_soil_pools | triplet_pools
 
-    def check_for_unexpected_nan_values(self, var: str) -> bool:
-        """Check if there are unexpected NaN values in the data for a specific variable.
+    def check_for_invalid_input_values(self, var: str) -> bool:
+        """Check if there are any invalid values in the data for a specific variable.
 
-        The soil model needs the air_temperature variable to have non-NaN values at the
-        soil surface, and the other layer structured variables to be defined for every
-        soil layer. For these variables, this function takes the appropriate subset.
+        This function checks for NaN and infinite values.
+
+        For variables with a layer structure, only the layers relevant to the soil model
+        are checked. For the air_temperature variable this is just the soil surface
+        layer, but for the other layer-structured variable all soil layers are checked.
 
         Args:
             var: The name of the variable being checked
 
         Returns:
-            Whether the data for the variable has any unexpected NaN values.
+            Whether the data for the variable has any invalid values.
         """
 
         if var == "air_temperature":
@@ -576,7 +578,7 @@ class SoilModel(
         else:
             subset = self.data[var]
 
-        return bool(subset.isnull().any())
+        return bool((subset.isnull() | np.isinf(subset)).any())
 
     def convert_fruiting_body_production_to_rate(
         self, total_production: DataArray
