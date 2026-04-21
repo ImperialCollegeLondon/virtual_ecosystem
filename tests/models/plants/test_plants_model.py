@@ -639,21 +639,6 @@ def test_PlantsModel_apply_recruitment(fxt_plants_model):
     assert np.all(np.less(original_n_cohorts, new_n_cohorts))
 
 
-def test_partition_reproductive_tissue(fxt_plants_model):
-    """Tests the partition reproductive tissue function."""
-
-    n_propagules, mass_non_propagules = fxt_plants_model.partition_reproductive_tissue(
-        reproductive_tissue_mass=10.5
-    )
-
-    assert n_propagules == 5
-    assert mass_non_propagules == 5.5
-    assert (
-        n_propagules * fxt_plants_model.model_constants.carbon_mass_per_propagule
-        + mass_non_propagules
-    )
-
-
 def test_convert_to_litter_units(fxt_plants_model):
     """Tests the helper function that converts to litter model units."""
 

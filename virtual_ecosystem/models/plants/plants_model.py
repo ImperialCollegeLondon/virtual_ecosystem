@@ -114,8 +114,6 @@ class PlantsModel(
         "fallen_seeds_per_fruit",
         "fallen_seeds_cnp",
         "canopy_foliage_cnp",
-        "fallen_non_propagule_c_mass",  # NOTE - will be deprecated in #1132
-        # "plant_reproductive_tissue_turnover_cnp",
         "subcanopy_seedbank_litter_cnp",
         "subcanopy_vegetation_litter_cnp",
         "subcanopy_vegetation_cnp",
@@ -149,18 +147,10 @@ class PlantsModel(
         "root_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
-        "fallen_n_propagules",
-        "canopy_n_propagules",
-        "canopy_non_propagule_c_mass",
-        "fallen_non_propagule_c_mass",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
-        # "plant_reproductive_tissue_turnover_cnp",
-        "plant_reproductive_tissue_turnover",
         "plant_reproductive_tissue_lignin",
-        "plant_rt_turnover_n_mass",  # to deprecate
-        "plant_rt_turnover_p_mass",  # to deprecate
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "root_lignin",
@@ -602,11 +592,6 @@ class PlantsModel(
 
     def reset_update_vars(self) -> None:
         """Resets specified variables in the data object before each update."""
-
-        # The deprecated variables have been moved to a separate method to keep this one
-        # current, but still need to be initialised until they are deleted in #1131:
-        # I can delete this as I will stop the litter model using the variables
-        self.old_stoichiometry_ratios_to_depricate()
 
         # Initialize variables that hold one value per cell
         by_cell_vars = [
@@ -1060,7 +1045,6 @@ class PlantsModel(
                 ).sum(axis=1)
 
             # Expose biomasses that are affected by herbivory:
-            # TODO handle herbivory
 
             # 1. Reproductive structures stored by PFT, storing turnover as fruit fall
             #   to the ground and standing biomass as canopy fruit biomass.
@@ -1104,6 +1088,8 @@ class PlantsModel(
 
             # 2. Standing biomass of foliage stored as aggregated mass across all
             #    cohorts (could go to per PFT and enable targeted folivory).
+            #    TODO handle foliage herbivory impacts on GPP and leaf replacement
+
             canopy_foliage_biomass = (
                 self.biomasses[cell_id].get_tissue("foliage").as_array(with_carbon=True)
             )
@@ -1114,63 +1100,7 @@ class PlantsModel(
             # HANDLE ALLOCATION TO GROWTH
             biomasses.apply_growth(allocation=stem_allocation)
 
-            # REPRODUCTIVE TISSUES - to be reworked
-
-            # Partition reproductive tissue into propagule and non-propagule masses and
-            # convert the propagule mass to number of propagules
-            # 1. Turnover reproductive tissue mass leaving the canopy to the ground
-            stem_fallen_n_propagules, stem_fallen_non_propagule_c_mass = (
-                self.partition_reproductive_tissue(
-                    # TODO: dimension issue in pyrealm, returns 2D array.
-                    stem_allocation.reproductive_tissue_turnover.squeeze()
-                )
-            )
-
-            # 2. Canopy reproductive tissue mass: partition into propagules and
-            # non-propagules.
-            # TODO - This is wrong. Reproductive tissue mass can't simply move backwards
-            #        and forwards between these two classes.
-            stem_canopy_n_propagules, stem_canopy_non_propagule_c_mass = (
-                self.partition_reproductive_tissue(
-                    community.stem_allometry.reproductive_tissue_mass
-                )
-            )
-
-            # Add those partitions to pools
-            #  - Merge fallen non-propagule mass into a single pool
-            self.data["fallen_non_propagule_c_mass"][cell_id] = (
-                self.convert_to_litter_units(
-                    input_mass=(
-                        stem_fallen_non_propagule_c_mass * cohorts.n_individuals
-                    ).sum(),
-                )
-            )
-
-            # Allocate fallen propagules, and canopy propagules and non-propagule mass
-            # into PFT specific pools by iterating over cohort PFTs.
-            # TODO: not sure how performant this is, there might be a better solution.
-            for (
-                cohort_pft,
-                fallen_n_propagules,
-                canopy_n_propagules,
-                canopy_non_propagule_mass,
-                cohort_n_stems,
-            ) in zip(
-                cohorts.pft_names,
-                stem_fallen_n_propagules.squeeze(),
-                stem_canopy_n_propagules.squeeze(),
-                stem_canopy_non_propagule_c_mass.squeeze(),
-                cohorts.n_individuals,
-            ):
-                self.data["plant_pft_propagules"].loc[cell_id, cohort_pft] += (
-                    fallen_n_propagules * cohort_n_stems
-                )
-                self.data["canopy_n_propagules"].loc[cell_id, cohort_pft] += (
-                    canopy_n_propagules * cohort_n_stems
-                )
-                self.data["canopy_non_propagule_c_mass"].loc[cell_id, cohort_pft] += (
-                    canopy_non_propagule_mass * cohort_n_stems
-                )
+            # TODO: capture propagules in canopy seedbank.
 
             # ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
             # Allocate the topsliced GPP to root exudates with remainder as active
@@ -1447,60 +1377,6 @@ class PlantsModel(
             self.biomasses[cell_id]._adjust_surpluses(
                 {"N": ammonium_uptake + nitrate_uptake, "P": phosphorous_uptake}
             )
-
-    def partition_reproductive_tissue(
-        self, reproductive_tissue_mass: NDArray[np.floating]
-    ) -> tuple[NDArray[np.int_], NDArray[np.floating]]:
-        """Partition reproductive tissue into propagules and non-propagules.
-
-        This function partitions the reproductive tissue of each cohort into
-        propagules and non-propagules. The number of propagules is calculated based on
-        the mass of reproductive tissue and the mass of each propagule. The remaining
-        mass is considered as non-propagule reproductive tissue.
-        """
-
-        n_propagules = np.floor(
-            reproductive_tissue_mass
-            * self.model_constants.propagule_mass_portion
-            / self.model_constants.carbon_mass_per_propagule
-        ).astype(np.int_)
-
-        non_propagule_mass = reproductive_tissue_mass - (
-            n_propagules * self.model_constants.carbon_mass_per_propagule
-        )
-
-        return n_propagules, non_propagule_mass
-
-    # NOTE - will be deprecated in #1132
-    def old_stoichiometry_ratios_to_depricate(self) -> None:
-        """Temporary function to initialise variables for the litter and soil models.
-
-        These have been replaced by singualar DataArrays that hold CNP masses. Once
-        the litter and soil models have been updated these can be removed.
-        """
-
-        vars_to_update = [
-            "plant_reproductive_tissue_turnover",
-            "plant_rt_turnover_n_mass",
-            "plant_rt_turnover_p_mass",
-            "fallen_non_propagule_c_mass",
-        ]
-        cell_template = xr.full_like(self.data["elevation"], 0)
-        for var_name in vars_to_update:
-            self.data[var_name] = cell_template.copy()
-
-        pft_cell_template = xr.DataArray(
-            data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
-            coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
-        )
-        by_pft_vars = [
-            "fallen_n_propagules",
-            "canopy_n_propagules",
-            "canopy_non_propagule_c_mass",
-        ]
-
-        for var in by_pft_vars:
-            self.data[var] = pft_cell_template.copy()
 
     def convert_to_litter_units(self, input_mass: xr.DataArray) -> xr.DataArray:
         """Helper function to convert plant quantities into litter model units.
