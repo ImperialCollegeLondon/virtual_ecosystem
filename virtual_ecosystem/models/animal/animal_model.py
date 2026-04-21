@@ -23,13 +23,14 @@ from __future__ import annotations
 
 import uuid
 from itertools import chain
-from math import ceil, isnan, sqrt
+from math import ceil, sqrt
 from random import choice
 from typing import Any, cast
 
 from numpy import (
     array,
     float32,
+    isnan,
     nanmean,
     random,
     stack,
@@ -1852,9 +1853,13 @@ class AnimalModel(
         """Update the activity window fraction for all cohorts in all communities.
 
         Per-stratum temperatures and diurnal ranges are pre-computed once per
-        timestep as per-cell means, then it the climate experienced by each cohort based
-        on its vertical occupancy. Both variables are averaged across all
-        territory cells.
+        timestep as per-cell means, then
+        :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_mean_territory_climate`
+        derives the climate experienced by each cohort based on its vertical
+        occupancy. Both variables are averaged across all territory cells.
+
+        Where a cell has no filled canopy layers, canopy temperature and diurnal
+        range fall back to the corresponding ground values to avoid NaN propagation.
 
         Note:
             Annual mean temperature and annual temperature SD are currently
@@ -1881,6 +1886,17 @@ class AnimalModel(
         soil_diurnal = self.data["diurnal_temperature_range"][
             lyr.index_topsoil_scalar
         ].to_numpy()
+
+        # If no canopy layers exist at all, nanmean returns a 0-d scalar nan.
+        # In either case fall back to ground values for any NaN cells.
+        if canopy_temp.ndim == 0 or isnan(canopy_temp).all():
+            canopy_temp = ground_temp.copy()
+            canopy_diurnal = ground_diurnal.copy()
+        else:
+            canopy_temp = where(isnan(canopy_temp), ground_temp, canopy_temp)
+            canopy_diurnal = where(
+                isnan(canopy_diurnal), ground_diurnal, canopy_diurnal
+            )
 
         for cohort in self.active_cohorts.values():
             temperature, diurnal_range = cohort.get_mean_territory_climate(
