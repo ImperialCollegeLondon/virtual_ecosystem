@@ -23,7 +23,7 @@ language_info:
   version: 3.12
 ---
 
-# The Soil Model implementation
+# The soil model
 
 ## Model overview
 

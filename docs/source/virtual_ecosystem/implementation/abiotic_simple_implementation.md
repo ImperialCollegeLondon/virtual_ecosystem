@@ -22,7 +22,7 @@ language_info:
   version: 3.12
 ---
 
-# The abiotic simple model implementation
+# The abiotic simple model
 
 This section walks through the steps in generating and updating the
 [abiotic_simple](virtual_ecosystem.models.abiotic_simple.abiotic_simple_model)

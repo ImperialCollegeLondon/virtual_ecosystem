@@ -23,7 +23,7 @@ language_info:
   version: 3.10.14
 ---
 
-# How the simulation core works
+# The simulation core
 
 The simulation starts by configuring and initialising the core components.
 

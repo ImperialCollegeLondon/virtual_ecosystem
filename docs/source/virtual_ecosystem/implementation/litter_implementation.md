@@ -23,7 +23,7 @@ language_info:
   version: 3.12
 ---
 
-# The Litter Model implementation
+# The litter model
 
 ## Model overview
 

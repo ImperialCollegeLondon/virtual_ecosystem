@@ -22,7 +22,7 @@ language_info:
   version: 3.12
 ---
 
-# The abiotic model implementation
+# The abiotic model
 
 ```{warning}
 The process-based abiotic model is currently the default abiotic model version in the

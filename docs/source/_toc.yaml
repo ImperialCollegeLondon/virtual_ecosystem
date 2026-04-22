@@ -32,15 +32,16 @@ subtrees:
         - file: virtual_ecosystem/implementation/how_it_works
           title: How it works
           entries:
-            - file: virtual_ecosystem/implementation/science_model_overview
             - file: virtual_ecosystem/implementation/core_components_overview
-            - file: virtual_ecosystem/implementation/abiotic_simple_implementation
-            - file: virtual_ecosystem/implementation/abiotic_implementation
-            - file: virtual_ecosystem/implementation/animal_implementation
-            - file: virtual_ecosystem/implementation/litter_implementation
-            - file: virtual_ecosystem/implementation/hydrology_implementation
-            - file: virtual_ecosystem/implementation/soil_implementation
-            - file: virtual_ecosystem/implementation/plants_implementation
+            - file: virtual_ecosystem/implementation/science_model_overview
+              entries:
+                - file: virtual_ecosystem/implementation/abiotic_simple_implementation
+                - file: virtual_ecosystem/implementation/abiotic_implementation
+                - file: virtual_ecosystem/implementation/animal_implementation
+                - file: virtual_ecosystem/implementation/litter_implementation
+                - file: virtual_ecosystem/implementation/hydrology_implementation
+                - file: virtual_ecosystem/implementation/soil_implementation
+                - file: virtual_ecosystem/implementation/plants_implementation
         - file: project_team
           title: About the Project
         - file: glossary

@@ -23,7 +23,7 @@ language_info:
   version: 3.12
 ---
 
-# Animal Model Implementation
+# The animal model
 
 ## Model Overview
 

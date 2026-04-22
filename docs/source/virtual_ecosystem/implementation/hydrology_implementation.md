@@ -22,7 +22,7 @@ language_info:
   version: 3.12
 ---
 
-# The hydrology model implementation
+# The hydrology model
 
 This section walks through the steps in generating and updating the
 [hydrology](../../../../virtual_ecosystem/models/hydrology/hydrology_model.py)

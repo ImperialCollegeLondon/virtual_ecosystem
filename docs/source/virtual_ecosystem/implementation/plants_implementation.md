@@ -22,7 +22,7 @@ language_info:
   version: 3.12
 ---
 
-# The Plants Model implementation
+# The plants model
 
 ## Model overview
 

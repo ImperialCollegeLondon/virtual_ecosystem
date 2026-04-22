@@ -23,7 +23,7 @@ language_info:
   version: 3.12
 ---
 
-# The Virtual Ecosystem science models
+# The science models
 
 This page provides an overview of the implementations of each science model. These
 descriptions are intentionally brief to allow you to see all of the different science
