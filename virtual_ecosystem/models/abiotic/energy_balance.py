@@ -45,6 +45,8 @@ subtracted from the energy balance
 
 """  # noqa: D205, D415
 
+from collections.abc import Callable
+
 import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import newton
@@ -881,3 +883,72 @@ def calculate_latent_heat_flux(
     latent_heat_flux = energy_j_per_m2 / time_interval
 
     return latent_heat_flux
+
+
+def secant_solve_cells_layers(
+    residual_function: Callable[[NDArray[np.floating]], NDArray[np.floating]],
+    initial_guess: NDArray[np.floating],
+    maxiter_secant: int,
+    convergence_tolerance: float,
+    small_perturbation_second_guess: float,
+    denominator_tolerance: float,
+    return_history: bool = False,
+) -> NDArray[np.floating] | tuple[NDArray[np.floating], list[tuple[int, float, float]]]:
+    """Vectorised secant solver for independent (cell, layer) root problems.
+
+    Args:
+        residual_function: Function f(T) returning residual with same shape as T.
+        initial_guess: Initial guess canopy temperature, shape (n_cells, n_layers).
+        maxiter_secant: Maximum secant iterations.
+        convergence_tolerance: Convergence tolerance on max absolute update.
+        small_perturbation_second_guess: Small perturbation for second initial guess.
+        denominator_tolerance: Small value to prevent division by zero in secant update.
+        return_history: Set flag whether to return convergence history for diagnostics.
+
+    Returns:
+        Root estimate canopy temperature solving f(T)=0 elementwise.
+    """
+
+    previous_temperature = initial_guess.copy()
+    current_temperature = initial_guess + small_perturbation_second_guess
+
+    previous_residual = residual_function(previous_temperature)
+    current_residual = residual_function(current_temperature)
+
+    history = []  # store convergence info
+
+    for iteration in range(maxiter_secant):
+        denom = current_residual - previous_residual
+        denom = np.where(
+            np.abs(denom) < denominator_tolerance, denominator_tolerance, denom
+        )
+
+        next_temperature = (
+            current_temperature
+            - current_residual * (current_temperature - previous_temperature) / denom
+        )
+
+        # store diagnostics
+        max_update = np.nanmax(np.abs(next_temperature - current_temperature))
+        max_residual = np.nanmax(np.abs(current_residual))
+
+        history.append((iteration, max_update, max_residual))
+
+        if max_update < convergence_tolerance:
+            if return_history:
+                return next_temperature, history
+            return next_temperature
+
+        previous_temperature, current_temperature = (
+            current_temperature,
+            next_temperature,
+        )
+        previous_residual, current_residual = (
+            current_residual,
+            residual_function(next_temperature),
+        )
+
+    if return_history:
+        return current_temperature, history
+
+    return current_temperature

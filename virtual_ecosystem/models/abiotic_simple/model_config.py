@@ -74,6 +74,18 @@ class AbioticSimpleBounds(Configuration):
     soil_temperature: tuple[float, float] = (-10.0, 50.0)
     """Bounds for soil temperature, [C]."""
 
+    maxiter_secant_solver: int = 8
+    """Maximum number of secant iterations to solve for canopy temperature."""
+
+    convergence_tolerance_secant_solver: float = 1e-2
+    """Convergence tolerance for secant solver, in max absolute update."""
+
+    small_perturbation_second_guess_secant_solver: float = 1e-6
+    """Small perturbation for second initial guess in secant solver."""
+
+    denominator_tolerance_secant_solver: float = 1e-12
+    """Small value to prevent division by zero in secant solver."""
+
 
 class AbioticSimpleConfiguration(ModelConfigurationRoot):
     """Root configuration class for the abiotic simple model."""
