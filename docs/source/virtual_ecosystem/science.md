@@ -27,7 +27,7 @@ language_info:
 # Virtual Ecosystem Science
 
 This section of the documentation covers the Science of the Virtual Ecosystem
-simulation. It consists of two sections
+simulation. It consists of several sections
 
 * a section describing the [scientific theories](./theory/underlying_theory.md)
   underlying the science models, and
