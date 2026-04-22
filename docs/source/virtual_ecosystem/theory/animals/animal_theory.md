@@ -23,7 +23,7 @@ language_info:
   version: 3.12
 ---
 
-# Theory of the Animal Model
+# Animals
 
 This page outlines the theoretical basis for the animal model within the Virtual
 Ecosystem. It details the representation of functional groups and cohorts, the processes

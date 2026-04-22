@@ -23,7 +23,7 @@ language_info:
   version: 3.12
 ---
 
-# Theory of the plants
+# Plants
 
 :::{figure} ../../\_static/images/Plant_Model_Flow.png
 :name: fig_plant_model_flow

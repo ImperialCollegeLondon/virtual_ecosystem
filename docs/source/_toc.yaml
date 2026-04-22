@@ -19,6 +19,9 @@ subtrees:
                   entries:
                     - file: virtual_ecosystem/theory/hydrology_primer
             - file: virtual_ecosystem/theory/plant_theory
+            - file: virtual_ecosystem/theory/animals/animal_theory
+              entries:
+                - file: virtual_ecosystem/theory/animals/carcasses_and_excrement
             - file: virtual_ecosystem/theory/soil/summary
               entries:
                 - file: virtual_ecosystem/theory/soil/soil_carbon
@@ -26,9 +29,6 @@ subtrees:
                 - file: virtual_ecosystem/theory/soil/microbial_representation
                 - file: virtual_ecosystem/theory/soil/litter_theory
                 - file: virtual_ecosystem/theory/soil/environmental_links
-            - file: virtual_ecosystem/theory/animals/animal_theory
-              entries:
-                - file: virtual_ecosystem/theory/animals/carcasses_and_excrement
         - file: virtual_ecosystem/implementation/how_it_works
           title: How it works
           entries:

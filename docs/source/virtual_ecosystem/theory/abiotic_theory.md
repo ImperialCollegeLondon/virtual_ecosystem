@@ -23,7 +23,7 @@ language_info:
   version: 3.12
 ---
 
-# The abiotic environment
+# Abiotic environment
 
 The abiotic component of the Virtual Ecosystem focuses on non-living environmental
 factors that influence ecosystem dynamics. These factors encompass
