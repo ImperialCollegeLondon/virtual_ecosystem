@@ -177,6 +177,18 @@ class AbioticConstants(AbioticSharedConstants):
     """Maximum turbulent mixing coefficients, [m2 s-1].
     """
 
+    maxiter_secant_solver: int = 8
+    """Maximum number of secant iterations to solve for canopy temperature."""
+
+    convergence_tolerance_secant_solver: float = 1e-2
+    """Convergence tolerance for secant solver, in max absolute update."""
+
+    small_perturbation_second_guess_secant_solver: float = 1e-6
+    """Small perturbation for second initial guess in secant solver."""
+
+    denominator_tolerance_secant_solver: float = 1e-12
+    """Small value to prevent division by zero in secant solver."""
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""

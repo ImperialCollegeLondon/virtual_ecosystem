@@ -693,3 +693,152 @@ def test_secant_history_convergence():
 
     # result should be close to target
     assert np.allclose(result, 5.0, atol=1e-4)
+
+
+def test_make_canopy_residual_changes_with_temperature():
+    """Test that canopy residual changes with temperature."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
+
+    shape = (2, 2)
+
+    state = {
+        "air_temperature": np.ones(shape) * 290,
+        "evapotranspiration": np.ones(shape),
+        "shortwave_absorption": np.ones(shape) * 200,
+        "specific_heat_air": np.ones(shape) * 1005,
+        "density_air": np.ones(shape) * 1.2,
+        "latent_heat_vapourisation": np.ones(shape) * 2.45e6,
+    }
+
+    static = {
+        "absorbed_longwave_radiation": np.ones(shape) * 300,
+    }
+
+    aerodynamic_resistance = np.ones(shape) * 50
+
+    class Abiotic:
+        leaf_emissivity = 0.96
+
+    class Core:
+        stefan_boltzmann_constant = 5.67e-8
+        zero_Celsius = 273.15
+        seconds_to_hour = 3600
+
+    residual = make_canopy_residual(
+        state,
+        static,
+        aerodynamic_resistance,
+        Abiotic(),
+        Core(),
+    )
+
+    T1 = np.ones(shape) * 280
+    T2 = np.ones(shape) * 300
+
+    r1 = residual(T1)
+    r2 = residual(T2)
+
+    assert not np.allclose(r1, r2)
+
+
+def test_make_canopy_residual_uses_state():
+    """Test that canopy residual reflects changes in state variables."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
+
+    shape = (2, 2)
+
+    state = {
+        "air_temperature": np.ones(shape) * 290,
+        "evapotranspiration": np.zeros(shape),
+        "shortwave_absorption": np.zeros(shape),
+        "specific_heat_air": np.ones(shape) * 1005,
+        "density_air": np.ones(shape) * 1.2,
+        "latent_heat_vapourisation": np.ones(shape) * 2.45e6,
+    }
+
+    static = {
+        "absorbed_longwave_radiation": np.zeros(shape),
+    }
+
+    aerodynamic_resistance = np.ones(shape) * 50
+
+    class Abiotic:
+        leaf_emissivity = 0.96
+
+    class Core:
+        stefan_boltzmann_constant = 5.67e-8
+        zero_Celsius = 273.15
+        seconds_to_hour = 3600
+
+    residual = make_canopy_residual(
+        state,
+        static,
+        aerodynamic_resistance,
+        Abiotic(),
+        Core(),
+    )
+
+    T = np.ones(shape) * 290
+
+    r1 = residual(T)
+
+    # change state AFTER creating closure
+    state["air_temperature"] += 10
+
+    r2 = residual(T)
+
+    # closure should reflect updated state
+    assert not np.allclose(r1, r2)
+
+
+def test_make_canopy_residual_with_nans():
+    """Test that canopy residual handles NaNs in state variables."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
+
+    shape = (2, 3)
+
+    state = {
+        "air_temperature": np.ones(shape) * 290,
+        "evapotranspiration": np.ones(shape),
+        "shortwave_absorption": np.ones(shape) * 200,
+        "specific_heat_air": np.ones(shape) * 1005,
+        "density_air": np.ones(shape) * 1.2,
+        "latent_heat_vapourisation": np.ones(shape) * 2.45e6,
+    }
+
+    static = {
+        "absorbed_longwave_radiation": np.ones(shape) * 300,
+    }
+
+    aerodynamic_resistance = np.ones(shape) * 50
+
+    class Abiotic:
+        leaf_emissivity = 0.96
+
+    class Core:
+        stefan_boltzmann_constant = 5.67e-8
+        zero_Celsius = 273.15
+        seconds_to_hour = 3600
+
+    residual = make_canopy_residual(
+        state,
+        static,
+        aerodynamic_resistance,
+        Abiotic(),
+        Core(),
+    )
+
+    T = np.array(
+        [
+            [290, 290, 290],
+            [290, np.nan, np.nan],
+        ]
+    )
+
+    result = residual(T)
+
+    assert np.isnan(result[1, 1])
+    assert np.isnan(result[1, 2])

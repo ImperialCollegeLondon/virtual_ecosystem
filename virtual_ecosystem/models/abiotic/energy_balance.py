@@ -952,3 +952,47 @@ def secant_solve_cells_layers(
         return current_temperature, history
 
     return current_temperature
+
+
+def make_canopy_residual(
+    state,
+    static,
+    aerodynamic_resistance,
+    abiotic_constants,
+    core_constants,
+) -> Callable[[NDArray[np.floating]], NDArray[np.floating]]:
+    """Creates a residual function for canopy temperature to be used in root finding.
+
+    Args:
+        state: Dictionary containing state variables needed for the energy balance
+            residual.
+        static: Dictionary containing static variables needed for the energy balance
+            residual.
+        aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
+        abiotic_constants: Constants related to abiotic processes.
+        core_constants: Core constants.
+
+    Returns:
+        A function that takes canopy_temperature as input and returns the energy balance
+        residual.
+    """
+
+    def residual(canopy_temperature):
+        return calculate_energy_balance_residual(
+            canopy_temperature_initial=canopy_temperature,
+            air_temperature=state["air_temperature"],
+            evapotranspiration=state["evapotranspiration"],
+            absorbed_shortwave_radiation=state["shortwave_absorption"],
+            absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
+            specific_heat_air=state["specific_heat_air"],
+            density_air=state["density_air"],
+            aerodynamic_resistance=aerodynamic_resistance,
+            latent_heat_vapourisation=state["latent_heat_vapourisation"],
+            leaf_emissivity=abiotic_constants.leaf_emissivity,
+            stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+            zero_Celsius=core_constants.zero_Celsius,
+            seconds_to_hour=core_constants.seconds_to_hour,
+            return_fluxes=False,
+        )
+
+    return residual

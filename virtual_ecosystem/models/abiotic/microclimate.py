@@ -482,23 +482,27 @@ def calculate_vegetation_temperature(
         state["aerodynamic_resistance_canopy"], (n_layers, 1)
     )
 
-    return energy_balance.solve_canopy_temperature(
-        canopy_temperature_initial=state["canopy_temperature"],
-        air_temperature=state["air_temperature"],
-        evapotranspiration=state["evapotranspiration"],
-        absorbed_shortwave_radiation=state["shortwave_absorption"],
-        absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-        specific_heat_air=state["specific_heat_air"],
-        density_air=state["density_air"],
+    residual = energy_balance.make_canopy_residual(
+        state=state,
+        static=static,
         aerodynamic_resistance=aerodynamic_resistance_2d,
-        latent_heat_vapourisation=state["latent_heat_vapourisation"],
-        emissivity_leaf=abiotic_constants.leaf_emissivity,
-        stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
-        zero_Celsius=core_constants.zero_Celsius,
-        seconds_to_hour=core_constants.seconds_to_hour,
-        return_fluxes=False,
-        maxiter=100,
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
     )
+
+    # Result contains new temperature and solver history if flag set to True
+    # TODO resolve type error
+    result = energy_balance.secant_solve_cells_layers(
+        residual_function=residual,
+        initial_guess=state["canopy_temperature"],
+        maxiter_secant=abiotic_constants.maxiter_secant_solver,
+        convergence_tolerance=abiotic_constants.convergence_tolerance_secant_solver,
+        small_perturbation_second_guess=abiotic_constants.small_perturbation_second_guess_secant_solver,
+        denominator_tolerance=abiotic_constants.denominator_tolerance_secant_solver,
+        return_history=False,
+    )
+
+    return result  # type: ignore
 
 
 def calculate_vegetation_fluxes(
