@@ -5,7 +5,7 @@ subtrees:
     caption: The Virtual Ecosystem
     entries:
       - file: virtual_ecosystem/science
-        title: Science
+        title: <i class="fa-solid fa-microscope"></i> &nbsp; Science &nbsp;
         entries:
         - file: virtual_ecosystem/theory/underlying_theory
           title: Underlying theory
@@ -48,7 +48,7 @@ subtrees:
         - file: bibliography
 
       - file: using_the_ve/overview
-        title: Users
+        title: <i class="fa-solid fa-user-group"></i> &nbsp; Users &nbsp;
         entries:
           - file: using_the_ve/installing_ve
           - file: using_the_ve/example_data
@@ -87,7 +87,7 @@ subtrees:
                   - file: using_the_ve/model_details/decay/default_microbial_params
 
       - file: development/contributing
-        title: Developers
+        title: <i class="fa-solid fa-terminal"></i> &nbsp; Developers &nbsp;
         entries:
           - file: development/contributing/overview
           - file: development/contributing/code_qa_and_typing
@@ -115,7 +115,7 @@ subtrees:
             - file: development/calibration/debugging
 
       - file: api/virtual_ecosystem
-        title: API
+        title: <i class="fa-solid fa-book"></i> &nbsp; API &nbsp;
         entries:
           - file: api/core.md
             title: The core module
