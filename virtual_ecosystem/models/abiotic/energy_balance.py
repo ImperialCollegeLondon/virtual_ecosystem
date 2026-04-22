@@ -930,6 +930,9 @@ def calculate_total_absorbed_shortwave_radiation(
 
     # Calculate the portion of absorbed PAR that contributes to heat after accounting
     # for photosynthesis
+    # TODO: #1533 we want to use light use efficiency from the plant model to determine
+    # the fraction of absorbed PAR used in photosynthesis; for now we use a constant
+    # fraction.
     par_heat = shortwave_absorption_by_canopy * (1 - fraction_par_used)
 
     # Total absorbed shortwave radiation contributing to heat
