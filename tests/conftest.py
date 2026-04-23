@@ -13,7 +13,7 @@ from xarray import DataArray
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools
-from virtual_ecosystem.models.abiotic.microclimate import (
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_weights_from_absorbed_radiation,
 )
 
@@ -87,6 +87,20 @@ def reset_module_registry():
     from virtual_ecosystem.core.registry import MODULE_REGISTRY
 
     MODULE_REGISTRY.clear()
+
+
+@pytest.fixture(autouse=True)
+def reset_disturbance_registry():
+    """Reset the disturbance registry.
+
+    The register_disturbance function updates the DISTURBANCE_REGISTRY, which persists
+    between tests. This autouse fixture is used to ensure that the registry is always
+    cleared before tests start, so that the correct registration of disturbances within
+    tests is enforced.
+    """
+    from virtual_ecosystem.core.registry import DISTURBANCE_REGISTRY
+
+    DISTURBANCE_REGISTRY.clear()
 
 
 # Shared fixtures
