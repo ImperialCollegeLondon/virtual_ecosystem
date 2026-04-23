@@ -290,8 +290,8 @@ Input variables are usually clearly thematically linked to the scientific domain
 single model. However, in some cases models require less obvious data. For example:
 
 * The plants model requires shortwave downwelling radiation. Although this seems like an
-  abiotic variable, it is required for modelling plant growth and the plants model
-  partitions radiation within the canopy.
+  abiotic variable, it is required for modelling plant growth and the partitioning of
+  radiation within the canopy is calculated by the plants model.
 
 * The animal model requires fungal fruiting body densities for consumption by
   fungivores. The soil and litter models update these values but the data is first
