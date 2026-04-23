@@ -225,9 +225,6 @@ class AnimalConstants(Configuration):
 
     tau_f: float = 0.5  # tau_f
     """Proportion of time for which functional group is active."""
-    sigma_f_t: float = 1.0  # sigma_f(t) - Madingley, in S1 TODO: expand for ectotherms
-    """Proportion of the time step in which it's suitable to be active for functional
-    group f."""
 
     # Trophic parameters
 

@@ -4099,6 +4099,90 @@ class TestAnimalCohort:
             assert 0.0 < cohort.sigma_f_t < 1.0
 
     @pytest.mark.parametrize(
+        "temperature, diurnal_temp_range, annual_mean_temp, annual_temp_sd, t_opt,"
+        "t_max_crit, t_min_crit",
+        [
+            pytest.param(
+                25.0,
+                10.0,
+                25.0,
+                5.0,
+                None,
+                None,
+                None,
+                id="typical_derived_tolerance",
+            ),
+            pytest.param(
+                100.0,
+                1.0,
+                100.0,
+                5.0,
+                None,
+                None,
+                None,
+                id="extreme_heat_ectotherm_would_be_zero",
+            ),
+            pytest.param(
+                -50.0,
+                1.0,
+                -50.0,
+                5.0,
+                None,
+                None,
+                None,
+                id="extreme_cold_ectotherm_would_be_zero",
+            ),
+            pytest.param(
+                25.0,
+                10.0,
+                25.0,
+                5.0,
+                30.0,
+                40.0,
+                20.0,
+                id="explicit_thermal_tolerances",
+            ),
+            pytest.param(
+                25.0,
+                0.0,
+                25.0,
+                5.0,
+                None,
+                None,
+                None,
+                id="zero_diurnal_range_ectotherm_would_divide_by_zero",
+            ),
+        ],
+    )
+    def test_activity_window_endotherm_always_one(
+        self,
+        temperature,
+        diurnal_temp_range,
+        annual_mean_temp,
+        annual_temp_sd,
+        t_opt,
+        t_max_crit,
+        t_min_crit,
+    ):
+        """Endotherms return sigma_f_t = 1.0 regardless of all other arguments."""
+        from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+        from virtual_ecosystem.models.animal.scaling_functions import activity_window
+
+        assert (
+            activity_window(
+                MetabolicType.ENDOTHERMIC,
+                temperature=temperature,
+                diurnal_temp_range=diurnal_temp_range,
+                annual_mean_temp=annual_mean_temp,
+                annual_temp_sd=annual_temp_sd,
+                t_opt=t_opt,
+                t_max_crit=t_max_crit,
+                t_min_crit=t_min_crit,
+            )
+            == 1.0
+        )
+
+    @pytest.mark.parametrize(
         "cohort_type, canopy_t, ground_t, soil_t, canopy_d, ground_d, soil_d, "
         "cell_id, expected_temp, expected_diurnal",
         [
@@ -4198,6 +4282,61 @@ class TestAnimalCohort:
 
         assert result_temp == pytest.approx(expected_temp)
         assert result_diurnal == pytest.approx(expected_diurnal)
+
+    def test_get_stratum_climate_soil_only_matches_soil_ground_when_strata_equal(
+        self, animal_model_instance, monkeypatch
+    ):
+        """SOIL-only and SOIL|GROUND produce identical climate when soil==ground."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+
+        n = animal_model_instance.data.grid.n_cells
+        soil_temp = np.full(n, 18.0)
+        ground_temp = np.full(n, 18.0)  # identical to soil
+        canopy_temp = np.full(
+            n, 35.0
+        )  # distinct: accidental inclusion would change mean
+
+        soil_diurnal = np.full(n, 4.0)
+        ground_diurnal = np.full(n, 4.0)  # identical to soil
+        canopy_diurnal = np.full(
+            n, 12.0
+        )  # distinct: accidental inclusion would change mean
+
+        cohort = next(iter(animal_model_instance.active_cohorts.values()))
+        cell_id = cohort.territory[0]
+
+        monkeypatch.setattr(
+            cohort.functional_group, "vertical_occupancy", VerticalOccupancy.SOIL
+        )
+        temp_soil, diurnal_soil = cohort.get_stratum_climate(
+            cell_id,
+            canopy_temp,
+            ground_temp,
+            soil_temp,
+            canopy_diurnal,
+            ground_diurnal,
+            soil_diurnal,
+        )
+
+        monkeypatch.setattr(
+            cohort.functional_group,
+            "vertical_occupancy",
+            VerticalOccupancy.SOIL | VerticalOccupancy.GROUND,
+        )
+        temp_soil_ground, diurnal_soil_ground = cohort.get_stratum_climate(
+            cell_id,
+            canopy_temp,
+            ground_temp,
+            soil_temp,
+            canopy_diurnal,
+            ground_diurnal,
+            soil_diurnal,
+        )
+
+        assert temp_soil == pytest.approx(temp_soil_ground)
+        assert diurnal_soil == pytest.approx(diurnal_soil_ground)
 
     def test_get_mean_territory_climate(
         self,

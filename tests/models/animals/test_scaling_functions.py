@@ -770,13 +770,15 @@ def test_t_min_crit_ectotherm(t_max_crit, t_opt, expected):
 @pytest.mark.parametrize(
     "temperature, diurnal_temp_range, t_max_crit, expected",
     [
-        pytest.param(20.0, 10.0, 40.0, 0.0, id="always_below_max"),
-        pytest.param(20.0, 10.0, 10.0, 1.0, id="always_above_max"),
-        pytest.param(20.0, 10.0, 22.0, 0.36901011956554536, id="partial_overlap"),
+        pytest.param(25.0, 10.0, 35.0, 0.0, id="threshold_above_daily_max"),
+        pytest.param(25.0, 10.0, 30.0, 0.0, id="threshold_at_daily_max_edge"),
+        pytest.param(25.0, 10.0, 25.0, 0.5, id="threshold_at_mean"),
+        pytest.param(25.0, 10.0, 20.0, 1.0, id="threshold_at_daily_min_edge"),
+        pytest.param(25.0, 10.0, 15.0, 1.0, id="threshold_below_daily_min"),
     ],
 )
 def test_p_above_t_max(temperature, diurnal_temp_range, t_max_crit, expected):
-    """Test proportion of day above upper critical temperature."""
+    """Test p_above_t_max at the asymptotic boundaries of the sine-wave model."""
     from virtual_ecosystem.models.animal.scaling_functions import p_above_t_max
 
     assert p_above_t_max(temperature, diurnal_temp_range, t_max_crit) == pytest.approx(
@@ -787,13 +789,15 @@ def test_p_above_t_max(temperature, diurnal_temp_range, t_max_crit, expected):
 @pytest.mark.parametrize(
     "temperature, diurnal_temp_range, t_min_crit, expected",
     [
-        pytest.param(20.0, 10.0, -5.0, 0.0, id="always_above_min"),
-        pytest.param(20.0, 10.0, 30.0, 1.0, id="always_below_min"),
-        pytest.param(20.0, 10.0, 18.0, 0.3690101195655454, id="partial_overlap"),
+        pytest.param(25.0, 10.0, 35.0, 1.0, id="threshold_above_daily_max"),
+        pytest.param(25.0, 10.0, 30.0, 1.0, id="threshold_at_daily_max_edge"),
+        pytest.param(25.0, 10.0, 25.0, 0.5, id="threshold_at_mean"),
+        pytest.param(25.0, 10.0, 20.0, 0.0, id="threshold_at_daily_min_edge"),
+        pytest.param(25.0, 10.0, 15.0, 0.0, id="threshold_below_daily_min"),
     ],
 )
 def test_p_below_t_min(temperature, diurnal_temp_range, t_min_crit, expected):
-    """Test proportion of day below lower critical temperature."""
+    """Test p_below_t_min at the asymptotic boundaries of the sine-wave model."""
     from virtual_ecosystem.models.animal.scaling_functions import p_below_t_min
 
     assert p_below_t_min(temperature, diurnal_temp_range, t_min_crit) == pytest.approx(

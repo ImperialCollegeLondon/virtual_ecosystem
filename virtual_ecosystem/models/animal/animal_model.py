@@ -102,6 +102,10 @@ class AnimalModel(
         "litter_consumed_below_structural_cnp",
     ),
     vars_required_for_update=(
+        "canopy_temperature",
+        "air_temperature",
+        "soil_temperature",
+        "diurnal_temperature_range",
         "litter_pool_above_metabolic_cnp",
         "litter_pool_above_structural_cnp",
         "litter_pool_woody_cnp",

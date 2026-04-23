@@ -715,6 +715,10 @@ def p_above_t_max(
     Returns:
         Proportion of the day that is too hot for activity [0, 1].
     """
+    if diurnal_temp_range <= 0.0:
+        # With no diurnal variation the day is fully on one side of the threshold.
+        return 1.0 if temperature > t_max_crit else 0.0
+
     arg = max(-1.0, min(1.0, 2.0 * (t_max_crit - temperature) / diurnal_temp_range))
     return (pi / 2.0 - asin(arg)) / pi
 
@@ -746,6 +750,10 @@ def p_below_t_min(
     Returns:
         Proportion of the day that is too cold for activity [0, 1].
     """
+    if diurnal_temp_range <= 0.0:
+        # With no diurnal variation the day is fully on one side of the threshold.
+        return 1.0 if temperature < t_min_crit else 0.0
+
     arg = max(-1.0, min(1.0, 2.0 * (t_min_crit - temperature) / diurnal_temp_range))
     return 1.0 - (pi / 2.0 - asin(arg)) / pi
 
