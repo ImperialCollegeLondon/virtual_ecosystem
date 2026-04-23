@@ -7,6 +7,9 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_layer_thickness_for_varying_canopy,
 )
+from virtual_ecosystem.models.abiotic.energy_balance import (
+    calculate_total_absorbed_shortwave_radiation,
+)
 
 
 def test_initialise_canopy_and_soil_fluxes(
@@ -618,3 +621,44 @@ def test_calculate_latent_heat_flux(
 
     np.testing.assert_allclose(result[canopy_layers], exp_canopy, rtol=1e-4, atol=1e-4)
     np.testing.assert_allclose(result[surface_layer], exp_surface, rtol=1e-4, atol=1e-4)
+
+
+def test_total_absorbed_shortwave_radiation(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test calculation of total absorbed shortwave radiation."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        compute_weights_from_absorbed_radiation,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
+
+    downward_sw = data["downward_shortwave_radiation"].isel(time_index=0).to_numpy()
+    canopy_absorption = data["shortwave_absorption"][canopy_index].to_numpy()
+
+    weights = compute_weights_from_absorbed_radiation(radiation=canopy_absorption)
+    result = calculate_total_absorbed_shortwave_radiation(
+        downward_shortwave_radiation=downward_sw,
+        shortwave_absorption_by_canopy=canopy_absorption,
+        par_fraction=0.48,
+        fraction_par_used=0.1,
+        leaf_absorptance_non_par=0.5,
+    )
+
+    assert result.shape == canopy_absorption.shape
+
+    # Compute upper bound
+    shortwave_non_par = downward_sw * (1 - 0.48)
+    max_nir_absorbed = 0.5 * shortwave_non_par * weights
+    total_available = canopy_absorption + max_nir_absorbed
+
+    # Build mask: only test where all relevant values are finite
+    valid_mask = np.isfinite(canopy_absorption)
+
+    # Energy conservation (only on valid points)
+    assert np.all(result[valid_mask] <= total_available[valid_mask] + 1e-6)
+
+    # Non-negative check
+    assert np.all(result[valid_mask] >= 0)

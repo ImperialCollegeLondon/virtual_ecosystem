@@ -177,6 +177,24 @@ class AbioticConstants(AbioticSharedConstants):
     """Maximum turbulent mixing coefficients, [m2 s-1].
     """
 
+    fraction_par_used_for_photosynthesis: float = 0.5
+    """Fraction of photosynthetically active radiation used for photosynthesis,
+    dimensionless."""
+
+    leaf_absorptance_non_par: float = 0.5
+    """Leaf absorptance for non-photosynthetically active radiation, dimensionless."""
+
+    par_fraction_of_shortwave_radiation: float = 0.46
+    """Fraction of shortwave radiation that is photosynthetically active,
+    dimensionless.
+    
+    Value is taken from the P-Model:
+    
+    Convert from downward shortwave radiation [W m-2] to photosynthetic photon flux
+    density (PPFD)[µmol m-2 s-1]. 1 W m-2 of sunlight is roughly 4.57 µmol m-2 s-1 of
+    full spectrum sunlight, of which about 4.57 * 46% = 2.04 µmol m-2 s-1 is PPFD.
+    """
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""

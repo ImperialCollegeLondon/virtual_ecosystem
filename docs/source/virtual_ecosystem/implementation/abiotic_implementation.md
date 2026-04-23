@@ -153,7 +153,7 @@ of transfer of energy normal to a surface of unit area (in $\mathrm{W\,m^{-2}}$)
 The energy balance of a surface layer of finite depth and unit horizontal area can be
 written as:
 
-$$\frac{dQ}{dt} = R_n - G - H - \lambda E (- PP)$$
+$$\frac{dQ}{dt} = R_n - G - H - \lambda E - PP$$
 
 where each term is later expanded for the [canopy](#canopy-energy-balance), and
 [soil surface](#soil-energy-balance).
@@ -219,6 +219,9 @@ Surface temperature (°C)
 
 Shortwave radiation $S_0$ and longwave radiation $LW_{down}$ are progressively
 attenuated through the canopy, as leaves absorb a portion of the incoming radiation.
+We account for the fact that some of the absorbed shortwave radiation is used by the
+plants to photosyntheses and is therefore not available for the generation of heat
+fluxes.
 
 ```{Note}
 In the future, we aim to implement a more advance radiative transfer scheme, including:
@@ -243,7 +246,7 @@ layer is as follows:
     & = R_{n} - H_l - \lambda E_l (- PP)\\
     & = R_{\text{abs}} - \epsilon_{l} \sigma T_{l}^{4} -
     \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})
-    - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} (- PP)\\
+    - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} - PP\\
     & = 0
 ```
 
