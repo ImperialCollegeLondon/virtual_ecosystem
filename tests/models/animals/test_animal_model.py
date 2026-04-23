@@ -2006,87 +2006,75 @@ class TestAnimalModel:
             dt=dt,
         )
 
+    @pytest.mark.parametrize(
+        "layout, expected_resp",
+        [
+            pytest.param(
+                {0: [(22.0, 0.40)], 1: []},
+                {0: 0.40, 1: 0.0},
+                id="single_cohort_occupied_and_empty_cell",
+            ),
+            pytest.param(
+                {0: [(22.0, 0.40), (28.0, 0.90)], 1: []},
+                {0: 1.30, 1: 0.0},
+                id="two_cohorts_distinct_temperatures",
+            ),
+            pytest.param(
+                {0: [(22.0, 0.40)], 1: [(15.0, 0.20)]},
+                {0: 0.40, 1: 0.20},
+                id="cohorts_across_two_cells",
+            ),
+            pytest.param(
+                {0: [], 1: []},
+                {0: 0.0, 1: 0.0},
+                id="all_empty_cells",
+            ),
+        ],
+    )
     def test_metabolize_community(
-        self, animal_model_instance, dummy_animal_data, mocker
+        self, animal_model_instance, mocker, layout, expected_resp
     ):
-        """Test metabolize_community using real data from fixture."""
-
+        """Test metabolize_community routes climate state and waste across layouts."""
         import numpy as np
-        import xarray as xr
 
-        # Assign the data from the fixture to the animal model
-        animal_model_instance.data = dummy_animal_data
-        air_temperature_data = dummy_animal_data["air_temperature"]
+        dt = np.timedelta64(1, "D")
 
-        print(air_temperature_data.shape)
+        # Build one mock cohort per layout spec entry.
+        cell_mocks: dict[int, list] = {}
+        for cell_id, specs in layout.items():
+            cohorts = []
+            for temp, respire_ret in specs:
+                m = mocker.Mock()
+                m.current_temperature = temp
+                m.respire.return_value = respire_ret
+                cohorts.append(m)
+            cell_mocks[cell_id] = cohorts
 
-        # Create mock cohorts and their behaviors
-        mock_cohort_1 = mocker.Mock()
-        mock_cohort_2 = mocker.Mock()
+        pools = {cell_id: mocker.Mock() for cell_id in layout}
 
-        # Mock return values for metabolize and respire
-        mock_cohort_1.metabolize.return_value = (
-            10.0  # Metabolic waste mass for cohort 1
-        )
-        mock_cohort_2.metabolize.return_value = (
-            15.0  # Metabolic waste mass for cohort 2
-        )
-        mock_cohort_1.respire.return_value = 5.0  # Carbonaceous waste for cohort 1
-        mock_cohort_2.respire.return_value = 8.0  # Carbonaceous waste for cohort 2
-
-        # Setup the community and excrement pools in the animal model
         animal_model_instance.communities = {
-            1: [mock_cohort_1, mock_cohort_2],  # Community in cell 1 with two cohorts
-            2: [],  # Empty community in cell 2
+            cell_id: cell_mocks[cell_id] for cell_id in layout
         }
-        animal_model_instance.excrement_pools = {
-            1: "excrement_pool_1",
-            2: "excrement_pool_2",
-        }
+        animal_model_instance.excrement_pools = pools
+        animal_model_instance.data["total_animal_respiration"].values[:] = 0.0
 
-        # Ensure total_animal_respiration exists in data
-        if "total_animal_respiration" not in animal_model_instance.data:
-            n_cells = len(animal_model_instance.data.grid.cell_id)
-            animal_model_instance.data["total_animal_respiration"] = xr.DataArray(
-                np.zeros(n_cells),
-                dims=["cell_id"],
-                coords={"cell_id": animal_model_instance.data.grid.cell_id},
-                name="total_animal_respiration",
-            )
-
-        # Run the metabolize_community method
-        dt = np.timedelta64(1, "D")  # 1 day as the time delta
         animal_model_instance.metabolize_community(dt)
 
-        # Assertions for the first cohort in cell 1
-        mock_cohort_1.metabolize.assert_called_once_with(
-            16.145945, dt
-        )  # Temperature for cell 1 from the fixture (25.0)
-        mock_cohort_1.respire.assert_called_once_with(
-            10.0
-        )  # Metabolic waste returned by metabolize
-        mock_cohort_1.excrete.assert_called_once_with(10.0, "excrement_pool_1")
+        for cell_id, specs in layout.items():
+            for mock, (temp, _) in zip(cell_mocks[cell_id], specs):
+                # Temperature routing: cohort's own current_temperature is used.
+                mock.metabolize.assert_called_once_with(temp, dt)
+                # Waste chaining: respire and excrete both receive the exact object
+                # that metabolize returned, confirming it is threaded through once.
+                mock.respire.assert_called_once_with(mock.metabolize.return_value)
+                mock.excrete.assert_called_once_with(
+                    mock.metabolize.return_value, pools[cell_id]
+                )
 
-        # Assertions for the second cohort in cell 1
-        mock_cohort_2.metabolize.assert_called_once_with(
-            16.145945, dt
-        )  # Temperature for cell 1 from the fixture (25.0)
-        mock_cohort_2.respire.assert_called_once_with(
-            15.0
-        )  # Metabolic waste returned by metabolize
-        mock_cohort_2.excrete.assert_called_once_with(15.0, "excrement_pool_1")
-
-        # Assert total animal respiration was updated for cell 1
-        total_animal_respiration = animal_model_instance.data[
-            "total_animal_respiration"
-        ]
-        assert total_animal_respiration.loc[{"cell_id": 1}] == 13.0  # 5.0 + 8.0
-
-        # Ensure no cohort methods were called for the empty community in cell 2
-        mock_cohort_1.reset_mock()
-        mock_cohort_2.reset_mock()
-        mock_cohort_1.metabolize.assert_not_called()
-        mock_cohort_2.metabolize.assert_not_called()
+        # Respiration accumulation and empty-cell guard: empty cells contribute 0.0.
+        resp = animal_model_instance.data["total_animal_respiration"]
+        for cell_id, expected in expected_resp.items():
+            assert resp.sel(cell_id=cell_id).item() == pytest.approx(expected)
 
     def test_increase_age_community(self, animal_model_instance, mocker):
         """Test increase_age."""
