@@ -485,19 +485,19 @@ def calculate_vegetation_temperature(
         core_constants=core_constants,
     )
 
-    # Result contains new temperature and solver history if flag set to True
-    # TODO resolve type error
-    result = energy_balance.secant_solve_cells_layers(
+    # Result contains new canopy and understorey temperature
+    vegetation_temperature = energy_balance.secant_solve_cells_layers(
         residual_function=residual,
         initial_guess=state["canopy_temperature"],
         maxiter_secant=abiotic_constants.maxiter_secant_solver,
         convergence_tolerance=abiotic_constants.convergence_tolerance_secant_solver,
-        small_perturbation_second_guess=abiotic_constants.small_perturbation_second_guess_secant_solver,
+        small_perturbation_second_guess=(
+            abiotic_constants.small_perturbation_second_guess_secant_solver
+        ),
         denominator_tolerance=abiotic_constants.denominator_tolerance_secant_solver,
-        return_history=False,
     )
 
-    return result  # type: ignore
+    return vegetation_temperature
 
 
 def calculate_vegetation_fluxes(

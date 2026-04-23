@@ -626,8 +626,7 @@ def secant_solve_cells_layers(
     convergence_tolerance: float,
     small_perturbation_second_guess: float,
     denominator_tolerance: float,
-    return_history: bool = False,
-) -> NDArray[np.floating] | tuple[NDArray[np.floating], list[tuple[int, float, float]]]:
+) -> NDArray[np.floating]:
     """Vectorised secant solver for independent (cell, layer) root problems.
 
     Args:
@@ -637,7 +636,6 @@ def secant_solve_cells_layers(
         convergence_tolerance: Convergence tolerance on max absolute update.
         small_perturbation_second_guess: Small perturbation for second initial guess.
         denominator_tolerance: Small value to prevent division by zero in secant update.
-        return_history: Set flag whether to return convergence history for diagnostics.
 
     Returns:
         Root estimate canopy temperature solving f(T)=0 elementwise.
@@ -649,9 +647,7 @@ def secant_solve_cells_layers(
     previous_residual = residual_function(previous_temperature)
     current_residual = residual_function(current_temperature)
 
-    history = []  # store convergence info
-
-    for iteration in range(maxiter_secant):
+    for _ in range(maxiter_secant):
         denom = current_residual - previous_residual
 
         denom = np.where(
@@ -674,13 +670,7 @@ def secant_solve_cells_layers(
             / (np.abs(current_temperature) + 1e-6)
         )
 
-        max_residual = np.nanmax(np.abs(next_residual))
-
-        history.append((iteration, max_update, max_residual))
-
         if max_update < convergence_tolerance:
-            if return_history:
-                return next_temperature, history
             return next_temperature
 
         previous_temperature, current_temperature = (
@@ -691,9 +681,6 @@ def secant_solve_cells_layers(
             current_residual,
             next_residual,
         )
-
-    if return_history:
-        return current_temperature, history
 
     return current_temperature
 

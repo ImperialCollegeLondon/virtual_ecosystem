@@ -525,44 +525,6 @@ def test_secant_nan_handling():
     assert np.all(np.isnan(result[~mask]))
 
 
-def test_secant_history_convergence():
-    """Test that secant solver history shows convergence."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        secant_solve_cells_layers,
-    )
-
-    def residual(temperature):
-        return temperature - 5.0
-
-    initial_temperature = np.zeros((3, 3))
-
-    result, history = secant_solve_cells_layers(
-        residual_function=residual,
-        initial_guess=initial_temperature,
-        maxiter_secant=10,
-        convergence_tolerance=1e-12,
-        small_perturbation_second_guess=1e-6,
-        denominator_tolerance=1e-12,
-        return_history=True,
-    )
-
-    updates = [h[1] for h in history]
-    residuals = [h[2] for h in history]
-
-    # final update should be small
-    assert updates[-1] < 1e-2
-
-    # residual should decrease overall
-    assert residuals[-1] < residuals[0]
-
-    # should stop before maxiter
-    assert len(history) < 10
-
-    # result should be close to target
-    assert np.allclose(result, 5.0, atol=1e-4)
-
-
 def test_make_canopy_residual_changes_with_temperature():
     """Test that canopy residual changes with temperature."""
 
