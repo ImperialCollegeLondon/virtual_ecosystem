@@ -141,6 +141,7 @@ class FunctionalGroup:
             TaxaType("bird"),
             TaxaType("mammal"),
             TaxaType("amphibian"),
+            TaxaType("reptile"),
         }
         """Whether the functional group is a vertebrate."""
 
