@@ -102,6 +102,11 @@ class AnimalCohort:
         """The list of grid cells currently occupied by the cohort."""
         self.sigma_f_t: float = 1.0
         """The Activity window fraction in [0, 1]."""
+        self.current_temperature: float = constants.placeholder_annual_mean_temp
+        """Mean territory temperature [°C] last recorded by
+        :meth:`update_activity_window`. Seeded to the placeholder annual mean so
+        that endotherms and any cohort that calls :meth:`metabolize` before its
+        first activity-window update receive a physically reasonable value."""
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = find_decay_consumed_split(
@@ -2134,7 +2139,7 @@ class AnimalCohort:
         annual_mean_temp: float,
         annual_temp_sd: float,
     ) -> None:
-        """Update the activity window fraction for the current timestep.
+        """Update the activity window fraction and current temperature.
 
         Delegates to
         :func:`~virtual_ecosystem.models.animal.scaling_functions.activity_window`
@@ -2154,6 +2159,7 @@ class AnimalCohort:
             annual_temp_sd: Standard deviation of monthly temperatures across the
                 climatological year [°C].
         """
+        self.current_temperature = temperature
         self.sigma_f_t = sf.activity_window(
             metabolic_type=self.functional_group.metabolic_type,
             temperature=temperature,

@@ -1554,46 +1554,39 @@ class AnimalModel(
     def metabolize_community(self, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
 
-        This method generates a total amount of metabolic waste per cohort and passes
-        that waste to handler methods for distinguishing between nitrogenous and
-        carbonaceous wastes as they need depositing in different pools. This will not
-        be fully implemented until the stoichiometric rework.
+         Each cohort metabolizes at the territory-mean temperature stored in
+        :attr:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.current_temperature`,
+        which was set by the preceding call to
+        :meth:`update_activity_windows_community`. This ensures the temperature
+        entering the metabolic rate equation is consistent with the temperature
+        used to derive ``sigma_f_t``, i.e. both reflect the cohort's stratum-
+        and territory-averaged environment rather than the centroid surface layer.
 
-        Respiration wastes are totaled because they are CO2 and not tracked spatially.
-        Excretion wastes are handled cohort by cohort because they will need to be
-        spatially explicit with multi-grid occupancy.
+        This method generates a total amount of metabolic waste per cohort and
+        passes that waste to handler methods for distinguishing between nitrogenous
+        and carbonaceous wastes as they need depositing in different pools.
+
+        Respiration wastes are totalled because they are CO2 and not tracked
+        spatially. Excretion wastes are handled cohort by cohort because they will
+        need to be spatially explicit with multi-grid occupancy.
 
         Args:
-            air_temperature_data: The full air temperature data (as a DataArray) for
-                all communities.
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
         for cell_id, community in self.communities.items():
-            # Check for empty community and skip processing if empty
             if not community:
                 continue
 
             total_carbonaceous_waste = 0.0
 
-            # Extract the temperature for this specific community (cell_id)
-            surface_temperature = self.data["air_temperature"][
-                self.layer_structure.index_surface_scalar
-            ].to_numpy()
-
-            grid_temperature = surface_temperature[cell_id]
-
             for cohort in community:
-                # Calculate metabolic waste based on cohort properties
-                metabolic_waste_mass = cohort.metabolize(grid_temperature, dt)
+                metabolic_waste_mass = cohort.metabolize(cohort.current_temperature, dt)
 
-                # Carbonaceous waste from respiration
                 total_carbonaceous_waste += cohort.respire(metabolic_waste_mass)
 
-                # Excretion of waste into the excrement pool
                 cohort.excrete(metabolic_waste_mass, self.excrement_pools[cell_id])
 
-            # Update the total_animal_respiration for the specific cell_id
             self.data["total_animal_respiration"].loc[{"cell_id": cell_id}] += (
                 total_carbonaceous_waste
             )
