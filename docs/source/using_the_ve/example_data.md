@@ -239,19 +239,19 @@ for section, dataset in sections:
 The `data` directory also provides some model specific files that are required to
 initialise a simulation:
 
-### Plant functional type definitions
+#### Plant functional type definitions
 
 The `plants_pft.csv` file is a CSV file that contains a set of plant functional types.
 It defines a set of named PFTs and then provides a set of traits that define the
 behaviour of individuals in each PFT.
 
-### Initial plant cohort data
+#### Initial plant cohort data
 
 The `example_plant_cohorts.csv` file is a CSV file that defines the initial plant
 communities found in each cell. It provides a set of rows identifying size structured
 cohorts of PFTs occurring in each cell.
 
-### Animal functional group definitions
+#### Animal functional group definitions
 
 The `animal_functional_groups.csv` file is a CSV file that defines the animal functional
 groups to be used within the simulation. Each row defines a uniquely named functional
