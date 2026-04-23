@@ -1558,7 +1558,7 @@ class AnimalModel(
     def metabolize_community(self, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
 
-         Each cohort metabolizes at the territory-mean temperature stored in
+        Each cohort metabolizes at the territory-mean temperature stored in
         :attr:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.current_temperature`,
         which was set by the preceding call to
         :meth:`update_activity_windows_community`. This ensures the temperature
