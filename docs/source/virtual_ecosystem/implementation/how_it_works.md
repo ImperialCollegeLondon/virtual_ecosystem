@@ -79,9 +79,12 @@ works](./core_components_overview.md) for more detail:
     that is used to set model-specific constants.
 - The ModelTiming object, which is used to validate the runtime and update frequency of
     the simulation.
-- The Data object, which is used to store all of the initial input data along with the
-    variables representing the rest of the model state. This is also used to pass data
-    between the different models.
+- The Data object, which is used to store data in array format. This is initially
+    populated using all of the initial input data that is provided in array format (e.g.
+    not the animal cohort data). As the simulation progresses, new variables are added
+    and the value of existing variables are updated so that the object tracks the
+    current state of the simulation. Because of this, the Data object is the primary way
+    that information is passed between the different models.
 
 ## Data
 
@@ -91,7 +94,7 @@ to work with but the datasets in the Virtual Ecosystem are commonly multi-dimens
 arrays (e.g. space and time), and the NetCDF format supports this kind of data, as well
 as providing critical metadata for data validation.
 
-The Virtual Ecosystem has a large number of variables
+The Virtual Ecosystem has a large number of
 [variables](../../using_the_ve/variables/variables.md) that are used to set up the
 simulation and then update the model state through time. The configuration files need to
 provide the locations of the variables required to initialise each science model.

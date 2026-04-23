@@ -37,7 +37,7 @@ configured in its own configuration section:
 * the [vertical layer structure](#the-vertical-layer-structure) (`[core.layers]`),
 * the [core constants](#core-constants) (`[core.constants]`), and
 * the [data output settings](#data-output-settings) for a simulation
-  (`[core.data_output_options]`),
+  (`[core.data_output_options]`).
 
 The core configuration section is also used to set the location of data input files for
 required forcing variables for the simulation, but the `[core.data]` section is
