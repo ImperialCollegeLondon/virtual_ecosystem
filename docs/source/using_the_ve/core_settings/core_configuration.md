@@ -52,7 +52,7 @@ data settings aligned across your project.
 
 ## Validation of the core configuration
 
-Each of the model configuration option has specific validation settings that are
+Each of the model configuration options has specific validation settings that are
 enforced when a configuration is loaded. These constraints should be described in the
 documentation of each setting. If configuration data contains invalid values, then the
 simulation will exit and the log will contain a detailed breakdown of any configuration
