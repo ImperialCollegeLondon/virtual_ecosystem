@@ -179,7 +179,7 @@ class AbioticConstants(AbioticSharedConstants):
     small_perturbation_second_guess_secant_solver: float = 1e-6
     """Small perturbation for second initial guess in secant solver."""
 
-    denominator_tolerance_secant_solver: float = 1e-12
+    denominator_tolerance_secant_solver: float = 1e-6
     """Small value to prevent division by zero in secant solver."""
 
 
