@@ -118,7 +118,7 @@ The order in which models are run is **not** something that can be controlled by
 (i.e. execution order is **not** controlled by where models are placed in the
 configuration). As some models require outputs of the other models in order to run,
 there are hard constraints the order they can be run in. The simulation automatically
-choose a valid model execution order during the configuration process.
+chooses a valid model execution order during the configuration process.
 ```
 
 ## Changing model constants
@@ -145,10 +145,10 @@ specific setup details documentation](./model_details/overview).
 
 ## Changing the core simulation setup
 
-Next, you need to provide are the core settings for your simulation runs. There are a
-[large number of configuration options](./core_settings/core_configuration.md) that you
-will need to decide on. However, to keep this tutorial to reasonable length we will
-focus on two of the most important, the spatial and temporal scales of the simulation.
+Next, you need to provide the core settings for your simulation runs. There are a [large
+number of configuration options](./core_settings/core_configuration.md) that you will
+need to decide on. However, to keep this tutorial to reasonable length we will focus on
+two of the most important, the spatial and temporal scales of the simulation.
 
 The spatial scales of the simulation are controlled by the settings under `[core.grid]`.
 The Virtual Ecosystem expects coordinates in metres, so you should choose a [projected
