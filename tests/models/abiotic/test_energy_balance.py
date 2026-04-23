@@ -525,7 +525,10 @@ def test_secant_nan_handling():
     assert np.all(np.isnan(result[~mask]))
 
 
-def test_make_canopy_residual_changes_with_temperature():
+def test_make_canopy_residual_changes_with_temperature(
+    fixture_abiotic_constants,
+    fixture_core_constants,
+):
     """Test that canopy residual changes with temperature."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
@@ -547,32 +550,29 @@ def test_make_canopy_residual_changes_with_temperature():
 
     aerodynamic_resistance = np.ones(shape) * 50
 
-    class Abiotic:
-        leaf_emissivity = 0.96
-
-    class Core:
-        stefan_boltzmann_constant = 5.67e-8
-        zero_Celsius = 273.15
-        seconds_to_hour = 3600
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
 
     residual = make_canopy_residual(
-        state,
-        static,
-        aerodynamic_resistance,
-        Abiotic(),
-        Core(),
+        state=state,
+        static=static,
+        aerodynamic_resistance=aerodynamic_resistance,
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
     )
 
-    T1 = np.ones(shape) * 280
-    T2 = np.ones(shape) * 300
+    temperature1 = np.ones(shape) * 28
+    temperature2 = np.ones(shape) * 30
 
-    r1 = residual(T1)
-    r2 = residual(T2)
+    residual1 = residual(temperature1)
+    residual2 = residual(temperature2)
 
-    assert not np.allclose(r1, r2)
+    assert not np.allclose(residual1, residual2)
 
 
-def test_make_canopy_residual_uses_state():
+def test_make_canopy_residual_uses_state(
+    fixture_abiotic_constants, fixture_core_constants
+):
     """Test that canopy residual reflects changes in state variables."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
@@ -580,7 +580,7 @@ def test_make_canopy_residual_uses_state():
     shape = (2, 2)
 
     state = {
-        "air_temperature": np.ones(shape) * 290,
+        "air_temperature": np.ones(shape) * 29,
         "evapotranspiration": np.zeros(shape),
         "shortwave_absorption": np.zeros(shape),
         "specific_heat_air": np.ones(shape) * 1005,
@@ -594,36 +594,34 @@ def test_make_canopy_residual_uses_state():
 
     aerodynamic_resistance = np.ones(shape) * 50
 
-    class Abiotic:
-        leaf_emissivity = 0.96
-
-    class Core:
-        stefan_boltzmann_constant = 5.67e-8
-        zero_Celsius = 273.15
-        seconds_to_hour = 3600
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
 
     residual = make_canopy_residual(
-        state,
-        static,
-        aerodynamic_resistance,
-        Abiotic(),
-        Core(),
+        state=state,
+        static=static,
+        aerodynamic_resistance=aerodynamic_resistance,
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
     )
 
-    T = np.ones(shape) * 290
+    temperature1 = np.ones(shape) * 29
 
-    r1 = residual(T)
+    residual1 = residual(temperature1)
 
     # change state AFTER creating closure
     state["air_temperature"] += 10
 
-    r2 = residual(T)
+    temperature2 = np.ones(shape) * 39
+    residual2 = residual(temperature2)
 
     # closure should reflect updated state
-    assert not np.allclose(r1, r2)
+    assert not np.allclose(residual1, residual2)
 
 
-def test_make_canopy_residual_with_nans():
+def test_make_canopy_residual_with_nans(
+    fixture_abiotic_constants, fixture_core_constants
+):
     """Test that canopy residual handles NaNs in state variables."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
@@ -645,30 +643,25 @@ def test_make_canopy_residual_with_nans():
 
     aerodynamic_resistance = np.ones(shape) * 50
 
-    class Abiotic:
-        leaf_emissivity = 0.96
-
-    class Core:
-        stefan_boltzmann_constant = 5.67e-8
-        zero_Celsius = 273.15
-        seconds_to_hour = 3600
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
 
     residual = make_canopy_residual(
-        state,
-        static,
-        aerodynamic_resistance,
-        Abiotic(),
-        Core(),
+        state=state,
+        static=static,
+        aerodynamic_resistance=aerodynamic_resistance,
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
     )
 
-    T = np.array(
+    temperature = np.array(
         [
-            [290, 290, 290],
-            [290, np.nan, np.nan],
+            [29, 29, 29],
+            [29, np.nan, np.nan],
         ]
     )
 
-    result = residual(T)
+    result = residual(temperature)
 
     assert np.isnan(result[1, 1])
     assert np.isnan(result[1, 2])
