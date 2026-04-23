@@ -139,31 +139,6 @@ class AbioticConstants(AbioticSharedConstants):
     initial_flux_value: float = 0.001
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
 
-    coefficient_aerodynamic_resistance_understorey: float = 33.0
-    """Coefficient for aerodynamic resistance of the understorey, [s m-1].
-    
-    Value from :cite:t:`ogee_a_forest_2002`"""
-
-    understorey_thermal_conductivity: float = 10.0
-    """Thermal conductivity of the understorey layer, [W m-1 K-1].
-    
-    Represents heat transfer through litter or herbaceous material to the soil.
-    TODO find value from literature."""
-
-    specific_heat_capacity_understorey: float = 3500.0
-    """Specific heat capacity of the understorey vegetation, [J kg-1 K-1].
-
-    This represents the amount of heat energy required to raise the temperature
-    of one kilogram of understorey vegetation (leaves, stems, small herbaceous plants)
-    by 1 Kelvin. Value estimated from :cite:t:`zhang_a_simple_2025`.
-    """
-
-    leaf_mass_per_area_understorey: float = 0.070
-    """Leaf mass per area of understorey vegetation, [kg m-2]
-    
-    Values roughly estimated based on :cite:t:`poorter_causes_2009`.
-    """
-
     aerodynamic_resistance_canopy_night: float = 50.0
     """Aerodynamic resistance of the canopy at night, [s m-1]."""
 
