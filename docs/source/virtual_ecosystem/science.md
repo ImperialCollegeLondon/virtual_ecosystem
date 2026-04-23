@@ -26,15 +26,16 @@ language_info:
 
 # Virtual Ecosystem Science
 
-This section of the documentation covers the Science of the Virtual Ecosystem
-simulation. It consists of several sections
+This section of the documentation covers the scientific foundation of the Virtual
+Ecosystem simulation. It is split into sections to help you navigate the theory,
+implementation, and background of the project. These include:
 
 * a section describing the [scientific theories](./theory/underlying_theory.md)
-  underlying the science models, and
+  underlying the science models,
 * a section describing [how the model actually works](./implementation/how_it_works.md)
-  in practice.
-* a section describing [the project in general](../project_team.md)(i.e. who is working
-  on the project and who has funded the project up to this point).
-* a [glossary](../glossary.md) of key terms used through the documentation.
+  in practice,
+* a section describing [the project in general](../project_team.md) (i.e. who is working
+  on the project and who has funded the project up to this point),
+* a [glossary](../glossary.md) of key terms used through the documentation, and
 * a [bibliography](../bibliography.md) providing references to the underlying theory
   that the Virtual Ecosystem is based on.
