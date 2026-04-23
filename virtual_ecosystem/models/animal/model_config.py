@@ -291,7 +291,7 @@ class AnimalConstants(Configuration):
 
     # Placeholder climate inputs for activity window computation.
     # TODO: replace with dynamic per-cell values from the abiotic model once the
-    # required variables (diurnal temperature range, annual mean temperature, annual
+    # required variables ( annual mean temperature, annual
     # temperature SD) are exposed via the data object.
 
     placeholder_annual_mean_temp: float = 20.0
