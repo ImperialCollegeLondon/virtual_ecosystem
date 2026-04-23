@@ -150,6 +150,32 @@ pip install virtual_ecosystem
 ````
 `````
 
+## Updating to the most recent release
+
+You will generally want use the most recent release of the Virtual Ecosystem. If you
+have already installed `virtual_ecosystem` (ideally within a virtual environment) and
+want to upgrade to the most recent release, use the following command:
+
+`````{tab-set}
+:sync-group: operating_system
+
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} console
+$ pip install virtual_ecosystem --upgrade
+```
+````
+
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+pip install virtual_ecosystem --upgrade
+```
+````
+`````
+
 ## Advanced: installing the current state of `develop`
 
 ```{warning}
