@@ -654,20 +654,13 @@ def update_air_temperature(
         + 0.5 * state["longwave_emission"][idx.topsoil]
     )
 
-    # TODO The surface layer is only 10cm thick and therefore cannot absorb all energy
-    # emitted by high LAI of understorey without exploding temperatures. This scaling
-    # factor artificially expands the layer thickness to 1.5 m reference height; this
-    # needs to be addressed with location of understorey vegetation. #1439
-    surface_layer_scaling_factor = 15
-    surface_mixing_layer_thickness = (
-        static["geometry"]["thickness"][-1] * surface_layer_scaling_factor
-    )
+    # Surface air temperature, [C]
     surface_air_temperature = energy_balance.update_air_temperature(
         air_temperature=state["air_temperature"][idx.surface],
         sensible_heat_flux=state["sensible_heat_flux"][idx.surface] + flux_from_soil,
         specific_heat_air=state["specific_heat_air"][idx.surface],
         density_air=state["density_air"][idx.surface],
-        mixing_layer_thickness=surface_mixing_layer_thickness,
+        mixing_layer_thickness=static["geometry"]["thickness"][-1],
     )
 
     # Update all air temperatures, [C]
