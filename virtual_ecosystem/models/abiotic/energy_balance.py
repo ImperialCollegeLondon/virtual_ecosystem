@@ -44,17 +44,20 @@ unrealistic.
 """  # noqa: D205, D415
 
 from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import wind
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_weights_from_absorbed_radiation,
     set_unintended_nan_to_zero,
 )
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 
 
 def initialise_canopy_and_soil_fluxes(
@@ -650,9 +653,13 @@ def secant_solve_cells_layers(
     for _ in range(maxiter_secant):
         denom = current_residual - previous_residual
 
+        # Conserve sign of denominator to prevent divergence
+        sign = np.sign(denom)
+        sign = np.where(sign == 0, 1.0, sign)
+
         denom = np.where(
             np.abs(denom) < denominator_tolerance,
-            denominator_tolerance * np.sign(denom + 1e-16),
+            denominator_tolerance * sign,
             denom,
         )
 
@@ -667,7 +674,7 @@ def secant_solve_cells_layers(
 
         max_update = np.nanmax(
             np.abs(next_temperature - current_temperature)
-            / (np.abs(current_temperature) + 1e-6)
+            / (np.abs(current_temperature) + denominator_tolerance)
         )
 
         if max_update < convergence_tolerance:
@@ -686,11 +693,11 @@ def secant_solve_cells_layers(
 
 
 def make_canopy_residual(
-    state,
-    static,
-    aerodynamic_resistance,
-    abiotic_constants,
-    core_constants,
+    state: dict[str, Any],
+    static: dict[str, Any],
+    aerodynamic_resistance: NDArray[np.floating],
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
 ) -> Callable[[NDArray[np.floating]], NDArray[np.floating]]:
     """Creates a residual function for canopy temperature to be used in root finding.
 
