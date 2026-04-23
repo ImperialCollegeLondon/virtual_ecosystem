@@ -51,7 +51,10 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.models.abiotic import wind
-from virtual_ecosystem.models.abiotic.abiotic_tools import set_unintended_nan_to_zero
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
+    compute_weights_from_absorbed_radiation,
+    set_unintended_nan_to_zero,
+)
 
 
 def initialise_canopy_and_soil_fluxes(
@@ -556,6 +559,64 @@ def calculate_latent_heat_flux(
     latent_heat_flux = energy_j_per_m2 / time_interval
 
     return latent_heat_flux
+
+
+def calculate_total_absorbed_shortwave_radiation(
+    downward_shortwave_radiation: NDArray[np.floating],
+    shortwave_absorption_by_canopy: NDArray[np.floating],
+    fraction_par_used: float,
+    leaf_absorptance_non_par: float,
+    par_fraction: float,
+) -> NDArray[np.floating]:
+    """Compute total absorbed shortwave radiation contributing to leaf energy balance.
+
+    Shortwave (SW) radiation is partitioned into:
+      - PAR (photosynthetically active radiation)
+      - non-PAR (primarily near-infrared, NIR)
+
+    The plant model provides absorbed PAR. A fraction of this PAR is used
+    in photosynthesis, while the remainder contributes to heat. Non-PAR radiation
+    is assumed not to be used in photosynthesis and contributes entirely to heat
+    after accounting for leaf absorptance.
+
+    This function calculates the total absorbed shortwave radiation that contributes to
+    the leaf energy balance by combining the absorbed PAR (adjusted for photosynthesis)
+    and the absorbed non-PAR radiation (adjusted for leaf absorptance and vertical
+    distribution).
+
+    Args:
+        downward_shortwave_radiation: Incoming shortwave radiation [W m-2]
+        shortwave_absorption_by_canopy: Absorbed PAR by canopy [W m-2]
+        fraction_par_used: Fraction of absorbed PAR used in photosynthesis (0-1).
+        leaf_absorptance_non_par: Fraction of non-PAR radiation absorbed by the leaf
+            (0-1).
+        par_fraction: Fraction of total shortwave radiation that is PAR (0-1).
+
+    Returns:
+        Total absorbed shortwave radiation contributing to heat [W m-2]
+    """
+
+    # Compute vertical distribution weights based on absorbed PAR
+    weights = compute_weights_from_absorbed_radiation(
+        radiation=shortwave_absorption_by_canopy
+    )
+
+    # Calculate the portion of absorbed non-PAR that contributes to heat, assuming the
+    # same vertical decay as PAR absorption (weights to distribute cross layers)
+    shortwave_non_par = downward_shortwave_radiation * (1 - par_fraction)
+    shortwave_non_par_absorbed = leaf_absorptance_non_par * shortwave_non_par * weights
+
+    # Calculate the portion of absorbed PAR that contributes to heat after accounting
+    # for photosynthesis
+    # TODO: #1533 we want to use light use efficiency from the plant model to determine
+    # the fraction of absorbed PAR used in photosynthesis; for now we use a constant
+    # fraction.
+    par_heat = shortwave_absorption_by_canopy * (1 - fraction_par_used)
+
+    # Total absorbed shortwave radiation contributing to heat
+    total_abs = par_heat + shortwave_non_par_absorbed
+
+    return total_abs
 
 
 def secant_solve_cells_layers(

@@ -641,3 +641,23 @@ def finite_and_within(arr: DataArray, low: float, high: float, name: str) -> Non
 
     assert min_val >= low, f"{name} below {low}"
     assert max_val <= high, f"{name} above {high}"
+
+
+def compute_weights_from_absorbed_radiation(
+    radiation: NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Convert a 2D radiation array into normalized weights that sum to 1.
+
+    Args:
+        radiation: 2D array of absorbed radiation values for each layer and cell
+
+    Returns:
+        2D array of normalized weights corresponding to the absorbed radiation. Raises
+            ValueError when total radiation is zero or NaN
+    """
+    total = np.nansum(radiation)
+
+    if total == 0:
+        raise ValueError("Total radiation is zero — cannot normalize.")
+
+    return radiation / total
