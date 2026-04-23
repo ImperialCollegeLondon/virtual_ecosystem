@@ -330,6 +330,58 @@ def clamp_variable_within_limits(
     return variable
 
 
+def next_valid_above(array: NDArray[np.floating]) -> NDArray[np.int_]:
+    """Index of nearest valid value above each layer (per column).
+
+    Args:
+        array: A 2D array with vertical layers as the first dimension and columns as
+        the second dimension. NaN values represent invalid or unoccupied layers.
+
+    Returns:
+        A 2D array of the same shape as the input, where each element contains the index
+        of the nearest valid (non-NaN) value above it in the same column. If there is no
+        valid value above, the element will be -1.
+    """
+
+    n_layers, n_cols = array.shape
+    out = np.full((n_layers, n_cols), -1, dtype=int)
+
+    last_valid = np.full(n_cols, -1, dtype=int)
+
+    for i in range(n_layers):
+        out[i] = last_valid.copy()
+        valid = ~np.isnan(array[i])
+        last_valid[valid] = i
+
+    return out
+
+
+def next_valid_below(array: NDArray[np.floating]) -> NDArray[np.int_]:
+    """Index of nearest valid value below each layer (per column).
+
+    Args:
+        array: A 2D array with vertical layers as the first dimension and columns as
+        the second dimension. NaN values represent invalid or unoccupied layers.
+
+    Returns:
+        A 2D array of the same shape as the input, where each element contains the index
+        of the nearest valid (non-NaN) value below it in the same column. If there is no
+        valid value below, the element will be -1.
+    """
+
+    n_layers, n_cols = array.shape
+    out = np.full((n_layers, n_cols), -1, dtype=int)
+
+    last_valid = np.full(n_cols, -1, dtype=int)
+
+    for i in range(n_layers - 1, -1, -1):
+        out[i] = last_valid.copy()
+        valid = ~np.isnan(array[i])
+        last_valid[valid] = i
+
+    return out
+
+
 def mix_and_ventilate(
     input_variable: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
@@ -340,10 +392,8 @@ def mix_and_ventilate(
 
     This function simulates diffusion-like mixing between vertical layers based on local
     gradients of atmospheric variables (e.g. temperature, relative humidity) and
-    layer-specific mixing coefficients. For each internal layer (excluding the top and
-    bottom), it computes upward and downward fluxes using the nearest valid
-    (finite) values above and below, respectively. The fluxes are scaled by the layer
-    thickness and applied to update the variable.
+    layer-specific mixing coefficients. For each layer, it computes upward and
+    downward fluxes using the nearest valid (finite) values above and below.
 
     Additionally, the function applies a ventilation adjustment to the top layer of each
     column, representing heat or water exchange with the  above the canopy. This is
@@ -364,54 +414,49 @@ def mix_and_ventilate(
         Vertically mixed input variable
     """
 
-    # 1. Vertical mixing for layers [1:-1]
+    # Extract neighbor indices
+    above_idx = next_valid_above(input_variable)
+    below_idx = next_valid_below(input_variable)
+    current = input_variable.copy()
 
-    # Extract neighbors
-    above = input_variable[:-2]
-    current = input_variable[1:-1]
-    below = input_variable[2:]
-
-    # Slice matching mixing coefficients
-    mix_above = mixing_coefficient[:-2]
-    mix_below = mixing_coefficient[2:]
+    # Set mixing coefficient for top layer to ventilation rate, as this is the
+    # rate at which the top layer is mixed with the atmosphere above, rather
+    # than with a layer above it
+    mixing_coefficient[0, :] = ventilation_rate
 
     # Mask valid (non-NaN) values
-    valid_above = ~np.isnan(above)
+    valid_above = above_idx >= 0
+    valid_below = below_idx >= 0
     valid_curr = ~np.isnan(current)
-    valid_below = ~np.isnan(below)
 
     # Mixing from above: current += k * (above - current)
-    mix_from_above = np.where(
-        valid_above & valid_curr,
-        mix_above * (above - current),
+    above = np.where(
+        valid_above,
+        input_variable,
+        np.nan,
+    )
+
+    mix_above = np.where(
+        valid_curr & valid_above,
+        mixing_coefficient * (above - current),
         0.0,
     )
 
     # Mixing from below
-    mix_from_below = np.where(
-        valid_below & valid_curr,
-        mix_below * (below - current),
+
+    below = np.where(
+        valid_below,
+        input_variable,
+        np.nan,
+    )
+
+    mix_below = np.where(
+        valid_curr & valid_below,
+        mixing_coefficient * (below - current),
         0.0,
     )
 
-    # Apply both fluxes
-    input_variable[1:-1] = current + mix_from_above + mix_from_below
-
-    # 2. Ventilation: above layer - top canopy layer
-
-    top = input_variable[0]
-    below = input_variable[1]
-
-    valid_top = ~np.isnan(top)
-    valid_below = ~np.isnan(below)
-    valid = valid_top & valid_below
-
-    delta = top - below
-    change = ventilation_rate * delta
-
-    # Only apply to valid columns
-    input_variable[0, valid] -= change[valid]
-    input_variable[1, valid] += change[valid]
+    input_variable = current + mix_above + mix_below
 
     # Redistribute overshoot/undershoot
     input_variable = clamp_variable_within_limits(

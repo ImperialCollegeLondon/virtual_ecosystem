@@ -209,6 +209,32 @@ def test_clamp_variable_within_limits():
     assert_allclose(variable.sum(axis=0), clamped_variable.sum(axis=0))
 
 
+def test_next_valid_above_basic():
+    """Test next valid above with basic case."""
+    from virtual_ecosystem.models.abiotic.wind import next_valid_above
+
+    arr = np.array([[1.0, 1.0], [np.nan, 2.0], [3.0, 3.0]])
+
+    result = next_valid_above(arr)
+
+    expected = np.array([[-1, -1], [0, 0], [0, 1]])
+
+    assert np.array_equal(result, expected)
+
+
+def test_next_valid_below_basic():
+    """Test next valid below with basic case."""
+    from virtual_ecosystem.models.abiotic.wind import next_valid_below
+
+    arr = np.array([[1.0, 1.0], [2.0, np.nan], [3.0, 3.0]])
+
+    result = next_valid_below(arr)
+
+    expected = np.array([[1, 2], [2, 2], [-1, -1]])
+
+    assert np.array_equal(result, expected)
+
+
 def test_mix_and_ventilate():
     """Test mixing and ventilation within bounds."""
 
@@ -222,6 +248,8 @@ def test_mix_and_ventilate():
             [0.005, 0.005, 0.005, np.nan],
             [0.01, 0.01, np.nan, np.nan],
             [0.001, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
             [0.012, 0.012, 0.012, 0.012],
         ]
     )
@@ -233,17 +261,21 @@ def test_mix_and_ventilate():
             [110.0, 100.0, 100.0, np.nan],
             [100.0, 100.0, np.nan, np.nan],
             [90.0, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
         ],
     )
 
     exp_result = np.array(
         [
-            [104.925, 95.004995, 95.004995, 95.0],
-            [100.0, 99.990005, 99.990005, np.nan],
-            [100.0, 100, np.nan, np.nan],
-            [90.22, np.nan, np.nan, np.nan],
-            [100.0, 100.0, 100.0, 100.0],
+            [104.890075, 95.005, 95.005, 95.005],
+            [100.0, 99.975025, 99.975025, np.nan],
+            [99.998750, 99.999750, np.nan, np.nan],
+            [90.019998, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [99.880239, 99.99999, 99.999700, 99.94006],
         ]
     )
 
