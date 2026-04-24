@@ -136,6 +136,12 @@ class AnimalModel(
         "decay_of_fungal_fruiting_bodies",
         "subcanopy_vegetation_cnp_consumed",
         "subcanopy_seedbank_cnp_consumed",
+        "canopy_foliage_cnp_consumed",
+        "canopy_seeds_cnp_consumed",
+        "canopy_fruit_cnp_consumed",
+        "foliage_turnover_cnp_consumed",
+        "seed_turnover_cnp_consumed",
+        "fruit_turnover_cnp_consumed",
     ),
 ):
     """A class describing the animal model.

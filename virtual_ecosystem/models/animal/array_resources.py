@@ -190,6 +190,42 @@ ARRAY_RESOURCES = [
         diet_type=DietType.SEEDS,
     ),
     ArrayResourceDefinition(
+        pool_array="canopy_foliage_cnp",
+        consumed_array="canopy_foliage_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.CANOPY,
+        diet_type=DietType.FOLIAGE,
+    ),
+    ArrayResourceDefinition(
+        pool_array="canopy_seeds_cnp",
+        consumed_array="canopy_seeds_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.CANOPY,
+        diet_type=DietType.SEEDS,
+    ),
+    ArrayResourceDefinition(
+        pool_array="canopy_fruit_cnp",
+        consumed_array="canopy_fruit_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.CANOPY,
+        diet_type=DietType.FRUIT,
+    ),
+    ArrayResourceDefinition(
+        pool_array="foliage_turnover_cnp",
+        consumed_array="foliage_turnover_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.GROUND,
+        diet_type=DietType.FOLIAGE,
+    ),
+    ArrayResourceDefinition(
+        pool_array="seed_turnover_cnp",
+        consumed_array="seed_turnover_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.GROUND,
+        diet_type=DietType.SEEDS,
+    ),
+    ArrayResourceDefinition(
+        pool_array="fruit_turnover_cnp",
+        consumed_array="fruit_turnover_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.GROUND,
+        diet_type=DietType.FRUIT,
+    ),
+    ArrayResourceDefinition(
         pool_array="litter_pool_above_metabolic_cnp",
         consumed_array="litter_consumed_above_metabolic_cnp",
         vertical_occupancy=VerticalOccupancy.GROUND,
