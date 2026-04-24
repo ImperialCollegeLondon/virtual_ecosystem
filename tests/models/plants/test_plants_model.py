@@ -413,8 +413,7 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model):
             )
         )
 
-    # Ensure that non PFT turnovers are > 0 ...
-    assert np.all(np.greater(fxt_plants_model.data["foliage_turnover_cnp"], 0))
+    # Ensure that currently non PFT turnovers are > 0 ...
     assert np.all(np.greater(fxt_plants_model.data["root_turnover_cnp"], 0))
     # ... except for stem turnover which currently has no turnover
     # (NOTE - this could change if we add branchfall)
@@ -423,9 +422,6 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model):
     # Check carbon supply to soil
     assert np.all(np.greater(fxt_plants_model.data["root_carbohydrate_exudation"], 0))
     assert np.all(np.greater(fxt_plants_model.data["plant_symbiote_carbon_supply"], 0))
-
-    # Check that canopy foliage CNP is populated
-    assert np.all(np.greater(fxt_plants_model.data["canopy_foliage_cnp"], 0))
 
     # Check the PFT structured arrays - These are trickier because values can and should
     # be zero if the PFT is not in a cell but that's a good feature of the test
@@ -439,10 +435,12 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model):
     default_out = np.ones_like(mask)
 
     for var in [
+        "foliage_turnover_cnp",
         "fruit_turnover_cnp",
         "seed_turnover_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
+        "canopy_foliage_cnp",
     ]:
         # Filled in where the pft is present
         assert np.all(
@@ -581,7 +579,7 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model):
         )
 
         # Check the turnovers are now equal to the sums of a single stem of each cohort
-        for var in ["stem", "foliage", "root"]:
+        for var in ["stem", "root"]:
             tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
             assert_allclose(
                 fxt_plants_model.data[f"{var}_turnover_cnp"][cell_id],
@@ -590,9 +588,10 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model):
 
         # More complex for fruit and seed - need to calculate per PFT values so need to
         # sum across the columns in the tissue biomasses for each PFT
-        for var in ["fruit", "seed"]:
+        for var in ["fruit", "foliage", "seed"]:
             tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
-            # collapse tissue by pft
+
+            # Check tissue by pft
             for idx, pft in enumerate(fxt_plants_model.flora.name):
                 cohorts_this_pft = (
                     fxt_plants_model.communities[cell_id].cohorts.pft_names == pft

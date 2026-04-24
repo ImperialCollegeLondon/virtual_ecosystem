@@ -1206,10 +1206,10 @@ class PlantsModel(
                 biomasses_of_dead_stems = self.biomasses[cell_id]
 
                 # Iterate over the tissues moving biomass into the turnover CNP arrays:
-                # 1. For stem, foliage and root biomass multiply stem biomasses by the
+                # 1. For stem and root biomass multiply stem biomasses by the
                 #    number of dead individuals and then sum across cohorts to give
                 #    total aggregated elemental contributions:
-                for aggregated_tissue in ("stem", "foliage", "root"):
+                for aggregated_tissue in ("stem", "root"):
                     self.data[f"{aggregated_tissue}_turnover_cnp"][cell_id] += (
                         biomasses_of_dead_stems.get_tissue(aggregated_tissue).as_array(
                             with_carbon=True
@@ -1224,7 +1224,7 @@ class PlantsModel(
                     cohorts.pft_names == pft for pft in self.flora.name
                 ]
 
-                for by_pft_tissue in ("fruit", "seed"):
+                for by_pft_tissue in ("fruit", "foliage", "seed"):
                     # Calculate the total turnover and standing biomass in each cohort
                     total_turnover_biomass = (
                         biomasses_of_dead_stems.get_tissue(by_pft_tissue).as_array(
