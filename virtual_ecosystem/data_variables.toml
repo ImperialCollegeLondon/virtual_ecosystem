@@ -1279,6 +1279,48 @@ name = "canopy_foliage_cnp"
 unit = "kg"
 variable_type = "float"
 
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy foliage consumed by animals"
+name = "canopy_foliage_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy seed consumed by animals"
+name = "canopy_seed_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy fruit consumed by animals"
+name = "canopy_fruit_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of foliage turnover consumed by animals"
+name = "foliage_turnover_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of seed turnover consumed by animals"
+name = "seed_turnover_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of fruit turnover consumed by animals"
+name = "fruit_turnover_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
 ## Everything below here added 2026-01-26 by David to meet new requirements for 
 ## variables to actually be known
 

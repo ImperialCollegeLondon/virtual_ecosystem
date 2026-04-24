@@ -168,9 +168,17 @@ class ArrayResource:
             data: A data object containing resource arrays.
         """
         if self.partition_by_pft:
+            # Check the pool array has PFT coordinates
+            pfts = data[self.pool_array].coords.get("pft")
+            if pfts is None:
+                raise ValueError(
+                    f"ArrayResource for {self.pool_array} cannot be partitioned by PFT."
+                )
+
+            # Return a resource for each PFT
             return [
                 ResourcePool(data=data, resource=self, pft=pft, density=self.density)
-                for pft in data["pft"].to_numpy()
+                for pft in pfts.to_numpy()
             ]
 
         return [ResourcePool(data=data, resource=self, pft=None, density=self.density)]
@@ -194,36 +202,42 @@ ARRAY_RESOURCES = [
         consumed_array="canopy_foliage_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.CANOPY,
         diet_type=DietType.FOLIAGE,
+        partition_by_pft=True,
     ),
     ArrayResourceDefinition(
-        pool_array="canopy_seeds_cnp",
-        consumed_array="canopy_seeds_cnp_consumed",
+        pool_array="canopy_seed_cnp",
+        consumed_array="canopy_seed_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.CANOPY,
         diet_type=DietType.SEEDS,
+        partition_by_pft=True,
     ),
     ArrayResourceDefinition(
         pool_array="canopy_fruit_cnp",
         consumed_array="canopy_fruit_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.CANOPY,
         diet_type=DietType.FRUIT,
+        partition_by_pft=True,
     ),
     ArrayResourceDefinition(
         pool_array="foliage_turnover_cnp",
         consumed_array="foliage_turnover_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.FOLIAGE,
+        partition_by_pft=True,
     ),
     ArrayResourceDefinition(
         pool_array="seed_turnover_cnp",
         consumed_array="seed_turnover_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.SEEDS,
+        partition_by_pft=True,
     ),
     ArrayResourceDefinition(
         pool_array="fruit_turnover_cnp",
         consumed_array="fruit_turnover_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.FRUIT,
+        partition_by_pft=True,
     ),
     ArrayResourceDefinition(
         pool_array="litter_pool_above_metabolic_cnp",
@@ -315,10 +329,9 @@ class ResourcePool:
 
         # Needs to collapse down to a single mass and element ratio per cell and to
         # convert to mass units in the density case
+        mass_data = self.data[self.resource.pool_array]
         if self.density:
-            mass_data = self.data[self.resource.pool_array] * self.data.grid.cell_area
-        else:
-            mass_data = self.data[self.resource.pool_array]
+            mass_data *= self.data.grid.cell_area
 
         # Reduce to the PFT if needed
         # TODO - think about indexing here with a more general solution.

@@ -87,7 +87,8 @@ def animal_data_for_model_instance(fixture_core_components):
     cell_ids = np.arange(data.grid.n_cells)
     elements = np.array(["C", "N", "P"])
 
-    leaf_mass = DataArray(
+    # Populate plant biomass pools
+    vegetation_biomass = DataArray(
         np.ones((data.grid.n_cells, elements.size, pfts.size)),
         dims=("cell_id", "element", "pft"),
         coords=dict(
@@ -97,12 +98,21 @@ def animal_data_for_model_instance(fixture_core_components):
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
-    data["subcanopy_vegetation_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
-    data["subcanopy_seedbank_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
+    # Populate non- PFT structured ArrayResource pools
+    for pool in ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]:
+        data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
+
+    # Populate pft structured ArrayResource pools
+    plant_model_pools = [
+        "canopy_foliage_cnp",
+        "canopy_seed_cnp",
+        "canopy_fruit_cnp",
+        "foliage_turnover_cnp",
+        "seed_turnover_cnp",
+        "fruit_turnover_cnp",
+    ]
+    for pool in plant_model_pools:
+        data[pool] = vegetation_biomass.copy()
 
     litter_pools = DataArray(np.full(data.grid.n_cells, fill_value=1.5), dims="cell_id")
     litter_ratios = DataArray(
@@ -396,7 +406,8 @@ def dummy_animal_data(animal_fixture_core_components):
     data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
     data["litter_pool_below_structural_cnp"] = litter_cnp_template
 
-    leaf_mass = DataArray(
+    # Populate plant biomass pools
+    vegetation_biomass = DataArray(
         np.ones((data.grid.n_cells, elements.size, pfts.size)),
         dims=("cell_id", "element", "pft"),
         coords=dict(
@@ -406,12 +417,21 @@ def dummy_animal_data(animal_fixture_core_components):
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
-    data["subcanopy_vegetation_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
-    data["subcanopy_seedbank_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
+    # Populate non- PFT structured ArrayResource pools
+    for pool in ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]:
+        data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
+
+    # Populate pft structured ArrayResource pools
+    plant_model_pools = [
+        "canopy_foliage_cnp",
+        "canopy_seed_cnp",
+        "canopy_fruit_cnp",
+        "foliage_turnover_cnp",
+        "seed_turnover_cnp",
+        "fruit_turnover_cnp",
+    ]
+    for pool in plant_model_pools:
+        data[pool] = vegetation_biomass.copy()
 
     return data
 
@@ -980,7 +1000,7 @@ def litter_soil_data_instance(fixture_core_components):
         coords=dict(cell_id=cell_ids, element=elements),
     )
 
-    leaf_mass = DataArray(
+    vegetation_biomass = DataArray(
         np.ones((data.grid.n_cells, elements.size, pfts.size)),
         dims=("cell_id", "element", "pft"),
         coords=dict(
@@ -990,12 +1010,21 @@ def litter_soil_data_instance(fixture_core_components):
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
-    data["subcanopy_vegetation_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
-    data["subcanopy_seedbank_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
+    # Populate non- PFT structured ArrayResource pools
+    for pool in ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]:
+        data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
+
+    # Populate pft structured ArrayResource pools
+    plant_model_pools = [
+        "canopy_foliage_cnp",
+        "canopy_seed_cnp",
+        "canopy_fruit_cnp",
+        "foliage_turnover_cnp",
+        "seed_turnover_cnp",
+        "fruit_turnover_cnp",
+    ]
+    for pool in plant_model_pools:
+        data[pool] = vegetation_biomass.copy()
 
     data["litter_pool_above_metabolic_cnp"] = DataArray(
         np.stack(
