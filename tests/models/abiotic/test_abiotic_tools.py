@@ -7,6 +7,49 @@ import pytest
 from xarray import DataArray
 
 
+def test_compute_weights_with_nans():
+    """Test that compute_weights_from_absorbed_radiation correctly handles NaNs."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        compute_weights_from_absorbed_radiation,
+    )
+
+    radiation = np.array([[1.0, np.nan], [3.0, 6.0]])
+    weights = compute_weights_from_absorbed_radiation(radiation)
+
+    # NaN remains NaN
+    assert np.isnan(weights[0, 1])
+
+    # Valid values still normalize to 1
+    assert np.isclose(np.nansum(weights), 1.0)
+
+
+def test_compute_weights_zero_total_raises():
+    """Test that compute_weights_from_absorbed_radiation raises ValueError."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        compute_weights_from_absorbed_radiation,
+    )
+
+    radiation = np.array([[0.0, 0.0], [0.0, 0.0]])
+
+    with pytest.raises(ValueError):
+        compute_weights_from_absorbed_radiation(radiation)
+
+
+def test_all_nan_raises():
+    """Test that compute_weights_from_absorbed_radiation raises Error when NaN."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        compute_weights_from_absorbed_radiation,
+    )
+
+    radiation = np.array([[np.nan, np.nan], [np.nan, np.nan]])
+
+    with pytest.raises(ValueError):
+        compute_weights_from_absorbed_radiation(radiation)
+
+
 def test_build_indices_returns_expected_namespace(
     dummy_climate_data_varying_canopy, fixture_core_components
 ):

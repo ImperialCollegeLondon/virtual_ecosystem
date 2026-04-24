@@ -178,7 +178,9 @@ def run_simple_microclimate(
         surface_temperature=output["air_temperature"].isel(
             layers=layer_structure.index_surface
         ),
-        mean_annual_temperature=data["mean_annual_temperature"],
+        mean_annual_temperature=data["mean_annual_temperature"].isel(
+            time_index=time_index
+        ),
         layer_structure=layer_structure,
         upper_bound=upper,
         lower_bound=lower,

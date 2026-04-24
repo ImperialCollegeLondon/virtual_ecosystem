@@ -153,7 +153,7 @@ of transfer of energy normal to a surface of unit area (in $\mathrm{W\,m^{-2}}$)
 The energy balance of a surface layer of finite depth and unit horizontal area can be
 written as:
 
-$$\frac{dQ}{dt} = R_n - G - H - \lambda E (- PP)$$
+$$\frac{dQ}{dt} = R_n - G - H - \lambda E - PP$$
 
 where each term is later expanded for the [canopy](#canopy-energy-balance), and
 [soil surface](#soil-energy-balance).
@@ -219,6 +219,9 @@ Surface temperature (°C)
 
 Shortwave radiation $S_0$ and longwave radiation $LW_{down}$ are progressively
 attenuated through the canopy, as leaves absorb a portion of the incoming radiation.
+We account for the fact that some of the absorbed shortwave radiation is used by the
+plants to photosyntheses and is therefore not available for the generation of heat
+fluxes.
 
 ```{Note}
 In the future, we aim to implement a more advance radiative transfer scheme, including:
@@ -243,7 +246,7 @@ layer is as follows:
     & = R_{n} - H_l - \lambda E_l (- PP)\\
     & = R_{\text{abs}} - \epsilon_{l} \sigma T_{l}^{4} -
     \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})
-    - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} (- PP)\\
+    - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} - PP\\
     & = 0
 ```
 
@@ -295,87 +298,20 @@ Primary productivity, represents the energy that plants use to photosynthesize
 
 ### Temperature solution
 
-A challenge in solving this equation is the dependency of latent heat and emitted
-radiation on leaf temperature. This method estimates updated canopy and air temperatures
-by linearizing the canopy energy balance and applying a Newton iteration. This
-approach accounts for the strong temperature dependence of radiative losses and ensures
-numerical stability in canopy energy balance closure, following the method described by
-{cite:t}`yang_scope_2021`. The goal is to find the leaf temperature that closes the
-energy balance at the leaf surface, see previous section.
+A challenge in solving the canopy energy balance is the strong nonlinear dependence of
+radiative and turbulent fluxes on leaf temperature. In particular, emitted longwave
+radiation scales with the fourth power of temperature, while sensible heat flux depends
+linearly on the temperature difference between the canopy and the surrounding air.
 
-#### Newton Linearization
-
-To iteratively solve for the leaf temperature that satisfies the energy balance
-$\frac{dQ}{dt}$ = 0, we use the Newton method:
+To solve for the leaf temperature that satisfies the energy balance
 
 ```{math}
-T_l^{\text{new}} = T_l^{\text{old}} + W \cdot
-\frac{\frac{dQ}{dt}}{\frac{\partial \frac{dQ}{dt}}{\partial T_l^{\text{old}}}}
+\frac{dQ}{dt}=0,
 ```
 
-where:
-
-$T_l^{\text{old}}$:
-Current estimate of leaf temperature (°C)
-
-$T_l^{\text{new}}$:
-Updated estimate of leaf temperature (°C)
-
-$W$:
-Step-size weighting factor (–), typically between 0.1 and 1
-
-$\frac{\partial \frac{dQ}{dt}}{\partial T_l^{\text{old}}}$:
-The first derivative of the energy balance with respect to temperature
-
-This update adjusts the leaf temperature proportionally to the energy imbalance, scaled
-by the sensitivity of that imbalance to temperature. The weighting factor $W$ ensures
-numerical stability, especially in conditions where the balance is sensitive to small
-temperature changes.
-
-#### Derivative of energy balance
-
-The temperature derivative of the energy balance as formulated above
-is calculated analytically as:
-
-```{math}
-\frac{\partial \frac{dQ}{dt}}{\partial T_l^{\text{old}}} =
-\frac{\rho_a c_p}{r_a} +
-\frac{\rho_a \Delta_v}{r_a + r_s} \lambda +
-4 \epsilon_l \sigma (T_l^{\text{old}} + 273.15)^3
-```
-
-where:
-
-$\rho_a$:
-Air density ($\mathrm{kg\, m^{-3}}$)
-
-$c_p$:
-Specific heat capacity of air ($\mathrm{J\, kg^{-1}\,K^{-4}}$)
-
-$r_a$:
-Aerodynamic resistance of the canopy ($\mathrm{s\, m^{-1}}$)
-
-$r_s$:
-Stomatal resistance ($\mathrm{s\, m^{-1}}$)
-
-$\Delta_v$:
-Slope of the saturation vapour pressure curve ($\mathrm{kPa\, K^{-1}}$)
-
-$\lambda$:
-Latent heat of vapourisation of water ($\mathrm{kJ\, kg^{-1}}$)
-
-$\epsilon_l$:
-Leaf emissivity (-)
-
-$\sigma$:
-Stefan–Boltzmann constant ($5.67 \times 10^{-8}\,\mathrm{W\,m^{-2}\,K^{-4}}$)
-
-$T_l^{\text{old}}$:
-Previous estimate of leaf temperature (°C, converted to K in the radiation term)
-
-This derivative represents the rate at which each energy loss term changes with leaf
-temperature: convective, evaporative, and radiative. It ensures that the update step
-accounts for the nonlinear temperature dependence, especially of radiative loss.
+we apply a secant method, a derivative-free root-finding approach. This avoids the need
+to explicitly evaluate the derivative of the energy balance (as in Newton method) while
+retaining fast convergence.
 
 ### Air-canopy temperature coupling
 

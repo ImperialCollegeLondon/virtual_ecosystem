@@ -151,7 +151,7 @@ def test_soil_model_initialization_bounds_error(
 
     with pytest.raises(InitialisationError):
         # Put incorrect data in for lmwc
-        dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"] = DataArray(
+        dummy_carbon_data["soil_cnp_pool_lmwc"].loc[dict(element="C")] = DataArray(
             [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
         )
 
@@ -201,7 +201,7 @@ def test_soil_model_all_pools_positive(
     assert soil_model._all_pools_positive()
 
     # Change data to be incorrect for necromass
-    dummy_carbon_data["soil_cnp_pool_necromass"].loc[:, "C"] = DataArray(
+    dummy_carbon_data["soil_cnp_pool_necromass"].loc[dict(element="C")] = DataArray(
         [0.05, -0.02, 0.1, 0.005], dims=["cell_id"]
     )
 
@@ -574,7 +574,7 @@ def test_integrate_with_nans(caplog, fixture_soil_model):
         (
             ERROR,
             "Soil model integration cannot proceed because the following variables "
-            "have unexpected NaN values: {'pH'}",
+            "contain invalid values (e.g. NaN or Inf): {'pH'}",
         ),
     )
 
@@ -662,7 +662,7 @@ def test_order_independance(
 
 
 @pytest.mark.parametrize(
-    argnames=["unexpected_nans", "variable_name", "input_data"],
+    argnames=["invalid_values", "variable_name", "input_data"],
     argvalues=[
         pytest.param(
             False,
@@ -676,22 +676,34 @@ def test_order_independance(
             DataArray([3.3, np.nan, 5.6, 7.9], dims=["cell_id"]),
             id="NaN",
         ),
+        pytest.param(
+            True,
+            "pH",
+            DataArray([3.3, np.inf, 5.6, 7.9], dims=["cell_id"]),
+            id="Inf",
+        ),
+        pytest.param(
+            True,
+            "pH",
+            DataArray([3.3, -np.inf, 5.6, 7.9], dims=["cell_id"]),
+            id="negative inf",
+        ),
     ],
 )
-def test_check_for_unexpected_nan_value_flat(
-    fixture_soil_model, unexpected_nans, variable_name, input_data
+def test_check_for_invalid_input_values_flat(
+    fixture_soil_model, invalid_values, variable_name, input_data
 ):
     """Test unexpected NaN checking values works for variables without layers."""
 
     fixture_soil_model.data[variable_name] = input_data
 
-    assert unexpected_nans == fixture_soil_model.check_for_unexpected_nan_values(
+    assert invalid_values == fixture_soil_model.check_for_invalid_input_values(
         var=variable_name
     )
 
 
 @pytest.mark.parametrize(
-    argnames=["unexpected_nans", "variable_name", "layer_name", "input_data"],
+    argnames=["invalid_values", "variable_name", "layer_name", "input_data"],
     argvalues=[
         pytest.param(
             False,
@@ -708,6 +720,13 @@ def test_check_for_unexpected_nan_value_flat(
             id="surface, bad",
         ),
         pytest.param(
+            True,
+            "air_temperature",
+            "index_surface",
+            np.array([3.3, np.inf, 5.6, 7.9]),
+            id="surface, inf",
+        ),
+        pytest.param(
             False,
             "soil_temperature",
             "index_all_soil",
@@ -719,14 +738,21 @@ def test_check_for_unexpected_nan_value_flat(
             "soil_temperature",
             "index_all_soil",
             np.array([[3.3, 4.3, 5.6, 7.9], [np.nan, 26.1, 24.4, 29.8]]),
-            id="soil, bad",
+            id="soil, nan",
+        ),
+        pytest.param(
+            True,
+            "soil_temperature",
+            "index_all_soil",
+            np.array([[3.3, 4.3, 5.6, 7.9], [np.inf, 26.1, 24.4, 29.8]]),
+            id="soil, inf",
         ),
     ],
 )
-def test_check_for_unexpected_nan_value_layered(
+def test_check_for_invalid_input_values_layered(
     fixture_soil_model,
     fixture_core_components,
-    unexpected_nans,
+    invalid_values,
     variable_name,
     layer_name,
     input_data,
@@ -737,7 +763,7 @@ def test_check_for_unexpected_nan_value_layered(
     fixture_soil_model.data[variable_name] = lyr_str.from_template()
     fixture_soil_model.data[variable_name][getattr(lyr_str, layer_name)] = input_data
 
-    assert unexpected_nans == fixture_soil_model.check_for_unexpected_nan_values(
+    assert invalid_values == fixture_soil_model.check_for_invalid_input_values(
         var=variable_name
     )
 
@@ -1011,7 +1037,7 @@ def test_construct_full_soil_model(
         (
             np.concatenate(
                 [
-                    dummy_carbon_data[name].loc[:, element].to_numpy()
+                    dummy_carbon_data[name].sel(element=element).to_numpy()
                     for element in elements.keys()
                     for name in SoilModel.vars_updated
                     if name.startswith("soil_cnp_")
@@ -1111,11 +1137,11 @@ def test_estimate_past_mycorrhizal_supply(
     expected_p_supply = [5.6815677e-8, 2.13568584e-6, 5.67834718e-6, 2.42661124e-6]
 
     actual_n_supply, actual_p_supply = estimate_past_mycorrhizal_supply(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "C"],
-        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "N"],
+        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
+        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="N"),
         soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].loc[:, "P"],
+        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="P"),
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         microbe_pool_size=dummy_carbon_data["soil_c_pool_ectomycorrhiza"],
         soil_temp=averaged_soil_temp,

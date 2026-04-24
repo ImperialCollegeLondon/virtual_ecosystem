@@ -53,6 +53,7 @@ var_specs = {
         "noise": 5.0,
         "min": 0.0,
     },
+    "mean_annual_temperature": {"mean": 23.0, "amp": 2.0, "noise": 0.5, "min": 15.0},
 }
 
 # Loop to fill data
@@ -73,12 +74,6 @@ for var, specs in var_specs.items():
         data=values,
         coords={"cell_id": cell_id, "time_index": time_index},
     )
-
-# Special case: mean annual temperature (static per cell)
-data["mean_annual_temperature"] = DataArray(
-    data=np.full((n_cells,), fill_value=23.0),
-    coords={"cell_id": cell_id},
-)
 
 # Add time coordinate
 data["time"] = DataArray(time, coords={"time_index": time_index})
