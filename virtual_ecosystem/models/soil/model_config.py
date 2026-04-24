@@ -452,10 +452,10 @@ class SoilConfiguration(ModelConfigurationRoot):
 
     microbial_group_definition: list[SoilMicrobialGroup] = Field(
         default=[
-            SoilMicrobialGroup(name="saprotrophic_fungi"),
-            SoilMicrobialGroup(name="ectomycorrhiza"),
-            SoilMicrobialGroup(name="arbuscular_mycorrhiza"),
-            SoilMicrobialGroup(name="bacteria"),
+            SoilMicrobialGroup(name="saprotrophic_fungi", taxonomic_group="fungi"),
+            SoilMicrobialGroup(name="ectomycorrhiza", taxonomic_group="fungi"),
+            SoilMicrobialGroup(name="arbuscular_mycorrhiza", taxonomic_group="fungi"),
+            SoilMicrobialGroup(name="bacteria", taxonomic_group="bacteria"),
         ]
     )
     """Definition of microbial groups for soil model."""
