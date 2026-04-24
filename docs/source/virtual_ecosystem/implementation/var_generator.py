@@ -2,7 +2,7 @@
 
 from pydantic import fields
 
-from virtual_ecosystem.core.base_model import _discover_models
+from virtual_ecosystem.core.base_model import discover_models
 from virtual_ecosystem.core.variables import VariableMetadata, load_known_variables
 
 # TODO - merge these into a single generate_model_variable_markdown and probably move it
@@ -16,7 +16,7 @@ def generate_variable_listing(model_name: str, var_attributes: list[str]) -> str
     variables = load_known_variables()
 
     # Find the model reference
-    models = {m.__name__: m for m in _discover_models()}
+    models = {m.__name__: m for m in discover_models()}
     if model_name not in models:
         raise ValueError("Unknown model name")
     model = models[model_name]
@@ -103,7 +103,7 @@ def generate_variable_table(model_name: str, var_attributes: list[str]) -> str:
     variables = load_known_variables()
 
     # Find the model reference
-    models = {m.__name__: m for m in _discover_models()}
+    models = {m.__name__: m for m in discover_models()}
     if model_name not in models:
         raise ValueError("Unknown model name")
     model = models[model_name]

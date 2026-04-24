@@ -672,10 +672,10 @@ class SoilPools:
             + necromass_decay_to_lmwc
             + fungal_fruiting_body_decay["carbon"]
             + self.to_per_volume(
-                self.data["decomposed_excrement_cnp"].loc[:, "C"].to_numpy()
+                self.data["decomposed_excrement_cnp"].sel(element="C").to_numpy()
             )
             + self.to_per_volume(
-                self.data["decomposed_carcasses_cnp"].loc[:, "C"].to_numpy()
+                self.data["decomposed_carcasses_cnp"].sel(element="C").to_numpy()
             )
             - microbial_changes.lmwc_uptake
             - lmwc_sorption_to_maom
@@ -707,7 +707,7 @@ class SoilPools:
         delta_pools_ordered["soil_cnp_pool_pom_carbon"] = (
             litter_mineralisation_flux.pom
             - enzyme_mediated.pom_to_lmwc
-            - self.data["animal_pom_consumption_cnp"].loc[:, "C"].to_numpy()
+            - self.data["animal_pom_consumption_cnp"].sel(element="C").to_numpy()
         )
         delta_pools_ordered["soil_cnp_pool_necromass_carbon"] = (
             microbial_changes.necromass_generation
@@ -748,10 +748,10 @@ class SoilPools:
             + nutrient_transfers_maom_to_lmwc["nitrogen"]
             + fungal_fruiting_body_decay["nitrogen"]
             + self.to_per_volume(
-                self.data["decomposed_excrement_cnp"].loc[:, "N"].to_numpy()
+                self.data["decomposed_excrement_cnp"].sel(element="N").to_numpy()
             )
             + self.to_per_volume(
-                self.data["decomposed_carcasses_cnp"].loc[:, "N"].to_numpy()
+                self.data["decomposed_carcasses_cnp"].sel(element="N").to_numpy()
             )
             - microbial_changes.don_uptake
             - nutrient_removal_by_water.don
@@ -759,7 +759,7 @@ class SoilPools:
         delta_pools_ordered["soil_cnp_pool_pom_nitrogen"] = (
             litter_mineralisation_flux.particulate_n
             - pom_n_mineralisation
-            - self.data["animal_pom_consumption_cnp"].loc[:, "N"].to_numpy()
+            - self.data["animal_pom_consumption_cnp"].sel(element="N").to_numpy()
         )
         delta_pools_ordered["soil_cnp_pool_necromass_nitrogen"] = (
             microbial_changes.necromass_n_flow
@@ -797,10 +797,10 @@ class SoilPools:
             + nutrient_transfers_maom_to_lmwc["phosphorus"]
             + fungal_fruiting_body_decay["phosphorus"]
             + self.to_per_volume(
-                self.data["decomposed_excrement_cnp"].loc[:, "P"].to_numpy()
+                self.data["decomposed_excrement_cnp"].sel(element="P").to_numpy()
             )
             + self.to_per_volume(
-                self.data["decomposed_carcasses_cnp"].loc[:, "P"].to_numpy()
+                self.data["decomposed_carcasses_cnp"].sel(element="P").to_numpy()
             )
             - microbial_changes.dop_uptake
             - nutrient_removal_by_water.dop
@@ -808,7 +808,7 @@ class SoilPools:
         delta_pools_ordered["soil_cnp_pool_pom_phosphorus"] = (
             litter_mineralisation_flux.particulate_p
             - pom_p_mineralisation
-            - self.data["animal_pom_consumption_cnp"].loc[:, "P"].to_numpy()
+            - self.data["animal_pom_consumption_cnp"].sel(element="P").to_numpy()
         )
         delta_pools_ordered["soil_cnp_pool_necromass_phosphorus"] = (
             microbial_changes.necromass_p_flow
@@ -1588,11 +1588,11 @@ def calculate_litter_mineralisation_fluxes(
     """
 
     flux_C_particulate, flux_C_dissolved = calculate_litter_mineralisation_split(
-        mineralisation_rate=litter_mineralisation_rates.loc[:, "C"].to_numpy(),
+        mineralisation_rate=litter_mineralisation_rates.sel(element="C").to_numpy(),
         litter_leaching_coefficient=constants.litter_leaching_fraction_carbon,
     )
     flux_N_particulate, flux_N_dissolved = calculate_litter_mineralisation_split(
-        mineralisation_rate=litter_mineralisation_rates.loc[:, "N"].to_numpy(),
+        mineralisation_rate=litter_mineralisation_rates.sel(element="N").to_numpy(),
         litter_leaching_coefficient=constants.litter_leaching_fraction_nitrogen,
     )
     flux_N_organic_dissolved = (
@@ -1602,7 +1602,7 @@ def calculate_litter_mineralisation_fluxes(
         1 - constants.organic_proportion_litter_nitrogen_leaching
     )
     flux_P_particulate, flux_P_dissolved = calculate_litter_mineralisation_split(
-        mineralisation_rate=litter_mineralisation_rates.loc[:, "P"].to_numpy(),
+        mineralisation_rate=litter_mineralisation_rates.sel(element="P").to_numpy(),
         litter_leaching_coefficient=constants.litter_leaching_fraction_phosphorus,
     )
     flux_P_organic_dissolved = (
