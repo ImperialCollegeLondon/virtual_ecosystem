@@ -108,7 +108,7 @@ from tests.conftest import log_check
         ),
     ],
 )
-def test_registry(caplog, module_name, raises, exp_log):
+def test_register_module(caplog, module_name, raises, exp_log):
     """Test the registry loading.
 
     This runs tests on the actual core and testing modules and then uses some local
@@ -139,6 +139,74 @@ def test_registry(caplog, module_name, raises, exp_log):
 
             if not mod_info.is_core:
                 assert issubclass(mod_info.model, BaseModel)
+
+            assert issubclass(mod_info.config, Configuration)
+
+        # Check the last N entries in the log match the expectation.
+        log_check(
+            caplog=caplog, expected_log=exp_log, subset=slice(-len(exp_log), None, None)
+        )
+
+
+@pytest.mark.parametrize(
+    argnames="module_name, raises, exp_log",
+    argvalues=[
+        pytest.param(
+            "virtual_ecosystem.disturbances.disturbance_testing",
+            does_not_raise(),
+            (
+                (
+                    INFO,
+                    "Registering module: "
+                    "virtual_ecosystem.disturbances.disturbance_testing",
+                ),
+                (
+                    INFO,
+                    "Registering model class for "
+                    "virtual_ecosystem.disturbances.disturbance_testing: "
+                    "DisturbanceTestingModel",
+                ),
+                (
+                    INFO,
+                    "Configuration class registered for "
+                    "virtual_ecosystem.disturbances.disturbance_testing",
+                ),
+            ),
+            id="disturbance_testing_import_good",
+        ),
+    ],
+)
+def test_register_disturbance(caplog, module_name, raises, exp_log):
+    """Test the registry loading.
+
+    This runs tests on the actual core and testing modules and then uses some local
+    badly formatted models to check error handling.
+    """
+
+    from virtual_ecosystem.core.base_model import BaseDisturbance
+    from virtual_ecosystem.core.configuration import Configuration
+    from virtual_ecosystem.core.registry import (
+        DISTURBANCE_REGISTRY,
+        ModuleInfo,
+        register_disturbance,
+    )
+
+    # Get the short name
+    _, _, short_name = module_name.rpartition(".")
+
+    caplog.clear()
+
+    with raises:
+        register_disturbance(module_name=module_name)
+
+        if isinstance(raises, does_not_raise):
+            # Test the detailed structure of the registry for the module
+            assert short_name in DISTURBANCE_REGISTRY
+            mod_info = DISTURBANCE_REGISTRY[short_name]
+            assert isinstance(mod_info, ModuleInfo)
+
+            if not mod_info.is_core:
+                assert issubclass(mod_info.model, BaseDisturbance)
 
             assert issubclass(mod_info.config, Configuration)
 
