@@ -209,28 +209,64 @@ def test_clamp_variable_within_limits():
     assert_allclose(variable.sum(axis=0), clamped_variable.sum(axis=0))
 
 
-def test_next_valid_above_basic():
-    """Test next valid above with basic case."""
+def test_next_valid_above(dummy_climate_data_varying_canopy):
+    """Test next valid above."""
     from virtual_ecosystem.models.abiotic.wind import next_valid_above
 
-    arr = np.array([[1.0, 1.0], [np.nan, 2.0], [3.0, 3.0]])
+    data = dummy_climate_data_varying_canopy
+    arr = data["air_temperature"].to_numpy()
 
     result = next_valid_above(arr)
 
-    expected = np.array([[-1, -1], [0, 0], [0, 1]])
+    expected = np.array(
+        [
+            [-1, -1, -1, -1],
+            [0, 0, 0, 0],
+            [1, 1, 1, 0],
+            [2, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+        ]
+    )
 
     assert np.array_equal(result, expected)
 
 
-def test_next_valid_below_basic():
-    """Test next valid below with basic case."""
+def test_next_valid_below(dummy_climate_data_varying_canopy):
+    """Test next valid below."""
     from virtual_ecosystem.models.abiotic.wind import next_valid_below
 
-    arr = np.array([[1.0, 1.0], [2.0, np.nan], [3.0, 3.0]])
+    data = dummy_climate_data_varying_canopy
+    arr = data["air_temperature"].to_numpy()
 
     result = next_valid_below(arr)
 
-    expected = np.array([[1, 2], [2, 2], [-1, -1]])
+    expected = np.array(
+        [
+            [1, 1, 1, 11],
+            [2, 2, 11, 11],
+            [3, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [-1, -1, -1, -1],
+            [-1, -1, -1, -1],
+            [-1, -1, -1, -1],
+        ]
+    )
 
     assert np.array_equal(result, expected)
 
@@ -251,6 +287,8 @@ def test_mix_and_ventilate():
             [np.nan, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
             [0.012, 0.012, 0.012, 0.012],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
         ]
     )
     ventilation_rate = np.array([0.001, 0.001, 0.001, 0.001])
@@ -264,18 +302,22 @@ def test_mix_and_ventilate():
             [np.nan, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
         ],
     )
 
     exp_result = np.array(
         [
-            [104.890075, 95.005, 95.005, 95.005],
-            [100.0, 99.975025, 99.975025, np.nan],
-            [99.998750, 99.999750, np.nan, np.nan],
-            [90.019998, np.nan, np.nan, np.nan],
+            [104.89, 95.005, 95.005, 95.005],
+            [100.0, 99.975, 99.975, np.nan],
+            [100.0, 100.0, np.nan, np.nan],
+            [90.02, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
-            [99.880239, 99.99999, 99.999700, 99.94006],
+            [99.88, 100.0, 100.0, 99.94],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
         ]
     )
 

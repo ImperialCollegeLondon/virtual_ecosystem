@@ -414,56 +414,52 @@ def mix_and_ventilate(
         Vertically mixed input variable
     """
 
-    # Extract neighbor indices
-    above_idx = next_valid_above(input_variable)
-    below_idx = next_valid_below(input_variable)
     current = input_variable.copy()
+    n_layers, n_cols = current.shape
+
+    # Extract neighbor indices
+    above_idx = next_valid_above(current)
+    below_idx = next_valid_below(current)
 
     # Set mixing coefficient for top layer to ventilation rate, as this is the
     # rate at which the top layer is mixed with the atmosphere above, rather
     # than with a layer above it
+    mixing_coefficient = mixing_coefficient.copy()
     mixing_coefficient[0, :] = ventilation_rate
 
+    # Build column index grid
+    cols = np.broadcast_to(np.arange(n_cols), (n_layers, n_cols))
+
+    above = np.full_like(current, np.nan)
+    mask_above = above_idx >= 0
+    above[mask_above] = current[above_idx[mask_above], cols[mask_above]]
+
+    below = np.full_like(current, np.nan)
+    mask_below = below_idx >= 0
+    below[mask_below] = current[below_idx[mask_below], cols[mask_below]]
+
     # Mask valid (non-NaN) values
-    valid_above = above_idx >= 0
-    valid_below = below_idx >= 0
-    valid_curr = ~np.isnan(current)
+    valid = ~np.isnan(current)
 
-    # Mixing from above: current += k * (above - current)
-    above = np.where(
-        valid_above,
-        input_variable,
-        np.nan,
+    # Mixing step
+    mix_above = np.zeros_like(current)
+    mix_below = np.zeros_like(current)
+
+    mask_mix_above = valid & mask_above
+    mask_mix_below = valid & mask_below
+
+    mix_above[mask_mix_above] = mixing_coefficient[mask_mix_above] * (
+        above[mask_mix_above] - current[mask_mix_above]
     )
 
-    mix_above = np.where(
-        valid_curr & valid_above,
-        mixing_coefficient * (above - current),
-        0.0,
+    mix_below[mask_mix_below] = mixing_coefficient[mask_mix_below] * (
+        below[mask_mix_below] - current[mask_mix_below]
     )
 
-    # Mixing from below
+    result = current + mix_above + mix_below
 
-    below = np.where(
-        valid_below,
-        input_variable,
-        np.nan,
-    )
-
-    mix_below = np.where(
-        valid_curr & valid_below,
-        mixing_coefficient * (below - current),
-        0.0,
-    )
-
-    input_variable = current + mix_above + mix_below
-
-    # Redistribute overshoot/undershoot
-    input_variable = clamp_variable_within_limits(
-        variable=input_variable, limits=limits
-    )
-
-    return input_variable
+    # Return after clamping within limits to prevent overshooting and negative values
+    return clamp_variable_within_limits(result, limits)
 
 
 def advect_water_from_toplayer(
