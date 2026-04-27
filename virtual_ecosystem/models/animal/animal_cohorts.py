@@ -8,7 +8,8 @@ from _collections_abc import Callable, Mapping
 from math import ceil, exp, log, sqrt
 from typing import Literal, TypeVar, cast
 
-from numpy import timedelta64
+from numpy import mean, timedelta64
+from numpy.typing import NDArray
 
 import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.grid import Grid
@@ -99,6 +100,13 @@ class AnimalCohort:
         """Initialize the territory using the centroid grid key."""
         self.territory: list[int]
         """The list of grid cells currently occupied by the cohort."""
+        self.sigma_f_t: float = 1.0
+        """The Activity window fraction in [0, 1]."""
+        self.current_temperature: float = constants.placeholder_annual_mean_temp
+        """Mean territory temperature [°C] last recorded by
+        :meth:`update_activity_window`. Seeded to the placeholder annual mean so
+        that endotherms and any cohort that calls :meth:`metabolize` before its
+        first activity-window update receive a physically reasonable value."""
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = find_decay_consumed_split(
@@ -321,6 +329,7 @@ class AnimalCohort:
             temperature=temperature,
             terms=self.functional_group.metabolic_rate_terms,
             metabolic_type=self.functional_group.metabolic_type,
+            sigma_f_t=self.sigma_f_t,
             metabolic_scaling_coefficients=self.constants.metabolic_scaling_coefficients,
             boltzmann_constant=self.core_constants.boltzmann_constant,
         ) * float(dt / timedelta64(1, "D"))
@@ -1481,10 +1490,7 @@ class AnimalCohort:
 
         # Compute foraging time proportionally across diet types
         time_available_per_diet = (
-            dt
-            * self.constants.tau_f
-            * self.constants.sigma_f_t
-            / self.diet_category_count
+            dt * self.constants.tau_f * self.sigma_f_t / self.diet_category_count
         )
 
         total_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
@@ -2125,3 +2131,164 @@ class AnimalCohort:
 
         """
         return bool(resource_occupancy & self.functional_group.vertical_occupancy)
+
+    def update_activity_window(
+        self,
+        temperature: float,
+        diurnal_temp_range: float,
+        annual_mean_temp: float,
+        annual_temp_sd: float,
+    ) -> None:
+        """Update the activity window fraction and current temperature.
+
+        Delegates to
+        :func:`~virtual_ecosystem.models.animal.scaling_functions.activity_window`
+        and stores the result in :attr:`sigma_f_t`. Should be called once per
+        timestep, before both :meth:`forage_cohort` and :meth:`metabolize`.
+
+        If the cohort's functional group has ``t_opt``, ``t_max_crit``, and
+        ``t_min_crit`` set from CSV input, those values are used directly.
+        Otherwise the toy climate parameters from
+        :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
+        are used to derive thermal tolerances.
+
+        Args:
+            temperature: Monthly mean ambient temperature [°C].
+            diurnal_temp_range: Monthly mean diurnal temperature range [°C].
+            annual_mean_temp: Annual mean ambient temperature [°C].
+            annual_temp_sd: Standard deviation of monthly temperatures across the
+                climatological year [°C].
+        """
+        self.current_temperature = temperature
+        self.sigma_f_t = sf.activity_window(
+            metabolic_type=self.functional_group.metabolic_type,
+            temperature=temperature,
+            diurnal_temp_range=diurnal_temp_range,
+            annual_mean_temp=annual_mean_temp,
+            annual_temp_sd=annual_temp_sd,
+            t_opt=self.functional_group.t_opt,
+            t_max_crit=self.functional_group.t_max_crit,
+            t_min_crit=self.functional_group.t_min_crit,
+            constants=self.constants,
+        )
+
+    def get_stratum_climate(
+        self,
+        cell_id: int,
+        canopy_temperature: NDArray,
+        ground_temperature: NDArray,
+        soil_temperature: NDArray,
+        canopy_diurnal_range: NDArray,
+        ground_diurnal_range: NDArray,
+        soil_diurnal_range: NDArray,
+    ) -> tuple[float, float]:
+        """Mean temperature and diurnal range experienced by this cohort in a cell.
+
+        Averages both climate variables across all occupied vertical strata. The
+        arrays should be pre-computed per-cell means for each stratum before calling
+        — see
+        :meth:`~virtual_ecosystem.models.animal.animal_model.AnimalModel.update_activity_windows_community`.
+
+        The stratum-to-array mapping is:
+
+        * ``CANOPY`` — mean of filled canopy layer values, one value per cell.
+        * ``GROUND`` — surface layer value, one value per cell.
+        * ``SOIL``   — topsoil layer value, one value per cell.
+
+        Args:
+            cell_id: Index of the grid cell to evaluate.
+            canopy_temperature: 1-D array of per-cell mean filled canopy
+                temperatures [°C], shape ``(n_cells,)``.
+            ground_temperature: 1-D array of surface air temperatures [°C],
+                shape ``(n_cells,)``.
+            soil_temperature: 1-D array of topsoil temperatures [°C],
+                shape ``(n_cells,)``.
+            canopy_diurnal_range: 1-D array of per-cell mean filled canopy diurnal
+                temperature ranges [°C], shape ``(n_cells,)``.
+            ground_diurnal_range: 1-D array of surface diurnal temperature ranges
+                [°C], shape ``(n_cells,)``.
+            soil_diurnal_range: 1-D array of topsoil diurnal temperature ranges
+                [°C], shape ``(n_cells,)``.
+
+        Returns:
+            A tuple of (temperature, diurnal_range), each the mean across all
+            occupied strata for the given cell [°C].
+
+        Raises:
+            ValueError: If the cohort's vertical occupancy contains no recognised
+                flags.
+        """
+        stratum_temps: list[float] = []
+        stratum_diurnal: list[float] = []
+
+        if self.functional_group.vertical_occupancy & VerticalOccupancy.CANOPY:
+            stratum_temps.append(float(canopy_temperature[cell_id]))
+            stratum_diurnal.append(float(canopy_diurnal_range[cell_id]))
+
+        if self.functional_group.vertical_occupancy & VerticalOccupancy.GROUND:
+            stratum_temps.append(float(ground_temperature[cell_id]))
+            stratum_diurnal.append(float(ground_diurnal_range[cell_id]))
+
+        if self.functional_group.vertical_occupancy & VerticalOccupancy.SOIL:
+            stratum_temps.append(float(soil_temperature[cell_id]))
+            stratum_diurnal.append(float(soil_diurnal_range[cell_id]))
+
+        if not stratum_temps:
+            raise ValueError(
+                f"No recognised vertical occupancy flags in: "
+                f"{self.functional_group.vertical_occupancy}"
+            )
+
+        return float(mean(stratum_temps)), float(mean(stratum_diurnal))
+
+    def get_mean_territory_climate(
+        self,
+        canopy_temperature: NDArray,
+        ground_temperature: NDArray,
+        soil_temperature: NDArray,
+        canopy_diurnal_range: NDArray,
+        ground_diurnal_range: NDArray,
+        soil_diurnal_range: NDArray,
+    ) -> tuple[float, float]:
+        """Mean temperature and diurnal range across this cohort's full territory.
+
+        Calls :meth:`get_stratum_climate` for each cell in the cohort's territory
+        and returns the unweighted mean of both climate variables. Arrays should be
+        pre-computed per-cell stratum means before calling — see
+        :meth:`~virtual_ecosystem.models.animal.animal_model.AnimalModel.update_activity_windows_community`.
+
+        Args:
+            canopy_temperature: 1-D array of per-cell mean filled canopy
+                temperatures [°C], shape ``(n_cells,)``.
+            ground_temperature: 1-D array of surface air temperatures [°C],
+                shape ``(n_cells,)``.
+            soil_temperature: 1-D array of topsoil temperatures [°C],
+                shape ``(n_cells,)``.
+            canopy_diurnal_range: 1-D array of per-cell mean filled canopy diurnal
+                temperature ranges [°C], shape ``(n_cells,)``.
+            ground_diurnal_range: 1-D array of surface diurnal temperature ranges
+                [°C], shape ``(n_cells,)``.
+            soil_diurnal_range: 1-D array of topsoil diurnal temperature ranges
+                [°C], shape ``(n_cells,)``.
+
+        Returns:
+            A tuple of (temperature, diurnal_range), each the mean across all
+            territory cells and occupied strata [°C].
+        """
+        cell_climates = [
+            self.get_stratum_climate(
+                c,
+                canopy_temperature,
+                ground_temperature,
+                soil_temperature,
+                canopy_diurnal_range,
+                ground_diurnal_range,
+                soil_diurnal_range,
+            )
+            for c in self.territory
+        ]
+
+        mean_temperature = float(mean([t for t, _ in cell_climates]))
+        mean_diurnal_range = float(mean([d for _, d in cell_climates]))
+
+        return mean_temperature, mean_diurnal_range

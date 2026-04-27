@@ -41,6 +41,31 @@ def ectotherm_cohort_instance(
 
 
 @pytest.fixture
+def canopy_cohort_instance(
+    shared_datadir,
+    animal_data_for_cohorts_instance,
+    constants_instance,
+):
+    """Fixture for a canopy-only cohort (swallow, index 11)."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+    return AnimalCohort(
+        fg_list[11],
+        0.1,
+        1,
+        10,
+        1,
+        animal_data_for_cohorts_instance.grid,
+        constants_instance,
+    )
+
+
+@pytest.fixture
 def prey_cohort_instance(
     herbivore_functional_group_instance,
     animal_data_for_cohorts_instance,
@@ -3981,3 +4006,390 @@ class TestAnimalCohort:
         assert mock_bin.call_count == 2
         mock_bin.assert_any_call(50.0, 0.1)
         mock_bin.assert_any_call(200.0, 0.1)
+
+    @pytest.mark.parametrize(
+        "cohort_type, temperature, diurnal_temp_range, annual_mean_temp,"
+        " annual_temp_sd, expected_sigma, check_type",
+        [
+            pytest.param(
+                "herbivore",
+                31.0,
+                4.0,
+                20.0,
+                5.0,
+                1.0,
+                "equal",
+                id="endotherm_always_1",
+            ),
+            pytest.param(
+                "ectotherm",
+                31.0,
+                4.0,
+                20.0,
+                5.0,
+                1.0,
+                "equal",
+                id="ectotherm_fully_within_window",
+            ),
+            pytest.param(
+                "ectotherm",
+                10.0,
+                4.0,
+                20.0,
+                5.0,
+                0.0,
+                "equal",
+                id="ectotherm_always_too_cold",
+            ),
+            pytest.param(
+                "ectotherm",
+                30.0,
+                10.0,
+                20.0,
+                5.0,
+                None,
+                "between",
+                id="ectotherm_partial_overlap",
+            ),
+            # CSV override path — same climate inputs as ectotherm_fully_within_window
+            # but thermophilic_lizard has t_min_crit=30 so temp=31 is only partially
+            # within window, giving a different result than the toy parameter path
+            pytest.param(
+                "thermophilic_lizard",
+                31.0,
+                4.0,
+                20.0,
+                5.0,
+                0.6666666666666667,
+                "equal",
+                id="csv_override_partial_window",
+            ),
+        ],
+    )
+    def test_update_activity_window(
+        self,
+        herbivore_cohort_instance,
+        ectotherm_cohort_instance,
+        thermophilic_lizard_cohort_instance,
+        cohort_type,
+        temperature,
+        diurnal_temp_range,
+        annual_mean_temp,
+        annual_temp_sd,
+        expected_sigma,
+        check_type,
+    ):
+        """Test that update_activity_window sets sigma_f_t correctly."""
+        cohort = {
+            "herbivore": herbivore_cohort_instance,
+            "ectotherm": ectotherm_cohort_instance,
+            "thermophilic_lizard": thermophilic_lizard_cohort_instance,
+        }[cohort_type]
+
+        cohort.update_activity_window(
+            temperature=temperature,
+            diurnal_temp_range=diurnal_temp_range,
+            annual_mean_temp=annual_mean_temp,
+            annual_temp_sd=annual_temp_sd,
+        )
+
+        if check_type == "equal":
+            assert cohort.sigma_f_t == pytest.approx(expected_sigma)
+        else:
+            assert 0.0 < cohort.sigma_f_t < 1.0
+
+    @pytest.mark.parametrize(
+        "temperature, diurnal_temp_range, annual_mean_temp, annual_temp_sd, t_opt,"
+        "t_max_crit, t_min_crit",
+        [
+            pytest.param(
+                25.0,
+                10.0,
+                25.0,
+                5.0,
+                None,
+                None,
+                None,
+                id="typical_derived_tolerance",
+            ),
+            pytest.param(
+                100.0,
+                1.0,
+                100.0,
+                5.0,
+                None,
+                None,
+                None,
+                id="extreme_heat_ectotherm_would_be_zero",
+            ),
+            pytest.param(
+                -50.0,
+                1.0,
+                -50.0,
+                5.0,
+                None,
+                None,
+                None,
+                id="extreme_cold_ectotherm_would_be_zero",
+            ),
+            pytest.param(
+                25.0,
+                10.0,
+                25.0,
+                5.0,
+                30.0,
+                40.0,
+                20.0,
+                id="explicit_thermal_tolerances",
+            ),
+            pytest.param(
+                25.0,
+                0.0,
+                25.0,
+                5.0,
+                None,
+                None,
+                None,
+                id="zero_diurnal_range_ectotherm_would_divide_by_zero",
+            ),
+        ],
+    )
+    def test_activity_window_endotherm_always_one(
+        self,
+        temperature,
+        diurnal_temp_range,
+        annual_mean_temp,
+        annual_temp_sd,
+        t_opt,
+        t_max_crit,
+        t_min_crit,
+    ):
+        """Endotherms return sigma_f_t = 1.0 regardless of all other arguments."""
+        from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+        from virtual_ecosystem.models.animal.scaling_functions import activity_window
+
+        assert (
+            activity_window(
+                MetabolicType.ENDOTHERMIC,
+                temperature=temperature,
+                diurnal_temp_range=diurnal_temp_range,
+                annual_mean_temp=annual_mean_temp,
+                annual_temp_sd=annual_temp_sd,
+                t_opt=t_opt,
+                t_max_crit=t_max_crit,
+                t_min_crit=t_min_crit,
+            )
+            == 1.0
+        )
+
+    @pytest.mark.parametrize(
+        "cohort_type, canopy_t, ground_t, soil_t, canopy_d, ground_d, soil_d, "
+        "cell_id, expected_temp, expected_diurnal",
+        [
+            # GROUND only — herbivorous_mammal (index 3)
+            pytest.param(
+                "herbivore",
+                25.0,
+                20.0,
+                15.0,
+                8.0,
+                5.0,
+                2.0,
+                0,
+                20.0,
+                5.0,
+                id="ground_only_cell_0",
+            ),
+            # GROUND only, different cell — confirms cell_id indexing
+            pytest.param(
+                "herbivore",
+                25.0,
+                30.0,
+                15.0,
+                8.0,
+                5.0,
+                2.0,
+                1,
+                30.0,
+                5.0,
+                id="ground_only_cell_1",
+            ),
+            # CANOPY only — swallow (index 11)
+            pytest.param(
+                "canopy",
+                25.0,
+                20.0,
+                15.0,
+                8.0,
+                5.0,
+                2.0,
+                0,
+                25.0,
+                8.0,
+                id="canopy_only",
+            ),
+            # SOIL | GROUND | CANOPY — herbivorous_insect (index 5)
+            pytest.param(
+                "ectotherm",
+                30.0,
+                20.0,
+                10.0,
+                8.0,
+                4.0,
+                2.0,
+                0,
+                20.0,
+                4.666666666666667,
+                id="all_strata_mean",
+            ),
+        ],
+    )
+    def test_get_stratum_climate(
+        self,
+        herbivore_cohort_instance,
+        ectotherm_cohort_instance,
+        canopy_cohort_instance,
+        cohort_type,
+        canopy_t,
+        ground_t,
+        soil_t,
+        canopy_d,
+        ground_d,
+        soil_d,
+        cell_id,
+        expected_temp,
+        expected_diurnal,
+    ):
+        """Test per-cell temperature and diurnal range based on vertical occupancy."""
+        import numpy as np
+
+        cohort = {
+            "herbivore": herbivore_cohort_instance,
+            "ectotherm": ectotherm_cohort_instance,
+            "canopy": canopy_cohort_instance,
+        }[cohort_type]
+
+        n_cells = 9
+        result_temp, result_diurnal = cohort.get_stratum_climate(
+            cell_id=cell_id,
+            canopy_temperature=np.full(n_cells, canopy_t),
+            ground_temperature=np.full(n_cells, ground_t),
+            soil_temperature=np.full(n_cells, soil_t),
+            canopy_diurnal_range=np.full(n_cells, canopy_d),
+            ground_diurnal_range=np.full(n_cells, ground_d),
+            soil_diurnal_range=np.full(n_cells, soil_d),
+        )
+
+        assert result_temp == pytest.approx(expected_temp)
+        assert result_diurnal == pytest.approx(expected_diurnal)
+
+    def test_get_stratum_climate_soil_only_matches_soil_ground_when_strata_equal(
+        self, animal_model_instance, monkeypatch
+    ):
+        """SOIL-only and SOIL|GROUND produce identical climate when soil==ground."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+
+        n = animal_model_instance.data.grid.n_cells
+        soil_temp = np.full(n, 18.0)
+        ground_temp = np.full(n, 18.0)  # identical to soil
+        canopy_temp = np.full(
+            n, 35.0
+        )  # distinct: accidental inclusion would change mean
+
+        soil_diurnal = np.full(n, 4.0)
+        ground_diurnal = np.full(n, 4.0)  # identical to soil
+        canopy_diurnal = np.full(
+            n, 12.0
+        )  # distinct: accidental inclusion would change mean
+
+        cohort = next(iter(animal_model_instance.active_cohorts.values()))
+        cell_id = cohort.territory[0]
+
+        monkeypatch.setattr(
+            cohort.functional_group, "vertical_occupancy", VerticalOccupancy.SOIL
+        )
+        temp_soil, diurnal_soil = cohort.get_stratum_climate(
+            cell_id,
+            canopy_temp,
+            ground_temp,
+            soil_temp,
+            canopy_diurnal,
+            ground_diurnal,
+            soil_diurnal,
+        )
+
+        monkeypatch.setattr(
+            cohort.functional_group,
+            "vertical_occupancy",
+            VerticalOccupancy.SOIL | VerticalOccupancy.GROUND,
+        )
+        temp_soil_ground, diurnal_soil_ground = cohort.get_stratum_climate(
+            cell_id,
+            canopy_temp,
+            ground_temp,
+            soil_temp,
+            canopy_diurnal,
+            ground_diurnal,
+            soil_diurnal,
+        )
+
+        assert temp_soil == pytest.approx(temp_soil_ground)
+        assert diurnal_soil == pytest.approx(diurnal_soil_ground)
+
+    def test_get_mean_territory_climate(
+        self,
+        herbivore_cohort_instance,
+    ):
+        """Test that territory temperature and diurnal range are means across cells."""
+        import numpy as np
+
+        cohort = herbivore_cohort_instance
+        n_cells = 9
+
+        ground_temperature = np.arange(n_cells, dtype=float)
+        ground_diurnal_range = np.arange(n_cells, dtype=float)
+        canopy_temperature = np.zeros(n_cells)
+        canopy_diurnal_range = np.zeros(n_cells)
+        soil_temperature = np.zeros(n_cells)
+        soil_diurnal_range = np.zeros(n_cells)
+
+        result_temp, result_diurnal = cohort.get_mean_territory_climate(
+            canopy_temperature=canopy_temperature,
+            ground_temperature=ground_temperature,
+            soil_temperature=soil_temperature,
+            canopy_diurnal_range=canopy_diurnal_range,
+            ground_diurnal_range=ground_diurnal_range,
+            soil_diurnal_range=soil_diurnal_range,
+        )
+
+        assert result_temp == pytest.approx(4.0)
+        assert result_diurnal == pytest.approx(4.0)
+
+    def test_get_mean_territory_climate_multi_strata(
+        self,
+        ectotherm_cohort_instance,
+    ):
+        """Test territory climate averaging for a cohort occupying all three strata.
+
+        Uses spatially varying arrays where each stratum scales cell index by a
+        different factor, confirming both strata averaging and territory averaging
+        interact correctly.
+        """
+        import numpy as np
+
+        cohort = ectotherm_cohort_instance
+        n_cells = 9
+
+        result_temp, result_diurnal = cohort.get_mean_territory_climate(
+            canopy_temperature=np.arange(n_cells, dtype=float) * 2,
+            ground_temperature=np.arange(n_cells, dtype=float),
+            soil_temperature=np.arange(n_cells, dtype=float) * 0.5,
+            canopy_diurnal_range=np.arange(n_cells, dtype=float) * 2,
+            ground_diurnal_range=np.arange(n_cells, dtype=float),
+            soil_diurnal_range=np.arange(n_cells, dtype=float) * 0.5,
+        )
+
+        assert result_temp == pytest.approx(1.1666666666666667)
+        assert result_diurnal == pytest.approx(1.1666666666666667)
