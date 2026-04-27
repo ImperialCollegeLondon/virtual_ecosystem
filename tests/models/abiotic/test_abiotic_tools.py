@@ -308,6 +308,39 @@ def test_compute_layer_thickness_for_varying_canopy(
     np.testing.assert_allclose(result, exp_result)
 
 
+def test_compute_layer_thickness(dummy_climate_data_varying_canopy):
+    """Test compute layer thickness for all layers."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        compute_aboveground_layer_thickness,
+    )
+
+    data = dummy_climate_data_varying_canopy
+
+    result = compute_aboveground_layer_thickness(
+        heights=data["layer_heights"].to_numpy(),
+    )
+    exp = np.array(
+        [
+            [2.0, 2.0, 2.0, 31.9],
+            [10.0, 10.0, 29.9, np.nan],
+            [10.0, 19.9, np.nan, np.nan],
+            [9.9, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [0.1, 0.1, 0.1, 0.1],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+        ]
+    )
+    np.testing.assert_allclose(result, exp)
+
+
 def test_calculate_specific_humidity(
     dummy_climate_data_varying_canopy, fixture_core_components, fixture_pyrealm_config
 ):

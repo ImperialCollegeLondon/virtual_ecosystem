@@ -18,6 +18,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic.wind import next_valid_below
 
 
 def build_indices(data: Data, layer_structure: LayerStructure) -> SimpleNamespace:
@@ -223,7 +224,7 @@ def set_unintended_nan_to_zero(
 def compute_layer_thickness_for_varying_canopy(
     heights: NDArray[np.floating],
 ) -> NDArray[np.floating]:
-    """Calculate layer thickness for varying canopy layers.
+    """Calculate layer thickness for varying canopy layers, true layers only.
 
     Calculate layer thickness by subtracting from the next valid layer below (skipping
     NaNs), and for the last valid layer in each column subtract from zero (ground
@@ -249,6 +250,51 @@ def compute_layer_thickness_for_varying_canopy(
     # Mask out the filled layers - should all be zero and match the original np.nans
     thickness = np.where(np.isnan(heights), np.nan, thickness)
 
+    return thickness
+
+
+def compute_aboveground_layer_thickness(
+    heights: NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Calculate layer thickness for above ground layers only.
+
+    Calculate layer thickness by subtracting from the next valid layer below (skipping
+    NaNs), and for the last valid layer in each column subtract from zero (ground
+    level). Soil layers are set to NaN.
+
+
+    Args:
+        heights: 2D array of layer heights, [m]
+
+    Returns:
+        2D array of layer thickness, [m], same shape as input
+    """
+
+    n_layers, n_cols = heights.shape
+
+    thickness = np.full_like(heights, np.nan)
+
+    # only above ground
+    above_ground = heights > 0
+    valid = above_ground & ~np.isnan(heights)
+
+    # next valid below above ground
+    above_ground_heights = np.where(above_ground, heights, np.nan)
+    below_idx = next_valid_below(above_ground_heights)
+
+    cols = np.broadcast_to(np.arange(n_cols), (n_layers, n_cols))
+
+    mask = valid & (below_idx >= 0)
+
+    h_top = heights[mask]
+    h_bot = heights[below_idx[mask], cols[mask]]
+
+    thickness[mask] = np.abs(h_top - h_bot)
+
+    # last above ground layer → ground
+    mask_last = valid & (below_idx < 0)
+    thickness[mask_last] = np.abs(heights[mask_last])
+    print(thickness)
     return thickness
 
 
