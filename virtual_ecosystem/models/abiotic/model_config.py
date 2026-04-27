@@ -148,7 +148,7 @@ class AbioticConstants(AbioticSharedConstants):
     aerodynamic_resistance_canopy_day: float = 20.0
     """Aerodynamic resistance of the canopy during the day, [s m-1]."""
 
-    max_mixing_coefficient: float = 1000.0
+    max_mixing_coefficient: float = 1.0
     """Maximum turbulent mixing coefficients, [m2 s-1].
     """
 

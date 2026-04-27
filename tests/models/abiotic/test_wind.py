@@ -158,7 +158,7 @@ def test_calculate_mixing_coefficients():
         canopy_height=canopy_height,
         friction_velocity=friction_velocity,
         von_karman_constant=k,
-        max_mixing_coefficient=1000.0,
+        max_mixing_coefficient=1.0,
     )
 
     assert result.shape == layer_midpoints.shape
@@ -291,7 +291,7 @@ def test_mix_and_ventilate():
             [np.nan, np.nan, np.nan, np.nan],
         ]
     )
-    ventilation_rate = np.array([0.001, 0.001, 0.001, 0.001])
+    ventilation_rate = np.array([0.005, 0.005, 0.005, 0.005])
 
     input_humidity = np.array(
         [
@@ -309,13 +309,13 @@ def test_mix_and_ventilate():
 
     exp_result = np.array(
         [
-            [104.89, 95.005, 95.005, 95.005],
+            [104.95, 95.025, 95.025, 95.025],
             [100.0, 99.975, 99.975, np.nan],
             [100.0, 100.0, np.nan, np.nan],
             [90.02, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
-            [99.88, 100.0, 100.0, 99.995],
+            [99.88, 100.0, 100.0, 99.975],
             [np.nan, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
         ]
