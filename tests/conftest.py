@@ -988,7 +988,9 @@ def fixture_static_inputs(
         np.nansum(data["leaf_area_index"][indices.canopy].to_numpy(), axis=0)
     )
 
-    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+    evapotranspiration = (
+        data["canopy_evaporation"] + data["transpiration"]
+    ).to_numpy() / 30.0
 
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
@@ -1008,7 +1010,6 @@ def fixture_static_inputs(
 
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
-        layer_structure=layer_structure,
     )
 
     # Absorbed longwave radiation by canopy, [W m-2]
@@ -1045,7 +1046,7 @@ def fixture_static_inputs(
         "geometry": atmospheric_layer_geometry,
         "absorbed_longwave_radiation": absorbed_longwave_radiation,
         "cell_area": cell_area,
-        "mixing_coefficient": mixing_coefficient,
+        "mixing_coefficient": mixing_coefficient.to_numpy(),
         "zero_plane_displacement": zero_plane_displacement,
         "wind_speed": wind_speed,
         "ventialtion_rate": ventilation_rate,
@@ -1061,7 +1062,7 @@ def fixture_state_inputs(
     data = dummy_climate_data_varying_canopy
     n_layers, n_cells = data["air_temperature"].shape
 
-    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"] / 30
 
     return {
         "air_temperature": data["air_temperature"].to_numpy(),

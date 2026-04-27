@@ -294,7 +294,6 @@ def compute_aboveground_layer_thickness(
     # last above ground layer → ground
     mask_last = valid & (below_idx < 0)
     thickness[mask_last] = np.abs(heights[mask_last])
-    print(thickness)
     return thickness
 
 
@@ -377,24 +376,23 @@ def update_profile_from_reference(
     return profile_out
 
 
-def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStructure):
+def calculate_atmospheric_layer_geometry(data: Data):
     """Calculate heights, layer thickness, and midpoints for atmospheric layers.
 
     The midpoint values are distances in metres above ground for each cell.
 
     Args:
         data: Data object
-        layer_structure: LayerStructure object
 
     Returns:
         dict containing heights, thickness, layer_top, layer_midpoints
     """
 
     # Extract above-ground layer heights
-    heights = data["layer_heights"][layer_structure.index_filled_atmosphere].to_numpy()
+    heights = data["layer_heights"].to_numpy()
 
     # Compute thickness
-    thickness = compute_layer_thickness_for_varying_canopy(heights=heights)
+    thickness = compute_aboveground_layer_thickness(heights=heights)
 
     # Compute the midpoint of each layer as the height above ground minus half the layer
     # thickness
