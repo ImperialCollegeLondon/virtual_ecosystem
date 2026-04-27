@@ -315,7 +315,7 @@ def test_mix_and_ventilate():
             [90.02, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
-            [99.88, 100.0, 100.0, 99.94],
+            [99.88, 100.0, 100.0, 99.995],
             [np.nan, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
         ]

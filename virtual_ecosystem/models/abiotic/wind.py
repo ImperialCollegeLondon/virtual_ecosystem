@@ -421,15 +421,13 @@ def mix_and_ventilate(
     above_idx = next_valid_above(current)
     below_idx = next_valid_below(current)
 
-    # Set mixing coefficient for top layer to ventilation rate, as this is the
-    # rate at which the top layer is mixed with the atmosphere above, rather
-    # than with a layer above it
+    # Ventilation applies at top layer (atmosphere)
     mixing_coefficient = mixing_coefficient.copy()
     mixing_coefficient[0, :] = ventilation_rate
 
-    # Build column index grid
     cols = np.broadcast_to(np.arange(n_cols), (n_layers, n_cols))
 
+    # Gather neighbours above and below
     above = np.full_like(current, np.nan)
     mask_above = above_idx >= 0
     above[mask_above] = current[above_idx[mask_above], cols[mask_above]]
@@ -438,27 +436,59 @@ def mix_and_ventilate(
     mask_below = below_idx >= 0
     below[mask_below] = current[below_idx[mask_below], cols[mask_below]]
 
-    # Mask valid (non-NaN) values
+    # Valid mask (exclude NaNs)
     valid = ~np.isnan(current)
 
-    # Mixing step
+    # Detect canopy presence (layer 1 defines canopy existence)
+    canopy_exists = ~np.isnan(current[1, :])
+    no_canopy = ~canopy_exists
+
     mix_above = np.zeros_like(current)
     mix_below = np.zeros_like(current)
 
-    mask_mix_above = valid & mask_above
-    mask_mix_below = valid & mask_below
+    # Normal case - canopy exists
+    mask_above_mix = valid & mask_above & canopy_exists[None, :]
+    mask_below_mix = valid & mask_below & canopy_exists[None, :]
 
-    mix_above[mask_mix_above] = mixing_coefficient[mask_mix_above] * (
-        above[mask_mix_above] - current[mask_mix_above]
+    mix_above[mask_above_mix] = mixing_coefficient[mask_above_mix] * (
+        above[mask_above_mix] - current[mask_above_mix]
     )
 
-    mix_below[mask_mix_below] = mixing_coefficient[mask_mix_below] * (
-        below[mask_mix_below] - current[mask_mix_below]
+    mix_below[mask_below_mix] = mixing_coefficient[mask_below_mix] * (
+        below[mask_below_mix] - current[mask_below_mix]
     )
 
+    # No-canopy case (fallback)
+    if np.any(no_canopy):
+        for j in np.where(no_canopy)[0]:
+            col = current[:, j]
+
+            # first valid atmospheric value (layer 0 or above)
+            valid_idx = np.where(~np.isnan(col))[0]
+
+            if len(valid_idx) == 0:
+                continue
+
+            # atmosphere is always layer 0
+            atm = 0
+
+            # surface = last valid layer in column
+            surface = valid_idx[-1]
+
+            if surface == atm:
+                continue
+
+            k = mixing_coefficient[0, j]
+
+            diff = col[atm] - col[surface]
+
+            mix_above[atm, j] += k * (-diff)
+            mix_below[surface, j] += k * diff
+
+    # Vertical mixing
     result = current + mix_above + mix_below
 
-    # Return after clamping within limits to prevent overshooting and negative values
+    # Clamp to physical limits
     return clamp_variable_within_limits(result, limits)
 
 
