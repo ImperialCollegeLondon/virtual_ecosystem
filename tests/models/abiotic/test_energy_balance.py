@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
-    compute_layer_thickness_for_varying_canopy,
+    compute_aboveground_layer_thickness,
 )
 from virtual_ecosystem.models.abiotic.energy_balance import (
     calculate_total_absorbed_shortwave_radiation,
@@ -277,28 +277,24 @@ def test_energy_balance_return_fluxes(
         assert np.all(np.isfinite(result[key][mask]))
 
 
-def test_update_air_temperature(
-    dummy_climate_data_varying_canopy, fixture_core_components
-):
+def test_update_air_temperature(dummy_climate_data_varying_canopy):
     """Test update air temperature in canopy."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
         update_air_temperature,
     )
 
     data = dummy_climate_data_varying_canopy
-    lystr = fixture_core_components.layer_structure
-    canopy_index = lystr.index_filled_canopy
 
-    above_ground_layer_thickness = compute_layer_thickness_for_varying_canopy(
-        heights=data["layer_heights"][lystr.index_filled_atmosphere].to_numpy()
+    layer_thickness = compute_aboveground_layer_thickness(
+        heights=data["layer_heights"].to_numpy()
     )
 
     result = update_air_temperature(
-        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-        sensible_heat_flux=data["sensible_heat_flux"][canopy_index].to_numpy(),
-        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
-        density_air=data["density_air"][canopy_index].to_numpy(),
-        mixing_layer_thickness=above_ground_layer_thickness[1:-1],
+        air_temperature=data["air_temperature"].to_numpy(),
+        sensible_heat_flux=data["sensible_heat_flux"].to_numpy(),
+        specific_heat_air=data["specific_heat_air"].to_numpy(),
+        density_air=data["density_air"].to_numpy(),
+        mixing_layer_thickness=layer_thickness,
     )
 
     # Mask valid values
@@ -322,7 +318,7 @@ def test_update_humidity_vpd(
     canopy_index = lystr.index_filled_canopy
     atm_index = lystr.index_filled_atmosphere
 
-    above_ground_layer_thickness = compute_layer_thickness_for_varying_canopy(
+    above_ground_layer_thickness = compute_aboveground_layer_thickness(
         heights=data["layer_heights"][atm_index].to_numpy()
     )
 
