@@ -122,16 +122,102 @@ Creating a virtual environment is a moderately advanced topic and there is a goo
 on [the Real Python
 website](https://realpython.com/python-virtual-environments-a-primer/).
 
-## Altering the model code
+Once you have created a virtual environment, you can then activate it and install the
+Virtual Ecosystem into it using pip by running the following:
 
-If you are interested in actually making changes to the code underlying the `ve_run`
-command and potentially developing extensions or alterations to the model, then we
-strongly recommend installing the package source code from GitHub using the `poetry`
-package manager. This will install the additional packages and tools used by the
-development team that are required for code development and quality assurance, code
-testing and building documentation.
+`````{tab-set}
+:sync-group: operating_system
 
-This is a much more complex installation - see this [overview of the developer
-setup](../development/contributing/overview.md) - but it will put you in a position to
-work with most recent changes to the model or contribute your own suggestions to the
-code.
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} console
+$ python -m venv ve_testing
+$ source ve_testing/bin/activate
+(ve_testing) $ pip install virtual_ecosystem
+```
+````
+
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+python -m venv ve_testing
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\ve_testing\Scripts\activate
+pip install virtual_ecosystem
+```
+````
+`````
+
+## Updating to the most recent release
+
+You will generally want use the most recent release of the Virtual Ecosystem. If you
+have already installed `virtual_ecosystem` (ideally within a virtual environment) and
+want to upgrade to the most recent release, use the following command:
+
+`````{tab-set}
+:sync-group: operating_system
+
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} console
+$ pip install virtual_ecosystem --upgrade
+```
+````
+
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+pip install virtual_ecosystem --upgrade
+```
+````
+`````
+
+## Advanced: installing the current state of `develop`
+
+```{warning}
+We aim to provide regular versioned releases of the Virtual Ecosystem, and these
+versioned releases are generally what you should be using. There are a number of
+advantages to using them. Firstly, that these official releases can be installed quite
+straightforwardly via `pip` (as shown above). Secondly, the chance of something major
+not working for these official releases is significantly lower than it is for the
+current state of `develop`. Because of all this, you should only follow the instructions
+below if there is a recent change to the code that you **need immediately** to continue
+your work (rather than waiting for the next release).
+```
+
+The most up to date version of the code (that has passed continuous integration and
+developers have signed off on) can be found on Github in what is called the `develop`
+branch. If you **need** the most recent changes to the code, then you should install the
+contents of this branch via `pip`. We would recommend doing so in a new virtual
+environment so that you can easily switch back to a stable (released) version of the
+code if need be. To install the most recent code (into a new virtual environment) run
+the following
+
+`````{tab-set}
+:sync-group: operating_system
+
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} console
+$ python -m venv ve_develop
+$ source ve_develop/bin/activate
+(ve_develop) $ pip install --upgrade git+https://github.com/ImperialCollegeLondon/virtual_ecosystem.git@develop
+```
+````
+
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+python -m venv ve_develop
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\ve_develop\Scripts\activate
+pip install --upgrade git+https://github.com/ImperialCollegeLondon/virtual_ecosystem.git@develop
+```
+````
+`````
