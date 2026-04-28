@@ -563,7 +563,8 @@ class HydrologyModel(
                 :, day
             ] - np.minimum(
                 np.nansum(canopy_evaporation, axis=0),
-                hydro_input["current_precipitation"][:, day],
+                hydro_input["current_precipitation"][:, day]
+                + hydro_input["condensation"],
             )
 
             hydrology_tools.check_precipitation_surface(
