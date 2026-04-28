@@ -2,6 +2,8 @@
 
 import numpy as np
 import pytest
+from pyrealm.constants import CoreConst as PyrealmCoreConst
+from pyrealm.core.hygro import calc_vp_sat
 
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_layer_thickness_for_varying_canopy,
@@ -321,20 +323,15 @@ def test_update_humidity_vpd(
     lystr = fixture_core_components.layer_structure
     canopy_index = lystr.index_filled_canopy
     atm_index = lystr.index_filled_atmosphere
+    pyr_const = PyrealmCoreConst()
 
     above_ground_layer_thickness = compute_layer_thickness_for_varying_canopy(
         heights=data["layer_heights"][atm_index].to_numpy()
     )
 
     evapotranspiration = data["transpiration"] + data["canopy_evaporation"]
-    saturated_vapour_pressure = np.array(
-        [
-            [2.5, 2.5, 2.5, 2.5],
-            [2.5, 2.5, 2.5, np.nan],
-            [2.0, 2.0, np.nan, np.nan],
-            [1.8, np.nan, np.nan, np.nan],
-            [2.0, 2.0, 2.0, 2.0],
-        ]
+    saturated_vapour_pressure = calc_vp_sat(
+        ta=data["air_temperature"][atm_index].to_numpy(), core_const=pyr_const
     )
     specific_humidity = np.array(
         [
@@ -380,8 +377,11 @@ def test_update_humidity_vpd(
         - fixture_core_constants.molecular_weight_ratio_water_to_dry_air,
         mm_to_kg=1e-3,
         cell_area=fixture_core_components.grid.cell_area,
-        limits=(0, 60),
+        limits_specific_humidity=(0, 60),
+        limits_relative_humidity=(0.001, 99.999),
         time_interval=time_interval,
+        denominator_tolerance=1e-12,
+        minimum_vapour_pressure_deficit=0.01,
     )
 
     # Basic shape checks
@@ -390,6 +390,7 @@ def test_update_humidity_vpd(
         "vapour_pressure",
         "vapour_pressure_deficit",
         "specific_humidity",
+        "condensation",
     ]:
         assert key in result
         assert isinstance(result[key], np.ndarray)
@@ -399,14 +400,17 @@ def test_update_humidity_vpd(
     assert np.all(result["specific_humidity"][~mask] >= 0.00)
 
     # VPD should be reduced where evapotranspiration or mixing adds moisture
-    assert np.all(result["vapour_pressure_deficit"][~mask] >= 0.0)
+    assert np.all(result["vapour_pressure_deficit"][~mask] > 0.0)
     assert np.all(result["vapour_pressure"][~mask] <= saturated_vapour_pressure[~mask])
 
     # RH should be between 0 and 100
     assert np.all(
-        (result["relative_humidity"][~mask] >= 0)
-        & (result["relative_humidity"][~mask] <= 100)
+        (result["relative_humidity"][~mask] > 0)
+        & (result["relative_humidity"][~mask] < 100)
     )
+
+    # RH should be between >=0
+    assert np.all(result["condensation"][~mask] >= 0)
 
 
 def test_calculate_latent_heat_flux(

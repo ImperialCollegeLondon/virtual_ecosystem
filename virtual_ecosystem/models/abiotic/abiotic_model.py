@@ -112,7 +112,7 @@ class AbioticModel(
         "vapour_pressure",
         "diurnal_temperature_range",
     ),
-    vars_populated_by_first_update=(),
+    vars_populated_by_first_update=("condensation",),
 ):
     """A class describing the abiotic model.
 

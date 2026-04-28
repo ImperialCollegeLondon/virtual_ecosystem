@@ -126,6 +126,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Condensation"
+name = "condensation"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Diabatic correction factor for heat above canopy"
 name = "diabatic_correction_heat_above"
 unit = "-"

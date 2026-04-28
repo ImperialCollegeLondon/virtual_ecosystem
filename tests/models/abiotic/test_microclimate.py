@@ -636,6 +636,7 @@ def test_update_atmospheric_humidity(
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
     pyrealm_core_constants = PyrealmCoreConst()
+    abiotic_bounds = AbioticSimpleBounds()
 
     vp_sat = calc_vp_sat(
         ta=state["air_temperature"],
@@ -647,6 +648,7 @@ def test_update_atmospheric_humidity(
         pyrealm_core_constants=pyrealm_core_constants,
         core_constants=core_constants,
         abiotic_constants=abiotic_constants,
+        abiotic_bounds=abiotic_bounds,
         idx=idx,
         time_interval=3600,
     )
