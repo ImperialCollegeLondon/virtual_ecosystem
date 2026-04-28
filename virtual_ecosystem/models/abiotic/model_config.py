@@ -182,6 +182,9 @@ class AbioticConstants(AbioticSharedConstants):
     denominator_tolerance: float = 1e-12
     """Small value to prevent division by zero."""
 
+    min_specific_humidity: float = 0.001
+    """Minimum value for specific humidity to avoid dividion by zero, [kg kg-1]."""
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""

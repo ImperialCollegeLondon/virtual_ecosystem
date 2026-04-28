@@ -425,9 +425,9 @@ def update_humidity_vpd(
     cell_area: float,
     limits_specific_humidity: tuple[float, float],
     limits_relative_humidity: tuple[float, float, float],
+    limits_vapour_pressure_deficit: tuple[float, float, float],
     time_interval: float,
     denominator_tolerance: float,
-    minimum_vapour_pressure_deficit: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Update specific humidity and vapour pressure deficit for a multilayer canopy.
 
@@ -451,11 +451,13 @@ def update_humidity_vpd(
         mm_to_kg: Factor to convert variable unit from millimeters to kilograms of
             water per square meter
         cell_area: Grid cell area, [m2]
-        limits_specific_humidity: Realistic bounds of specific humidity
-        limits_relative_humidity: Realistic bounds of relative humidity
+        limits_specific_humidity: Realistic bounds of specific humidity, [kg kg-1]
+        limits_relative_humidity: Realistic bounds of relative humidity, []
+        limits_vapour_pressure_deficit: Realistic bounds for vapour pressure deficit,
+            [kPa]
         time_interval: Time interval, [s]
         denominator_tolerance: Small value to prevent division by zero
-        minimum_vapour_pressure_deficit: Minimum vapour pressure deficit, [kPa]
+
 
     Returns:
       A dictionary containing arrays of updated ``relative_humidity``,
@@ -551,7 +553,7 @@ def update_humidity_vpd(
 
     # Compute new VPD (Vapour Pressure Deficit) [kPa], ensure non-zero
     vpd_updated = saturated_vapour_pressure - vapour_pressure_updated
-    vpd_updated = np.maximum(vpd_updated, minimum_vapour_pressure_deficit)
+    vpd_updated = np.maximum(vpd_updated, limits_vapour_pressure_deficit[0])
 
     # Map variable names to arrays
     raw_outputs = {

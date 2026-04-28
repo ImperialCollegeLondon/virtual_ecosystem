@@ -743,11 +743,14 @@ def update_atmospheric_humidity(
         dry_air_factor=abiotic_constants.dry_air_factor,
         mm_to_kg=core_constants.mm_to_kg,
         cell_area=static["cell_area"],
-        limits_specific_humidity=(0, max_specific_humidity[0]),  # TODO layer specific?
+        limits_specific_humidity=(
+            abiotic_constants.min_specific_humidity,
+            max_specific_humidity[0],
+        ),  # TODO layer specific?
         limits_relative_humidity=abiotic_bounds.relative_humidity,
+        limits_vapour_pressure_deficit=abiotic_bounds.vapour_pressure_deficit,
         time_interval=time_interval,
         denominator_tolerance=abiotic_constants.denominator_tolerance,
-        minimum_vapour_pressure_deficit=abiotic_bounds.vapour_pressure_deficit[0],
     )
 
     output_dict = {}
