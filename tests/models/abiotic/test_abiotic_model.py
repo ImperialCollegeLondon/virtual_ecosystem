@@ -27,6 +27,7 @@ REQUIRED_INIT_VAR_CHECKS = (
     (DEBUG, "abiotic model: required var 'specific_heat_air' checked"),
     (DEBUG, "abiotic model: required var 'latent_heat_vapourisation' checked"),
     (DEBUG, "abiotic model: required var 'density_air' checked"),
+    (DEBUG, "abiotic model: required var 'condensation' checked"),
 )
 
 SETUP_MANIPULATIONS = (

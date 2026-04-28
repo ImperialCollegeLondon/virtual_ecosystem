@@ -55,6 +55,7 @@ class AbioticModel(
         "specific_heat_air",
         "latent_heat_vapourisation",
         "density_air",
+        "condensation",
     ),
     vars_updated=(
         "air_temperature",
