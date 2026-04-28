@@ -421,6 +421,7 @@ def update_humidity_vpd(
     ventilation_rate: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,
+    mm_to_kg: float,
     cell_area: float,
     limits: tuple[float, float],
     time_interval: float,
@@ -444,6 +445,8 @@ def update_humidity_vpd(
         molecular_weight_ratio_water_to_dry_air: Molecular weight ratio of water to dry
             air, dimensionless
         dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
+        mm_to_kg: Factor to convert variable unit from millimeters to kilograms of
+            water per square meter
         cell_area: Grid cell area, [m2]
         limits: Realistic bounds of specific humidity
         time_interval: Time interval, [s]
@@ -457,9 +460,9 @@ def update_humidity_vpd(
     input_nan_mask = np.isnan(specific_humidity)
 
     # Convert evapotranspiration and soil evaporation [mm] to [kg m2 s-1] time interval
-    canopy_et_kg_m2 = canopy_evapotranspiration * 1e-3 / time_interval
-    understorey_et_kg_m2 = understorey_evapotranspiration * 1e-3 / time_interval
-    soil_evap_kg_m2 = soil_evaporation * 1e-3 / time_interval
+    canopy_et_kg_m2 = canopy_evapotranspiration * mm_to_kg / time_interval
+    understorey_et_kg_m2 = understorey_evapotranspiration * mm_to_kg / time_interval
+    soil_evap_kg_m2 = soil_evaporation * mm_to_kg / time_interval
 
     # Calculate air layer volumes [m3]
     layer_volumes = layer_thickness * cell_area
@@ -650,13 +653,14 @@ def secant_solve_cells_layers(
     for _ in range(maxiter_secant):
         denom = current_residual - previous_residual
 
-        denom = np.where(
+        # Ensure no division by zero and sign conserved
+        safe_denom = np.where(
             np.abs(denom) < denominator_tolerance,
-            denominator_tolerance * np.sign(denom + 1e-16),
+            np.copysign(denominator_tolerance, denom),
             denom,
         )
 
-        denom = np.where(np.isnan(denom), np.nan, denom)
+        denom = np.where(np.isnan(safe_denom), np.nan, safe_denom)
 
         next_temperature = (
             current_temperature
@@ -667,7 +671,7 @@ def secant_solve_cells_layers(
 
         max_update = np.nanmax(
             np.abs(next_temperature - current_temperature)
-            / (np.abs(current_temperature) + 1e-6)
+            / (np.abs(current_temperature) + denominator_tolerance)
         )
 
         if max_update < convergence_tolerance:

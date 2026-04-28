@@ -8,13 +8,13 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.11
+    rev: v0.15.12
     hooks:
       - id: ruff-check   #  Run the linter.
         args: [--fix, --exit-non-zero-on-fix, --target-version, py312]
       - id: ruff-format  #  Run the formatter.
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.20.1"
+    rev: "v1.20.2"
     hooks:
       - id: mypy
         additional_dependencies: [types-jsonschema, xarray, types-tabulate, numpy]
@@ -34,7 +34,7 @@ repos:
             ^docs/source/genindex.md|
             ^docs/source/modindex.md|
             ^docs/source/using_the_ve/[a-z_]+.py|
-            ^docs/source/virtual_ecosystem/implementation/var_generator.py
+            ^docs/source/using_the_ve/variables/[a-z_]+.py
         )
       additional_dependencies:
         - black==24.4.2 # Matches hook

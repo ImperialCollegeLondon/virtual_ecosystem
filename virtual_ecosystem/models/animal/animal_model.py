@@ -23,11 +23,21 @@ from __future__ import annotations
 
 import uuid
 from itertools import chain
-from math import ceil, isnan, sqrt
+from math import ceil, sqrt
 from random import choice
 from typing import Any, cast
 
-from numpy import array, float32, random, stack, timedelta64, where, zeros
+from numpy import (
+    array,
+    float32,
+    isnan,
+    nanmean,
+    random,
+    stack,
+    timedelta64,
+    where,
+    zeros,
+)
 from numpy.typing import NDArray
 from xarray import DataArray
 
@@ -113,6 +123,10 @@ class AnimalModel(
         "litter_consumed_below_structural_cnp",
     ),
     vars_required_for_update=(
+        "canopy_temperature",
+        "air_temperature",
+        "soil_temperature",
+        "diurnal_temperature_range",
         "litter_pool_above_metabolic_cnp",
         "litter_pool_above_structural_cnp",
         "litter_pool_woody_cnp",
@@ -487,6 +501,7 @@ class AnimalModel(
             pool.set_resources()
 
         self.reset_trophic_records()
+        self.update_activity_windows_community()
         self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
         self.birth_community()
@@ -1570,46 +1585,39 @@ class AnimalModel(
     def metabolize_community(self, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
 
-        This method generates a total amount of metabolic waste per cohort and passes
-        that waste to handler methods for distinguishing between nitrogenous and
-        carbonaceous wastes as they need depositing in different pools. This will not
-        be fully implemented until the stoichiometric rework.
+        Each cohort metabolizes at the territory-mean temperature stored in
+        :attr:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.current_temperature`,
+        which was set by the preceding call to
+        :meth:`update_activity_windows_community`. This ensures the temperature
+        entering the metabolic rate equation is consistent with the temperature
+        used to derive ``sigma_f_t``, i.e. both reflect the cohort's stratum-
+        and territory-averaged environment rather than the centroid surface layer.
 
-        Respiration wastes are totaled because they are CO2 and not tracked spatially.
-        Excretion wastes are handled cohort by cohort because they will need to be
-        spatially explicit with multi-grid occupancy.
+        This method generates a total amount of metabolic waste per cohort and
+        passes that waste to handler methods for distinguishing between nitrogenous
+        and carbonaceous wastes as they need depositing in different pools.
+
+        Respiration wastes are totalled because they are CO2 and not tracked
+        spatially. Excretion wastes are handled cohort by cohort because they will
+        need to be spatially explicit with multi-grid occupancy.
 
         Args:
-            air_temperature_data: The full air temperature data (as a DataArray) for
-                all communities.
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
         for cell_id, community in self.communities.items():
-            # Check for empty community and skip processing if empty
             if not community:
                 continue
 
             total_carbonaceous_waste = 0.0
 
-            # Extract the temperature for this specific community (cell_id)
-            surface_temperature = self.data["air_temperature"][
-                self.layer_structure.index_surface_scalar
-            ].to_numpy()
-
-            grid_temperature = surface_temperature[cell_id]
-
             for cohort in community:
-                # Calculate metabolic waste based on cohort properties
-                metabolic_waste_mass = cohort.metabolize(grid_temperature, dt)
+                metabolic_waste_mass = cohort.metabolize(cohort.current_temperature, dt)
 
-                # Carbonaceous waste from respiration
                 total_carbonaceous_waste += cohort.respire(metabolic_waste_mass)
 
-                # Excretion of waste into the excrement pool
                 cohort.excrete(metabolic_waste_mass, self.excrement_pools[cell_id])
 
-            # Update the total_animal_respiration for the specific cell_id
             self.data["total_animal_respiration"].loc[{"cell_id": cell_id}] += (
                 total_carbonaceous_waste
             )
@@ -1864,3 +1872,69 @@ class AnimalModel(
         """Reset trophic interaction records for all active cohorts."""
         for cohort in self.active_cohorts.values():
             cohort.reset_trophic_record()
+
+    def update_activity_windows_community(self) -> None:
+        """Update the activity window fraction for all cohorts in all communities.
+
+        Per-stratum temperatures and diurnal ranges are pre-computed once per
+        timestep as per-cell means, then
+        :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_mean_territory_climate`
+        derives the climate experienced by each cohort based on its vertical
+        occupancy. Both variables are averaged across all territory cells.
+
+        Where a cell has no filled canopy layers, canopy temperature and diurnal
+        range fall back to the corresponding ground values to avoid NaN propagation.
+
+        Note:
+            Annual mean temperature and annual temperature SD are currently
+            placeholder constants from
+            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
+            and should be replaced once the abiotic model exposes those fields.
+        """
+        lyr = self.layer_structure
+
+        canopy_temp = nanmean(
+            self.data["canopy_temperature"][lyr.index_filled_canopy].to_numpy(),
+            axis=0,
+        )
+        ground_temp = self.data["air_temperature"][lyr.index_surface_scalar].to_numpy()
+        soil_temp = self.data["soil_temperature"][lyr.index_topsoil_scalar].to_numpy()
+
+        canopy_diurnal = nanmean(
+            self.data["diurnal_temperature_range"][lyr.index_filled_canopy].to_numpy(),
+            axis=0,
+        )
+        ground_diurnal = self.data["diurnal_temperature_range"][
+            lyr.index_surface_scalar
+        ].to_numpy()
+        soil_diurnal = self.data["diurnal_temperature_range"][
+            lyr.index_topsoil_scalar
+        ].to_numpy()
+
+        # If no canopy layers exist at all, nanmean returns a 0-d scalar nan.
+        # In either case fall back to ground values for any NaN cells.
+        if canopy_temp.ndim == 0 or isnan(canopy_temp).all():
+            canopy_temp = ground_temp.copy()
+            canopy_diurnal = ground_diurnal.copy()
+        else:
+            canopy_temp = where(isnan(canopy_temp), ground_temp, canopy_temp)
+            canopy_diurnal = where(
+                isnan(canopy_diurnal), ground_diurnal, canopy_diurnal
+            )
+
+        for cohort in self.active_cohorts.values():
+            temperature, diurnal_range = cohort.get_mean_territory_climate(
+                canopy_temp,
+                ground_temp,
+                soil_temp,
+                canopy_diurnal,
+                ground_diurnal,
+                soil_diurnal,
+            )
+
+            cohort.update_activity_window(
+                temperature=temperature,
+                diurnal_temp_range=diurnal_range,
+                annual_mean_temp=cohort.constants.placeholder_annual_mean_temp,
+                annual_temp_sd=cohort.constants.placeholder_annual_temp_sd,
+            )

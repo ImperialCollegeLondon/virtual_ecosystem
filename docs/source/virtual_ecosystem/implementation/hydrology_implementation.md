@@ -22,7 +22,7 @@ language_info:
   version: 3.12
 ---
 
-# The hydrology model implementation
+# The hydrology model
 
 This section walks through the steps in generating and updating the
 [hydrology](../../../../virtual_ecosystem/models/hydrology/hydrology_model.py)
@@ -63,22 +63,15 @@ values.
 The tables below show the variables that are required to initialise the hydrology model
 and then update it at each time step.
 
-```{code-cell} ipython3
----
-mystnb:
-  markdown_format: myst
-tags: [remove-input]
----
-from IPython.display import display_markdown
-from var_generator import generate_variable_table
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=hydrology&roles=vars_required_for_init">Variables
+  required to initialise the hydrology model.</a>
 
-display_markdown(
-    generate_variable_table(
-        "HydrologyModel", ["vars_required_for_init", "vars_required_for_update"]
-    ),
-    raw=True,
-)
-```
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=hydrology&roles=vars_required_for_update">Variables
+  required to update the hydrology model.</a>
 
 The model also requires several parameters that are described in detail in
 {py:class}`~virtual_ecosystem.models.hydrology.model_config.HydrologyConstants`.
@@ -149,8 +142,8 @@ $$
 
 where:
 
-- $p_{ww}$ is the probability that a wet day follows a wet day,
-- $p_{wd}$ is the probability that a wet day follows a dry day.
+* $p_{ww}$ is the probability that a wet day follows a wet day,
+* $p_{wd}$ is the probability that a wet day follows a dry day.
 
 This structure captures the tendency of rainfall to occur in clusters (e.g., wet spells
 and dry spells), which would not be reproduced by independent random sampling.
@@ -166,14 +159,14 @@ $$
 
 The Gamma distribution is commonly used for rainfall because:
 
-- it only produces positive values,
-- it can represent skewed distributions (many small events, few large ones),
-- its shape can be adjusted using parameters.
+* it only produces positive values,
+* it can represent skewed distributions (many small events, few large ones),
+* its shape can be adjusted using parameters.
 
 where:
 
-- $k$ is the shape parameter (controls variability),
-- $\theta$ is the scale parameter (controls magnitude).
+* $k$ is the shape parameter (controls variability),
+* $\theta$ is the scale parameter (controls magnitude).
 
 #### Monthly scaling
 
@@ -187,10 +180,10 @@ $$
 
 where:
 
-- $r_i$ is the rainfall on day $i$ [mm],
-- $x_i$ is the sampled Gamma intensity,
-- $P$ is the total monthly rainfall [mm],
-- $n$ is the number of wet days in the month.
+* $r_i$ is the rainfall on day $i$ [mm],
+* $x_i$ is the sampled Gamma intensity,
+* $P$ is the total monthly rainfall [mm],
+* $n$ is the number of wet days in the month.
 
 This scaling preserves the relative distribution of rainfall across wet days while
 ensuring that the total rainfall equals the desired monthly value.
@@ -276,7 +269,7 @@ added to the current soil moisture level and runoff is set to zero.
 
 ### Searchable resource
 
-Some of the water that land at the surface is stored in depressions as puddles or
+Some of the water that lands on the surface is stored in depressions as puddles or
 larger standing water that is a searchable resources for animals. This is currently not
 implemented.
 
@@ -457,7 +450,7 @@ depth of water produced from a drainage area during a particular time interval (
 
 The flow direction of water above and below ground is based on a digital elevation model
 which needs to be provided as a NetCDF file at the start of the simulation.
-Here an description of the steps that happen during the hydrology model
+Here is a description of the steps that happen during the hydrology model
 initialisation (plotting only for illustration):
 
 ```{code-cell} ipython3
@@ -531,8 +524,8 @@ then combine them into total runoff, which can be converted to river discharge r
 
 Water moving over the land surface into the river channel. For each cell, this includes:
 
-- Local surface runoff: water generated within the cell during the current timestep.
-- Upstream surface runoff: surface runoff generated in all upstream cells during the
+* Local surface runoff: water generated within the cell during the current timestep.
+* Upstream surface runoff: surface runoff generated in all upstream cells during the
   same timestep.
 
 #### Subsurface runoff ($R_{subsurface}$)
@@ -540,9 +533,9 @@ Water moving over the land surface into the river channel. For each cell, this i
 Water moving laterally through soil and groundwater pathways towards the river channel.
 For each cell, this includes:
 
-- Local subsurface runoff: lateral + baseflow generated in the cell during the current
+* Local subsurface runoff: lateral + baseflow generated in the cell during the current
   timestep.
-- Upstream subsurface runoff: subsurface runoff generated in upstream cells during the
+* Upstream subsurface runoff: subsurface runoff generated in upstream cells during the
   same timestep.
 
 #### Total runoff ($R_{total}$) and river discharge rate
@@ -619,33 +612,25 @@ boundaries are currently not implemented.
 
 ## Generated variables
 
-When the hydrology model initialises, it uses the input data to populate the following
-variables. When the model first updates, it then sets further variables.
+The calculations described above result in the following variables being calculated and
+saved within the data object, and then updated
 
-```{code-cell} ipython3
----
-mystnb:
-  markdown_format: myst
-tags: [remove-input]
----
-display_markdown(
-    generate_variable_table(
-        "HydrologyModel", ["vars_populated_by_init", "vars_populated_by_first_update"]
-    ),
-    raw=True,
-)
-```
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=hydrology&roles=vars_populated_by_init">Variables
+  generated by hydrology model initialisation.</a>
+
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=hydrology&roles=vars_populated_by_first_update">Variables
+  generated by the first hydrology model update.</a>
 
 ## Updated variables
 
-The table below shows the complete set of model variables that are updated at each model
+The link below provides the complete set of model variables that are updated at each model
 step.
 
-```{code-cell} ipython3
----
-mystnb:
-  markdown_format: myst
-tags: [remove-input]
----
-display_markdown(generate_variable_table("HydrologyModel", ["vars_updated"]), raw=True)
-```
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=hydrology&roles=vars_updated">Variables
+  updated by the hydrology model.</a>

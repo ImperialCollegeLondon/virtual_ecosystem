@@ -89,7 +89,6 @@ def register_module(module_name: str) -> None:
         RuntimeError: if the requested module cannot be found or where a module does not
             provide a single subclass of the
             :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
-        Exception: other exceptions can occur when loading the JSON schema fails.
     """
     from virtual_ecosystem.core.base_model import BaseModel
 
