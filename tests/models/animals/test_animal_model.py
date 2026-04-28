@@ -79,64 +79,143 @@ class TestAnimalModel:
             pytest.param(
                 does_not_raise(),
                 (
-                    (INFO, "Animal cohort data exporter not active."),
-                    (
-                        INFO,
-                        "Information required to initialise the animal model"
-                        " successfully extracted.",
-                    ),
-                    (
-                        DEBUG,
-                        "animal model: required var 'fungal_fruiting_bodies' checked",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_above_metabolic_cnp'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_above_structural_cnp'",
-                    ),
-                    (INFO, "Adding data array for 'litter_consumed_woody_cnp'"),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_below_metabolic_cnp'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_below_structural_cnp'",
-                    ),
-                    (INFO, "Adding data array for 'total_animal_respiration'"),
-                    (INFO, "Adding data array for 'population_densities'"),
-                    (INFO, "Updating animal model"),
-                    (INFO, "Adding data array for 'decay_of_fungal_fruiting_bodies'"),
-                    (INFO, "Adding data array for 'decomposed_excrement_cnp'"),
-                    (INFO, "Adding data array for 'decomposed_carcasses_cnp'"),
-                    (INFO, "Adding data array for 'animal_pom_consumption_cnp'"),
-                    (INFO, "Adding data array for 'animal_bacteria_consumption'"),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_saprotrophic_fungi_consumption'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_ectomycorrhiza_consumption'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_arbuscular_mycorrhiza_"
-                        "consumption'",
-                    ),
-                    (INFO, "Adding data array for 'herbivory_waste_leaf_cnp'"),
-                    (INFO, "Adding data array for 'herbivory_waste_leaf_lignin'"),
+                    [
+                        (INFO, "Animal cohort data exporter not active."),
+                        (
+                            INFO,
+                            "Information required to initialise the animal model "
+                            "successfully extracted.",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'fungal_fruiting_bodies' "
+                            "checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'subcanopy_vegetation_cnp' "
+                            "checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'subcanopy_seedbank_cnp' "
+                            "checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'canopy_foliage_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'canopy_seed_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'canopy_fruit_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'foliage_turnover_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'seed_turnover_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'fruit_turnover_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var "
+                            "'litter_pool_above_metabolic_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var "
+                            "'litter_pool_above_structural_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var "
+                            "'litter_pool_woody_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var "
+                            "'litter_pool_below_metabolic_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var "
+                            "'litter_pool_below_structural_cnp' checked",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
+                        ),
+                        (INFO, "Adding data array for 'canopy_foliage_cnp_consumed'"),
+                        (INFO, "Adding data array for 'canopy_seed_cnp_consumed'"),
+                        (INFO, "Adding data array for 'canopy_fruit_cnp_consumed'"),
+                        (
+                            INFO,
+                            "Adding data array for 'foliage_turnover_cnp_consumed'",
+                        ),
+                        (INFO, "Adding data array for 'seed_turnover_cnp_consumed'"),
+                        (INFO, "Adding data array for 'fruit_turnover_cnp_consumed'"),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_above_metabolic_cnp'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_above_structural_cnp'",
+                        ),
+                        (INFO, "Adding data array for 'litter_consumed_woody_cnp'"),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_below_metabolic_cnp'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_below_structural_cnp'",
+                        ),
+                        (INFO, "Adding data array for 'total_animal_respiration'"),
+                        (INFO, "Adding data array for 'population_densities'"),
+                        (INFO, "Updating animal model"),
+                        (
+                            INFO,
+                            "Adding data array for 'decay_of_fungal_fruiting_bodies'",
+                        ),
+                        (INFO, "Adding data array for 'decomposed_excrement_cnp'"),
+                        (INFO, "Adding data array for 'decomposed_carcasses_cnp'"),
+                        (INFO, "Adding data array for 'animal_pom_consumption_cnp'"),
+                        (INFO, "Adding data array for 'animal_bacteria_consumption'"),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'animal_saprotrophic_fungi_consumption'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for 'animal_ectomycorrhiza_consumption'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'animal_arbuscular_mycorrhiza_consumption'",
+                        ),
+                        (INFO, "Adding data array for 'herbivory_waste_leaf_cnp'"),
+                        (INFO, "Adding data array for 'herbivory_waste_leaf_lignin'"),
+                    ]
                 ),
                 id="success",
             ),
@@ -173,21 +252,16 @@ class TestAnimalModel:
         for record in caplog.records:
             print(f"Log Level: {record.levelno}, Message: {record.message}")
 
-        # Filter out stochastic log entries
-        filtered_records = [
+        # Filter out stochastic log entries and overwrite the underlying log handler
+        # data so that the caplog.records property returns the filtered records.
+        caplog.handler.records = [
             record
             for record in caplog.records
             if "No individuals in cohort to forage." not in record.message
         ]
 
-        # Create a new caplog object to pass to log_check
-        class FilteredCaplog:
-            records = filtered_records
-
-        filtered_caplog = FilteredCaplog()
-
         # Final check that expected logging entries are produced
-        log_check(filtered_caplog, expected_log_entries)
+        log_check(caplog, expected_log_entries)
 
         for record in caplog.records:
             print(f"Level: {record.levelname}, Message: {record.message}")
