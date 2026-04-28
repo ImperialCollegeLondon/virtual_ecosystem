@@ -88,6 +88,10 @@ class CoreConstants(Configuration):
     meters_to_mm: float = 1000.0
     """Factor to convert variable unit from meters to millimeters."""
 
+    mm_to_kg: float = 1e-3
+    """Factor to convert variable unit from millimeters to kilograms of water per square
+    metre."""
+
     molecular_weight_air: float = 28.96
     """Molecular weight of air, [g mol-1]."""
 
