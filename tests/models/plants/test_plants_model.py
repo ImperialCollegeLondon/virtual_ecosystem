@@ -378,10 +378,10 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     )
 
 
-@pytest.mark.skip(
-    reason="The DBH increase check fails - we need to fix this but that is going "
-    "to be tricky and we need to unblock the CI."
-)
+# @pytest.mark.skip(
+#     reason="The DBH increase check fails - we need to fix this but that is going "
+#     "to be tricky and we need to unblock the CI."
+# )
 def test_PlantsModel_allocate_gpp(fxt_plants_model):
     """Test the allocate_gpp method."""
 
@@ -402,27 +402,56 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model):
     fxt_plants_model.allocate_gpp()
 
     for cell_id in fxt_plants_model.communities.keys():
-        # TODO: eventually have tests with more meaningful values
-        # BUG: This assert is failing spectacularly. The test has been set to skip until
-        #      we can fix this properly.
+        # TODO: Eventually have tests with more meaningful values
+        #       Pretty sure this is still wrong but no longer shrinking :-)
 
         # Check that dbh is >= previous dbh (plants should not shrink!)
-        assert (
-            fxt_plants_model.communities[cell_id].cohorts.dbh_values
-            >= prev_dbh_values[cell_id]
-        ).all()
-
-        # Ensure that leaf and root turnover exist and are > 0
-        assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
-        assert fxt_plants_model.data["root_turnover"][cell_id] > 0
-        assert np.all(fxt_plants_model.data["plant_pft_propagules"][cell_id] >= 100)
-        assert fxt_plants_model.data["fallen_non_propagule_c_mass"][cell_id] > 0
-        assert np.all(fxt_plants_model.data["canopy_n_propagules"][cell_id] >= 0)
         assert np.all(
-            fxt_plants_model.data["canopy_non_propagule_c_mass"][cell_id] >= 0
-        )  # For cell_id = 1, only one of the two PFTs is present.
-        assert fxt_plants_model.data["root_carbohydrate_exudation"][cell_id] > 0
-        assert fxt_plants_model.data["plant_symbiote_carbon_supply"][cell_id] > 0
+            np.greater_equal(
+                fxt_plants_model.communities[cell_id].cohorts.dbh_values,
+                prev_dbh_values[cell_id],
+            )
+        )
+
+    # Ensure that non PFT turnovers are > 0 ...
+    assert np.all(np.greater(fxt_plants_model.data["foliage_turnover_cnp"], 0))
+    assert np.all(np.greater(fxt_plants_model.data["root_turnover_cnp"], 0))
+    # ... except for stem turnover which currently has no turnover
+    # (NOTE - this could change if we add branchfall)
+    assert np.allclose(fxt_plants_model.data["stem_turnover_cnp"], 0)
+
+    # Check carbon supply to soil
+    assert np.all(np.greater(fxt_plants_model.data["root_carbohydrate_exudation"], 0))
+    assert np.all(np.greater(fxt_plants_model.data["plant_symbiote_carbon_supply"], 0))
+
+    # Check that canopy foliage CNP is populated
+    assert np.all(np.greater(fxt_plants_model.data["canopy_foliage_cnp"], 0))
+
+    # Check the PFT structured arrays - These are trickier because values can and should
+    # be zero if the PFT is not in a cell but that's a good feature of the test
+
+    # Calculate a boolean mask that shows which cells are expected to be populated
+    mask = fxt_plants_model.data_object_templates["cnp_pft"].copy().astype(bool)
+    for cid in mask.cell_id.values:
+        for pft in mask.pft.values:
+            if pft in fxt_plants_model.communities[cid].cohorts.pft_names:
+                mask.loc[dict(cell_id=cid, pft=pft)] = True
+    default_out = np.ones_like(mask)
+
+    for var in [
+        "fruit_turnover_cnp",
+        "seed_turnover_cnp",
+        "canopy_seed_cnp",
+        "canopy_fruit_cnp",
+    ]:
+        # Filled in where the pft is present
+        assert np.all(
+            np.greater(fxt_plants_model.data[var], 0, where=mask, out=default_out)
+        )
+        # Otherwise empty
+        assert np.all(
+            np.equal(fxt_plants_model.data[var], 0, where=~mask, out=default_out)
+        )
 
 
 def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
@@ -552,11 +581,30 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model):
         )
 
         # Check the turnovers are now equal to the sums of a single stem of each cohort
-        for tissue in fxt_plants_model.biomasses[cell_id].tissues:
+        for var in ["stem", "foliage", "root"]:
+            tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
             assert_allclose(
-                fxt_plants_model.data[f"{tissue.tissue_name}_turnover_cnp"][cell_id],
+                fxt_plants_model.data[f"{var}_turnover_cnp"][cell_id],
                 tissue.as_array(with_carbon=True).sum(axis=1),
             )
+
+        # More complex for fruit and seed - need to calculate per PFT values so need to
+        # sum across the columns in the tissue biomasses for each PFT
+        for var in ["fruit", "seed"]:
+            tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
+            # collapse tissue by pft
+            for idx, pft in enumerate(fxt_plants_model.flora.name):
+                cohorts_this_pft = (
+                    fxt_plants_model.communities[cell_id].cohorts.pft_names == pft
+                )
+                pft_biomass = tissue.as_array(with_carbon=True)[
+                    :, cohorts_this_pft
+                ].sum(axis=1)
+
+                assert_allclose(
+                    fxt_plants_model.data[f"{var}_turnover_cnp"][cell_id, idx, :],
+                    pft_biomass,
+                )
 
 
 def test_PlantsModel_apply_recruitment(fxt_plants_model):
@@ -589,21 +637,6 @@ def test_PlantsModel_apply_recruitment(fxt_plants_model):
     ]
 
     assert np.all(np.less(original_n_cohorts, new_n_cohorts))
-
-
-def test_partition_reproductive_tissue(fxt_plants_model):
-    """Tests the partition reproductive tissue function."""
-
-    n_propagules, mass_non_propagules = fxt_plants_model.partition_reproductive_tissue(
-        reproductive_tissue_mass=10.5
-    )
-
-    assert n_propagules == 5
-    assert mass_non_propagules == 5.5
-    assert (
-        n_propagules * fxt_plants_model.model_constants.carbon_mass_per_propagule
-        + mass_non_propagules
-    )
 
 
 def test_convert_to_litter_units(fxt_plants_model):

@@ -58,6 +58,13 @@ StemBiomass
     turnover_ratio: not defined (because there is no turnover)
 
 
+TODO - factor out mass accessor functions (get_biomass etc) as in the lists above and
+       then make those limited functions the abstract methods so that all the logic can
+       be shared in base class methods.
+
+TODO - make this all run on 2D CNP arrays (remove Element?) Have single arrays giving
+       biomasses and ideal and turnover ratios.
+
 """  # noqa: D205
 
 from __future__ import annotations
@@ -113,11 +120,14 @@ class BiomassTissueABC(ABC):
 
     community: Community
     """The community object that the tissue is associated with."""
+    extra_pft_traits: ExtraTraitsPFT
     # TODO: consider where best to store shared attributes like community.
 
     carbon_mass: NDArray[np.floating]
-
+    """An 1D array of tissue carbon mass for each stem in cohorts in the community."""
     element_masses: dict[str, Element]
+    """A dictionary of Elements containing nutrient masses each stem in cohorts in the
+    community."""
 
     @classmethod
     @abstractmethod
@@ -284,7 +294,10 @@ class FoliageBiomass(BiomassTissueABC):
             )
 
         return cls(
-            carbon_mass=carbon_mass, community=community, element_masses=element_masses
+            carbon_mass=carbon_mass,
+            extra_pft_traits=extra_pft_traits,
+            community=community,
+            element_masses=element_masses,
         )
 
     def apply_growth(
@@ -365,7 +378,10 @@ class ReproductiveBiomass(BiomassTissueABC):
             )
 
         return cls(
-            carbon_mass=carbon_mass, community=community, element_masses=element_masses
+            carbon_mass=carbon_mass,
+            extra_pft_traits=extra_pft_traits,
+            community=community,
+            element_masses=element_masses,
         )
 
     def apply_growth(
@@ -425,6 +441,240 @@ class ReproductiveBiomass(BiomassTissueABC):
 
 
 @dataclass
+class FruitBiomass(BiomassTissueABC):
+    """Holds fruit tissue stoichiometry data for a set of plant cohorts."""
+
+    tissue_name = "fruit"
+
+    @classmethod
+    def from_pft_default_ratios(
+        cls,
+        community: Community,
+        extra_pft_traits: ExtraTraitsPFT,
+        with_elements: list[str],
+    ):
+        """Create a default instance of FoliageBiomass based on the PFT traits."""
+        pft_names = community.cohorts.pft_names
+
+        element_masses: dict[str, Element] = {}
+
+        # Get the proportion of reproductive tissue allocated to fruit
+        fruit_fraction = [
+            extra_pft_traits.traits[name]["fruit_flesh_fraction"] for name in pft_names
+        ]
+
+        carbon_mass = (
+            community.stem_allometry.reproductive_tissue_mass.squeeze() * fruit_fraction
+        )
+
+        for elem in with_elements:
+            ideal_ratio = np.array(
+                [
+                    extra_pft_traits.traits[name][
+                        f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
+                    ]
+                    for name in pft_names
+                ]
+            )
+            # Turnover ratio is identical to ideal ratio
+            turnover_ratio = ideal_ratio
+
+            element_masses[elem] = Element(
+                name=elem,
+                ideal_ratio=ideal_ratio,
+                actual_element_mass=carbon_mass / ideal_ratio,
+                turnover_ratio=turnover_ratio,
+            )
+
+        return cls(
+            carbon_mass=carbon_mass,
+            extra_pft_traits=extra_pft_traits,
+            community=community,
+            element_masses=element_masses,
+        )
+
+    def apply_growth(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Increase the biomasses of reproductive tissue given the allocation model.
+
+        Returns:
+            The increases in element quantities needed to support growth at the ideal
+            ratio for the tissue.
+        """
+
+        fruit_fraction = [
+            self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
+            for name in self.community.cohorts.pft_names
+        ]
+
+        carbon_increase = (
+            allocation.delta_foliage_mass
+            * self.community.stem_traits.p_foliage_for_reproductive_tissue
+            * fruit_fraction
+        )
+        self.carbon_mass += carbon_increase.squeeze()
+
+        nutrient_ideal_ratio_increase = {
+            ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
+            for ky, elem in self.element_masses.items()
+        }
+
+        self.add_elemental_masses(nutrient_ideal_ratio_increase)
+
+        return nutrient_ideal_ratio_increase
+
+    def get_turnover(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Calculate the element mass lost to turnover for reproductive tissue.
+
+        Returns:
+            The element quantity lost to turnover for reproductive tissue.
+        """
+
+        # TODO: Caching locally to avoid calling the property constructor for each
+        # element  - maybe this should a cached property?
+
+        cx_ratios = self.Cx_ratio
+
+        # Get the proportion of reproductive tissue allocated to fruit
+        fruit_fraction = [
+            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
+            for name in self.community.cohorts.pft_names
+        ]
+
+        carbon_turnover = (
+            allocation.reproductive_tissue_turnover.squeeze() * fruit_fraction
+        )
+
+        elemental_turnovers = {
+            ky: ((carbon_turnover * (1 / cx_ratios[ky])).squeeze()).squeeze()
+            for ky, elem in self.element_masses.items()
+        }
+
+        return {"C": carbon_turnover, **elemental_turnovers}
+
+
+@dataclass
+class SeedBiomass(BiomassTissueABC):
+    """Holds fruit tissue stoichiometry data for a set of plant cohorts."""
+
+    tissue_name = "seed"
+
+    @classmethod
+    def from_pft_default_ratios(
+        cls,
+        community: Community,
+        extra_pft_traits: ExtraTraitsPFT,
+        with_elements: list[str],
+    ):
+        """Create a default instance of FoliageBiomass based on the PFT traits."""
+        pft_names = community.cohorts.pft_names
+
+        element_masses: dict[str, Element] = {}
+
+        # Get the proportion of reproductive tissue allocated to seed
+        seed_fraction = [
+            1 - extra_pft_traits.traits[name]["fruit_flesh_fraction"]
+            for name in pft_names
+        ]
+
+        carbon_mass = (
+            community.stem_allometry.reproductive_tissue_mass.squeeze() * seed_fraction
+        )
+
+        for elem in with_elements:
+            ideal_ratio = np.array(
+                [
+                    extra_pft_traits.traits[name][
+                        f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
+                    ]
+                    for name in pft_names
+                ]
+            )
+            # Turnover ratio is identical to ideal ratio
+            turnover_ratio = ideal_ratio
+
+            element_masses[elem] = Element(
+                name=elem,
+                ideal_ratio=ideal_ratio,
+                actual_element_mass=carbon_mass / ideal_ratio,
+                turnover_ratio=turnover_ratio,
+            )
+
+        return cls(
+            carbon_mass=carbon_mass,
+            extra_pft_traits=extra_pft_traits,
+            community=community,
+            element_masses=element_masses,
+        )
+
+    def apply_growth(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Increase the biomasses of reproductive tissue given the allocation model.
+
+        Returns:
+            The increases in element quantities needed to support growth at the ideal
+            ratio for the tissue.
+        """
+
+        # Get the proportion of reproductive tissue allocated to seed
+        seed_fraction = [
+            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
+            for name in self.community.cohorts.pft_names
+        ]
+
+        carbon_increase = (
+            allocation.delta_foliage_mass
+            * self.community.stem_traits.p_foliage_for_reproductive_tissue
+            * seed_fraction
+        )
+        self.carbon_mass += carbon_increase.squeeze()
+
+        nutrient_ideal_ratio_increase = {
+            ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
+            for ky, elem in self.element_masses.items()
+        }
+
+        self.add_elemental_masses(nutrient_ideal_ratio_increase)
+
+        return nutrient_ideal_ratio_increase
+
+    def get_turnover(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Calculate the element mass lost to turnover for reproductive tissue.
+
+        Returns:
+            The element quantity lost to turnover for reproductive tissue.
+        """
+
+        # TODO: Caching locally to avoid calling the property constructor for each
+        # element  - maybe this should a cached property?
+
+        cx_ratios = self.Cx_ratio
+
+        # Get the proportion of reproductive tissue allocated to seed
+        seed_fraction = [
+            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
+            for name in self.community.cohorts.pft_names
+        ]
+
+        carbon_turnover = (
+            allocation.reproductive_tissue_turnover.squeeze() * seed_fraction
+        )
+
+        elemental_turnovers = {
+            ky: ((carbon_turnover * (1 / cx_ratios[ky])).squeeze()).squeeze()
+            for ky, elem in self.element_masses.items()
+        }
+
+        return {"C": carbon_turnover, **elemental_turnovers}
+
+
+@dataclass
 class StemBiomass(BiomassTissueABC):
     """A class to hold stem stoichiometry data for a set of plant cohorts."""
 
@@ -461,7 +711,10 @@ class StemBiomass(BiomassTissueABC):
             )
 
         return cls(
-            carbon_mass=carbon_mass, community=community, element_masses=element_masses
+            carbon_mass=carbon_mass,
+            extra_pft_traits=extra_pft_traits,
+            community=community,
+            element_masses=element_masses,
         )
 
     def apply_growth(
@@ -548,6 +801,7 @@ class RootBiomass(BiomassTissueABC):
         return cls(
             # carbon_mass=community.stem_allometry.fine_root_mass,
             carbon_mass=fine_root_mass,
+            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
