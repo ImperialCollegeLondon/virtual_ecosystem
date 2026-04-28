@@ -81,14 +81,15 @@ def test_madingley_individuals_density_value(mass, terms, expected_behavior):
 
 
 @pytest.mark.parametrize(
-    "mass, temperature, terms, metabolic_type, met_rate",
+    "mass, temperature, terms, metabolic_type, sigma_f_t, met_rate",
     [
-        # Test cases for an endothermic animal
+        # Symmetric terms (basal == field) — sigma does not affect output
         pytest.param(
             0.0,
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "endothermic",
+            1.0,
             0.0,
             id="endothermic_zero_mass",
         ),
@@ -97,6 +98,7 @@ def test_madingley_individuals_density_value(mass, terms, expected_behavior):
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "endothermic",
+            1.0,
             2.3264417757316824e-16,
             id="endothermic_small_mass",
         ),
@@ -105,15 +107,16 @@ def test_madingley_individuals_density_value(mass, terms, expected_behavior):
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "endothermic",
+            1.0,
             3.218786623537764e-16,
             id="endothermic_large_mass",
         ),
-        # Test cases for an ectothermic animal
         pytest.param(
             0.0,
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
+            1.0,
             0.0,
             id="ectothermic_zero_mass",
         ),
@@ -122,6 +125,7 @@ def test_madingley_individuals_density_value(mass, terms, expected_behavior):
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
+            1.0,
             9.116692117764761e-17,
             id="ectothermic_small_mass",
         ),
@@ -130,19 +134,56 @@ def test_madingley_individuals_density_value(mass, terms, expected_behavior):
             25,
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
+            1.0,
             1.261354870157637e-16,
             id="ectothermic_large_mass",
         ),
+        # Asymmetric terms (basal != field) — exercises the sigma FMR/BMR split
+        pytest.param(
+            1.0,
+            25,
+            {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
+            "endothermic",
+            1.0,
+            2.316717571445662e-16,
+            id="endothermic_fully_active",
+        ),
+        pytest.param(
+            1.0,
+            25,
+            {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
+            "endothermic",
+            0.0,
+            1.9480521887285538e-16,
+            id="endothermic_fully_inactive",
+        ),
+        pytest.param(
+            1.0,
+            25,
+            {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
+            "ectothermic",
+            1.0,
+            9.078585349134391e-17,
+            id="ectothermic_fully_active",
+        ),
+        pytest.param(
+            1.0,
+            25,
+            {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
+            "ectothermic",
+            0.0,
+            7.633886097261398e-17,
+            id="ectothermic_fully_inactive",
+        ),
     ],
 )
-def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
-    """Testing metabolic rate for various body-masses."""
-
+def test_metabolic_rate(mass, temperature, terms, metabolic_type, sigma_f_t, met_rate):
+    """Testing metabolic rate for various body-masses and activity window fractions."""
     from virtual_ecosystem.models.animal.animal_traits import MetabolicType
     from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
 
     testing_rate = metabolic_rate(
-        mass, temperature, terms, MetabolicType(metabolic_type)
+        mass, temperature, terms, MetabolicType(metabolic_type), sigma_f_t
     )
     assert testing_rate == pytest.approx(met_rate, rel=1e-6)
 
@@ -192,6 +233,9 @@ def test_carnivore_prey_group_selection(functional_group_list_instance):
         "dung_beetle": (0.0001, 1000.0),
         "scavenging_mammal": (0.0001, 1000.0),
         "fungivorous_mammal": (0.0001, 1000.0),
+        "herbivorous_lizard": (0.0001, 1000.0),
+        "carnivorous_snake": (0.0001, 1000.0),
+        "thermophilic_lizard": (0.0001, 1000.0),
         "carcasses": (0.0, 0.0),
         "excrement": (0.0, 0.0),
     }
@@ -675,3 +719,201 @@ def test_territory_size(mass_kg, terms, expected_m2):
         pytest.approx(2 ** terms[1], rel=1e-6)
     )
     assert territory_size(mass_kg, terms) < territory_size(mass_kg * 10, terms)
+
+
+@pytest.mark.parametrize(
+    "annual_mean_temp, annual_temp_sd, m_tsm, c_tsm, expected",
+    [
+        pytest.param(20.0, 5.0, 1.53, 1.51, 29.16, id="standard"),
+        pytest.param(0.0, 0.0, 1.53, 1.51, 1.51, id="zero_mean_and_sd"),
+    ],
+)
+def test_t_opt_ectotherm(annual_mean_temp, annual_temp_sd, m_tsm, c_tsm, expected):
+    """Test optimal activity temperature calculation for terrestrial ectotherms."""
+    from virtual_ecosystem.models.animal.scaling_functions import t_opt_ectotherm
+
+    assert t_opt_ectotherm(
+        annual_mean_temp, annual_temp_sd, m_tsm, c_tsm
+    ) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    "annual_mean_temp, annual_temp_sd, m_tol, c_tol, expected",
+    [
+        pytest.param(20.0, 5.0, 1.6, 6.61, 34.61, id="standard"),
+        pytest.param(0.0, 0.0, 1.6, 6.61, 6.61, id="zero_mean_and_sd"),
+    ],
+)
+def test_t_max_crit_ectotherm(annual_mean_temp, annual_temp_sd, m_tol, c_tol, expected):
+    """Test upper critical temperature calculation for terrestrial ectotherms."""
+    from virtual_ecosystem.models.animal.scaling_functions import t_max_crit_ectotherm
+
+    assert t_max_crit_ectotherm(
+        annual_mean_temp, annual_temp_sd, m_tol, c_tol
+    ) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    "t_max_crit, t_opt, expected",
+    [
+        pytest.param(34.61, 29.16, 27.343333333333334, id="standard"),
+        pytest.param(10.0, 10.0, 10.0, id="equal_max_and_opt"),
+    ],
+)
+def test_t_min_crit_ectotherm(t_max_crit, t_opt, expected):
+    """Test lower critical temperature calculation for terrestrial ectotherms."""
+    from virtual_ecosystem.models.animal.scaling_functions import t_min_crit_ectotherm
+
+    assert t_min_crit_ectotherm(t_max_crit, t_opt) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    "temperature, diurnal_temp_range, t_max_crit, expected",
+    [
+        pytest.param(25.0, 10.0, 35.0, 0.0, id="threshold_above_daily_max"),
+        pytest.param(25.0, 10.0, 30.0, 0.0, id="threshold_at_daily_max_edge"),
+        pytest.param(25.0, 10.0, 25.0, 0.5, id="threshold_at_mean"),
+        pytest.param(25.0, 10.0, 20.0, 1.0, id="threshold_at_daily_min_edge"),
+        pytest.param(25.0, 10.0, 15.0, 1.0, id="threshold_below_daily_min"),
+    ],
+)
+def test_p_above_t_max(temperature, diurnal_temp_range, t_max_crit, expected):
+    """Test p_above_t_max at the asymptotic boundaries of the sine-wave model."""
+    from virtual_ecosystem.models.animal.scaling_functions import p_above_t_max
+
+    assert p_above_t_max(temperature, diurnal_temp_range, t_max_crit) == pytest.approx(
+        expected
+    )
+
+
+@pytest.mark.parametrize(
+    "temperature, diurnal_temp_range, t_min_crit, expected",
+    [
+        pytest.param(25.0, 10.0, 35.0, 1.0, id="threshold_above_daily_max"),
+        pytest.param(25.0, 10.0, 30.0, 1.0, id="threshold_at_daily_max_edge"),
+        pytest.param(25.0, 10.0, 25.0, 0.5, id="threshold_at_mean"),
+        pytest.param(25.0, 10.0, 20.0, 0.0, id="threshold_at_daily_min_edge"),
+        pytest.param(25.0, 10.0, 15.0, 0.0, id="threshold_below_daily_min"),
+    ],
+)
+def test_p_below_t_min(temperature, diurnal_temp_range, t_min_crit, expected):
+    """Test p_below_t_min at the asymptotic boundaries of the sine-wave model."""
+    from virtual_ecosystem.models.animal.scaling_functions import p_below_t_min
+
+    assert p_below_t_min(temperature, diurnal_temp_range, t_min_crit) == pytest.approx(
+        expected
+    )
+
+
+@pytest.mark.parametrize(
+    "metabolic_type, temperature, diurnal_temp_range, t_opt, t_max_crit, t_min_crit,"
+    "expected",
+    [
+        # Toy parameter path (t_opt/t_max_crit/t_min_crit all None)
+        pytest.param(
+            "endothermic",
+            0.0,
+            4.0,
+            None,
+            None,
+            None,
+            1.0,
+            id="endotherm_always_active",
+        ),
+        pytest.param(
+            "ectothermic",
+            31.0,
+            4.0,
+            None,
+            None,
+            None,
+            1.0,
+            id="ectotherm_fully_within_window",
+        ),
+        pytest.param(
+            "ectothermic",
+            10.0,
+            4.0,
+            None,
+            None,
+            None,
+            0.0,
+            id="ectotherm_always_too_cold",
+        ),
+        pytest.param(
+            "ectothermic",
+            40.0,
+            4.0,
+            None,
+            None,
+            None,
+            0.0,
+            id="ectotherm_always_too_hot",
+        ),
+        pytest.param(
+            "ectothermic",
+            30.0,
+            10.0,
+            None,
+            None,
+            None,
+            0.5517546068733064,
+            id="ectotherm_partial_overlap",
+        ),
+        # CSV override path (t_opt=35, t_max_crit=42, t_min_crit=30)
+        pytest.param(
+            "ectothermic",
+            36.0,
+            4.0,
+            35.0,
+            42.0,
+            30.0,
+            1.0,
+            id="csv_override_within_window",
+        ),
+        pytest.param(
+            "ectothermic",
+            10.0,
+            4.0,
+            35.0,
+            42.0,
+            30.0,
+            0.0,
+            id="csv_override_too_cold",
+        ),
+        pytest.param(
+            "ectothermic",
+            30.0,
+            10.0,
+            35.0,
+            42.0,
+            30.0,
+            0.5,
+            id="csv_override_partial_overlap",
+        ),
+    ],
+)
+def test_activity_window(
+    metabolic_type,
+    temperature,
+    diurnal_temp_range,
+    t_opt,
+    t_max_crit,
+    t_min_crit,
+    expected,
+):
+    """Test activity window fraction across endotherm and ectotherm scenarios."""
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import activity_window
+
+    result = activity_window(
+        metabolic_type=MetabolicType(metabolic_type),
+        temperature=temperature,
+        diurnal_temp_range=diurnal_temp_range,
+        annual_mean_temp=20.0,
+        annual_temp_sd=5.0,
+        t_opt=t_opt,
+        t_max_crit=t_max_crit,
+        t_min_crit=t_min_crit,
+    )
+    assert result == pytest.approx(expected)

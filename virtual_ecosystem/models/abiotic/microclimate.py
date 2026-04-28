@@ -497,7 +497,7 @@ def calculate_vegetation_temperature(
         small_perturbation_second_guess=(
             abiotic_constants.small_perturbation_second_guess_secant_solver
         ),
-        denominator_tolerance=abiotic_constants.denominator_tolerance_secant_solver,
+        denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
 
     return vegetation_temperature
@@ -742,6 +742,7 @@ def update_atmospheric_humidity(
             core_constants.molecular_weight_ratio_water_to_dry_air
         ),
         dry_air_factor=abiotic_constants.dry_air_factor,
+        mm_to_kg=core_constants.mm_to_kg,
         cell_area=static["cell_area"],
         limits=(0, max_specific_humidity[0]),  # TODO make layer specific
         time_interval=time_interval,

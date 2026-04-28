@@ -413,6 +413,9 @@ def dummy_animal_data(animal_fixture_core_components):
         leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
     )
 
+    data["diurnal_temperature_range"] = from_template()
+    data["diurnal_temperature_range"][lyr_str.index_surface_scalar] = 10.0
+
     return data
 
 
@@ -768,6 +771,31 @@ def butterfly_cohort_instance(
         100,
         1,  # centroid
         animal_data_for_cohorts_instance.grid,  # grid
+        constants_instance,
+    )
+
+
+@pytest.fixture
+def thermophilic_lizard_cohort_instance(
+    shared_datadir,
+    animal_data_for_cohorts_instance,
+    constants_instance,
+):
+    """Fixture for a thermophilic lizard cohort with CSV thermal tolerances."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+    return AnimalCohort(
+        fg_list[19],
+        0.1,
+        1,
+        10,
+        1,
+        animal_data_for_cohorts_instance.grid,
         constants_instance,
     )
 
