@@ -757,6 +757,7 @@ def update_atmospheric_humidity(
         "vapour_pressure",
         "vapour_pressure_deficit",
         "specific_humidity",
+        "condensation",
     ]:
         temp = np.full_like(specific_humidity_air, np.nan)
         temp[idx.atm] = output_vars[var]

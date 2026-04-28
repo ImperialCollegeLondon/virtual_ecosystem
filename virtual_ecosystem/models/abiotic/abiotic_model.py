@@ -74,6 +74,7 @@ class AbioticModel(
         "net_radiation",
         "longwave_emission",
         "diurnal_temperature_range",
+        "condensation",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -92,6 +93,7 @@ class AbioticModel(
         "soil_evaporation",
         "canopy_evaporation",
         "transpiration",
+        "condensation",
     ),
     vars_populated_by_init=(
         "soil_temperature",
@@ -112,7 +114,7 @@ class AbioticModel(
         "vapour_pressure",
         "diurnal_temperature_range",
     ),
-    vars_populated_by_first_update=("condensation",),
+    vars_populated_by_first_update=(),
 ):
     """A class describing the abiotic model.
 

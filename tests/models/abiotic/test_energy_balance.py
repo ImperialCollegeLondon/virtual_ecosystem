@@ -409,7 +409,7 @@ def test_update_humidity_vpd(
         & (result["relative_humidity"][~mask] < 100)
     )
 
-    # RH should be between >=0
+    # Condensation should be >=0
     assert np.all(result["condensation"][~mask] >= 0)
 
 

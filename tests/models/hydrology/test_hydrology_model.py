@@ -23,6 +23,7 @@ MODEL_VAR_CHECK_LOG = [
     (DEBUG, "hydrology model: required var 'atmospheric_pressure_ref' checked"),
     (INFO, "Adding data array for 'soil_moisture'"),
     (INFO, "Adding data array for 'matric_potential'"),
+    (INFO, "Adding data array for 'condensation'"),
     (INFO, "Adding data array for 'groundwater_storage'"),
     (INFO, "Adding data array for 'aerodynamic_resistance_soil'"),
     (INFO, "Adding data array for 'stomatal_conductance'"),

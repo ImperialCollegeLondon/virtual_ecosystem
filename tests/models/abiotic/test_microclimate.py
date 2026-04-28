@@ -660,6 +660,7 @@ def test_update_atmospheric_humidity(
         "vapour_pressure",
         "vapour_pressure_deficit",
         "specific_humidity",
+        "condensation",
     ]:
         assert key in result
         assert isinstance(result[key], np.ndarray)
@@ -669,14 +670,17 @@ def test_update_atmospheric_humidity(
     assert np.all(result["specific_humidity"][mask] >= 0.00)
 
     # VPD should be reduced where evapotranspiration or mixing adds moisture
-    assert np.all(result["vapour_pressure_deficit"][mask] >= 0.0)
+    assert np.all(result["vapour_pressure_deficit"][mask] > 0.0)
     assert np.all(result["vapour_pressure"][mask] <= vp_sat[mask])
 
     # RH should be between 0 and 100
     assert np.all(
-        (result["relative_humidity"][mask] >= 0)
-        & (result["relative_humidity"][mask] <= 100)
+        (result["relative_humidity"][mask] > 0)
+        & (result["relative_humidity"][mask] < 100)
     )
+
+    # Condensation should be >=0
+    assert np.all(result["condensation"][mask] >= 0)
 
 
 def test_run_hour_step_orchestration(
@@ -777,6 +781,7 @@ def test_run_hour_step_orchestration(
         "vapour_pressure": (14, 4),
         "vapour_pressure_deficit": (14, 4),
         "specific_humidity": (14, 4),
+        "condensation": (14, 4),
     }
 
     for key, shape in expected_static.items():
@@ -987,6 +992,7 @@ def test_run_microclimate(
         "atmospheric_co2",
         "net_radiation",
         "diurnal_temperature_range",
+        "condensation",
     )
     time_interval = 3600
     time_index = 0

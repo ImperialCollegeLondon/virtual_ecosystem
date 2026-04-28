@@ -99,6 +99,7 @@ class HydrologyModel(
         "specific_heat_air",
         "stomatal_conductance",
         "net_radiation",
+        "condensation",
     ),
     vars_populated_by_init=(
         "soil_moisture",
@@ -110,6 +111,7 @@ class HydrologyModel(
         "stomatal_conductance",
         "latent_heat_vapourisation",
         "density_air",
+        "condensation",
     ),
     vars_populated_by_first_update=(
         "interception",
@@ -289,6 +291,7 @@ class HydrologyModel(
         self.data["matric_potential"][self.layer_structure.index_all_soil] = DataArray(
             matric_potential * self.model_constants.m_to_kpa, dims=["layers", "cell_id"]
         )
+        self.data["condensation"] = self.layer_structure.from_template()
 
         # Create initial groundwater storage variable with two layers, [mm]
         # TODO think about including this in config, but we don't want to carry those

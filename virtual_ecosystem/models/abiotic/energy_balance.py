@@ -546,7 +546,7 @@ def update_humidity_vpd(
     ) * 100
 
     relative_humidity_updated = np.minimum(
-        relative_humidity_updated, limits_relative_humidity[0]
+        relative_humidity_updated, limits_relative_humidity[1]
     )
 
     # Compute new VPD (Vapour Pressure Deficit) [kPa], ensure non-zero
