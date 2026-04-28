@@ -525,8 +525,8 @@ def update_humidity_vpd(
         limits_specific_humidity[0],
     )
 
-    # Convert excess to condensed water mass [kg]
-    condensation_mass = excess_specific_humidity * air_mass_per_layer
+    # Convert excess to condensed water, [mm]
+    condensation_mm = excess_specific_humidity * air_mass_per_layer / mm_to_kg
 
     # Remove excess from air
     specific_humidity_updated = np.minimum(
@@ -559,7 +559,7 @@ def update_humidity_vpd(
         "vapour_pressure": vapour_pressure_updated,
         "vapour_pressure_deficit": vpd_updated,
         "specific_humidity": specific_humidity_updated,
-        "condensation": condensation_mass,
+        "condensation": condensation_mm,
     }
 
     # Clean outputs while preserving intended NaNs
