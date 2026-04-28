@@ -408,12 +408,12 @@ def dummy_animal_data(animal_fixture_core_components):
 
     # Populate plant biomass pools
     vegetation_biomass = DataArray(
-        np.ones((data.grid.n_cells, elements.size, pfts.size)),
-        dims=("cell_id", "element", "pft"),
+        np.ones((data.grid.n_cells, pfts.size, elements.size)),
+        dims=("cell_id", "pft", "element"),
         coords=dict(
             cell_id=cell_ids,
-            element=elements,
             pft=pfts,
+            element=elements,
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
