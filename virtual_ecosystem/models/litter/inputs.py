@@ -192,11 +192,11 @@ def combine_input_sources(
         "root_lignin": root_lignin.to_numpy(),
         "stem_lignin": stem_lignin.to_numpy(),
         "leaf_nitrogen": leaf_rates.sel(element="N").to_numpy(),
-        "root_nitrogen": root_rates.sel(element="C").to_numpy(),
+        "root_nitrogen": root_rates.sel(element="N").to_numpy(),
         "deadwood_nitrogen": deadwood_rates.sel(element="N").to_numpy(),
         "leaf_phosphorus": leaf_rates.sel(element="P").to_numpy(),
-        "root_phosphorus": root_rates.sel(element="C").to_numpy(),
-        "deadwood_phosphorus": deadwood_rates.sel(element="N").to_numpy(),
+        "root_phosphorus": root_rates.sel(element="P").to_numpy(),
+        "deadwood_phosphorus": deadwood_rates.sel(element="P").to_numpy(),
     }
 
 
