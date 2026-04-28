@@ -357,7 +357,7 @@ class ResourcePool:
         if self.pft is None:
             self.data[self.resource.consumed_array][:] = consumed_elemental_masses
         else:
-            self.data[self.resource.consumed_array].loc[:, :, self.pft] = (
+            self.data[self.resource.consumed_array].loc[:, self.pft, :] = (
                 consumed_elemental_masses
             )
 

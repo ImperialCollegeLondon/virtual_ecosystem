@@ -136,10 +136,6 @@ def combine_input_sources(
     This function also converts the plant inputs from total inputs (over the model time
     step), to the (per area) input rates needed by the litter model.
 
-    TODO - At the moment there is only leaf input defined so this function doesn't
-    really do anything for the other types of plant matter. Once input is defined
-    for them this function should be updated to actually do something with them.
-
     Args:
         data: The `Data` object to be used to populate the litter input streams.
         update_interval: The length of time over which the input is being added over
@@ -152,33 +148,33 @@ def combine_input_sources(
         of each of these pools.
     """
 
-    # Calculate totals for each plant matter type
-    leaf_total = convert_to_input_masses_to_rates_per_area(
-        data["foliage_turnover_cnp"].sel(element="C")
-        + data["herbivory_waste_leaf_cnp"].sel(element="C"),
+    # Calculate totals for each plant matter type, collapsing PFTs for leaf inputs
+    leaf_rates = convert_to_input_masses_to_rates_per_area(
+        data["foliage_turnover_cnp"].sum(dim="pft") + data["herbivory_waste_leaf_cnp"],
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
-    root_total = convert_to_input_masses_to_rates_per_area(
-        data["root_turnover_cnp"].sel(element="C"),
+    root_rates = convert_to_input_masses_to_rates_per_area(
+        data["root_turnover_cnp"],
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
-    deadwood_total = convert_to_input_masses_to_rates_per_area(
-        data["stem_turnover_cnp"].sel(element="C"),
+    deadwood_rates = convert_to_input_masses_to_rates_per_area(
+        data["stem_turnover_cnp"],
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
 
     # Calculate lignin concentrations for each combined pool
+    foliage_mass = data["foliage_turnover_cnp"].sel(element="C").sum(dim="pft")
+
     leaf_lignin = merge_input_lignin_proportions(
-        turnover_mass=data["foliage_turnover_cnp"].sel(element="C").to_numpy(),
+        turnover_mass=foliage_mass.to_numpy(),
         herbivory_waste_mass=data["herbivory_waste_leaf_cnp"]
         .sel(element="C")
         .to_numpy(),
         total_mass=(
-            data["foliage_turnover_cnp"].sel(element="C")
-            + data["herbivory_waste_leaf_cnp"].sel(element="C")
+            foliage_mass + data["herbivory_waste_leaf_cnp"].sel(element="C")
         ).to_numpy(),
         turnover_lignin_proportion=data["senesced_leaf_lignin"].to_numpy(),
         herbivory_waste_lignin_proportion=data[
@@ -188,55 +184,19 @@ def combine_input_sources(
     root_lignin = data["root_lignin"]
     stem_lignin = data["stem_lignin"]
 
-    # Calculate leaf nitrogen concentrations for each combined pool
-    leaf_nitrogen = convert_to_input_masses_to_rates_per_area(
-        data["foliage_turnover_cnp"].sel(element="N")
-        + data["herbivory_waste_leaf_cnp"].sel(element="N"),
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-    root_nitrogen = convert_to_input_masses_to_rates_per_area(
-        data["root_turnover_cnp"].sel(element="N"),
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-    deadwood_nitrogen = convert_to_input_masses_to_rates_per_area(
-        data["stem_turnover_cnp"].sel(element="N"),
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-
-    # Calculate leaf phosphorus concentrations for each combined pool
-    leaf_phosphorus = convert_to_input_masses_to_rates_per_area(
-        data["foliage_turnover_cnp"].sel(element="P")
-        + data["herbivory_waste_leaf_cnp"].sel(element="P"),
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-    root_phosphorus = convert_to_input_masses_to_rates_per_area(
-        data["root_turnover_cnp"].sel(element="P"),
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-    deadwood_phosphorus = convert_to_input_masses_to_rates_per_area(
-        data["stem_turnover_cnp"].sel(element="P"),
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-
     return {
-        "leaf_mass": leaf_total.to_numpy(),
-        "root_mass": root_total.to_numpy(),
-        "deadwood_mass": deadwood_total.to_numpy(),
+        "leaf_mass": leaf_rates.sel(element="C").to_numpy(),
+        "deadwood_mass": deadwood_rates.sel(element="C").to_numpy(),
+        "root_mass": root_rates.sel(element="C").to_numpy(),
         "leaf_lignin": leaf_lignin,
         "root_lignin": root_lignin.to_numpy(),
         "stem_lignin": stem_lignin.to_numpy(),
-        "leaf_nitrogen": leaf_nitrogen.to_numpy(),
-        "root_nitrogen": root_nitrogen.to_numpy(),
-        "deadwood_nitrogen": deadwood_nitrogen.to_numpy(),
-        "leaf_phosphorus": leaf_phosphorus.to_numpy(),
-        "root_phosphorus": root_phosphorus.to_numpy(),
-        "deadwood_phosphorus": deadwood_phosphorus.to_numpy(),
+        "leaf_nitrogen": leaf_rates.sel(element="N").to_numpy(),
+        "root_nitrogen": root_rates.sel(element="C").to_numpy(),
+        "deadwood_nitrogen": deadwood_rates.sel(element="N").to_numpy(),
+        "leaf_phosphorus": leaf_rates.sel(element="P").to_numpy(),
+        "root_phosphorus": root_rates.sel(element="C").to_numpy(),
+        "deadwood_phosphorus": deadwood_rates.sel(element="N").to_numpy(),
     }
 
 
