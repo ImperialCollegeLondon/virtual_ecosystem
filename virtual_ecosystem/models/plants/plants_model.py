@@ -1050,10 +1050,8 @@ class PlantsModel(
                     tissue_turnovers[aggregated_tissue] * cohorts.n_individuals
                 ).sum(axis=1)
 
-            # Expose biomasses that are affected by herbivory:
-
-            # 1. Reproductive structures stored by PFT, storing turnover as fruit fall
-            #   to the ground and standing biomass as canopy fruit biomass.
+            # Expose biomasses that are affected by herbivory and which are currently
+            # structured by PFT: foliage, seed and fruit
             #
             # Get boolean indices for each pft giving the columns of the cohort biomass
             # data that belong to the PFT.
@@ -1091,19 +1089,6 @@ class PlantsModel(
                     self.data[f"canopy_{by_pft_tissue}_cnp"][cell_id][pft_idx] = (
                         total_standing_biomass[:, col_idx].sum(axis=1)
                     )
-
-            # 2. Standing biomass of foliage stored as aggregated mass across all
-            #    cohorts (could go to per PFT and enable targeted folivory).
-            #    TODO handle foliage herbivory impacts on GPP and leaf replacement
-
-            # canopy_foliage_biomass = (
-            #     self.biomasses[cell_id]
-            #     .get_tissue("foliage")
-            #     .as_array(with_carbon=True)
-            # )
-            # self.data["canopy_foliage_cnp"][cell_id] = (
-            #     canopy_foliage_biomass * cohorts.n_individuals
-            # ).sum(axis=1)
 
             # HANDLE ALLOCATION TO GROWTH
             biomasses.apply_growth(allocation=stem_allocation)
