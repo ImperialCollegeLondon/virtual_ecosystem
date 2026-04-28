@@ -1251,6 +1251,13 @@ name = "fallen_seeds_cnp"
 unit = "kg"
 variable_type = "float"
 
+[[variable]]
+axis = ["spatial"]
+description = "Light use efficiency of the P Model."
+name = "light_use_efficiency"
+unit = "gC mol-1"
+variable_type = "float"
+
 ## Everything below here added 2026-01-26 by David to meet new requirements for 
 ## variables to actually be known
 

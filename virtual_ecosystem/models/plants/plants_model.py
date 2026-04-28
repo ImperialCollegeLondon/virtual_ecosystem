@@ -134,6 +134,7 @@ class PlantsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
+        "light_use_efficiency",
     ),
     vars_populated_by_first_update=(
         "stem_turnover_cnp",
@@ -161,6 +162,7 @@ class PlantsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
+        "light_use_efficiency",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -843,6 +845,11 @@ class PlantsModel(
         )
 
         self.pmodel = PModel(pmodel_env)
+
+        # Add light use efficiency to the data object
+        lue = self.layer_structure.from_template("light_use_efficiency")
+        lue[:] = self.pmodel.lue
+        self.data["light_use_efficiency"] = lue
 
     def estimate_gpp(self, time_index: int) -> None:
         """Estimate the gross primary productivity within plant cohorts.

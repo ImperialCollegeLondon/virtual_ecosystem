@@ -280,6 +280,10 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     # Calculate GPP
     fxt_plants_model.reset_update_vars()
     fxt_plants_model.calculate_light_use_efficiency()
+
+    # Check LUE is populated
+    assert "light_use_efficiency" in fxt_plants_model.data
+
     fxt_plants_model.estimate_gpp(time_index=0)
 
     # TODO - Validation below uses benchmark values to detect changing code behaviour
