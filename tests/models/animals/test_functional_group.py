@@ -158,6 +158,42 @@ class TestFunctionalGroup:
         )
 
 
+def test_functional_group_thermal_tolerance_defaults_to_none(
+    shared_datadir, constants_instance
+):
+    """Test that thermal tolerance attributes default to None when absent from CSV."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants=constants_instance)
+
+    # herbivorous_mammal (index 3) has no thermal tolerance values in CSV
+    fg = fg_list[3]
+    assert fg.t_opt is None
+    assert fg.t_max_crit is None
+    assert fg.t_min_crit is None
+
+
+def test_functional_group_thermal_tolerance_loaded_from_csv(
+    shared_datadir, constants_instance
+):
+    """Test that thermal tolerance values are correctly loaded from CSV."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants=constants_instance)
+
+    # thermophilic_lizard has explicit thermal tolerance values
+    fg = next(f for f in fg_list if f.name == "thermophilic_lizard")
+    assert fg.t_opt == pytest.approx(35.0)
+    assert fg.t_max_crit == pytest.approx(42.0)
+    assert fg.t_min_crit == pytest.approx(30.0)
+
+
 @pytest.mark.parametrize(
     "index, name, taxa, diet, metabolic_type, reproductive_environment,"
     "reproductive_type, development_type, development_status,"
@@ -219,7 +255,7 @@ class TestFunctionalGroup:
             3,
             "herbivorous_mammal",
             "mammal",
-            "fruit_foliage",
+            "fruit_foliage_seeds",
             "endothermic",
             "terrestrial",
             "iteroparous",
@@ -474,3 +510,21 @@ def test_get_functional_group_by_name(
         result = get_functional_group_by_name(functional_groups, name)
         assert isinstance(result, FunctionalGroup)
         assert result.name == name
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        pytest.param(1.5, 1.5, id="valid_float"),
+        pytest.param(0.0, 0.0, id="zero_float"),
+        pytest.param(None, None, id="none"),
+        pytest.param(float("nan"), None, id="nan"),
+    ],
+)
+def test_none_or_float(value, expected):
+    """Test that NaN and None are converted to None, valid floats pass through."""
+    from virtual_ecosystem.models.animal.functional_group import _none_or_float
+
+    assert _none_or_float(value) is expected or _none_or_float(value) == pytest.approx(
+        expected
+    )

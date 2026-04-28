@@ -408,7 +408,7 @@ into a time period
 The remaining class attributes all start with `vars_` and are used to define sets of
 variables that will be shared across models in a central data store (a `Data` object)
 for the simulation. The variables in this central data store are all arrays of data and
-are structured across the [core data axes](../../using_the_ve/configuration/axes.md) in
+are structured across the [core data axes](../../using_the_ve/axes.md) in
 the simulation.
 
 :::{admonition} New variables
@@ -438,8 +438,8 @@ The first two variables set data requirements during model initialisation:
   attribute sets which variables must be loaded into the `Data` object before your model
   can be initialised. These must either be:
 
-  * included in the [configured initial data](../../using_the_ve/model_data_inputs.md)
-    that is loaded when the simulation starts, or
+  * included in the configured initial data that is loaded when the simulation starts,
+    or
   * be populated by a model that initialises earlier in the model sequence.
 
 * The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_init`

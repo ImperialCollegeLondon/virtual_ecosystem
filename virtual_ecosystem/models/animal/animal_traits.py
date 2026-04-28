@@ -140,6 +140,7 @@ class TaxaType(Enum):
     BIRD = "bird"
     INVERTEBRATE = "invertebrate"
     AMPHIBIAN = "amphibian"
+    REPTILE = "reptile"
 
 
 class ReproductiveType(Enum):
