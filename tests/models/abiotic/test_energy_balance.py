@@ -381,7 +381,7 @@ def test_update_humidity_vpd(
         limits_relative_humidity=(0.001, 99.999),
         time_interval=time_interval,
         denominator_tolerance=1e-12,
-        minimum_vapour_pressure_deficit=0.01,
+        limits_vapour_pressure_deficit=(0.01, 50),
     )
 
     # Basic shape checks
