@@ -468,6 +468,7 @@ class HydrologyModel(
         * stomatal conductance, [mol m-2 s-1]
         * aerodynamic resistance canopy, [s m-1]
         * net radiation, [W m-2]
+        * condensation, [mm]
 
         and a number of parameters that as described in detail in
         :class:`~virtual_ecosystem.models.hydrology.model_config.HydrologyConstants`.

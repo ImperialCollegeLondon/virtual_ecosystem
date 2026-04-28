@@ -253,7 +253,8 @@ daily timestep of the model, this means that we don't account for this step expl
 ### Water at the surface
 
 Precipitation that reaches the surface is defined as incoming precipitation minus canopy
-evaporation (plus leaf drainage if modelled explicitly). The water at the
+evaporation (plus leaf drainage if modelled explicitly) plus condensation (calculated in
+abiotic model). The water at the
 surface can follow different trajectories: runoff at the surface,
 remain at the surface as searchable resource for animals, return to the atmosphere via
 evaporation, or infiltrate into the soil where it can be taken up by plants or percolate
