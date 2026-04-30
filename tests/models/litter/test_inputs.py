@@ -159,11 +159,14 @@ def test_split_pool_into_metabolic_and_structural_litter(
 
     expected_split = [0.812403025, 0.640197595, 0.424077745, 0.0089426731]
 
+    # Merge foliage turnover across PFTs
+    collapsed_foliage = dummy_litter_data["foliage_turnover_cnp"].sum(dim="pft")
+
     actual_split = split_pool_into_metabolic_and_structural_litter(
-        input_carbon=dummy_litter_data["foliage_turnover_cnp"].sel(element="C"),
+        input_carbon=collapsed_foliage.sel(element="C"),
         lignin_proportion=dummy_litter_data["senesced_leaf_lignin"],
-        input_nitrogen=dummy_litter_data["foliage_turnover_cnp"].sel(element="N"),
-        input_phosphorus=dummy_litter_data["foliage_turnover_cnp"].sel(element="P"),
+        input_nitrogen=collapsed_foliage.sel(element="N"),
+        input_phosphorus=collapsed_foliage.sel(element="P"),
         max_metabolic_fraction=fixture_litter_constants.max_metabolic_fraction_of_input,
         split_sensitivity_nitrogen=fixture_litter_constants.metabolic_split_nitrogen_sensitivity,
         split_sensitivity_phosphorus=fixture_litter_constants.metabolic_split_phosphorus_sensitivity,
@@ -217,12 +220,15 @@ def test_merge_input_lignin_proportions(dummy_litter_data):
 
     expected_proportions = [0.05008879, 0.10125, 0.29641509, 0.53971154]
 
+    # Merge foliage turnover across PFTs
+    collapsed_foliage = dummy_litter_data["foliage_turnover_cnp"].sum(dim="pft")
+
     actual_proportions = merge_input_lignin_proportions(
-        turnover_mass=dummy_litter_data["foliage_turnover_cnp"].sel(element="C"),
+        turnover_mass=collapsed_foliage.sel(element="C"),
         herbivory_waste_mass=dummy_litter_data["herbivory_waste_leaf_cnp"].sel(
             element="C"
         ),
-        total_mass=dummy_litter_data["foliage_turnover_cnp"].sel(element="C")
+        total_mass=collapsed_foliage.sel(element="C")
         + dummy_litter_data["herbivory_waste_leaf_cnp"].sel(element="C"),
         turnover_lignin_proportion=dummy_litter_data["senesced_leaf_lignin"],
         herbivory_waste_lignin_proportion=dummy_litter_data[
@@ -238,14 +244,15 @@ def test_average_nutrient_ratios(dummy_litter_data):
 
     expected_proportions = [15.00583994, 32.23584906, 39.05894298, 47.80986065]
 
+    collapsed_foliage = dummy_litter_data["foliage_turnover_cnp"].sum(dim="pft")
+
     actual_proportions = average_nutrient_ratios(
-        mass_1=dummy_litter_data["foliage_turnover_cnp"].sel(element="C").to_numpy(),
+        mass_1=collapsed_foliage.sel(element="C").to_numpy(),
         mass_2=dummy_litter_data["herbivory_waste_leaf_cnp"]
         .sel(element="C")
         .to_numpy(),
         nutrient_ratio_1=(
-            dummy_litter_data["foliage_turnover_cnp"].sel(element="C")
-            / dummy_litter_data["foliage_turnover_cnp"].sel(element="N")
+            collapsed_foliage.sel(element="C") / collapsed_foliage.sel(element="N")
         ),
         nutrient_ratio_2=(
             dummy_litter_data["herbivory_waste_leaf_cnp"].sel(element="C")
