@@ -442,7 +442,7 @@ def mix_and_ventilate(
     valid = ~np.isnan(current)
 
     # Detect NO-CANOPY columns
-    canopy_exists = ~np.isnan(current[1, :])
+    canopy_exists = (~np.isnan(current[1, :])) & (current[1, :] != 0)
     no_canopy = ~canopy_exists
 
     mix_above = np.zeros_like(current)
@@ -462,25 +462,10 @@ def mix_and_ventilate(
 
     # No canopy fallback
     if np.any(no_canopy):
-        surface_idx = n_layers - 3
-
-        for j in np.where(no_canopy)[0]:
-            col = current[:, j]
-
-            # first non-NaN from top = "atmosphere"
-            valid_idx = np.where(~np.isnan(col))[0]
-
-            if len(valid_idx) == 0:
-                continue  # nothing to mix
-
-            top = valid_idx[0]
-            surface = surface_idx
-
-            # mix only between surface and first valid atmospheric layer
-            k = mixing_coefficient[top, j]
-            diff = col[top] - col[surface]
-            mix_above[top, j] += k * -diff
-            mix_below[surface, j] += k * (diff)
+        surface_idx = n_layers - 3  # TODO
+        diff = current[0, no_canopy] - current[surface_idx, no_canopy]
+        mix_above[surface_idx, no_canopy] += ventilation_rate[no_canopy] * diff
+        mix_above[0, no_canopy] -= ventilation_rate[no_canopy] * diff
 
     # Vertical mixing
     result = current + mix_above + mix_below
