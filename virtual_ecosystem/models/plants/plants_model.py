@@ -657,9 +657,6 @@ class PlantsModel(
         # Get the canopy top shortwave downwelling radiation for the current time slice
         self.set_canopy_top_radiation(time_index=time_index)
 
-        # Apply herbivory effects
-        self.apply_herbivory()
-
         # Update the canopy layers and subcanopy and then set the shortwave absorption
         self.canopies = calculate_canopies(
             communities=self.communities,
@@ -808,17 +805,6 @@ class PlantsModel(
             .isel(time_index=time_index)
             .to_numpy()
         )
-
-    def apply_herbivory(self) -> None:
-        """Applies herbivory effects on the plants model.
-
-        Herbivory removes biomass from the biomass tissues. In the case of foliage
-        herbivory, this also impacts the light gathering of the canopy. This is
-        implemented by reducing the leaf area index for each cohort in a cell below the
-        idealised LAI set in the plant functional traits.
-        """
-
-        pass
 
     def set_shortwave_absorption(self) -> None:
         """Set the shortwave radiation absorption across the vertical layers.
