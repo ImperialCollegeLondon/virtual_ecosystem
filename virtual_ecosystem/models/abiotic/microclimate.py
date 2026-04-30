@@ -679,6 +679,7 @@ def update_atmospheric_humidity(
     pyrealm_core_constants: PyrealmCoreConst,
     core_constants: CoreConstants,
     abiotic_constants: AbioticConstants,
+    abiotic_bounds: AbioticSimpleBounds,
     idx: SimpleNamespace,
     time_interval: float,
 ) -> dict[str, Any]:
@@ -690,6 +691,7 @@ def update_atmospheric_humidity(
         pyrealm_core_constants: Set of constants from pyrealm core that are used
         core_constants: Set of constants that are shared across all models
         abiotic_constants: Set of constants for abiotic model
+        abiotic_bounds: Bounds for atmospheric humidity variables
         idx: SimpleNamespace with layer indices
         time_interval: Time interval for flux calculations, [s]
 
@@ -741,8 +743,14 @@ def update_atmospheric_humidity(
         dry_air_factor=abiotic_constants.dry_air_factor,
         mm_to_kg=core_constants.mm_to_kg,
         cell_area=static["cell_area"],
-        limits=(0, max_specific_humidity[0]),  # TODO make layer specific
+        limits_specific_humidity=(
+            abiotic_constants.min_specific_humidity,
+            max_specific_humidity[0],
+        ),  # TODO layer specific?
+        limits_relative_humidity=abiotic_bounds.relative_humidity,
+        limits_vapour_pressure_deficit=abiotic_bounds.vapour_pressure_deficit,
         time_interval=time_interval,
+        denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
 
     output_dict = {}
@@ -752,6 +760,7 @@ def update_atmospheric_humidity(
         "vapour_pressure",
         "vapour_pressure_deficit",
         "specific_humidity",
+        "condensation",
     ]:
         temp = np.full_like(specific_humidity_air, np.nan)
         temp[idx.atm] = output_vars[var]
@@ -873,6 +882,7 @@ def run_hour_step(
         pyrealm_core_constants=pyrealm_core_constants,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        abiotic_bounds=abiotic_bounds,
         idx=idx,
         time_interval=time_interval,
     )

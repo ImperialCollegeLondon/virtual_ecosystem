@@ -471,7 +471,8 @@ make sure that water does not accumulate unrealistcally in the canopy but stays 
 to the atmosphere above. To maintain physical realism, additional redistribution steps
 are taken where necessary until all layers in the canopy are within realistic bounds.
 The resulting change in specific humidity is then used to compute the new vapour pressure
-, relative humidity, and vapour pressure deficit.
+, relative humidity, and vapour pressure deficit. Access water is allocated to
+condensation which is added to the surface precipitation in the next time step.
 
 ```{note}
 Advection of water above the canopy is currently not implemented as everything is

@@ -146,6 +146,7 @@ def setup_hydrology_input_current_timestep(
     * top_soil_moisture_saturation
     * top_soil_moisture_residual
     * groundwater_storage
+    * condensation
 
     Args:
         data: Data object that contains inputs from the microclimate model, the plant
@@ -217,6 +218,8 @@ def setup_hydrology_input_current_timestep(
     # Get ground water level
     output["groundwater_storage"] = data["groundwater_storage"].to_numpy()
 
+    # Get condensation from abiotic model
+    output["condensation"] = np.nansum(data["condensation"].to_numpy(), axis=0) / days
     return output
 
 
