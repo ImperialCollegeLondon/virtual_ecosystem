@@ -126,7 +126,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Condensation"
+description = "Condensated water from supersaturation in the atmosphere"
 name = "condensation"
 unit = "mm"
 variable_type = "float"
