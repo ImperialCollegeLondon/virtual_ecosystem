@@ -804,6 +804,10 @@ def dummy_climate_data(fixture_core_components):
     data["stomatal_conductance"][lyr_str.index_filled_canopy] = 12.0
     data["stomatal_conductance"][lyr_str.index_surface_scalar] = 12.0
 
+    data["condensation"] = from_template()
+    data["condensation"][lyr_str.index_filled_canopy] = 1.0
+    data["condensation"][lyr_str.index_surface_scalar] = 1.0
+
     # Hydrology
     data["transpiration"] = from_template()
     data["transpiration"][lyr_str.index_filled_canopy] = 80.0
@@ -932,6 +936,11 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [15.0, 15.0, 15.0, np.nan],
         [15.0, 15.0, np.nan, np.nan],
         [15.0, np.nan, np.nan, np.nan],
+    ]
+    dummy_climate_data["condensation"][index_filled_canopy] = [
+        [1.0, 1.0, 1.0, np.nan],
+        [1.0, 1.0, np.nan, np.nan],
+        [1.0, np.nan, np.nan, np.nan],
     ]
 
     # Hydrology

@@ -426,8 +426,11 @@ def update_humidity_vpd(
     dry_air_factor: float,
     mm_to_kg: float,
     cell_area: float,
-    limits: tuple[float, float],
+    limits_specific_humidity: tuple[float, float],
+    limits_relative_humidity: tuple[float, float, float],
+    limits_vapour_pressure_deficit: tuple[float, float, float],
     time_interval: float,
+    denominator_tolerance: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Update specific humidity and vapour pressure deficit for a multilayer canopy.
 
@@ -451,8 +454,13 @@ def update_humidity_vpd(
         mm_to_kg: Factor to convert variable unit from millimeters to kilograms of
             water per square meter
         cell_area: Grid cell area, [m2]
-        limits: Realistic bounds of specific humidity
+        limits_specific_humidity: Realistic bounds of specific humidity, [kg kg-1]
+        limits_relative_humidity: Realistic bounds of relative humidity, []
+        limits_vapour_pressure_deficit: Realistic bounds for vapour pressure deficit,
+            [kPa]
         time_interval: Time interval, [s]
+        denominator_tolerance: Small value to prevent division by zero
+
 
     Returns:
       A dictionary containing arrays of updated ``relative_humidity``,
@@ -484,15 +492,16 @@ def update_humidity_vpd(
     water_mass_in_air = specific_humidity * air_mass_per_layer
     water_mass_in_air += added_mass
 
-    # Vertical mixing
+    # Convert back to specific humidity
     specific_humidity = water_mass_in_air / air_mass_per_layer
+
+    # Vertical mixing
     specific_humidity_updated = wind.mix_and_ventilate(
         input_variable=specific_humidity,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
-        limits=limits,
+        limits=limits_specific_humidity,
     )
-
     # NOTE Advection not implemented as everything is removed with time interval > 1h
     # and horizontal transfer is not implemented
     # specific_humidity_advected = wind.advect_water_from_toplayer(
@@ -505,25 +514,49 @@ def update_humidity_vpd(
     # )
     # specific_humidity_updated[0] = specific_humidity_advected
 
+    # Saturation constraint and condensation
+    # Saturation specific humidity
+    saturation_specific_humidity = (
+        molecular_weight_ratio_water_to_dry_air
+        * dry_air_factor
+        * saturated_vapour_pressure
+    ) / np.maximum(
+        atmospheric_pressure - saturated_vapour_pressure, denominator_tolerance
+    )
+
+    # Excess humidity goes to condensation
+    excess_specific_humidity = np.maximum(
+        specific_humidity_updated - saturation_specific_humidity,
+        limits_specific_humidity[0],
+    )
+
+    # Convert excess to condensed water, [mm]
+    condensation_mm = excess_specific_humidity * air_mass_per_layer / mm_to_kg
+
+    # Remove excess from air
+    specific_humidity_updated = np.minimum(
+        specific_humidity_updated, saturation_specific_humidity
+    )
+
     # Vapour pressure [kPa]
     vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (
         molecular_weight_ratio_water_to_dry_air * dry_air_factor
         + specific_humidity_updated
     )
 
-    # Ensure vapor pressure doesn't exceed the saturated vapor pressure
-    # TODO we need to make sure that we do not loose water here
-    vapour_pressure_updated = np.minimum(
-        vapour_pressure_updated, saturated_vapour_pressure
-    )
-
     # Compute new relative humidity (%)
     relative_humidity_updated = (
-        vapour_pressure_updated / saturated_vapour_pressure
+        vapour_pressure_updated
+        / np.maximum(saturated_vapour_pressure, denominator_tolerance)
     ) * 100
 
-    # Compute new VPD (Vapor Pressure Deficit) [kPa]
+    relative_humidity_updated = np.minimum(
+        relative_humidity_updated, limits_relative_humidity[1]
+    )
+
+    # Compute new VPD (Vapour Pressure Deficit) [kPa], ensure non-zero
     vpd_updated = saturated_vapour_pressure - vapour_pressure_updated
+    vpd_updated = np.maximum(vpd_updated, limits_vapour_pressure_deficit[0])
 
     # Map variable names to arrays
     raw_outputs = {
@@ -531,6 +564,7 @@ def update_humidity_vpd(
         "vapour_pressure": vapour_pressure_updated,
         "vapour_pressure_deficit": vpd_updated,
         "specific_humidity": specific_humidity_updated,
+        "condensation": condensation_mm,
     }
 
     # Clean outputs while preserving intended NaNs
