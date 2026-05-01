@@ -16,11 +16,11 @@ import datetime, os, subprocess, shutil
 
 # Set custom variables.
 """Python version, can be written as "3.14" or "3_14"."""
-ver = "3.13"
+ver = "3.12"
 ver = ver.replace(".", "_")
 
 """How many steps to run, can be an integer where negative values means no truncation."""
-truncation = 0
+truncation = 3
 
 """The OS you are running the code on. Options: "windows", "linux", "mac"."""
 user_os = "windows"
@@ -57,15 +57,12 @@ for filename in os.listdir(out_folder):
         print("Failed to delete %s. Reason: %s" % (file_path, e))
 
 
-# Generate terminal command to run `ve_run_cli()` via cProfile.
-output_name = f"VirEco__py{ver}__truncated_at_step_{truncation}"
-
 # Note: the `time_stamp` variable cannot contain colons (:) in Windows as these are not valid characters for that OS.
 time_stamp = (datetime.datetime.now()).strftime("%Y-%m-%d_at_%H-%M")
 
 command_options = {
-    "windows": f".\\.venv\\Python{ver}\\Scripts\\python.exe -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}",
-    "linux": f"./.venv/Python{ver}/bin/python -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}",
+    "windows": f".\\.venv\\Python{ver}\\Scripts\\python.exe",
+    "linux": f"./.venv/Python{ver}/bin/python",
 }
 command_options["mac"] = command_options["linux"]
 
@@ -75,8 +72,26 @@ if command is None:
         "Invalid user_os value. Please choose from 'windows', 'linux', or 'mac'."
     )
 
+# Identify the version of the virtual ecosystem being run.
+command_ve_version = (
+    command + ' -c "import virtual_ecosystem as ve; print(ve.__version__)"'
+)
+ve_version = (
+    subprocess.check_output(command_ve_version, shell=True)
+    .decode("utf-8")
+    .strip()
+    .replace(".", "_")
+)
+print(f"Virtual Ecosystem v{ve_version}")
+# Generate terminal command to run `ve_run_cli()` via cProfile.
+output_name = f"VE_{ve_version}__py{ver}__truncated_at_step_{truncation}"
+command_ve_run = (
+    command
+    + f" -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}"
+)
+
 # Run the terminal command within this script via the `subprocess` library.
-subprocess.run(command.split(), shell=True)
+subprocess.run(command_ve_run.split(), shell=True)
 
 
 # The terminal command if you want to view the results table and/or visual breakdown.
