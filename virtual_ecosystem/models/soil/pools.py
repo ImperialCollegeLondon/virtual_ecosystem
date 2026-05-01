@@ -1541,7 +1541,7 @@ def calculate_sorption_to_maom(
         The rate of sorption to MAOM [kg C m^-3 day^-1]
     """
 
-    return sorption_rate_constant * soil_c_pool
+    return np.where(soil_c_pool >= 0, sorption_rate_constant * soil_c_pool, 0)
 
 
 def calculate_necromass_breakdown(

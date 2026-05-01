@@ -825,6 +825,22 @@ def test_calculate_sorption_to_maom(
     assert np.allclose(actual_sorption, expected_sorption)
 
 
+def test_calculate_sorption_to_maom_negative_values(fixture_soil_constants):
+    """Check that sorption to mineral associated matter handles negatives correctly."""
+
+    from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
+
+    lmwc_values = np.array([0.05, -0.02, 0.1, -0.005])
+    expected_sorption = [5.0e-5, 0.0, 0.0001, 0.0]
+
+    actual_sorption = calculate_sorption_to_maom(
+        soil_c_pool=lmwc_values,
+        sorption_rate_constant=fixture_soil_constants.lmwc_sorption_rate,
+    )
+
+    assert np.allclose(actual_sorption, expected_sorption)
+
+
 def test_calculate_necromass_breakdown(dummy_carbon_data, fixture_soil_constants):
     """Check that necromass breakdown to lmwc is calculated correctly."""
 
