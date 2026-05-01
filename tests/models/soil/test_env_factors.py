@@ -107,21 +107,24 @@ def test_calculate_water_potential_impact_on_microbes(
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_soil_water_potential_too_high(dummy_carbon_data, fixture_soil_constants):
-    """Test that too high soil water potential results in an error."""
+def test_soil_water_potential_extreme_values(fixture_soil_constants):
+    """Test that very high and low soil water potentials are handled sensibly."""
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_water_potential_impact_on_microbes,
     )
 
-    water_potentials = np.array([-2.0, -10.0, -250.0, -10000.0])
+    expected_factor = [1.0, 0.94414168, 0.62176357, 0.0]
 
-    with pytest.raises(ValueError):
-        calculate_water_potential_impact_on_microbes(
-            water_potential=water_potentials,
-            water_potential_halt=fixture_soil_constants.soil_microbe_water_potential_halt,
-            water_potential_opt=fixture_soil_constants.soil_microbe_water_potential_optimum,
-            response_curvature=fixture_soil_constants.microbial_water_response_curvature,
-        )
+    water_potentials = np.array([-2.0, -10.0, -250.0, -20000.0])
+
+    actual_factor = calculate_water_potential_impact_on_microbes(
+        water_potential=water_potentials,
+        water_potential_halt=fixture_soil_constants.soil_microbe_water_potential_halt,
+        water_potential_opt=fixture_soil_constants.soil_microbe_water_potential_optimum,
+        response_curvature=fixture_soil_constants.microbial_water_response_curvature,
+    )
+
+    assert np.allclose(actual_factor, expected_factor)
 
 
 def test_calculate_pH_suitability(fixture_soil_constants):

@@ -125,8 +125,10 @@ def calculate_water_potential_impact_on_microbes(
 ) -> NDArray[np.floating]:
     """Calculate the effect that soil water potential has on microbial rates.
 
-    This function only returns valid output for soil water potentials that are less than
-    the optimal water potential.
+    This function produces values of one (i.e. no suppression due to soil water) when
+    soil water potentials that are greater than the optimal water potential. Below the
+    water potential at which microbial activity ceases suppression is (by definition)
+    total, so values of zero are produced.
 
     Args:
         water_potential: Soil water potential [kPa]
@@ -141,20 +143,18 @@ def calculate_water_potential_impact_on_microbes(
         decomposition [unitless]
     """
 
-    # If the water potential is greater than the optimal then the function produces NaNs
-    # so the simulation should be interrupted
-    if np.any(water_potential > water_potential_opt):
-        err = ValueError("Water potential greater than minimum value")
-        LOGGER.critical(err)
-        raise err
-
     # Calculate how much moisture suppresses microbial activity
     suppression = (
         (np.log10(-water_potential) - np.log10(-water_potential_opt))
         / (np.log10(-water_potential_halt) - np.log10(-water_potential_opt))
     ) ** response_curvature
 
-    return 1 - suppression
+    # Above optimum no suppression, and below halting threshold suppression is total
+    return np.where(
+        water_potential > water_potential_opt,
+        1,
+        (np.where(water_potential < water_potential_halt, 0, 1 - suppression)),
+    )
 
 
 def calculate_pH_suitability(
