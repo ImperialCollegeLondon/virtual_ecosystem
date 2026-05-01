@@ -48,11 +48,11 @@ class SoilConstants(Configuration):
     [°C^-1]. Parameter estimated from a beta-logit GLMM using the data from 
     :cite:t:`Qiao2019`."""
 
-    soil_microbe_water_potential_optimum: float = -3.0
+    soil_microbe_water_potential_optimum: float = Field(default=-3.0, lt=0.0)
     """The water potential at which soil microbial rates are maximised [kPa]. Value is
     taken from :cite:t:`moyano_responses_2013`."""
 
-    soil_microbe_water_potential_halt: float = -15800.0
+    soil_microbe_water_potential_halt: float = Field(default=-15800.0, lt=0.0)
     """The water potential at which soil microbial activity stops entirely [kPa]. Value
     is taken from :cite:t:`moyano_responses_2013`."""
 
@@ -316,6 +316,20 @@ class SoilConstants(Configuration):
             < self.max_pH_microbes
         ):
             raise ValueError("Microbe pH thresholds not in increasing sequence")
+
+        return self
+
+    @model_validator(mode="after")
+    def _check_water_potential_thresholds(self) -> SoilConstants:
+        """Checks that microbial water potential response thresholds are compatible."""
+        if (
+            self.soil_microbe_water_potential_optimum
+            <= self.soil_microbe_water_potential_halt
+        ):
+            raise ValueError(
+                "Optimal water potential for microbial activity cannot be lower than "
+                "the threshold for activity halting."
+            )
 
         return self
 
