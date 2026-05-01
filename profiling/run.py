@@ -1,10 +1,11 @@
 """Runs the virtual ecosystem `ve_run_cli()`.
 
-This script is encapsulated on its own as to run the code with an intentionally specified version of Python version declared in the `main.py` file."""
+This script is encapsulated on its own as to run the code with an intentionally specified version of Python version declared in the `main.py` file.
+"""
 
 import argparse
-from virtual_ecosystem.entry_points import ve_run_cli
 
+from virtual_ecosystem.entry_points import ve_run_cli
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script that runs VE via cProfile")

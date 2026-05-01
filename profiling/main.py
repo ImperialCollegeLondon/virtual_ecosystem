@@ -9,10 +9,13 @@ Managing virtual environments:
 * The specific command to activate your virtual environment will vary based on your OS.
 4) Run `python profiling/main.py` in any Python terminal.
 
-See the general Python docs for further information on virtual environments and installation: https://docs.python.org/dev/tutorial/venv.html#tut-venv"""
+See the general Python docs for further information on virtual environments and installation: https://docs.python.org/dev/tutorial/venv.html#tut-venv
+"""
 
-import datetime, os, subprocess, shutil
-
+import datetime
+import os
+import shutil
+import subprocess
 
 # Set custom variables.
 """Python version, can be written as "3.14" or "3_14"."""
