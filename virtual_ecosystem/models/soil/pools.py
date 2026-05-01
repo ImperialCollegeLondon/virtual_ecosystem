@@ -1227,11 +1227,9 @@ def calculate_nutrient_removal_by_water(
         lmwc=labile_carbon_removal,
         don=don_removal,
         dop=dop_removal,
-        ammonium=np.where(ammonium_removal >= 0.0, ammonium_removal, 0.0),
-        nitrate=np.where(nitrate_removal >= 0.0, nitrate_removal, 0.0),
-        labile_P=np.where(
-            labile_phosphorus_removal >= 0.0, labile_phosphorus_removal, 0.0
-        ),
+        ammonium=ammonium_removal,
+        nitrate=nitrate_removal,
+        labile_P=labile_phosphorus_removal,
     )
 
 

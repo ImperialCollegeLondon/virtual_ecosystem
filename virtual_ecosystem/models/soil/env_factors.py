@@ -412,7 +412,11 @@ def calculate_solute_removal_by_soil_water(
         water [kg solute m^-3 day^-1]
     """
 
-    return solubility_coefficient * solute_density * exit_rate / soil_moisture
+    return np.where(
+        solute_density >= 0,
+        solubility_coefficient * solute_density * exit_rate / soil_moisture,
+        0,
+    )
 
 
 def calculate_carbon_use_efficiency(

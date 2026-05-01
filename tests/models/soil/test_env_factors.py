@@ -415,6 +415,31 @@ def test_calculate_solute_removal_by_soil_water(
     assert np.allclose(expected_rate, actual_rate)
 
 
+def test_calculate_solute_removal_by_soil_water_negative_concentrations(
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
+):
+    """Check solute removal rates handle negative values correctly."""
+
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_solute_removal_by_soil_water,
+    )
+
+    lmwc_values = np.array([0.05, -0.02, -0.1, 0.005])
+    expected_rate = [1.07473723e-6, 0.0, 0.0, 5.25567712e-5]
+    exit_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])
+
+    actual_rate = calculate_solute_removal_by_soil_water(
+        solute_density=lmwc_values,
+        exit_rate=exit_flow_per_day,
+        soil_moisture=dummy_carbon_data["soil_moisture"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        solubility_coefficient=fixture_soil_constants.solubility_coefficient_lmwc,
+    )
+
+    assert np.allclose(expected_rate, actual_rate)
+
+
 @pytest.mark.parametrize(
     "increased_depth,expected_soil_moisture",
     [

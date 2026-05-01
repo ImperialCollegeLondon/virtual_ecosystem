@@ -545,15 +545,22 @@ def test_negative_nutrient_removal_by_water(
     nitrate_data[0] = -0.0024219014
     labile_p_data = dummy_carbon_data["soil_p_pool_labile"]
     labile_p_data[3] = -1.0582393e-5
+    lmwc_data = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C")
+    lmwc_data[2] = -2.05924e-5
 
-    expected_ammonium = [1.496453109e-9, 0.0, 2.271304008e-7, 5.461249320e-6]
-    expected_nitrate = [0.0, 1.128640314e-5, 6.798727493e-6, 0.00027625126]
-    expected_labile_P = [2.274653e-11, 4.130485e-10, 6.749199e-9, 0.0]
+    expected_removal = {
+        "lmwc": [1.0747349e-6, 2.5395235e-6, 0.0, 5.2557152e-6],
+        "don": [1.22826724e-8, 1.81394352e-7, 0.0, 3.00326494e-6],
+        "dop": [1.2282071e-10, 2.90230964e-9, 0.0, 1.20130598e-7],
+        "ammonium": [1.496453109e-9, 0.0, 2.271304008e-7, 5.461249320e-6],
+        "nitrate": [0.0, 1.128640314e-5, 6.798727493e-6, 0.00027625126],
+        "labile_P": [2.274653e-11, 4.130485e-10, 6.749199e-9, 0.0],
+    }
 
     actual_removal = calculate_nutrient_removal_by_water(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
-        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
-        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
+        soil_c_pool_lmwc=lmwc_data,
+        soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="N"),
+        soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="P"),
         soil_n_pool_ammonium=ammonium_data,
         soil_n_pool_nitrate=nitrate_data,
         soil_p_pool_labile=labile_p_data,
@@ -565,9 +572,10 @@ def test_negative_nutrient_removal_by_water(
         constants=fixture_soil_constants,
     )
 
-    assert np.allclose(actual_removal.ammonium, expected_ammonium)
-    assert np.allclose(actual_removal.nitrate, expected_nitrate)
-    assert np.allclose(actual_removal.labile_P, expected_labile_P)
+    for attr in dir(actual_removal):
+        if not attr.startswith("_"):
+            assert attr in expected_removal.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(getattr(actual_removal, attr), expected_removal[attr])
 
 
 def test_calculate_enzyme_changes(soil_pool_data, enzyme_production, enzyme_classes):
