@@ -358,7 +358,7 @@ def test_negative_highest_achievable_nutrient_uptake_are_impossible(
 
     labile_carbon_data = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C")
     labile_carbon_data[1] = -0.0001
-    labile_carbon_data[3] = -3.7e-5
+    labile_carbon_data[3] = -1e3  # Larger than saturation constant
 
     expected_uptake = [0.01024359, 0.0, 0.056746414, 0.0]
 
