@@ -818,7 +818,14 @@ class PlantsModel(
         idealised LAI set in the plant functional traits.
         """
 
-        pass
+        # 1. Reduce canopy fruit and seed biomass following herbivory
+        self.data["canopy_seed_cnp"] -= self.data["canopy_seed_cnp_consumed"]
+        self.data["canopy_fruit_cnp"] -= self.data["canopy_fruit_cnp_consumed"]
+
+        # 2. Decrease LAI to account for herbivory effects on light gathering
+
+        # 3. Increase leaf turnover to account for herbivory replacement costs
+        #    within T model
 
     def set_shortwave_absorption(self) -> None:
         """Set the shortwave radiation absorption across the vertical layers.
