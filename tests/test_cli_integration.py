@@ -1,5 +1,6 @@
 """An integration test for the VR command-line interface."""
 
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -69,6 +70,13 @@ def test_ve_run(capsys):
             # stream logging rather than leaving all other tests logging to the file
             # and then fail the test.
             remove_file_logger()
+
+            # If this test fails on the CI runners, save the log to a known temporary
+            # directory so that it can be saved as an artefact.
+            if os.environ.get("CI") == "true" and logfile.exists():
+                temp_log = Path(os.environ.get("RUNNER_TEMP")) / "log_file.log"
+                temp_log.write_text(logfile.read_text())
+
             pytest.fail(reason=str(excep))
 
 
