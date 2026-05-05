@@ -107,21 +107,24 @@ def test_calculate_water_potential_impact_on_microbes(
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_soil_water_potential_too_high(dummy_carbon_data, fixture_soil_constants):
-    """Test that too high soil water potential results in an error."""
+def test_soil_water_potential_extreme_values(fixture_soil_constants):
+    """Test that very high and low soil water potentials are handled sensibly."""
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_water_potential_impact_on_microbes,
     )
 
-    water_potentials = np.array([-2.0, -10.0, -250.0, -10000.0])
+    expected_factor = [1.0, 0.94414168, 0.62176357, 0.0]
 
-    with pytest.raises(ValueError):
-        calculate_water_potential_impact_on_microbes(
-            water_potential=water_potentials,
-            water_potential_halt=fixture_soil_constants.soil_microbe_water_potential_halt,
-            water_potential_opt=fixture_soil_constants.soil_microbe_water_potential_optimum,
-            response_curvature=fixture_soil_constants.microbial_water_response_curvature,
-        )
+    water_potentials = np.array([-2.0, -10.0, -250.0, -20000.0])
+
+    actual_factor = calculate_water_potential_impact_on_microbes(
+        water_potential=water_potentials,
+        water_potential_halt=fixture_soil_constants.soil_microbe_water_potential_halt,
+        water_potential_opt=fixture_soil_constants.soil_microbe_water_potential_optimum,
+        response_curvature=fixture_soil_constants.microbial_water_response_curvature,
+    )
+
+    assert np.allclose(actual_factor, expected_factor)
 
 
 def test_calculate_pH_suitability(fixture_soil_constants):
@@ -402,6 +405,31 @@ def test_calculate_solute_removal_by_soil_water(
 
     actual_rate = calculate_solute_removal_by_soil_water(
         solute_density=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
+        exit_rate=exit_flow_per_day,
+        soil_moisture=dummy_carbon_data["soil_moisture"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        solubility_coefficient=fixture_soil_constants.solubility_coefficient_lmwc,
+    )
+
+    assert np.allclose(expected_rate, actual_rate)
+
+
+def test_calculate_solute_removal_by_soil_water_negative_concentrations(
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
+):
+    """Check solute removal rates handle negative values correctly."""
+
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_solute_removal_by_soil_water,
+    )
+
+    lmwc_values = np.array([0.05, -0.02, -0.1, 0.005])
+    expected_rate = [1.07473723e-6, 0.0, 0.0, 5.25567712e-5]
+    exit_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])
+
+    actual_rate = calculate_solute_removal_by_soil_water(
+        solute_density=lmwc_values,
         exit_rate=exit_flow_per_day,
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar
