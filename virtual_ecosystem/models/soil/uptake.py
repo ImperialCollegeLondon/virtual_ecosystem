@@ -660,4 +660,8 @@ def calculate_highest_achievable_nutrient_uptake(
         / (labile_nutrient_pool + saturation_constant)
     )
 
-    return np.where(uptake_rate >= 0.0, uptake_rate, 0.0)
+    # Uptake rate is only valid if both the nutrient pool and the microbial pool are
+    # positive, otherwise uptake rate should be zero
+    return np.where(
+        (microbial_pool_size >= 0.0) & (labile_nutrient_pool >= 0.0), uptake_rate, 0.0
+    )
