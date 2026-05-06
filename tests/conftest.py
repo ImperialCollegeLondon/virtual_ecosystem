@@ -998,6 +998,7 @@ def fixture_static_inputs(
     layer_structure = fixture_core_components.layer_structure
     abiotic_constants = fixture_abiotic_constants
     time_index = 0
+    days = 30
 
     canopy_height = np.nan_to_num(data["layer_heights"][1].to_numpy())
 
@@ -1005,7 +1006,7 @@ def fixture_static_inputs(
         np.nansum(data["leaf_area_index"][indices.canopy].to_numpy(), axis=0)
     )
 
-    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
@@ -1056,13 +1057,13 @@ def fixture_static_inputs(
     return {
         "canopy_height": canopy_height,
         "lai_sum": leaf_area_index_sum,
-        "evapotranspiration": evapotranspiration,
+        "evapotranspiration": evapotranspiration.to_numpy() / days,
         "atmospheric_pressure": atmospheric_pressure_true,
         "atmospheric_co2": atmospheric_co2_true,
         "geometry": atmospheric_layer_geometry,
         "absorbed_longwave_radiation": absorbed_longwave_radiation,
         "cell_area": cell_area,
-        "mixing_coefficient": mixing_coefficient,
+        "mixing_coefficient": mixing_coefficient.to_numpy(),
         "zero_plane_displacement": zero_plane_displacement,
         "wind_speed": wind_speed,
         "ventialtion_rate": ventilation_rate,
@@ -1077,7 +1078,7 @@ def fixture_state_inputs(
 
     data = dummy_climate_data_varying_canopy
     n_layers, n_cells = data["air_temperature"].shape
-
+    days = 30
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     return {
@@ -1086,7 +1087,7 @@ def fixture_state_inputs(
         "atmospheric_pressure": data["atmospheric_pressure"].to_numpy(),
         "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
         "canopy_temperature": data["canopy_temperature"].to_numpy(),
-        "evapotranspiration": evapotranspiration.to_numpy(),
+        "evapotranspiration": evapotranspiration.to_numpy() / days,
         "shortwave_absorption": data["shortwave_absorption"].to_numpy(),
         "specific_heat_air": data["specific_heat_air"].to_numpy(),
         "density_air": data["density_air"].to_numpy(),
