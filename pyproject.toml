@@ -24,7 +24,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 name = "virtual_ecosystem"
 readme = "README.md"
-version = "0.1.1a17"
+version = "0.1.1a18"
 
 requires-python = ">=3.12"
 
