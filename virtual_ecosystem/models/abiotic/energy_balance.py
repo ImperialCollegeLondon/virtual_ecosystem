@@ -44,17 +44,20 @@ unrealistic.
 """  # noqa: D205, D415
 
 from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import wind
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_weights_from_absorbed_radiation,
     set_unintended_nan_to_zero,
 )
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 
 
 def initialise_canopy_and_soil_fluxes(
@@ -724,11 +727,11 @@ def secant_solve_cells_layers(
 
 
 def make_canopy_residual(
-    state,
-    static,
-    aerodynamic_resistance,
-    abiotic_constants,
-    core_constants,
+    state: dict[str, Any],
+    static: dict[str, Any],
+    aerodynamic_resistance: NDArray[np.floating],
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
 ) -> Callable[[NDArray[np.floating]], NDArray[np.floating]]:
     """Creates a residual function for canopy temperature to be used in root finding.
 
