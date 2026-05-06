@@ -625,25 +625,33 @@ def dummy_litter_data(fixture_core_components):
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
-    data["foliage_turnover_cnp"] = DataArray(
-        data=[
+    # Split the foliage turnover 80/20 between two PFTs to give the expected
+    # dimensionality
+    total_foliage_turnover_cnp = np.array(
+        [
             [218.7, 14.58, 0.52698795],
             [2.43, 0.09529412, 0.00742211],
             [170.1, 3.94663573, 0.3067628],
             [230.85, 4.021777, 0.6060646],
-        ],
-        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+        ]
+    )
+
+    data["foliage_turnover_cnp"] = DataArray(
+        data=np.stack(
+            [total_foliage_turnover_cnp * 0.8, total_foliage_turnover_cnp * 0.2], axis=1
+        ),
+        coords={
+            "cell_id": data["cell_id"],
+            "pft": ["broadleaf", "shrub"],
+            "element": ["C", "N", "P"],
+        },
     )
 
     data["herbivory_waste_leaf_cnp"] = DataArray(
         data=[
             [0.243, 0.010519, 0.00114353],
             [17.01, 0.507761, 0.0493329],
-            [
-                23.085,
-                0.999351,
-                0.0689516,
-            ],
+            [23.085, 0.999351, 0.0689516],
             [21.87, 1.264162, 0.052059],
         ],
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},

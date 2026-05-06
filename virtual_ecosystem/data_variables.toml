@@ -959,6 +959,27 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Biomasses of plant reproductive tissue turnover"
+name = "plant_reproductive_tissue_turnover_cnp"
+unit = "kg C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Biomasses of plant fruit tissue turnover"
+name = "fruit_turnover_cnp"
+unit = "kg C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Biomasses of plant seed tissue turnover"
+name = "seed_turnover_cnp"
+unit = "kg C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Rate at which plants are supplying carbon to their soil-living symbiotic partners"
 name = "plant_symbiote_carbon_supply"
 unit = "kg C m^-2 day^-1"
@@ -1219,7 +1240,7 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "C, N, and P of each seed PFT"
-name = "canopy_seeds_cnp"
+name = "canopy_seed_cnp"
 unit = "kg"
 variable_type = "float"
 
@@ -1255,6 +1276,55 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Average C, N, and P masses of each seed in a PFT"
 name = "fallen_seeds_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy foliage"
+name = "canopy_foliage_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy foliage consumed by animals"
+name = "canopy_foliage_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy seed consumed by animals"
+name = "canopy_seed_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy fruit consumed by animals"
+name = "canopy_fruit_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of foliage turnover consumed by animals"
+name = "foliage_turnover_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of seed turnover consumed by animals"
+name = "seed_turnover_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of fruit turnover consumed by animals"
+name = "fruit_turnover_cnp_consumed"
 unit = "kg"
 variable_type = "float"
 
