@@ -79,64 +79,143 @@ class TestAnimalModel:
             pytest.param(
                 does_not_raise(),
                 (
-                    (INFO, "Animal cohort data exporter not active."),
-                    (
-                        INFO,
-                        "Information required to initialise the animal model"
-                        " successfully extracted.",
-                    ),
-                    (
-                        DEBUG,
-                        "animal model: required var 'fungal_fruiting_bodies' checked",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_above_metabolic_cnp'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_above_structural_cnp'",
-                    ),
-                    (INFO, "Adding data array for 'litter_consumed_woody_cnp'"),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_below_metabolic_cnp'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_below_structural_cnp'",
-                    ),
-                    (INFO, "Adding data array for 'total_animal_respiration'"),
-                    (INFO, "Adding data array for 'population_densities'"),
-                    (INFO, "Updating animal model"),
-                    (INFO, "Adding data array for 'decay_of_fungal_fruiting_bodies'"),
-                    (INFO, "Adding data array for 'decomposed_excrement_cnp'"),
-                    (INFO, "Adding data array for 'decomposed_carcasses_cnp'"),
-                    (INFO, "Adding data array for 'animal_pom_consumption_cnp'"),
-                    (INFO, "Adding data array for 'animal_bacteria_consumption'"),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_saprotrophic_fungi_consumption'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_ectomycorrhiza_consumption'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_arbuscular_mycorrhiza_"
-                        "consumption'",
-                    ),
-                    (INFO, "Adding data array for 'herbivory_waste_leaf_cnp'"),
-                    (INFO, "Adding data array for 'herbivory_waste_leaf_lignin'"),
+                    [
+                        (INFO, "Animal cohort data exporter not active."),
+                        (
+                            INFO,
+                            "Information required to initialise the animal model "
+                            "successfully extracted.",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'fungal_fruiting_bodies' "
+                            "checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'subcanopy_vegetation_cnp' "
+                            "checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'subcanopy_seedbank_cnp' "
+                            "checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'canopy_foliage_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'canopy_seed_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'canopy_fruit_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'foliage_turnover_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'seed_turnover_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var 'fruit_turnover_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var "
+                            "'litter_pool_above_metabolic_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var "
+                            "'litter_pool_above_structural_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var "
+                            "'litter_pool_woody_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var "
+                            "'litter_pool_below_metabolic_cnp' checked",
+                        ),
+                        (
+                            DEBUG,
+                            "animal model: required var "
+                            "'litter_pool_below_structural_cnp' checked",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
+                        ),
+                        (INFO, "Adding data array for 'canopy_foliage_cnp_consumed'"),
+                        (INFO, "Adding data array for 'canopy_seed_cnp_consumed'"),
+                        (INFO, "Adding data array for 'canopy_fruit_cnp_consumed'"),
+                        (
+                            INFO,
+                            "Adding data array for 'foliage_turnover_cnp_consumed'",
+                        ),
+                        (INFO, "Adding data array for 'seed_turnover_cnp_consumed'"),
+                        (INFO, "Adding data array for 'fruit_turnover_cnp_consumed'"),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_above_metabolic_cnp'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_above_structural_cnp'",
+                        ),
+                        (INFO, "Adding data array for 'litter_consumed_woody_cnp'"),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_below_metabolic_cnp'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_below_structural_cnp'",
+                        ),
+                        (INFO, "Adding data array for 'total_animal_respiration'"),
+                        (INFO, "Adding data array for 'population_densities'"),
+                        (INFO, "Updating animal model"),
+                        (
+                            INFO,
+                            "Adding data array for 'decay_of_fungal_fruiting_bodies'",
+                        ),
+                        (INFO, "Adding data array for 'decomposed_excrement_cnp'"),
+                        (INFO, "Adding data array for 'decomposed_carcasses_cnp'"),
+                        (INFO, "Adding data array for 'animal_pom_consumption_cnp'"),
+                        (INFO, "Adding data array for 'animal_bacteria_consumption'"),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'animal_saprotrophic_fungi_consumption'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for 'animal_ectomycorrhiza_consumption'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'animal_arbuscular_mycorrhiza_consumption'",
+                        ),
+                        (INFO, "Adding data array for 'herbivory_waste_leaf_cnp'"),
+                        (INFO, "Adding data array for 'herbivory_waste_leaf_lignin'"),
+                    ]
                 ),
                 id="success",
             ),
@@ -173,21 +252,16 @@ class TestAnimalModel:
         for record in caplog.records:
             print(f"Log Level: {record.levelno}, Message: {record.message}")
 
-        # Filter out stochastic log entries
-        filtered_records = [
+        # Filter out stochastic log entries and overwrite the underlying log handler
+        # data so that the caplog.records property returns the filtered records.
+        caplog.handler.records = [
             record
             for record in caplog.records
             if "No individuals in cohort to forage." not in record.message
         ]
 
-        # Create a new caplog object to pass to log_check
-        class FilteredCaplog:
-            records = filtered_records
-
-        filtered_caplog = FilteredCaplog()
-
         # Final check that expected logging entries are produced
-        log_check(filtered_caplog, expected_log_entries)
+        log_check(caplog, expected_log_entries)
 
         for record in caplog.records:
             print(f"Level: {record.levelname}, Message: {record.message}")
@@ -2006,87 +2080,75 @@ class TestAnimalModel:
             dt=dt,
         )
 
+    @pytest.mark.parametrize(
+        "layout, expected_resp",
+        [
+            pytest.param(
+                {0: [(22.0, 0.40)], 1: []},
+                {0: 0.40, 1: 0.0},
+                id="single_cohort_occupied_and_empty_cell",
+            ),
+            pytest.param(
+                {0: [(22.0, 0.40), (28.0, 0.90)], 1: []},
+                {0: 1.30, 1: 0.0},
+                id="two_cohorts_distinct_temperatures",
+            ),
+            pytest.param(
+                {0: [(22.0, 0.40)], 1: [(15.0, 0.20)]},
+                {0: 0.40, 1: 0.20},
+                id="cohorts_across_two_cells",
+            ),
+            pytest.param(
+                {0: [], 1: []},
+                {0: 0.0, 1: 0.0},
+                id="all_empty_cells",
+            ),
+        ],
+    )
     def test_metabolize_community(
-        self, animal_model_instance, dummy_animal_data, mocker
+        self, animal_model_instance, mocker, layout, expected_resp
     ):
-        """Test metabolize_community using real data from fixture."""
-
+        """Test metabolize_community routes climate state and waste across layouts."""
         import numpy as np
-        import xarray as xr
 
-        # Assign the data from the fixture to the animal model
-        animal_model_instance.data = dummy_animal_data
-        air_temperature_data = dummy_animal_data["air_temperature"]
+        dt = np.timedelta64(1, "D")
 
-        print(air_temperature_data.shape)
+        # Build one mock cohort per layout spec entry.
+        cell_mocks: dict[int, list] = {}
+        for cell_id, specs in layout.items():
+            cohorts = []
+            for temp, respire_ret in specs:
+                m = mocker.Mock()
+                m.current_temperature = temp
+                m.respire.return_value = respire_ret
+                cohorts.append(m)
+            cell_mocks[cell_id] = cohorts
 
-        # Create mock cohorts and their behaviors
-        mock_cohort_1 = mocker.Mock()
-        mock_cohort_2 = mocker.Mock()
+        pools = {cell_id: mocker.Mock() for cell_id in layout}
 
-        # Mock return values for metabolize and respire
-        mock_cohort_1.metabolize.return_value = (
-            10.0  # Metabolic waste mass for cohort 1
-        )
-        mock_cohort_2.metabolize.return_value = (
-            15.0  # Metabolic waste mass for cohort 2
-        )
-        mock_cohort_1.respire.return_value = 5.0  # Carbonaceous waste for cohort 1
-        mock_cohort_2.respire.return_value = 8.0  # Carbonaceous waste for cohort 2
-
-        # Setup the community and excrement pools in the animal model
         animal_model_instance.communities = {
-            1: [mock_cohort_1, mock_cohort_2],  # Community in cell 1 with two cohorts
-            2: [],  # Empty community in cell 2
+            cell_id: cell_mocks[cell_id] for cell_id in layout
         }
-        animal_model_instance.excrement_pools = {
-            1: "excrement_pool_1",
-            2: "excrement_pool_2",
-        }
+        animal_model_instance.excrement_pools = pools
+        animal_model_instance.data["total_animal_respiration"].values[:] = 0.0
 
-        # Ensure total_animal_respiration exists in data
-        if "total_animal_respiration" not in animal_model_instance.data:
-            n_cells = len(animal_model_instance.data.grid.cell_id)
-            animal_model_instance.data["total_animal_respiration"] = xr.DataArray(
-                np.zeros(n_cells),
-                dims=["cell_id"],
-                coords={"cell_id": animal_model_instance.data.grid.cell_id},
-                name="total_animal_respiration",
-            )
-
-        # Run the metabolize_community method
-        dt = np.timedelta64(1, "D")  # 1 day as the time delta
         animal_model_instance.metabolize_community(dt)
 
-        # Assertions for the first cohort in cell 1
-        mock_cohort_1.metabolize.assert_called_once_with(
-            16.145945, dt
-        )  # Temperature for cell 1 from the fixture (25.0)
-        mock_cohort_1.respire.assert_called_once_with(
-            10.0
-        )  # Metabolic waste returned by metabolize
-        mock_cohort_1.excrete.assert_called_once_with(10.0, "excrement_pool_1")
+        for cell_id, specs in layout.items():
+            for mock, (temp, _) in zip(cell_mocks[cell_id], specs):
+                # Temperature routing: cohort's own current_temperature is used.
+                mock.metabolize.assert_called_once_with(temp, dt)
+                # Waste chaining: respire and excrete both receive the exact object
+                # that metabolize returned, confirming it is threaded through once.
+                mock.respire.assert_called_once_with(mock.metabolize.return_value)
+                mock.excrete.assert_called_once_with(
+                    mock.metabolize.return_value, pools[cell_id]
+                )
 
-        # Assertions for the second cohort in cell 1
-        mock_cohort_2.metabolize.assert_called_once_with(
-            16.145945, dt
-        )  # Temperature for cell 1 from the fixture (25.0)
-        mock_cohort_2.respire.assert_called_once_with(
-            15.0
-        )  # Metabolic waste returned by metabolize
-        mock_cohort_2.excrete.assert_called_once_with(15.0, "excrement_pool_1")
-
-        # Assert total animal respiration was updated for cell 1
-        total_animal_respiration = animal_model_instance.data[
-            "total_animal_respiration"
-        ]
-        assert total_animal_respiration.loc[{"cell_id": 1}] == 13.0  # 5.0 + 8.0
-
-        # Ensure no cohort methods were called for the empty community in cell 2
-        mock_cohort_1.reset_mock()
-        mock_cohort_2.reset_mock()
-        mock_cohort_1.metabolize.assert_not_called()
-        mock_cohort_2.metabolize.assert_not_called()
+        # Respiration accumulation and empty-cell guard: empty cells contribute 0.0.
+        resp = animal_model_instance.data["total_animal_respiration"]
+        for cell_id, expected in expected_resp.items():
+            assert resp.sel(cell_id=cell_id).item() == pytest.approx(expected)
 
     def test_increase_age_community(self, animal_model_instance, mocker):
         """Test increase_age."""
@@ -2706,6 +2768,71 @@ class TestAnimalModel:
         # Assert that only the immature cohort's update_largest_mass was called
         mock_immature.update_largest_mass.assert_called_once()
         mock_mature.update_largest_mass.assert_not_called()
+
+    def test_update_activity_windows_community(self, prepared_animal_model_instance):
+        """Test that update_activity_windows_community sets sigma_f_t correctly."""
+        from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+
+        prepared_animal_model_instance.update_activity_windows_community()
+
+        for cohort in prepared_animal_model_instance.active_cohorts.values():
+            if cohort.functional_group.metabolic_type == MetabolicType.ENDOTHERMIC:
+                assert cohort.sigma_f_t == pytest.approx(1.0)
+            else:
+                assert 0.0 <= cohort.sigma_f_t <= 1.0
+
+    def test_update_activity_windows_community_uses_per_cell_values(
+        self, prepared_animal_model_instance
+    ):
+        """Test that activity windows reflect spatial and strata temperature variation.
+
+        Ectotherm insects have a 1-cell territory. Setting all three strata warm
+        in cell 0 and cold everywhere else — including diurnal range — means
+        ectotherms centred in cell 0 should have a larger sigma_f_t than those
+        centred in cell 1.
+        """
+        from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+
+        model = prepared_animal_model_instance
+        lyr_str = model.layer_structure
+
+        warm = 31.0
+        cold = 5.0
+
+        for key in ("air_temperature", "canopy_temperature", "soil_temperature"):
+            arr = model.data[key].values
+            if key == "air_temperature":
+                arr[lyr_str.index_surface_scalar, :] = cold
+                arr[lyr_str.index_surface_scalar, 0] = warm
+            elif key == "canopy_temperature":
+                arr[lyr_str.index_filled_canopy, :] = cold
+                arr[lyr_str.index_filled_canopy, 0] = warm
+            elif key == "soil_temperature":
+                arr[lyr_str.index_topsoil_scalar, :] = cold
+                arr[lyr_str.index_topsoil_scalar, 0] = warm
+
+        diurnal = model.data["diurnal_temperature_range"].values
+        diurnal[lyr_str.index_filled_canopy, :] = 4.0
+        diurnal[lyr_str.index_surface_scalar, :] = 4.0
+        diurnal[lyr_str.index_topsoil_scalar, :] = 4.0
+
+        model.update_activity_windows_community()
+
+        ecto_centred_0 = [
+            c
+            for c in model.active_cohorts.values()
+            if c.functional_group.metabolic_type == MetabolicType.ECTOTHERMIC
+            and c.centroid_key == 0
+        ]
+        ecto_centred_1 = [
+            c
+            for c in model.active_cohorts.values()
+            if c.functional_group.metabolic_type == MetabolicType.ECTOTHERMIC
+            and c.centroid_key == 1
+        ]
+
+        if ecto_centred_0 and ecto_centred_1:
+            assert ecto_centred_0[0].sigma_f_t > ecto_centred_1[0].sigma_f_t
 
 
 def test_to_per_day(prepared_animal_model_instance):

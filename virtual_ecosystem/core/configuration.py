@@ -9,14 +9,13 @@ configuration instead directly uses :class:`Configuration` since it cannot be ru
 static mode. The ``model_name.model_config`` module can then include other
 :class:`Configuration` classes that are used as nested fields within the root
 configuration class.
-
-The basic details of how this system is used can be
-found :doc:`here </using_the_ve/configuration/config>`.
 """  # noqa: D205
+
+from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, TypeVar
+from typing import Annotated, Any, ClassVar, TypeAlias, TypeVar
 
 import tomli_w
 from pydantic import (
@@ -26,6 +25,7 @@ from pydantic import (
     DirectoryPath,
     Field,
     FilePath,
+    model_validator,
 )
 from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
@@ -61,7 +61,11 @@ def placeholder_validator(path: str) -> str:
 #       from the text elements from the Annotated pattern. Currently tackled using
 #       nitpick ignore.
 
-type FILEPATH_PLACEHOLDER = Annotated[
+# Note about the noqa UP040 - these should use the Python 3.12+ type syntax, but this
+# causes a bunch of pydantic warnings. This implementation is a bit hacky so something
+# to look again at.
+
+FILEPATH_PLACEHOLDER: TypeAlias = Annotated[  # noqa: UP040
     FilePath,
     Field(default=Path("<FILEPATH_PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),
@@ -75,7 +79,7 @@ default.
 """
 
 
-type DIRPATH_PLACEHOLDER = Annotated[
+DIRPATH_PLACEHOLDER: TypeAlias = Annotated[  # noqa: UP040
     DirectoryPath,
     Field(default=Path("<DIRPATH_PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),
@@ -118,7 +122,7 @@ class CompiledConfiguration(Configuration):
     """A dictionary of the requested modules in the simulation and their
     VirtualEcosystem BaseModel classes."""
 
-    def get_subconfiguration(self, name: str, _: Callable[..., T]) -> T:
+    def get_subconfiguration(self, name: str, as_class: Callable[..., T]) -> T:
         """Get a named subconfiguration object from a compiled configuration.
 
         This method can be used to extract model configurations or the core
@@ -136,14 +140,20 @@ class CompiledConfiguration(Configuration):
 
         Args:
             name: The required subconfiguration.
-            _: The class of objected returned by the method. This is not used by the
-                method itself but is used to support static typing of the return value.
+            as_class: The class of objected returned by the method. This is not used by
+                the method itself but is used to support static typing of the return
+                value.
         """
 
         try:
             return getattr(self, name)
         except AttributeError:
-            raise AttributeError(f"Model configuration for {name} not loaded")
+            if disturbance := self.get_disturbance_config():
+                return disturbance.get_subconfiguration(name, as_class)
+            else:
+                raise AttributeError(
+                    f"Model or disturbance configuration for {name} not loaded"
+                )
 
     def export_toml(self, path: Path):
         """TOML export method for a compiled configuration.
@@ -154,6 +164,10 @@ class CompiledConfiguration(Configuration):
 
         with open(path, "wb") as destination:
             tomli_w.dump(self.model_dump(mode="json"), destination)
+
+    def get_disturbance_config(self) -> CompiledConfiguration | None:
+        """Get the compile configuration for disturbances, if any."""
+        return getattr(self, "disturbance", None)
 
 
 class ModelConfigurationRoot(Configuration):
@@ -171,6 +185,51 @@ class ModelConfigurationRoot(Configuration):
 
     static: bool = False
     """The model static mode setting."""
+
+
+class DisturbanceConfigurationRoot(Configuration):
+    """Root configuration class for disturbance Virtual Ecosystem models.
+
+    This model provides a common Pydantic base class that must be used to define
+    the root configuration class of a Virtual Ecosystem disturbance model. Each
+    disturbance must define an object ``model_name.model_config.ModelConfiguration``
+    that inherits from :class:`DisturbanceConfigurationRoot`. The
+    ``model_name.model_config`` module can then include other :class:`Configuration`
+    classes that are used as nested fields within the root configuration but can be only
+    one :class:`ModelConfigurationRoot` class per model. This base model sets common
+    shared attributes across models: currently just the timing options.
+
+    It also validates the timing fields to ensure that at least one of them is set.
+    """
+
+    run_at: int | tuple[int, ...] = ()
+    """Define time indices to run at specific times.
+    
+    Either a single integer or a list of integers indicating the time indices when the
+    disturbance is to run.
+    """
+    run_every: tuple[int, ...] = ()
+    """Define a range of indices to run the disturbance.
+    
+    A tuple of integers indicating (start), or (start, step), or (start, step, stop),
+    from where a list of integers indicating the time indices when the disturbance is to
+    run can be constructed. If not provided, 'step' defaults to 1 and 'stop' defaults to
+    the last time index. 'start' must always be provided."""
+
+    priority: int = 0
+    """Priority for the disturbance. 
+
+    Every disturbance model must have a different priority.
+    """
+
+    @model_validator(mode="after")
+    def timing_options_are_not_both_empty(self) -> DisturbanceConfigurationRoot:
+        """Validate the timing options of the configuration."""
+        if self.run_at == () and self.run_every == ():
+            raise ValueError(
+                "Timing options 'run_at' and 'run_every' cannot be both ()."
+            )
+        return self
 
 
 def model_config_to_html(

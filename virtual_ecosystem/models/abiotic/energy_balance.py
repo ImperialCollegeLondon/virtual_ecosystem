@@ -31,29 +31,33 @@ or soil), :math:`g_{v}` represents the conductivity for vapour loss from the lea
 function of the stomatal conductivity, :math:`PP` stands for primary productivity.
 
 A challenge in solving this equation is the dependency of latent heat and emitted
-radiation on leaf temperature. We use a Newton approximation to update
-leaf temperature and air temperature iteratively.
+radiation on leaf temperature. We use a secant method to iteratively solve the energy
+balance for the canopy temperature. The air temperature is updated based on the
+sensible heat flux from the canopy and soil in equilibrium, and vertical mixing of air
+between layers.
 
-After updating each layer, temperature and vapor are mixed vertically between
-atmospheric layers.
+Atmospheric humidity is also mixed vertically between atmospheric layers.
 Advection at the top of the canopy is currently not considered as we don't have
 have horizontal exchange between grid cells and air above canopy values would be
 unrealistic.
 
-TODO plants use a fraction of the absorbed radiation of photosynthesis, this needs to be
-subtracted from the energy balance
-
 """  # noqa: D205, D415
+
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from scipy.optimize import newton
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
-from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import wind
-from virtual_ecosystem.models.abiotic.abiotic_tools import set_unintended_nan_to_zero
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
+    compute_weights_from_absorbed_radiation,
+    set_unintended_nan_to_zero,
+)
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 
 
 def initialise_canopy_and_soil_fluxes(
@@ -286,8 +290,6 @@ def calculate_energy_balance_residual(
     flux from the canopy, :math:`\lambda E` is the latent heat flux from the canopy,
     :math:`PP` is a fraction of the absorbed light is used in photosynthesis (PAR).
 
-    TODO PP to be separated from absorbed radiation and subtracted from the balance
-
     Args:
         canopy_temperature_initial: Initial leaf temperature for all canopy layers, [C]
         air_temperature: Initial air temperature in canopy layers, [C]
@@ -350,7 +352,6 @@ def calculate_energy_balance_residual(
         - longwave_emission_canopy
         - sensible_heat_flux_canopy
         - latent_heat_flux_canopy
-        # - absorption_par
     )
 
     if return_fluxes:
@@ -364,198 +365,6 @@ def calculate_energy_balance_residual(
         return energy_balance
     else:
         return energy_balance_residual
-
-
-def solve_canopy_temperature(
-    canopy_temperature_initial: NDArray[np.floating],
-    air_temperature: NDArray[np.floating],
-    evapotranspiration: NDArray[np.floating],
-    absorbed_shortwave_radiation: NDArray[np.floating],
-    absorbed_longwave_radiation: NDArray[np.floating],
-    specific_heat_air: NDArray[np.floating],
-    density_air: NDArray[np.floating],
-    aerodynamic_resistance: NDArray[np.floating],
-    latent_heat_vapourisation: NDArray[np.floating],
-    emissivity_leaf: float,
-    stefan_boltzmann_constant: float,
-    zero_Celsius: float,
-    seconds_to_hour: float,
-    maxiter: int,
-    return_fluxes: bool = False,
-) -> NDArray[np.floating]:
-    r"""Solve for canopy temperature where energy balance residual is zero.
-
-    The method linearizes the energy balance of the canopy and air temperature updates
-    using Newton approximation for temperature adjustment following
-    :cite:t:`yang_scope_2021`. The function uses the scipy.optimise.newton method to
-    solve the problem; the derivative is determined by the function.
-
-    The energy balance for the canopy is given by:
-
-    .. math::
-        R_{abs} - \epsilon_{l} \sigma T_{l}^{4} - H - \lambda E - PP = 0
-
-    Where :math:`R_{abs}` is the absorbed shortwave and longwave radiation by the canopy
-    , :math:`\epsilon_{l}` is the leaf emissivity, :math:`\sigma` is the
-    Stefan-Boltzmann constant, :math:`T_{l}` is the leaf temperature, :math:`H` is the
-    sensible heat flux from the canopy, :math:`\lambda E` is the latent heat flux from
-    the canopy, and :math:`PP` is a fraction of the absorbed light is used in
-    photosynthesis (PAR).
-
-    Note that the latent heat flux is currently a constant given by the plant model.
-    PP is not considered explicitly but will also be treated as a constant.
-
-    The Newton linearization for canopy temperature update is:
-
-    .. math::
-        T_{l}^{new} =
-        T_{l}^{old} + W \cdot \frac{EB} {\frac{\delta EB}{\delta T_{l}^{old}}}
-
-    where :math:`\frac{\delta EB}{\delta T_{l}^{old}}` is the first derivative of the
-    energy balance closure error to temperature, and :math:`W` is a weighting for the
-    step size to ensure numerical stability. The derivative is estimated analytically:
-
-    .. math::
-        \frac{\delta EB}{\delta T_{l}^{old}}
-        = \frac{\rho_{a} c_{p}} {r_{a}}
-        + \frac{\rho_{a} \Delta_{v}}{(r_{a} + r_{s})} \lambda
-        + 4 \epsilon_{l} \sigma (T_{l}^{old} + 273.15)^{3}
-
-    Where :math:`c_{p}` is the specific heat capacity of air, [J kg-1 K-1],
-    :math:`\rho_{a}` is the density of air, [kg m-3], :math:`\Delta_{v}` is the slope of
-    the saturation vapour pressure curve, :math:`\lambda` is the latent heat
-    of vapourisation, [kJ kg-1], :math:`r_{a}` and :math:`r_{s}` are the aerodynamic and
-    stomatal resistance, [s m-1], respectively.
-
-    Args:
-        canopy_temperature_initial: Initial leaf temperature for all canopy layers, [C]
-        air_temperature: Initial air temperature in canopy layers, [C]
-        evapotranspiration: Evapotranspiration, [mm]
-        absorbed_shortwave_radiation: Absorbed shortwave radiation for all canopy
-            layers, [W m-2]
-        absorbed_longwave_radiation: Absorbed longwave radiation for all canopy layers,
-            [W m-2]
-        specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
-        density_air: Density of air, [kg m-3]
-        aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
-        stomatal_resistance: Stomatal resistance, [s m-1]
-        latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
-        emissivity_leaf: Leaf emissivity, dimensionless
-        stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
-        zero_Celsius: Factor to convert between Celsius and Kelvin
-        seconds_to_hour: Factor to convert between hours and seconds
-        saturated_pressure_slope_parameters: List of parameters to calculate
-            the slope of the saturated vapour pressure curve
-        maxiter: Maximum number of iterations
-        return_fluxes: Flag to indicate if all components of the energy balance should
-            be returned. This is false for the newton approach to solve for canopy
-            temperature, but true to create the outputs in a second call afterwards.
-
-    Returns:
-        canopy temperature, [C]
-    """
-
-    nrows, ncols = canopy_temperature_initial.shape
-    solved_temperature = np.empty_like(canopy_temperature_initial, dtype=np.float64)
-    convergence_info = []
-
-    # TODO this loop might be a potential performance bottleneck.
-    # The function only takes scalar values
-    for i in range(nrows):
-        for j in range(ncols):
-
-            def residual_func(canopy_temp_scalar):
-                # Call the residual function with a 1x1 array input
-                result = calculate_energy_balance_residual(
-                    canopy_temperature_initial=np.array(
-                        [[canopy_temp_scalar]], dtype=np.float64
-                    ),
-                    air_temperature=np.array(
-                        [[air_temperature[i, j]]], dtype=np.float64
-                    ),
-                    evapotranspiration=np.array(
-                        [[evapotranspiration[i, j]]], dtype=np.float64
-                    ),
-                    absorbed_shortwave_radiation=np.array(
-                        [[absorbed_shortwave_radiation[i, j]]], dtype=np.float64
-                    ),
-                    absorbed_longwave_radiation=np.array(
-                        [[absorbed_longwave_radiation[i, j]]], dtype=np.float64
-                    ),
-                    specific_heat_air=np.array(
-                        [[specific_heat_air[i, j]]], dtype=np.float64
-                    ),
-                    density_air=np.array([[density_air[i, j]]], dtype=np.float64),
-                    aerodynamic_resistance=np.array(
-                        [[aerodynamic_resistance[i, j]]], dtype=np.float64
-                    ),
-                    latent_heat_vapourisation=np.array(
-                        [[latent_heat_vapourisation[i, j]]], dtype=np.float64
-                    ),
-                    leaf_emissivity=emissivity_leaf,
-                    stefan_boltzmann_constant=stefan_boltzmann_constant,
-                    zero_Celsius=zero_Celsius,
-                    seconds_to_hour=seconds_to_hour,
-                    return_fluxes=return_fluxes,
-                )
-
-                # Extract scalar from 1x1 array or a single element array
-                if isinstance(result, np.ndarray):
-                    if result.size == 1:
-                        return result.item()
-                    else:
-                        # Choose how to reduce the array to scalar, e.g. first element
-                        return result.flat[0]
-                return result
-
-            x0 = canopy_temperature_initial[i, j]
-
-            best_estimate = [x0]  # use a mutable object to track updates
-            iteration_history = []
-
-            # Wrapper to extract best estimate if function does not converge
-            def tracked_func(x):
-                iteration_history.append(x)
-                best_estimate[0] = x  # update best estimate
-                return residual_func(x)
-
-            try:
-                solved_temperature[i, j] = newton(
-                    func=tracked_func,
-                    x0=x0,
-                    maxiter=maxiter,
-                    tol=0.01,
-                )
-                converged = True
-
-            except RuntimeError:
-                solved_temperature[i, j] = best_estimate[0]  # use last known good value
-                converged = False
-
-    convergence_info.append(
-        {
-            "row": i,
-            "col": j,
-            "converged": converged,
-            "final_value": solved_temperature[i, j],
-            "best_estimate": best_estimate[0],
-            "history": iteration_history,
-        }
-    )
-
-    # Log a message based on whether all cells converged or not
-    num_not_converged = sum(not c["converged"] for c in convergence_info)
-    total_cells = nrows * ncols
-
-    if num_not_converged == 0:
-        LOGGER.info(f"Solver finished successfully: all {total_cells} cells converged.")
-    else:
-        LOGGER.warning(
-            f"Solver finished with issues: {num_not_converged} / {total_cells} cells"
-            " did not converge. Best estimates were used for those cells."
-        )
-
-    return solved_temperature
 
 
 def update_air_temperature(
@@ -615,9 +424,13 @@ def update_humidity_vpd(
     ventilation_rate: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,
+    mm_to_kg: float,
     cell_area: float,
-    limits: tuple[float, float],
+    limits_specific_humidity: tuple[float, float],
+    limits_relative_humidity: tuple[float, float, float],
+    limits_vapour_pressure_deficit: tuple[float, float, float],
     time_interval: float,
+    denominator_tolerance: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Update specific humidity and vapour pressure deficit for a multilayer canopy.
 
@@ -638,9 +451,16 @@ def update_humidity_vpd(
         molecular_weight_ratio_water_to_dry_air: Molecular weight ratio of water to dry
             air, dimensionless
         dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
+        mm_to_kg: Factor to convert variable unit from millimeters to kilograms of
+            water per square meter
         cell_area: Grid cell area, [m2]
-        limits: Realistic bounds of specific humidity
+        limits_specific_humidity: Realistic bounds of specific humidity, [kg kg-1]
+        limits_relative_humidity: Realistic bounds of relative humidity, []
+        limits_vapour_pressure_deficit: Realistic bounds for vapour pressure deficit,
+            [kPa]
         time_interval: Time interval, [s]
+        denominator_tolerance: Small value to prevent division by zero
+
 
     Returns:
       A dictionary containing arrays of updated ``relative_humidity``,
@@ -651,9 +471,9 @@ def update_humidity_vpd(
     input_nan_mask = np.isnan(specific_humidity)
 
     # Convert evapotranspiration and soil evaporation [mm] to [kg m2 s-1] time interval
-    canopy_et_kg_m2 = canopy_evapotranspiration * 1e-3 / time_interval
-    understorey_et_kg_m2 = understorey_evapotranspiration * 1e-3 / time_interval
-    soil_evap_kg_m2 = soil_evaporation * 1e-3 / time_interval
+    canopy_et_kg_m2 = canopy_evapotranspiration * mm_to_kg / time_interval
+    understorey_et_kg_m2 = understorey_evapotranspiration * mm_to_kg / time_interval
+    soil_evap_kg_m2 = soil_evaporation * mm_to_kg / time_interval
 
     # Calculate air layer volumes [m3]
     layer_volumes = layer_thickness * cell_area
@@ -672,15 +492,16 @@ def update_humidity_vpd(
     water_mass_in_air = specific_humidity * air_mass_per_layer
     water_mass_in_air += added_mass
 
-    # Vertical mixing
+    # Convert back to specific humidity
     specific_humidity = water_mass_in_air / air_mass_per_layer
+
+    # Vertical mixing
     specific_humidity_updated = wind.mix_and_ventilate(
         input_variable=specific_humidity,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
-        limits=limits,
+        limits=limits_specific_humidity,
     )
-
     # NOTE Advection not implemented as everything is removed with time interval > 1h
     # and horizontal transfer is not implemented
     # specific_humidity_advected = wind.advect_water_from_toplayer(
@@ -693,25 +514,49 @@ def update_humidity_vpd(
     # )
     # specific_humidity_updated[0] = specific_humidity_advected
 
+    # Saturation constraint and condensation
+    # Saturation specific humidity
+    saturation_specific_humidity = (
+        molecular_weight_ratio_water_to_dry_air
+        * dry_air_factor
+        * saturated_vapour_pressure
+    ) / np.maximum(
+        atmospheric_pressure - saturated_vapour_pressure, denominator_tolerance
+    )
+
+    # Excess humidity goes to condensation
+    excess_specific_humidity = np.maximum(
+        specific_humidity_updated - saturation_specific_humidity,
+        limits_specific_humidity[0],
+    )
+
+    # Convert excess to condensed water, [mm]
+    condensation_mm = excess_specific_humidity * air_mass_per_layer / mm_to_kg
+
+    # Remove excess from air
+    specific_humidity_updated = np.minimum(
+        specific_humidity_updated, saturation_specific_humidity
+    )
+
     # Vapour pressure [kPa]
     vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (
         molecular_weight_ratio_water_to_dry_air * dry_air_factor
         + specific_humidity_updated
     )
 
-    # Ensure vapor pressure doesn't exceed the saturated vapor pressure
-    # TODO we need to make sure that we do not loose water here
-    vapour_pressure_updated = np.minimum(
-        vapour_pressure_updated, saturated_vapour_pressure
-    )
-
     # Compute new relative humidity (%)
     relative_humidity_updated = (
-        vapour_pressure_updated / saturated_vapour_pressure
+        vapour_pressure_updated
+        / np.maximum(saturated_vapour_pressure, denominator_tolerance)
     ) * 100
 
-    # Compute new VPD (Vapor Pressure Deficit) [kPa]
+    relative_humidity_updated = np.minimum(
+        relative_humidity_updated, limits_relative_humidity[1]
+    )
+
+    # Compute new VPD (Vapour Pressure Deficit) [kPa], ensure non-zero
     vpd_updated = saturated_vapour_pressure - vapour_pressure_updated
+    vpd_updated = np.maximum(vpd_updated, limits_vapour_pressure_deficit[0])
 
     # Map variable names to arrays
     raw_outputs = {
@@ -719,6 +564,7 @@ def update_humidity_vpd(
         "vapour_pressure": vapour_pressure_updated,
         "vapour_pressure_deficit": vpd_updated,
         "specific_humidity": specific_humidity_updated,
+        "condensation": condensation_mm,
     }
 
     # Clean outputs while preserving intended NaNs
@@ -728,134 +574,6 @@ def update_humidity_vpd(
     }
 
     return cleaned_outputs
-
-
-def calculate_understorey_effective_heat_capacity(
-    layer_thickness: NDArray[np.floating],
-    leaf_area_index: NDArray[np.floating],
-    leaf_mass_per_area: float,
-    leaf_specific_heat: float,
-    air_volumetric_heat_capacity: float,
-) -> NDArray[np.floating]:
-    """Calculates the effective heat capacity of the understorey layer.
-
-    This function calculates the effective heat capacity of the understorey layer
-    combining volumetric heat capacity of the air/vegetation mixture and
-    the thermal mass of leaves scaled by LAI.
-
-    Args:
-        layer_thickness: Thickness of the understorey layer, [m]
-        leaf_area_index: Leaf area index, [m2 m-2].
-        leaf_mass_per_area: Leaf mass per leaf area, [kg m-2]
-        leaf_specific_heat: Specific heat capacity of leaf tissue, [J kg-1 K-1].
-        air_volumetric_heat_capacity: Volumetric heat capacity of air, [J m-3 K-1].
-
-    Returns:
-        Effective heat capacity per ground area, [J m-2 K-1].
-    """
-
-    # Compute vegetation bulk density from LAI
-    vegetation_density = (leaf_area_index * leaf_mass_per_area) / layer_thickness
-
-    # Volumetric heat capacity of vegetation (dominant term)
-    vegetation_volumetric_heat_capacity = vegetation_density * leaf_specific_heat
-
-    # Add air (optional)
-    total_volumetric_heat_capacity = (
-        vegetation_volumetric_heat_capacity + air_volumetric_heat_capacity
-    )
-
-    # Convert to per-ground-area
-    heat_capacity_per_area = total_volumetric_heat_capacity * layer_thickness
-
-    return heat_capacity_per_area
-
-
-def update_understorey_temperature(
-    current_temperature: NDArray[np.floating],
-    net_radiation: NDArray[np.floating],
-    sensible_heat_flux: NDArray[np.floating],
-    conductive_flux: NDArray[np.floating],
-    effective_heat_capacity: NDArray[np.floating],
-    time_step_seconds: float,
-    latent_heat_flux: NDArray[np.floating] | None,
-    max_delta_temperature: float,
-) -> NDArray[np.floating]:
-    """Updates the understorey temperature using a simple energy balance.
-
-    Note: This function warns if the computed temperature change exceeds
-    `max_delta_temperature`, which often indicates that the effective heat capacity is
-    underestimated.
-
-    Implementation based on :cite:t:`ogee_a_forest_2002`.
-
-    Args:
-        current_temperature: Current understorey temperature, [C or K].
-        net_radiation: Net radiation flux into the understorey layer, [W m-2].
-        sensible_heat_flux: Sensible heat flux from/to the understorey, [W m-2].
-        conductive_flux: Conductive flux from/to the soil, [W m-2].
-        effective_heat_capacity: Effective heat capacity per ground area, [J m-2 K-1].
-        time_step_seconds: Time step for the update [s], default is 3600 (1 hour).
-        latent_heat_flux: Latent heat flux from/to the understorey [W m-2], optional
-        max_delta_temperature: Maximum allowed temperature change per time step [K]
-            before warning, default 10 K.
-
-    Returns:
-        Updated understorey temperature [C or K].
-
-    """
-    # Start with net energy flux
-    total_flux = net_radiation - sensible_heat_flux - conductive_flux
-
-    # Include latent heat flux if provided
-    if latent_heat_flux is not None:
-        total_flux -= latent_heat_flux
-
-    # Temperature change [K]
-    delta_temperature = total_flux * time_step_seconds / effective_heat_capacity
-
-    # Sanity check for unrealistic temperature jumps
-    if np.any(np.abs(delta_temperature) > max_delta_temperature):
-        LOGGER.warning(
-            "Warning: Large temperature change detected! "
-            "Check effective heat capacity or flux magnitudes."
-        )
-
-    # Update temperature
-    return current_temperature + delta_temperature
-
-
-def calculate_conductive_flux_understorey(
-    soil_temperature: NDArray[np.floating],
-    understorey_temperature: NDArray[np.floating],
-    understorey_layer_thickness: NDArray[np.floating],
-    soil_thermal_conductivity: float,
-    understorey_thermal_conductivity: float,
-) -> np.ndarray:
-    """Calculates the conductive heat flux from understorey vegetation to the soil.
-
-    Positive flux means heat flows into the soil.
-
-    Args:
-        soil_temperature : Soil temperatures at the interface, [°C or K]
-        understorey_temperature : Temperatures of the understorey vegetation, [°C or K]
-        understorey_layer_thickness : Thickness of the understorey layer, [m]
-        soil_thermal_conductivity : Soil thermal conductivity, [W m-1 K-1]
-        understorey_thermal_conductivity : Thermal conductivity of understorey
-            vegetation layer, [W m-1 K-1]
-
-    Returns:
-        Conductive flux from understorey to soil, [W m-2]
-    """
-    effective_conductivity = np.sqrt(
-        soil_thermal_conductivity * understorey_thermal_conductivity
-    )
-    flux = (
-        -effective_conductivity
-        * (soil_temperature - understorey_temperature)
-        / understorey_layer_thickness
-    )
-    return flux
 
 
 def calculate_latent_heat_flux(
@@ -881,3 +599,172 @@ def calculate_latent_heat_flux(
     latent_heat_flux = energy_j_per_m2 / time_interval
 
     return latent_heat_flux
+
+
+def calculate_total_absorbed_shortwave_radiation(
+    downward_shortwave_radiation: NDArray[np.floating],
+    shortwave_absorption_by_canopy: NDArray[np.floating],
+    fraction_par_used: float,
+    leaf_absorptance_non_par: float,
+    par_fraction: float,
+) -> NDArray[np.floating]:
+    """Compute total absorbed shortwave radiation contributing to leaf energy balance.
+
+    Shortwave (SW) radiation is partitioned into:
+      - PAR (photosynthetically active radiation)
+      - non-PAR (primarily near-infrared, NIR)
+
+    The plant model provides absorbed PAR. A fraction of this PAR is used
+    in photosynthesis, while the remainder contributes to heat. Non-PAR radiation
+    is assumed not to be used in photosynthesis and contributes entirely to heat
+    after accounting for leaf absorptance.
+
+    This function calculates the total absorbed shortwave radiation that contributes to
+    the leaf energy balance by combining the absorbed PAR (adjusted for photosynthesis)
+    and the absorbed non-PAR radiation (adjusted for leaf absorptance and vertical
+    distribution).
+
+    Args:
+        downward_shortwave_radiation: Incoming shortwave radiation [W m-2]
+        shortwave_absorption_by_canopy: Absorbed PAR by canopy [W m-2]
+        fraction_par_used: Fraction of absorbed PAR used in photosynthesis (0-1).
+        leaf_absorptance_non_par: Fraction of non-PAR radiation absorbed by the leaf
+            (0-1).
+        par_fraction: Fraction of total shortwave radiation that is PAR (0-1).
+
+    Returns:
+        Total absorbed shortwave radiation contributing to heat [W m-2]
+    """
+
+    # Compute vertical distribution weights based on absorbed PAR
+    weights = compute_weights_from_absorbed_radiation(
+        radiation=shortwave_absorption_by_canopy
+    )
+
+    # Calculate the portion of absorbed non-PAR that contributes to heat, assuming the
+    # same vertical decay as PAR absorption (weights to distribute cross layers)
+    shortwave_non_par = downward_shortwave_radiation * (1 - par_fraction)
+    shortwave_non_par_absorbed = leaf_absorptance_non_par * shortwave_non_par * weights
+
+    # Calculate the portion of absorbed PAR that contributes to heat after accounting
+    # for photosynthesis
+    # TODO: #1533 we want to use light use efficiency from the plant model to determine
+    # the fraction of absorbed PAR used in photosynthesis; for now we use a constant
+    # fraction.
+    par_heat = shortwave_absorption_by_canopy * (1 - fraction_par_used)
+
+    # Total absorbed shortwave radiation contributing to heat
+    total_abs = par_heat + shortwave_non_par_absorbed
+
+    return total_abs
+
+
+def secant_solve_cells_layers(
+    residual_function: Callable[[NDArray[np.floating]], NDArray[np.floating]],
+    initial_guess: NDArray[np.floating],
+    maxiter_secant: int,
+    convergence_tolerance: float,
+    small_perturbation_second_guess: float,
+    denominator_tolerance: float,
+) -> NDArray[np.floating]:
+    """Vectorised secant solver for independent (cell, layer) root problems.
+
+    Args:
+        residual_function: Function f(T) returning residual with same shape as T.
+        initial_guess: Initial guess canopy temperature, shape (n_cells, n_layers).
+        maxiter_secant: Maximum secant iterations.
+        convergence_tolerance: Convergence tolerance on max absolute update.
+        small_perturbation_second_guess: Small perturbation for second initial guess.
+        denominator_tolerance: Small value to prevent division by zero in secant update.
+
+    Returns:
+        Root estimate canopy temperature solving f(T)=0 elementwise.
+    """
+
+    previous_temperature = initial_guess.copy()
+    current_temperature = initial_guess + small_perturbation_second_guess
+
+    previous_residual = residual_function(previous_temperature)
+    current_residual = residual_function(current_temperature)
+
+    for _ in range(maxiter_secant):
+        denom = current_residual - previous_residual
+
+        # Ensure no division by zero and sign conserved
+        safe_denom = np.where(
+            np.abs(denom) < denominator_tolerance,
+            np.copysign(denominator_tolerance, denom),
+            denom,
+        )
+
+        denom = np.where(np.isnan(safe_denom), np.nan, safe_denom)
+
+        next_temperature = (
+            current_temperature
+            - current_residual * (current_temperature - previous_temperature) / denom
+        )
+
+        next_residual = residual_function(next_temperature)
+
+        max_update = np.nanmax(
+            np.abs(next_temperature - current_temperature)
+            / (np.abs(current_temperature) + denominator_tolerance)
+        )
+
+        if max_update < convergence_tolerance:
+            return next_temperature
+
+        previous_temperature, current_temperature = (
+            current_temperature,
+            next_temperature,
+        )
+        previous_residual, current_residual = (
+            current_residual,
+            next_residual,
+        )
+
+    return current_temperature
+
+
+def make_canopy_residual(
+    state: dict[str, Any],
+    static: dict[str, Any],
+    aerodynamic_resistance: NDArray[np.floating],
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
+) -> Callable[[NDArray[np.floating]], NDArray[np.floating]]:
+    """Creates a residual function for canopy temperature to be used in root finding.
+
+    Args:
+        state: Dictionary containing state variables needed for the energy balance
+            residual.
+        static: Dictionary containing static variables needed for the energy balance
+            residual.
+        aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
+        abiotic_constants: Constants related to abiotic processes.
+        core_constants: Core constants.
+
+    Returns:
+        A function that takes canopy_temperature as input and returns the energy balance
+        residual.
+    """
+
+    def residual(canopy_temperature):
+        return calculate_energy_balance_residual(
+            canopy_temperature_initial=canopy_temperature,
+            air_temperature=state["air_temperature"],
+            evapotranspiration=state["evapotranspiration"],
+            absorbed_shortwave_radiation=state["shortwave_absorption"],
+            absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
+            specific_heat_air=state["specific_heat_air"],
+            density_air=state["density_air"],
+            aerodynamic_resistance=aerodynamic_resistance,
+            latent_heat_vapourisation=state["latent_heat_vapourisation"],
+            leaf_emissivity=abiotic_constants.leaf_emissivity,
+            stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+            zero_Celsius=core_constants.zero_Celsius,
+            seconds_to_hour=core_constants.seconds_to_hour,
+            return_fluxes=False,
+        )
+
+    return residual

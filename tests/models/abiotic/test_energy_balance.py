@@ -2,10 +2,14 @@
 
 import numpy as np
 import pytest
+from pyrealm.constants import CoreConst as PyrealmCoreConst
+from pyrealm.core.hygro import calc_vp_sat
 
-from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_layer_thickness_for_varying_canopy,
+)
+from virtual_ecosystem.models.abiotic.energy_balance import (
+    calculate_total_absorbed_shortwave_radiation,
 )
 
 
@@ -275,57 +279,6 @@ def test_energy_balance_return_fluxes(
         assert np.all(np.isfinite(result[key][mask]))
 
 
-def test_solve_canopy_temperature(
-    dummy_climate_data_varying_canopy,
-    fixture_core_constants,
-    caplog,
-):
-    """Test solving canopy temperature with Newton method."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        solve_canopy_temperature,
-    )
-
-    data = dummy_climate_data_varying_canopy
-    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
-    aerodynamic_resistance_2d = np.tile(data["aerodynamic_resistance_canopy"], (14, 1))
-
-    with caplog.at_level(LOGGER.level):
-        result = solve_canopy_temperature(
-            canopy_temperature_initial=data["canopy_temperature"].to_numpy(),
-            air_temperature=data["air_temperature"].to_numpy(),
-            evapotranspiration=evapotranspiration.to_numpy() / (24 * 30),
-            absorbed_shortwave_radiation=data["shortwave_absorption"].to_numpy(),
-            absorbed_longwave_radiation=data["shortwave_absorption"] * 0.5,
-            specific_heat_air=data["specific_heat_air"].to_numpy(),
-            density_air=data["density_air"].to_numpy(),
-            aerodynamic_resistance=aerodynamic_resistance_2d,
-            latent_heat_vapourisation=data["latent_heat_vapourisation"].to_numpy()
-            * 1000,
-            emissivity_leaf=0.96,
-            stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
-            zero_Celsius=fixture_core_constants.zero_Celsius,
-            seconds_to_hour=fixture_core_constants.seconds_to_hour,
-            return_fluxes=False,
-            maxiter=100,
-        )
-
-    messages = [record.getMessage() for record in caplog.records]
-    assert any("converge" in msg for msg in messages)
-
-    assert isinstance(result, np.ndarray)
-    assert result.shape == data["canopy_temperature"].shape
-
-    # Mask where input is not NaN
-    mask = ~np.isnan(data["canopy_temperature"])
-
-    # Assert plausible range for non-NaN input
-    assert np.all((result[mask] > 0) & (result[mask] < 50))
-
-    # Assert NaNs are preserved
-    assert np.all(np.isnan(result[~mask]))
-
-
 def test_update_air_temperature(
     dummy_climate_data_varying_canopy, fixture_core_components
 ):
@@ -370,20 +323,15 @@ def test_update_humidity_vpd(
     lystr = fixture_core_components.layer_structure
     canopy_index = lystr.index_filled_canopy
     atm_index = lystr.index_filled_atmosphere
+    pyr_const = PyrealmCoreConst()
 
     above_ground_layer_thickness = compute_layer_thickness_for_varying_canopy(
         heights=data["layer_heights"][atm_index].to_numpy()
     )
 
     evapotranspiration = data["transpiration"] + data["canopy_evaporation"]
-    saturated_vapour_pressure = np.array(
-        [
-            [2.5, 2.5, 2.5, 2.5],
-            [2.5, 2.5, 2.5, np.nan],
-            [2.0, 2.0, np.nan, np.nan],
-            [1.8, np.nan, np.nan, np.nan],
-            [2.0, 2.0, 2.0, 2.0],
-        ]
+    saturated_vapour_pressure = calc_vp_sat(
+        ta=data["air_temperature"][atm_index].to_numpy(), core_const=pyr_const
     )
     specific_humidity = np.array(
         [
@@ -427,9 +375,13 @@ def test_update_humidity_vpd(
         ),
         dry_air_factor=1
         - fixture_core_constants.molecular_weight_ratio_water_to_dry_air,
+        mm_to_kg=1e-3,
         cell_area=fixture_core_components.grid.cell_area,
-        limits=(0, 60),
+        limits_specific_humidity=(0, 60),
+        limits_relative_humidity=(0.001, 99.999),
         time_interval=time_interval,
+        denominator_tolerance=1e-12,
+        limits_vapour_pressure_deficit=(0.01, 50),
     )
 
     # Basic shape checks
@@ -438,6 +390,7 @@ def test_update_humidity_vpd(
         "vapour_pressure",
         "vapour_pressure_deficit",
         "specific_humidity",
+        "condensation",
     ]:
         assert key in result
         assert isinstance(result[key], np.ndarray)
@@ -447,138 +400,17 @@ def test_update_humidity_vpd(
     assert np.all(result["specific_humidity"][~mask] >= 0.00)
 
     # VPD should be reduced where evapotranspiration or mixing adds moisture
-    assert np.all(result["vapour_pressure_deficit"][~mask] >= 0.0)
+    assert np.all(result["vapour_pressure_deficit"][~mask] > 0.0)
     assert np.all(result["vapour_pressure"][~mask] <= saturated_vapour_pressure[~mask])
 
     # RH should be between 0 and 100
     assert np.all(
-        (result["relative_humidity"][~mask] >= 0)
-        & (result["relative_humidity"][~mask] <= 100)
+        (result["relative_humidity"][~mask] > 0)
+        & (result["relative_humidity"][~mask] < 100)
     )
 
-
-def test_effective_heat_capacity():
-    """Test calculation of effective heat capacity."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_understorey_effective_heat_capacity,
-    )
-
-    layer_thickness = np.array([0.1, 0.1, 0.1])
-    leaf_area_index = np.array([0.0, 2.0, 20.0])
-    leaf_mass_per_area = 0.05
-    leaf_specific_heat = 3500.0
-    air_volumetric_heat_capacity = 1200.0
-
-    result = calculate_understorey_effective_heat_capacity(
-        layer_thickness=layer_thickness,
-        leaf_area_index=leaf_area_index,
-        leaf_mass_per_area=leaf_mass_per_area,
-        leaf_specific_heat=leaf_specific_heat,
-        air_volumetric_heat_capacity=air_volumetric_heat_capacity,
-    )
-
-    expected_ceff = np.array([120.0, 470.0, 3620.0])
-
-    np.testing.assert_allclose(result, expected_ceff)
-
-
-def test_update_understorey_temperature_warning(caplog):
-    """Test update understorey temperature warning for large temperature changes."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        update_understorey_temperature,
-    )
-
-    current_temperature = np.array([20.0, 15.0, 18.0])
-    net_radiation = np.array([5000.0, 4000.0, 4500.0])
-    sensible_heat_flux = np.array([0.0, 0.0, 0.0])
-    conductive_flux = np.array([0.0, 0.0, 0.0])
-    effective_heat_capacity = np.array([100.0, 150.0, 120.0])
-
-    # Use caplog to capture the warning
-    with caplog.at_level("WARNING"):
-        updated_temperature = update_understorey_temperature(
-            current_temperature=current_temperature,
-            net_radiation=net_radiation,
-            sensible_heat_flux=sensible_heat_flux,
-            conductive_flux=conductive_flux,
-            effective_heat_capacity=effective_heat_capacity,
-            time_step_seconds=3600.0,
-            latent_heat_flux=None,
-            max_delta_temperature=10.0,
-        )
-
-    # Check that the warning was triggered
-    assert "Large temperature change detected" in caplog.text
-
-    # Check that temperatures increased
-    assert np.all(updated_temperature > current_temperature)
-
-
-def test_update_understorey_temperature():
-    """Test compute understorey temperatures."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        update_understorey_temperature,
-    )
-
-    current_temperature = np.array([20.0, 18.0, 15.0])
-    net_radiation = np.array([20.0, 18.0, 10.0])
-    sensible_heat_flux = np.array([1.0, 0.5, 0.8])
-    latent_heat_flux = np.array([0.1, 0.1, 0.1])
-    conductive_flux = np.array([0.5, 0.5, 0.5])
-    effective_heat_capacity = np.array([10000.0, 12000.0, 11000.0])
-    time_step_seconds = 3600.0
-
-    # Update temperature
-    result = update_understorey_temperature(
-        current_temperature=current_temperature,
-        net_radiation=net_radiation,
-        sensible_heat_flux=sensible_heat_flux,
-        conductive_flux=conductive_flux,
-        latent_heat_flux=latent_heat_flux,
-        effective_heat_capacity=effective_heat_capacity,
-        time_step_seconds=time_step_seconds,
-        max_delta_temperature=10.0,
-    )
-
-    expected_temperature = np.array([26.624, 23.07, 17.814545])
-
-    # Assert the temperatures match expected values
-    np.testing.assert_allclose(result, expected_temperature)
-
-    # Assert that no ΔT is unreasonably large
-    assert np.all(np.abs(result - current_temperature) < 10.0)
-
-
-def test_calculate_conductive_flux_understorey():
-    """Test calculate conductive flux between soil and understorey."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_conductive_flux_understorey,
-    )
-
-    soil_temperature = np.array([15.0, 18.0, 20.0])
-    understorey_temperature = np.array([20.0, 16.0, 22.0])
-    understorey_layer_thickness = np.array([0.1, 0.15, 0.2])
-    soil_thermal_conductivity = 1.2
-    understorey_thermal_conductivity = 0.02
-
-    result = calculate_conductive_flux_understorey(
-        soil_temperature=soil_temperature,
-        understorey_temperature=understorey_temperature,
-        understorey_layer_thickness=understorey_layer_thickness,
-        soil_thermal_conductivity=soil_thermal_conductivity,
-        understorey_thermal_conductivity=understorey_thermal_conductivity,
-    )
-
-    # Expected: flux should be positive where understorey is warmer than soil
-    exp_flux = np.array([7.745967, -2.065591, 1.549193])
-    expected_flux_signs = np.sign(understorey_temperature - soil_temperature)
-    actual_flux_signs = np.sign(result)
-    assert np.all(actual_flux_signs == expected_flux_signs)
-    np.testing.assert_allclose(result, exp_flux, rtol=1e-6)
+    # Condensation should be >=0
+    assert np.all(result["condensation"][~mask] >= 0)
 
 
 def test_calculate_latent_heat_flux(
@@ -618,3 +450,223 @@ def test_calculate_latent_heat_flux(
 
     np.testing.assert_allclose(result[canopy_layers], exp_canopy, rtol=1e-4, atol=1e-4)
     np.testing.assert_allclose(result[surface_layer], exp_surface, rtol=1e-4, atol=1e-4)
+
+
+def test_total_absorbed_shortwave_radiation(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test calculation of total absorbed shortwave radiation."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        compute_weights_from_absorbed_radiation,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
+
+    downward_sw = data["downward_shortwave_radiation"].isel(time_index=0).to_numpy()
+    canopy_absorption = data["shortwave_absorption"][canopy_index].to_numpy()
+
+    weights = compute_weights_from_absorbed_radiation(radiation=canopy_absorption)
+    result = calculate_total_absorbed_shortwave_radiation(
+        downward_shortwave_radiation=downward_sw,
+        shortwave_absorption_by_canopy=canopy_absorption,
+        par_fraction=0.48,
+        fraction_par_used=0.1,
+        leaf_absorptance_non_par=0.5,
+    )
+
+    assert result.shape == canopy_absorption.shape
+
+    # Compute upper bound
+    shortwave_non_par = downward_sw * (1 - 0.48)
+    max_nir_absorbed = 0.5 * shortwave_non_par * weights
+    total_available = canopy_absorption + max_nir_absorbed
+
+    # Build mask: only test where all relevant values are finite
+    valid_mask = np.isfinite(canopy_absorption)
+
+    # Energy conservation (only on valid points)
+    assert np.all(result[valid_mask] <= total_available[valid_mask] + 1e-6)
+
+    # Non-negative check
+    assert np.all(result[valid_mask] >= 0)
+
+
+def test_secant_nan_handling():
+    """Test that secant solver handles NaNs correctly."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        secant_solve_cells_layers,
+    )
+
+    target = np.array(
+        [
+            [1.0, 2.0, 3.0],
+            [4.0, np.nan, np.nan],
+            [np.nan, np.nan, np.nan],
+        ]
+    )
+
+    def residual(temperature):
+        return temperature - target
+
+    initial_temperature = np.zeros_like(target)
+
+    result = secant_solve_cells_layers(
+        residual_function=residual,
+        initial_guess=initial_temperature,
+        maxiter_secant=10,
+        convergence_tolerance=1e-12,
+        small_perturbation_second_guess=1e-6,
+        denominator_tolerance=1e-12,
+    )
+
+    # valid cells solved correctly
+    mask = ~np.isnan(target)
+    assert np.allclose(result[mask], target[mask], atol=1e-4)
+
+    # NaNs preserved
+    assert np.all(np.isnan(result[~mask]))
+
+
+def test_make_canopy_residual_changes_with_temperature(
+    fixture_abiotic_constants,
+    fixture_core_constants,
+):
+    """Test that canopy residual changes with temperature."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
+
+    shape = (2, 2)
+
+    state = {
+        "air_temperature": np.ones(shape) * 290,
+        "evapotranspiration": np.ones(shape),
+        "shortwave_absorption": np.ones(shape) * 200,
+        "specific_heat_air": np.ones(shape) * 1005,
+        "density_air": np.ones(shape) * 1.2,
+        "latent_heat_vapourisation": np.ones(shape) * 2.45e6,
+    }
+
+    static = {
+        "absorbed_longwave_radiation": np.ones(shape) * 300,
+    }
+
+    aerodynamic_resistance = np.ones(shape) * 50
+
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
+
+    residual = make_canopy_residual(
+        state=state,
+        static=static,
+        aerodynamic_resistance=aerodynamic_resistance,
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
+    )
+
+    temperature1 = np.ones(shape) * 28
+    temperature2 = np.ones(shape) * 30
+
+    residual1 = residual(temperature1)
+    residual2 = residual(temperature2)
+
+    assert not np.allclose(residual1, residual2)
+
+
+def test_make_canopy_residual_uses_state(
+    fixture_abiotic_constants, fixture_core_constants
+):
+    """Test that canopy residual reflects changes in state variables."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
+
+    shape = (2, 2)
+
+    state = {
+        "air_temperature": np.ones(shape) * 29,
+        "evapotranspiration": np.zeros(shape),
+        "shortwave_absorption": np.zeros(shape),
+        "specific_heat_air": np.ones(shape) * 1005,
+        "density_air": np.ones(shape) * 1.2,
+        "latent_heat_vapourisation": np.ones(shape) * 2.45e6,
+    }
+
+    static = {
+        "absorbed_longwave_radiation": np.zeros(shape),
+    }
+
+    aerodynamic_resistance = np.ones(shape) * 50
+
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
+
+    residual = make_canopy_residual(
+        state=state,
+        static=static,
+        aerodynamic_resistance=aerodynamic_resistance,
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
+    )
+
+    temperature1 = np.ones(shape) * 29
+
+    residual1 = residual(temperature1)
+
+    # change state AFTER creating closure
+    state["air_temperature"] += 10
+
+    temperature2 = np.ones(shape) * 39
+    residual2 = residual(temperature2)
+
+    # closure should reflect updated state
+    assert not np.allclose(residual1, residual2)
+
+
+def test_make_canopy_residual_with_nans(
+    fixture_abiotic_constants, fixture_core_constants
+):
+    """Test that canopy residual handles NaNs in state variables."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
+
+    shape = (2, 3)
+
+    state = {
+        "air_temperature": np.ones(shape) * 290,
+        "evapotranspiration": np.ones(shape),
+        "shortwave_absorption": np.ones(shape) * 200,
+        "specific_heat_air": np.ones(shape) * 1005,
+        "density_air": np.ones(shape) * 1.2,
+        "latent_heat_vapourisation": np.ones(shape) * 2.45e6,
+    }
+
+    static = {
+        "absorbed_longwave_radiation": np.ones(shape) * 300,
+    }
+
+    aerodynamic_resistance = np.ones(shape) * 50
+
+    abiotic_constants = fixture_abiotic_constants
+    core_constants = fixture_core_constants
+
+    residual = make_canopy_residual(
+        state=state,
+        static=static,
+        aerodynamic_resistance=aerodynamic_resistance,
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
+    )
+
+    temperature = np.array(
+        [
+            [29, 29, 29],
+            [29, np.nan, np.nan],
+        ]
+    )
+
+    result = residual(temperature)
+
+    assert np.isnan(result[1, 1])
+    assert np.isnan(result[1, 2])

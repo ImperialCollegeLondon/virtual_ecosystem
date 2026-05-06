@@ -29,6 +29,8 @@ Each of the core sub-modules has its own API reference page:
   across the Virtual Ecosystem.
 * The :mod:`~virtual_ecosystem.core.exceptions` submodule defines custom exceptions
   that are used either in the core module, or across multiple modules.
+* The :mod:`~virtual_ecosystem.core.docutils` submodule defines functionality for
+  aesthetically pleasing displays of the model content in the documentation.
 
 The :mod:`~virtual_ecosystem.core` module itself is only responsible for loading the
 configuration schema for the core submodules.

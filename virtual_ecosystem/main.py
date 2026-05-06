@@ -9,16 +9,19 @@ from collections.abc import Sequence
 from enum import IntEnum
 from itertools import chain
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from tqdm import tqdm
 
-from virtual_ecosystem.core.base_model import BaseModel
+from virtual_ecosystem.core.base_model import BaseDisturbance, BaseModel
 from virtual_ecosystem.core.config_builder import (
     ConfigurationLoader,
     generate_configuration,
 )
-from virtual_ecosystem.core.configuration import CompiledConfiguration
+from virtual_ecosystem.core.configuration import (
+    CompiledConfiguration,
+    DisturbanceConfigurationRoot,
+)
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
@@ -146,6 +149,97 @@ def initialise_models(
     return models_cfd
 
 
+def sort_disturbances(configuration: CompiledConfiguration) -> list[str]:
+    """Sort disturbances based on priority and name.
+
+    Args:
+        configuration: CompiledConfiguration object for disturbances.
+
+    Returns:
+        Tuple of disturbance model names in the order they need to be executed.
+    """
+    disturbance_config = configuration.get_disturbance_config()
+    if not disturbance_config:
+        return []
+
+    priorities = {
+        name: -disturbance_config.get_subconfiguration(
+            name, DisturbanceConfigurationRoot
+        ).priority
+        for name in disturbance_config._model_classes.keys()
+    }
+    if len(set(priorities.values())) != len(priorities):
+        to_raise: Exception = InitialisationError(
+            "Configuration failed for disturbances: 2 or more disturbance models have "
+            "the same priority"
+        )
+        LOGGER.critical(to_raise)
+    return sorted(priorities.keys(), key=lambda name: priorities[name])
+
+
+def initialise_disturbances(
+    configuration: CompiledConfiguration,
+    data: Data,
+    core_components: CoreComponents,
+    models: dict[str, BaseModel],
+) -> dict[str, BaseDisturbance]:
+    """Initialise a set of disturbances for use in a `virtual_ecosystem` simulation.
+
+    Args:
+        configuration: A validated Virtual Ecosystem configuration object containing the
+            disturbance configuration.
+        data: A Data instance.
+        core_components: A CoreComponents instance.
+        models: A dictionary of initialised models.
+
+    Raises:
+        InitialisationError: If one or more disturbances cannot be properly configured
+
+    Returns:
+        Dictionary of initialised disturbances in the right execution order.
+    """
+    sorted_disturbances = sort_disturbances(configuration)
+
+    LOGGER.info("Initialising disturbances: {}".format(",".join(sorted_disturbances)))
+
+    # Use factory methods to configure the desired disturbances
+    failed_disturbances = []
+    models_cfd = {}
+
+    # We do know there are disturbances at this point, so this casting is OK.
+    disturbance_config = cast(
+        CompiledConfiguration, configuration.get_disturbance_config()
+    )
+
+    for disturbance_name in sorted_disturbances:
+        LOGGER.info(f"Initialising {disturbance_name} disturbance")
+
+        try:
+            disturbance_class: BaseDisturbance = disturbance_config._model_classes[
+                disturbance_name
+            ]
+            this_disturbance = disturbance_class.from_config(
+                data=data,
+                configuration=configuration,
+                core_components=core_components,
+                models=models,
+            )
+            models_cfd[disturbance_name] = this_disturbance
+
+        except (InitialisationError, ConfigurationError, KeyError):
+            failed_disturbances.append(disturbance_name)
+
+    # If any models fail to configure inform the user about it
+    if failed_disturbances:
+        to_raise: Exception = InitialisationError(
+            f"Configuration failed for disturbances: {','.join(failed_disturbances)}"
+        )
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+    return models_cfd
+
+
 def ve_run(
     cfg_paths: str | Path | Sequence[str | Path] = [],
     cfg_strings: str | list[str] = [],
@@ -253,6 +347,19 @@ def ve_run(
 
     LOGGER.info("All models successfully initialised.")
 
+    # Get disturbances order and initialise them
+    if disturbance_config := configuration.get_disturbance_config():
+        disturbances = initialise_disturbances(
+            configuration=disturbance_config,
+            data=data,
+            core_components=core_components,
+            models=models_init,
+        )
+
+        LOGGER.info("All disturbances successfully initialised.")
+    else:
+        disturbances = {}
+
     # TODO - A model spin up might be needed here in future
 
     # Data output options
@@ -331,6 +438,9 @@ def ve_run(
                     model=model.model_name,
                     attr="vars_populated_by_first_update",
                 )
+
+        for disturbance in disturbances.values():
+            disturbance.disturb(time_index)
 
         # If there are mismatches in the variable specifications, fail.
         if not model_variables_ok:

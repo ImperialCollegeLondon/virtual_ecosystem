@@ -55,6 +55,7 @@ class AbioticModel(
         "specific_heat_air",
         "latent_heat_vapourisation",
         "density_air",
+        "condensation",
     ),
     vars_updated=(
         "air_temperature",
@@ -74,6 +75,7 @@ class AbioticModel(
         "net_radiation",
         "longwave_emission",
         "diurnal_temperature_range",
+        "condensation",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -92,6 +94,7 @@ class AbioticModel(
         "soil_evaporation",
         "canopy_evaporation",
         "transpiration",
+        "condensation",
     ),
     vars_populated_by_init=(
         "soil_temperature",

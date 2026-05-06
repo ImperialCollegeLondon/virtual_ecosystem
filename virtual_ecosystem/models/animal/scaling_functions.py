@@ -8,12 +8,16 @@ To Do:
 """  # noqa: D205, D415
 
 from collections.abc import Sequence
-from math import exp, log
+from math import asin, exp, log, pi
 
 import numpy as np
+from scipy.special import expit
 
 from virtual_ecosystem.core.model_config import CoreConstants
-from virtual_ecosystem.models.animal.animal_traits import DietType, MetabolicType
+from virtual_ecosystem.models.animal.animal_traits import (
+    DietType,
+    MetabolicType,
+)
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
@@ -75,8 +79,9 @@ def metabolic_rate(
     temperature: float,
     terms: dict,
     metabolic_type: MetabolicType,
+    sigma_f_t: float,
     metabolic_scaling_coefficients: tuple[
-        float, float, float
+        float, float
     ] = AnimalConstants().metabolic_scaling_coefficients,
     boltzmann_constant: float = CoreConstants().boltzmann_constant,
 ) -> float:
@@ -85,53 +90,52 @@ def metabolic_rate(
     This follows the Madingley implementation, assuming a power-law relationship with
     mass and an exponential relationship with temperature.
 
-    TODO: Implement activity windows to properly parameterize sigma.
-    TODO: double check unit alignment
+    .. math::
+        \Delta M_i^{metab} = E_S \left[
+            \varsigma_{f(t)} \cdot I_{0,f}^{FMR}
+                \cdot e^{-E_A / k_B T^{K,body}} \cdot M_{i(t)}^{b_f^{FMR}}
+            + (1 - \varsigma_{f(t)}) \cdot I_0^{BMR}
+                \cdot e^{-E_A / k_B T^{K,body}} \cdot M_{i(t)}^{b^{BMR}}
+        \right] \Delta t_d
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
         temperature: The temperature [Celsius] of the environment.
         terms: The tuple of metabolic rate terms used.
         metabolic_type: The metabolic type of the animal [ENDOTHERMIC or ECTOTHERMIC].
-        metabolic_scaling_coefficients: A tuple providing the $E_s, \sigma, E_a$
-            coefficients of the Madingley metabolic rate model (see
-            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants.metabolic_scaling_coefficients`)
+        sigma_f_t: Activity window fraction in [0, 1].
+        metabolic_scaling_coefficients: A 2-tuple of - the energy-to-
+            mass conversion constant and the aggregate activation energy of metabolic
+            reactions.
         boltzmann_constant: The Boltzmann constant ($k_B$)
 
     Returns:
-        The metabolic rate of an individual of the given cohort in [g/d].
+        The metabolic rate of a single individual [kg/day].
     """
 
-    Es, sig, Ea = metabolic_scaling_coefficients
+    Es, Ea = metabolic_scaling_coefficients
     kB = boltzmann_constant
-    mass_g = mass * 1000  # convert mass to grams
+    mass_g = mass * 1000  # convert kg to g
 
     if metabolic_type == MetabolicType.ENDOTHERMIC:
-        Ib, bf = terms["basal"]  # field metabolic constant and exponent
-        If, bb = terms["field"]  # basal metabolic constant and exponent
-        Tk = 310.0  # body temperature of the individual (K)
-        return (
-            Es
-            * (
-                (sig * If * exp(-(Ea / (kB * Tk)))) * mass_g**bf
-                + ((1 - sig) * Ib * exp(-(Ea / (kB * Tk)))) * mass_g**bb
-            )
-            / 1000  # convert back to kg
-        )
+        Ib, bf = terms["basal"]
+        If, bb = terms["field"]
+        Tk = 310.0  # fixed body temperature for endotherms [K]
     elif metabolic_type == MetabolicType.ECTOTHERMIC:
-        Ib, bf = terms["basal"]  # field metabolic constant and exponent
-        If, bb = terms["field"]  # basal metabolic constant and exponent
-        Tk = temperature + 274.15  # body temperature of the individual (K)
-        return (
-            Es
-            * (
-                (sig * If * exp(-(Ea / (kB * Tk)))) * mass_g**bf
-                + ((1 - sig) * Ib * exp(-(Ea / (kB * Tk)))) * mass_g**bb
-            )
-            / 1000  # convert back to kg
-        )
+        Ib, bf = terms["basal"]
+        If, bb = terms["field"]
+        Tk = temperature + 274.15  # body temperature equals ambient [K]
     else:
-        raise ValueError("Invalid metabolic type: {metabolic_type}")
+        raise ValueError(f"Invalid metabolic type: {metabolic_type}")
+
+    return (
+        Es
+        * (
+            (sigma_f_t * If * exp(-(Ea / (kB * Tk)))) * mass_g**bf
+            + ((1 - sigma_f_t) * Ib * exp(-(Ea / (kB * Tk)))) * mass_g**bb
+        )
+        / 1000  # convert g back to kg
+    )
 
 
 def prey_group_selection(
@@ -160,7 +164,12 @@ def prey_group_selection(
         # Vertebrate prey (birds, mammals, amphibians)
         if diet_type & (
             DietType.VERTEBRATES | DietType.BLOOD | DietType.FISH
-        ) and fg.taxa in {TaxaType.BIRD, TaxaType.MAMMAL, TaxaType.AMPHIBIAN}:
+        ) and fg.taxa in {
+            TaxaType.BIRD,
+            TaxaType.MAMMAL,
+            TaxaType.AMPHIBIAN,
+            TaxaType.REPTILE,
+        }:
             result[fg.name] = (0.0001, 1000.0)
 
         # Invertebrate prey
@@ -280,7 +289,7 @@ def starvation_mortality(
     M_i_t = mass_current
     M_i_max = mass_max
     k = -(M_i_t - J_st * M_i_max) / (zeta_st * M_i_max)  # extra step to follow source
-    u_st = lambda_max / (1 + exp(-k))
+    u_st = lambda_max * expit(k)
 
     return u_st
 
@@ -596,3 +605,231 @@ def bfs_territory(
                         break
 
     return territory_cells
+
+
+def t_opt_ectotherm(
+    annual_mean_temp: float,
+    annual_temp_sd: float,
+    m_tsm: float,
+    c_tsm: float,
+) -> float:
+    r"""Optimal activity temperature for a terrestrial ectothermic functional group.
+
+    Implements Madingley eq. 47:
+
+    .. math::
+
+        T_{opt} = m_{tsm} \\cdot \\sigma_{T_{Annual}^C} + c_{tsm} + T_{Annual}^C
+
+    Args:
+        annual_mean_temp: Annual mean ambient temperature $T_{Annual}^C$ [°C].
+        annual_temp_sd: Standard deviation of monthly temperatures across the
+            climatological year $\\sigma_{T_{Annual}^C}$ [°C].
+        m_tsm: Slope of the variability-optimal temperature relationship.
+        c_tsm: Intercept of the variability-optimal temperature relationship [°C].
+
+    Returns:
+        Optimal activity temperature [°C].
+    """
+
+    return m_tsm * annual_temp_sd + c_tsm + annual_mean_temp
+
+
+def t_max_crit_ectotherm(
+    annual_mean_temp: float,
+    annual_temp_sd: float,
+    m_tol: float,
+    c_tol: float,
+) -> float:
+    r"""Upper critical temperature for a terrestrial ectothermic functional group.
+
+    Implements Madingley eq. 45:
+
+    .. math::
+
+        T_{\\max,f}^{crit} = m_{tol,terrestrial} \\cdot \\sigma_{T_{Annual}^C}
+            + c_{tol,terrestrial} + T_{Annual}^C
+
+    Args:
+        annual_mean_temp: Annual mean ambient temperature $T_{Annual}^C$ [°C].
+        annual_temp_sd: Standard deviation of monthly temperatures across the
+            climatological year $\\sigma_{T_{Annual}^C}$ [°C].
+        m_tol: Slope of the variability-upper-critical-temperature relationship.
+        c_tol: Intercept of the variability-upper-critical-temperature
+            relationship [°C].
+
+    Returns:
+        Upper critical temperature [°C].
+    """
+    return m_tol * annual_temp_sd + c_tol + annual_mean_temp
+
+
+def t_min_crit_ectotherm(t_max_crit: float, t_opt: float) -> float:
+    r"""Lower critical temperature for a terrestrial ectothermic functional group.
+
+    Implements Madingley eq. 46:
+
+    .. math::
+
+        T_{\\min,f}^{crit} = T_{opt,f}
+            - 4 \\cdot \\frac{T_{\\max,f}^{crit} - T_{opt,f}}{12}
+
+    Args:
+        t_max_crit: Upper critical temperature $T_{\\max,f}^{crit}$ [°C].
+        t_opt: Optimal activity temperature $T_{opt,f}$ [°C].
+
+    Returns:
+        Lower critical temperature [°C].
+    """
+    return t_opt - 4.0 * (t_max_crit - t_opt) / 12.0
+
+
+def p_above_t_max(
+    temperature: float,
+    diurnal_temp_range: float,
+    t_max_crit: float,
+) -> float:
+    r"""Proportion of the day during which temperature exceeds the upper critical limit.
+
+    Models the daily temperature cycle as a sine wave centred on the monthly mean
+    ``temperature`` with amplitude ``diurnal_temp_range / 2``. Returns the fraction
+    of the period for which that cycle exceeds ``t_max_crit`` (Madingley eq. 43).
+
+    .. math::
+
+        p_{Above,f} = \\frac{\\pi/2 - \\sin^{-1}
+            \\left[\\text{clamp}\\left(
+                \\frac{2(T_{\\max,f}^{crit} - T_C)}{\\Delta T_{Diurnal}^C},
+                -1, 1\\right)\\right]}{\\pi}
+
+    The piecewise clamping ensures the arcsin receives a valid argument when the
+    threshold lies entirely outside the daily temperature range, which is equivalent
+    to the explicit ``if`` branches in the original Madingley formulation.
+
+    Args:
+        temperature: Monthly mean ambient temperature $T_C$ [°C].
+        diurnal_temp_range: Monthly mean diurnal temperature range
+            $\\Delta T_{Diurnal}^C$ [°C].
+        t_max_crit: Upper critical temperature $T_{\\max,f}^{crit}$ [°C].
+
+    Returns:
+        Proportion of the day that is too hot for activity [0, 1].
+    """
+    if diurnal_temp_range <= 0.0:
+        # With no diurnal variation the day is fully on one side of the threshold.
+        return 1.0 if temperature > t_max_crit else 0.0
+
+    arg = max(-1.0, min(1.0, 2.0 * (t_max_crit - temperature) / diurnal_temp_range))
+    return (pi / 2.0 - asin(arg)) / pi
+
+
+def p_below_t_min(
+    temperature: float,
+    diurnal_temp_range: float,
+    t_min_crit: float,
+) -> float:
+    r"""Proportion of the day during which temperature is below the lower limit.
+
+    Mirrors :func:`p_above_t_max` for the cold end of the activity window (Madingley
+    eq. 44). The :math:`1 - {\\ldots}` flip converts "proportion of the day above
+    ``t_min_crit``" into "proportion of the day below ``t_min_crit``".
+
+    .. math::
+
+        p_{Below,f} = 1 - \\frac{\\pi/2 - \\sin^{-1}
+            \\left[\\text{clamp}\\left(
+                \\frac{2(T_{\\min,f}^{crit} - T_C)}{\\Delta T_{Diurnal}^C},
+                -1, 1\\right)\\right]}{\\pi}
+
+    Args:
+        temperature: Monthly mean ambient temperature $T_C$ [°C].
+        diurnal_temp_range: Monthly mean diurnal temperature range
+            $\\Delta T_{Diurnal}^C$ [°C].
+        t_min_crit: Lower critical temperature $T_{\\min,f}^{crit}$ [°C].
+
+    Returns:
+        Proportion of the day that is too cold for activity [0, 1].
+    """
+    if diurnal_temp_range <= 0.0:
+        # With no diurnal variation the day is fully on one side of the threshold.
+        return 1.0 if temperature < t_min_crit else 0.0
+
+    arg = max(-1.0, min(1.0, 2.0 * (t_min_crit - temperature) / diurnal_temp_range))
+    return 1.0 - (pi / 2.0 - asin(arg)) / pi
+
+
+def activity_window(
+    metabolic_type: MetabolicType,
+    temperature: float,
+    diurnal_temp_range: float,
+    annual_mean_temp: float,
+    annual_temp_sd: float,
+    t_opt: float | None = None,
+    t_max_crit: float | None = None,
+    t_min_crit: float | None = None,
+    constants: AnimalConstants = AnimalConstants(),
+) -> float:
+    r"""Proportion of the timestep suitable for a cohort to be active.
+
+    Implements Madingley eqs. 41-47:
+
+    * Endotherms are active for the full timestep (eq. 41).
+    * Terrestrial ectotherms are limited to the fraction of the day within their
+      thermal tolerance window, derived from the diurnal temperature cycle and
+      climatological statistics (eq. 42).
+
+    .. math::
+
+        \\varsigma_{f(t)} = \\begin{cases}
+            1 & \\text{if } f \\text{ is endotherm} \\\\
+            1 - (p_{Above,f} + p_{Below,f}) & \\text{if } f \\text{ is ectotherm}
+        \\end{cases}
+
+    The result is clamped to [0, 1] to guard against floating-point cases where
+    ``p_above + p_below`` marginally exceeds 1.
+
+    If ``t_opt``, ``t_max_crit``, and ``t_min_crit`` are all provided they are
+    used directly, bypassing the toy-parameter derivation from climate statistics.
+    If any are ``None`` the full derivation from ``annual_mean_temp`` and
+    ``annual_temp_sd`` is used instead.
+
+    Args:
+        metabolic_type: Whether the cohort is endothermic or ectothermic.
+        temperature: Monthly mean ambient temperature $T_C$ [°C].
+        diurnal_temp_range: Monthly mean diurnal temperature range
+            $\\Delta T_{Diurnal}^C$ [°C].
+        annual_mean_temp: Annual mean ambient temperature $T_{Annual}^C$ [°C].
+        annual_temp_sd: Standard deviation of monthly temperatures across the
+            climatological year $\\sigma_{T_{Annual}^C}$ [°C].
+        t_opt: Optional optimal activity temperature [°C]. If provided alongside
+            ``t_max_crit`` and ``t_min_crit``, overrides the toy-parameter
+            derivation.
+        t_max_crit: Optional upper critical temperature [°C]. See ``t_opt``.
+        t_min_crit: Optional lower critical temperature [°C]. See ``t_opt``.
+        constants: Animal constants supplying the four activity window parameters,
+            used only when ``t_opt``, ``t_max_crit``, and ``t_min_crit`` are not
+            all provided.
+
+    Returns:
+        Activity window fraction in [0, 1].
+    """
+    if metabolic_type == MetabolicType.ENDOTHERMIC:
+        return 1.0
+
+    if t_opt is not None and t_max_crit is not None and t_min_crit is not None:
+        t_opt_val = t_opt
+        t_max_val = t_max_crit
+        t_min_val = t_min_crit
+    else:
+        t_opt_val = t_opt_ectotherm(
+            annual_mean_temp, annual_temp_sd, constants.m_tsm, constants.c_tsm
+        )
+        t_max_val = t_max_crit_ectotherm(
+            annual_mean_temp, annual_temp_sd, constants.m_tol, constants.c_tol
+        )
+        t_min_val = t_min_crit_ectotherm(t_max_val, t_opt_val)
+
+    p_above = p_above_t_max(temperature, diurnal_temp_range, t_max_val)
+    p_below = p_below_t_min(temperature, diurnal_temp_range, t_min_val)
+
+    return max(0.0, 1.0 - (p_above + p_below))

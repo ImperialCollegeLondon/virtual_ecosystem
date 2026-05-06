@@ -126,6 +126,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Condensated water from supersaturation in the atmosphere"
+name = "condensation"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Diabatic correction factor for heat above canopy"
 name = "diabatic_correction_heat_above"
 unit = "-"
@@ -735,23 +742,23 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Proportion of above ground structural pool which is lignin"
+description = "Proportion of above ground structural litter carbon which is lignin carbon"
 name = "lignin_above_structural"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Proportion of below ground structural pool which is lignin"
+description = "Proportion of below ground structural litter carbon which is lignin carbon"
 name = "lignin_below_structural"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Proportion of dead wood pool which is lignin"
+description = "Proportion of dead wood carbon which is lignin carbon"
 name = "lignin_woody"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
@@ -777,9 +784,9 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of leaves added to litter due to herbivore mechanical inefficiency"
+description = "Proportion of leaf carbon added to litter due to herbivore mechanical inefficiency that is lignin carbon"
 name = "herbivory_waste_leaf_lignin"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
@@ -889,30 +896,30 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of deadwood"
+description = "Proportion of stem carbon that is lignin carbon"
 name = "stem_lignin"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of leaf turnover"
+description = "Proportion of carbon in leaf turnover that is lignin carbon"
 name = "senesced_leaf_lignin"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of plant reproductive tissue turnover"
+description = "Proportion of carbon in reproductive tissue turnover that is lignin carbon"
 name = "plant_reproductive_tissue_lignin"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of root turnover"
+description = "Proportion of carbon in root turnover that is lignin carbon"
 name = "root_lignin"
-unit = "kg lignin C (kg C)^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
@@ -947,6 +954,27 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Mass of plant reproductive tissue turnover"
 name = "plant_reproductive_tissue_turnover"
+unit = "kg C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Biomasses of plant reproductive tissue turnover"
+name = "plant_reproductive_tissue_turnover_cnp"
+unit = "kg C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Biomasses of plant fruit tissue turnover"
+name = "fruit_turnover_cnp"
+unit = "kg C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Biomasses of plant seed tissue turnover"
+name = "seed_turnover_cnp"
 unit = "kg C"
 variable_type = "float"
 
@@ -1099,14 +1127,14 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of subcanopy vegetation litter."
+description = "Proportion of subcanopy vegetation litter carbon that is lignin carbon."
 name = "subcanopy_vegetation_litter_lignin"
 unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of subcanopy seedbank litter"
+description = "Proportion of subcanopy seedbank litter carbon that is lignin carbon"
 name = "subcanopy_seedbank_litter_lignin"
 unit = "unitless"
 variable_type = "float"
@@ -1196,31 +1224,31 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # ["spatial", "pft"]
 description = "Number of fruits of each PFT in the canopy"
 name = "canopy_fruit_n"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # ["spatial", "pft"]
 description = "Number of seeds per fruit in each PFT"
 name = "canopy_seeds_per_fruit"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "C, N, and P of each seed PFT"
-name = "canopy_seeds_cnp"
+name = "canopy_seed_cnp"
 unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # ["spatial", "pft"]
 description = "Number of fallen fruits per PFT"
 name = "fallen_fruit_n"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
@@ -1238,16 +1266,65 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # ["spatial", "pft"]
 description = "Number of seeds per fruit per PFT"
 name = "fallen_seeds_per_fruit"
-unit = "kg"
+unit = "count"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Average C, N, and P masses of each seed in a PFT"
 name = "fallen_seeds_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy foliage"
+name = "canopy_foliage_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy foliage consumed by animals"
+name = "canopy_foliage_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy seed consumed by animals"
+name = "canopy_seed_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy fruit consumed by animals"
+name = "canopy_fruit_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of foliage turnover consumed by animals"
+name = "foliage_turnover_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of seed turnover consumed by animals"
+name = "seed_turnover_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of fruit turnover consumed by animals"
+name = "fruit_turnover_cnp_consumed"
 unit = "kg"
 variable_type = "float"
 

@@ -13,7 +13,7 @@ from xarray import DataArray
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools
-from virtual_ecosystem.models.abiotic.microclimate import (
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_weights_from_absorbed_radiation,
 )
 
@@ -87,6 +87,20 @@ def reset_module_registry():
     from virtual_ecosystem.core.registry import MODULE_REGISTRY
 
     MODULE_REGISTRY.clear()
+
+
+@pytest.fixture(autouse=True)
+def reset_disturbance_registry():
+    """Reset the disturbance registry.
+
+    The register_disturbance function updates the DISTURBANCE_REGISTRY, which persists
+    between tests. This autouse fixture is used to ensure that the registry is always
+    cleared before tests start, so that the correct registration of disturbances within
+    tests is enforced.
+    """
+    from virtual_ecosystem.core.registry import DISTURBANCE_REGISTRY
+
+    DISTURBANCE_REGISTRY.clear()
 
 
 # Shared fixtures
@@ -611,25 +625,33 @@ def dummy_litter_data(fixture_core_components):
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
-    data["foliage_turnover_cnp"] = DataArray(
-        data=[
+    # Split the foliage turnover 80/20 between two PFTs to give the expected
+    # dimensionality
+    total_foliage_turnover_cnp = np.array(
+        [
             [218.7, 14.58, 0.52698795],
             [2.43, 0.09529412, 0.00742211],
             [170.1, 3.94663573, 0.3067628],
             [230.85, 4.021777, 0.6060646],
-        ],
-        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+        ]
+    )
+
+    data["foliage_turnover_cnp"] = DataArray(
+        data=np.stack(
+            [total_foliage_turnover_cnp * 0.8, total_foliage_turnover_cnp * 0.2], axis=1
+        ),
+        coords={
+            "cell_id": data["cell_id"],
+            "pft": ["broadleaf", "shrub"],
+            "element": ["C", "N", "P"],
+        },
     )
 
     data["herbivory_waste_leaf_cnp"] = DataArray(
         data=[
             [0.243, 0.010519, 0.00114353],
             [17.01, 0.507761, 0.0493329],
-            [
-                23.085,
-                0.999351,
-                0.0689516,
-            ],
+            [23.085, 0.999351, 0.0689516],
             [21.87, 1.264162, 0.052059],
         ],
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
@@ -790,6 +812,10 @@ def dummy_climate_data(fixture_core_components):
     data["stomatal_conductance"][lyr_str.index_filled_canopy] = 12.0
     data["stomatal_conductance"][lyr_str.index_surface_scalar] = 12.0
 
+    data["condensation"] = from_template()
+    data["condensation"][lyr_str.index_filled_canopy] = 1.0
+    data["condensation"][lyr_str.index_surface_scalar] = 1.0
+
     # Hydrology
     data["transpiration"] = from_template()
     data["transpiration"][lyr_str.index_filled_canopy] = 80.0
@@ -919,6 +945,11 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [15.0, 15.0, np.nan, np.nan],
         [15.0, np.nan, np.nan, np.nan],
     ]
+    dummy_climate_data["condensation"][index_filled_canopy] = [
+        [1.0, 1.0, 1.0, np.nan],
+        [1.0, 1.0, np.nan, np.nan],
+        [1.0, np.nan, np.nan, np.nan],
+    ]
 
     # Hydrology
     dummy_climate_data["transpiration"][index_filled_canopy] = [
@@ -967,6 +998,7 @@ def fixture_static_inputs(
     layer_structure = fixture_core_components.layer_structure
     abiotic_constants = fixture_abiotic_constants
     time_index = 0
+    days = 30
 
     canopy_height = np.nan_to_num(data["layer_heights"][1].to_numpy())
 
@@ -974,7 +1006,7 @@ def fixture_static_inputs(
         np.nansum(data["leaf_area_index"][indices.canopy].to_numpy(), axis=0)
     )
 
-    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
@@ -1025,13 +1057,13 @@ def fixture_static_inputs(
     return {
         "canopy_height": canopy_height,
         "lai_sum": leaf_area_index_sum,
-        "evapotranspiration": evapotranspiration,
+        "evapotranspiration": evapotranspiration.to_numpy() / days,
         "atmospheric_pressure": atmospheric_pressure_true,
         "atmospheric_co2": atmospheric_co2_true,
         "geometry": atmospheric_layer_geometry,
         "absorbed_longwave_radiation": absorbed_longwave_radiation,
         "cell_area": cell_area,
-        "mixing_coefficient": mixing_coefficient,
+        "mixing_coefficient": mixing_coefficient.to_numpy(),
         "zero_plane_displacement": zero_plane_displacement,
         "wind_speed": wind_speed,
         "ventialtion_rate": ventilation_rate,
@@ -1046,7 +1078,7 @@ def fixture_state_inputs(
 
     data = dummy_climate_data_varying_canopy
     n_layers, n_cells = data["air_temperature"].shape
-
+    days = 30
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     return {
@@ -1055,7 +1087,7 @@ def fixture_state_inputs(
         "atmospheric_pressure": data["atmospheric_pressure"].to_numpy(),
         "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
         "canopy_temperature": data["canopy_temperature"].to_numpy(),
-        "evapotranspiration": evapotranspiration.to_numpy(),
+        "evapotranspiration": evapotranspiration.to_numpy() / days,
         "shortwave_absorption": data["shortwave_absorption"].to_numpy(),
         "specific_heat_air": data["specific_heat_air"].to_numpy(),
         "density_air": data["density_air"].to_numpy(),

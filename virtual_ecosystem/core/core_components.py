@@ -7,6 +7,7 @@ these components to be cascaded down to individual model subclass instances via 
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import InitVar, dataclass, field
 
 import numpy as np
@@ -617,3 +618,73 @@ class LayerStructure:
     def index_surface_scalar(self) -> int:
         """Layer indices for the surface layer."""
         return self._role_indices_scalar["surface"]
+
+
+class DisturbanceTiming:
+    """Implement the timing for disturbance models."""
+
+    def __init__(
+        self,
+        model_timing: ModelTiming,
+        run_at: int | tuple[int, ...] = (),
+        run_every: tuple[int, ...] = (),
+    ) -> None:
+        """Constructor for the DisturbanceTiming class.
+
+        At least 'run_at' or 'run_every' need to be provided. 'run_at' takes precedence.
+
+        Args:
+            model_timing: The timing for the models.
+            run_at: Either a single integer or a tuple of integers indicating the time
+                indices when the disturbance is to run.
+            run_every: A tuple of integers indicating (start), or (start, step), or
+                (start, step, stop), from where a list of integers indicating the time
+                indices when the disturbance is to run can be constructed. If not
+                provided, 'step' defaults to 1 and 'stop' defaults to the last time
+                index. 'start' must always be provided.
+
+        """
+
+        if run_at != ():
+            self._run_at = sorted(run_at) if isinstance(run_at, Iterable) else [run_at]
+
+        elif run_every != ():
+            match len(run_every):
+                case 1:
+                    start = run_every[0]
+                    step = 1
+                    stop = model_timing.n_updates
+                case 2:
+                    start, step = run_every
+                    stop = model_timing.n_updates
+                case 3:
+                    start, step, stop = run_every
+                case _:
+                    raise ValueError(
+                        "Invalid disturbance timing: 'run_every' must have 1, 2 or 3 "
+                        f"elements. {len(run_every)} found."
+                    )
+            self._run_at = list(range(start, stop, step))
+
+        else:
+            raise ValueError(
+                "Invalid disturbance timing: either 'run_at' or 'run_every' must be "
+                "provided."
+            )
+
+        if self._run_at[0] < 0 or self._run_at[-1] >= model_timing.n_updates:
+            raise ValueError(
+                "Invalid disturbance timing: 'run_at' values must be between 0 and"
+                f" {model_timing.n_updates - 1}"
+            )
+
+    def check_run(self, time_index) -> bool:
+        """Check if the disturbance needs to be run.
+
+        Args:
+            time_index: The index of the time to check.
+
+        Return:
+            True if the disturbance must be run, False otherwise.
+        """
+        return True if time_index in self._run_at else False

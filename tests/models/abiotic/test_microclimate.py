@@ -8,49 +8,6 @@ from virtual_ecosystem.models.abiotic.abiotic_tools import finite_and_within
 from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
 
-def test_compute_weights_with_nans():
-    """Test that compute_weights_from_absorbed_radiation correctly handles NaNs."""
-
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        compute_weights_from_absorbed_radiation,
-    )
-
-    radiation = np.array([[1.0, np.nan], [3.0, 6.0]])
-    weights = compute_weights_from_absorbed_radiation(radiation)
-
-    # NaN remains NaN
-    assert np.isnan(weights[0, 1])
-
-    # Valid values still normalize to 1
-    assert np.isclose(np.nansum(weights), 1.0)
-
-
-def test_compute_weights_zero_total_raises():
-    """Test that compute_weights_from_absorbed_radiation raises ValueError."""
-
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        compute_weights_from_absorbed_radiation,
-    )
-
-    radiation = np.array([[0.0, 0.0], [0.0, 0.0]])
-
-    with pytest.raises(ValueError):
-        compute_weights_from_absorbed_radiation(radiation)
-
-
-def test_all_nan_raises():
-    """Test that compute_weights_from_absorbed_radiation raises Error when NaN."""
-
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        compute_weights_from_absorbed_radiation,
-    )
-
-    radiation = np.array([[np.nan, np.nan], [np.nan, np.nan]])
-
-    with pytest.raises(ValueError):
-        compute_weights_from_absorbed_radiation(radiation)
-
-
 def test_prepare_static_inputs_returns_consistent_outputs(
     dummy_climate_data_varying_canopy,
     fixture_core_components,
@@ -91,12 +48,14 @@ def test_prepare_static_inputs_returns_consistent_outputs(
     # Shape checks
     n_cells = data.grid.n_cells
     n_layers = layer_structure.n_layers
+    atm_layers = layer_structure.index_filled_atmosphere
 
     assert result["canopy_height"].shape == (n_cells,)
     assert result["lai_sum"].shape == (n_cells,)
     assert result["evapotranspiration"].shape == (n_layers, n_cells)
     assert result["atmospheric_pressure"].shape == (n_layers, n_cells)
     assert result["atmospheric_co2"].shape == (n_layers, n_cells)
+    assert result["geometry"]["thickness"].shape == (atm_layers.sum(), n_cells)
 
     # Physical plausibility checks
     # Canopy height must be >= 0
@@ -218,13 +177,18 @@ def test_generate_hourly_forcing(
     dummy_climate_data_varying_canopy,
     fixture_static_inputs,
     fixture_core_components,
+    fixture_abiotic_constants,
 ):
     """Test generate_hourly_forcing with prepared static inputs."""
 
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_total_absorbed_shortwave_radiation,
+    )
     from virtual_ecosystem.models.abiotic.microclimate import generate_hourly_forcing
 
     data = dummy_climate_data_varying_canopy
     static_inputs = fixture_static_inputs
+    abiotic_constants = fixture_abiotic_constants
     time_index = 0
     month = 2
     days = 30
@@ -237,6 +201,7 @@ def test_generate_hourly_forcing(
         month=month,
         days=days,
         latitude=latitude,
+        abiotic_constants=abiotic_constants,
     )
 
     # Shape checks
@@ -273,20 +238,30 @@ def test_generate_hourly_forcing(
     mask = ~np.isnan(static_inputs["evapotranspiration"])
 
     monthly_sum_et = np.nansum(forcing["evapotranspiration_hourly"], axis=0) * 30
-    monthly_sum_sw_abs = np.nansum(forcing["shortwave_absorption_hourly"], axis=0)
     monthly_sum_soil_evap = np.nansum(forcing["soil_evaporation_hourly"], axis=0) * 30
 
-    assert np.allclose(
+    np.testing.assert_allclose(
         monthly_sum_et[mask], static_inputs["evapotranspiration"][mask], rtol=1e-5
     )
-    assert np.allclose(
-        monthly_sum_sw_abs[mask],
-        data["shortwave_absorption"].to_numpy()[mask],
-        rtol=1e-5,
-    )
-    assert np.allclose(
+    np.testing.assert_allclose(
         monthly_sum_soil_evap,
         data["soil_evaporation"].to_numpy(),
+        rtol=1e-5,
+    )
+
+    monthly_sum_sw_abs = np.nansum(forcing["shortwave_absorption_hourly"], axis=0)
+    total_shortwave_absorption = calculate_total_absorbed_shortwave_radiation(
+        downward_shortwave_radiation=data["downward_shortwave_radiation"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        shortwave_absorption_by_canopy=data["shortwave_absorption"].to_numpy(),
+        fraction_par_used=abiotic_constants.fraction_par_used_for_photosynthesis,
+        leaf_absorptance_non_par=abiotic_constants.leaf_absorptance_non_par,
+        par_fraction=abiotic_constants.par_fraction_of_shortwave_radiation,
+    )
+    np.testing.assert_allclose(
+        np.nansum(total_shortwave_absorption),
+        np.nansum(monthly_sum_sw_abs),
         rtol=1e-5,
     )
 
@@ -663,6 +638,7 @@ def test_update_atmospheric_humidity(
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
     pyrealm_core_constants = PyrealmCoreConst()
+    abiotic_bounds = AbioticSimpleBounds()
 
     vp_sat = calc_vp_sat(
         ta=state["air_temperature"],
@@ -674,6 +650,7 @@ def test_update_atmospheric_humidity(
         pyrealm_core_constants=pyrealm_core_constants,
         core_constants=core_constants,
         abiotic_constants=abiotic_constants,
+        abiotic_bounds=abiotic_bounds,
         idx=idx,
         time_interval=3600,
     )
@@ -685,6 +662,7 @@ def test_update_atmospheric_humidity(
         "vapour_pressure",
         "vapour_pressure_deficit",
         "specific_humidity",
+        "condensation",
     ]:
         assert key in result
         assert isinstance(result[key], np.ndarray)
@@ -694,14 +672,17 @@ def test_update_atmospheric_humidity(
     assert np.all(result["specific_humidity"][mask] >= 0.00)
 
     # VPD should be reduced where evapotranspiration or mixing adds moisture
-    assert np.all(result["vapour_pressure_deficit"][mask] >= 0.0)
+    assert np.all(result["vapour_pressure_deficit"][mask] > 0.0)
     assert np.all(result["vapour_pressure"][mask] <= vp_sat[mask])
 
     # RH should be between 0 and 100
     assert np.all(
-        (result["relative_humidity"][mask] >= 0)
-        & (result["relative_humidity"][mask] <= 100)
+        (result["relative_humidity"][mask] > 0)
+        & (result["relative_humidity"][mask] < 100)
     )
+
+    # Condensation should be >=0
+    assert np.all(result["condensation"][mask] >= 0)
 
 
 def test_run_hour_step_orchestration(
@@ -734,7 +715,7 @@ def test_run_hour_step_orchestration(
     abiotic_bounds = AbioticSimpleBounds()
 
     # get inputs
-    state = state = initialize_state(
+    state = initialize_state(
         data=data,
     )
     static = fixture_static_inputs
@@ -745,6 +726,7 @@ def test_run_hour_step_orchestration(
         month=1,
         days=days,
         latitude=0,
+        abiotic_constants=abiotic_constants,
     )
     wind = calculate_wind_profiles(
         static=static,
@@ -801,6 +783,7 @@ def test_run_hour_step_orchestration(
         "vapour_pressure": (14, 4),
         "vapour_pressure_deficit": (14, 4),
         "specific_humidity": (14, 4),
+        "condensation": (14, 4),
     }
 
     for key, shape in expected_static.items():
@@ -1011,6 +994,7 @@ def test_run_microclimate(
         "atmospheric_co2",
         "net_radiation",
         "diurnal_temperature_range",
+        "condensation",
     )
     time_interval = 3600
     time_index = 0

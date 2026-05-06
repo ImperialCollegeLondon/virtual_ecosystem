@@ -117,6 +117,11 @@ class AnimalConstants(Configuration):
                 DietType.CARNIVORE: (-0.75, 2.00),
                 DietType.OMNIVORE: (-0.75, 3.00),
             },
+            TaxaType.REPTILE: {
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
+            },
         }
     )
     """Damuth Law terms, structured by taxonomic type and broad diet category."""
@@ -124,9 +129,8 @@ class AnimalConstants(Configuration):
     madingley_biomass_scaling_terms: tuple[float, float] = (0.6, 300000.0)
     """Biomass scaling terms from the Madingley model."""
 
-    metabolic_scaling_coefficients: tuple[float, float, float] = (
+    metabolic_scaling_coefficients: tuple[float, float] = (
         0.037,  # Es
-        0.5,  # sig
         0.69,  # Ea
     )
     r"""Metabolic rate scaling coefficients.
@@ -136,8 +140,6 @@ class AnimalConstants(Configuration):
     relationship with temperature. The three values are:
 
     * :math:`E_s` - energy to mass conversion constant (g/kJ)
-    * :math:`\sigma` - proportion of time-step with temp in active range (toy default
-      value)
     * :math:`E_a` - aggregate activation energy of metabolic reactions
     """
 
@@ -193,6 +195,7 @@ class AnimalConstants(Configuration):
             MetabolicType.ECTOTHERMIC: {
                 TaxaType.INVERTEBRATE: (1.0, 1.0),
                 TaxaType.AMPHIBIAN: (1.0, 1.0),
+                TaxaType.REPTILE: (1.0, 1.0),
             },  # Toy values
         }
     )
@@ -204,6 +207,7 @@ class AnimalConstants(Configuration):
             TaxaType.BIRD: {"C": 0.4, "N": 0.3, "P": 0.3},
             TaxaType.INVERTEBRATE: {"C": 0.4, "N": 0.2, "P": 0.4},
             TaxaType.AMPHIBIAN: {"C": 0.4, "N": 0.2, "P": 0.4},
+            TaxaType.REPTILE: {"C": 0.4, "N": 0.2, "P": 0.4},
         }
     )
     """Stoichiometric proportions structured by taxon type."""
@@ -221,9 +225,6 @@ class AnimalConstants(Configuration):
 
     tau_f: float = 0.5  # tau_f
     """Proportion of time for which functional group is active."""
-    sigma_f_t: float = 1.0  # sigma_f(t) - Madingley, in S1 TODO: expand for ectotherms
-    """Proportion of the time step in which it's suitable to be active for functional
-    group f."""
 
     # Trophic parameters
 
@@ -287,6 +288,20 @@ class AnimalConstants(Configuration):
     """Intercept of the relationship between monthly temperature variability and the
     optimal temperature relative to annual mean temperature, for terrestrial
     ectothermic functional groups."""
+
+    # Placeholder climate inputs for activity window computation.
+    # TODO: replace with dynamic per-cell values from the abiotic model once the
+    # required variables ( annual mean temperature, annual
+    # temperature SD) are exposed via the data object.
+
+    placeholder_annual_mean_temp: float = 20.0
+    """Annual mean temperature used as a toy stand-in for $T_{Annual}^C$ [°C].
+    Replace once abiotic model exposes this."""
+
+    placeholder_annual_temp_sd: float = 5.0
+    """Standard deviation of monthly temperatures across the climatological year,
+    used as a toy stand-in for $\\sigma_{T_{Annual}^C}$ [°C]. Replace once abiotic
+    model exposes this."""
 
     # Madingley dispersal parameters
 
@@ -401,6 +416,10 @@ class AnimalConstants(Configuration):
                         1.13,
                     ),  # Ofstad et al. (2016), ungulates, closed habitat
                     TaxaType.AMPHIBIAN: (
+                        -6.09,
+                        1.13,
+                    ),  # Ofstad et al. (2016), ungulates, closed habitat
+                    TaxaType.REPTILE: (
                         -6.09,
                         1.13,
                     ),  # Ofstad et al. (2016), ungulates, closed habitat

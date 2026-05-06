@@ -100,6 +100,7 @@ def test_setup_hydrology_input_current_timestep(
         "top_soil_moisture_residual",
         "groundwater_storage",
         "current_soil_moisture",
+        "condensation",
     ]
 
     assert set(result.keys()) == set(var_list)

@@ -180,9 +180,8 @@ model and then iterate over a time series.
 ### Array data
 
 Most of the data required by the Virtual Ecosystem is organised on well defined axes and
-so is imported into a central data store (see [the data object](./data/data.md) for
-details). These input data are typically stored in NetCDF format files, which is a
-format designed around array data on defined axes.
+so is imported into a central data store. These input data are typically stored in
+NetCDF format files, which is a format designed around array data on defined axes.
 
 The data in the files then needs to be linked into the variables required by the Virtual
 Ecosystem model. This is set in the configuration TOML files using the
@@ -240,19 +239,19 @@ for section, dataset in sections:
 The `data` directory also provides some model specific files that are required to
 initialise a simulation:
 
-### Plant functional type definitions
+#### Plant functional type definitions
 
 The `plants_pft.csv` file is a CSV file that contains a set of plant functional types.
 It defines a set of named PFTs and then provides a set of traits that define the
 behaviour of individuals in each PFT.
 
-### Initial plant cohort data
+#### Initial plant cohort data
 
 The `example_plant_cohorts.csv` file is a CSV file that defines the initial plant
 communities found in each cell. It provides a set of rows identifying size structured
 cohorts of PFTs occurring in each cell.
 
-### Animal functional group definitions
+#### Animal functional group definitions
 
 The `animal_functional_groups.csv` file is a CSV file that defines the animal functional
 groups to be used within the simulation. Each row defines a uniquely named functional
@@ -399,7 +398,7 @@ The example model data directory also contains:
    You don't really need to look at these, but they provide simple recipes for creating
    or editing the example data files, so might be useful for tinkering with the example
    inputs. For any real model you want to fit, you will need to prepare actual
-   [data inputs](./model_data_inputs.md) using data for your ecosystem.
+   [data inputs](./model_details/overview.md) using data for your ecosystem.
 
 * The `static_config` directory is empty and is used as part of the advanced usage of
   [static models](./virtual_ecosystem_in_static_mode.ipynb) in the Virtual Ecosystem.
