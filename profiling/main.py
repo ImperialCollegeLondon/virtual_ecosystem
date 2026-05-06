@@ -9,6 +9,8 @@ Managing virtual environments:
 * The specific command to activate your virtual environment will vary based on your OS.
 4) Run `python profiling/main.py` in any Python terminal.
 
+Note: profiling uses the example data. Make sure the example data is installed at data/ve_example (`ve_run --install-example data/`)
+
 See the general Python docs for further information on virtual environments and installation: https://docs.python.org/dev/tutorial/venv.html#tut-venv
 """
 
@@ -26,7 +28,7 @@ ver = ver.replace(".", "_")
 truncation = 3
 
 """The OS you are running the code on. Options: "windows", "linux", "mac"."""
-user_os = "windows"
+user_os = "mac"
 
 
 # Designate the path from the root directory.
@@ -94,7 +96,7 @@ command_ve_run = (
 )
 
 # Run the terminal command within this script via the `subprocess` library.
-subprocess.run(command_ve_run.split(), shell=True)
+subprocess.run(command_ve_run, shell=True)
 
 
 # The terminal command if you want to view the results table and/or visual breakdown.

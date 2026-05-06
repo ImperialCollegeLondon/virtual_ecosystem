@@ -44,6 +44,7 @@ dependencies = [
   "types-tabulate (>0.9)",
   "pydantic (>=2.13.2,<3.0.0)",
   "bottleneck (>=1.6.0,<2.0.0)",
+  "snakeviz (>=2.2.2,<3.0.0)",
 ]
 
 [project.scripts]
