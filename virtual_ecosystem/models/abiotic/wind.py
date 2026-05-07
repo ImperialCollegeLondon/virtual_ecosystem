@@ -371,7 +371,7 @@ def next_valid_below(array: NDArray[np.floating]) -> NDArray[np.int_]:
 
     Args:
         array: A 2D array with vertical layers as the first dimension and columns as
-        the second dimension. NaN values represent invalid or unoccupied layers.
+            the second dimension. NaN values represent invalid or unoccupied layers.
 
     Returns:
         A 2D array of the same shape as the input, where each element contains the index
