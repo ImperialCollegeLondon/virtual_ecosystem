@@ -230,10 +230,10 @@ def calculate_ventilation_rate(
     """
 
     denominator = np.maximum(aerodynamic_resistance * characteristic_height, 1e-3)
-    ventialtion_rate = 1.0 / denominator
+    ventilation_rate = 1.0 / denominator
 
     return np.where(
-        characteristic_height == 0.0, understorey_ventilation_rate, ventialtion_rate
+        characteristic_height == 0.0, understorey_ventilation_rate, ventilation_rate
     )
 
 
@@ -354,14 +354,13 @@ def next_valid_above(array: NDArray[np.floating]) -> NDArray[np.int_]:
     """
 
     n_layers, n_cols = array.shape
-    out = np.full((n_layers, n_cols), -1, dtype=int)
 
+    out = np.empty((n_layers, n_cols), dtype=int)
     last_valid = np.full(n_cols, -1, dtype=int)
 
     for i in range(n_layers):
-        out[i] = last_valid.copy()
-        valid = ~np.isnan(array[i])
-        last_valid[valid] = i
+        out[i] = last_valid
+        last_valid[~np.isnan(array[i])] = i
 
     return out
 
@@ -380,14 +379,13 @@ def next_valid_below(array: NDArray[np.floating]) -> NDArray[np.int_]:
     """
 
     n_layers, n_cols = array.shape
-    out = np.full((n_layers, n_cols), -1, dtype=int)
 
+    out = np.empty((n_layers, n_cols), dtype=int)
     last_valid = np.full(n_cols, -1, dtype=int)
 
     for i in range(n_layers - 1, -1, -1):
-        out[i] = last_valid.copy()
-        valid = ~np.isnan(array[i])
-        last_valid[valid] = i
+        out[i] = last_valid
+        last_valid[~np.isnan(array[i])] = i
 
     return out
 
