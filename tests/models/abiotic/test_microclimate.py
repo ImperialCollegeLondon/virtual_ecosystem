@@ -48,14 +48,13 @@ def test_prepare_static_inputs_returns_consistent_outputs(
     # Shape checks
     n_cells = data.grid.n_cells
     n_layers = layer_structure.n_layers
-    atm_layers = layer_structure.index_filled_atmosphere
 
     assert result["canopy_height"].shape == (n_cells,)
     assert result["lai_sum"].shape == (n_cells,)
     assert result["evapotranspiration"].shape == (n_layers, n_cells)
     assert result["atmospheric_pressure"].shape == (n_layers, n_cells)
     assert result["atmospheric_co2"].shape == (n_layers, n_cells)
-    assert result["geometry"]["thickness"].shape == (atm_layers.sum(), n_cells)
+    assert result["geometry"]["thickness"].shape == (n_layers, n_cells)
 
     # Physical plausibility checks
     # Canopy height must be >= 0
@@ -728,6 +727,7 @@ def test_run_hour_step_orchestration(
         latitude=0,
         abiotic_constants=abiotic_constants,
     )
+
     wind = calculate_wind_profiles(
         static=static,
         data=data,
