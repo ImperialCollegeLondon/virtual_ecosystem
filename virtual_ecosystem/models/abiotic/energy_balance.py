@@ -523,8 +523,10 @@ def update_humidity_vpd(
         atmospheric_pressure - saturated_vapour_pressure, denominator_tolerance
     )
 
-    # Excess humidity goes to condensation
+    # Negative values mean supersaturation
     specific_humidity_deficit = saturation_specific_humidity - specific_humidity_mixed
+
+    # Excess humidity available for condensation, [kg kg-1]
     excess_specific_humidity = np.where(
         specific_humidity_deficit > 0,
         0.0,
@@ -532,7 +534,10 @@ def update_humidity_vpd(
     )
 
     # Convert excess to condensed water, [mm]
-    condensation_mm = -excess_specific_humidity * air_mass_per_layer / mm_to_kg
+    condensed_water_mass = -excess_specific_humidity * air_mass_per_layer
+
+    # Convert to equivalent water depth, [mm]
+    condensation_mm = condensed_water_mass / cell_area
 
     # Remove excess from air, not the sign of the excess is negative
     specific_humidity_updated = specific_humidity_mixed + excess_specific_humidity
