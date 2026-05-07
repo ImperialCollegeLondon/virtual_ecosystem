@@ -307,7 +307,7 @@ def test_update_air_temperature(dummy_climate_data_varying_canopy):
 
 
 def test_update_specific_humidity(
-    dummy_climate_data_varying_canopy, fixture_core_components, fixture_core_constants
+    dummy_climate_data_varying_canopy, fixture_core_components
 ):
     """Test update specific humidity."""
 
@@ -370,7 +370,6 @@ def test_update_humidity_vpd(
 
     data = dummy_climate_data_varying_canopy
     lystr = fixture_core_components.layer_structure
-    canopy_index = lystr.index_filled_canopy
     atm_index = lystr.index_filled_atmosphere
     pyr_const = PyrealmCoreConst()
 
@@ -378,7 +377,6 @@ def test_update_humidity_vpd(
         heights=data["layer_heights"][atm_index].to_numpy()
     )
 
-    evapotranspiration = data["transpiration"] + data["canopy_evaporation"]
     saturated_vapour_pressure = calc_vp_sat(
         ta=data["air_temperature"][atm_index].to_numpy(), core_const=pyr_const
     )
@@ -391,34 +389,15 @@ def test_update_humidity_vpd(
             [0.012, 0.012, 0.012, 0.012],
         ]
     )
-
-    mixing_coefficient = np.array(
-        [
-            [0.001, 0.001, 0.001, 0.001],
-            [0.005, 0.005, 0.005, np.nan],
-            [0.01, 0.01, np.nan, np.nan],
-            [0.001, np.nan, np.nan, np.nan],
-            [0.012, 0.012, 0.012, 0.012],
-        ]
-    )
-    ventilation_rate = np.array([0.01, 0.01, 0.01, 0.01])
-    time_interval = 3600.0
     mask = np.isnan(specific_humidity)
 
     # Run function
     result = update_humidity_vpd(
-        canopy_evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
-        understorey_evapotranspiration=evapotranspiration[
-            lystr.index_surface_scalar
-        ].to_numpy(),
-        soil_evaporation=data["soil_evaporation"].to_numpy(),
         saturated_vapour_pressure=saturated_vapour_pressure,
-        specific_humidity=specific_humidity,
+        specific_humidity_mixed=specific_humidity,
         layer_thickness=above_ground_layer_thickness,
         atmospheric_pressure=data["atmospheric_pressure"][atm_index].to_numpy(),
         density_air=data["density_air"][atm_index].to_numpy(),
-        mixing_coefficient=mixing_coefficient,
-        ventilation_rate=ventilation_rate,
         molecular_weight_ratio_water_to_dry_air=(
             fixture_core_constants.molecular_weight_ratio_water_to_dry_air
         ),
@@ -426,9 +405,7 @@ def test_update_humidity_vpd(
         - fixture_core_constants.molecular_weight_ratio_water_to_dry_air,
         mm_to_kg=1e-3,
         cell_area=fixture_core_components.grid.cell_area,
-        limits_specific_humidity=(0, 60),
         limits_relative_humidity=(0.001, 99.999),
-        time_interval=time_interval,
         denominator_tolerance=1e-12,
         limits_vapour_pressure_deficit=(0.01, 50),
     )
