@@ -442,6 +442,7 @@ def calculate_thermodynamics(
         aerodynamic_resistance=aerodynamic_resistance_canopy,
         characteristic_height=static["canopy_height"]
         + static["zero_plane_displacement"],
+        understorey_ventilation_rate=abiotic_constants.understorey_ventilation_rate,
     )
 
     return {
@@ -671,6 +672,7 @@ def update_air_temperature(
         ventilation_rate=state["ventilation_rate"],
         mixing_coefficient=static["mixing_coefficient"],
         limits=abiotic_bounds.air_temperature[:2],
+        surface_index=idx.surface,
     )
 
     return air_temperature

@@ -208,23 +208,33 @@ def calculate_friction_velocity(
 def calculate_ventilation_rate(
     aerodynamic_resistance: float | NDArray[np.floating],
     characteristic_height: float | NDArray[np.floating],
+    understorey_ventilation_rate: float,
 ) -> NDArray[np.floating]:
     """Calculate ventilation rate from the top of the canopy to atmosphere above.
 
     This function calculates the rate of water and heat exchange between the top of the
     canopy and the atmosphere above after :cite:t:`wolfe_forest_2011`.
 
+    If the canopy height is zero, the value is set to a default value for understorey
+    ventilation.
+
     Args:
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
         characteristic_height: Vertical scale of exchange, typically canopy height +
             zero plane displacement height [m]
+        understorey_ventilation_rate: Understorey ventilation rate, [s-1]. This is used
+            in case there is no canopy.
 
     Returns:
         Ventilation rate [s-1]
     """
 
     denominator = np.maximum(aerodynamic_resistance * characteristic_height, 1e-3)
-    return 1.0 / denominator
+    ventialtion_rate = 1.0 / denominator
+
+    return np.where(
+        characteristic_height == 0.0, understorey_ventilation_rate, ventialtion_rate
+    )
 
 
 def calculate_mixing_coefficients_canopy(
@@ -331,7 +341,7 @@ def clamp_variable_within_limits(
 
 
 def next_valid_above(array: NDArray[np.floating]) -> NDArray[np.int_]:
-    """Index of nearest valid value above each layer (per column).
+    """Index of nearest valid value above each layer.
 
     Args:
         array: A 2D array with vertical layers as the first dimension and columns as
@@ -357,7 +367,7 @@ def next_valid_above(array: NDArray[np.floating]) -> NDArray[np.int_]:
 
 
 def next_valid_below(array: NDArray[np.floating]) -> NDArray[np.int_]:
-    """Index of nearest valid value below each layer (per column).
+    """Index of nearest valid value below each layer.
 
     Args:
         array: A 2D array with vertical layers as the first dimension and columns as
@@ -387,6 +397,7 @@ def mix_and_ventilate(
     mixing_coefficient: NDArray[np.floating],
     ventilation_rate: NDArray[np.floating],
     limits: tuple[float, float],
+    surface_index: int,
 ) -> NDArray[np.floating]:
     """Apply vertical mixing and top-layer ventilation across multiple vertical layers.
 
@@ -409,6 +420,7 @@ def mix_and_ventilate(
         mixing_coefficient: Turbulent mixing coefficients for canopy, [m2 s-1]
         ventilation_rate: Ventilation rate, [s-1]
         limits: Upper and lower limit for input variable, avoid overshoot when mixing
+        surface_index: Surface layer index
 
     Returns:
         Vertically mixed input variable
@@ -419,24 +431,17 @@ def mix_and_ventilate(
 
     # Extract neighbor indices
     above_idx = next_valid_above(current)
-    below_idx = next_valid_below(current)
 
     # Set mixing coefficient for top layer to ventilation rate, as this is the
-    # rate at which the top layer is mixed with the atmosphere above, rather
-    # than with a layer above it
+    # rate at which the top canopy layer is mixed with the atmosphere above.
     mixing_coefficient = mixing_coefficient.copy()
-
     mixing_coefficient[0, :] = ventilation_rate
     cols = np.broadcast_to(np.arange(n_cols), (n_layers, n_cols))
 
-    # Gather neighbours above and below
+    # Gather neighbours above
     above = np.full_like(current, np.nan)
     mask_above = above_idx >= 0
     above[mask_above] = current[above_idx[mask_above], cols[mask_above]]
-
-    below = np.full_like(current, np.nan)
-    mask_below = below_idx >= 0
-    below[mask_below] = current[below_idx[mask_below], cols[mask_below]]
 
     # Mask valid (non-NaN) values to exclude unoccupied layers from mixing
     valid = ~np.isnan(current)
@@ -446,30 +451,23 @@ def mix_and_ventilate(
     no_canopy = ~canopy_exists
 
     mix_above = np.zeros_like(current)
-    mix_below = np.zeros_like(current)
 
     # Normal case: canopy exists
     mask_above_mix = valid & mask_above & canopy_exists[None, :]
-    mask_below_mix = valid & mask_below & canopy_exists[None, :]
 
     mix_above[mask_above_mix] = mixing_coefficient[mask_above_mix] * (
         above[mask_above_mix] - current[mask_above_mix]
     )
 
-    mix_below[mask_below_mix] = mixing_coefficient[mask_below_mix] * (
-        below[mask_below_mix] - current[mask_below_mix]
-    )
-
     # No canopy fallback
     if np.any(no_canopy):
-        surface_idx = n_layers - 3  # TODO
-        diff = current[0, no_canopy] - current[surface_idx, no_canopy]
-        mix_above[surface_idx, no_canopy] += ventilation_rate[no_canopy] * diff
+        diff = current[0, no_canopy] - current[surface_index, no_canopy]
+        mix_above[surface_index, no_canopy] += ventilation_rate[no_canopy] * diff
         mix_above[0, no_canopy] -= ventilation_rate[no_canopy] * diff
 
     # Vertical mixing
-    result = current + mix_above + mix_below
-
+    result = current + mix_above
+    print(clamp_variable_within_limits(result, limits))
     # Return after clamping within limits to prevent overshooting and negative values
     return clamp_variable_within_limits(result, limits)
 

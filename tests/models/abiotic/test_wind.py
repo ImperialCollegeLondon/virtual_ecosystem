@@ -96,33 +96,22 @@ def test_calculate_friction_velocity(dummy_climate_data_varying_canopy):
     assert_allclose(result, exp_friction_velocity, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_ventilation_rate_scalar():
-    """Test calculate ventilation rate scalar."""
+def test_calculate_ventilation_rate():
+    """Test calculate ventilation rate."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         calculate_ventilation_rate,
     )
 
-    ra = 50.0
-    h = 20.0
-    expected = 1.0 / 1000.0
+    aerodynamic_resistance = np.array([10.0, 50.0, 0.0, 10.0])
+    characteristic_height = np.array([2.0, 20.0, 1.0, 0.0])
+    expected = np.array([5.0e-02, 1.0e-03, 1.0e03, 0.1])
 
-    result = calculate_ventilation_rate(ra, h)
-    assert np.isclose(result, expected)
-
-
-def test_calculate_ventilation_rate_array():
-    """Test calculate ventilation rate array."""
-
-    from virtual_ecosystem.models.abiotic.wind import (
-        calculate_ventilation_rate,
+    result = calculate_ventilation_rate(
+        aerodynamic_resistance=aerodynamic_resistance,
+        characteristic_height=characteristic_height,
+        understorey_ventilation_rate=0.1,
     )
-
-    ra = np.array([10.0, 50.0, 0.0])
-    h = np.array([2.0, 20.0, 1.0])
-    expected = np.array([5.0e-02, 1.0e-03, 1.0e03])
-
-    result = calculate_ventilation_rate(ra, h)
     assert_allclose(result, expected)
 
 
@@ -133,11 +122,15 @@ def test_calculate_ventilation_rate_zero_denominator():
         calculate_ventilation_rate,
     )
 
-    ra = 0.0
-    h = 0.0
+    aerodynamic_resistance = 0.0
+    characteristic_height = 10.0
     expected = 1.0 / 1e-3
 
-    result = calculate_ventilation_rate(ra, h)
+    result = calculate_ventilation_rate(
+        aerodynamic_resistance=aerodynamic_resistance,
+        characteristic_height=characteristic_height,
+        understorey_ventilation_rate=0.1,
+    )
     assert np.isclose(result, expected)
 
 
@@ -309,10 +302,10 @@ def test_mix_and_ventilate():
 
     exp_result = np.array(
         [
-            [104.95, 95.025, 95.025, 95.025],
+            [105.025, 95.0, 95.0, 95.025],
             [100.0, 99.975, 99.975, np.nan],
             [100.0, 100.0, np.nan, np.nan],
-            [90.02, np.nan, np.nan, np.nan],
+            [90.01, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan],
             [99.88, 100.0, 100.0, 99.975],
@@ -326,6 +319,7 @@ def test_mix_and_ventilate():
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
         limits=(0, 100),
+        surface_index=-3,
     )
     assert_allclose(result, exp_result, rtol=1e-6, atol=1e-6)
 
