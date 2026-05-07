@@ -411,6 +411,63 @@ def update_air_temperature(
     return new_air_temperature
 
 
+def update_specific_humidity(
+    evapotranspiration: NDArray[np.floating],
+    soil_evaporation: NDArray[np.floating],
+    specific_humidity: NDArray[np.floating],
+    layer_thickness: NDArray[np.floating],
+    density_air: NDArray[np.floating],
+    mm_to_kg: float,
+    cell_area: float,
+    time_interval: float,
+    surface_index: int,
+) -> NDArray[np.floating]:
+    """Update specific humidity from evapotranspiration and soil evaporation.
+
+    This function adds the water from soil evaporation and canopy evapotranspiration to
+    each atmospheric layer. No limits are applied at this stage and no vertical mixing.
+
+    Args:
+        evapotranspiration: Evapotranspiration, [mm]
+        soil_evaporation: Soil evaporation to surface layer, [mm]
+        saturated_vapour_pressure: Saturated vapour pressure, [kPa]
+        specific_humidity: Specific humidity, [kg kg-1]
+        layer_thickness: Layer thickness, [m]
+        density_air: Density of air, [kg m-3]
+        mm_to_kg: Factor to convert variable unit from millimeters to kilograms of
+            water per square meter
+        cell_area: Grid cell area, [m2]
+        time_interval: Time interval, [s]
+        surface_index: Index of surface layer
+
+    Returns:
+        update specific_humidity, [kg kg-1]
+    """
+
+    # Convert evapotranspiration and soil evaporation [mm] to [kg m2 s-1] time interval
+    evapotranspiration_kg_m2 = evapotranspiration * mm_to_kg / time_interval
+    soil_evap_kg_m2 = soil_evaporation * mm_to_kg / time_interval
+
+    # Calculate air layer volumes [m3]
+    layer_volumes = layer_thickness * cell_area
+    air_mass_per_layer = layer_volumes * density_air
+
+    # Add ET and soil evaporation as mass flux [kg]
+    added_mass = np.zeros_like(layer_thickness)
+    added_mass += evapotranspiration_kg_m2 * cell_area * time_interval
+    added_mass[surface_index] += soil_evap_kg_m2 * cell_area * time_interval
+
+    # Update water mass in air
+    water_mass_in_air = specific_humidity * air_mass_per_layer
+    water_mass_in_air += added_mass
+
+    # Convert back to specific humidity and fill layer above with reference value
+    specific_humidity_out = water_mass_in_air / air_mass_per_layer
+    specific_humidity_out[0, :] = specific_humidity[0, :]
+
+    return specific_humidity_out
+
+
 def update_humidity_vpd(
     canopy_evapotranspiration: NDArray[np.floating],
     understorey_evapotranspiration: NDArray[np.floating],

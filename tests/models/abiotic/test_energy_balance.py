@@ -306,6 +306,59 @@ def test_update_air_temperature(dummy_climate_data_varying_canopy):
     assert np.all(result[valid] < 45.0)
 
 
+def test_update_specific_humidity(
+    dummy_climate_data_varying_canopy, fixture_core_components, fixture_core_constants
+):
+    """Test update specific humidity."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        update_specific_humidity,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    lystr = fixture_core_components.layer_structure
+
+    above_ground_layer_thickness = compute_aboveground_layer_thickness(
+        heights=data["layer_heights"].to_numpy()
+    )
+
+    evapotranspiration = data["transpiration"] + data["canopy_evaporation"]
+    specific_humidity = lystr.from_template()
+    specific_humidity[lystr.index_filled_atmosphere] = np.array(
+        [
+            [0.02, 0.02, 0.02, 0.02],
+            [0.012, 0.012, 0.012, np.nan],
+            [0.014, 0.014, np.nan, np.nan],
+            [0.015, np.nan, np.nan, np.nan],
+            [0.012, 0.012, 0.012, 0.012],
+        ]
+    )
+
+    exp = np.array(
+        [
+            [0.02, 0.02, 0.02, 0.02],
+            [0.01757769, 0.01757769, 0.01386545, np.nan],
+            [0.01798406, 0.01600204, np.nan, np.nan],
+            [0.01741458, np.nan, np.nan, np.nan],
+            [0.56976892, 0.6494502, 0.80881275, 0.80881275],
+        ]
+    )
+
+    result = update_specific_humidity(
+        evapotranspiration=evapotranspiration.to_numpy(),
+        soil_evaporation=data["soil_evaporation"].to_numpy(),
+        specific_humidity=specific_humidity.to_numpy(),
+        layer_thickness=above_ground_layer_thickness,
+        density_air=data["density_air"].to_numpy(),
+        mm_to_kg=1e-3,
+        cell_area=fixture_core_components.grid.cell_area,
+        time_interval=3600.0,
+        surface_index=lystr.index_surface_scalar,
+    )
+
+    np.testing.assert_allclose(exp, result[lystr.index_filled_atmosphere], rtol=1e-6)
+
+
 def test_update_humidity_vpd(
     dummy_climate_data_varying_canopy, fixture_core_components, fixture_core_constants
 ):
