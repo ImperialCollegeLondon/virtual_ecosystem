@@ -467,7 +467,6 @@ def mix_and_ventilate(
 
     # Vertical mixing
     result = current + mix_above
-    print(clamp_variable_within_limits(result, limits))
     # Return after clamping within limits to prevent overshooting and negative values
     return clamp_variable_within_limits(result, limits)
 
