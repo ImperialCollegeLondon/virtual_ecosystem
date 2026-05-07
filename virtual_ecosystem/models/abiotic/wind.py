@@ -404,7 +404,7 @@ def mix_and_ventilate(
     This function simulates diffusion-like mixing between vertical layers based on local
     gradients of atmospheric variables (e.g. temperature, relative humidity) and
     layer-specific mixing coefficients. For each layer, it computes upward and
-    downward fluxes using the nearest valid (finite) values above and below.
+    downward fluxes using the nearest valid (finite) values above.
 
     Additionally, the function applies a ventilation adjustment to the top layer of each
     column, representing heat or water exchange with the  above the canopy. This is
