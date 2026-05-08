@@ -1,7 +1,7 @@
 """Test module for abiotic.abiotic_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import DEBUG, ERROR, INFO
+from logging import ERROR, INFO
 from unittest.mock import patch
 
 import numpy as np
@@ -13,21 +13,7 @@ from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 REQUIRED_INIT_VAR_CHECKS = (
-    (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
-    (DEBUG, "abiotic model: required var 'atmospheric_co2_ref' checked"),
-    (DEBUG, "abiotic model: required var 'atmospheric_pressure_ref' checked"),
-    (DEBUG, "abiotic model: required var 'layer_heights' checked"),
-    (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
-    (DEBUG, "abiotic model: required var 'mean_annual_temperature' checked"),
-    (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
-    (DEBUG, "abiotic model: required var 'shortwave_absorption' checked"),
-    (DEBUG, "abiotic model: required var 'wind_speed_ref' checked"),
-    (DEBUG, "abiotic model: required var 'downward_longwave_radiation' checked"),
-    (DEBUG, "abiotic model: required var 'aerodynamic_resistance_canopy' checked"),
-    (DEBUG, "abiotic model: required var 'specific_heat_air' checked"),
-    (DEBUG, "abiotic model: required var 'latent_heat_vapourisation' checked"),
-    (DEBUG, "abiotic model: required var 'density_air' checked"),
-    (DEBUG, "abiotic model: required var 'condensation' checked"),
+    (INFO, "abiotic model: required initial data variables checked"),
 )
 
 SETUP_MANIPULATIONS = (
@@ -119,18 +105,17 @@ def test_abiotic_model_initialization_no_data(
         )
 
     # Final check that expected logging entries are produced
-
-    expected_var_warnings = (
-        (ERROR, f"abiotic model: init data missing required var '{var}'")
-        for var in AbioticModel.vars_required_for_init
-    )
-
     log_check(
         caplog,
         expected_log=(
-            *expected_var_warnings,
-            (ERROR, "abiotic model: error checking vars_required_for_init, see log."),
+            (
+                ERROR,
+                "abiotic model: input data is missing "
+                "required initialisation variables:",
+            ),
+            (ERROR, "abiotic model: Problems with initial model data: check log."),
         ),
+        match_message_start=True,
     )
 
 
