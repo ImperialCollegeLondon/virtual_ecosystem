@@ -78,6 +78,7 @@ from numpy.typing import NDArray
 from pyrealm.demography.community import Community
 from pyrealm.demography.core import CohortMethods, PandasExporter
 from pyrealm.demography.tmodel import StemAllocation
+from xarray import DataArray
 
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
@@ -121,7 +122,8 @@ class BiomassTissueABC(ABC):
     community: Community
     """The community object that the tissue is associated with."""
     extra_pft_traits: ExtraTraitsPFT
-    # TODO: consider where best to store shared attributes like community.
+    # TODO: consider where best to store shared attributes like community - probably at
+    #       the Biomasses level and synchronise across tissues.
 
     carbon_mass: NDArray[np.floating]
     """An 1D array of tissue carbon mass for each stem in cohorts in the community."""
@@ -176,6 +178,48 @@ class BiomassTissueABC(ABC):
             raise ValueError("add_elemental_masses missing required element.")
         except ValueError:
             raise ValueError("Error adding elements mass - incompatible shapes.")
+
+    def get_relative_carbon_biomass_by_pft(self) -> NDArray[np.floating]:
+        """Get the proportional carbon biomass of each cohort within PFTs for a tissue.
+
+        This is used to distribute herbivory - which happens at the PFT level - back
+        down to individual cohorts, assuming that herbivory is distributed between
+        cohorts of the same PFT in proportion to the available biomass.
+
+        Args:
+            tissue_type: The type of tissue to retrieve (e.g., 'foliage', 'wood').
+
+        Returns:
+            An one-dimensional array with length equal to the number of cohorts giving
+            the proportional carbon biomass of that cohort within the PFT.
+
+        """
+
+        total_pft_carbon_biomass = np.zeros_like(self.carbon_mass)
+
+        # Use boolean indexing to collate the total PFT biomass for each cohort
+        # NOTE - this relies on the community being updated by reference when
+        #        recruitment happens. If this changes then the match of the number of
+        #        columns to the PFTs needs to be maintained some other way.
+        for pft in self.community.flora.name:
+            in_pft = self.community.cohorts.pft_names == pft
+            total_pft_carbon_biomass[in_pft] = self.carbon_mass[in_pft].sum()
+
+        return self.carbon_mass / total_pft_carbon_biomass
+
+    def apply_herbivory(self, herbivory_array: DataArray):
+        """Remove biomass from a tissue to account for herbiivory.
+
+        The input is expected to be a DataArray with a pft dimension matching the number
+        of cohorts and then an element dimension containing C and then each element.
+
+        NOTE - if this class moves to an all array representation of biomasses, then it
+               we should be able just to subtract the incoming array from the current
+               element masses.
+        """
+        self.carbon_mass -= herbivory_array.sel(element="C")
+        for elem_name, elem in self.element_masses.items():
+            elem.actual_element_mass -= herbivory_array.sel(element=elem_name)
 
     @property
     def Cx_ratio(self) -> dict[str, NDArray[np.floating]]:

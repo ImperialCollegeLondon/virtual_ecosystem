@@ -848,14 +848,35 @@ class PlantsModel(
 
         """
 
-        # 1. Reduce canopy fruit and seed biomass following herbivory
-        self.data["canopy_seed_cnp"] -= self.data["canopy_seed_cnp_consumed"]
-        self.data["canopy_fruit_cnp"] -= self.data["canopy_fruit_cnp_consumed"]
+        for cell_id in self.grid.cell_id:
+            community = self.communities[cell_id]
+            biomasses = self.biomasses[cell_id]
 
-        # 2. Decrease LAI to account for herbivory effects on light gathering
+            # 1. Reduce biomasses following herbivory - need to distribute the aggregate
+            #    herbivory per PFT within each cell across the cohorts within the cell.
 
-        # 3. Increase leaf turnover to account for herbivory replacement costs
-        #    within T model
+            for herbivory_tissue in ("fruit", "seed", "foliage"):
+                # Get the tissue
+                tissue = biomasses.get_tissue(herbivory_tissue)
+                # Get the relative carbon biomass of each cohort within its PFT
+                relative_herbivory = tissue.get_relative_carbon_biomass_by_pft()
+
+                # Extract the herbivory for this cell, broadcasts the total PFT
+                # herbivory out to each cohort and then scale by the relative per PFT
+                # biomass of cohorts to distribute the herbivory between cohorts.
+                herbivory_by_cohort = (
+                    self.data[f"canopy_{herbivory_tissue}_cnp_consumed"].sel(
+                        cell_id=cell_id, pft=community.cohorts.pft_names
+                    )
+                    * relative_herbivory[:, np.newaxis]
+                )
+
+                tissue.apply_herbivory(herbivory_by_cohort)
+
+            # 2. Decrease LAI to account for herbivory effects on light gathering
+
+            # 3. Increase leaf turnover to account for herbivory replacement costs
+            #    within T model
 
     def set_shortwave_absorption(self) -> None:
         """Set the shortwave radiation absorption across the vertical layers.
@@ -1319,6 +1340,14 @@ class PlantsModel(
 
                 # Add recruited cohorts
                 community.add_cohorts(new_data=cohorts)
+
+                # NOTE - The step above implicitly keeps the community reference within
+                #        the Biomasses objects up to date with recruitment and hence
+                #        maintains the link between the number of cohorts in the
+                #        community and the number of columns in the biomass arrays.
+                #        This is terribly convenient but was utterly unplanned and is
+                #        all sorts of fugly. If / when this code is updated, something
+                #        needs to maintain this linkage.
 
                 # Extend biomasses.
                 # TODO - This currently uses initialisation from default ratios, but  it
