@@ -148,7 +148,7 @@ class AbioticConstants(AbioticSharedConstants):
     aerodynamic_resistance_canopy_day: float = 20.0
     """Aerodynamic resistance of the canopy during the day, [s m-1]."""
 
-    max_mixing_coefficient: float = 1000.0
+    max_mixing_coefficient: float = 1.0
     """Maximum turbulent mixing coefficients, [m2 s-1].
     """
 
@@ -184,6 +184,9 @@ class AbioticConstants(AbioticSharedConstants):
 
     min_specific_humidity: float = 0.001
     """Minimum value for specific humidity to avoid dividion by zero, [kg kg-1]."""
+
+    understorey_ventilation_rate: float = 0.1
+    """Understorey ventilation rate, comes into place when there is no canopy, [s-1]."""
 
 
 class AbioticConfiguration(ModelConfigurationRoot):

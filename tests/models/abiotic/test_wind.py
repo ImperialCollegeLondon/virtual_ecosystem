@@ -96,33 +96,22 @@ def test_calculate_friction_velocity(dummy_climate_data_varying_canopy):
     assert_allclose(result, exp_friction_velocity, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_ventilation_rate_scalar():
-    """Test calculate ventilation rate scalar."""
+def test_calculate_ventilation_rate():
+    """Test calculate ventilation rate."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         calculate_ventilation_rate,
     )
 
-    ra = 50.0
-    h = 20.0
-    expected = 1.0 / 1000.0
+    aerodynamic_resistance = np.array([10.0, 50.0, 0.0, 10.0])
+    characteristic_height = np.array([2.0, 20.0, 1.0, 0.0])
+    expected = np.array([5.0e-02, 1.0e-03, 1.0e03, 0.1])
 
-    result = calculate_ventilation_rate(ra, h)
-    assert np.isclose(result, expected)
-
-
-def test_calculate_ventilation_rate_array():
-    """Test calculate ventilation rate array."""
-
-    from virtual_ecosystem.models.abiotic.wind import (
-        calculate_ventilation_rate,
+    result = calculate_ventilation_rate(
+        aerodynamic_resistance=aerodynamic_resistance,
+        characteristic_height=characteristic_height,
+        understorey_ventilation_rate=0.1,
     )
-
-    ra = np.array([10.0, 50.0, 0.0])
-    h = np.array([2.0, 20.0, 1.0])
-    expected = np.array([5.0e-02, 1.0e-03, 1.0e03])
-
-    result = calculate_ventilation_rate(ra, h)
     assert_allclose(result, expected)
 
 
@@ -133,11 +122,15 @@ def test_calculate_ventilation_rate_zero_denominator():
         calculate_ventilation_rate,
     )
 
-    ra = 0.0
-    h = 0.0
+    aerodynamic_resistance = 0.0
+    characteristic_height = 10.0
     expected = 1.0 / 1e-3
 
-    result = calculate_ventilation_rate(ra, h)
+    result = calculate_ventilation_rate(
+        aerodynamic_resistance=aerodynamic_resistance,
+        characteristic_height=characteristic_height,
+        understorey_ventilation_rate=0.1,
+    )
     assert np.isclose(result, expected)
 
 
@@ -158,7 +151,7 @@ def test_calculate_mixing_coefficients():
         canopy_height=canopy_height,
         friction_velocity=friction_velocity,
         von_karman_constant=k,
-        max_mixing_coefficient=1000.0,
+        max_mixing_coefficient=1.0,
     )
 
     assert result.shape == layer_midpoints.shape
@@ -209,6 +202,68 @@ def test_clamp_variable_within_limits():
     assert_allclose(variable.sum(axis=0), clamped_variable.sum(axis=0))
 
 
+def test_next_valid_above(dummy_climate_data_varying_canopy):
+    """Test next valid above."""
+    from virtual_ecosystem.models.abiotic.wind import next_valid_above
+
+    data = dummy_climate_data_varying_canopy
+    arr = data["air_temperature"].to_numpy()
+
+    result = next_valid_above(arr)
+
+    expected = np.array(
+        [
+            [-1, -1, -1, -1],
+            [0, 0, 0, 0],
+            [1, 1, 1, 0],
+            [2, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+        ]
+    )
+
+    assert np.array_equal(result, expected)
+
+
+def test_next_valid_below(dummy_climate_data_varying_canopy):
+    """Test next valid below."""
+    from virtual_ecosystem.models.abiotic.wind import next_valid_below
+
+    data = dummy_climate_data_varying_canopy
+    arr = data["air_temperature"].to_numpy()
+
+    result = next_valid_below(arr)
+
+    expected = np.array(
+        [
+            [1, 1, 1, 11],
+            [2, 2, 11, 11],
+            [3, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [-1, -1, -1, -1],
+            [-1, -1, -1, -1],
+            [-1, -1, -1, -1],
+        ]
+    )
+
+    assert np.array_equal(result, expected)
+
+
 def test_mix_and_ventilate():
     """Test mixing and ventilation within bounds."""
 
@@ -222,10 +277,14 @@ def test_mix_and_ventilate():
             [0.005, 0.005, 0.005, np.nan],
             [0.01, 0.01, np.nan, np.nan],
             [0.001, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
             [0.012, 0.012, 0.012, 0.012],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
         ]
     )
-    ventilation_rate = np.array([0.001, 0.001, 0.001, 0.001])
+    ventilation_rate = np.array([0.005, 0.005, 0.005, 0.005])
 
     input_humidity = np.array(
         [
@@ -233,17 +292,25 @@ def test_mix_and_ventilate():
             [110.0, 100.0, 100.0, np.nan],
             [100.0, 100.0, np.nan, np.nan],
             [90.0, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
         ],
     )
 
     exp_result = np.array(
         [
-            [104.925, 95.004995, 95.004995, 95.0],
-            [100.0, 99.990005, 99.990005, np.nan],
-            [100.0, 100, np.nan, np.nan],
-            [90.22, np.nan, np.nan, np.nan],
-            [100.0, 100.0, 100.0, 100.0],
+            [105.025, 95.0, 95.0, 95.025],
+            [100.0, 99.975, 99.975, np.nan],
+            [100.0, 100.0, np.nan, np.nan],
+            [90.01, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [99.88, 100.0, 100.0, 99.975],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
         ]
     )
 
@@ -252,6 +319,7 @@ def test_mix_and_ventilate():
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
         limits=(0, 100),
+        surface_index=-3,
     )
     assert_allclose(result, exp_result, rtol=1e-6, atol=1e-6)
 

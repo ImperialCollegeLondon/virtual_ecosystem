@@ -1,7 +1,7 @@
 """Test module for animal_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import DEBUG, INFO
+from logging import INFO
 
 import numpy as np
 import pytest
@@ -87,68 +87,8 @@ class TestAnimalModel:
                             "successfully extracted.",
                         ),
                         (
-                            DEBUG,
-                            "animal model: required var 'fungal_fruiting_bodies' "
-                            "checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var 'subcanopy_vegetation_cnp' "
-                            "checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var 'subcanopy_seedbank_cnp' "
-                            "checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var 'canopy_foliage_cnp' checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var 'canopy_seed_cnp' checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var 'canopy_fruit_cnp' checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var 'foliage_turnover_cnp' checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var 'seed_turnover_cnp' checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var 'fruit_turnover_cnp' checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var "
-                            "'litter_pool_above_metabolic_cnp' checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var "
-                            "'litter_pool_above_structural_cnp' checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var "
-                            "'litter_pool_woody_cnp' checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var "
-                            "'litter_pool_below_metabolic_cnp' checked",
-                        ),
-                        (
-                            DEBUG,
-                            "animal model: required var "
-                            "'litter_pool_below_structural_cnp' checked",
+                            INFO,
+                            "animal model: required initial data variables checked",
                         ),
                         (
                             INFO,

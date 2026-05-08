@@ -25,6 +25,7 @@ def log_check(
     caplog: pytest.LogCaptureFixture,
     expected_log: tuple[tuple],
     subset: slice | None = None,
+    match_message_start: bool = False,
 ) -> None:
     """Helper function to check that the captured log is as expected.
 
@@ -32,6 +33,8 @@ def log_check(
         caplog: An instance of the caplog fixture
         expected_log: An iterable of 2-tuples containing the log level and message.
         subset: Only check a specified subset of the captured log.
+        match_message_start: Allow log matching to only match the start of the expected
+            message to allow for appended log information.
     """
 
     # caplog.records is just a list of LogRecord objects, so can use a slice to drop
@@ -46,9 +49,18 @@ def log_check(
     assert all(
         [exp[0] == rec.levelno for exp, rec in zip(expected_log, captured_records)]
     )
-    assert all(
-        [exp[1] in rec.message for exp, rec in zip(expected_log, captured_records)]
-    )
+
+    if match_message_start:
+        assert all(
+            [
+                rec.message.startswith(exp[1])
+                for exp, rec in zip(expected_log, captured_records)
+            ]
+        )
+    else:
+        assert all(
+            [exp[1] in rec.message for exp, rec in zip(expected_log, captured_records)]
+        )
 
 
 def record_found_in_log(
@@ -998,6 +1010,7 @@ def fixture_static_inputs(
     layer_structure = fixture_core_components.layer_structure
     abiotic_constants = fixture_abiotic_constants
     time_index = 0
+    days = 30
 
     canopy_height = np.nan_to_num(data["layer_heights"][1].to_numpy())
 
@@ -1005,7 +1018,7 @@ def fixture_static_inputs(
         np.nansum(data["leaf_area_index"][indices.canopy].to_numpy(), axis=0)
     )
 
-    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
@@ -1025,7 +1038,6 @@ def fixture_static_inputs(
 
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
-        layer_structure=layer_structure,
     )
 
     # Absorbed longwave radiation by canopy, [W m-2]
@@ -1056,13 +1068,13 @@ def fixture_static_inputs(
     return {
         "canopy_height": canopy_height,
         "lai_sum": leaf_area_index_sum,
-        "evapotranspiration": evapotranspiration,
+        "evapotranspiration": evapotranspiration.to_numpy() / days,
         "atmospheric_pressure": atmospheric_pressure_true,
         "atmospheric_co2": atmospheric_co2_true,
         "geometry": atmospheric_layer_geometry,
         "absorbed_longwave_radiation": absorbed_longwave_radiation,
         "cell_area": cell_area,
-        "mixing_coefficient": mixing_coefficient,
+        "mixing_coefficient": mixing_coefficient.to_numpy(),
         "zero_plane_displacement": zero_plane_displacement,
         "wind_speed": wind_speed,
         "ventialtion_rate": ventilation_rate,
@@ -1077,7 +1089,7 @@ def fixture_state_inputs(
 
     data = dummy_climate_data_varying_canopy
     n_layers, n_cells = data["air_temperature"].shape
-
+    days = 30
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     return {
@@ -1086,7 +1098,7 @@ def fixture_state_inputs(
         "atmospheric_pressure": data["atmospheric_pressure"].to_numpy(),
         "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
         "canopy_temperature": data["canopy_temperature"].to_numpy(),
-        "evapotranspiration": evapotranspiration.to_numpy(),
+        "evapotranspiration": evapotranspiration.to_numpy() / days,
         "shortwave_absorption": data["shortwave_absorption"].to_numpy(),
         "specific_heat_air": data["specific_heat_air"].to_numpy(),
         "density_air": data["density_air"].to_numpy(),

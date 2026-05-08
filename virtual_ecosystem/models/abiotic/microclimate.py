@@ -78,7 +78,6 @@ def prepare_static_inputs(
     # Calculate atmospheric layer geometry
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
-        layer_structure=layer_structure,
     )
 
     # Absorbed longwave radiation by canopy based on shortwave absorption, [W m-2]
@@ -181,7 +180,9 @@ def calculate_wind_profiles(
     wind_speed[layer_structure.index_filled_atmosphere] = wind.calculate_wind_profile(
         reference_wind_speed=reference_wind_speed,
         reference_height=wind_reference_height,
-        wind_heights=static["geometry"]["heights"],
+        wind_heights=static["geometry"]["heights"][
+            layer_structure.index_filled_atmosphere
+        ],
         roughness_length=roughness_length,
         zero_plane_displacement=zero_plane_displacement,
         min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
@@ -200,7 +201,9 @@ def calculate_wind_profiles(
     mixing_coefficient = layer_structure.from_template()
     mixing_coefficient[layer_structure.index_filled_atmosphere] = (
         wind.calculate_mixing_coefficients_canopy(
-            layer_midpoints=static["geometry"]["layer_midpoints"],
+            layer_midpoints=static["geometry"]["layer_midpoints"][
+                layer_structure.index_filled_atmosphere
+            ],
             canopy_height=static["canopy_height"],
             friction_velocity=friction_velocity,
             von_karman_constant=core_constants.von_karmans_constant,
@@ -439,6 +442,7 @@ def calculate_thermodynamics(
         aerodynamic_resistance=aerodynamic_resistance_canopy,
         characteristic_height=static["canopy_height"]
         + static["zero_plane_displacement"],
+        understorey_ventilation_rate=abiotic_constants.understorey_ventilation_rate,
     )
 
     return {
@@ -640,7 +644,7 @@ def update_air_temperature(
         sensible_heat_flux=state["sensible_heat_flux"][idx.canopy],
         specific_heat_air=state["specific_heat_air"][idx.canopy],
         density_air=state["density_air"][idx.canopy],
-        mixing_layer_thickness=static["geometry"]["thickness"][1:-1],
+        mixing_layer_thickness=static["geometry"]["thickness"][idx.canopy],
     )
 
     # Update surface air temperatures, [C]
@@ -655,12 +659,12 @@ def update_air_temperature(
         sensible_heat_flux=state["sensible_heat_flux"][idx.surface] + flux_from_soil,
         specific_heat_air=state["specific_heat_air"][idx.surface],
         density_air=state["density_air"][idx.surface],
-        mixing_layer_thickness=static["geometry"]["thickness"][-1],
+        mixing_layer_thickness=static["geometry"]["thickness"][idx.surface],
     )
 
     # Update all air temperatures, [C]
     air_temperature = np.copy(state["air_temperature"])
-    air_temperature[1 : len(canopy_air_temperature) + 1] = canopy_air_temperature
+    air_temperature[idx.canopy] = canopy_air_temperature
     air_temperature[idx.surface] = surface_air_temperature
 
     air_temperature = wind.mix_and_ventilate(
@@ -668,6 +672,7 @@ def update_air_temperature(
         ventilation_rate=state["ventilation_rate"],
         mixing_coefficient=static["mixing_coefficient"],
         limits=abiotic_bounds.air_temperature[:2],
+        surface_index=idx.surface,
     )
 
     return air_temperature
@@ -732,7 +737,7 @@ def update_atmospheric_humidity(
         soil_evaporation=state["soil_evaporation"],
         saturated_vapour_pressure=saturated_vapour_pressure_air[idx.atm],
         specific_humidity=specific_humidity_air[idx.atm],
-        layer_thickness=static["geometry"]["thickness"],
+        layer_thickness=static["geometry"]["thickness"][idx.atm],
         atmospheric_pressure=static["atmospheric_pressure"][idx.atm],
         density_air=state["density_air"][idx.atm],
         mixing_coefficient=static["mixing_coefficient"][idx.atm],

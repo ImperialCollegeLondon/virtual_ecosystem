@@ -54,6 +54,7 @@ def test_prepare_static_inputs_returns_consistent_outputs(
     assert result["evapotranspiration"].shape == (n_layers, n_cells)
     assert result["atmospheric_pressure"].shape == (n_layers, n_cells)
     assert result["atmospheric_co2"].shape == (n_layers, n_cells)
+    assert result["geometry"]["thickness"].shape == (n_layers, n_cells)
 
     # Physical plausibility checks
     # Canopy height must be >= 0
@@ -713,7 +714,7 @@ def test_run_hour_step_orchestration(
     abiotic_bounds = AbioticSimpleBounds()
 
     # get inputs
-    state = state = initialize_state(
+    state = initialize_state(
         data=data,
     )
     static = fixture_static_inputs
@@ -726,6 +727,7 @@ def test_run_hour_step_orchestration(
         latitude=0,
         abiotic_constants=abiotic_constants,
     )
+
     wind = calculate_wind_profiles(
         static=static,
         data=data,
