@@ -22,6 +22,7 @@ from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.plants.biomasses import Biomasses
 from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
@@ -86,6 +87,7 @@ class CommunityDataExporter:
                 *StemAllometry.array_attrs,
                 *Cohorts.array_attrs,
                 *StemAllocation.array_attrs,
+                *Biomasses.array_attrs,
             ]
         ),
         "community_canopy_attributes": set(
@@ -259,6 +261,7 @@ class CommunityDataExporter:
     def dump(
         self,
         communities: PlantCommunities,
+        biomasses: dict[int, Biomasses] | None,
         canopies: dict[int, Canopy],
         stem_allocations: dict[int, StemAllocation],
         time: np.datetime64,
@@ -271,6 +274,7 @@ class CommunityDataExporter:
 
         Args:
             communities: A PlantCommunities instance.
+            biomasses: A dictionary of biomass data keyed by cell id.
             canopies: A dictionary of Canopy instances, keyed by cell id.
             stem_allocations: A dictionary of StemAllocations, also keyed by cell id
             time: A datetime to be used as a timestamp in the output files.
@@ -283,6 +287,7 @@ class CommunityDataExporter:
         # Run the dump methods for each output option.
         self._dump_cohort_data(
             communities=communities,
+            biomasses=biomasses,
             canopies=canopies,
             stem_allocations=stem_allocations,
             time=time,
@@ -307,6 +312,7 @@ class CommunityDataExporter:
     def _dump_cohort_data(
         self,
         communities: PlantCommunities,
+        biomasses: dict[int, Biomasses] | None,
         canopies: dict[int, Canopy],
         stem_allocations: dict[int, StemAllocation],
         time: np.datetime64,
@@ -316,6 +322,7 @@ class CommunityDataExporter:
 
         Args:
             communities: A PlantCommunities instance.
+            biomasses: A dictionary of biomass data keyed by cell id.
             canopies: A dictionary of Canopy instances, keyed by cell id.
             stem_allocations: A dictionary of StemAllocations, also keyed by cell id
             time: A datetime to be used as a timestamp in the output files
@@ -345,11 +352,17 @@ class CommunityDataExporter:
 
             # Concatenate the cohort data, stem allometry and stem allocation by
             # column
+            if biomasses is None:
+                biomass_data = pd.DataFrame(index=np.arange(community.n_cohorts))
+            else:
+                biomass_data = self._export_biomass_data(biomasses[cell_id])
+
             community_data = pd.concat(
                 [
                     community.cohorts.to_pandas(),
                     community.stem_allometry.to_pandas(),
                     allocation,
+                    biomass_data,
                 ],
                 axis=1,
             )
@@ -377,6 +390,24 @@ class CommunityDataExporter:
             float_format=self.float_format,
         )
         LOGGER.info(f"Plant model cohort data dumped at time: {time}")
+
+    @staticmethod
+    def _export_biomass_data(biomass: Biomasses) -> pd.DataFrame:
+        """Extract per-cohort biomass tissue and element data as a dataframe."""
+
+        columns: dict[str, np.ndarray] = {}
+
+        for tissue in biomass.tissues:
+            tissue_name = tissue.tissue_name.lower()
+            columns[f"biomass_{tissue_name}_carbon_mass"] = tissue.carbon_mass
+
+            for elem_name, element in tissue.element_masses.items():
+                elem = elem_name.lower()
+                columns[
+                    f"biomass_{tissue_name}_{elem}_actual_element_mass"
+                ] = element.actual_element_mass
+
+        return pd.DataFrame(columns)
 
     def _dump_community_canopy_data(
         self,
