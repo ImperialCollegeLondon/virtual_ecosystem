@@ -403,9 +403,9 @@ class CommunityDataExporter:
 
             for elem_name, element in tissue.element_masses.items():
                 elem = elem_name.lower()
-                columns[
-                    f"biomass_{tissue_name}_{elem}_actual_element_mass"
-                ] = element.actual_element_mass
+                columns[f"biomass_{tissue_name}_{elem}_actual_element_mass"] = (
+                    element.actual_element_mass
+                )
 
         return pd.DataFrame(columns)
 

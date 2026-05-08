@@ -86,6 +86,7 @@ from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
 @dataclass
 class Element:
     """Stochiometric elemental masses for cohorts in a community."""
+
     name: str
     """The element name."""
     ideal_ratio: NDArray[np.floating]
