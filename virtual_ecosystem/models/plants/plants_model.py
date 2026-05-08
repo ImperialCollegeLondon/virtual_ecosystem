@@ -86,6 +86,14 @@ class PlantsModel(
         "root_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
+        "subcanopy_vegetation_cnp_consumed",
+        "subcanopy_seedbank_cnp_consumed",
+        "canopy_foliage_cnp_consumed",
+        "canopy_seed_cnp_consumed",
+        "canopy_fruit_cnp_consumed",
+        "foliage_turnover_cnp_consumed",
+        "seed_turnover_cnp_consumed",
+        "fruit_turnover_cnp_consumed",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -425,27 +433,44 @@ class PlantsModel(
             ),
         }
 
-        # Initialize the fruit and seed DataArrays for the data object. These values
-        # accumulate across the model run, so are not reset at each update.
+        # Initialize the various tissue arrays structured by PFT. These are used to pass
+        # aggregate biomass summaries per PFT out to other other models
         vars_to_initialize = [
-            "canopy_fruit_n",
+            # Canopy biomasses
+            "canopy_foliage_cnp",
+            "canopy_seed_cnp",
             "canopy_fruit_cnp",
             "canopy_seeds_per_fruit",  # TODO - same as fallen seeds per fruit
-            "canopy_seed_cnp",
-            "fallen_fruit_n",
+            "canopy_fruit_n",
+            # Turnover biomasses
             "fallen_fruit_cnp",
-            "fallen_seeds_per_fruit",
             "fallen_seeds_cnp",
-            "stem_turnover_cnp",
+            "fallen_fruit_n",
+            "fallen_seeds_per_fruit",
             "foliage_turnover_cnp",
-            "root_turnover_cnp",
             "seed_turnover_cnp",
             "fruit_turnover_cnp",
-            "canopy_foliage_cnp",
+            "root_turnover_cnp",
             "foliage_turnover_cnp",
+            "stem_turnover_cnp",
+            # Biomass consumption pools
+            "canopy_foliage_cnp_consumed",
+            "canopy_seed_cnp_consumed",
+            "canopy_fruit_cnp_consumed",
+            "foliage_turnover_cnp_consumed",
+            "seed_turnover_cnp_consumed",
+            "fruit_turnover_cnp_consumed",
         ]
         for var_name in vars_to_initialize:
             self.data[var_name] = self.data_object_templates["cnp_pft"].copy()
+
+        # Initialise tissue arrays that do not have PFT structure.
+        vars_to_initialize = [
+            "subcanopy_vegetation_cnp_consumed",
+            "subcanopy_seedbank_cnp_consumed",
+        ]
+        for var_name in vars_to_initialize:
+            self.data[var_name] = self.data_object_templates["cnp"].copy()
 
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
@@ -622,10 +647,10 @@ class PlantsModel(
         pft_cnp_vars = [
             "canopy_foliage_cnp",
             "canopy_seed_cnp",
-            "seed_turnover_cnp",
             "canopy_fruit_cnp",
-            "fruit_turnover_cnp",
             "foliage_turnover_cnp",
+            "seed_turnover_cnp",
+            "fruit_turnover_cnp",
         ]
         for var in pft_cnp_vars:
             self.data[var] = self.data_object_templates["cnp_pft"].copy()
@@ -816,6 +841,11 @@ class PlantsModel(
         herbivory, this also impacts the light gathering of the canopy. This is
         implemented by reducing the leaf area index for each cohort in a cell below the
         idealised LAI set in the plant functional traits.
+
+        TODO - There is a timing issue here - the effects of herbivory in the last time
+               step are being used to modify the light gathering and leaf turnover costs
+               for the current plants timestep.
+
         """
 
         # 1. Reduce canopy fruit and seed biomass following herbivory
