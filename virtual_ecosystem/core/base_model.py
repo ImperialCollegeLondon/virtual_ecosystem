@@ -728,6 +728,7 @@ class BaseModel(ABC):
                 or if those variables do not map onto the required axes.
         """
 
+        # Canary variable for failed checks
         init_data_ok = True
 
         # Check for missing init variables
@@ -741,11 +742,11 @@ class BaseModel(ABC):
             error = ValueError(
                 f"{self.model_name} model: input data is missing required "
                 f"initialisation variables: {','.join(missing_vars)}"
-                "see log."
             )
             LOGGER.error(error)
 
-        # TODO: Check axes on provided variables.
+        # TODO: Check required axes on provided variables but this needs fixing up axis
+        #       requirements in data variables TOML file.
 
         # # Get a list of missing axes
         # bad_axes = []
@@ -772,17 +773,8 @@ class BaseModel(ABC):
             LOGGER.error(error)
             raise error
 
-        # Record variable validation in log:
-        for var in self.vars_required_for_init:
-            LOGGER.debug(f"{self.model_name} model: required var '{var}' checked")
-
-        # TODO - individual log messages is a bit much, replace with single line, but
-        # then tests need updating
-
-        # LOGGER.debug(
-        # f"{self.model_name} model required initial data checked: "
-        # f" {','.join(self.vars_required_for_init)}"
-        # )
+        # Log successful data checking
+        LOGGER.info(f"{self.model_name} model: required initial data variables checked")
 
 
 def to_camel_case(snake_str: str) -> str:
