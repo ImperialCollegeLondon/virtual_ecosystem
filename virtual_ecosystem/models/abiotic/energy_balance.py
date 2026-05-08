@@ -501,6 +501,7 @@ def update_humidity_vpd(
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
         limits=limits_specific_humidity,
+        surface_index=-1,
     )
     # NOTE Advection not implemented as everything is removed with time interval > 1h
     # and horizontal transfer is not implemented

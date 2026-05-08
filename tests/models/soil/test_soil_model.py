@@ -1,7 +1,7 @@
 """Test module for soil_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import DEBUG, ERROR, INFO
+from logging import ERROR, INFO
 
 import numpy as np
 import pytest
@@ -13,30 +13,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.models.soil.soil_model import IntegrationError
 
 # Shared log entries from model initialisation
-REQUIRED_INIT_VAR_LOG = (
-    (DEBUG, "soil model: required var 'soil_cnp_pool_maom' checked"),
-    (DEBUG, "soil model: required var 'soil_cnp_pool_lmwc' checked"),
-    (DEBUG, "soil model: required var 'soil_cnp_pool_pom' checked"),
-    (DEBUG, "soil model: required var 'soil_cnp_pool_necromass' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_bacteria' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_saprotrophic_fungi' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_arbuscular_mycorrhiza' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_ectomycorrhiza' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_pom_bacteria' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_maom_bacteria' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_pom_fungi' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_maom_fungi' checked"),
-    (DEBUG, "soil model: required var 'soil_n_pool_ammonium' checked"),
-    (DEBUG, "soil model: required var 'soil_n_pool_nitrate' checked"),
-    (DEBUG, "soil model: required var 'soil_p_pool_primary' checked"),
-    (DEBUG, "soil model: required var 'soil_p_pool_secondary' checked"),
-    (DEBUG, "soil model: required var 'soil_p_pool_labile' checked"),
-    (DEBUG, "soil model: required var 'pH' checked"),
-    (DEBUG, "soil model: required var 'clay_fraction' checked"),
-    (DEBUG, "soil model: required var 'matric_potential' checked"),
-    (DEBUG, "soil model: required var 'soil_temperature' checked"),
-    (DEBUG, "soil model: required var 'air_temperature' checked"),
-)
+REQUIRED_INIT_VAR_LOG = ((INFO, "soil model: required initial data variables checked"),)
 POST_SETUP_LOG = (
     *REQUIRED_INIT_VAR_LOG,
     (INFO, "Adding data array for 'dissolved_nitrate'"),
@@ -116,24 +93,17 @@ def test_soil_model_initialization_no_data(
             soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
         )
 
-    # Final check that expected logging entries are produced: modify shared
-    # REQUIRED_INIT_VAR_LOG to use shared list of variables
-    missing_log = list(
-        (
-            (
-                ERROR,
-                log_str.replace(":", ": init data missing").removesuffix(" checked"),
-            )
-            for _, log_str in REQUIRED_INIT_VAR_LOG
-        ),
-    )
-    missing_log.append(
-        (ERROR, "soil model: error checking vars_required_for_init, see log."),
-    )
-
+    # Final check that expected logging entries are produced
     log_check(
         caplog,
-        expected_log=missing_log,
+        expected_log=(
+            (
+                ERROR,
+                "soil model: input data is missing required initialisation variables:",
+            ),
+            (ERROR, "soil model: Problems with initial model data: check log."),
+        ),
+        match_message_start=True,
     )
 
 

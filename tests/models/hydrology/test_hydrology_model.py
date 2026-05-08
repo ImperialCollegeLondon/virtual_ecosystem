@@ -1,6 +1,6 @@
 """Test module for hydrology.hydrology_model.py."""
 
-from logging import DEBUG, INFO
+from logging import INFO
 from unittest.mock import patch
 
 import numpy as np
@@ -17,10 +17,7 @@ MODEL_VAR_CHECK_LOG = [
         "Information required to initialise the hydrology model "
         "successfully extracted.",
     ),
-    (DEBUG, "hydrology model: required var 'layer_heights' checked"),
-    (DEBUG, "hydrology model: required var 'elevation' checked"),
-    (DEBUG, "hydrology model: required var 'air_temperature_ref' checked"),
-    (DEBUG, "hydrology model: required var 'atmospheric_pressure_ref' checked"),
+    (INFO, "hydrology model: required initial data variables checked"),
     (INFO, "Adding data array for 'soil_moisture'"),
     (INFO, "Adding data array for 'matric_potential'"),
     (INFO, "Adding data array for 'condensation'"),

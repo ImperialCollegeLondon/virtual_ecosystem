@@ -25,6 +25,7 @@ def log_check(
     caplog: pytest.LogCaptureFixture,
     expected_log: tuple[tuple],
     subset: slice | None = None,
+    match_message_start: bool = False,
 ) -> None:
     """Helper function to check that the captured log is as expected.
 
@@ -32,6 +33,8 @@ def log_check(
         caplog: An instance of the caplog fixture
         expected_log: An iterable of 2-tuples containing the log level and message.
         subset: Only check a specified subset of the captured log.
+        match_message_start: Allow log matching to only match the start of the expected
+            message to allow for appended log information.
     """
 
     # caplog.records is just a list of LogRecord objects, so can use a slice to drop
@@ -46,9 +49,18 @@ def log_check(
     assert all(
         [exp[0] == rec.levelno for exp, rec in zip(expected_log, captured_records)]
     )
-    assert all(
-        [exp[1] in rec.message for exp, rec in zip(expected_log, captured_records)]
-    )
+
+    if match_message_start:
+        assert all(
+            [
+                rec.message.startswith(exp[1])
+                for exp, rec in zip(expected_log, captured_records)
+            ]
+        )
+    else:
+        assert all(
+            [exp[1] in rec.message for exp, rec in zip(expected_log, captured_records)]
+        )
 
 
 def record_found_in_log(
@@ -1026,7 +1038,6 @@ def fixture_static_inputs(
 
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
-        layer_structure=layer_structure,
     )
 
     # Absorbed longwave radiation by canopy, [W m-2]
