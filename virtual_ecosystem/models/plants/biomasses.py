@@ -878,6 +878,8 @@ class Biomasses(CohortMethods, PandasExporter):
     elements: tuple[str, ...] = field(init=False)
     """A list of the elements recorded in each tissue."""
 
+    # Note: these are hard-coded and must be updated if the simulation
+    # uses different biomass classes.
     array_attrs: ClassVar[tuple[str, ...]] = (
         "biomass_foliage_carbon_mass",
         "biomass_foliage_n_actual_element_mass",
