@@ -8,7 +8,7 @@ To Do:
 """  # noqa: D205, D415
 
 from collections.abc import Sequence
-from math import asin, exp, log, pi
+from math import asin, ceil, exp, isnan, log, pi
 
 import numpy as np
 from scipy.special import expit
@@ -72,6 +72,131 @@ def madingley_individuals_density(adult_mass: float, terms: tuple) -> float:
     individual_density_m2 = individual_density_km2 / 1e6
 
     return individual_density_m2
+
+
+def raw_biomass_density_kg_m2(
+    functional_group: FunctionalGroup,
+    density_scaling_method: str,
+) -> float:
+    """Raw biomass density for a functional group before normalization.
+
+    For functional groups with an empirical density override
+    (``density_individuals_m2`` set in the CSV), biomass density is derived
+    directly from that empirical value. For all other functional groups the
+    appropriate allometric scaling law is used.
+
+    The returned value is in kg m⁻² and represents the functional group's
+    contribution to the heterotroph biomass budget before the cross-group
+    normalization factor is applied.
+
+    Args:
+        functional_group: The functional group to evaluate.
+        density_scaling_method: The allometric scaling method to use for groups
+            without an empirical density override. Must be ``"madingley"`` or
+            ``"damuth"``.
+
+    Returns:
+        Raw biomass density [kg m⁻²].
+
+    Raises:
+        ValueError: If ``density_scaling_method`` is not recognised.
+    """
+    override = functional_group.density_individuals_m2
+    if override is not None and not isnan(override):
+        # Empirical path: individuals/m² x kg/individual → kg/m²
+        return override * functional_group.adult_mass
+
+    terms = functional_group.population_density_terms
+
+    if density_scaling_method == "madingley":
+        exponent, scalar = terms
+        mass_g = functional_group.adult_mass * 1000.0
+        biomass_density_g_km2 = scalar * mass_g**exponent
+        return biomass_density_g_km2 / 1e9  # g/km² → kg/m²
+
+    if density_scaling_method == "damuth":
+        # TODO: Damuth terms are calibrated for individual density so the biomass
+        # density derived here is approximate. Revisit when Damuth is a primary
+        # scaling method.
+        return (
+            damuths_law(functional_group.adult_mass, terms)
+            * functional_group.adult_mass
+        )
+
+    raise ValueError(
+        f"Unrecognised density_scaling_method: {density_scaling_method!r}. "
+        "Expected 'madingley' or 'damuth'."
+    )
+
+
+def heterotroph_normalization_factor(
+    functional_groups: list[FunctionalGroup],
+    target_biomass_density_kg_m2: float,
+    density_scaling_method: str,
+) -> float:
+    """Normalization factor scaling all functional groups to a fixed biomass budget.
+
+    In Madingley, total heterotroph biomass density is constrained to a target
+    value regardless of how many functional groups are defined. This function
+    computes the single multiplicative factor applied uniformly to every functional
+    group's raw individual count so that the sum of normalized biomass densities
+    equals ``target_biomass_density_kg_m2``.
+
+    Each functional group's share of the budget is proportional to its raw biomass
+    density, whether derived from an empirical override or an allometric scaling
+    law. The same factor is applied to all groups.
+
+    Args:
+        functional_groups: All functional groups in the simulation.
+        target_biomass_density_kg_m2: Target total heterotroph biomass density
+            [kg m⁻²].
+        density_scaling_method: Allometric scaling method (``"madingley"`` or
+            ``"damuth"``).
+
+    Returns:
+        Normalization factor (dimensionless).
+
+    Raises:
+        ValueError: If the sum of raw biomass densities across all functional
+            groups is zero, indicating a degenerate configuration.
+    """
+    total_raw = sum(
+        raw_biomass_density_kg_m2(fg, density_scaling_method)
+        for fg in functional_groups
+    )
+    if total_raw == 0.0:
+        raise ValueError(
+            "Sum of raw biomass densities across all functional groups is zero. "
+            "Check that adult_mass and density parameters are correctly set."
+        )
+    return target_biomass_density_kg_m2 / total_raw
+
+
+def biomass_density_to_individuals(
+    biomass_density_kg_m2: float,
+    adult_mass_kg: float,
+    total_area_m2: float,
+) -> int:
+    """Convert a biomass density to a total individual count.
+
+    A scaling-law-agnostic conversion used after the heterotroph normalization
+    factor has been applied. Dividing normalized biomass density by adult mass
+    gives individual density; multiplying by total area gives the headcount.
+
+    Args:
+        biomass_density_kg_m2: Biomass density [kg m⁻²].
+        adult_mass_kg: Adult body mass of the functional group [kg].
+        total_area_m2: Total simulation area [m²].
+
+    Returns:
+        Total number of individuals, rounded up to the nearest integer.
+
+    Raises:
+        ValueError: If ``adult_mass_kg`` is not positive.
+    """
+    if adult_mass_kg <= 0.0:
+        raise ValueError(f"adult_mass_kg must be positive, got {adult_mass_kg}.")
+    return ceil(biomass_density_kg_m2 / adult_mass_kg * total_area_m2)
 
 
 def metabolic_rate(

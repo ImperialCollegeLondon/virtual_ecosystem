@@ -79,9 +79,12 @@ from virtual_ecosystem.models.animal.model_config import (
 )
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
+    biomass_density_to_individuals,
     damuths_law,
+    heterotroph_normalization_factor,
     madingley_individuals_density,
     prey_group_selection,
+    raw_biomass_density_kg_m2,
 )
 
 
@@ -290,6 +293,11 @@ class AnimalModel(
 
         # Which density scaling equations are used, "damuth" or "madingley"
         self.density_scaling_method = self.model_constants.density_scaling_method
+
+        # total heterotroph biomass, for normalizing densities
+        self.total_heterotroph_biomass_density_kg_m2 = (
+            self.model_constants.total_heterotroph_biomass_density_kg_m2
+        )
 
         # Store update interval as a number of days.
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
@@ -564,9 +572,17 @@ class AnimalModel(
         """
 
         self.communities = {cell_id: [] for cell_id in self.data.grid.cell_id}
+        total_area_m2 = self.data.grid.n_cells * self.data.grid.cell_area
+        target = self.total_heterotroph_biomass_density_kg_m2
+        method = self.density_scaling_method
 
+        factor = heterotroph_normalization_factor(functional_groups, target, method)
         for fg in functional_groups:
-            total_individuals = self._estimate_total_individuals(fg)
+            total_individuals = biomass_density_to_individuals(
+                raw_biomass_density_kg_m2(fg, method) * factor,
+                fg.adult_mass,
+                total_area_m2,
+            )
             cohort_sizes = self._distribute_individuals_to_cohorts(total_individuals)
             cohort_locations = self._assign_cohort_locations(len(cohort_sizes))
 

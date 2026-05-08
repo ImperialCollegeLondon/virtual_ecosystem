@@ -76,6 +76,9 @@ class AnimalConstants(Configuration):
     density_scaling_method: DENSITY_SCALING_METHODS = "madingley"
     """The density scaling method to use within a simulation."""
 
+    total_heterotroph_biomass_density_kg_m2: float = 0.151  # Madingley global median
+    """Total heterotroph biomass density in the system, used for normalizing density."""
+
     def get_population_density_terms(
         self, taxa: TaxaType, diet: DietType
     ) -> tuple[float, ...]:
