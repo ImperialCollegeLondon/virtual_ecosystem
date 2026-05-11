@@ -215,11 +215,14 @@ class BiomassTissueABC(ABC):
 
         NOTE - if this class moves to an all array representation of biomasses, then it
                we should be able just to subtract the incoming array from the current
-               element masses.
+               element masses. Note that np.array - xr.DataArray returns an xr.DataArray
+               so need to reduce to numpy.
         """
-        self.carbon_mass -= herbivory_array.sel(element="C")
+        self.carbon_mass -= herbivory_array.sel(element="C").to_numpy()
         for elem_name, elem in self.element_masses.items():
-            elem.actual_element_mass -= herbivory_array.sel(element=elem_name)
+            elem.actual_element_mass -= herbivory_array.sel(
+                element=elem_name
+            ).to_numpy()
 
     @property
     def Cx_ratio(self) -> dict[str, NDArray[np.floating]]:
