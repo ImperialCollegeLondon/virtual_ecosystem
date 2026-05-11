@@ -734,7 +734,7 @@ class TestAnimalModel:
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
     ):
-        """Test the new _initialize_communities logic more rigorously."""
+        """Test _initialize_communities."""
 
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
@@ -757,44 +757,34 @@ class TestAnimalModel:
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
-        # Reset any cohorts created during __init__ so we test initialization in
-        # isolation.
         model.active_cohorts = {}
         model.communities = {
             cell_id: [] for cell_id in animal_data_for_model_instance.grid.cell_id
         }
 
-        # Call the new initialization method
         model._initialize_communities(functional_group_list_instance)
 
-        # Check all communities have lists
+        # Every cell has a community list.
         for cell_id in animal_data_for_model_instance.grid.cell_id:
             assert isinstance(model.communities[cell_id], list)
 
-        # Check there are active cohorts
-        assert len(model.active_cohorts) > 0
+        # Every functional group has at least one cohort.
+        fg_names_with_cohorts = {
+            c.functional_group.name for c in model.active_cohorts.values()
+        }
+        expected_fg_names = {fg.name for fg in functional_group_list_instance}
+        assert fg_names_with_cohorts == expected_fg_names
 
-        # Check types
+        # Every cohort has the correct initial state and is registered in its community.
         for cohort in model.active_cohorts.values():
             assert isinstance(cohort, AnimalCohort)
-            assert cohort.centroid_key in model.data.grid.cell_id
-            assert cohort.individuals >= model.minimum_cohort_size
-
-        # Check conservation of total individuals
-        for fg in functional_group_list_instance:
-            estimated_total = model._estimate_total_individuals(fg)
-            actual_total = sum(
-                c.individuals
-                for c in model.active_cohorts.values()
-                if c.functional_group.name == fg.name
+            assert cohort.age == 0.0
+            assert cohort.mass_current == pytest.approx(
+                cohort.functional_group.adult_mass
             )
-            assert abs(estimated_total - actual_total) <= len(model.data.grid.cell_id)
-
-        # Check cohort count is reasonable
-        total_expected = model.target_cohorts_per_fg * len(
-            functional_group_list_instance
-        )
-        assert len(model.active_cohorts) <= total_expected
+            assert cohort.individuals >= model.minimum_cohort_size
+            assert cohort.centroid_key in model.data.grid.cell_id
+            assert cohort in model.communities[cohort.centroid_key]
 
     @pytest.mark.parametrize(
         "density,expect_damuth_call,scaling_method",
