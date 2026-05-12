@@ -917,3 +917,403 @@ def test_activity_window(
         t_min_crit=t_min_crit,
     )
     assert result == pytest.approx(expected)
+
+
+class TestRawBiomassDensityKgM2:
+    """Tests for raw_biomass_density_kg_m2."""
+
+    def test_madingley_path_correct_value(self, herbivore_functional_group_instance):
+        """Madingley path returns scalar * mass_g^exponent / 1e9 [kg m⁻²]."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            raw_biomass_density_kg_m2,
+        )
+
+        fg = herbivore_functional_group_instance
+        exponent, scalar = fg.population_density_terms
+        mass_g = fg.adult_mass * 1000.0
+        expected = scalar * mass_g**exponent / 1e9
+        assert raw_biomass_density_kg_m2(fg, "madingley") == pytest.approx(expected)
+
+    def test_empirical_path_correct_value(self, constants_instance):
+        """Empirical path returns density_individuals_m2 * adult_mass [kg m⁻²]."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            raw_biomass_density_kg_m2,
+        )
+
+        density_m2 = 0.005
+        adult_mass_kg = 10.0
+        fg = FunctionalGroup(
+            name="empirical_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="empirical_fg",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=adult_mass_kg,
+            density_individuals_m2=density_m2,
+            constants=constants_instance,
+        )
+        assert raw_biomass_density_kg_m2(fg, "madingley") == pytest.approx(
+            density_m2 * adult_mass_kg
+        )
+
+    def test_empirical_path_takes_precedence_over_allometric(self, constants_instance):
+        """Empirical override is used when allometric terms are present on the FG."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            raw_biomass_density_kg_m2,
+        )
+
+        density_m2 = 0.005
+        adult_mass_kg = 10.0
+        fg = FunctionalGroup(
+            name="empirical_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="empirical_fg",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=adult_mass_kg,
+            density_individuals_m2=density_m2,
+            constants=constants_instance,
+        )
+        result = raw_biomass_density_kg_m2(fg, "madingley")
+
+        assert result == pytest.approx(density_m2 * adult_mass_kg)
+
+        # Confirm the allometric result is genuinely different, so the test
+        # does not pass vacuously.
+        exponent, scalar = fg.population_density_terms
+        mass_g = adult_mass_kg * 1000.0
+        allometric = scalar * mass_g**exponent / 1e9
+        assert result != pytest.approx(allometric)
+
+    def test_damuth_path_returns_positive_float(self):
+        """Damuth path returns a positive float."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.model_config import AnimalConstants
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            raw_biomass_density_kg_m2,
+        )
+
+        damuth_constants = AnimalConstants(density_scaling_method="damuth")
+        fg = FunctionalGroup(
+            name="damuth_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="damuth_fg",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=10.0,
+            constants=damuth_constants,
+        )
+        result = raw_biomass_density_kg_m2(fg, "damuth")
+        assert isinstance(result, float)
+        assert result > 0.0
+
+    def test_unrecognised_method_raises_value_error(
+        self, herbivore_functional_group_instance
+    ):
+        """Unrecognised density_scaling_method raises ValueError."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            raw_biomass_density_kg_m2,
+        )
+
+        with pytest.raises(ValueError, match="Unrecognised density_scaling_method"):
+            raw_biomass_density_kg_m2(
+                herbivore_functional_group_instance, "not_a_method"
+            )
+
+
+class TestHeterotrophNormalizationFactor:
+    """Tests for heterotroph_normalization_factor."""
+
+    def test_single_fg_gets_full_budget(self, herbivore_functional_group_instance):
+        """A single FG receives the entire budget: factor = target / raw_biomass."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        fg = herbivore_functional_group_instance
+        target = 0.151
+        expected = target / raw_biomass_density_kg_m2(fg, "madingley")
+        assert heterotroph_normalization_factor(
+            [fg], target, "madingley"
+        ) == pytest.approx(expected)
+
+    def test_factor_correct_for_multiple_fgs(self, functional_group_list_instance):
+        """Factor equals target divided by the sum of all raw biomass densities."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        fgs = functional_group_list_instance
+        target = 0.151
+        total_raw = sum(raw_biomass_density_kg_m2(fg, "madingley") for fg in fgs)
+        expected = target / total_raw
+        assert heterotroph_normalization_factor(
+            fgs, target, "madingley"
+        ) == pytest.approx(expected)
+
+    def test_equal_mass_fgs_share_budget_evenly(
+        self, herbivore_functional_group_instance
+    ):
+        """Two identical FGs each receive half the budget: factor = target / (2 * B)."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        fg = herbivore_functional_group_instance
+        target = 0.151
+        single_raw = raw_biomass_density_kg_m2(fg, "madingley")
+        factor = heterotroph_normalization_factor([fg, fg], target, "madingley")
+        assert factor == pytest.approx(target / (2.0 * single_raw))
+
+    def test_empirical_fgs_contribute_to_budget(
+        self, herbivore_functional_group_instance, constants_instance
+    ):
+        """Empirical FGs participate in the budget alongside allometric FGs."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        empirical_fg = FunctionalGroup(
+            name="empirical_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="empirical_fg",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=10.0,
+            density_individuals_m2=0.005,
+            constants=constants_instance,
+        )
+        fgs = [herbivore_functional_group_instance, empirical_fg]
+        target = 0.151
+        total_raw = sum(raw_biomass_density_kg_m2(fg, "madingley") for fg in fgs)
+        assert heterotroph_normalization_factor(
+            fgs, target, "madingley"
+        ) == pytest.approx(target / total_raw)
+
+    def test_all_empirical_fgs_normalizes_correctly(self, constants_instance):
+        """All-empirical FGs still produce the correct normalization factor."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        fg1 = FunctionalGroup(
+            name="empirical_fg1",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="empirical_fg1",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=10.0,
+            density_individuals_m2=0.005,
+            constants=constants_instance,
+        )
+        fg2 = FunctionalGroup(
+            name="empirical_fg2",
+            taxa="mammal",
+            diet="carnivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="empirical_fg2",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=50.0,
+            density_individuals_m2=0.001,
+            constants=constants_instance,
+        )
+        fgs = [fg1, fg2]
+        target = 0.151
+        total_raw = sum(raw_biomass_density_kg_m2(fg, "madingley") for fg in fgs)
+        assert heterotroph_normalization_factor(
+            fgs, target, "madingley"
+        ) == pytest.approx(target / total_raw)
+
+    def test_zero_total_biomass_raises_value_error(self, constants_instance):
+        """Zero sum of raw biomass densities raises ValueError."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+        )
+
+        zero_fg = FunctionalGroup(
+            name="zero_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="zero_fg",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=0.01,
+            adult_mass=0.1,
+            density_individuals_m2=0.0,
+            constants=constants_instance,
+        )
+        with pytest.raises(ValueError, match="zero"):
+            heterotroph_normalization_factor([zero_fg], 0.151, "madingley")
+
+
+class TestBiomassDensityToIndividuals:
+    """Tests for biomass_density_to_individuals."""
+
+    def test_correct_individual_count(self):
+        """Returns the correct individual count for known inputs."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            biomass_density_to_individuals,
+        )
+
+        # 0.01 kg/m² ÷ 10 kg/individual x 1000 m² = 1.0 individual → ceil = 1
+        assert (
+            biomass_density_to_individuals(
+                biomass_density_kg_m2=0.01,
+                adult_mass_kg=10.0,
+                total_area_m2=1000.0,
+            )
+            == 1
+        )
+
+    def test_ceil_rounds_fractional_result_up(self):
+        """A fractional individual count is rounded up, not truncated."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            biomass_density_to_individuals,
+        )
+
+        # 0.015 kg/m² ÷ 10 kg/individual x 1000 m² = 1.5 individuals → ceil = 2
+        assert (
+            biomass_density_to_individuals(
+                biomass_density_kg_m2=0.015,
+                adult_mass_kg=10.0,
+                total_area_m2=1000.0,
+            )
+            == 2
+        )
+
+    def test_very_small_biomass_returns_at_least_one(self):
+        """Any positive biomass density produces at least one individual."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            biomass_density_to_individuals,
+        )
+
+        assert (
+            biomass_density_to_individuals(
+                biomass_density_kg_m2=1e-12,
+                adult_mass_kg=1000.0,
+                total_area_m2=1.0,
+            )
+            == 1
+        )
+
+    def test_zero_or_negative_adult_mass_raises_value_error(self):
+        """adult_mass_kg <= 0 raises ValueError."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            biomass_density_to_individuals,
+        )
+
+        with pytest.raises(ValueError, match="adult_mass_kg"):
+            biomass_density_to_individuals(
+                biomass_density_kg_m2=0.1,
+                adult_mass_kg=0.0,
+                total_area_m2=1000.0,
+            )
+
+        with pytest.raises(ValueError, match="adult_mass_kg"):
+            biomass_density_to_individuals(
+                biomass_density_kg_m2=0.1,
+                adult_mass_kg=-5.0,
+                total_area_m2=1000.0,
+            )
+
+
+class TestHeterotrophNormalizationSystem:
+    """Integration tests verifying the three normalization functions compose correctly.
+
+    These tests confirm the core invariant of the system: total heterotroph biomass
+    density after normalization approximates the target regardless of how many
+    functional groups are defined. The small positive bias from ceiling rounding
+    in biomass_density_to_individuals is bounded by a 5% relative tolerance.
+    """
+
+    @pytest.mark.parametrize("n_fgs", [1, 3, 10])
+    def test_budget_invariant_holds_for_n_identical_fgs(
+        self, n_fgs, herbivore_functional_group_instance
+    ):
+        """Total biomass density after normalization approximates target for any N."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            biomass_density_to_individuals,
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        target = 0.151
+        total_area_m2 = 100_000.0
+        fgs = [herbivore_functional_group_instance] * n_fgs
+        factor = heterotroph_normalization_factor(fgs, target, "madingley")
+
+        total_biomass_kg = sum(
+            biomass_density_to_individuals(
+                raw_biomass_density_kg_m2(fg, "madingley") * factor,
+                fg.adult_mass,
+                total_area_m2,
+            )
+            * fg.adult_mass
+            for fg in fgs
+        )
+        actual_density = total_biomass_kg / total_area_m2
+
+        assert actual_density == pytest.approx(target, rel=0.05)
