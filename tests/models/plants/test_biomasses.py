@@ -1273,3 +1273,41 @@ def test_balance_elements(
 
     pool = np.stack(list(biomasses.element_surplus.values()))
     assert np.allclose(pool, expected_pool)
+
+
+def test_add_elemental_masses_clips_roundoff_negative(
+    fixture_community, extra_pft_traits, caplog
+):
+    """Tiny floating-point negatives are clipped to zero after updates."""
+
+    from virtual_ecosystem.models.plants.biomasses import Element, FoliageBiomass
+
+    tissue = FoliageBiomass(
+        community=fixture_community,
+        extra_pft_traits=extra_pft_traits,
+        carbon_mass=fixture_community.stem_allometry.foliage_mass.copy(),
+        element_masses={
+            "N": Element(
+                name="n",
+                ideal_ratio=np.array([5.0, 6.0]),
+                actual_element_mass=np.array([1.0e-18, 20.0]),
+                turnover_ratio=np.array([10.0, 12.0]),
+            ),
+            "P": Element(
+                name="p",
+                ideal_ratio=np.array([5.0, 6.0]),
+                actual_element_mass=np.array([5.0, 20.0]),
+                turnover_ratio=np.array([10.0, 12.0]),
+            ),
+        },
+    )
+
+    tissue.add_elemental_masses(
+        {
+            "N": np.array([-1.1e-18, 0.0]),
+            "P": np.array([0.0, 0.0]),
+        }
+    )
+
+    assert np.allclose(tissue.element_masses["N"].actual_element_mass, [0.0, 20.0])
+    assert "Clipping negative updated N biomass" in caplog.text

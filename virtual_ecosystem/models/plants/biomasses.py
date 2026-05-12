@@ -171,7 +171,16 @@ class BiomassTissueABC(ABC):
 
         try:
             for ky, elem in self.element_masses.items():
-                elem.actual_element_mass += masses[ky]
+                updated_masses = elem.actual_element_mass + masses[ky]
+                # Clip any negative result from the update and log the values clipped.
+                negative_updated = updated_masses < 0.0
+                if np.any(negative_updated):
+                    LOGGER.warning(
+                        f"Clipping negative updated {ky} biomass in "
+                        f"{self.tissue_name}: {updated_masses[negative_updated]}"
+                    )
+                    updated_masses = np.clip(updated_masses, 0.0, None)
+                elem.actual_element_mass = updated_masses
         except KeyError:
             raise ValueError("add_elemental_masses missing required element.")
         except ValueError:
