@@ -80,9 +80,7 @@ from virtual_ecosystem.models.animal.model_config import (
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     biomass_density_to_individuals,
-    damuths_law,
     heterotroph_normalization_factor,
-    madingley_individuals_density,
     prey_group_selection,
     raw_biomass_density_kg_m2,
 )
@@ -594,33 +592,6 @@ class AnimalModel(
                     individuals=size,
                     centroid_key=cell_id,
                 )
-
-    def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
-        """Estimates the total number of individuals of a functional group."""
-        total_area = self.data.grid.n_cells * self.data.grid.cell_area
-
-        density_override = functional_group.density_individuals_m2
-        if density_override is not None and not isnan(density_override):
-            # User-provided empirical density overrides scaling laws
-            return int(density_override * total_area)
-
-        # No empirical density → use selected scaling method
-        if self.density_scaling_method == "damuth":
-            density = damuths_law(
-                functional_group.adult_mass,
-                functional_group.population_density_terms,
-            )
-        elif self.density_scaling_method == "madingley":
-            density = madingley_individuals_density(
-                functional_group.adult_mass,
-                functional_group.population_density_terms,
-            )
-        else:
-            raise ValueError(
-                f"Unsupported density scaling method: {self.density_scaling_method}"
-            )
-
-        return ceil(density * total_area)
 
     def _distribute_individuals_to_cohorts(self, total_individuals: int) -> list[int]:
         """Distribute individuals into cohorts respecting minimum size.
