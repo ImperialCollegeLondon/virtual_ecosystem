@@ -39,48 +39,6 @@ def test_damuths_law_computes_expected_value(mass, terms):
 
 
 @pytest.mark.parametrize(
-    "mass, terms, expected_behavior",
-    [
-        # Normal test cases
-        (100000.0, (0.6, 300000.0), "compute"),  # very large mass
-        (0.07, (0.6, 300000.0), "compute"),  # very small mass
-        (1.0, (0.6, 300000.0), "compute"),  # unit mass
-        (15.5, (0.6, 300000.0), "compute"),  # medium mass
-        (0.001, (0.6, 300000.0), "compute"),  # tiny mass
-    ],
-    ids=[
-        "very_large_mass",
-        "very_small_mass",
-        "unit_mass",
-        "medium_mass",
-        "tiny_mass",
-    ],
-)
-def test_madingley_individuals_density_value(mass, terms, expected_behavior):
-    """Test madingley_individuals_density with normal and edge case inputs."""
-    from virtual_ecosystem.models.animal.scaling_functions import (
-        madingley_individuals_density,
-    )
-
-    exponent, scalar = terms
-
-    if expected_behavior == "compute":
-        # Expected calculation
-        mass_g = mass * 1000
-        expected_km2 = scalar * mass_g ** (exponent - 1)
-        expected_m2 = expected_km2 / 1e6
-
-        actual = madingley_individuals_density(mass, terms)
-        assert actual == pytest.approx(expected_m2), (
-            f"Expected {expected_m2} for mass {mass} and terms {terms}, got {actual}"
-        )
-
-    elif expected_behavior == "error":
-        with pytest.raises(ValueError):
-            madingley_individuals_density(mass, terms)
-
-
-@pytest.mark.parametrize(
     "mass, temperature, terms, metabolic_type, sigma_f_t, met_rate",
     [
         # Symmetric terms (basal == field) — sigma does not affect output
