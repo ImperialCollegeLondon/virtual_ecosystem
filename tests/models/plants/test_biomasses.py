@@ -1275,7 +1275,7 @@ def test_balance_elements(
     assert np.allclose(pool, expected_pool)
 
 
-def test_add_elemental_masses_clips_roundoff_negative(
+def test_add_elemental_masses_clips_negative_value(
     fixture_community, extra_pft_traits, caplog
 ):
     """Tiny floating-point negatives are clipped to zero after updates."""
