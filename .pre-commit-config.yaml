@@ -14,7 +14,7 @@ repos:
         args: [--fix, --exit-non-zero-on-fix, --target-version, py312]
       - id: ruff-format  #  Run the formatter.
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.20.2"
+    rev: "v2.0.0"
     hooks:
       - id: mypy
         additional_dependencies: [types-jsonschema, xarray, types-tabulate, numpy]
@@ -23,7 +23,7 @@ repos:
     hooks:
     - id: markdownlint
   - repo: https://github.com/mwouts/jupytext
-    rev: v1.19.1
+    rev: v1.19.2
     hooks:
     - id: jupytext
       args: [--pipe, black]
