@@ -38,6 +38,7 @@ def fixture_abiotic_simple_init_log():
                 "soil_temperature",
                 "net_radiation",
                 "canopy_temperature",
+                "diurnal_temperature_range",
             )
         ),
     )

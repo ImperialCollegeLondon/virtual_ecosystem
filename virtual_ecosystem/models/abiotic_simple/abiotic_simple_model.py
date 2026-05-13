@@ -82,6 +82,7 @@ class AbioticSimpleModel(
         "atmospheric_co2",
         "wind_speed",
         "canopy_temperature",
+        "diurnal_temperature_range",
     ),
     vars_populated_by_first_update=tuple(),
 ):
@@ -182,6 +183,12 @@ class AbioticSimpleModel(
             self.layer_structure.index_surface_scalar
         ]
         output_variables["canopy_temperature"] = canopy_temperature
+
+        # Add diurnal temperature range, [C]
+        diurnal_temperature_range = output_variables["air_temperature"].copy()
+        output_variables["diurnal_temperature_range"] = diurnal_temperature_range.where(
+            diurnal_temperature_range.isnull(), other=5.0
+        )
 
         self.data.add_from_dict(output_dict=output_variables)
 
