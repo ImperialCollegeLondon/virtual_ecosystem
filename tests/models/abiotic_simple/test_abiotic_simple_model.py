@@ -37,6 +37,7 @@ def fixture_abiotic_simple_init_log():
                 "atmospheric_co2",
                 "soil_temperature",
                 "net_radiation",
+                "canopy_temperature",
             )
         ),
     )

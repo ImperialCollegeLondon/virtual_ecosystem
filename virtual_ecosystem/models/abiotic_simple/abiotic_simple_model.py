@@ -81,6 +81,7 @@ class AbioticSimpleModel(
         "atmospheric_pressure",
         "atmospheric_co2",
         "wind_speed",
+        "canopy_temperature",
     ),
     vars_populated_by_first_update=tuple(),
 ):
@@ -170,6 +171,18 @@ class AbioticSimpleModel(
             pyrealm_core_constants=pyrealm_core_constants,
             bounds=self.bounds,
         )
+
+        # Initialise canopy temperature, equilibrium with surrounding air, [C]
+        air_temp = output_variables["air_temperature"].copy()
+        canopy_temperature = self.layer_structure.from_template()
+        canopy_temperature[self.layer_structure.index_filled_canopy] = air_temp[
+            self.layer_structure.index_filled_canopy
+        ]
+        canopy_temperature[self.layer_structure.index_surface_scalar] = air_temp[
+            self.layer_structure.index_surface_scalar
+        ]
+        output_variables["canopy_temperature"] = canopy_temperature
+
         self.data.add_from_dict(output_dict=output_variables)
 
     @classmethod
