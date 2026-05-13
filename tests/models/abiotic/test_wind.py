@@ -66,9 +66,9 @@ def test_calculate_wind_profile(
     exp_wind = np.array(
         [
             [0.967405, 0.965281, 0.744923, 0.967405],
-            [0.959669, 0.957041, 0.648195, 0.001],
-            [0.911069, 0.905273, 0.001, 0.001],
-            [0.827986, 0.001, 0.001, 0.001],
+            [0.959669, 0.957041, 0.648195, np.nan],
+            [0.911069, 0.905273, np.nan, np.nan],
+            [0.827986, np.nan, np.nan, np.nan],
             [0.275995, 0.228813, 0.001, 0.275995],
         ]
     )
@@ -264,64 +264,61 @@ def test_next_valid_below(dummy_climate_data_varying_canopy):
     assert np.array_equal(result, expected)
 
 
-def test_mix_and_ventilate():
+def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_components):
     """Test mixing and ventilation within bounds."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         mix_and_ventilate,
     )
 
-    mixing_coefficient = np.array(
+    data = dummy_climate_data_varying_canopy
+    lyrstr = fixture_core_components.layer_structure
+
+    mixing_coefficient = data["mixing_coefficient"].to_numpy()
+    ventilation_rate = data["ventilation_rate"].to_numpy()
+
+    input_temp = data["air_temperature"].to_numpy()
+    input_humidity = data["relative_humidity"].to_numpy()
+    input_humidity[2, :] = np.array([105, 102, np.nan, np.nan])
+
+    exp_temp = np.full_like(input_humidity, np.nan)
+    exp_temp[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [0.001, 0.001, 0.001, 0.001],
-            [0.005, 0.005, 0.005, np.nan],
-            [0.01, 0.01, np.nan, np.nan],
-            [0.001, np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan, np.nan],
-            [0.012, 0.012, 0.012, 0.012],
-            [np.nan, np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan, np.nan],
+            [30.0, 30.0, 30.0, 29.2],
+            [29.82, 29.82, 29.82, np.nan],
+            [28.99, 28.99, np.nan, np.nan],
+            [27.37, np.nan, np.nan, np.nan],
+            [22.52, 22.69, 22.78, 23.6],
         ]
     )
-    ventilation_rate = np.array([0.005, 0.005, 0.005, 0.005])
-
-    input_humidity = np.array(
+    exp_hum = np.full_like(input_humidity, np.nan)
+    exp_hum[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [95.0, 95.0, 95.0, 95.0],
-            [110.0, 100.0, 100.0, np.nan],
+            [90.0, 90.0, 90.0, 90.8],
+            [94.5, 91.8, 90.9, np.nan],
             [100.0, 100.0, np.nan, np.nan],
-            [90.0, np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan, np.nan],
-            [100.0, 100.0, 100.0, 100.0],
-            [np.nan, np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan, np.nan],
-        ],
-    )
-
-    exp_result = np.array(
-        [
-            [105.025, 95.0, 95.0, 95.025],
-            [100.0, 99.975, 99.975, np.nan],
-            [100.0, 100.0, np.nan, np.nan],
-            [90.01, np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan, np.nan],
-            [99.88, 100.0, 100.0, 99.975],
-            [np.nan, np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan, np.nan],
+            [96.9, np.nan, np.nan, np.nan],
+            [97.8, 98.4, 97.3, 96.4],
         ]
     )
 
-    result = mix_and_ventilate(
+    result_hum = mix_and_ventilate(
         input_variable=input_humidity,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
         limits=(0, 100),
-        surface_index=-3,
+        surface_index=lyrstr.index_surface_scalar,
     )
-    assert_allclose(result, exp_result, rtol=1e-6, atol=1e-6)
+    assert_allclose(result_hum, exp_hum, rtol=1e-6, atol=1e-6)
+
+    result_temp = mix_and_ventilate(
+        input_variable=input_temp,
+        mixing_coefficient=mixing_coefficient,
+        ventilation_rate=ventilation_rate,
+        limits=(-20, 100),
+        surface_index=lyrstr.index_surface_scalar,
+    )
+    assert_allclose(result_temp, exp_temp, rtol=1e-6, atol=1e-6)
 
 
 def test_advect_from_toplayer():
