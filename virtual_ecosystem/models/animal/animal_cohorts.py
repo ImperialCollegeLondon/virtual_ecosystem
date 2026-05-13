@@ -771,39 +771,30 @@ class AnimalCohort:
 
     def F_i_k(
         self,
-        resource_list: list[Resource] | list[CellResource],
-        target_resource: Resource,
+        resource: Resource | CellResource,
+        potential_biomass_consumed: float,
+        total_handling_t: float,
     ) -> float:
-        """Method to determine instantaneous consumption rate on resource k.
+        """Calculate the instantaneous consumption rate on a plant resource.
 
-        This method integrates the calculated search efficiency, potential consumed
-        biomass of the target plant, and the total handling time for all available
-        resources to determine the rate at which the target plant is consumed by
-        the cohort.
-
-        This method is originally parameterized for herbivory but is currently used for
-        all non-predation consumer-resource interactions.
-
-        TODO: update name
+        Implements the Holling Type II functional response for herbivory.
 
         Args:
-            resource_list: A list of plant resources available for consumption by the
-                cohort.
-            target_resource: The specific resource being targeted by the herbivore
-                cohort for consumption.
+            resource: The target plant resource being consumed.
+            potential_biomass_consumed: Potential biomass eaten from the target
+                resource in a day [g/day].
+            total_handling_t: Pre-computed dimensionless handling time sum across
+                all available resources, built once per foraging bout in
+                forage_resource_list.
 
         Returns:
-            The instantaneous consumption rate [g/day] of the target resource by
-              the consumer cohort.
+            The instantaneous consumption rate [1/day] of the target resource.
         """
-        alpha = self.calculate_alpha()
-        k = self.calculate_potential_consumed_biomass(target_resource, alpha)
-        total_handling_t = self.calculate_total_handling_time_for_herbivory(
-            resource_list, alpha
+        return (
+            self.individuals
+            * (potential_biomass_consumed / (1.0 + total_handling_t))
+            / resource.mass_current
         )
-        B_k = target_resource.mass_current  # current plant biomass
-        N = self.individuals  # herb cohort size
-        return N * (k / (1 + total_handling_t)) * (1 / B_k)
 
     def calculate_theta_opt_i(self) -> float:
         """Calculate the optimal predation param based on predator-prey mass ratio.
@@ -1162,36 +1153,10 @@ class AnimalCohort:
 
         return total_consumed_mass
 
-    def _consumed_resource_mass(
-        self,
-        resource_list: list[Resource] | list[CellResource],
-        target: Resource | CellResource,
-        adjusted_dt: timedelta64,
-    ) -> float:
-        """Standard search/handling time consumption using F_i_k (non-predation).
-
-        Args:
-            resource_list: List of resource objects (e.g. litter, plants, etc.).
-            target: A specific resource from which biomass is being consumed.
-            adjusted_dt: Time available for foraging.
-
-        Returns:
-            Mass (kg) to consume from target.
-        """
-        F = self.F_i_k(resource_list, target)
-
-        return target.mass_current * (
-            1.0 - exp(-F * float(adjusted_dt / timedelta64(1, "D")))
-        )
-
     def forage_resource_list(
         self,
         resources: list[Resource] | list[CellResource],
         adjusted_dt: timedelta64,
-        calculate_consumed_mass: Callable[
-            [list[Resource] | list[CellResource], Resource | CellResource, timedelta64],
-            float,
-        ],
         resource_kind: str,
         herbivory_waste_pools: dict[int, HerbivoryWaste] | None = None,
     ) -> dict[str, float]:
@@ -1200,7 +1165,6 @@ class AnimalCohort:
         Args:
             resources: List of foragable resources.
             adjusted_dt: Time available for foraging.
-            calculate_consumed_mass: Function to compute requested biomass.
             resource_kind: A string label of what kind of resource is being accessed.
             herbivory_waste_pools: Optional pool to deposit unassimilated biomass.
 
@@ -1209,18 +1173,29 @@ class AnimalCohort:
         """
         total_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
 
+        if not resources:
+            return total_gain
+
+        alpha = self.calculate_alpha()
+        total_handling_t = self.calculate_total_handling_time_for_herbivory(
+            resources, alpha
+        )
+        A_cell = self.grid.cell_area
+        dt_days = float(adjusted_dt / timedelta64(1, "D"))
+        conv_eff = self.functional_group.conversion_efficiency
+
         for resource in resources:
-            requested = calculate_consumed_mass(resources, resource, adjusted_dt)
+            potential_biomass_consumed = sf.k_i_k(alpha, resource.mass_current, A_cell)
+            F = self.F_i_k(resource, potential_biomass_consumed, total_handling_t)
+            requested = resource.mass_current * (1.0 - exp(-F * dt_days))
 
             gain_cnp, litter_cnp = resource.get_eaten(requested, self)
 
-            # Record mass removed from this resource by this cohort
             self.record_trophic_transfer(
                 (resource_kind, str(resource.cell_id)),
                 CNP.from_dict(gain_cnp),
             )
 
-            conv_eff = self.functional_group.conversion_efficiency
             for elem in total_gain:
                 total_gain[elem] += gain_cnp[elem] * conv_eff
 
@@ -1248,7 +1223,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=plant_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=herbivory_waste_pools,
             resource_kind="plant_resource",
         )
@@ -1270,7 +1244,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=litter_pools,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
             resource_kind="litter_pool",
         )
 
@@ -1291,7 +1264,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=carcass_pools,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
             resource_kind="carcass_pool",
         )
 
@@ -1312,7 +1284,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=excrement_pools,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
             resource_kind="excrement_pool",
         )
 
@@ -1335,7 +1306,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=fungal_fruit_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=herbivory_waste_pools,
             resource_kind="fungal_fruit_pool",
         )
@@ -1355,12 +1325,9 @@ class AnimalCohort:
         Returns:
             Stoichiometric mass gained by the cohort.
         """
-
         return self.forage_resource_list(
             resources=soil_fungi_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
-            herbivory_waste_pools=None,
             resource_kind="soil_fungi_pool",
         )
 
@@ -1381,8 +1348,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=pom_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
-            herbivory_waste_pools=None,
             resource_kind="pom_pool",
         )
 
@@ -1403,8 +1368,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=bacteria_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
-            herbivory_waste_pools=None,
             resource_kind="bacteria_pool",
         )
 
