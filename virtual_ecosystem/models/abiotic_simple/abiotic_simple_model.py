@@ -187,7 +187,8 @@ class AbioticSimpleModel(
         # Add diurnal temperature range, [C]
         diurnal_temperature_range = output_variables["air_temperature"].copy()
         output_variables["diurnal_temperature_range"] = diurnal_temperature_range.where(
-            diurnal_temperature_range.isnull(), other=5.0
+            diurnal_temperature_range.isnull(),
+            other=5.0,  # TODO add data when available
         )
 
         self.data.add_from_dict(output_dict=output_variables)
