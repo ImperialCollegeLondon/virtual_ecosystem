@@ -301,6 +301,20 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Turbulent mixing coefficient"
+name = "mixing_coefficient"
+unit = "s-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "ventilation rate between top of canopy and atmosphere above"
+name = "ventilation_rate"
+unit = "s-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Net radiation"
 name = "net_radiation"
 unit = "W m-2"

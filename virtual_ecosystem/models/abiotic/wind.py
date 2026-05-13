@@ -160,7 +160,11 @@ def calculate_wind_profile(
         * np.log((heights - zero_plane_displacement) / roughness_length)
         / np.log((reference_height - zero_plane_displacement) / roughness_length)
     )
-    return np.where(wind_speed >= min_wind_speed, wind_speed, min_wind_speed)
+    clipped_wind_speed = np.where(
+        wind_speed >= min_wind_speed, wind_speed, min_wind_speed
+    )
+    masked_wind_speed = np.where(np.isnan(wind_heights), np.nan, clipped_wind_speed)
+    return masked_wind_speed
 
 
 def calculate_friction_velocity(
@@ -439,32 +443,45 @@ def mix_and_ventilate(
     # Gather neighbours above
     above = np.full_like(current, np.nan)
     mask_above = above_idx >= 0
-    above[mask_above] = current[above_idx[mask_above], cols[mask_above]]
+
+    # Only fill where BOTH source index is valid AND source value is finite
+    if np.any(mask_above):
+        src_layers = above_idx[mask_above]
+        src_cols = cols[mask_above]
+
+        above_vals = current[src_layers, src_cols]
+
+        # avoid propagating NaNs from invalid layers
+        above[mask_above] = above_vals
 
     # Mask valid (non-NaN) values to exclude unoccupied layers from mixing
-    valid = ~np.isnan(current)
-
-    # Detect NO-CANOPY columns
-    canopy_exists = (~np.isnan(current[1, :])) & (current[1, :] != 0)
-    no_canopy = ~canopy_exists
+    valid = np.isfinite(current) & np.isfinite(above)
 
     mix_above = np.zeros_like(current)
 
     # Normal case: canopy exists
-    mask_above_mix = valid & mask_above & canopy_exists[None, :]
+    mask_mix = valid & mask_above
 
-    mix_above[mask_above_mix] = mixing_coefficient[mask_above_mix] * (
-        above[mask_above_mix] - current[mask_above_mix]
+    mix_above[mask_mix] = mixing_coefficient[mask_mix] * (
+        above[mask_mix] - current[mask_mix]
     )
 
     # No canopy fallback
+    canopy_exists = np.isfinite(current[1, :])
+    no_canopy = ~canopy_exists
+
     if np.any(no_canopy):
+        # exchange between top and surface layer only
         diff = current[0, no_canopy] - current[surface_index, no_canopy]
-        mix_above[surface_index, no_canopy] += ventilation_rate[no_canopy] * diff
-        mix_above[0, no_canopy] -= ventilation_rate[no_canopy] * diff
+
+        v = ventilation_rate[no_canopy]
+
+        mix_above[0, no_canopy] -= v * diff
+        mix_above[surface_index, no_canopy] += v * diff
 
     # Vertical mixing
     result = current + mix_above
+
     # Return after clamping within limits to prevent overshooting and negative values
     return clamp_variable_within_limits(result, limits)
 
