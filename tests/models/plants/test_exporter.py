@@ -11,7 +11,9 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.fixture
-def fixture_exporter_components(flora, plants_cohort_data, fixture_core_components):
+def fixture_exporter_components(
+    flora, plants_cohort_data, fixture_core_components, extra_pft_traits
+):
     """Plant models components for testing exporter.
 
     Provides a set of PlantCommunities, their Canopy instances and a matching
@@ -21,6 +23,14 @@ def fixture_exporter_components(flora, plants_cohort_data, fixture_core_componen
     from pyrealm.demography.canopy import Canopy
     from pyrealm.demography.tmodel import StemAllocation
 
+    from virtual_ecosystem.models.plants.biomasses import (
+        Biomasses,
+        FoliageBiomass,
+        FruitBiomass,
+        RootBiomass,
+        SeedBiomass,
+        StemBiomass,
+    )
     from virtual_ecosystem.models.plants.communities import PlantCommunities
 
     communities = PlantCommunities(
@@ -39,7 +49,23 @@ def fixture_exporter_components(flora, plants_cohort_data, fixture_core_componen
         for cell_id, cmty in communities.items()
     }
 
-    return communities, canopies, stem_allocations
+    biomasses = {
+        cell_id: Biomasses.default_init(
+            community=cmty,
+            extra_pft_traits=extra_pft_traits,
+            with_elements=["N", "P"],
+            tissues=[
+                FoliageBiomass,
+                FruitBiomass,
+                SeedBiomass,
+                StemBiomass,
+                RootBiomass,
+            ],
+        )
+        for cell_id, cmty in communities.items()
+    }
+
+    return communities, canopies, stem_allocations, biomasses
 
 
 @pytest.mark.parametrize(
@@ -283,9 +309,10 @@ def test_CommunityDataExporter_dump_cohort_data(
     )
 
     # First dump in write mode with no allocations: expected behaviour in setup
-    communities, canopies, _stem_allocations = fixture_exporter_components
+    communities, canopies, _stem_allocations, biomasses = fixture_exporter_components
     exporter._dump_cohort_data(
         communities=communities,
+        biomasses=biomasses,
         canopies=canopies,
         stem_allocations={},
         time=np.datetime64("2000-01-01"),
@@ -303,6 +330,11 @@ def test_CommunityDataExporter_dump_cohort_data(
     assert out_path.exists()
     cell_n_cohorts = np.array([cmty.n_cohorts for _, cmty in communities.items()])
     csv_row_check(path=out_path, n_rows=cell_n_cohorts.sum(), attr=attributes)
+
+    if not attributes:
+        content = pd.read_csv(out_path)
+        assert "biomass_stem_carbon_mass" in content.columns
+        assert "biomass_foliage_n_actual_element_mass" in content.columns
 
 
 @pytest.mark.parametrize(
@@ -330,7 +362,7 @@ def test_CommunityDataExporter_dump_community_canopy_data(
     )
 
     # First dump in write mode with no allocations: expected behaviour in setup
-    _, canopies, _ = fixture_exporter_components
+    _, canopies, _, _ = fixture_exporter_components
     exporter._dump_community_canopy_data(
         canopies=canopies,
         time=np.datetime64("2000-01-01"),
@@ -373,7 +405,7 @@ def test_CommunityDataExporter_dump_stem_canopy_data(
     )
 
     # Run the dump
-    communities, canopies, _ = fixture_exporter_components
+    communities, canopies, _, _ = fixture_exporter_components
     exporter._dump_stem_canopy_data(
         communities=communities,
         canopies=canopies,
@@ -484,9 +516,10 @@ class TestExporterDump:
         assert exporter._write_header
 
         # First dump in write mode with no allocations: expected behaviour in setup
-        communities, canopies, stem_allocations = fixture_exporter_components
+        communities, canopies, stem_allocations, biomasses = fixture_exporter_components
         exporter.dump(
             communities=communities,
+            biomasses=biomasses,
             canopies=canopies,
             stem_allocations={},
             time=np.datetime64("2000-01-01"),
@@ -504,6 +537,7 @@ class TestExporterDump:
         # allocations: expected behaviour in update
         exporter.dump(
             communities=communities,
+            biomasses=biomasses,
             canopies=canopies,
             stem_allocations=stem_allocations,
             time=np.datetime64("2001-01-01"),
@@ -597,9 +631,12 @@ class TestExporterDump:
         assert exporter._write_header
 
         # First dump in write mode with no allocations: expected behaviour in setup
-        communities, canopies, _stem_allocations = fixture_exporter_components
+        communities, canopies, _stem_allocations, biomasses = (
+            fixture_exporter_components
+        )
         exporter.dump(
             communities=communities,
+            biomasses=biomasses,
             canopies=canopies,
             stem_allocations={},
             time=np.datetime64("2000-01-01"),

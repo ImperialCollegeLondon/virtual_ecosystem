@@ -519,6 +519,7 @@ class PlantsModel(
         # Run the community data exporter
         self.exporter.dump(
             communities=self.communities,
+            biomasses=self.biomasses,
             canopies=self.canopies,
             stem_allocations=self.stem_allocations,
             time=self.model_timing.start_time,
@@ -692,6 +693,7 @@ class PlantsModel(
         # Run the community data exporter
         self.exporter.dump(
             communities=self.communities,
+            biomasses=self.biomasses,
             canopies=self.canopies,
             stem_allocations=self.stem_allocations,
             time=self.model_timing.update_datestamps[time_index],

@@ -5,7 +5,7 @@ defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO
+from logging import CRITICAL, ERROR, INFO
 from typing import cast
 
 import pytest
@@ -21,14 +21,7 @@ INITIALISATION_LOG = [
         INFO,
         "Information required to initialise the litter model successfully extracted.",
     ),
-    (DEBUG, "litter model: required var 'litter_pool_above_metabolic_cnp' checked"),
-    (DEBUG, "litter model: required var 'litter_pool_above_structural_cnp' checked"),
-    (DEBUG, "litter model: required var 'litter_pool_woody_cnp' checked"),
-    (DEBUG, "litter model: required var 'litter_pool_below_metabolic_cnp' checked"),
-    (DEBUG, "litter model: required var 'litter_pool_below_structural_cnp' checked"),
-    (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
-    (DEBUG, "litter model: required var 'lignin_woody' checked"),
-    (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
+    (INFO, "litter model: required initial data variables checked"),
 ]
 
 

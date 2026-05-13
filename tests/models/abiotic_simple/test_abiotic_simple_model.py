@@ -1,6 +1,6 @@
 """Test module for abiotic_simple.abiotic_simple_model.py."""
 
-from logging import DEBUG, INFO
+from logging import INFO
 
 import numpy as np
 import pytest
@@ -13,9 +13,6 @@ from tests.conftest import log_check
 @pytest.fixture
 def fixture_abiotic_simple_init_log():
     """Helper function to generate expected log messages."""
-    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
-        AbioticSimpleModel,
-    )
 
     return (
         (
@@ -23,10 +20,7 @@ def fixture_abiotic_simple_init_log():
             "Information required to initialise the abiotic simple model "
             "successfully extracted.",
         ),
-        *(
-            (DEBUG, f"abiotic_simple model: required var '{v}' checked")
-            for v in AbioticSimpleModel.vars_required_for_init
-        ),
+        (INFO, "abiotic_simple model: required initial data variables checked"),
         *(
             (INFO, f"Adding data array for '{v}'")
             for v in (
