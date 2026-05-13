@@ -316,7 +316,9 @@ class FoliageBiomass(BiomassTissueABC):
 
         element_masses: dict[str, Element] = {}
 
-        carbon_mass = community.stem_allometry.foliage_mass.squeeze()
+        # Need to use copy to avoid the biomass and allometry masses refer to the same
+        # object!
+        carbon_mass = community.stem_allometry.foliage_mass.squeeze().copy()
         for elem in with_elements:
             ideal_ratio = np.array(
                 [
@@ -403,7 +405,8 @@ class ReproductiveBiomass(BiomassTissueABC):
 
         element_masses: dict[str, Element] = {}
 
-        carbon_mass = community.stem_allometry.reproductive_tissue_mass.squeeze()
+        # Use copy to avoid maintaining a reference to the allometry
+        carbon_mass = community.stem_allometry.reproductive_tissue_mass.squeeze().copy()
 
         for elem in with_elements:
             ideal_ratio = np.array(
@@ -510,6 +513,8 @@ class FruitBiomass(BiomassTissueABC):
             extra_pft_traits.traits[name]["fruit_flesh_fraction"] for name in pft_names
         ]
 
+        # Multiplication here avoids the need to copy() the array to avoid the reference
+        # back to the allometry
         carbon_mass = (
             community.stem_allometry.reproductive_tissue_mass.squeeze() * fruit_fraction
         )
@@ -627,6 +632,8 @@ class SeedBiomass(BiomassTissueABC):
             for name in pft_names
         ]
 
+        # Multiplication here avoids the need to copy() the array to avoid the reference
+        # back to the allometry
         carbon_mass = (
             community.stem_allometry.reproductive_tissue_mass.squeeze() * seed_fraction
         )
@@ -739,7 +746,8 @@ class StemBiomass(BiomassTissueABC):
 
         element_masses: dict[str, Element] = {}
 
-        carbon_mass = community.stem_allometry.stem_mass.squeeze()
+        # Use copy to avoid maintaining a reference to the allometry
+        carbon_mass = community.stem_allometry.stem_mass.squeeze().copy()
 
         for elem in with_elements:
             ideal_ratio = np.array(

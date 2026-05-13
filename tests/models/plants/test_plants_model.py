@@ -293,19 +293,29 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model):
                 },
             )
 
-            # Explicitly insert chunks of data grouped by PFT to enforce PFT order and
-            # possible missing PFTs within community.
+            # Explicitly insert chunks of data grouped by PFT to enforce PFT order on
+            # the consumption pool PFT dimension and handle possible missing PFTs within
+            # communities.
             for pft_name, pft_data in consumed_biomass_by_pft.groupby("pft"):
                 target_array.loc[cid, pft_name, :] = pft_data.sum("pft")
 
-    # Save a copy of the initial biomasses for reference in testing
+    # Save (deep) copies of the initial biomasses and herbivory affected traits for
+    # comparison to values after applying herbivory
     initial_biomasses = deepcopy(fxt_plants_model.biomasses)
+    initial_lai = {
+        ky: cm.stem_traits.lai.squeeze().copy()
+        for ky, cm in fxt_plants_model.communities.items()
+    }
+    initial_tau_f = {
+        ky: cm.stem_traits.tau_f.squeeze().copy()
+        for ky, cm in fxt_plants_model.communities.items()
+    }
 
     # Run herbivory
     fxt_plants_model.apply_herbivory()
 
-    # Check that the modelled biomasses have been appropriately reduced, including
-    # proportional distribution of PFT herbivory back down to cohort level.
+    # Check that the modelled biomasses have been appropriately reduced by 50%,
+    # including proportional distribution of PFT herbivory back down to cohort level.
     for cid in fxt_plants_model.grid.cell_id:
         for tissue in ("fruit", "seed", "foliage"):
             assert_allclose(
@@ -315,6 +325,24 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model):
                 .get_tissue(tissue)
                 .as_array(with_carbon=True),
             )
+
+    # Check that the LAI has been reduced to 75%: 50% of foliage lost in total is an
+    # average of 25% lost over the timestep and LAI scales linearly with foliage mass
+    # (or vice versa).
+    for cid in fxt_plants_model.grid.cell_id:
+        assert_allclose(
+            fxt_plants_model.communities[cid].stem_traits.lai.squeeze(),
+            initial_lai[cid] * 0.75,
+        )
+
+    # Check that the tau_f has been increased to compensate for foliage loss. The
+    # calculation here is: Wf / tau + H = Wf / tau'
+    for cid in fxt_plants_model.grid.cell_id:
+        W_f = fxt_plants_model.communities[cid].stem_allometry.foliage_mass
+        assert_allclose(
+            W_f / initial_tau_f[cid] + W_f / 2,
+            W_f / fxt_plants_model.communities[cid].stem_traits.tau_f.squeeze(),
+        )
 
 
 def test_PlantsModel_estimate_gpp(fxt_plants_model):

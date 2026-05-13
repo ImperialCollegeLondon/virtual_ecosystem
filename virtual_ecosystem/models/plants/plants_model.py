@@ -362,8 +362,9 @@ class PlantsModel(
         object.__setattr__(self.flora, "tau_r", self.flora.tau_r * updates_per_year)
         object.__setattr__(self.flora, "tau_rt", self.flora.tau_rt * updates_per_year)
 
-        # Need to do the same for the tau_f_base in the extra traits
-        self.extra_pft_traits.traits["tau_f_base"] = self.flora.tau_f * updates_per_year
+        # Need to store tau_f_base in the extra traits to use to reset after herbivory
+        # effects have been estimated.
+        self.extra_pft_traits.traits["tau_f_base"] = self.flora.tau_f
 
         # Now build the communities with the updated rates
         self.communities = PlantCommunities(
