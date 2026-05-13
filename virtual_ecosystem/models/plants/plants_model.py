@@ -362,6 +362,9 @@ class PlantsModel(
         object.__setattr__(self.flora, "tau_r", self.flora.tau_r * updates_per_year)
         object.__setattr__(self.flora, "tau_rt", self.flora.tau_rt * updates_per_year)
 
+        # Need to do the same for the tau_f_base in the extra traits
+        self.extra_pft_traits.traits["tau_f_base"] = self.flora.tau_f * updates_per_year
+
         # Now build the communities with the updated rates
         self.communities = PlantCommunities(
             cohort_data=cohort_data, flora=self.flora, grid=self.grid
@@ -682,32 +685,51 @@ class PlantsModel(
         # Get the canopy top shortwave downwelling radiation for the current time slice
         self.set_canopy_top_radiation(time_index=time_index)
 
-        # Apply herbivory effects
+        # Apply herbivory effects - this modifies the stem LAI and tau_f parameters, and
+        # care needs to be taken about the sequencing of using the modified values - see
+        # comments on downstream methods.
         self.apply_herbivory()
 
-        # Update the canopy layers and subcanopy and then set the shortwave absorption
+        # Update the canopy layer heights and set the canopy fAPAR values:
+        # * The layer heights use the PPA model based on the crown area, so layer
+        #   heights are not affected by decreased LAI from herbivory, which is what we
+        #   want.
+        # * However, the fAPAR is affected by reduced LAI by herbivory, which is again
+        #   what we want since more light penetrates down though the canopy.
         self.canopies = calculate_canopies(
             communities=self.communities,
             max_canopy_layers=self.layer_structure.n_canopy_layers,
         )
+
+        # Calculate the canopy light capture - this does use LAI to calculate the FAPAR
+        # and so incorporates foliage loss due to herbivory.
         self.update_canopy_layers()
+
+        # Calculate the light capture by the subcanopy
         self.subcanopy.set_light_capture(
             below_canopy_light_fraction=self.below_canopy_light_fraction
         )
+
+        # Use the FAPAR across the canopy and subcanopy to calculate an absorption
+        # profile
         self.set_shortwave_absorption()
 
-        # Estimate the canopy GPP and growth with the updated this update
+        # Estimate the canopy light use efficiency given the current abiotic conditions.
         self.calculate_light_use_efficiency()
+
+        # Calculate the GPP across the canopy layers for each cohort and combine to give
+        # a single aggregate estimate of GPP and resulting transpiration per stem
         self.estimate_gpp(time_index=time_index)
 
         # Calculate uptake from each inorganic soil nutrient pool
         self.calculate_nutrient_uptake()
 
-        # Allocate GPP, calculating changes in biomass and turnover
+        # Allocate GPP, calculating changes in biomass and turnover - this function uses
+        # the foliage turnover trait (tau_f), modified by apply_herbivory above, to
+        # account for carbon costs of folivory.
         self.allocate_gpp()
 
         # Calculate the turnover of each plant biomass pool
-        # TODO - needs a better name - this isn't stem turnover.
         self.calculate_turnover()
 
         # Calculate the subcanopy vegetation
@@ -835,22 +857,56 @@ class PlantsModel(
         )
 
     def apply_herbivory(self) -> None:
-        """Applies herbivory effects on the plants model.
+        r"""Applies herbivory effects on the plants model.
 
         Herbivory removes biomass from the biomass tissues. In the case of foliage
-        herbivory, this also impacts the light gathering of the canopy. This is
-        implemented by reducing the leaf area index for each cohort in a cell below the
-        idealised LAI set in the plant functional traits.
+        herbivory, this also impacts the light gathering of the canopy and effects the
+        allocation of carbon to replacing lost leaves, assuming the plant prioritises
+        the maintenance of canopy area during allocation of GPP.
 
-        TODO - There is a timing issue here - the effects of herbivory in the last time
-               step are being used to modify the light gathering and leaf turnover costs
-               for the current plants timestep.
+        The impacts on light gathering are modelled by decreasing the LAI of the cohort
+        to reflect the decrease in expected foliage mass (:math:`W_f`) given the mass of
+        foliage removed by herbivory (:math:`H_f`). The model assumes a constant rate of
+        herbivory, such that the average realised leaf mass over a time step is:
+
+        .. math::
+
+            \tilde{W_f} = W_f - H_f / 2
+
+        The original expected foliage mass is calculated, given the crown area
+        (:math:`A_c`), LAI (:math:`L`) and specific leaf area (:math:`\sigma`) as:
+
+        .. math::
+
+            W_f = (A_c L) / \sigma
+
+        Hence the realised LAI given herbivory can be calculated as:
+
+        .. math::
+
+            \tilde{L} = (\tilde{W_f}  \sigma) / A_c
+
+        The increased carbon cost of leaf replacement can be rolled into the standard
+        foliage turnover costs by increasing the foliage turnover rate (:math:`\tau_f`).
+        This increases turnover costs and hence reduces the amount of carbon available
+        for stem growth.
+
+        .. math::
+
+            \tilde{\tau_f} = \frac{W_f \tau_f}{H_f \tau_f + W_f}
+
+
+        .. todo::
+
+            There is a timing issue here - the effects of herbivory in the last time
+            step are being used to modify the light gathering and leaf turnover costs
+            for the current plants timestep.
 
         """
 
         for cell_id in self.grid.cell_id:
-            community = self.communities[cell_id]
-            biomasses = self.biomasses[cell_id]
+            community: Community = self.communities[cell_id]
+            biomasses: Biomasses = self.biomasses[cell_id]
 
             # 1. Reduce biomasses following herbivory - need to distribute the aggregate
             #    herbivory per PFT within each cell across the cohorts within the cell.
@@ -871,12 +927,31 @@ class PlantsModel(
                     * relative_herbivory[:, np.newaxis]
                 )
 
+                # Apply the per cohort herbivory to the tissue
                 tissue.apply_herbivory(herbivory_by_cohort)
 
-            # 2. Decrease LAI to account for herbivory effects on light gathering
+            # 2. Decrease LAI to account for herbivory effects on light gathering. This
+            #    assumes that the herbivory is at a constant rate through the time step
+            #    so that the canopy is _on average_ missing half of the consumed mass.
+            foliage_carbon_loss = herbivory_by_cohort.sel(element="C").to_numpy()
+            average_foliage_mass = (
+                community.stem_allometry.foliage_mass - foliage_carbon_loss / 2
+            )
+
+            # TODO - need to check that LAI is reset to the PFT standard before the
+            # stem allocation is next calculated
+            community.stem_traits.lai = (
+                average_foliage_mass * community.stem_traits.sla
+            ) / community.stem_allometry.crown_area
 
             # 3. Increase leaf turnover to account for herbivory replacement costs
             #    within T model
+            community.stem_traits.tau_f = (
+                community.stem_allometry.foliage_mass * community.stem_traits.tau_f
+            ) / (
+                foliage_carbon_loss * community.stem_traits.tau_f
+                + community.stem_allometry.foliage_mass
+            )
 
     def set_shortwave_absorption(self) -> None:
         """Set the shortwave radiation absorption across the vertical layers.
@@ -1227,7 +1302,9 @@ class PlantsModel(
             # BALANCE THE NUTRIENTS WITHIN BIOMASSES
             biomasses.balance_elements()
 
-            # Update community allometry with new dbh values
+            # Update community allometry with new dbh values - this requires the LAI
+            # trait to be reset to the PFT standard to calculate the correct foliage
+            # mass rather than the herbivory affected foliage mass.
             community.stem_allometry = StemAllometry(
                 stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
             )

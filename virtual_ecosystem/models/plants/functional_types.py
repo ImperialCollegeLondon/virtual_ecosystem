@@ -113,4 +113,12 @@ def get_flora_from_config(config: PlantsConfiguration) -> tuple[Flora, ExtraTrai
     pft_traits = df.drop(columns=list(ExtraTraitsPFT.array_attrs))
     pft_data = {"pft": pft_traits.to_dict(orient="records")}
 
-    return Flora._from_file_data(pft_data), extra_traits_model
+    # Generate the flora object
+    flora = Flora._from_file_data(pft_data)
+
+    # To capture herbivory effects, we need to record the base PFT values for LAI and
+    # foliage turnover.
+    extra_traits_model.traits["lai_base"] = flora.lai
+    extra_traits_model.traits["tau_f_base"] = flora.tau_f
+
+    return flora, extra_traits_model

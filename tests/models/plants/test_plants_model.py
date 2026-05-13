@@ -266,6 +266,18 @@ def test_PlantsModel_set_shortwave_absorption(
     )
 
 
+def test_PlantsModel_apply_herbivory(fxt_plants_model):
+    """Simple test that update canopy layers restores overwritten data."""
+
+    # Overwrite the existing canopy derived data in each layer - this also nukes the
+    # soil and surface depths _which_ are not correctly regenerated in this test, so the
+    # test makes use of the canopy only layer heights in the fixture_canopy_layer_data
+    #
+    # TODO - amend this as and when layer heights gets centralised
+
+    fxt_plants_model.apply_herbivory()
+
+
 def test_PlantsModel_estimate_gpp(fxt_plants_model):
     """Test the estimate_gpp method."""
 
