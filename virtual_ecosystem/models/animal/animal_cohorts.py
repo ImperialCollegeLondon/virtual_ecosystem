@@ -744,11 +744,8 @@ class AnimalCohort:
     ) -> float:
         """Calculate total handling time across all plant resources.
 
-        This aggregates the handling times for consuming each plant resource in the
-        list, incorporating the search efficiency and other scaling factors to compute
-        the total handling time required by the cohort.
-
-        TODO: MGO - rework for territories
+        Computes the denominator sum Σ K_i,l · H_i,l from the Holling Type II functional
+        response,
 
         Args:
             plant_list: A list of plant resources available for consumption by the
@@ -756,20 +753,20 @@ class AnimalCohort:
             alpha: The search efficiency rate of the herbivore cohort.
 
         Returns:
-            A float representing the total handling time in days required by the cohort
-            for all available plant resources.
+            Dimensionless sum of handling time across all plant resources (days of
+            handling per day of searching).
         """
 
         A_cell = self.grid.cell_area
-        return sum(
-            sf.k_i_k(alpha, plant.mass_current, A_cell)
-            + sf.H_i_k(
-                self.constants.h_herb_0,
-                self.constants.M_herb_ref,
-                self.mass_current,
-                self.constants.b_herb,
-            )
-            for plant in plant_list
+
+        handling_time_per_gram = sf.H_i_k(
+            self.constants.h_herb_0,
+            self.constants.M_herb_ref,
+            self.mass_current,
+            self.constants.b_herb,
+        )
+        return handling_time_per_gram * sum(
+            sf.k_i_k(alpha, plant.mass_current, A_cell) for plant in plant_list
         )
 
     def F_i_k(
