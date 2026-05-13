@@ -695,50 +695,6 @@ class AnimalCohort:
 
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
 
-    def calculate_potential_consumed_biomass(
-        self, target_plant: Resource, alpha: float
-    ) -> float:
-        """Calculate potential consumed biomass for the target plant.
-
-        This method computes the potential consumed biomass based on the search
-        efficiency (alpha), the fraction of the total plant stock available to the
-        cohort (phi), and the biomass of the target plant.
-
-        Args:
-            target_plant: The plant resource being targeted by the herbivore cohort.
-            alpha: The search efficiency rate of the herbivore cohort.
-
-        Returns:
-            A float representing the potential consumed biomass of the target plant by
-            the cohort [g/day].
-
-        Raises:
-            ValueError: If `target_plant.mass_current` is missing or negative.
-            ValueError: If `alpha` is negative or zero.
-        """
-
-        # Validate that target_plant has a valid mass_current
-        if (
-            not hasattr(target_plant, "mass_current")
-            or target_plant.mass_current is None
-        ):
-            raise ValueError(
-                "target_plant.mass_current must be defined and non-negative."
-            )
-        if target_plant.mass_current < 0:
-            raise ValueError(
-                f"target_plant.mass_current must be non-negative."
-                f"Got {target_plant.mass_current}."
-            )
-
-        # Validate alpha (search efficiency)
-        if alpha <= 0:
-            raise ValueError(f"alpha must be positive. Got {alpha}.")
-
-        A_cell = self.grid.cell_area
-
-        return sf.k_i_k(alpha, target_plant.mass_current, A_cell)
-
     def calculate_total_handling_time_for_herbivory(
         self, plant_list: list[Resource] | list[CellResource], alpha: float
     ) -> float:
