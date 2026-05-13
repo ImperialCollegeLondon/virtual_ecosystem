@@ -274,11 +274,15 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model):
     # cohort.
     for cid in fxt_plants_model.grid.cell_id:
         for tissue in ("fruit", "seed", "foliage"):
+            # Get the biomass and divide in half
             consumed_biomass = (
                 fxt_plants_model.biomasses[cid]
                 .get_tissue(tissue)
                 .as_array(with_carbon=True)
             ) / 2
+
+            # Construct an xarray with dimensions to make it easier to group cohort data
+            # back up to PFT for insertion into PFT structured consumption pool
             target_array = fxt_plants_model.data[f"canopy_{tissue}_cnp_consumed"]
             consumed_biomass_by_pft = xarray.DataArray(
                 consumed_biomass,
@@ -287,21 +291,21 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model):
                     "element": target_array.element,
                     "pft": fxt_plants_model.biomasses[cid].community.cohorts.pft_names,
                 },
-            ).groupby("pft")
+            )
 
-            for pft_name, pft_data in consumed_biomass_by_pft:
+            # Explicitly insert chunks of data grouped by PFT to enforce PFT order and
+            # possible missing PFTs within community.
+            for pft_name, pft_data in consumed_biomass_by_pft.groupby("pft"):
                 target_array.loc[cid, pft_name, :] = pft_data.sum("pft")
 
-        fxt_plants_model.data["canopy_fruit_cnp_consumed"]
-
-    # Save a copy of the initial biomasses for reference
-
+    # Save a copy of the initial biomasses for reference in testing
     initial_biomasses = deepcopy(fxt_plants_model.biomasses)
 
+    # Run herbivory
     fxt_plants_model.apply_herbivory()
 
     # Check that the modelled biomasses have been appropriately reduced, including
-    # proportional distribution of PFT herbivory across cohorts.
+    # proportional distribution of PFT herbivory back down to cohort level.
     for cid in fxt_plants_model.grid.cell_id:
         for tissue in ("fruit", "seed", "foliage"):
             assert_allclose(
