@@ -933,12 +933,18 @@ class PlantsModel(
             # 2. Decrease LAI to account for herbivory effects on light gathering. This
             #    assumes that the herbivory is at a constant rate through the time step
             #    so that the canopy is _on average_ missing half of the consumed mass.
+
+            #    NOTE: The foliage mass here should be the expected foliage mass without
+            #          herbivory, which is calculated as part of the stem allometry from
+            #          the LAI, crown area and SLA. The code here modifies the LAI for
+            #          use in calculating light penetration, but the LAI must be
+            #          restored before the allometry is recalculated for the next step.
             foliage_carbon_loss = herbivory_by_cohort.sel(element="C").to_numpy()
             average_foliage_mass = (
                 community.stem_allometry.foliage_mass - foliage_carbon_loss / 2
             )
 
-            # TODO - need to check that LAI is reset to the PFT standard before the
+            # Note here that LAI is calculated reset to the PFT standard before the
             # stem allocation is next calculated
             community.stem_traits.lai = (
                 average_foliage_mass * community.stem_traits.sla
@@ -1305,6 +1311,9 @@ class PlantsModel(
             # Update community allometry with new dbh values - this requires the LAI
             # trait to be reset to the PFT standard to calculate the correct foliage
             # mass rather than the herbivory affected foliage mass.
+
+            # community.stem_traits.lai
+
             community.stem_allometry = StemAllometry(
                 stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
             )

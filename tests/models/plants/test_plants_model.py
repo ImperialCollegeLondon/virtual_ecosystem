@@ -1,6 +1,7 @@
 """Tests for the model.plants.plants_model submodule."""
 
 from contextlib import nullcontext as does_not_raise
+from copy import deepcopy
 
 import numpy as np
 import pytest
@@ -267,15 +268,49 @@ def test_PlantsModel_set_shortwave_absorption(
 
 
 def test_PlantsModel_apply_herbivory(fxt_plants_model):
-    """Simple test that update canopy layers restores overwritten data."""
+    """Check the sequencing and processes for applying herbivory."""
 
-    # Overwrite the existing canopy derived data in each layer - this also nukes the
-    # soil and surface depths _which_ are not correctly regenerated in this test, so the
-    # test makes use of the canopy only layer heights in the fixture_canopy_layer_data
-    #
-    # TODO - amend this as and when layer heights gets centralised
+    # Adjust the consumption pools to eat 50% of all the fruit, seed and foliage in each
+    # cohort.
+    for cid in fxt_plants_model.grid.cell_id:
+        for tissue in ("fruit", "seed", "foliage"):
+            consumed_biomass = (
+                fxt_plants_model.biomasses[cid]
+                .get_tissue(tissue)
+                .as_array(with_carbon=True)
+            ) / 2
+            target_array = fxt_plants_model.data[f"canopy_{tissue}_cnp_consumed"]
+            consumed_biomass_by_pft = xarray.DataArray(
+                consumed_biomass,
+                dims=("element", "pft"),
+                coords={
+                    "element": target_array.element,
+                    "pft": fxt_plants_model.biomasses[cid].community.cohorts.pft_names,
+                },
+            ).groupby("pft")
+
+            for pft_name, pft_data in consumed_biomass_by_pft:
+                target_array.loc[cid, pft_name, :] = pft_data.sum("pft")
+
+        fxt_plants_model.data["canopy_fruit_cnp_consumed"]
+
+    # Save a copy of the initial biomasses for reference
+
+    initial_biomasses = deepcopy(fxt_plants_model.biomasses)
 
     fxt_plants_model.apply_herbivory()
+
+    # Check that the modelled biomasses have been appropriately reduced, including
+    # proportional distribution of PFT herbivory across cohorts.
+    for cid in fxt_plants_model.grid.cell_id:
+        for tissue in ("fruit", "seed", "foliage"):
+            assert_allclose(
+                initial_biomasses[cid].get_tissue(tissue).as_array(with_carbon=True)
+                / 2,
+                fxt_plants_model.biomasses[cid]
+                .get_tissue(tissue)
+                .as_array(with_carbon=True),
+            )
 
 
 def test_PlantsModel_estimate_gpp(fxt_plants_model):
