@@ -1768,6 +1768,8 @@ class AnimalCohort:
         Returns:
             List of animal cohorts that can be preyed upon.
         """
+        allows_invertebrates = bool(prey_diet & DietType.INVERTEBRATES)
+        allows_vertebrates = bool(prey_diet & DietType.VERTEBRATES)
 
         prey_set: set[AnimalCohort] = set()
         for cell_id in self.territory:
@@ -1776,13 +1778,11 @@ class AnimalCohort:
                     continue
 
                 prey_group = prey_cohort.functional_group
-                allows_invertebrates = bool(prey_diet & DietType.INVERTEBRATES)
-                allows_vertebrates = bool(prey_diet & DietType.VERTEBRATES)
-
                 if (allows_invertebrates and prey_group.is_invertebrate) or (
                     allows_vertebrates and prey_group.is_vertebrate
                 ):
                     prey_set.add(prey_cohort)
+
         return list(prey_set)
 
     def can_forage_on(self, resource: Resource) -> bool:
