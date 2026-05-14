@@ -6,7 +6,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 import xarray
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_less
 
 from virtual_ecosystem.core.exceptions import InitialisationError
 
@@ -270,6 +270,8 @@ def test_PlantsModel_set_shortwave_absorption(
 def test_PlantsModel_apply_herbivory(fxt_plants_model):
     """Check the sequencing and processes for applying herbivory."""
 
+    from virtual_ecosystem.models.plants.canopy import calculate_canopies
+
     # Adjust the consumption pools to eat 50% of all the fruit, seed and foliage in each
     # cohort.
     for cid in fxt_plants_model.grid.cell_id:
@@ -311,6 +313,12 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model):
         for ky, cm in fxt_plants_model.communities.items()
     }
 
+    # Calculate canopy characteristics of communities _before_ herbivory
+    pristine_canopies = calculate_canopies(
+        communities=fxt_plants_model.communities,
+        max_canopy_layers=fxt_plants_model.layer_structure.n_canopy_layers,
+    )
+
     # Run herbivory
     fxt_plants_model.apply_herbivory()
 
@@ -343,6 +351,21 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model):
         assert_allclose(
             W_f / initial_tau_f[cid] + W_f / 2,
             W_f / fxt_plants_model.communities[cid].stem_traits.tau_f.squeeze(),
+        )
+
+    # Check the canopy asbsorption has been altered - here just simply checking that the
+    # average community absorption has strictly decreased. _Might_ be able to work out
+    # the expectated new values given a halving of leaf area index, but seems fussy. It
+    # just should go down.
+    damaged_canopies = calculate_canopies(
+        communities=fxt_plants_model.communities,
+        max_canopy_layers=fxt_plants_model.layer_structure.n_canopy_layers,
+    )
+
+    for pristine, damaged in zip(pristine_canopies.values(), damaged_canopies.values()):
+        assert_array_less(
+            damaged.community_data.average_layer_absorption,
+            pristine.community_data.average_layer_absorption,
         )
 
 
