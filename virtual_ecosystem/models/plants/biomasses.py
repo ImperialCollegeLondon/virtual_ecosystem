@@ -117,7 +117,6 @@ class BiomassTissueABC(ABC):
 
     tissue_name: ClassVar[str]
     """A tissue name for derived classes."""
-
     community: Community
     """The community object that the tissue is associated with."""
     extra_pft_traits: ExtraTraitsPFT
@@ -878,6 +877,27 @@ class Biomasses(CohortMethods, PandasExporter):
     """A list giving the name of each tissue."""
     elements: tuple[str, ...] = field(init=False)
     """A list of the elements recorded in each tissue."""
+
+    # Note: these are hard-coded and must be updated if the simulation
+    # uses different biomass classes.
+    array_attrs: ClassVar[tuple[str, ...]] = (
+        "biomass_foliage_carbon_mass",
+        "biomass_foliage_n_actual_element_mass",
+        "biomass_foliage_p_actual_element_mass",
+        "biomass_fruit_carbon_mass",
+        "biomass_fruit_n_actual_element_mass",
+        "biomass_fruit_p_actual_element_mass",
+        "biomass_seed_carbon_mass",
+        "biomass_seed_n_actual_element_mass",
+        "biomass_seed_p_actual_element_mass",
+        "biomass_stem_carbon_mass",
+        "biomass_stem_n_actual_element_mass",
+        "biomass_stem_p_actual_element_mass",
+        "biomass_root_carbon_mass",
+        "biomass_root_n_actual_element_mass",
+        "biomass_root_p_actual_element_mass",
+    )
+    """Array attribute names for all biomass tissue and element data."""
 
     def __post_init__(self) -> None:
         """Initialize the element surplus for each cohort."""

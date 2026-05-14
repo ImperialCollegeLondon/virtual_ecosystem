@@ -66,9 +66,9 @@ def test_calculate_wind_profile(
     exp_wind = np.array(
         [
             [0.967405, 0.965281, 0.744923, 0.967405],
-            [0.959669, 0.957041, 0.648195, 0.001],
-            [0.911069, 0.905273, 0.001, 0.001],
-            [0.827986, 0.001, 0.001, 0.001],
+            [0.959669, 0.957041, 0.648195, np.nan],
+            [0.911069, 0.905273, np.nan, np.nan],
+            [0.827986, np.nan, np.nan, np.nan],
             [0.275995, 0.228813, 0.001, 0.275995],
         ]
     )
@@ -96,33 +96,22 @@ def test_calculate_friction_velocity(dummy_climate_data_varying_canopy):
     assert_allclose(result, exp_friction_velocity, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_ventilation_rate_scalar():
-    """Test calculate ventilation rate scalar."""
+def test_calculate_ventilation_rate():
+    """Test calculate ventilation rate."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         calculate_ventilation_rate,
     )
 
-    ra = 50.0
-    h = 20.0
-    expected = 1.0 / 1000.0
+    aerodynamic_resistance = np.array([10.0, 50.0, 0.0, 10.0])
+    characteristic_height = np.array([2.0, 20.0, 1.0, 0.0])
+    expected = np.array([5.0e-02, 1.0e-03, 1.0e03, 0.1])
 
-    result = calculate_ventilation_rate(ra, h)
-    assert np.isclose(result, expected)
-
-
-def test_calculate_ventilation_rate_array():
-    """Test calculate ventilation rate array."""
-
-    from virtual_ecosystem.models.abiotic.wind import (
-        calculate_ventilation_rate,
+    result = calculate_ventilation_rate(
+        aerodynamic_resistance=aerodynamic_resistance,
+        characteristic_height=characteristic_height,
+        understorey_ventilation_rate=0.1,
     )
-
-    ra = np.array([10.0, 50.0, 0.0])
-    h = np.array([2.0, 20.0, 1.0])
-    expected = np.array([5.0e-02, 1.0e-03, 1.0e03])
-
-    result = calculate_ventilation_rate(ra, h)
     assert_allclose(result, expected)
 
 
@@ -133,11 +122,15 @@ def test_calculate_ventilation_rate_zero_denominator():
         calculate_ventilation_rate,
     )
 
-    ra = 0.0
-    h = 0.0
+    aerodynamic_resistance = 0.0
+    characteristic_height = 10.0
     expected = 1.0 / 1e-3
 
-    result = calculate_ventilation_rate(ra, h)
+    result = calculate_ventilation_rate(
+        aerodynamic_resistance=aerodynamic_resistance,
+        characteristic_height=characteristic_height,
+        understorey_ventilation_rate=0.1,
+    )
     assert np.isclose(result, expected)
 
 
@@ -158,7 +151,7 @@ def test_calculate_mixing_coefficients():
         canopy_height=canopy_height,
         friction_velocity=friction_velocity,
         von_karman_constant=k,
-        max_mixing_coefficient=1000.0,
+        max_mixing_coefficient=1.0,
     )
 
     assert result.shape == layer_midpoints.shape
@@ -209,51 +202,123 @@ def test_clamp_variable_within_limits():
     assert_allclose(variable.sum(axis=0), clamped_variable.sum(axis=0))
 
 
-def test_mix_and_ventilate():
+def test_next_valid_above(dummy_climate_data_varying_canopy):
+    """Test next valid above."""
+    from virtual_ecosystem.models.abiotic.wind import next_valid_above
+
+    data = dummy_climate_data_varying_canopy
+    arr = data["air_temperature"].to_numpy()
+
+    result = next_valid_above(arr)
+
+    expected = np.array(
+        [
+            [-1, -1, -1, -1],
+            [0, 0, 0, 0],
+            [1, 1, 1, 0],
+            [2, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+        ]
+    )
+
+    assert np.array_equal(result, expected)
+
+
+def test_next_valid_below(dummy_climate_data_varying_canopy):
+    """Test next valid below."""
+    from virtual_ecosystem.models.abiotic.wind import next_valid_below
+
+    data = dummy_climate_data_varying_canopy
+    arr = data["air_temperature"].to_numpy()
+
+    result = next_valid_below(arr)
+
+    expected = np.array(
+        [
+            [1, 1, 1, 11],
+            [2, 2, 11, 11],
+            [3, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [11, 11, 11, 11],
+            [-1, -1, -1, -1],
+            [-1, -1, -1, -1],
+            [-1, -1, -1, -1],
+        ]
+    )
+
+    assert np.array_equal(result, expected)
+
+
+def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_components):
     """Test mixing and ventilation within bounds."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         mix_and_ventilate,
     )
 
-    mixing_coefficient = np.array(
+    data = dummy_climate_data_varying_canopy
+    lyrstr = fixture_core_components.layer_structure
+
+    mixing_coefficient = data["mixing_coefficient"].to_numpy()
+    ventilation_rate = data["ventilation_rate"].to_numpy()
+
+    input_temp = data["air_temperature"].to_numpy()
+    input_humidity = data["relative_humidity"].to_numpy()
+    input_humidity[2, :] = np.array([105, 102, np.nan, np.nan])
+
+    exp_temp = np.full_like(input_humidity, np.nan)
+    exp_temp[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [0.001, 0.001, 0.001, 0.001],
-            [0.005, 0.005, 0.005, np.nan],
-            [0.01, 0.01, np.nan, np.nan],
-            [0.001, np.nan, np.nan, np.nan],
-            [0.012, 0.012, 0.012, 0.012],
+            [30.0, 30.0, 30.0, 29.2],
+            [29.82, 29.82, 29.82, np.nan],
+            [28.99, 28.99, np.nan, np.nan],
+            [27.37, np.nan, np.nan, np.nan],
+            [22.52, 22.69, 22.78, 23.6],
         ]
     )
-    ventilation_rate = np.array([0.001, 0.001, 0.001, 0.001])
-
-    input_humidity = np.array(
+    exp_hum = np.full_like(input_humidity, np.nan)
+    exp_hum[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [95.0, 95.0, 95.0, 95.0],
-            [110.0, 100.0, 100.0, np.nan],
+            [90.0, 90.0, 90.0, 90.8],
+            [94.5, 91.8, 90.9, np.nan],
             [100.0, 100.0, np.nan, np.nan],
-            [90.0, np.nan, np.nan, np.nan],
-            [100.0, 100.0, 100.0, 100.0],
-        ],
-    )
-
-    exp_result = np.array(
-        [
-            [104.925, 95.004995, 95.004995, 95.0],
-            [100.0, 99.990005, 99.990005, np.nan],
-            [100.0, 100, np.nan, np.nan],
-            [90.22, np.nan, np.nan, np.nan],
-            [100.0, 100.0, 100.0, 100.0],
+            [96.9, np.nan, np.nan, np.nan],
+            [97.8, 98.4, 97.3, 96.4],
         ]
     )
 
-    result = mix_and_ventilate(
+    result_hum = mix_and_ventilate(
         input_variable=input_humidity,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
         limits=(0, 100),
+        surface_index=lyrstr.index_surface_scalar,
     )
-    assert_allclose(result, exp_result, rtol=1e-6, atol=1e-6)
+    assert_allclose(result_hum, exp_hum, rtol=1e-6, atol=1e-6)
+
+    result_temp = mix_and_ventilate(
+        input_variable=input_temp,
+        mixing_coefficient=mixing_coefficient,
+        ventilation_rate=ventilation_rate,
+        limits=(-20, 100),
+        surface_index=lyrstr.index_surface_scalar,
+    )
+    assert_allclose(result_temp, exp_temp, rtol=1e-6, atol=1e-6)
 
 
 def test_advect_from_toplayer():

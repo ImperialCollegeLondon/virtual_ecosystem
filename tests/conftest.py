@@ -25,6 +25,7 @@ def log_check(
     caplog: pytest.LogCaptureFixture,
     expected_log: tuple[tuple],
     subset: slice | None = None,
+    match_message_start: bool = False,
 ) -> None:
     """Helper function to check that the captured log is as expected.
 
@@ -32,6 +33,8 @@ def log_check(
         caplog: An instance of the caplog fixture
         expected_log: An iterable of 2-tuples containing the log level and message.
         subset: Only check a specified subset of the captured log.
+        match_message_start: Allow log matching to only match the start of the expected
+            message to allow for appended log information.
     """
 
     # caplog.records is just a list of LogRecord objects, so can use a slice to drop
@@ -46,9 +49,18 @@ def log_check(
     assert all(
         [exp[0] == rec.levelno for exp, rec in zip(expected_log, captured_records)]
     )
-    assert all(
-        [exp[1] in rec.message for exp, rec in zip(expected_log, captured_records)]
-    )
+
+    if match_message_start:
+        assert all(
+            [
+                rec.message.startswith(exp[1])
+                for exp, rec in zip(expected_log, captured_records)
+            ]
+        )
+    else:
+        assert all(
+            [exp[1] in rec.message for exp, rec in zip(expected_log, captured_records)]
+        )
 
 
 def record_found_in_log(
@@ -714,6 +726,7 @@ def dummy_climate_data(fixture_core_components):
         "aerodynamic_resistance_canopy": 30.0,  # s m-1
         "ground_heat_flux": 20.0,
         "conductive_flux_understorey": 50.0,
+        "ventilation_rate": 0.1,
     }
     for var, val in spatially_constant.items():
         data[var] = DataArray(np.repeat(val, 4), dims=["cell_id"])
@@ -734,6 +747,9 @@ def dummy_climate_data(fixture_core_components):
     # - Vertically structured
     data["wind_speed"] = from_template()
     data["wind_speed"][lyr_str.index_filled_atmosphere] = 0.1
+
+    data["mixing_coefficient"] = from_template()
+    data["mixing_coefficient"][lyr_str.index_filled_atmosphere] = 0.1
 
     data["atmospheric_pressure"] = from_template()
     data["atmospheric_pressure"][lyr_str.index_filled_atmosphere] = 96.0
@@ -863,6 +879,12 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     dummy_climate_data["wind_speed"][index_filled_canopy] = [
         [0.3, 0.3, 0.3, np.nan],
         [0.25, 0.25, np.nan, np.nan],
+        [0.1, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["mixing_coefficient"][index_filled_canopy] = [
+        [0.1, 0.1, 0.1, np.nan],
+        [0.1, 0.1, np.nan, np.nan],
         [0.1, np.nan, np.nan, np.nan],
     ]
 
@@ -1026,7 +1048,6 @@ def fixture_static_inputs(
 
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
-        layer_structure=layer_structure,
     )
 
     # Absorbed longwave radiation by canopy, [W m-2]

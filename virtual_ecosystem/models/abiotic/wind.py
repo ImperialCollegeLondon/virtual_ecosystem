@@ -160,7 +160,11 @@ def calculate_wind_profile(
         * np.log((heights - zero_plane_displacement) / roughness_length)
         / np.log((reference_height - zero_plane_displacement) / roughness_length)
     )
-    return np.where(wind_speed >= min_wind_speed, wind_speed, min_wind_speed)
+    clipped_wind_speed = np.where(
+        wind_speed >= min_wind_speed, wind_speed, min_wind_speed
+    )
+    masked_wind_speed = np.where(np.isnan(wind_heights), np.nan, clipped_wind_speed)
+    return masked_wind_speed
 
 
 def calculate_friction_velocity(
@@ -208,23 +212,33 @@ def calculate_friction_velocity(
 def calculate_ventilation_rate(
     aerodynamic_resistance: float | NDArray[np.floating],
     characteristic_height: float | NDArray[np.floating],
+    understorey_ventilation_rate: float,
 ) -> NDArray[np.floating]:
     """Calculate ventilation rate from the top of the canopy to atmosphere above.
 
     This function calculates the rate of water and heat exchange between the top of the
     canopy and the atmosphere above after :cite:t:`wolfe_forest_2011`.
 
+    If the canopy height is zero, the value is set to a default value for understorey
+    ventilation.
+
     Args:
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
         characteristic_height: Vertical scale of exchange, typically canopy height +
             zero plane displacement height [m]
+        understorey_ventilation_rate: Understorey ventilation rate, [s-1]. This is used
+            in case there is no canopy.
 
     Returns:
         Ventilation rate [s-1]
     """
 
     denominator = np.maximum(aerodynamic_resistance * characteristic_height, 1e-3)
-    return 1.0 / denominator
+    ventilation_rate = 1.0 / denominator
+
+    return np.where(
+        characteristic_height == 0.0, understorey_ventilation_rate, ventilation_rate
+    )
 
 
 def calculate_mixing_coefficients_canopy(
@@ -330,20 +344,69 @@ def clamp_variable_within_limits(
     return variable
 
 
+def next_valid_above(array: NDArray[np.floating]) -> NDArray[np.int_]:
+    """Index of nearest valid value above each layer.
+
+    Args:
+        array: A 2D array with vertical layers as the first dimension and columns as
+            the second dimension. NaN values represent invalid or unoccupied layers.
+
+    Returns:
+        A 2D array of the same shape as the input, where each element contains the index
+        of the nearest valid (non-NaN) value above it in the same column. If there is no
+        valid value above, the element will be -1.
+    """
+
+    n_layers, n_cols = array.shape
+
+    out = np.empty((n_layers, n_cols), dtype=int)
+    last_valid = np.full(n_cols, -1, dtype=int)
+
+    for i in range(n_layers):
+        out[i] = last_valid
+        last_valid[~np.isnan(array[i])] = i
+
+    return out
+
+
+def next_valid_below(array: NDArray[np.floating]) -> NDArray[np.int_]:
+    """Index of nearest valid value below each layer.
+
+    Args:
+        array: A 2D array with vertical layers as the first dimension and columns as
+            the second dimension. NaN values represent invalid or unoccupied layers.
+
+    Returns:
+        A 2D array of the same shape as the input, where each element contains the index
+        of the nearest valid (non-NaN) value below it in the same column. If there is no
+        valid value below, the element will be -1.
+    """
+
+    n_layers, n_cols = array.shape
+
+    out = np.empty((n_layers, n_cols), dtype=int)
+    last_valid = np.full(n_cols, -1, dtype=int)
+
+    for i in range(n_layers - 1, -1, -1):
+        out[i] = last_valid
+        last_valid[~np.isnan(array[i])] = i
+
+    return out
+
+
 def mix_and_ventilate(
     input_variable: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
     ventilation_rate: NDArray[np.floating],
     limits: tuple[float, float],
+    surface_index: int,
 ) -> NDArray[np.floating]:
     """Apply vertical mixing and top-layer ventilation across multiple vertical layers.
 
     This function simulates diffusion-like mixing between vertical layers based on local
     gradients of atmospheric variables (e.g. temperature, relative humidity) and
-    layer-specific mixing coefficients. For each internal layer (excluding the top and
-    bottom), it computes upward and downward fluxes using the nearest valid
-    (finite) values above and below, respectively. The fluxes are scaled by the layer
-    thickness and applied to update the variable.
+    layer-specific mixing coefficients. For each layer, it computes upward and
+    downward fluxes using the nearest valid (finite) values above.
 
     Additionally, the function applies a ventilation adjustment to the top layer of each
     column, representing heat or water exchange with the  above the canopy. This is
@@ -359,66 +422,68 @@ def mix_and_ventilate(
         mixing_coefficient: Turbulent mixing coefficients for canopy, [m2 s-1]
         ventilation_rate: Ventilation rate, [s-1]
         limits: Upper and lower limit for input variable, avoid overshoot when mixing
+        surface_index: Surface layer index
 
     Returns:
         Vertically mixed input variable
     """
 
-    # 1. Vertical mixing for layers [1:-1]
+    current = input_variable.copy()
+    n_layers, n_cols = current.shape
 
-    # Extract neighbors
-    above = input_variable[:-2]
-    current = input_variable[1:-1]
-    below = input_variable[2:]
+    # Extract neighbor indices
+    above_idx = next_valid_above(current)
 
-    # Slice matching mixing coefficients
-    mix_above = mixing_coefficient[:-2]
-    mix_below = mixing_coefficient[2:]
+    # Set mixing coefficient for top layer to ventilation rate, as this is the
+    # rate at which the top canopy layer is mixed with the atmosphere above.
+    mixing_coefficient = mixing_coefficient.copy()
+    mixing_coefficient[0, :] = ventilation_rate
+    cols = np.broadcast_to(np.arange(n_cols), (n_layers, n_cols))
 
-    # Mask valid (non-NaN) values
-    valid_above = ~np.isnan(above)
-    valid_curr = ~np.isnan(current)
-    valid_below = ~np.isnan(below)
+    # Gather neighbours above
+    above = np.full_like(current, np.nan)
+    mask_above = above_idx >= 0
 
-    # Mixing from above: current += k * (above - current)
-    mix_from_above = np.where(
-        valid_above & valid_curr,
-        mix_above * (above - current),
-        0.0,
+    # Only fill where BOTH source index is valid AND source value is finite
+    if np.any(mask_above):
+        src_layers = above_idx[mask_above]
+        src_cols = cols[mask_above]
+
+        above_vals = current[src_layers, src_cols]
+
+        # avoid propagating NaNs from invalid layers
+        above[mask_above] = above_vals
+
+    # Mask valid (non-NaN) values to exclude unoccupied layers from mixing
+    valid = np.isfinite(current) & np.isfinite(above)
+
+    mix_above = np.zeros_like(current)
+
+    # Normal case: canopy exists
+    mask_mix = valid & mask_above
+
+    mix_above[mask_mix] = mixing_coefficient[mask_mix] * (
+        above[mask_mix] - current[mask_mix]
     )
 
-    # Mixing from below
-    mix_from_below = np.where(
-        valid_below & valid_curr,
-        mix_below * (below - current),
-        0.0,
-    )
+    # No canopy fallback
+    canopy_exists = np.isfinite(current[1, :])
+    no_canopy = ~canopy_exists
 
-    # Apply both fluxes
-    input_variable[1:-1] = current + mix_from_above + mix_from_below
+    if np.any(no_canopy):
+        # exchange between top and surface layer only
+        diff = current[0, no_canopy] - current[surface_index, no_canopy]
 
-    # 2. Ventilation: above layer - top canopy layer
+        v = ventilation_rate[no_canopy]
 
-    top = input_variable[0]
-    below = input_variable[1]
+        mix_above[0, no_canopy] -= v * diff
+        mix_above[surface_index, no_canopy] += v * diff
 
-    valid_top = ~np.isnan(top)
-    valid_below = ~np.isnan(below)
-    valid = valid_top & valid_below
+    # Vertical mixing
+    result = current + mix_above
 
-    delta = top - below
-    change = ventilation_rate * delta
-
-    # Only apply to valid columns
-    input_variable[0, valid] -= change[valid]
-    input_variable[1, valid] += change[valid]
-
-    # Redistribute overshoot/undershoot
-    input_variable = clamp_variable_within_limits(
-        variable=input_variable, limits=limits
-    )
-
-    return input_variable
+    # Return after clamping within limits to prevent overshooting and negative values
+    return clamp_variable_within_limits(result, limits)
 
 
 def advect_water_from_toplayer(

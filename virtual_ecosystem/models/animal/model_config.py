@@ -76,6 +76,9 @@ class AnimalConstants(Configuration):
     density_scaling_method: DENSITY_SCALING_METHODS = "madingley"
     """The density scaling method to use within a simulation."""
 
+    _ELEMENTAL_MASS_NOISE_TOLERANCE = 1e-10
+    """The value used for clamping negative mass movement created by fp errors."""
+
     def get_population_density_terms(
         self, taxa: TaxaType, diet: DietType
     ) -> tuple[float, ...]:

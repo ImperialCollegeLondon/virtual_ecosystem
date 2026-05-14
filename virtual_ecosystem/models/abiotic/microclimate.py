@@ -78,7 +78,6 @@ def prepare_static_inputs(
     # Calculate atmospheric layer geometry
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
-        layer_structure=layer_structure,
     )
 
     # Absorbed longwave radiation by canopy based on shortwave absorption, [W m-2]
@@ -181,7 +180,9 @@ def calculate_wind_profiles(
     wind_speed[layer_structure.index_filled_atmosphere] = wind.calculate_wind_profile(
         reference_wind_speed=reference_wind_speed,
         reference_height=wind_reference_height,
-        wind_heights=static["geometry"]["heights"],
+        wind_heights=static["geometry"]["heights"][
+            layer_structure.index_filled_atmosphere
+        ],
         roughness_length=roughness_length,
         zero_plane_displacement=zero_plane_displacement,
         min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
@@ -200,7 +201,9 @@ def calculate_wind_profiles(
     mixing_coefficient = layer_structure.from_template()
     mixing_coefficient[layer_structure.index_filled_atmosphere] = (
         wind.calculate_mixing_coefficients_canopy(
-            layer_midpoints=static["geometry"]["layer_midpoints"],
+            layer_midpoints=static["geometry"]["layer_midpoints"][
+                layer_structure.index_filled_atmosphere
+            ],
             canopy_height=static["canopy_height"],
             friction_velocity=friction_velocity,
             von_karman_constant=core_constants.von_karmans_constant,
@@ -439,6 +442,7 @@ def calculate_thermodynamics(
         aerodynamic_resistance=aerodynamic_resistance_canopy,
         characteristic_height=static["canopy_height"]
         + static["zero_plane_displacement"],
+        understorey_ventilation_rate=abiotic_constants.understorey_ventilation_rate,
     )
 
     return {
@@ -640,7 +644,7 @@ def update_air_temperature(
         sensible_heat_flux=state["sensible_heat_flux"][idx.canopy],
         specific_heat_air=state["specific_heat_air"][idx.canopy],
         density_air=state["density_air"][idx.canopy],
-        mixing_layer_thickness=static["geometry"]["thickness"][1:-1],
+        mixing_layer_thickness=static["geometry"]["thickness"][idx.canopy],
     )
 
     # Update surface air temperatures, [C]
@@ -655,12 +659,12 @@ def update_air_temperature(
         sensible_heat_flux=state["sensible_heat_flux"][idx.surface] + flux_from_soil,
         specific_heat_air=state["specific_heat_air"][idx.surface],
         density_air=state["density_air"][idx.surface],
-        mixing_layer_thickness=static["geometry"]["thickness"][-1],
+        mixing_layer_thickness=static["geometry"]["thickness"][idx.surface],
     )
 
     # Update all air temperatures, [C]
     air_temperature = np.copy(state["air_temperature"])
-    air_temperature[1 : len(canopy_air_temperature) + 1] = canopy_air_temperature
+    air_temperature[idx.canopy] = canopy_air_temperature
     air_temperature[idx.surface] = surface_air_temperature
 
     air_temperature = wind.mix_and_ventilate(
@@ -668,6 +672,7 @@ def update_air_temperature(
         ventilation_rate=state["ventilation_rate"],
         mixing_coefficient=static["mixing_coefficient"],
         limits=abiotic_bounds.air_temperature[:2],
+        surface_index=idx.surface,
     )
 
     return air_temperature
@@ -717,6 +722,19 @@ def update_atmospheric_humidity(
         pyrealm_core_constants=pyrealm_core_constants,
     )
 
+    # Add water from evapotranspiration and soil evaporation to atmosphere
+    specific_humidity_with_added_water = energy_balance.update_specific_humidity(
+        evapotranspiration=state["evapotranspiration"],
+        soil_evaporation=state["soil_evaporation"],
+        specific_humidity=specific_humidity_air,
+        layer_thickness=static["geometry"]["thickness"],
+        density_air=state["density_air"],
+        mm_to_kg=core_constants.mm_to_kg,
+        cell_area=static["cell_area"],
+        time_interval=time_interval,
+        surface_index=idx.surface,
+    )
+
     # Calculate specific humidity at saturation
     mixing_ratio_saturation = (
         core_constants.molecular_weight_ratio_water_to_dry_air
@@ -725,48 +743,37 @@ def update_atmospheric_humidity(
     )
     max_specific_humidity = mixing_ratio_saturation / (1 + mixing_ratio_saturation)
 
+    # Vertical mixing
+    specific_humidity_mixed = wind.mix_and_ventilate(
+        input_variable=specific_humidity_with_added_water,
+        mixing_coefficient=static["mixing_coefficient"],
+        ventilation_rate=state["ventilation_rate"],
+        limits=(
+            abiotic_constants.min_specific_humidity,
+            max_specific_humidity[0],
+        ),  # TODO layer specific?
+        surface_index=idx.surface,
+    )
+
     # Update atmospheric humidity variables, integration interval 1 hour
     output_vars = energy_balance.update_humidity_vpd(
-        canopy_evapotranspiration=state["evapotranspiration"][idx.canopy],
-        understorey_evapotranspiration=state["evapotranspiration"][idx.surface],
-        soil_evaporation=state["soil_evaporation"],
-        saturated_vapour_pressure=saturated_vapour_pressure_air[idx.atm],
-        specific_humidity=specific_humidity_air[idx.atm],
+        saturated_vapour_pressure=saturated_vapour_pressure_air,
+        specific_humidity_mixed=specific_humidity_mixed,
         layer_thickness=static["geometry"]["thickness"],
-        atmospheric_pressure=static["atmospheric_pressure"][idx.atm],
-        density_air=state["density_air"][idx.atm],
-        mixing_coefficient=static["mixing_coefficient"][idx.atm],
-        ventilation_rate=state["ventilation_rate"],
+        atmospheric_pressure=static["atmospheric_pressure"],
+        density_air=state["density_air"],
         molecular_weight_ratio_water_to_dry_air=(
             core_constants.molecular_weight_ratio_water_to_dry_air
         ),
         dry_air_factor=abiotic_constants.dry_air_factor,
         mm_to_kg=core_constants.mm_to_kg,
         cell_area=static["cell_area"],
-        limits_specific_humidity=(
-            abiotic_constants.min_specific_humidity,
-            max_specific_humidity[0],
-        ),  # TODO layer specific?
         limits_relative_humidity=abiotic_bounds.relative_humidity,
         limits_vapour_pressure_deficit=abiotic_bounds.vapour_pressure_deficit,
-        time_interval=time_interval,
         denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
 
-    output_dict = {}
-
-    for var in [
-        "relative_humidity",
-        "vapour_pressure",
-        "vapour_pressure_deficit",
-        "specific_humidity",
-        "condensation",
-    ]:
-        temp = np.full_like(specific_humidity_air, np.nan)
-        temp[idx.atm] = output_vars[var]
-        output_dict[var] = temp
-
-    return output_dict
+    return output_vars
 
 
 def run_hour_step(

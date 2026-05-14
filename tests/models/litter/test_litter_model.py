@@ -1,6 +1,6 @@
 """Test module for litter_model.py."""
 
-from logging import DEBUG, ERROR, INFO
+from logging import ERROR, INFO
 
 import numpy as np
 import pytest
@@ -9,28 +9,15 @@ from xarray import DataArray
 from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import InitialisationError
 
-
-def litter_required_for_init():
-    """Helper function to simplify expected log messages."""
-    from virtual_ecosystem.models.litter.litter_model import LitterModel
-
-    return LitterModel.vars_required_for_init
-
-
 # Define expected init log messages for all data present and no data present
-LITTER_INIT_CHECKS = tuple(
-    (DEBUG, f"litter model: required var '{v}' checked")
-    for v in litter_required_for_init()
-)
+LITTER_INIT_CHECKS = ((INFO, "litter model: required initial data variables checked"),)
 
-LITTER_ERROR_CHECKS = tuple(
+LITTER_ERROR_CHECKS = (
     (
-        *(
-            (ERROR, f"litter model: init data missing required var '{v}'")
-            for v in litter_required_for_init()
-        ),
-        (ERROR, "litter model: error checking vars_required_for_init, see log."),
-    )
+        ERROR,
+        "litter model: input data is missing required initialisation variables:",
+    ),
+    (ERROR, "litter model: Problems with initial model data: check log."),
 )
 
 
@@ -81,8 +68,9 @@ def test_litter_model_initialization_no_data(
             model_constants=fixture_litter_constants,
         )
 
-    # Final check that expected logging entries are produced
-    log_check(caplog, expected_log=LITTER_ERROR_CHECKS)
+    # Final check that expected logging entries are produced, do not match list of
+    # missing variables.
+    log_check(caplog, expected_log=LITTER_ERROR_CHECKS, match_message_start=False)
 
 
 @pytest.mark.parametrize(
