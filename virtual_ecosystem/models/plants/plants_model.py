@@ -1326,12 +1326,26 @@ class PlantsModel(
         """
 
         for community in self.communities.values():
-            # Update community allometry with new dbh values - this requires the LAI
-            # trait to be reset to the PFT standard to calculate the correct foliage
-            # mass rather than the herbivory affected foliage mass.
+            # Reset LAI
+            community.stem_traits.lai = np.array(
+                [
+                    self.extra_pft_traits.traits[pft]["lai_base"]
+                    for pft in community.cohorts.pft_names
+                ]
+            )
 
-            # community.stem_traits.lai
+            # Reset tau_f adjusting for update speed.
+            community.stem_traits.tau_f = (
+                np.array(
+                    [
+                        self.extra_pft_traits.traits[pft]["tau_f_base"]
+                        for pft in community.cohorts.pft_names
+                    ]
+                )
+                * self.model_timing.updates_per_year
+            )
 
+            # Update community allometry with new dbh values
             community.stem_allometry = StemAllometry(
                 stem_traits=community.stem_traits,
                 at_dbh=community.cohorts.dbh_values,

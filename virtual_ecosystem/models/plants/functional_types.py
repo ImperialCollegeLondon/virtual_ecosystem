@@ -109,7 +109,6 @@ def get_flora_from_config(config: PlantsConfiguration) -> tuple[Flora, ExtraTrai
     # Split into pyrealm PFT traits and VE extra traits
     extra_traits_columns = [*ExtraTraitsPFT.array_attrs, "name"]
     extra_traits_data = df[extra_traits_columns]
-    extra_traits_model = ExtraTraitsPFT.from_df(df=extra_traits_data)
     pft_traits = df.drop(columns=list(ExtraTraitsPFT.array_attrs))
     pft_data = {"pft": pft_traits.to_dict(orient="records")}
 
@@ -118,7 +117,8 @@ def get_flora_from_config(config: PlantsConfiguration) -> tuple[Flora, ExtraTrai
 
     # To capture herbivory effects, we need to record the base PFT values for LAI and
     # foliage turnover.
-    extra_traits_model.traits["lai_base"] = flora.lai
-    extra_traits_model.traits["tau_f_base"] = flora.tau_f
+    extra_traits_data["lai_base"] = flora.lai
+    extra_traits_data["tau_f_base"] = flora.tau_f
+    extra_traits_model = ExtraTraitsPFT.from_df(df=extra_traits_data)
 
     return flora, extra_traits_model
