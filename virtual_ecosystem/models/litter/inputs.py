@@ -631,7 +631,6 @@ def find_nutrient_split_between_litter_pools(
     # Defining masks to avoid zero flow edge cases
     struct_input = carbon_input_struct != 0
     only_meta_input = (carbon_input_meta != 0) & (carbon_input_struct == 0)
-    no_input = (carbon_input_meta == 0) & (carbon_input_struct == 0)
 
     # Calculate actual split in cases where there is flow to the structural pool
     meta_nutrient, struct_nutrient = calculate_nutrient_split(
@@ -640,18 +639,17 @@ def find_nutrient_split_between_litter_pools(
         input_nutrient_rate.where(struct_input),
         meta_to_struct_nutrient_ratio,
     )
-    meta_nutrient_mass = meta_nutrient_mass.where(~struct_input, meta_nutrient)
-    struct_nutrient_mass = struct_nutrient_mass.where(~struct_input, struct_nutrient)
+
+    # Zero values get replaced if there is a flow to that pool (otherwise kept as zero)
+    meta_nutrient_mass = meta_nutrient_mass.where(~struct_input, other=meta_nutrient)
+    struct_nutrient_mass = struct_nutrient_mass.where(
+        ~struct_input, other=struct_nutrient
+    )
 
     # If all carbon goes to metabolic litter all nutrients do as well
     meta_nutrient_mass = meta_nutrient_mass.where(
         ~only_meta_input, input_nutrient_rate.where(only_meta_input)
     )
-    struct_nutrient_mass = struct_nutrient_mass.where(~only_meta_input, 0)
-
-    # No carbon input means no nutrient input
-    meta_nutrient_mass = meta_nutrient_mass.where(~no_input, 0)
-    struct_nutrient_mass = struct_nutrient_mass.where(~no_input, 0)
 
     return (meta_nutrient_mass, struct_nutrient_mass)
 
