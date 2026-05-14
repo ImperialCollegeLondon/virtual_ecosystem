@@ -252,7 +252,7 @@ def calculate_updated_pools(
 
     return {
         "above_metabolic": calculate_final_pool_size(
-            input_rate=litter_inputs.above_metabolic,
+            input_rate=litter_inputs.above_metabolic.to_numpy(),
             decay_rate=decay_rates["metabolic_above"],
             initial_pool=post_consumption_pools["above_metabolic"]
             .sel(element="C")
@@ -260,7 +260,7 @@ def calculate_updated_pools(
             update_interval=update_interval,
         ),
         "above_structural": calculate_final_pool_size(
-            input_rate=litter_inputs.above_structural,
+            input_rate=litter_inputs.above_structural.to_numpy(),
             decay_rate=decay_rates["structural_above"],
             initial_pool=post_consumption_pools["above_structural"]
             .sel(element="C")
@@ -268,13 +268,13 @@ def calculate_updated_pools(
             update_interval=update_interval,
         ),
         "woody": calculate_final_pool_size(
-            input_rate=litter_inputs.woody,
+            input_rate=litter_inputs.woody.to_numpy(),
             decay_rate=decay_rates["woody"],
             initial_pool=post_consumption_pools["woody"].sel(element="C").to_numpy(),
             update_interval=update_interval,
         ),
         "below_metabolic": calculate_final_pool_size(
-            input_rate=litter_inputs.below_metabolic,
+            input_rate=litter_inputs.below_metabolic.to_numpy(),
             decay_rate=decay_rates["metabolic_below"],
             initial_pool=post_consumption_pools["below_metabolic"]
             .sel(element="C")
@@ -282,7 +282,7 @@ def calculate_updated_pools(
             update_interval=update_interval,
         ),
         "below_structural": calculate_final_pool_size(
-            input_rate=litter_inputs.below_structural,
+            input_rate=litter_inputs.below_structural.to_numpy(),
             decay_rate=decay_rates["structural_below"],
             initial_pool=post_consumption_pools["below_structural"]
             .sel(element="C")

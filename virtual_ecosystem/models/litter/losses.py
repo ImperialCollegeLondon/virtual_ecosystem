@@ -95,31 +95,31 @@ def calculate_litter_losses(
     above_metabolic_carbon = calculate_carbon_pool_loss(
         old_pool_size=original_pools["above_metabolic"].sel(element="C").to_numpy(),
         final_pool_size=final_pools["above_metabolic"],
-        input_rate=litter_inputs.above_metabolic,
+        input_rate=litter_inputs.above_metabolic.to_numpy(),
         update_interval=update_interval,
     )
     above_structural_carbon = calculate_carbon_pool_loss(
         old_pool_size=original_pools["above_structural"].sel(element="C").to_numpy(),
         final_pool_size=final_pools["above_structural"],
-        input_rate=litter_inputs.above_structural,
+        input_rate=litter_inputs.above_structural.to_numpy(),
         update_interval=update_interval,
     )
     woody_carbon = calculate_carbon_pool_loss(
         old_pool_size=original_pools["woody"].sel(element="C").to_numpy(),
         final_pool_size=final_pools["woody"],
-        input_rate=litter_inputs.woody,
+        input_rate=litter_inputs.woody.to_numpy(),
         update_interval=update_interval,
     )
     below_metabolic_carbon = calculate_carbon_pool_loss(
         old_pool_size=original_pools["below_metabolic"].sel(element="C").to_numpy(),
         final_pool_size=final_pools["below_metabolic"],
-        input_rate=litter_inputs.below_metabolic,
+        input_rate=litter_inputs.below_metabolic.to_numpy(),
         update_interval=update_interval,
     )
     below_structural_carbon = calculate_carbon_pool_loss(
         old_pool_size=original_pools["below_structural"].sel(element="C").to_numpy(),
         final_pool_size=final_pools["below_structural"],
-        input_rate=litter_inputs.below_structural,
+        input_rate=litter_inputs.below_structural.to_numpy(),
         update_interval=update_interval,
     )
 
@@ -132,8 +132,8 @@ def calculate_litter_losses(
         .sel(element="N")
         .to_numpy(),
         carbon_loss=above_metabolic_carbon,
-        input_rate_carbon=litter_inputs.above_metabolic,
-        input_rate_nutrient=input_chemistries.above_metabolic_nitrogen,
+        input_rate_carbon=litter_inputs.above_metabolic.to_numpy(),
+        input_rate_nutrient=input_chemistries.above_metabolic_nitrogen.to_numpy(),
         update_interval=update_interval,
     )
     above_structural_nitrogen = calculate_nutrient_pool_loss(
@@ -144,16 +144,16 @@ def calculate_litter_losses(
         .sel(element="N")
         .to_numpy(),
         carbon_loss=above_structural_carbon,
-        input_rate_carbon=litter_inputs.above_structural,
-        input_rate_nutrient=input_chemistries.above_structural_nitrogen,
+        input_rate_carbon=litter_inputs.above_structural.to_numpy(),
+        input_rate_nutrient=input_chemistries.above_structural_nitrogen.to_numpy(),
         update_interval=update_interval,
     )
     woody_nitrogen = calculate_nutrient_pool_loss(
         initial_pool_carbon=original_pools["woody"].sel(element="C").to_numpy(),
         initial_pool_nutrient=original_pools["woody"].sel(element="N").to_numpy(),
         carbon_loss=woody_carbon,
-        input_rate_carbon=litter_inputs.woody,
-        input_rate_nutrient=input_chemistries.woody_nitrogen,
+        input_rate_carbon=litter_inputs.woody.to_numpy(),
+        input_rate_nutrient=input_chemistries.woody_nitrogen.to_numpy(),
         update_interval=update_interval,
     )
     below_metabolic_nitrogen = calculate_nutrient_pool_loss(
@@ -164,8 +164,8 @@ def calculate_litter_losses(
         .sel(element="N")
         .to_numpy(),
         carbon_loss=below_metabolic_carbon,
-        input_rate_carbon=litter_inputs.below_metabolic,
-        input_rate_nutrient=input_chemistries.below_metabolic_nitrogen,
+        input_rate_carbon=litter_inputs.below_metabolic.to_numpy(),
+        input_rate_nutrient=input_chemistries.below_metabolic_nitrogen.to_numpy(),
         update_interval=update_interval,
     )
     below_structural_nitrogen = calculate_nutrient_pool_loss(
@@ -176,8 +176,8 @@ def calculate_litter_losses(
         .sel(element="N")
         .to_numpy(),
         carbon_loss=below_structural_carbon,
-        input_rate_carbon=litter_inputs.below_structural,
-        input_rate_nutrient=input_chemistries.below_structural_nitrogen,
+        input_rate_carbon=litter_inputs.below_structural.to_numpy(),
+        input_rate_nutrient=input_chemistries.below_structural_nitrogen.to_numpy(),
         update_interval=update_interval,
     )
 
@@ -190,8 +190,8 @@ def calculate_litter_losses(
         .sel(element="P")
         .to_numpy(),
         carbon_loss=above_metabolic_carbon,
-        input_rate_carbon=litter_inputs.above_metabolic,
-        input_rate_nutrient=input_chemistries.above_metabolic_phosphorus,
+        input_rate_carbon=litter_inputs.above_metabolic.to_numpy(),
+        input_rate_nutrient=input_chemistries.above_metabolic_phosphorus.to_numpy(),
         update_interval=update_interval,
     )
     above_structural_phosphorus = calculate_nutrient_pool_loss(
@@ -202,16 +202,16 @@ def calculate_litter_losses(
         .sel(element="P")
         .to_numpy(),
         carbon_loss=above_structural_carbon,
-        input_rate_carbon=litter_inputs.above_structural,
-        input_rate_nutrient=input_chemistries.above_structural_phosphorus,
+        input_rate_carbon=litter_inputs.above_structural.to_numpy(),
+        input_rate_nutrient=input_chemistries.above_structural_phosphorus.to_numpy(),
         update_interval=update_interval,
     )
     woody_phosphorus = calculate_nutrient_pool_loss(
         initial_pool_carbon=original_pools["woody"].sel(element="C").to_numpy(),
         initial_pool_nutrient=original_pools["woody"].sel(element="P").to_numpy(),
         carbon_loss=woody_carbon,
-        input_rate_carbon=litter_inputs.woody,
-        input_rate_nutrient=input_chemistries.woody_phosphorus,
+        input_rate_carbon=litter_inputs.woody.to_numpy(),
+        input_rate_nutrient=input_chemistries.woody_phosphorus.to_numpy(),
         update_interval=update_interval,
     )
     below_metabolic_phosphorus = calculate_nutrient_pool_loss(
@@ -222,8 +222,8 @@ def calculate_litter_losses(
         .sel(element="P")
         .to_numpy(),
         carbon_loss=below_metabolic_carbon,
-        input_rate_carbon=litter_inputs.below_metabolic,
-        input_rate_nutrient=input_chemistries.below_metabolic_phosphorus,
+        input_rate_carbon=litter_inputs.below_metabolic.to_numpy(),
+        input_rate_nutrient=input_chemistries.below_metabolic_phosphorus.to_numpy(),
         update_interval=update_interval,
     )
     below_structural_phosphorus = calculate_nutrient_pool_loss(
@@ -234,8 +234,8 @@ def calculate_litter_losses(
         .sel(element="P")
         .to_numpy(),
         carbon_loss=below_structural_carbon,
-        input_rate_carbon=litter_inputs.below_structural,
-        input_rate_nutrient=input_chemistries.below_structural_phosphorus,
+        input_rate_carbon=litter_inputs.below_structural.to_numpy(),
+        input_rate_nutrient=input_chemistries.below_structural_phosphorus.to_numpy(),
         update_interval=update_interval,
     )
 
@@ -245,17 +245,17 @@ def calculate_litter_losses(
         .sel(element="C")
         .to_numpy(),
         carbon_loss=above_structural_carbon,
-        input_rate=litter_inputs.above_structural,
+        input_rate=litter_inputs.above_structural.to_numpy(),
         initial_lignin_proportion=data["lignin_above_structural"].to_numpy(),
-        input_lignin_proportion=input_chemistries.above_structural_lignin,
+        input_lignin_proportion=input_chemistries.above_structural_lignin.to_numpy(),
         update_interval=update_interval,
     )
     woody_lignin = calculate_lignin_pool_loss(
         initial_pool_size=original_pools["woody"].sel(element="C").to_numpy(),
         carbon_loss=woody_carbon,
-        input_rate=litter_inputs.woody,
+        input_rate=litter_inputs.woody.to_numpy(),
         initial_lignin_proportion=data["lignin_woody"].to_numpy(),
-        input_lignin_proportion=input_chemistries.woody_lignin,
+        input_lignin_proportion=input_chemistries.woody_lignin.to_numpy(),
         update_interval=update_interval,
     )
     below_structural_lignin = calculate_lignin_pool_loss(
@@ -263,9 +263,9 @@ def calculate_litter_losses(
         .sel(element="C")
         .to_numpy(),
         carbon_loss=below_structural_carbon,
-        input_rate=litter_inputs.below_structural,
+        input_rate=litter_inputs.below_structural.to_numpy(),
         initial_lignin_proportion=data["lignin_below_structural"].to_numpy(),
-        input_lignin_proportion=input_chemistries.below_structural_lignin,
+        input_lignin_proportion=input_chemistries.below_structural_lignin.to_numpy(),
         update_interval=update_interval,
     )
 
