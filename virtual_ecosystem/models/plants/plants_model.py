@@ -725,10 +725,14 @@ class PlantsModel(
         # Calculate uptake from each inorganic soil nutrient pool
         self.calculate_nutrient_uptake()
 
-        # Allocate GPP, calculating changes in biomass and turnover - this function uses
-        # the foliage turnover trait (tau_f), modified by apply_herbivory above, to
-        # account for carbon costs of folivory.
+        # Allocate GPP, calculating changes in biomass and turnover and applying changes
+        # to stem diameter to capture growth. This function uses the foliage turnover
+        # trait (tau_f), modified by apply_herbivory above, to account for carbon costs
+        # of folivory.
         self.allocate_gpp()
+
+        # Update the stem allometry to reflect applied changes to stem diameter
+        self.update_allometry()
 
         # Calculate the turnover of each plant biomass pool
         self.calculate_turnover()
@@ -948,17 +952,19 @@ class PlantsModel(
             # Note here that LAI is calculated reset to the PFT standard before the
             # stem allocation is next calculated
             community.stem_traits.lai = (
-                average_foliage_mass * community.stem_traits.sla
-            ) / community.stem_allometry.crown_area
+                (average_foliage_mass * community.stem_traits.sla)
+                / community.stem_allometry.crown_area
+            ).squeeze()
 
             # 3. Increase leaf turnover to account for herbivory replacement costs
             #    within T model
             community.stem_traits.tau_f = (
-                community.stem_allometry.foliage_mass * community.stem_traits.tau_f
-            ) / (
-                foliage_carbon_loss * community.stem_traits.tau_f
-                + community.stem_allometry.foliage_mass
-            )
+                (community.stem_allometry.foliage_mass * community.stem_traits.tau_f)
+                / (
+                    foliage_carbon_loss * community.stem_traits.tau_f
+                    + community.stem_allometry.foliage_mass
+                )
+            ).squeeze()
 
     def set_shortwave_absorption(self) -> None:
         """Set the shortwave radiation absorption across the vertical layers.
@@ -1309,6 +1315,17 @@ class PlantsModel(
             # BALANCE THE NUTRIENTS WITHIN BIOMASSES
             biomasses.balance_elements()
 
+    def update_allometry(self) -> None:
+        """Update the T model allometry of cohorts.
+
+        This method is used to update the theoretical expectation of the stem
+        allometry under the T model given any changes to the DBH of cohorts from
+        growth. It also handles resetting LAI and foliage turnover rates - which may
+        have been altered in the apply_herbivory method - to the default values for
+        the PFT for each cohort.
+        """
+
+        for community in self.communities.values():
             # Update community allometry with new dbh values - this requires the LAI
             # trait to be reset to the PFT standard to calculate the correct foliage
             # mass rather than the herbivory affected foliage mass.
@@ -1316,7 +1333,8 @@ class PlantsModel(
             # community.stem_traits.lai
 
             community.stem_allometry = StemAllometry(
-                stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
+                stem_traits=community.stem_traits,
+                at_dbh=community.cohorts.dbh_values,
             )
 
     def apply_mortality(self) -> None:

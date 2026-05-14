@@ -336,7 +336,8 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model):
         )
 
     # Check that the tau_f has been increased to compensate for foliage loss. The
-    # calculation here is: Wf / tau + H = Wf / tau'
+    # calculation here is: Wf / tau + H = Wf / tau', where Wf is the allometric
+    # expectation of foliage mass and H is the mass of foliage lost to herbivory.
     for cid in fxt_plants_model.grid.cell_id:
         W_f = fxt_plants_model.communities[cid].stem_allometry.foliage_mass
         assert_allclose(
