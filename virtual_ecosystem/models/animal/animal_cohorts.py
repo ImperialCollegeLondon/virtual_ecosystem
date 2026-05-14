@@ -209,6 +209,25 @@ class AnimalCohort:
 
         self.territory = new_grid_cell_keys
 
+    def _clamp_cnp_noise(self, cnp: dict[str, float]) -> dict[str, float]:
+        """Clamp sub-tolerance negative CNP values to zero.
+
+        Floating point arithmetic in elemental mass ratio calculations can produce
+        tiny negative values (order 1e-17) that are noise rather than genuine errors.
+        Values more negative than _ELEMENTAL_MASS_NOISE_TOLERANCE are left unchanged
+        and will be caught by downstream validation.
+
+        Args:
+            cnp: A dictionary of elemental masses keyed by "C", "N", "P".
+
+        Returns:
+            The CNP dictionary with noise-level negatives clamped to zero.
+        """
+        return {
+            k: 0.0 if -self.constants._ELEMENTAL_MASS_NOISE_TOLERANCE < v < 0.0 else v
+            for k, v in cnp.items()
+        }
+
     def reset_trophic_record(self) -> None:
         """Reset the trophic transfer record for a new timestep."""
         self.trophic_record.clear()
@@ -695,60 +714,13 @@ class AnimalCohort:
 
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
 
-    def calculate_potential_consumed_biomass(
-        self, target_plant: Resource, alpha: float
-    ) -> float:
-        """Calculate potential consumed biomass for the target plant.
-
-        This method computes the potential consumed biomass based on the search
-        efficiency (alpha), the fraction of the total plant stock available to the
-        cohort (phi), and the biomass of the target plant.
-
-        Args:
-            target_plant: The plant resource being targeted by the herbivore cohort.
-            alpha: The search efficiency rate of the herbivore cohort.
-
-        Returns:
-            A float representing the potential consumed biomass of the target plant by
-            the cohort [g/day].
-
-        Raises:
-            ValueError: If `target_plant.mass_current` is missing or negative.
-            ValueError: If `alpha` is negative or zero.
-        """
-
-        # Validate that target_plant has a valid mass_current
-        if (
-            not hasattr(target_plant, "mass_current")
-            or target_plant.mass_current is None
-        ):
-            raise ValueError(
-                "target_plant.mass_current must be defined and non-negative."
-            )
-        if target_plant.mass_current < 0:
-            raise ValueError(
-                f"target_plant.mass_current must be non-negative."
-                f"Got {target_plant.mass_current}."
-            )
-
-        # Validate alpha (search efficiency)
-        if alpha <= 0:
-            raise ValueError(f"alpha must be positive. Got {alpha}.")
-
-        A_cell = self.grid.cell_area
-
-        return sf.k_i_k(alpha, target_plant.mass_current, A_cell)
-
     def calculate_total_handling_time_for_herbivory(
         self, plant_list: list[Resource] | list[CellResource], alpha: float
     ) -> float:
         """Calculate total handling time across all plant resources.
 
-        This aggregates the handling times for consuming each plant resource in the
-        list, incorporating the search efficiency and other scaling factors to compute
-        the total handling time required by the cohort.
-
-        TODO: MGO - rework for territories
+        Computes the denominator sum Σ K_i,l · H_i,l from the Holling Type II functional
+        response,
 
         Args:
             plant_list: A list of plant resources available for consumption by the
@@ -756,57 +728,48 @@ class AnimalCohort:
             alpha: The search efficiency rate of the herbivore cohort.
 
         Returns:
-            A float representing the total handling time in days required by the cohort
-            for all available plant resources.
+            Dimensionless sum of handling time across all plant resources (days of
+            handling per day of searching).
         """
 
         A_cell = self.grid.cell_area
-        return sum(
-            sf.k_i_k(alpha, plant.mass_current, A_cell)
-            + sf.H_i_k(
-                self.constants.h_herb_0,
-                self.constants.M_herb_ref,
-                self.mass_current,
-                self.constants.b_herb,
-            )
-            for plant in plant_list
+
+        handling_time_per_gram = sf.H_i_k(
+            self.constants.h_herb_0,
+            self.constants.M_herb_ref,
+            self.mass_current,
+            self.constants.b_herb,
+        )
+        return handling_time_per_gram * sum(
+            sf.k_i_k(alpha, plant.mass_current, A_cell) for plant in plant_list
         )
 
     def F_i_k(
         self,
-        resource_list: list[Resource] | list[CellResource],
-        target_resource: Resource,
+        resource: Resource | CellResource,
+        potential_biomass_consumed: float,
+        total_handling_t: float,
     ) -> float:
-        """Method to determine instantaneous consumption rate on resource k.
+        """Calculate the instantaneous consumption rate on a plant resource.
 
-        This method integrates the calculated search efficiency, potential consumed
-        biomass of the target plant, and the total handling time for all available
-        resources to determine the rate at which the target plant is consumed by
-        the cohort.
-
-        This method is originally parameterized for herbivory but is currently used for
-        all non-predation consumer-resource interactions.
-
-        TODO: update name
+        Implements the Holling Type II functional response for herbivory.
 
         Args:
-            resource_list: A list of plant resources available for consumption by the
-                cohort.
-            target_resource: The specific resource being targeted by the herbivore
-                cohort for consumption.
+            resource: The target plant resource being consumed.
+            potential_biomass_consumed: Potential biomass eaten from the target
+                resource in a day [g/day].
+            total_handling_t: Pre-computed dimensionless handling time sum across
+                all available resources, built once per foraging bout in
+                forage_resource_list.
 
         Returns:
-            The instantaneous consumption rate [g/day] of the target resource by
-              the consumer cohort.
+            The instantaneous consumption rate [1/day] of the target resource.
         """
-        alpha = self.calculate_alpha()
-        k = self.calculate_potential_consumed_biomass(target_resource, alpha)
-        total_handling_t = self.calculate_total_handling_time_for_herbivory(
-            resource_list, alpha
+        return (
+            self.individuals
+            * (potential_biomass_consumed / (1.0 + total_handling_t))
+            / resource.mass_current
         )
-        B_k = target_resource.mass_current  # current plant biomass
-        N = self.individuals  # herb cohort size
-        return N * (k / (1 + total_handling_t)) * (1 / B_k)
 
     def calculate_theta_opt_i(self) -> float:
         """Calculate the optimal predation param based on predator-prey mass ratio.
@@ -1165,65 +1128,70 @@ class AnimalCohort:
 
         return total_consumed_mass
 
-    def _consumed_resource_mass(
-        self,
-        resource_list: list[Resource] | list[CellResource],
-        target: Resource | CellResource,
-        adjusted_dt: timedelta64,
-    ) -> float:
-        """Standard search/handling time consumption using F_i_k (non-predation).
-
-        Args:
-            resource_list: List of resource objects (e.g. litter, plants, etc.).
-            target: A specific resource from which biomass is being consumed.
-            adjusted_dt: Time available for foraging.
-
-        Returns:
-            Mass (kg) to consume from target.
-        """
-        F = self.F_i_k(resource_list, target)
-
-        return target.mass_current * (
-            1.0 - exp(-F * float(adjusted_dt / timedelta64(1, "D")))
-        )
-
     def forage_resource_list(
         self,
         resources: list[Resource] | list[CellResource],
         adjusted_dt: timedelta64,
-        calculate_consumed_mass: Callable[
-            [list[Resource] | list[CellResource], Resource | CellResource, timedelta64],
-            float,
-        ],
         resource_kind: str,
         herbivory_waste_pools: dict[int, HerbivoryWaste] | None = None,
     ) -> dict[str, float]:
         """Generic foraging function for all non-predation resources.
 
+        Implements a Holling Type II functional response over a list of resources.
+        Cohort-level quantities (search efficiency and total handling time) are
+        precomputed once per foraging bout before the resource loop.
+
+        Elemental mass values returned by ``get_eaten`` are clamped to remove
+        floating point noise before being passed to downstream validators. Values
+        more negative than ``_ELEMENTAL_MASS_NOISE_TOLERANCE`` are left unchanged
+        and will raise in ``record_trophic_transfer`` or ``add_waste``.
+
         Args:
             resources: List of foragable resources.
             adjusted_dt: Time available for foraging.
-            calculate_consumed_mass: Function to compute requested biomass.
-            resource_kind: A string label of what kind of resource is being accessed.
-            herbivory_waste_pools: Optional pool to deposit unassimilated biomass.
+            resource_kind: A string label of the resource type, used as a key in
+                trophic transfer records.
+            herbivory_waste_pools: Optional mapping of cell_id to waste pool for
+                unassimilated biomass. If None, mechanical losses are discarded.
 
         Returns:
-            Stoichiometric gain from foraging (kg of C, N, P).
+            Stoichiometric mass gained by the cohort (kg of C, N, P).
         """
         total_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
 
+        if not resources:
+            return total_gain
+
+        # Precompute cohort-level quantities — invariant across the resource loop.
+        alpha = self.calculate_alpha()
+        total_handling_t = self.calculate_total_handling_time_for_herbivory(
+            resources, alpha
+        )
+        A_cell = self.grid.cell_area
+        dt_days = float(adjusted_dt / timedelta64(1, "D"))
+        conv_eff = self.functional_group.conversion_efficiency
+
         for resource in resources:
-            requested = calculate_consumed_mass(resources, resource, adjusted_dt)
+            # Holling Type II: potential biomass eaten from this resource per day.
+            potential_biomass_consumed = sf.k_i_k(alpha, resource.mass_current, A_cell)
+            # Instantaneous consumption rate [1/day] for this resource.
+            F = self.F_i_k(resource, potential_biomass_consumed, total_handling_t)
+            # Exponential depletion integral: total biomass consumed over dt days when
+            # consuming a fraction F of remaining stock per day. Approaches F*B*dt for
+            # small F*dt (linear regime) and B for large F*dt (full depletion).
+            requested = resource.mass_current * (1.0 - exp(-F * dt_days))
 
             gain_cnp, litter_cnp = resource.get_eaten(requested, self)
 
-            # Record mass removed from this resource by this cohort
+            # Clamp floating point noise before passing to downstream validators.
+            gain_cnp = self._clamp_cnp_noise(gain_cnp)
+            litter_cnp = self._clamp_cnp_noise(litter_cnp)
+
             self.record_trophic_transfer(
                 (resource_kind, str(resource.cell_id)),
                 CNP.from_dict(gain_cnp),
             )
 
-            conv_eff = self.functional_group.conversion_efficiency
             for elem in total_gain:
                 total_gain[elem] += gain_cnp[elem] * conv_eff
 
@@ -1251,7 +1219,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=plant_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=herbivory_waste_pools,
             resource_kind="plant_resource",
         )
@@ -1273,7 +1240,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=litter_pools,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
             resource_kind="litter_pool",
         )
 
@@ -1294,7 +1260,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=carcass_pools,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
             resource_kind="carcass_pool",
         )
 
@@ -1315,7 +1280,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=excrement_pools,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
             resource_kind="excrement_pool",
         )
 
@@ -1338,7 +1302,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=fungal_fruit_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=herbivory_waste_pools,
             resource_kind="fungal_fruit_pool",
         )
@@ -1358,12 +1321,9 @@ class AnimalCohort:
         Returns:
             Stoichiometric mass gained by the cohort.
         """
-
         return self.forage_resource_list(
             resources=soil_fungi_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
-            herbivory_waste_pools=None,
             resource_kind="soil_fungi_pool",
         )
 
@@ -1384,8 +1344,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=pom_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
-            herbivory_waste_pools=None,
             resource_kind="pom_pool",
         )
 
@@ -1406,8 +1364,6 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=bacteria_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self._consumed_resource_mass,
-            herbivory_waste_pools=None,
             resource_kind="bacteria_pool",
         )
 

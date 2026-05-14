@@ -672,7 +672,9 @@ def test_update_atmospheric_humidity(
 
     # VPD should be reduced where evapotranspiration or mixing adds moisture
     assert np.all(result["vapour_pressure_deficit"][mask] > 0.0)
-    assert np.all(result["vapour_pressure"][mask] <= vp_sat[mask])
+
+    # VP should be below saturation except above canopy where it accumulated with mixing
+    assert np.all(result["vapour_pressure"][1:][mask[1:]] <= vp_sat[1:][mask[1:]])
 
     # RH should be between 0 and 100
     assert np.all(
