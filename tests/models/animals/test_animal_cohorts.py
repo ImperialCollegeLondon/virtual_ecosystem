@@ -4188,3 +4188,46 @@ class TestAnimalCohort:
 
         assert result_temp == pytest.approx(1.1666666666666667)
         assert result_diurnal == pytest.approx(1.1666666666666667)
+
+    @pytest.mark.parametrize(
+        "input_cnp, expected_cnp, test_id",
+        [
+            pytest.param(
+                {"C": 1.0, "N": 0.5, "P": 0.25},
+                {"C": 1.0, "N": 0.5, "P": 0.25},
+                "all_positive",
+            ),
+            pytest.param(
+                {"C": 3.0e-12, "N": -4.7e-15, "P": 4.8e-15},
+                {"C": 3.0e-12, "N": 0.0, "P": 4.8e-15},
+                "noise_level_negative",
+            ),
+            pytest.param(
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                "all_zero",
+            ),
+            pytest.param(
+                {"C": 1.0, "N": -1e-10 + 1e-15, "P": 0.0},
+                {"C": 1.0, "N": 0.0, "P": 0.0},
+                "just_within_tolerance",
+            ),
+            pytest.param(
+                {"C": 1.0, "N": -1e-10, "P": 0.0},
+                {"C": 1.0, "N": -1e-10, "P": 0.0},
+                "at_tolerance_boundary_not_clamped",
+            ),
+            pytest.param(
+                {"C": 1.0, "N": -0.5, "P": 0.0},
+                {"C": 1.0, "N": -0.5, "P": 0.0},
+                "genuinely_negative_not_clamped",
+            ),
+        ],
+        ids=lambda p: p if isinstance(p, str) else None,
+    )
+    def test_clamp_cnp_noise(
+        self, herbivore_cohort_instance, input_cnp, expected_cnp, test_id
+    ):
+        """Test _clamp_cnp_noise."""
+        result = herbivore_cohort_instance._clamp_cnp_noise(input_cnp)
+        assert result == pytest.approx(expected_cnp), f"Failed for scenario: {test_id}"

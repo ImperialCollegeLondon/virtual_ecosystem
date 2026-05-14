@@ -209,6 +209,25 @@ class AnimalCohort:
 
         self.territory = new_grid_cell_keys
 
+    def _clamp_cnp_noise(self, cnp: dict[str, float]) -> dict[str, float]:
+        """Clamp sub-tolerance negative CNP values to zero.
+
+        Floating point arithmetic in elemental mass ratio calculations can produce
+        tiny negative values (order 1e-17) that are noise rather than genuine errors.
+        Values more negative than _ELEMENTAL_MASS_NOISE_TOLERANCE are left unchanged
+        and will be caught by downstream validation.
+
+        Args:
+            cnp: A dictionary of elemental masses keyed by "C", "N", "P".
+
+        Returns:
+            The CNP dictionary with noise-level negatives clamped to zero.
+        """
+        return {
+            k: 0.0 if -self.constants._ELEMENTAL_MASS_NOISE_TOLERANCE < v < 0.0 else v
+            for k, v in cnp.items()
+        }
+
     def reset_trophic_record(self) -> None:
         """Reset the trophic transfer record for a new timestep."""
         self.trophic_record.clear()
@@ -1118,20 +1137,32 @@ class AnimalCohort:
     ) -> dict[str, float]:
         """Generic foraging function for all non-predation resources.
 
+        Implements a Holling Type II functional response over a list of resources.
+        Cohort-level quantities (search efficiency and total handling time) are
+        precomputed once per foraging bout before the resource loop.
+
+        Elemental mass values returned by ``get_eaten`` are clamped to remove
+        floating point noise before being passed to downstream validators. Values
+        more negative than ``_ELEMENTAL_MASS_NOISE_TOLERANCE`` are left unchanged
+        and will raise in ``record_trophic_transfer`` or ``add_waste``.
+
         Args:
             resources: List of foragable resources.
             adjusted_dt: Time available for foraging.
-            resource_kind: A string label of what kind of resource is being accessed.
-            herbivory_waste_pools: Optional pool to deposit unassimilated biomass.
+            resource_kind: A string label of the resource type, used as a key in
+                trophic transfer records.
+            herbivory_waste_pools: Optional mapping of cell_id to waste pool for
+                unassimilated biomass. If None, mechanical losses are discarded.
 
         Returns:
-            Stoichiometric gain from foraging (kg of C, N, P).
+            Stoichiometric mass gained by the cohort (kg of C, N, P).
         """
         total_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
 
         if not resources:
             return total_gain
 
+        # Precompute cohort-level quantities — invariant across the resource loop.
         alpha = self.calculate_alpha()
         total_handling_t = self.calculate_total_handling_time_for_herbivory(
             resources, alpha
@@ -1141,11 +1172,20 @@ class AnimalCohort:
         conv_eff = self.functional_group.conversion_efficiency
 
         for resource in resources:
+            # Holling Type II: potential biomass eaten from this resource per day.
             potential_biomass_consumed = sf.k_i_k(alpha, resource.mass_current, A_cell)
+            # Instantaneous consumption rate [1/day] for this resource.
             F = self.F_i_k(resource, potential_biomass_consumed, total_handling_t)
+            # Exponential depletion integral: total biomass consumed over dt days when
+            # consuming a fraction F of remaining stock per day. Approaches F*B*dt for
+            # small F*dt (linear regime) and B for large F*dt (full depletion).
             requested = resource.mass_current * (1.0 - exp(-F * dt_days))
 
             gain_cnp, litter_cnp = resource.get_eaten(requested, self)
+
+            # Clamp floating point noise before passing to downstream validators.
+            gain_cnp = self._clamp_cnp_noise(gain_cnp)
+            litter_cnp = self._clamp_cnp_noise(litter_cnp)
 
             self.record_trophic_transfer(
                 (resource_kind, str(resource.cell_id)),
