@@ -105,10 +105,6 @@ class AnimalModel(
         "litter_pool_woody_cnp",
         "litter_pool_below_metabolic_cnp",
         "litter_pool_below_structural_cnp",
-    ),
-    vars_populated_by_init=(
-        "total_animal_respiration",
-        "population_densities",
         "subcanopy_vegetation_cnp_consumed",
         "subcanopy_seedbank_cnp_consumed",
         "canopy_foliage_cnp_consumed",
@@ -117,6 +113,10 @@ class AnimalModel(
         "foliage_turnover_cnp_consumed",
         "seed_turnover_cnp_consumed",
         "fruit_turnover_cnp_consumed",
+    ),
+    vars_populated_by_init=(
+        "total_animal_respiration",
+        "population_densities",
         "litter_consumed_above_metabolic_cnp",
         "litter_consumed_above_structural_cnp",
         "litter_consumed_woody_cnp",
