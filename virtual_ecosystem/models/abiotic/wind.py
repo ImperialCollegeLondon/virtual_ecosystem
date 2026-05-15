@@ -431,58 +431,52 @@ def mix_and_ventilate(
     current = input_variable.copy()
     n_layers, n_cols = current.shape
 
-    # Extract neighbor indices
-    above_idx = next_valid_above(current)
-
-    # Set mixing coefficient for top layer to ventilation rate, as this is the
-    # rate at which the top canopy layer is mixed with the atmosphere above.
     mixing_coefficient = mixing_coefficient.copy()
     mixing_coefficient[0, :] = ventilation_rate
+
+    above_idx = next_valid_above(current)
     cols = np.broadcast_to(np.arange(n_cols), (n_layers, n_cols))
 
-    # Gather neighbours above
-    above = np.full_like(current, np.nan)
-    mask_above = above_idx >= 0
+    mix_flux = np.zeros_like(current)
 
-    # Only fill where BOTH source index is valid AND source value is finite
-    if np.any(mask_above):
-        src_layers = above_idx[mask_above]
-        src_cols = cols[mask_above]
+    for layer in range(n_layers):
+        a_idx = above_idx[layer]  # shape (n_cols,)
+        valid_cols = (a_idx >= 0) & np.isfinite(current[layer])
 
-        above_vals = current[src_layers, src_cols]
+        if not np.any(valid_cols):
+            continue
 
-        # avoid propagating NaNs from invalid layers
-        above[mask_above] = above_vals
+        src_layers = np.where(valid_cols, a_idx, 0)
+        above_vals = current[src_layers, cols[layer]]
 
-    # Mask valid (non-NaN) values to exclude unoccupied layers from mixing
-    valid = np.isfinite(current) & np.isfinite(above)
+        valid = valid_cols & np.isfinite(above_vals)
+        if not np.any(valid):
+            continue
 
-    mix_above = np.zeros_like(current)
+        flux = np.where(
+            valid,
+            mixing_coefficient[layer] * (above_vals - current[layer]),
+            0.0,
+        )
 
-    # Normal case: canopy exists
-    mask_mix = valid & mask_above
+        mix_flux[layer] += flux
 
-    mix_above[mask_mix] = mixing_coefficient[mask_mix] * (
-        above[mask_mix] - current[mask_mix]
-    )
+        # Equal and opposite on donor layer — conservation
+        for col in np.where(valid)[0]:
+            mix_flux[a_idx[col], col] -= flux[col]
 
-    # No canopy fallback
+    # No-canopy fallback: direct exchange between row 0 and surface
     canopy_exists = np.isfinite(current[1, :])
     no_canopy = ~canopy_exists
 
     if np.any(no_canopy):
-        # exchange between top and surface layer only
         diff = current[0, no_canopy] - current[surface_index, no_canopy]
-
         v = ventilation_rate[no_canopy]
+        mix_flux[0, no_canopy] -= v * diff
+        mix_flux[surface_index, no_canopy] += v * diff
 
-        mix_above[0, no_canopy] -= v * diff
-        mix_above[surface_index, no_canopy] += v * diff
+    result = current + mix_flux
 
-    # Vertical mixing
-    result = current + mix_above
-
-    # Return after clamping within limits to prevent overshooting and negative values
     return clamp_variable_within_limits(result, limits)
 
 

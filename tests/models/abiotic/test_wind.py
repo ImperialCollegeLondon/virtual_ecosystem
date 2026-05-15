@@ -284,20 +284,20 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     exp_temp = np.full_like(input_humidity, np.nan)
     exp_temp[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [30.0, 30.0, 30.0, 29.2],
-            [29.82, 29.82, 29.82, np.nan],
-            [28.99, 28.99, np.nan, np.nan],
-            [27.37, np.nan, np.nan, np.nan],
+            [29.98, 29.98, 29.98, 28.4],
+            [29.73, 29.73, 29.04, np.nan],
+            [28.82, 28.3, np.nan, np.nan],
+            [26.85, np.nan, np.nan, np.nan],
             [22.52, 22.69, 22.78, 23.6],
         ]
     )
     exp_hum = np.full_like(input_humidity, np.nan)
     exp_hum[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [90.0, 90.0, 90.0, 90.8],
-            [94.5, 91.8, 90.9, np.nan],
+            [90.1, 90.1, 90.1, 91.6],
+            [95.0, 92.5, 91.6, np.nan],
             [100.0, 100.0, np.nan, np.nan],
-            [96.9, np.nan, np.nan, np.nan],
+            [97.1, np.nan, np.nan, np.nan],
             [97.8, 98.4, 97.3, 96.4],
         ]
     )
