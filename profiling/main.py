@@ -1,17 +1,10 @@
-"""Running the Virtual Ecosystem via the `ve_run_cli()` with a specified Python version, then saving the profiling outs from `cProfile`.
+"""Running `cProfile` on the Virtual Ecosystem via the `ve_run_cli()`.
 
-Call this script in the terminal with `python profiling/main.py` after installing the specified Python version is installed in a virtual environment with dependencies.
+Call this script in the terminal with `python profiling/main.py` after installing the
+specified Python version in a virtual environment with dependencies.
 
-Managing virtual environments:
-1) Create a local `.venv/` folder.
-2) To create a virtual environment for, e.g., Python 3.12, make sure you have it installed globally and then run the command `python3.12 -m venv .venv/Python3_12`.
-3) To run the virtual-ecosystem with this virtual environment, activate it with a command like `source .venv/Python3_12/bin/activate` and then run `poetry install`.
-* The specific command to activate your virtual environment will vary based on your OS.
-4) Run `python profiling/main.py` in any Python terminal.
-
-Note: profiling uses the example data. Make sure the example data is installed at data/ve_example (`ve_run --install-example data/`)
-
-See the general Python docs for further information on virtual environments and installation: https://docs.python.org/dev/tutorial/venv.html#tut-venv
+Note: profiling uses the example data. Make sure the example data is installed at
+data/ve_example (`ve_run --install-example data/`).
 """
 
 import datetime
@@ -24,7 +17,7 @@ import subprocess
 ver = "3.12"
 ver = ver.replace(".", "_")
 
-"""How many steps to run, can be an integer where negative values means no truncation."""
+"""How many steps to run (negative values means no truncation)."""
 truncation = 3
 
 """The OS you are running the code on. Options: "windows", "linux", "mac"."""
@@ -37,7 +30,8 @@ path = "data/ve_example"
 # Check example data exists to start the simulation.
 if not os.path.exists(f"{path}/config"):
     raise FileNotFoundError(
-        f"Config folder not found at {path}/config. Please ensure the path variable is correctly set and the config folder exists."
+        f"Config folder not found at {path}/config. Please ensure the path variable is"
+        " correctly set and the config folder exists."
     )
 
 # Create a folder for the cProfile outputs.
@@ -59,10 +53,11 @@ for filename in os.listdir(out_folder):
         elif os.path.isdir(file_path):
             shutil.rmtree(file_path)
     except Exception as e:
-        print("Failed to delete %s. Reason: %s" % (file_path, e))
+        print(f"Failed to delete {file_path}. Reason: {e}")
 
 
-# Note: the `time_stamp` variable cannot contain colons (:) in Windows as these are not valid characters for that OS.
+# Note: the `time_stamp` variable cannot contain colons (:) in Windows as these are not
+# valid characters for that OS.
 time_stamp = (datetime.datetime.now()).strftime("%Y-%m-%d_at_%H-%M")
 
 command_options = {
@@ -92,7 +87,8 @@ print(f"Virtual Ecosystem v{ve_version}")
 output_name = f"VE_{ve_version}__py{ver}__truncated_at_step_{truncation}"
 command_ve_run = (
     command
-    + f" -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py --ver={ver} --path={path} --truncate={truncation}"
+    + f" -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py "
+    f"--ver={ver} --path={path} --truncate={truncation}"
 )
 
 # Run the terminal command within this script via the `subprocess` library.
@@ -102,7 +98,7 @@ subprocess.run(command_ve_run, shell=True)
 # The terminal command if you want to view the results table and/or visual breakdown.
 print(f"python -m snakeviz {profiler_folder}/{output_name}.prof")
 
-# Copy over the output to a nested outputs folder sorted by Python version types for historic runs.
+# Copy over the output to a nested folder sorted by Python version for historic runs.
 nested_profiler_folder = f"{profiler_folder}/python{ver}"
 if not os.path.exists(nested_profiler_folder):
     os.makedirs(nested_profiler_folder)

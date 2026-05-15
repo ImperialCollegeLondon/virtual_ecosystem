@@ -1,6 +1,7 @@
 """Runs the virtual ecosystem `ve_run_cli()`.
 
-This script is encapsulated on its own as to run the code with an intentionally specified version of Python version declared in the `main.py` file.
+This script is encapsulated on its own as to run the code with an intentionally
+specified version of Python version declared in the `main.py` file.
 """
 
 import argparse

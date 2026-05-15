@@ -166,6 +166,7 @@ description = "Python bindings for mypy AST serialization"
 optional = false
 python-versions = ">=3.7"
 groups = ["devenv"]
+markers = "sys_platform == \"win32\" or sys_platform == \"emscripten\" or sys_platform != \"win32\" and sys_platform != \"emscripten\""
 files = [
     {file = "ast_serialize-0.3.0-cp314-cp314t-macosx_10_12_x86_64.whl", hash = "sha256:3a867927df59f76a18dc1d874a0b2c079b42c58972dca637905576deb0912e14"},
     {file = "ast_serialize-0.3.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:a6fb063bf040abf8321e7b8113a0554eda445ffc508aa51287f8808886a5ae22"},
@@ -5841,4 +5842,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "01def7963f0790a4f903696a8262ab2bd504bf5616f0ab7de003c92155ef0d31"
+content-hash = "ebbf9879f4520bbe38297b0151e2016f223e9e36a94839ddb883453c33b219d3"
