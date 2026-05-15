@@ -7,15 +7,18 @@ from tempfile import TemporaryDirectory
 import pytest
 
 
-@pytest.mark.skip
+@pytest.mark.profiling
 def test_ve_run_with_profiling(capsys):
     """Runs ve_run_cli() with profiling.
 
     This test is included to make it easy for developers to run ve_run_cli() with
-    profiling enabled. The test is skipped by default as it is not mean to be a unit
+    profiling enabled. The test is skipped by default as it is not meant to be a unit
     test but rather a convenient way to run the code with profiling enabled.
 
-    To run it, manually remove the `@pytest.mark.skip` decorator.
+    The `tool.pytest.ini_options` settings `pyproject.toml` configure pytest to ignore
+    tests marked with `profiling`. Run this test to generate profiling outputs from the
+    command line using `pytest -m profiling` and then use `snakeviz ve_run_profile.prof`
+    to explore the results.
     """
 
     from virtual_ecosystem.core.logger import remove_file_logger
@@ -56,5 +59,3 @@ def test_ve_run_with_profiling(capsys):
             # If the code above fails then tidy up the logger to restore normal
             # stream logging rather than leaving all other tests logging to the file.
             remove_file_logger()
-
-        
