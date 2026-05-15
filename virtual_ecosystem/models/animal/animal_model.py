@@ -79,9 +79,10 @@ from virtual_ecosystem.models.animal.model_config import (
 )
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
-    damuths_law,
-    madingley_individuals_density,
+    biomass_density_to_individuals,
+    heterotroph_normalization_factor,
     prey_group_selection,
+    raw_biomass_density_kg_m2,
 )
 
 
@@ -290,6 +291,11 @@ class AnimalModel(
 
         # Which density scaling equations are used, "damuth" or "madingley"
         self.density_scaling_method = self.model_constants.density_scaling_method
+
+        # total heterotroph biomass, for normalizing densities
+        self.total_heterotroph_biomass_density_kg_m2 = (
+            self.model_constants.total_heterotroph_biomass_density_kg_m2
+        )
 
         # Store update interval as a number of days.
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
@@ -564,9 +570,17 @@ class AnimalModel(
         """
 
         self.communities = {cell_id: [] for cell_id in self.data.grid.cell_id}
+        total_area_m2 = self.data.grid.n_cells * self.data.grid.cell_area
+        target = self.total_heterotroph_biomass_density_kg_m2
+        method = self.density_scaling_method
 
+        factor = heterotroph_normalization_factor(functional_groups, target, method)
         for fg in functional_groups:
-            total_individuals = self._estimate_total_individuals(fg)
+            total_individuals = biomass_density_to_individuals(
+                raw_biomass_density_kg_m2(fg, method) * factor,
+                fg.adult_mass,
+                total_area_m2,
+            )
             cohort_sizes = self._distribute_individuals_to_cohorts(total_individuals)
             cohort_locations = self._assign_cohort_locations(len(cohort_sizes))
 
@@ -578,33 +592,6 @@ class AnimalModel(
                     individuals=size,
                     centroid_key=cell_id,
                 )
-
-    def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
-        """Estimates the total number of individuals of a functional group."""
-        total_area = self.data.grid.n_cells * self.data.grid.cell_area
-
-        density_override = functional_group.density_individuals_m2
-        if density_override is not None and not isnan(density_override):
-            # User-provided empirical density overrides scaling laws
-            return int(density_override * total_area)
-
-        # No empirical density → use selected scaling method
-        if self.density_scaling_method == "damuth":
-            density = damuths_law(
-                functional_group.adult_mass,
-                functional_group.population_density_terms,
-            )
-        elif self.density_scaling_method == "madingley":
-            density = madingley_individuals_density(
-                functional_group.adult_mass,
-                functional_group.population_density_terms,
-            )
-        else:
-            raise ValueError(
-                f"Unsupported density scaling method: {self.density_scaling_method}"
-            )
-
-        return ceil(density * total_area)
 
     def _distribute_individuals_to_cohorts(self, total_individuals: int) -> list[int]:
         """Distribute individuals into cohorts respecting minimum size.
