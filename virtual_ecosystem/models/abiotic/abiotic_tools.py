@@ -697,16 +697,23 @@ def compute_weights_from_absorbed_radiation(
 ) -> NDArray[np.floating]:
     """Convert a 2D radiation array into normalized weights that sum to 1.
 
+    Weights sum to 1 along the layer axis (axis=0) for each cell independently,
+    ignoring NaN values. NaN entries in the input remain NaN in the output.
+    Cells where all valid radiation is zero return NaN weights — these are cells
+    with no canopy and no radiation to distribute.
+
     Args:
         radiation: 2D array of absorbed radiation values for each layer and cell
 
     Returns:
-        2D array of normalized weights corresponding to the absorbed radiation. Raises
-            ValueError when total radiation is zero or NaN
+        2D array of normalized weights corresponding to the absorbed radiation
     """
-    total = np.nansum(radiation)
+    # Sum over layers per cell, ignoring NaNs, keep dims for broadcasting
+    total = np.nansum(radiation, axis=0, keepdims=True)  # shape (1, cells)
 
-    if total == 0:
-        raise ValueError("Total radiation is zero — cannot normalize.")
+    # Where total is zero, set to NaN so division produces NaN instead of inf
+    # This handles no-canopy cells cleanly without raising
+    safe_total = np.where(total == 0.0, np.nan, total)
 
-    return radiation / total
+    # Divide — NaN entries stay NaN, zero-total cells become NaN
+    return radiation / safe_total

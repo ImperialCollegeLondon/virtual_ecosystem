@@ -17,37 +17,29 @@ def test_compute_weights_with_nans():
     radiation = np.array([[1.0, np.nan], [3.0, 6.0]])
     weights = compute_weights_from_absorbed_radiation(radiation)
 
-    # NaN remains NaN
-    assert np.isnan(weights[0, 1])
-
-    # Valid values still normalize to 1
-    assert np.isclose(np.nansum(weights), 1.0)
-
-
-def test_compute_weights_zero_total_raises():
-    """Test that compute_weights_from_absorbed_radiation raises ValueError."""
-
-    from virtual_ecosystem.models.abiotic.abiotic_tools import (
-        compute_weights_from_absorbed_radiation,
+    # NaN input remains NaN in output
+    assert np.isnan(weights[0, 1]), (
+        f"NaN input at [0,1] should remain NaN, got {weights[0, 1]}"
     )
 
-    radiation = np.array([[0.0, 0.0], [0.0, 0.0]])
-
-    with pytest.raises(ValueError):
-        compute_weights_from_absorbed_radiation(radiation)
-
-
-def test_all_nan_raises():
-    """Test that compute_weights_from_absorbed_radiation raises Error when NaN."""
-
-    from virtual_ecosystem.models.abiotic.abiotic_tools import (
-        compute_weights_from_absorbed_radiation,
+    # Per-cell weights sum to 1.0, ignoring NaNs
+    per_cell_sums = np.nansum(weights, axis=0)
+    assert np.allclose(per_cell_sums, 1.0), (
+        f"Per-cell weight sums should all be 1.0, got {per_cell_sums}"
     )
 
-    radiation = np.array([[np.nan, np.nan], [np.nan, np.nan]])
+    # Exact values for cell 0
+    assert np.isclose(weights[0, 0], 0.25), (
+        f"weights[0,0] should be 0.25 (1.0/4.0), got {weights[0, 0]}"
+    )
+    assert np.isclose(weights[1, 0], 0.75), (
+        f"weights[1,0] should be 0.75 (3.0/4.0), got {weights[1, 0]}"
+    )
 
-    with pytest.raises(ValueError):
-        compute_weights_from_absorbed_radiation(radiation)
+    # Exact values for cell 1 — only one valid entry so weight must be 1.0
+    assert np.isclose(weights[1, 1], 1.0), (
+        f"weights[1,1] should be 1.0 (6.0/6.0), got {weights[1, 1]}"
+    )
 
 
 def test_build_indices_returns_expected_namespace(
