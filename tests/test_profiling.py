@@ -12,7 +12,7 @@ def test_ve_run_with_profiling(capsys):
     """Runs ve_run_cli() with profiling.
 
     This test is included to make it easy for developers to run ve_run_cli() with
-    profiling enabled. The test is skipped by default as it is not mean to be a unit
+    profiling enabled. The test is skipped by default as it is not meant to be a unit
     test but rather a convenient way to run the code with profiling enabled.
 
     To run it, manually remove the `@pytest.mark.skip` decorator.
