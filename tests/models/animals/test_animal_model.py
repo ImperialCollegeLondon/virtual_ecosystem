@@ -92,23 +92,6 @@ class TestAnimalModel:
                         ),
                         (
                             INFO,
-                            "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
-                        ),
-                        (
-                            INFO,
-                            "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
-                        ),
-                        (INFO, "Adding data array for 'canopy_foliage_cnp_consumed'"),
-                        (INFO, "Adding data array for 'canopy_seed_cnp_consumed'"),
-                        (INFO, "Adding data array for 'canopy_fruit_cnp_consumed'"),
-                        (
-                            INFO,
-                            "Adding data array for 'foliage_turnover_cnp_consumed'",
-                        ),
-                        (INFO, "Adding data array for 'seed_turnover_cnp_consumed'"),
-                        (INFO, "Adding data array for 'fruit_turnover_cnp_consumed'"),
-                        (
-                            INFO,
                             "Adding data array for "
                             "'litter_consumed_above_metabolic_cnp'",
                         ),
