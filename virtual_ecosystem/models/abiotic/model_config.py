@@ -188,6 +188,9 @@ class AbioticConstants(AbioticSharedConstants):
     understorey_ventilation_rate: float = 0.1
     """Understorey ventilation rate, comes into place when there is no canopy, [s-1]."""
 
+    extinction_coefficient_longwave: float = 0.5
+    """Extinction coefficient for longwave radiation, dimensionless."""
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""
