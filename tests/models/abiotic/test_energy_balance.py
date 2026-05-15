@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_vp_sat
+from scipy.optimize import brentq
 
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_aboveground_layer_thickness,
@@ -92,6 +93,110 @@ def test_calculate_longwave_emission(
 
     assert np.all(result[valid] > 400.0)
     assert np.all(result[valid] < 500.0)
+
+
+def test_calculate_absorbed_longwave_radiation(
+    fixture_core_components, dummy_climate_data_varying_canopy, fixture_abiotic_indices
+):
+    """Test that absorbed longwave radiation is calculated correctly."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_absorbed_longwave_radiation,
+    )
+
+    lyr_str = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
+    idx = fixture_abiotic_indices
+
+    leaf_area_index = np.nan_to_num(data["leaf_area_index"].to_numpy(), nan=0.0)
+    downward_longwave = np.array([400.0, 400.0, 400.0, 400.0])
+
+    leaf_emissivity = 0.97
+    soil_emissivity = 0.95
+    stefan_boltzmann = 5.67e-8
+    zero_celsius = 273.15
+    k = 0.5
+
+    result = calculate_absorbed_longwave_radiation(
+        downward_longwave=downward_longwave,
+        leaf_area_index=leaf_area_index,
+        leaf_emissivity=leaf_emissivity,
+        soil_emissivity=soil_emissivity,
+        extinction_coefficient_lw=k,
+        surface_index=idx.surface,
+        topsoil_index=idx.topsoil,
+    )
+
+    surface_row = result[idx.surface, :]
+
+    # 1. Shape
+    assert result.shape == (lyr_str.n_layers, data.grid.n_cells)
+
+    # 2. All values non-negative
+    assert np.all(result >= 0.0)
+
+    # 3. Empty canopy slot rows 4-10 are zero
+    assert np.all(result[4:11, :] == 0.0)
+
+    # 4. NaN LAI cells within canopy rows are zero
+    assert result[1, 3] == 0.0
+    assert result[2, 2] == 0.0
+    assert result[2, 3] == 0.0
+    assert result[3, 1] == 0.0
+    assert result[3, 2] == 0.0
+    assert result[3, 3] == 0.0
+
+    # 5. Surface layer positive for all cells
+    #
+    assert np.all(surface_row > 0.0)
+
+    # 6. Exact surface values
+    lai_cum = np.array([3.0, 2.0, 1.0, 0.0])
+    transmittance = np.exp(-k * lai_cum)
+    expected_surface = leaf_emissivity * (downward_longwave * transmittance)
+
+    assert np.allclose(surface_row, expected_surface, rtol=1e-5)
+
+    # 7. More canopy → less downward LW at surface, but soil LW is constant
+    #    so ordering depends on balance — cell 3 still gets most
+    assert surface_row[3] > surface_row[0]
+
+    # 8. Energy conservation
+    total_per_cell = np.nansum(result, axis=0)
+    upper_bound = downward_longwave
+
+    assert np.all(total_per_cell <= upper_bound + 1e-6)
+
+    # 9. Physical reasonableness: implied T_leaf within plausible bounds
+    #
+    #    At equilibrium (SW=0, ET=0):
+    #        LW_abs - LW_emit(T_leaf) - H(T_leaf - T_air) = 0
+
+    air_temperature = 22.0
+    rho_cp = 1.2 * 1005.0
+    r_a = 50.0
+
+    for cell in range(data.grid.n_cells):
+        lw_abs = surface_row[cell]
+
+        def residual(leaf_temperature_celsius):
+            leaf_temperature_kelvin = leaf_temperature_celsius + zero_celsius
+            lw_emit = leaf_emissivity * stefan_boltzmann * leaf_temperature_kelvin**4
+            sh = (rho_cp / r_a) * (leaf_temperature_celsius - air_temperature)
+            return lw_abs - lw_emit - sh
+
+        # Find equilibrium T_leaf — search over a wide but physical range
+        leaf_temperature_eq = brentq(residual, -40.0, 80.0)
+
+        assert -10.0 <= leaf_temperature_eq <= 60.0
+
+    # 8. Energy conservation: total absorbed <= downward
+
+    total_per_cell = np.nansum(result, axis=0)
+
+    # Maximum possible absorption: all downward at emissivity=1
+    upper_bound = downward_longwave
+
+    assert np.all(total_per_cell <= upper_bound + 1e-6)
 
 
 def test_calculate_sensible_heat_flux(

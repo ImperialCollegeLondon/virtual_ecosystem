@@ -170,6 +170,79 @@ def calculate_sensible_heat_flux(
     )
 
 
+def calculate_absorbed_longwave_radiation(
+    downward_longwave: NDArray[np.floating],
+    leaf_area_index: NDArray[np.floating],
+    leaf_emissivity: float,
+    soil_emissivity: float,
+    extinction_coefficient_lw: float,
+    surface_index: int,
+    topsoil_index: int,
+) -> NDArray[np.floating]:
+    """Calculate absorbed longwave radiation per layer using Beer-Lambert attenuation.
+
+    Each canopy layer absorbs downward longwave attenuated from above. The surface
+    layer receives the remainder after full canopy attenuation. The topsoil receives
+    what the surface layer transmitted.
+
+    Upward longwave from the soil is NOT included here — it is already accounted
+    for in calculate_soil_fluxes via longwave_emission_soil, which drives the
+    ground heat flux and soil sensible heat flux to the surface air layer.
+    Including it here would double-count the soil longwave emission.
+
+    Args:
+        downward_longwave: Downward longwave at top of canopy [W m-2], shape (cells,)
+        leaf_area_index: LAI per layer, shape (layers, cells), NaN for empty layers
+        leaf_emissivity: Leaf emissivity, dimensionless
+        soil_emissivity: Soil emissivity, dimensionless
+        extinction_coefficient_lw: Longwave extinction coefficient, typically ~0.5
+        surface_index: Row index of surface layer
+        topsoil_index: Row index of topsoil layer
+
+    Returns:
+        Absorbed longwave radiation per layer, shape (layers, cells) [W m-2].
+    """
+    n_layers, n_cells = leaf_area_index.shape
+    absorbed = np.zeros((n_layers, n_cells))
+
+    cumulative_lai = np.zeros(n_cells)
+    arriving = downward_longwave.copy().astype(float)
+
+    for layer in range(n_layers):
+        lai = np.nan_to_num(leaf_area_index[layer], nan=0.0)
+
+        if layer == surface_index:
+            # Downward sky LW attenuated through full canopy above
+            transmittance = np.exp(-extinction_coefficient_lw * cumulative_lai)
+            arriving_down = downward_longwave * transmittance
+            absorbed[layer] = leaf_emissivity * arriving_down
+
+            # What passes through to soil
+            arriving = (1.0 - leaf_emissivity) * arriving_down
+
+        elif layer == topsoil_index:
+            # Soil absorbs what the surface layer transmitted
+            absorbed[layer] = soil_emissivity * arriving
+
+        else:
+            transmittance_above = np.exp(-extinction_coefficient_lw * cumulative_lai)
+            transmittance_below = np.exp(
+                -extinction_coefficient_lw * (cumulative_lai + lai)
+            )
+
+            absorbed[layer] = np.where(
+                lai > 0,
+                leaf_emissivity
+                * downward_longwave
+                * (transmittance_above - transmittance_below),
+                0.0,
+            )
+
+            cumulative_lai += lai
+
+    return absorbed
+
+
 def update_soil_temperature(
     ground_heat_flux: NDArray[np.floating],
     soil_temperature: NDArray[np.floating],
@@ -709,10 +782,7 @@ def secant_solve_cells_layers(
 
         next_residual = residual_function(next_temperature)
 
-        max_update = np.nanmax(
-            np.abs(next_temperature - current_temperature)
-            / (np.abs(current_temperature) + denominator_tolerance)
-        )
+        max_update = np.nanmax(np.abs(next_temperature - current_temperature))
 
         if max_update < convergence_tolerance:
             return next_temperature
