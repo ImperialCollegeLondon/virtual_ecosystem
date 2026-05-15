@@ -86,8 +86,7 @@ print(f"Virtual Ecosystem v{ve_version}")
 # Generate terminal command to run `ve_run_cli()` via cProfile.
 output_name = f"VE_{ve_version}__py{ver}__truncated_at_step_{truncation}"
 command_ve_run = (
-    command
-    + f" -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py "
+    command + f" -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py "
     f"--ver={ver} --path={path} --truncate={truncation}"
 )
 

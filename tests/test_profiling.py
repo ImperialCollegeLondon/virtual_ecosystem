@@ -56,5 +56,3 @@ def test_ve_run_with_profiling(capsys):
             # If the code above fails then tidy up the logger to restore normal
             # stream logging rather than leaving all other tests logging to the file.
             remove_file_logger()
-
-        
