@@ -687,7 +687,7 @@ def update_air_temperature(
         limits=abiotic_bounds.air_temperature[:2],
         surface_index=idx.surface,
     )
-    print("Updated air temperature:", air_temperature[idx.surface])
+
     return air_temperature
 
 
@@ -1130,5 +1130,5 @@ def run_microclimate(
         vars_updated=vars_updated,
     )
     output["latent_heat_vapourisation"] /= 1000.0
-    print(output["air_temperature"])
+
     return output
