@@ -13,6 +13,7 @@ configuration class.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any, ClassVar, TypeAlias, TypeVar
@@ -52,6 +53,14 @@ def placeholder_validator(path: str) -> str:
     """
     if path in ("<FILEPATH_PLACEHOLDER>", "<DIRPATH_PLACEHOLDER>"):
         raise ValueError("Path placeholder value in configuration.")
+
+    if str(path).startswith("$"):
+        # Strip the marker and check it exists
+        path_env = os.environ.get(path[1:])
+        if path_env is None:
+            raise ValueError(f"Path set by undefined environment variable: {path}.")
+
+        path = path_env
 
     return path
 

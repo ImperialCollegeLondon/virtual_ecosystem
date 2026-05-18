@@ -1,6 +1,7 @@
 """Testing experimental config system."""
 
 import json
+import os
 import tomllib
 from contextlib import nullcontext as does_not_raise
 from importlib import import_module
@@ -67,28 +68,80 @@ def test_filepath_placeholder(tmp_path):
     from pydantic import TypeAdapter, ValidationError
 
     from virtual_ecosystem.core.configuration import (
-        DIRPATH_PLACEHOLDER,
         FILEPATH_PLACEHOLDER,
     )
 
-    filepath_placeholder_field = TypeAdapter(FILEPATH_PLACEHOLDER)
-    dirpath_placeholder_field = TypeAdapter(DIRPATH_PLACEHOLDER)
+    placeholder_field = TypeAdapter(FILEPATH_PLACEHOLDER)
 
-    # Object early to <..._PLACEHOLDER> patterns in input
+    # Object early to <FILEPATH_PLACEHOLDER> patterns in input
     with pytest.raises(ValidationError) as err:
-        filepath_placeholder_field.validate_python("<FILEPATH_PLACEHOLDER>")
-        dirpath_placeholder_field.validate_python("<DIRPATH_PLACEHOLDER>")
+        placeholder_field.validate_python("<FILEPATH_PLACEHOLDER>")
         assert str(err) == "Path placeholder value in configuration."
 
     # Object to file path not existing
     with pytest.raises(ValidationError) as err:
-        filepath_placeholder_field.validate_python("no_such_file.py")
-
+        placeholder_field.validate_python("no_such_file.py")
         assert str(err) == "Path does not point to a file"
 
-    # Do not object when the path exists.
+    # Object to an unknown environment variable
+    with pytest.raises(ValidationError) as err:
+        placeholder_field.validate_python("$NO_SUCH_ENV_VAR")
+        assert (
+            str(err) == "Path set by undefined environment variable: $NO_SUCH_ENV_VAR"
+        )
+
+    # Object when an environment variable does not point to a known file
+    os.environ["CONFIG_PATH"] = "no_such_file.py"
+    # Object to file path not existing
+    with pytest.raises(ValidationError) as err:
+        placeholder_field.validate_python("$CONFIG_PATH")
+        assert str(err) == "Path does not point to a file"
+
+    # Do not object when the path exists either directly or via environment variable
     tmp_file = tmp_path / "file_to_find.txt"
     tmp_file.touch()
+    os.environ["CONFIG_PATH"] = str(tmp_file)
     with does_not_raise():
-        filepath_placeholder_field.validate_python(tmp_file)
+        placeholder_field.validate_python(tmp_file)
+        placeholder_field.validate_python("$CONFIG_PATH")
+
     tmp_file.unlink()
+
+
+def test_dirpath_placeholder(tmp_path):
+    """Validate the DIRPATH_PLACEHOLDER custom field."""
+    from pydantic import TypeAdapter, ValidationError
+
+    from virtual_ecosystem.core.configuration import DIRPATH_PLACEHOLDER
+
+    placeholder_field = TypeAdapter(DIRPATH_PLACEHOLDER)
+
+    # Object early to <DIRPATH_PLACEHOLDER> patterns in input
+    with pytest.raises(ValidationError) as err:
+        placeholder_field.validate_python("<DIRPATH_PLACEHOLDER>")
+        assert str(err) == "Path placeholder value in configuration."
+
+    # Object to file path not existing
+    with pytest.raises(ValidationError) as err:
+        placeholder_field.validate_python("no_such_file_dir")
+        assert str(err) == "Path does not point to a file"
+
+    # Object to an unknown environment variable
+    with pytest.raises(ValidationError) as err:
+        placeholder_field.validate_python("$NO_SUCH_ENV_VAR")
+        assert (
+            str(err) == "Path set by undefined environment variable: $NO_SUCH_ENV_VAR"
+        )
+
+    # Object when an environment variable does not point to a known file
+    os.environ["CONFIG_PATH"] = "no_such_file_dir"
+    # Object to file path not existing
+    with pytest.raises(ValidationError) as err:
+        placeholder_field.validate_python("$CONFIG_PATH")
+        assert str(err) == "Path does not point to a file"
+
+    # Do not object when the path exists either directly or via environment variable
+    os.environ["CONFIG_PATH"] = str(tmp_path)
+    with does_not_raise():
+        placeholder_field.validate_python(tmp_path)
+        placeholder_field.validate_python("$CONFIG_PATH")
