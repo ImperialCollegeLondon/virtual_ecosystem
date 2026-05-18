@@ -115,19 +115,19 @@ class LitterChemistry:
             initial_carbon=original_pools["above_structural"]
             .sel(element="C")
             .to_numpy(),
-            input_carbon_rate=litter_inputs.above_structural,
+            input_carbon_rate=litter_inputs.above_structural.to_numpy(),
             carbon_loss=litter_losses.above_structural_carbon,
             initial_lignin_proportion=self.data["lignin_above_structural"].to_numpy(),
-            input_lignin_proportion=input_chemistries.above_structural_lignin,
+            input_lignin_proportion=input_chemistries.above_structural_lignin.to_numpy(),
             lignin_loss=litter_losses.above_structural_lignin,
             update_interval=update_interval,
         )
         new_lignin_proportion_woody = calculate_updated_pool_lignin_proportion(
             initial_carbon=original_pools["woody"].sel(element="C").to_numpy(),
-            input_carbon_rate=litter_inputs.woody,
+            input_carbon_rate=litter_inputs.woody.to_numpy(),
             carbon_loss=litter_losses.woody_carbon,
             initial_lignin_proportion=self.data["lignin_woody"].to_numpy(),
-            input_lignin_proportion=input_chemistries.woody_lignin,
+            input_lignin_proportion=input_chemistries.woody_lignin.to_numpy(),
             lignin_loss=litter_losses.woody_lignin,
             update_interval=update_interval,
         )
@@ -135,10 +135,10 @@ class LitterChemistry:
             initial_carbon=original_pools["below_structural"]
             .sel(element="C")
             .to_numpy(),
-            input_carbon_rate=litter_inputs.below_structural,
+            input_carbon_rate=litter_inputs.below_structural.to_numpy(),
             carbon_loss=litter_losses.below_structural_carbon,
             initial_lignin_proportion=self.data["lignin_below_structural"].to_numpy(),
-            input_lignin_proportion=input_chemistries.below_structural_lignin,
+            input_lignin_proportion=input_chemistries.below_structural_lignin.to_numpy(),
             lignin_loss=litter_losses.below_structural_lignin,
             update_interval=update_interval,
         )
