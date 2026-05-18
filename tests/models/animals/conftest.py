@@ -101,6 +101,9 @@ def animal_data_for_model_instance(fixture_core_components):
     # Populate non- PFT structured ArrayResource pools
     for pool in ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]:
         data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
+        data[pool + "_consumed"] = xarray.zeros_like(
+            vegetation_biomass.sel(pft="pioneer").drop_vars("pft")
+        )
 
     # Populate pft structured ArrayResource pools
     plant_model_pools = [
@@ -113,6 +116,7 @@ def animal_data_for_model_instance(fixture_core_components):
     ]
     for pool in plant_model_pools:
         data[pool] = vegetation_biomass.copy()
+        data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
 
     litter_pools = DataArray(np.full(data.grid.n_cells, fill_value=1.5), dims="cell_id")
     litter_ratios = DataArray(
@@ -418,8 +422,12 @@ def dummy_animal_data(animal_fixture_core_components):
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
     # Populate non- PFT structured ArrayResource pools
-    for pool in ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]:
+    subcanopy_pools = ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]
+    for pool in subcanopy_pools:
         data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
+        data[pool + "_consumed"] = xarray.zeros_like(
+            vegetation_biomass.sel(pft="pioneer").drop_vars("pft")
+        )
 
     # Populate pft structured ArrayResource pools
     plant_model_pools = [
@@ -432,6 +440,7 @@ def dummy_animal_data(animal_fixture_core_components):
     ]
     for pool in plant_model_pools:
         data[pool] = vegetation_biomass.copy()
+        data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
 
     data["diurnal_temperature_range"] = from_template()
     data["diurnal_temperature_range"][lyr_str.index_surface_scalar] = 10.0
@@ -1039,7 +1048,12 @@ def litter_soil_data_instance(fixture_core_components):
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
     # Populate non- PFT structured ArrayResource pools
-    for pool in ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]:
+    for pool in [
+        "subcanopy_vegetation_cnp",
+        "subcanopy_seedbank_cnp",
+        "subcanopy_seedbank_cnp_consumed",
+        "subcanopy_vegetation_cnp_consumed",
+    ]:
         data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
 
     # Populate pft structured ArrayResource pools
@@ -1053,6 +1067,18 @@ def litter_soil_data_instance(fixture_core_components):
     ]
     for pool in plant_model_pools:
         data[pool] = vegetation_biomass.copy()
+
+    # Populate pft structured consumption pools with empty zeros
+    plant_model_consumption_pools = [
+        "canopy_foliage_cnp_consumed",
+        "canopy_seed_cnp_consumed",
+        "canopy_fruit_cnp_consumed",
+        "foliage_turnover_cnp_consumed",
+        "seed_turnover_cnp_consumed",
+        "fruit_turnover_cnp_consumed",
+    ]
+    for pool in plant_model_consumption_pools:
+        data[pool] = xarray.zeros_like(vegetation_biomass)
 
     data["litter_pool_above_metabolic_cnp"] = DataArray(
         np.stack(
