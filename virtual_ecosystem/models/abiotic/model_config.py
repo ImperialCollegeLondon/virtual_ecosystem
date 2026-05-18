@@ -191,6 +191,10 @@ class AbioticConstants(AbioticSharedConstants):
     extinction_coefficient_longwave: float = 0.5
     """Extinction coefficient for longwave radiation, dimensionless."""
 
+    lowest_canopy_layer_correction: float = 0.1
+    """Correction factor for lowest canopy layer ensures it is not below surface layer,
+    [m]."""
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""

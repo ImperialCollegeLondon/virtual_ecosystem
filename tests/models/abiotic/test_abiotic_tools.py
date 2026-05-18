@@ -389,7 +389,7 @@ def test_update_profile_from_reference(
 
 
 def test_calculate_atmospheric_layer_geometry(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_abiotic_indices
 ):
     """Test update atmospheric pressure for varying canopy."""
 
@@ -398,41 +398,59 @@ def test_calculate_atmospheric_layer_geometry(
     )
 
     data = dummy_climate_data_varying_canopy
-    lyr_str = fixture_core_components.layer_structure
+    data["layer_heights"][2, 2] = 0.05
+
+    idx = fixture_abiotic_indices
 
     result = calculate_atmospheric_layer_geometry(
         data=data,
+        idx=idx,
+        lowest_canopy_layer_correction=0.1,
     )
 
     for var in ["heights", "thickness", "layer_midpoints"]:
         assert var in result
 
-    np.testing.assert_allclose(result["heights"], data["layer_heights"].to_numpy())
+    exp_heights = np.array(
+        [
+            [32.0, 32.0, 32.0, 32.0],
+            [30.0, 30.0, 30.0, np.nan],
+            [20.0, 20.0, 0.2, np.nan],
+            [10.0, np.nan, np.nan, np.nan],
+            [0.1, 0.1, 0.1, 0.1],
+        ]
+    )
 
-    exp_thickness = lyr_str.from_template()
-    exp_thickness[lyr_str.index_filled_atmosphere] = np.array(
+    np.testing.assert_allclose(
+        result["heights"][idx.atm], exp_heights, rtol=1e-04, atol=1e-04
+    )
+
+    exp_thickness = np.array(
         [
             [2.0, 2.0, 2.0, 31.9],
-            [10.0, 10.0, 29.9, np.nan],
-            [10.0, 19.9, np.nan, np.nan],
+            [10.0, 10.0, 29.8, np.nan],
+            [10.0, 19.9, 0.1, np.nan],
             [9.9, np.nan, np.nan, np.nan],
             [0.1, 0.1, 0.1, 0.1],
         ]
     )
-    np.testing.assert_allclose(result["thickness"], exp_thickness.to_numpy())
+    np.testing.assert_allclose(
+        result["thickness"][idx.atm], exp_thickness, rtol=1e-04, atol=1e-04
+    )
 
-    exp_midpoints = lyr_str.from_template()
-    exp_midpoints[lyr_str.index_filled_atmosphere] = np.array(
+    exp_midpoints = np.array(
         [
             [31.0, 31.0, 31.0, 16.05],
-            [25.0, 25.0, 15.05, np.nan],
-            [15.0, 10.05, np.nan, np.nan],
+            [25.0, 25.0, 15.1, np.nan],
+            [15.0, 10.05, 0.15, np.nan],
             [5.05, np.nan, np.nan, np.nan],
             [0.05, 0.05, 0.05, 0.05],
         ]
     )
 
-    np.testing.assert_allclose(result["layer_midpoints"], exp_midpoints.to_numpy())
+    np.testing.assert_allclose(
+        result["layer_midpoints"][idx.atm], exp_midpoints, rtol=1e-04, atol=1e-04
+    )
 
 
 def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_canopy):

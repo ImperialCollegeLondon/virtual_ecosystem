@@ -1048,6 +1048,8 @@ def fixture_static_inputs(
 
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
+        idx=indices,
+        lowest_canopy_layer_correction=0.1,
     )
 
     # Absorbed longwave radiation by canopy, [W m-2]

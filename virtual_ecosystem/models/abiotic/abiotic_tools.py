@@ -376,27 +376,40 @@ def update_profile_from_reference(
     return profile_out
 
 
-def calculate_atmospheric_layer_geometry(data: Data):
+def calculate_atmospheric_layer_geometry(
+    data: Data, idx: SimpleNamespace, lowest_canopy_layer_correction: float
+) -> dict[str, NDArray[np.floating]]:
     """Calculate heights, layer thickness, and midpoints for atmospheric layers.
 
     The midpoint values are distances in metres above ground for each cell.
 
     Args:
         data: Data object
+        idx: SimpleNamespace containing layer indices
+        lowest_canopy_layer_correction: Correction factor for lowest canopy layer
 
     Returns:
         dict containing heights, thickness, layer_top, layer_midpoints
     """
 
     # Extract above-ground layer heights
-    heights = data["layer_heights"].to_numpy()
+    heights = data["layer_heights"].to_numpy().copy()
+
+    heights[idx.canopy] = np.where(
+        heights[idx.canopy] <= heights[idx.surface],
+        heights[idx.surface] + lowest_canopy_layer_correction,
+        heights[idx.canopy],
+    )
+    heights_corrected = np.where(
+        np.isnan(data["layer_heights"].to_numpy()), np.nan, heights
+    )
 
     # Compute thickness
-    thickness = compute_aboveground_layer_thickness(heights=heights)
+    thickness = compute_aboveground_layer_thickness(heights=heights_corrected)
 
     # Compute the midpoint of each layer as the height above ground minus half the layer
     # thickness
-    midpoints = heights - thickness / 2
+    midpoints = heights_corrected - thickness / 2
 
     return {
         "heights": heights,

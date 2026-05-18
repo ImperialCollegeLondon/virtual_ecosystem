@@ -78,6 +78,8 @@ def prepare_static_inputs(
     # Calculate atmospheric layer geometry
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
+        idx=idx,
+        lowest_canopy_layer_correction=abiotic_constants.lowest_canopy_layer_correction,
     )
 
     # Absorbed longwave radiation, [W m-2]
