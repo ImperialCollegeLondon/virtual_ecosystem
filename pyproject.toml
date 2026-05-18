@@ -112,6 +112,7 @@ addopts = """
   """
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "integration: integration tests that should only be run to test releases",
 ]
 python_files = 'test_*.py'
 testpaths = ['tests']
