@@ -40,7 +40,7 @@ def test_calculate_roughness_length_momentum(dummy_climate_data_varying_canopy):
     )
 
     assert_allclose(
-        result, np.array([0.01, 0.01666, 0.524479, 0.01]), rtol=1e-3, atol=1e-3
+        result, np.array([0.01, 0.01, 0.524479, 0.01]), rtol=1e-3, atol=1e-3
     )
 
 
@@ -111,6 +111,7 @@ def test_calculate_ventilation_rate():
         aerodynamic_resistance=aerodynamic_resistance,
         characteristic_height=characteristic_height,
         understorey_ventilation_rate=0.1,
+        surface_layer_height=0.1,
     )
     assert_allclose(result, expected)
 
@@ -130,6 +131,7 @@ def test_calculate_ventilation_rate_zero_denominator():
         aerodynamic_resistance=aerodynamic_resistance,
         characteristic_height=characteristic_height,
         understorey_ventilation_rate=0.1,
+        surface_layer_height=0.1,
     )
     assert np.isclose(result, expected)
 
@@ -284,8 +286,8 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     exp_temp = np.full_like(input_humidity, np.nan)
     exp_temp[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [29.98, 29.98, 29.98, 28.4],
-            [29.73, 29.73, 29.04, np.nan],
+            [29.96, 29.96, 29.96, 28.4],
+            [29.75, 29.75, 29.06, np.nan],
             [28.82, 28.3, np.nan, np.nan],
             [26.85, np.nan, np.nan, np.nan],
             [22.52, 22.69, 22.78, 23.6],
@@ -294,8 +296,8 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     exp_hum = np.full_like(input_humidity, np.nan)
     exp_hum[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [90.1, 90.1, 90.1, 91.6],
-            [95.0, 92.5, 91.6, np.nan],
+            [90.2, 90.2, 90.2, 91.6],
+            [94.9, 92.4, 91.5, np.nan],
             [100.0, 100.0, np.nan, np.nan],
             [97.1, np.nan, np.nan, np.nan],
             [97.8, 98.4, 97.3, 96.4],
@@ -374,6 +376,7 @@ def test_calculate_aerodynamic_resistance(
         zero_plane_displacement=np.array([0.0, 0.0, 25.0, 0.0]),
         wind_speed=np.array([1.0, 2.0, 0.5, 0.01]),
         von_karman_constant=0.4,
+        fallback_resistance=1000.0,
     )
     assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
 

@@ -384,10 +384,10 @@ def test_energy_balance_return_fluxes(
         assert np.all(np.isfinite(result[key][mask]))
 
 
-def test_update_air_temperature(dummy_climate_data_varying_canopy):
+def test_update_canopy_air_temperature(dummy_climate_data_varying_canopy):
     """Test update air temperature in canopy."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
-        update_air_temperature,
+        update_canopy_air_temperature,
     )
 
     data = dummy_climate_data_varying_canopy
@@ -396,12 +396,37 @@ def test_update_air_temperature(dummy_climate_data_varying_canopy):
         heights=data["layer_heights"].to_numpy()
     )
 
-    result = update_air_temperature(
+    result = update_canopy_air_temperature(
         air_temperature=data["air_temperature"].to_numpy(),
         sensible_heat_flux=data["sensible_heat_flux"].to_numpy(),
         specific_heat_air=data["specific_heat_air"].to_numpy(),
         density_air=data["density_air"].to_numpy(),
         mixing_layer_thickness=layer_thickness,
+    )
+
+    # Mask valid values
+    valid = ~np.isnan(result)
+
+    assert np.all(result[valid] > 10.0)
+    assert np.all(result[valid] < 45.0)
+
+
+def test_update_surface_air_temperature(
+    dummy_climate_data_varying_canopy, fixture_state_inputs, fixture_abiotic_indices
+):
+    """Test update surface air temperature."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        update_surface_air_temperature,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    state = fixture_state_inputs
+    idx = fixture_abiotic_indices
+
+    result = update_surface_air_temperature(
+        canopy_air_temperature=data["canopy_temperature"][idx.canopy].to_numpy(),
+        state=state,
+        idx=idx,
     )
 
     # Mask valid values

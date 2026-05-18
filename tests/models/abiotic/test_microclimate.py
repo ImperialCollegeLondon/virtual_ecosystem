@@ -386,6 +386,7 @@ def test_calculate_thermodynamics_day_and_night(
     fixture_state_inputs,
     fixture_abiotic_constants,
     fixture_core_constants,
+    fixture_abiotic_indices,
 ):
     """Test _calculate_thermodynamics produces expected outputs for day and night."""
 
@@ -397,7 +398,7 @@ def test_calculate_thermodynamics_day_and_night(
     static = fixture_static_inputs
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
-
+    idx = fixture_abiotic_indices
     n_cells = data.grid.n_cells
     n_layers = 14
     hour = 0
@@ -423,6 +424,7 @@ def test_calculate_thermodynamics_day_and_night(
         n_cells=n_cells,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        idx=idx,
     )
 
     assert isinstance(result_day, dict)
@@ -442,6 +444,7 @@ def test_calculate_thermodynamics_day_and_night(
         n_cells=n_cells,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        idx=idx,
     )
 
     assert np.all(result_night["aerodynamic_resistance_canopy"] == 50.0)
@@ -460,6 +463,7 @@ def test_calculate_vegetation_temperature(
     dummy_climate_data_varying_canopy,
     fixture_static_inputs,
     fixture_state_inputs,
+    fixture_abiotic_indices,
 ):
     """Test calculate_vegetation_temperature produces expected outputs."""
 
@@ -472,12 +476,14 @@ def test_calculate_vegetation_temperature(
     core_constants = fixture_core_constants
     static = fixture_static_inputs
     state = fixture_state_inputs
+    idx = fixture_abiotic_indices
 
     result = calculate_vegetation_temperature(
         state=state,
         static=static,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        idx=idx,
     )
 
     # Shape checks
@@ -499,6 +505,7 @@ def test_calculate_vegetation_fluxes(
     fixture_core_constants,
     fixture_static_inputs,
     fixture_state_inputs,
+    fixture_abiotic_indices,
 ):
     """Test calculate_vegetation_fluxes produces expected outputs."""
 
@@ -510,12 +517,14 @@ def test_calculate_vegetation_fluxes(
     state = fixture_state_inputs
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
+    idx = fixture_abiotic_indices
 
     result = calculate_vegetation_fluxes(
         state=state,
         static=static,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        idx=idx,
     )
 
     # Assert all expected keys exist and have correct shapes
@@ -563,7 +572,7 @@ def test_calculate_soil_fluxes(
     )
 
     # Check values, output keys and shapes
-    expected_ground_flux = np.array([66.480601, 59.697267, 46.130601, 46.130601])
+    expected_ground_flux = np.array([123.372356, 131.340243, 147.640243, 212.973576])
 
     np.testing.assert_allclose(
         result["ground_heat_flux"], expected_ground_flux, rtol=1e-5, atol=1e-5
