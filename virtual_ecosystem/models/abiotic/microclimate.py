@@ -502,6 +502,7 @@ def calculate_vegetation_temperature(
         aerodynamic_resistance=aerodynamic_resistance_2d,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        surface_index=idx.surface,
     )
 
     # Result contains new canopy and understorey temperature
@@ -561,6 +562,7 @@ def calculate_vegetation_fluxes(
         density_air=state["density_air"],
         aerodynamic_resistance=aerodynamic_resistance_2d,
         latent_heat_vapourisation=state["latent_heat_vapourisation"],
+        surface_index=idx.surface,
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
@@ -581,7 +583,7 @@ def calculate_soil_fluxes(
     """Calculate soil fluxes for microclimate model.
 
     This function calculates the components of the soil energy balance, including
-    net radiation, longwave emission,  sensible and latent heat flux, and ground heat
+    net radiation, longwave emission, sensible and latent heat flux, and ground heat
     flux.
 
     Args:
@@ -630,6 +632,7 @@ def calculate_soil_fluxes(
         - out["latent_heat_flux_soil"]
         - out["sensible_heat_flux_soil"]
         + static["absorbed_longwave_radiation"][idx.topsoil]
+        + 0.5 * np.nansum(state["longwave_emission"][idx.canopy], axis=0)
         + 0.5 * state["longwave_emission"][idx.surface]
     )
 
@@ -638,6 +641,7 @@ def calculate_soil_fluxes(
         state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
         + static["absorbed_longwave_radiation"][idx.topsoil]
+        + 0.5 * np.nansum(state["longwave_emission"][idx.canopy], axis=0)
         + 0.5 * state["longwave_emission"][idx.surface]
     )
 

@@ -300,6 +300,7 @@ def test_energy_balance_residual_only(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
+    fixture_core_components,
 ):
     """Test energy balance residual without flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -323,6 +324,7 @@ def test_energy_balance_residual_only(
         density_air=data["density_air"].to_numpy(),
         aerodynamic_resistance=aerodynamic_resistance_2d,
         latent_heat_vapourisation=data["latent_heat_vapourisation"].to_numpy() * 1000,
+        surface_index=fixture_core_components.layer_structure.index_surface_scalar,
         leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
@@ -340,6 +342,7 @@ def test_energy_balance_return_fluxes(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
+    fixture_core_components,
 ):
     """Test energy balance residual with flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -360,6 +363,7 @@ def test_energy_balance_return_fluxes(
         density_air=data["density_air"].to_numpy(),
         aerodynamic_resistance=aerodynamic_resistance_2d,
         latent_heat_vapourisation=data["latent_heat_vapourisation"].to_numpy() * 1000,
+        surface_index=fixture_core_components.layer_structure.index_surface_scalar,
         leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
@@ -720,6 +724,7 @@ def test_make_canopy_residual_changes_with_temperature(
         aerodynamic_resistance=aerodynamic_resistance,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        surface_index=0,
     )
 
     temperature1 = np.ones(shape) * 28
@@ -764,6 +769,7 @@ def test_make_canopy_residual_uses_state(
         aerodynamic_resistance=aerodynamic_resistance,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        surface_index=0,
     )
 
     temperature1 = np.ones(shape) * 29
@@ -813,6 +819,7 @@ def test_make_canopy_residual_with_nans(
         aerodynamic_resistance=aerodynamic_resistance,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        surface_index=0,
     )
 
     temperature = np.array(

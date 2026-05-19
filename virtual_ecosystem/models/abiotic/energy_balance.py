@@ -345,6 +345,7 @@ def calculate_energy_balance_residual(
     density_air: NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
+    surface_index: int,
     leaf_emissivity: float,
     stefan_boltzmann_constant: float,
     zero_Celsius: float,
@@ -376,6 +377,7 @@ def calculate_energy_balance_residual(
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
+        surface_index: Row index of surface layer
         leaf_emissivity: Leaf emissivity, dimensionless
         stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
         zero_Celsius: Factor to convert between Celsius and Kelvin
@@ -427,6 +429,8 @@ def calculate_energy_balance_residual(
         - sensible_heat_flux_canopy
         - latent_heat_flux_canopy
     )
+    # Add longwave_emission from surface to net radiation and energy balance residual
+    energy_balance_residual[1] += 0.5 * longwave_emission_canopy[surface_index]
 
     if return_fluxes:
         energy_balance = {
@@ -857,6 +861,7 @@ def make_canopy_residual(
     aerodynamic_resistance: NDArray[np.floating],
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
+    surface_index: int,
 ) -> Callable[[NDArray[np.floating]], NDArray[np.floating]]:
     """Creates a residual function for canopy temperature to be used in root finding.
 
@@ -868,6 +873,7 @@ def make_canopy_residual(
         aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
         abiotic_constants: Constants related to abiotic processes.
         core_constants: Core constants.
+        surface_index: Row index of surface layer.
 
     Returns:
         A function that takes canopy_temperature as input and returns the energy balance
@@ -885,6 +891,7 @@ def make_canopy_residual(
             density_air=state["density_air"],
             aerodynamic_resistance=aerodynamic_resistance,
             latent_heat_vapourisation=state["latent_heat_vapourisation"],
+            surface_index=surface_index,
             leaf_emissivity=abiotic_constants.leaf_emissivity,
             stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
             zero_Celsius=core_constants.zero_Celsius,
