@@ -422,6 +422,7 @@ def test_update_surface_air_temperature(
         canopy_air_temperature=data["canopy_temperature"][idx.canopy].to_numpy(),
         state=state,
         idx=idx,
+        denominator_tolerance=1e-10,
     )
 
     # Mask valid values

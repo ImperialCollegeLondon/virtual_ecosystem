@@ -610,6 +610,7 @@ def test_update_air_temperature(
         static=static,
         abiotic_bounds=abiotic_bounds,
         idx=idx,
+        denominator_tolerance=1e-10,
     )
 
     # Check output is correct shape and type

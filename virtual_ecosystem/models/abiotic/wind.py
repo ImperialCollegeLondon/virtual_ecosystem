@@ -12,6 +12,7 @@ def calculate_zero_plane_displacement(
     canopy_height: NDArray[np.floating],
     leaf_area_index: NDArray[np.floating],
     zero_plane_scaling_parameter: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     """Calculate zero plane displacement height.
 
@@ -26,6 +27,7 @@ def calculate_zero_plane_displacement(
         leaf_area_index: Total leaf area index, [m m-1]
         zero_plane_scaling_parameter: Control parameter for scaling d/h, dimensionless
             :cite:p:`raupach_simplified_1994`
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         Zero plane displacement height, [m]
@@ -40,7 +42,9 @@ def calculate_zero_plane_displacement(
     )
 
     # Avoid division by zero in (1 - exp(-s)) / s when s approaches 0
-    safe_scale = np.where(scale_displacement > 1e-10, scale_displacement, np.nan)
+    safe_scale = np.where(
+        scale_displacement > denominator_tolerance, scale_displacement, np.nan
+    )
 
     zero_plane_displacement = (
         1.0 - (1.0 - np.exp(-safe_scale)) / safe_scale
@@ -60,6 +64,7 @@ def calculate_roughness_length_momentum(
     max_ratio_wind_to_friction_velocity: float,
     min_roughness_length: float,
     von_karman_constant: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     """Calculate roughness length governing momentum transfer.
 
@@ -85,6 +90,7 @@ def calculate_roughness_length_momentum(
         von_karman_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         Momentum roughness length, [m]
@@ -98,7 +104,7 @@ def calculate_roughness_length_momentum(
         np.maximum(
             substrate_surface_roughness_length
             + (roughness_element_drag_coefficient * leaf_area_index) / 2,
-            1e-10,
+            denominator_tolerance,
         )
     )
 
@@ -108,11 +114,11 @@ def calculate_roughness_length_momentum(
     )
 
     # Safe division — ratio is always positive after the sqrt above
-    safe_ratio = np.maximum(ratio_wind_to_friction_velocity, 1e-10)
+    safe_ratio = np.maximum(ratio_wind_to_friction_velocity, denominator_tolerance)
 
     # Safe log — height above displacement must be positive
     height_above_displacement = np.maximum(
-        canopy_height - zero_plane_displacement, 1e-5
+        canopy_height - zero_plane_displacement, denominator_tolerance
     )
 
     # Calculate initial roughness length
@@ -151,6 +157,7 @@ def calculate_wind_profile(
     roughness_length: NDArray[np.floating],
     zero_plane_displacement: NDArray[np.floating],
     min_wind_speed: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Calculate wind speed profile.
 
@@ -175,6 +182,7 @@ def calculate_wind_profile(
             theoretically reduced to zero due to the obstruction caused by the roughness
             elements (like trees or buildings), [m]
         min_wind_speed: Minimum wind speed to avoid division by zero, [m s-1]
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         Wind speed, [m s-1]
@@ -183,15 +191,16 @@ def calculate_wind_profile(
     # Guard against heights at or below roughness length or displacement
     # Both conditions must hold simultaneously — take the maximum of both floors
     height_floor = np.maximum(
-        roughness_length + zero_plane_displacement + 1e-5,
-        zero_plane_displacement + roughness_length + 1e-5,
+        roughness_length + zero_plane_displacement + denominator_tolerance,
+        zero_plane_displacement + roughness_length + denominator_tolerance,
     )
     heights = np.maximum(wind_heights, height_floor)
 
     # Safe log arguments — both must be strictly positive
-    numerator = np.maximum(heights - zero_plane_displacement, 1e-10)
+    numerator = np.maximum(heights - zero_plane_displacement, denominator_tolerance)
     denominator_log = np.maximum(
-        (reference_height - zero_plane_displacement) / roughness_length, 1e-10
+        (reference_height - zero_plane_displacement) / roughness_length,
+        denominator_tolerance,
     )
 
     wind_speed = (
@@ -212,6 +221,7 @@ def calculate_friction_velocity(
     roughness_length: NDArray[np.floating],
     zero_plane_displacement: NDArray[np.floating],
     von_karman_constant: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Calculate friction velocity.
 
@@ -238,6 +248,7 @@ def calculate_friction_velocity(
         von_karman_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         Friction velocity, [m s-1].
@@ -246,7 +257,7 @@ def calculate_friction_velocity(
     # Safe log argument — reference height must be above displacement + roughness
     safe_arg = np.maximum(
         (reference_height - zero_plane_displacement) / roughness_length,
-        1e-10,
+        denominator_tolerance,
     )
 
     return (von_karman_constant * reference_wind_speed) / np.log(safe_arg)
@@ -257,6 +268,7 @@ def calculate_ventilation_rate(
     characteristic_height: float | NDArray[np.floating],
     understorey_ventilation_rate: float,
     surface_layer_height: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     """Calculate ventilation rate from the top of the canopy to atmosphere above.
 
@@ -273,6 +285,7 @@ def calculate_ventilation_rate(
         understorey_ventilation_rate: Understorey ventilation rate, [s-1]. This is used
             in case there is no canopy.
         surface_layer_height: Height of the surface layer, [m]
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         Ventilation rate [s-1]
@@ -281,7 +294,9 @@ def calculate_ventilation_rate(
     # Use a threshold rather than exact zero to catch near-zero canopy heights
     no_canopy = np.asarray(characteristic_height) < surface_layer_height
 
-    denominator = np.maximum(aerodynamic_resistance * characteristic_height, 1e-3)
+    denominator = np.maximum(
+        aerodynamic_resistance * characteristic_height, denominator_tolerance
+    )
     ventilation_rate = 1.0 / denominator
 
     return np.where(no_canopy, understorey_ventilation_rate, ventilation_rate)
@@ -293,6 +308,7 @@ def calculate_mixing_coefficients_canopy(
     friction_velocity: NDArray[np.floating],
     von_karman_constant: float,
     max_mixing_coefficient: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Calculate turbulent mixing coefficients within canopy.
 
@@ -324,6 +340,7 @@ def calculate_mixing_coefficients_canopy(
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
         max_mixing_coefficient: Maximum mixing coefficient
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         turbulent mixing coefficients, [m2 s-1]
@@ -335,7 +352,9 @@ def calculate_mixing_coefficients_canopy(
     # Normalised height — clamp to [0, 1], zero where no canopy
     z_over_h = np.where(
         canopy_height > 0,
-        np.clip(safe_midpoints / np.maximum(canopy_height, 1e-10), 0.0, 1.0),
+        np.clip(
+            safe_midpoints / np.maximum(canopy_height, denominator_tolerance), 0.0, 1.0
+        ),
         0.0,
     )
 
@@ -614,6 +633,7 @@ def calculate_aerodynamic_resistance(
     wind_speed: NDArray[np.floating],
     von_karman_constant: float,
     fallback_resistance: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Calculate aerodynamic resistance in canopy.
 
@@ -639,6 +659,7 @@ def calculate_aerodynamic_resistance(
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
         fallback_resistance: Fallback aerodynamic resistance value, [s m-1]
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         aerodynamic resistance in canopy, [s m-1]
@@ -648,9 +669,10 @@ def calculate_aerodynamic_resistance(
     valid_condition = wind_heights > (zero_plane_displacement + roughness_length)
 
     # Safe log and division
-    safe_wind = np.maximum(wind_speed, 1e-6)
+    safe_wind = np.maximum(wind_speed, denominator_tolerance)
     safe_arg = np.maximum(
-        (wind_heights - zero_plane_displacement) / roughness_length, 1e-10
+        (wind_heights - zero_plane_displacement) / roughness_length,
+        denominator_tolerance,
     )
 
     aero_resistance = np.where(

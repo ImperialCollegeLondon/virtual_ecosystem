@@ -492,6 +492,7 @@ def update_surface_air_temperature(
     canopy_air_temperature: NDArray[np.floating],
     state: dict[str, NDArray[np.floating]],
     idx: SimpleNamespace,
+    denominator_tolerance: float,
 ):
     """Update surface air temperature in equilibrium with soil and canopy fluxes.
 
@@ -509,6 +510,7 @@ def update_surface_air_temperature(
         canopy_air_temperature: Canopy air temperature, [C]
         state: Dictionary of state variables
         idx: Layer structure index
+        denominator_tolerance: Small value to prevent division by zero
 
     Returns:
         Updated surface air temperature, [C]
@@ -527,8 +529,12 @@ def update_surface_air_temperature(
     )
 
     # Conductance-weighted average of soil and canopy bottom temperatures
-    g_soil = 1.0 / np.maximum(state["aerodynamic_resistance_soil"], 1e-6)
-    g_canopy = 1.0 / np.maximum(state["aerodynamic_resistance_canopy"], 1e-6)
+    g_soil = 1.0 / np.maximum(
+        state["aerodynamic_resistance_soil"], denominator_tolerance
+    )
+    g_canopy = 1.0 / np.maximum(
+        state["aerodynamic_resistance_canopy"], denominator_tolerance
+    )
 
     surface_air_temperature = (
         g_soil * state["soil_temperature"][idx.topsoil]

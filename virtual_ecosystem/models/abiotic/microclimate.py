@@ -148,6 +148,7 @@ def calculate_wind_profiles(
         canopy_height=static["canopy_height"],
         leaf_area_index=static["lai_sum"],
         zero_plane_scaling_parameter=abiotic_constants.zero_plane_scaling_parameter,
+        denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
 
     #   Roughness length for momentum, [m]
@@ -169,6 +170,7 @@ def calculate_wind_profiles(
         ),
         min_roughness_length=abiotic_constants.min_roughness_length,
         von_karman_constant=core_constants.von_karmans_constant,
+        denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
 
     #   Wind speed, [m s-1]
@@ -187,6 +189,7 @@ def calculate_wind_profiles(
         roughness_length=roughness_length,
         zero_plane_displacement=zero_plane_displacement,
         min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
+        denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
 
     #   Friction velocity, [m s-1]
@@ -196,6 +199,7 @@ def calculate_wind_profiles(
         roughness_length=roughness_length,
         zero_plane_displacement=zero_plane_displacement,
         von_karman_constant=core_constants.von_karmans_constant,
+        denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
 
     # Turbulent mixing coefficient above canopy, [m2 s-1]
@@ -212,6 +216,7 @@ def calculate_wind_profiles(
             friction_velocity=friction_velocity,
             von_karman_constant=core_constants.von_karmans_constant,
             max_mixing_coefficient=abiotic_constants.max_mixing_coefficient,
+            denominator_tolerance=abiotic_constants.denominator_tolerance,
         )
     )
 
@@ -450,6 +455,7 @@ def calculate_thermodynamics(
         + static["zero_plane_displacement"],
         understorey_ventilation_rate=abiotic_constants.understorey_ventilation_rate,
         surface_layer_height=static["geometry"]["thickness"][idx.surface],
+        denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
 
     return {
@@ -653,6 +659,7 @@ def update_air_temperature(
     static: dict[str, Any],
     abiotic_bounds: AbioticSimpleBounds,
     idx: SimpleNamespace,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     """Update air temperature profiles based on calculated fluxes and turbulent mixing.
 
@@ -661,6 +668,7 @@ def update_air_temperature(
         static: Prepared static inputs for microclimate model
         abiotic_bounds: Bounds for air temperature to ensure physical realism
         idx: Indices for different layer types
+        denominator_tolerance: Small value to prevent division by zero in calculations
 
     Returns:
         Updated air temperature profiles for microclimate model
@@ -679,6 +687,7 @@ def update_air_temperature(
         canopy_air_temperature=state["air_temperature"][idx.canopy],
         state=state,
         idx=idx,
+        denominator_tolerance=denominator_tolerance,
     )
 
     # Update all air temperatures, [C]
@@ -901,6 +910,7 @@ def run_hour_step(
         static=static,
         abiotic_bounds=abiotic_bounds,
         idx=idx,
+        denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
     state["air_temperature"] = air_temperature
 
