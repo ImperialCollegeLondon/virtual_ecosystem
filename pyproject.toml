@@ -104,6 +104,7 @@ requires = ["poetry-core>=1.2.0"]
 addopts = """	
   -v
   -p no:warnings
+  -m "not integration"
   -n auto
   --cov=virtual_ecosystem
   --cov-report=html:htmlcov/coverage
@@ -112,6 +113,7 @@ addopts = """
   """
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "integration: integration tests that should only be run to test releases",
 ]
 python_files = 'test_*.py'
 testpaths = ['tests']
