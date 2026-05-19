@@ -17,6 +17,6 @@ We provide baseline estimates for each of the soil microbial groups and each of 
 enzyme classes as part of the example data. These values are displayed below, with
 comments indicating the source that we obtained each parameter from:
 
-```{literalinclude} ../../../../../virtual_ecosystem/example_data/config/soil_microbial_groups.toml
+```{literalinclude} ../../../../../virtual_ecosystem/example_data/config/soil_config.toml
 :language: toml
 ```
