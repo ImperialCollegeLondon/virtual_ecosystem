@@ -392,7 +392,8 @@ def calculate_atmospheric_layer_geometry(
         dict containing heights, thickness, layer_top, layer_midpoints
     """
 
-    # Extract above-ground layer heights
+    # Extract above-ground layer heights and correct of lowest canopy layer is below
+    # surface layer height
     heights = data["layer_heights"].to_numpy().copy()
 
     heights[idx.canopy] = np.where(
@@ -485,9 +486,7 @@ def generate_diurnal_cycle_from_monthly_data(
     e_s_hourly = calc_vp_sat(air_temperature_hourly)
     relative_humidity_hourly = np.clip(100.0 * e_a[None, :] / e_s_hourly, 0.0, 100.0)
 
-    # ------------------------------------------------------------------
-    # Evapotranspiration — conserve monthly total, distribute by radiation
-    # ------------------------------------------------------------------
+    # Evapotranspiration — conserve monthly total, distribute by radiation.
     # hour_fraction is already normalised to sum=1 over daytime hours and
     # is 0 at night, so multiplying by it gives zero ET at night AND
     # preserves the daily total exactly.
@@ -507,9 +506,7 @@ def generate_diurnal_cycle_from_monthly_data(
         evapotranspiration_hourly,
     )
 
-    # ------------------------------------------------------------------
     # Soil evaporation — same approach, shape (hours_per_day, cell)
-    # ------------------------------------------------------------------
     monthly_soil = monthly_soil_evaporation[None, :]  # (1, cell)
     daily_soil = monthly_soil / days  # (1, cell)
 

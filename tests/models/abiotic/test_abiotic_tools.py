@@ -18,28 +18,18 @@ def test_compute_weights_with_nans():
     weights = compute_weights_from_absorbed_radiation(radiation)
 
     # NaN input remains NaN in output
-    assert np.isnan(weights[0, 1]), (
-        f"NaN input at [0,1] should remain NaN, got {weights[0, 1]}"
-    )
+    assert np.isnan(weights[0, 1])
 
     # Per-cell weights sum to 1.0, ignoring NaNs
     per_cell_sums = np.nansum(weights, axis=0)
-    assert np.allclose(per_cell_sums, 1.0), (
-        f"Per-cell weight sums should all be 1.0, got {per_cell_sums}"
-    )
+    assert np.allclose(per_cell_sums, 1.0)
 
     # Exact values for cell 0
-    assert np.isclose(weights[0, 0], 0.25), (
-        f"weights[0,0] should be 0.25 (1.0/4.0), got {weights[0, 0]}"
-    )
-    assert np.isclose(weights[1, 0], 0.75), (
-        f"weights[1,0] should be 0.75 (3.0/4.0), got {weights[1, 0]}"
-    )
+    assert np.isclose(weights[0, 0], 0.25)
+    assert np.isclose(weights[1, 0], 0.75)
 
-    # Exact values for cell 1 — only one valid entry so weight must be 1.0
-    assert np.isclose(weights[1, 1], 1.0), (
-        f"weights[1,1] should be 1.0 (6.0/6.0), got {weights[1, 1]}"
-    )
+    # Exact values for cell 1, only one valid entry so weight must be 1.0
+    assert np.isclose(weights[1, 1], 1.0)
 
 
 def test_build_indices_returns_expected_namespace(
@@ -398,9 +388,11 @@ def test_calculate_atmospheric_layer_geometry(
     )
 
     data = dummy_climate_data_varying_canopy
-    data["layer_heights"][2, 2] = 0.05
-
     idx = fixture_abiotic_indices
+
+    # Set one layer height in the canopy to a very small value to test the lowest canopy
+    # layer correction
+    data["layer_heights"][2, 2] = 0.05
 
     result = calculate_atmospheric_layer_geometry(
         data=data,
@@ -531,17 +523,13 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_can
     )
 
 
-def test_fill_layer_template(fixture_core_components):
+def test_fill_layer_template(fixture_core_components, fixture_abiotic_indices):
     """Test fill layer template."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import fill_layer_template
 
     layer_structure = fixture_core_components.layer_structure
-
-    # Define indices
-    canopy_index = [1, 2, 3]
-    surface_index = [11]
-    soil_index = [12, 13]
+    idx = fixture_abiotic_indices
 
     # Define values
     canopy_vals = np.array([[10.0, 20.0, 30.0, 40.0]] * 3)
@@ -549,18 +537,18 @@ def test_fill_layer_template(fixture_core_components):
     soil_vals = np.array([[5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0]])
 
     assignments = [
-        (canopy_index, canopy_vals),
-        (surface_index, surface_vals),
-        (soil_index, soil_vals),
+        (idx.canopy, canopy_vals),
+        (idx.surface, surface_vals),
+        (idx.soil, soil_vals),
     ]
 
     out = fill_layer_template(layer_structure, assignments)
 
-    assert np.allclose(out[canopy_index], canopy_vals)
-    assert np.allclose(out[surface_index], surface_vals)
-    assert np.allclose(out[soil_index], soil_vals)
+    assert np.allclose(out[idx.canopy], canopy_vals)
+    assert np.allclose(out[idx.surface], surface_vals)
+    assert np.allclose(out[idx.soil], soil_vals)
 
-    # --- Unfilled layers remain NaN ---
+    # Unfilled layers remain NaN
     assert np.all(np.isnan(out[0]))
 
 
@@ -748,7 +736,7 @@ def test_nan_values_ignored():
     from virtual_ecosystem.models.abiotic.abiotic_tools import finite_and_within
 
     arr = np.array([10, np.nan, 20])
-    # min=10, max=20, within bounds → should pass
+    # min=10, max=20, within bounds should pass
     finite_and_within(arr, 0, 30, "test_var")
 
 
