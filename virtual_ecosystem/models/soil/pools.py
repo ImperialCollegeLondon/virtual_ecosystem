@@ -1843,19 +1843,32 @@ def calculate_net_nutrient_transfers_from_maom_to_lmwc(
         phosphorus [kg nutrient m^-3 day^-1]
     """
 
-    # Find carbon:nitrogen ratio of the lwmc and maom
-    c_n_ratio_lmwc = lmwc_carbon / lmwc_nitrogen
-    c_n_ratio_maom = maom_carbon / maom_nitrogen
-
-    maom_nitrogen_gain = lmwc_sorption / c_n_ratio_lmwc
-    maom_nitrogen_loss = (maom_breakdown + maom_desorption) / c_n_ratio_maom
-
-    # Find carbon:phosphorus ratio of the lwmc and maom
-    c_p_ratio_lmwc = lmwc_carbon / lmwc_phosphorus
-    c_p_ratio_maom = maom_carbon / maom_phosphorus
-
-    maom_phosphorus_gain = lmwc_sorption / c_p_ratio_lmwc
-    maom_phosphorus_loss = (maom_breakdown + maom_desorption) / c_p_ratio_maom
+    # Find gain and loss for MAOM separately (negatives have to be controlled for by
+    # setting rates to zero)
+    maom_nitrogen_gain = np.divide(
+        lmwc_sorption * lmwc_nitrogen,
+        lmwc_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(lmwc_carbon > 0) & (lmwc_nitrogen > 0),
+    )
+    maom_nitrogen_loss = np.divide(
+        (maom_breakdown + maom_desorption) * maom_nitrogen,
+        maom_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(maom_carbon > 0) & (maom_nitrogen > 0),
+    )
+    maom_phosphorus_gain = np.divide(
+        lmwc_sorption * lmwc_phosphorus,
+        lmwc_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(lmwc_carbon > 0) & (lmwc_phosphorus > 0),
+    )
+    maom_phosphorus_loss = np.divide(
+        (maom_breakdown + maom_desorption) * maom_phosphorus,
+        maom_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(maom_carbon > 0) & (maom_phosphorus > 0),
+    )
 
     return {
         "nitrogen": maom_nitrogen_loss - maom_nitrogen_gain,

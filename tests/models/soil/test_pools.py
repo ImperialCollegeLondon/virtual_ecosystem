@@ -1142,7 +1142,7 @@ def test_find_necromass_nutrient_outflows_negatives(
 def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
     dummy_carbon_data, enzyme_mediated_rates, lmwc_sorption, maom_desorption
 ):
-    """Test function to find net exchange of nitrogen between maom and don."""
+    """Test function to calculate net nutrient exchange between maom and lmwc."""
     from virtual_ecosystem.models.soil.pools import (
         calculate_net_nutrient_transfers_from_maom_to_lmwc,
     )
@@ -1159,6 +1159,53 @@ def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
         maom_carbon=dummy_carbon_data["soil_cnp_pool_maom"].sel(element="C"),
         maom_nitrogen=dummy_carbon_data["soil_cnp_pool_maom"].sel(element="N"),
         maom_phosphorus=dummy_carbon_data["soil_cnp_pool_maom"].sel(element="P"),
+        maom_breakdown=enzyme_mediated_rates.maom_to_lmwc,
+        maom_desorption=maom_desorption,
+        lmwc_sorption=lmwc_sorption,
+    )
+
+    assert set(expected_transfers.keys()) == set(actual_transfers.keys())
+
+    for key in expected_transfers.keys():
+        assert np.allclose(expected_transfers[key], actual_transfers[key])
+
+
+def test_calculate_net_nutrient_transfers_from_maom_to_lmwc_negatives(
+    dummy_carbon_data, enzyme_mediated_rates, lmwc_sorption, maom_desorption
+):
+    """Check net nutrient exchange between maom and lmwc handles negatives."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_net_nutrient_transfers_from_maom_to_lmwc,
+    )
+
+    lmwc_carbon = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C")
+    lmwc_nitrogen = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="N")
+    lmwc_phosphorus = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="P")
+    maom_carbon = dummy_carbon_data["soil_cnp_pool_maom"].sel(element="C")
+    maom_nitrogen = dummy_carbon_data["soil_cnp_pool_maom"].sel(element="N")
+    maom_phosphorus = dummy_carbon_data["soil_cnp_pool_maom"].sel(element="P")
+    # Add negative values
+    lmwc_carbon[0] = -1.23
+    maom_carbon[0] = -3.45
+    lmwc_nitrogen[1] = -2.3
+    maom_nitrogen[1] = -4.6
+    lmwc_phosphorus[2] = -0.23
+    maom_phosphorus[2] = -0.46
+    lmwc_nitrogen[3] = -0.99
+    maom_phosphorus[3] = -0.11
+
+    expected_transfers = {
+        "nitrogen": [0.0, 0.0, 0.00073268, 5.76843536e-6],
+        "phosphorus": [0.0, 0.00014283379, 0.0, -1.1428568e-7],
+    }
+
+    actual_transfers = calculate_net_nutrient_transfers_from_maom_to_lmwc(
+        lmwc_carbon=lmwc_carbon,
+        lmwc_nitrogen=lmwc_nitrogen,
+        lmwc_phosphorus=lmwc_phosphorus,
+        maom_carbon=maom_carbon,
+        maom_nitrogen=maom_nitrogen,
+        maom_phosphorus=maom_phosphorus,
         maom_breakdown=enzyme_mediated_rates.maom_to_lmwc,
         maom_desorption=maom_desorption,
         lmwc_sorption=lmwc_sorption,
