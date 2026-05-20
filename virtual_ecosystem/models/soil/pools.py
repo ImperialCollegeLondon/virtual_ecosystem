@@ -1517,7 +1517,9 @@ def calculate_maom_desorption(
         The rate of MAOM desorption to LMWC [kg C m^-3 day^-1]
     """
 
-    return desorption_rate_constant * soil_c_pool_maom
+    return np.where(
+        soil_c_pool_maom > 0.0, desorption_rate_constant * soil_c_pool_maom, 0.0
+    )
 
 
 def calculate_sorption_to_maom(

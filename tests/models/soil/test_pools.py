@@ -845,6 +845,25 @@ def test_calculate_maom_desorption(dummy_carbon_data, fixture_soil_constants):
     assert np.allclose(actual_desorption, expected_desorption)
 
 
+def test_calculate_maom_desorption_negatives(dummy_carbon_data, fixture_soil_constants):
+    """Check that mineral associated matter desorption handles negative values."""
+
+    from virtual_ecosystem.models.soil.pools import calculate_maom_desorption
+
+    soil_c_pool_maom = dummy_carbon_data["soil_cnp_pool_maom"].sel(element="C")
+    # Add negative value
+    soil_c_pool_maom[3] = -3.33e-3
+
+    expected_desorption = [2.5e-5, 1.7e-5, 4.5e-5, 0.0]
+
+    actual_desorption = calculate_maom_desorption(
+        soil_c_pool_maom=soil_c_pool_maom,
+        desorption_rate_constant=fixture_soil_constants.maom_desorption_rate,
+    )
+
+    assert np.allclose(actual_desorption, expected_desorption)
+
+
 @pytest.mark.parametrize(
     "pool_name,sorption_rate_constant,expected_sorption",
     [
