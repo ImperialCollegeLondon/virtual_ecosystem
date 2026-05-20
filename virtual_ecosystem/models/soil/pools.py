@@ -1437,7 +1437,7 @@ def calculate_enzyme_turnover(
         The rate at which enzymes are lost from the pool [kg C m^-3 day^-1]
     """
 
-    return turnover_rate * enzyme_pool
+    return np.where(enzyme_pool > 0, turnover_rate * enzyme_pool, 0)
 
 
 def calculate_enzyme_mediated_decomposition(

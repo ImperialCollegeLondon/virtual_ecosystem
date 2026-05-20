@@ -761,6 +761,24 @@ def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
     assert np.allclose(actual_decay, expected_decay)
 
 
+def test_calculate_enzyme_turnover_negatives(dummy_carbon_data):
+    """Check that enzyme turnover rates handle negative values."""
+    from virtual_ecosystem.models.soil.pools import calculate_enzyme_turnover
+
+    expected_decay = [0.000544296, 0.000229824, 0.0, 7.224e-5]
+
+    # Add negative enzyme pool in
+    enzyme_pool_sizes = dummy_carbon_data["soil_enzyme_pom_bacteria"]
+    enzyme_pool_sizes[2] = -3.4e-2
+
+    actual_decay = calculate_enzyme_turnover(
+        enzyme_pool=enzyme_pool_sizes,
+        turnover_rate=2.4e-2,
+    )
+
+    assert np.allclose(actual_decay, expected_decay)
+
+
 def test_calculate_enzyme_mediated_decomposition(
     dummy_carbon_data, fixture_core_components, environmental_factors, enzyme_classes
 ):
