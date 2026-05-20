@@ -802,6 +802,34 @@ def test_calculate_enzyme_mediated_decomposition(
     assert np.allclose(actual_decomp, expected_decomp)
 
 
+def test_calculate_enzyme_mediated_decomposition_negatives(
+    dummy_carbon_data, fixture_core_components, environmental_factors, enzyme_classes
+):
+    """Check that particulate organic matter decomposition handles negatives."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_enzyme_mediated_decomposition,
+    )
+
+    soil_c_pool = dummy_carbon_data["soil_cnp_pool_pom"].sel(element="C")
+    soil_enzyme = dummy_carbon_data["soil_enzyme_pom_bacteria"]
+    soil_c_pool[0] = -3.45e-5
+    soil_enzyme[3] = -1.23e-3
+
+    expected_decomp = [0.0, 8.91990315e-3, 1.66740158e-2, 0.0]
+
+    actual_decomp = calculate_enzyme_mediated_decomposition(
+        soil_c_pool=dummy_carbon_data["soil_cnp_pool_pom"].sel(element="C"),
+        soil_enzyme=dummy_carbon_data["soil_enzyme_pom_bacteria"],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        env_factors=environmental_factors,
+        enzyme_class=enzyme_classes["bacteria_pom"],
+    )
+
+    assert np.allclose(actual_decomp, expected_decomp)
+
+
 def test_calculate_maom_desorption(dummy_carbon_data, fixture_soil_constants):
     """Check that mineral associated matter desorption is calculated correctly."""
 

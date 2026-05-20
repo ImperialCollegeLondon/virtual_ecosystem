@@ -1492,8 +1492,10 @@ def calculate_enzyme_mediated_decomposition(
         * env_factors.clay_saturation
     )
 
-    return (
-        rate_constant * soil_enzyme * soil_c_pool / (saturation_constant + soil_c_pool)
+    return np.where(
+        (soil_enzyme > 0.0) & (soil_c_pool > 0.0),
+        rate_constant * soil_enzyme * soil_c_pool / (saturation_constant + soil_c_pool),
+        0.0,
     )
 
 
