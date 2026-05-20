@@ -577,11 +577,20 @@ def calculate_maximum_uptake_rates(
     )
 
     # Find maximum possible uptake rates for organic nitrogen and phosphorus, based on
-    # LMWC pool stoichiometry
-    lmwc_c_n_ratio = soil_c_pool_lmwc / soil_n_pool_don
-    lmwc_c_p_ratio = soil_c_pool_lmwc / soil_p_pool_dop
-    organic_nitrogen_uptake_rate_max = carbon_uptake_rate_max / lmwc_c_n_ratio
-    organic_phosphorus_uptake_rate_max = carbon_uptake_rate_max / lmwc_c_p_ratio
+    # LMWC pool stoichiometry (in cases where either the carbon or nutrient component is
+    # negative, uptake is forced to cease)
+    organic_nitrogen_uptake_rate_max = np.divide(
+        soil_n_pool_don * carbon_uptake_rate_max,
+        soil_c_pool_lmwc,
+        out=np.zeros_like(carbon_uptake_rate_max, dtype=float),
+        where=(soil_n_pool_don > 0) & (soil_c_pool_lmwc > 0),
+    )
+    organic_phosphorus_uptake_rate_max = np.divide(
+        soil_p_pool_dop * carbon_uptake_rate_max,
+        soil_c_pool_lmwc,
+        out=np.zeros_like(carbon_uptake_rate_max, dtype=float),
+        where=(soil_p_pool_dop > 0) & (soil_c_pool_lmwc > 0),
+    )
 
     return MaxUptakeRates(
         carbon=carbon_uptake_rate_max,
