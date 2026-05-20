@@ -1005,6 +1005,31 @@ def test_calculate_soil_nutrient_mineralisation(
     assert np.allclose(actual_rate, expected_rate)
 
 
+def test_calculate_soil_nutrient_mineralisation_negatives(
+    dummy_carbon_data, enzyme_mediated_rates
+):
+    """Test soil nutrient mineralisation calculation handles negative values."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_soil_nutrient_mineralisation,
+    )
+
+    pool_carbon = dummy_carbon_data["soil_cnp_pool_pom"].sel(element="C")
+    pool_nutrient = dummy_carbon_data["soil_cnp_pool_pom"].sel(element="N")
+    # Add negative values in
+    pool_carbon[2] = -1.11
+    pool_nutrient[1] = -0.99
+
+    expected_rate = [0.00013585646, 0.0, 0.0, 1.15848952e-5]
+
+    actual_rate = calculate_soil_nutrient_mineralisation(
+        pool_carbon=pool_carbon,
+        pool_nutrient=pool_nutrient,
+        breakdown_rate=enzyme_mediated_rates.pom_to_lmwc,
+    )
+
+    assert np.allclose(actual_rate, expected_rate)
+
+
 def test_calculate_nutrient_flows_to_necromass(
     functional_groups, enzyme_changes, enzyme_classes, biomass_losses
 ):

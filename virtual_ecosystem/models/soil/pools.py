@@ -1678,8 +1678,13 @@ def calculate_soil_nutrient_mineralisation(
         breakdown [kg nutrient m^-3 day^-1]
     """
 
-    carbon_nutrient_ratio = pool_carbon / pool_nutrient
-    return breakdown_rate / carbon_nutrient_ratio
+    # Mineralisation should not occur if carbon or nutrient component is negative
+    return np.divide(
+        breakdown_rate * pool_nutrient,
+        pool_carbon,
+        out=np.zeros_like(breakdown_rate, dtype=float),
+        where=(pool_carbon > 0) & (pool_nutrient > 0),
+    )
 
 
 def calculate_nutrient_flows_to_necromass(
