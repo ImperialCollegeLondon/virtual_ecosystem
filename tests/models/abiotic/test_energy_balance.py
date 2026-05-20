@@ -529,7 +529,6 @@ def test_update_humidity_vpd(
         ),
         dry_air_factor=1
         - fixture_core_constants.molecular_weight_ratio_water_to_dry_air,
-        mm_to_kg=1e-3,
         cell_area=fixture_core_components.grid.cell_area,
         limits_relative_humidity=(0.001, 99.999),
         denominator_tolerance=1e-12,
