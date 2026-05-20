@@ -818,8 +818,8 @@ def test_calculate_enzyme_mediated_decomposition_negatives(
     expected_decomp = [0.0, 8.91990315e-3, 1.66740158e-2, 0.0]
 
     actual_decomp = calculate_enzyme_mediated_decomposition(
-        soil_c_pool=dummy_carbon_data["soil_cnp_pool_pom"].sel(element="C"),
-        soil_enzyme=dummy_carbon_data["soil_enzyme_pom_bacteria"],
+        soil_c_pool=soil_c_pool,
+        soil_enzyme=soil_enzyme,
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
