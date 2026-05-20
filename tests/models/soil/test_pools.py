@@ -1032,6 +1032,41 @@ def test_find_necromass_nutrient_outflows(
         assert np.allclose(expected_rates[key], actual_rates[key])
 
 
+def test_find_necromass_nutrient_outflows_negatives(
+    dummy_carbon_data, necromass_breakdown, necromass_sorption
+):
+    """Test that function to find necromass nutrient losses handles negative values."""
+    from virtual_ecosystem.models.soil.pools import find_necromass_nutrient_outflows
+
+    necromass_carbon = dummy_carbon_data["soil_cnp_pool_necromass"].sel(element="C")
+    necromass_nitrogen = dummy_carbon_data["soil_cnp_pool_necromass"].sel(element="N")
+    necromass_phosphorus = dummy_carbon_data["soil_cnp_pool_necromass"].sel(element="P")
+    # Add negative values in
+    necromass_carbon[0] = -0.98
+    necromass_nitrogen[3] = -0.33
+    necromass_phosphorus[1] = -0.01
+
+    expected_rates = {
+        "decay_nitrogen": [0.0, 0.00413222, 0.00466541, 0.0],
+        "sorption_nitrogen": [0.0, 0.01239667, 0.01399624, 0.0],
+        "decay_phosphorus": [0.0, 0.0, 1.65287877e-4, 1.03082538e-4],
+        "sorption_phosphorus": [0.0, 0.0, 4.958636e-4, 3.0924762e-4],
+    }
+
+    actual_rates = find_necromass_nutrient_outflows(
+        necromass_carbon=necromass_carbon,
+        necromass_nitrogen=necromass_nitrogen,
+        necromass_phosphorus=necromass_phosphorus,
+        necromass_decay=necromass_breakdown,
+        necromass_sorption=necromass_sorption,
+    )
+
+    assert set(expected_rates.keys()) == set(actual_rates.keys())
+
+    for key in expected_rates.keys():
+        assert np.allclose(expected_rates[key], actual_rates[key])
+
+
 def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
     dummy_carbon_data, enzyme_mediated_rates, lmwc_sorption, maom_desorption
 ):

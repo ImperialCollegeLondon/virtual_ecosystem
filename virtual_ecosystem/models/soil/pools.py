@@ -1765,15 +1765,33 @@ def find_necromass_nutrient_outflows(
         m^-3 day^-1].
     """
 
-    # Find carbon:nitrogen and carbon:phosphorus ratios of the necromass
-    c_n_ratio = necromass_carbon / necromass_nitrogen
-    c_p_ratio = necromass_carbon / necromass_phosphorus
-
+    # If either necromass carbon or the relevant nutrient is negative, this is treated
+    # as zero so there is no flow
     return {
-        "decay_nitrogen": necromass_decay / c_n_ratio,
-        "sorption_nitrogen": necromass_sorption / c_n_ratio,
-        "decay_phosphorus": necromass_decay / c_p_ratio,
-        "sorption_phosphorus": necromass_sorption / c_p_ratio,
+        "decay_nitrogen": np.divide(
+            necromass_decay * necromass_nitrogen,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_nitrogen > 0),
+        ),
+        "sorption_nitrogen": np.divide(
+            necromass_sorption * necromass_nitrogen,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_nitrogen > 0),
+        ),
+        "decay_phosphorus": np.divide(
+            necromass_decay * necromass_phosphorus,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_phosphorus > 0),
+        ),
+        "sorption_phosphorus": np.divide(
+            necromass_sorption * necromass_phosphorus,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_phosphorus > 0),
+        ),
     }
 
 
