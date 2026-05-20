@@ -794,7 +794,6 @@ def update_atmospheric_humidity(
             core_constants.molecular_weight_ratio_water_to_dry_air
         ),
         dry_air_factor=abiotic_constants.dry_air_factor,
-        mm_to_kg=core_constants.mm_to_kg,
         cell_area=static["cell_area"],
         limits_relative_humidity=abiotic_bounds.relative_humidity,
         limits_vapour_pressure_deficit=abiotic_bounds.vapour_pressure_deficit,

@@ -610,7 +610,6 @@ def update_humidity_vpd(
     dry_air_factor: float,
     density_air: NDArray[np.floating],
     cell_area: float,
-    mm_to_kg: float,
     limits_relative_humidity: tuple[float, float, float],
     limits_vapour_pressure_deficit: tuple[float, float, float],
     denominator_tolerance: float,
@@ -626,8 +625,6 @@ def update_humidity_vpd(
             air, dimensionless
         dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
         density_air: Density of air, [kg m-3]
-        mm_to_kg: Factor to convert variable unit from millimeters to kilograms of
-            water per square meter
         cell_area: Grid cell area, [m2]
         limits_relative_humidity: Realistic bounds of relative humidity, []
         limits_vapour_pressure_deficit: Realistic bounds for vapour pressure deficit,
@@ -651,8 +648,7 @@ def update_humidity_vpd(
     # Saturation specific humidity
     saturation_specific_humidity = (
         molecular_weight_ratio_water_to_dry_air
-        * dry_air_factor
-        * saturated_vapour_pressure
+        + dry_air_factor * saturated_vapour_pressure
     ) / np.maximum(
         atmospheric_pressure - saturated_vapour_pressure, denominator_tolerance
     )
@@ -678,8 +674,8 @@ def update_humidity_vpd(
 
     # Vapour pressure [kPa]
     vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (
-        molecular_weight_ratio_water_to_dry_air * dry_air_factor
-        + specific_humidity_updated
+        molecular_weight_ratio_water_to_dry_air
+        + dry_air_factor * specific_humidity_updated
     )
 
     # Compute new relative humidity (%)
