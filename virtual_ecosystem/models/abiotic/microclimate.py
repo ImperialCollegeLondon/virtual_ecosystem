@@ -970,28 +970,28 @@ def build_output_from_record(
         if var not in vars_set:
             continue
 
-        values = np.asarray(values)
+        values_arr = np.asarray(values)
 
         # detect time dimension
-        if values.ndim > 1:
+        if values_arr.ndim > 1:
             if var == "diurnal_temperature_range":
                 min_value = np.nanmin(data_record["air_temperature"], axis=0)
                 max_value = np.nanmax(data_record["air_temperature"], axis=0)
-                values = max_value - min_value
+                values_out = max_value - min_value
             else:
-                values = np.nanmean(values, axis=0)
+                values_out = np.nanmean(values_arr, axis=0)
 
         # assign dims
-        if values.ndim == 1:
+        if values_out.ndim == 1:
             dims = ["cell_id"]
-        elif values.ndim == 2:
+        elif values_out.ndim == 2:
             dims = ["layers", "cell_id"]
         else:
             raise ValueError(
                 f"Unsupported dimensions for variable '{var}': {values.shape}"
             )
 
-        output[var] = DataArray(values, dims=dims)
+        output[var] = DataArray(values_out, dims=dims)
 
     # check for requested variables that never appeared
     missing = vars_set - output.keys()

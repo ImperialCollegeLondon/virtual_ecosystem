@@ -216,8 +216,12 @@ class AbioticModel(
             bounds=self.bounds,
         )
 
-        # Initialise diurnal temperature range
-        self.data["diurnal_temperature_range"] = self.layer_structure.from_template()
+        # Initialise diurnal temperature range, [C]
+        diurnal_temperature_range = initial_microclimate["air_temperature"].copy()
+        self.data["diurnal_temperature_range"] = diurnal_temperature_range.where(
+            diurnal_temperature_range.isnull(),
+            other=5.0,  # TODO add data when available
+        )
 
         # Generate initial profiles of canopy temperature and heat fluxes from soil and
         # canopy
