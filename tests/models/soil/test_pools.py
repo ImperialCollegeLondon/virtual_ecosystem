@@ -884,6 +884,27 @@ def test_calculate_necromass_breakdown(dummy_carbon_data, fixture_soil_constants
     assert np.allclose(actual_breakdown, expected_breakdown)
 
 
+def test_calculate_necromass_breakdown_negative(
+    dummy_carbon_data, fixture_soil_constants
+):
+    """Check that necromass breakdown to lmwc handles negative values."""
+
+    from virtual_ecosystem.models.soil.pools import calculate_necromass_breakdown
+
+    expected_breakdown = [0.0134008455, 0.0, 0.0214875626, 0.0242601513]
+
+    # Add negative necromass value in
+    necromasses = dummy_carbon_data["soil_cnp_pool_necromass"].sel(element="C")
+    necromasses[1] = -5.5e-3
+
+    actual_breakdown = calculate_necromass_breakdown(
+        soil_c_pool_necromass=necromasses,
+        necromass_decay_rate=fixture_soil_constants.necromass_decay_rate,
+    )
+
+    assert np.allclose(actual_breakdown, expected_breakdown)
+
+
 def test_calculate_litter_mineralisation_fluxes(
     dummy_carbon_data, fixture_soil_constants
 ):

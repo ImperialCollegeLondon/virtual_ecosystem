@@ -1561,7 +1561,9 @@ def calculate_necromass_breakdown(
         The amount of necromass that breakdown to LMWC [kg C m^-3 day^-1]
     """
 
-    return necromass_decay_rate * soil_c_pool_necromass
+    return np.where(
+        soil_c_pool_necromass > 0, necromass_decay_rate * soil_c_pool_necromass, 0
+    )
 
 
 def calculate_litter_mineralisation_fluxes(
