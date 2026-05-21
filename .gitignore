@@ -141,3 +141,6 @@ dmypy.json
 
 # Local PyPI authentication tokens
 .pypirc
+
+# Profiling data
+*.prof

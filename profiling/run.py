@@ -26,7 +26,7 @@ if __name__ == "__main__":
         "--logfile",
         f"{path}/logfile{ver}.log",
     ]
-    if truncate >= 0:
+    if truncate is not None and truncate >= 0:
         ve_run_args.extend(
             ["--config", f"core.debug.truncate_run_at_update={truncate}"]
         )
