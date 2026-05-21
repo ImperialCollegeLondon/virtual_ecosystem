@@ -15,6 +15,7 @@ def test_calculate_zero_plane_displacement(dummy_climate_data_varying_canopy):
         canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
         leaf_area_index=np.array([0.0, np.nan, 7.0, 0.0]),
         zero_plane_scaling_parameter=7.5,
+        denominator_tolerance=1e-10,
     )
 
     assert_allclose(result, np.array([0.0, 0.0, 25.86256, 0.0]))
@@ -37,10 +38,11 @@ def test_calculate_roughness_length_momentum(dummy_climate_data_varying_canopy):
         max_ratio_wind_to_friction_velocity=0.3,
         von_karman_constant=0.4,
         min_roughness_length=0.01,
+        denominator_tolerance=1e-10,
     )
 
     assert_allclose(
-        result, np.array([0.01, 0.01666, 0.524479, 0.01]), rtol=1e-3, atol=1e-3
+        result, np.array([0.01, 0.01, 0.524479, 0.01]), rtol=1e-3, atol=1e-3
     )
 
 
@@ -61,6 +63,7 @@ def test_calculate_wind_profile(
         roughness_length=np.array([0.01, 0.01666, 0.524479, 0.01]),
         zero_plane_displacement=np.array([0, 0, 25, 0]),
         min_wind_speed=0.001,
+        denominator_tolerance=1e-10,
     )
 
     exp_wind = np.array(
@@ -91,6 +94,7 @@ def test_calculate_friction_velocity(dummy_climate_data_varying_canopy):
         roughness_length=np.array([0.01, 0.01666, 0.524479, 0.01]),
         zero_plane_displacement=np.array([0, 0, 25, 0]),
         von_karman_constant=0.4,
+        denominator_tolerance=1e-10,
     )
     exp_friction_velocity = np.array([0.047945, 0.05107, 0.11499, 0.047945])
     assert_allclose(result, exp_friction_velocity, rtol=1e-3, atol=1e-3)
@@ -105,12 +109,14 @@ def test_calculate_ventilation_rate():
 
     aerodynamic_resistance = np.array([10.0, 50.0, 0.0, 10.0])
     characteristic_height = np.array([2.0, 20.0, 1.0, 0.0])
-    expected = np.array([5.0e-02, 1.0e-03, 1.0e03, 0.1])
+    expected = np.array([5.0e-02, 1.0e-03, 1.0e10, 1.0e-01])
 
     result = calculate_ventilation_rate(
         aerodynamic_resistance=aerodynamic_resistance,
         characteristic_height=characteristic_height,
         understorey_ventilation_rate=0.1,
+        surface_layer_height=0.1,
+        denominator_tolerance=1e-10,
     )
     assert_allclose(result, expected)
 
@@ -124,12 +130,14 @@ def test_calculate_ventilation_rate_zero_denominator():
 
     aerodynamic_resistance = 0.0
     characteristic_height = 10.0
-    expected = 1.0 / 1e-3
+    expected = 1.0e10
 
     result = calculate_ventilation_rate(
         aerodynamic_resistance=aerodynamic_resistance,
         characteristic_height=characteristic_height,
         understorey_ventilation_rate=0.1,
+        surface_layer_height=0.1,
+        denominator_tolerance=1e-10,
     )
     assert np.isclose(result, expected)
 
@@ -152,6 +160,7 @@ def test_calculate_mixing_coefficients():
         friction_velocity=friction_velocity,
         von_karman_constant=k,
         max_mixing_coefficient=1.0,
+        denominator_tolerance=1e-10,
     )
 
     assert result.shape == layer_midpoints.shape
@@ -284,20 +293,20 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     exp_temp = np.full_like(input_humidity, np.nan)
     exp_temp[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [30.0, 30.0, 30.0, 29.2],
-            [29.82, 29.82, 29.82, np.nan],
-            [28.99, 28.99, np.nan, np.nan],
-            [27.37, np.nan, np.nan, np.nan],
+            [29.96, 29.96, 29.96, 28.4],
+            [29.75, 29.75, 29.06, np.nan],
+            [28.82, 28.3, np.nan, np.nan],
+            [26.85, np.nan, np.nan, np.nan],
             [22.52, 22.69, 22.78, 23.6],
         ]
     )
     exp_hum = np.full_like(input_humidity, np.nan)
     exp_hum[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [90.0, 90.0, 90.0, 90.8],
-            [94.5, 91.8, 90.9, np.nan],
+            [90.2, 90.2, 90.2, 91.6],
+            [94.9, 92.4, 91.5, np.nan],
             [100.0, 100.0, np.nan, np.nan],
-            [96.9, np.nan, np.nan, np.nan],
+            [97.1, np.nan, np.nan, np.nan],
             [97.8, 98.4, 97.3, 96.4],
         ]
     )
@@ -374,6 +383,8 @@ def test_calculate_aerodynamic_resistance(
         zero_plane_displacement=np.array([0.0, 0.0, 25.0, 0.0]),
         wind_speed=np.array([1.0, 2.0, 0.5, 0.01]),
         von_karman_constant=0.4,
+        fallback_resistance=1000.0,
+        denominator_tolerance=1e-10,
     )
     assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
 

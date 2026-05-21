@@ -17,37 +17,19 @@ def test_compute_weights_with_nans():
     radiation = np.array([[1.0, np.nan], [3.0, 6.0]])
     weights = compute_weights_from_absorbed_radiation(radiation)
 
-    # NaN remains NaN
+    # NaN input remains NaN in output
     assert np.isnan(weights[0, 1])
 
-    # Valid values still normalize to 1
-    assert np.isclose(np.nansum(weights), 1.0)
+    # Per-cell weights sum to 1.0, ignoring NaNs
+    per_cell_sums = np.nansum(weights, axis=0)
+    assert np.allclose(per_cell_sums, 1.0)
 
+    # Exact values for cell 0
+    assert np.isclose(weights[0, 0], 0.25)
+    assert np.isclose(weights[1, 0], 0.75)
 
-def test_compute_weights_zero_total_raises():
-    """Test that compute_weights_from_absorbed_radiation raises ValueError."""
-
-    from virtual_ecosystem.models.abiotic.abiotic_tools import (
-        compute_weights_from_absorbed_radiation,
-    )
-
-    radiation = np.array([[0.0, 0.0], [0.0, 0.0]])
-
-    with pytest.raises(ValueError):
-        compute_weights_from_absorbed_radiation(radiation)
-
-
-def test_all_nan_raises():
-    """Test that compute_weights_from_absorbed_radiation raises Error when NaN."""
-
-    from virtual_ecosystem.models.abiotic.abiotic_tools import (
-        compute_weights_from_absorbed_radiation,
-    )
-
-    radiation = np.array([[np.nan, np.nan], [np.nan, np.nan]])
-
-    with pytest.raises(ValueError):
-        compute_weights_from_absorbed_radiation(radiation)
+    # Exact values for cell 1, only one valid entry so weight must be 1.0
+    assert np.isclose(weights[1, 1], 1.0)
 
 
 def test_build_indices_returns_expected_namespace(
@@ -397,7 +379,7 @@ def test_update_profile_from_reference(
 
 
 def test_calculate_atmospheric_layer_geometry(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_abiotic_indices
 ):
     """Test update atmospheric pressure for varying canopy."""
 
@@ -406,41 +388,61 @@ def test_calculate_atmospheric_layer_geometry(
     )
 
     data = dummy_climate_data_varying_canopy
-    lyr_str = fixture_core_components.layer_structure
+    idx = fixture_abiotic_indices
+
+    # Set one layer height in the canopy to a very small value to test the lowest canopy
+    # layer correction
+    data["layer_heights"][2, 2] = 0.05
 
     result = calculate_atmospheric_layer_geometry(
         data=data,
+        idx=idx,
+        lowest_canopy_layer_correction=0.1,
     )
 
     for var in ["heights", "thickness", "layer_midpoints"]:
         assert var in result
 
-    np.testing.assert_allclose(result["heights"], data["layer_heights"].to_numpy())
+    exp_heights = np.array(
+        [
+            [32.0, 32.0, 32.0, 32.0],
+            [30.0, 30.0, 30.0, np.nan],
+            [20.0, 20.0, 0.2, np.nan],
+            [10.0, np.nan, np.nan, np.nan],
+            [0.1, 0.1, 0.1, 0.1],
+        ]
+    )
 
-    exp_thickness = lyr_str.from_template()
-    exp_thickness[lyr_str.index_filled_atmosphere] = np.array(
+    np.testing.assert_allclose(
+        result["heights"][idx.atm], exp_heights, rtol=1e-04, atol=1e-04
+    )
+
+    exp_thickness = np.array(
         [
             [2.0, 2.0, 2.0, 31.9],
-            [10.0, 10.0, 29.9, np.nan],
-            [10.0, 19.9, np.nan, np.nan],
+            [10.0, 10.0, 29.8, np.nan],
+            [10.0, 19.9, 0.1, np.nan],
             [9.9, np.nan, np.nan, np.nan],
             [0.1, 0.1, 0.1, 0.1],
         ]
     )
-    np.testing.assert_allclose(result["thickness"], exp_thickness.to_numpy())
+    np.testing.assert_allclose(
+        result["thickness"][idx.atm], exp_thickness, rtol=1e-04, atol=1e-04
+    )
 
-    exp_midpoints = lyr_str.from_template()
-    exp_midpoints[lyr_str.index_filled_atmosphere] = np.array(
+    exp_midpoints = np.array(
         [
             [31.0, 31.0, 31.0, 16.05],
-            [25.0, 25.0, 15.05, np.nan],
-            [15.0, 10.05, np.nan, np.nan],
+            [25.0, 25.0, 15.1, np.nan],
+            [15.0, 10.05, 0.15, np.nan],
             [5.05, np.nan, np.nan, np.nan],
             [0.05, 0.05, 0.05, 0.05],
         ]
     )
 
-    np.testing.assert_allclose(result["layer_midpoints"], exp_midpoints.to_numpy())
+    np.testing.assert_allclose(
+        result["layer_midpoints"][idx.atm], exp_midpoints, rtol=1e-04, atol=1e-04
+    )
 
 
 def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_canopy):
@@ -521,17 +523,13 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_can
     )
 
 
-def test_fill_layer_template(fixture_core_components):
+def test_fill_layer_template(fixture_core_components, fixture_abiotic_indices):
     """Test fill layer template."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import fill_layer_template
 
     layer_structure = fixture_core_components.layer_structure
-
-    # Define indices
-    canopy_index = [1, 2, 3]
-    surface_index = [11]
-    soil_index = [12, 13]
+    idx = fixture_abiotic_indices
 
     # Define values
     canopy_vals = np.array([[10.0, 20.0, 30.0, 40.0]] * 3)
@@ -539,18 +537,18 @@ def test_fill_layer_template(fixture_core_components):
     soil_vals = np.array([[5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0]])
 
     assignments = [
-        (canopy_index, canopy_vals),
-        (surface_index, surface_vals),
-        (soil_index, soil_vals),
+        (idx.canopy, canopy_vals),
+        (idx.surface, surface_vals),
+        (idx.soil, soil_vals),
     ]
 
     out = fill_layer_template(layer_structure, assignments)
 
-    assert np.allclose(out[canopy_index], canopy_vals)
-    assert np.allclose(out[surface_index], surface_vals)
-    assert np.allclose(out[soil_index], soil_vals)
+    assert np.allclose(out[idx.canopy], canopy_vals)
+    assert np.allclose(out[idx.surface], surface_vals)
+    assert np.allclose(out[idx.soil], soil_vals)
 
-    # --- Unfilled layers remain NaN ---
+    # Unfilled layers remain NaN
     assert np.all(np.isnan(out[0]))
 
 
@@ -738,7 +736,7 @@ def test_nan_values_ignored():
     from virtual_ecosystem.models.abiotic.abiotic_tools import finite_and_within
 
     arr = np.array([10, np.nan, 20])
-    # min=10, max=20, within bounds → should pass
+    # min=10, max=20, within bounds should pass
     finite_and_within(arr, 0, 30, "test_var")
 
 

@@ -62,7 +62,7 @@ types-jsonschema = "^4.26.0"
 types-tqdm = "^4.67.3.20260508"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.152.4"
+hypothesis = "^6.152.7"
 pytest = ">=9.0.3,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
@@ -76,12 +76,12 @@ ipython = ">=9.13.0" # SPEC0
 isort = ">=5.12,<9.0" 
 jupyterlab = "^4.5.7" 
 jupyterlab-myst = "^2.6.0" 
-jupytext = "^1.19.1" 
+jupytext = "^1.19.2" 
 matplotlib = ">=3.10.9" # SPEC0
-mypy = "^2.0.0" 
+mypy = "^2.1.0" 
 pre-commit = ">=4.6.0,<5" 
-ruff = ">=0.15.12,<0.16.0" 
 snakeviz = ">=2.2.2,<3.0.0"
+ruff = ">=0.15.13,<0.16.0" 
 
 [tool.poetry.group.docs.dependencies]
 autodocsumm = "^0.2.8"
@@ -105,6 +105,7 @@ addopts = """
   -v
   -p no:warnings
   -m "not profiling"
+  -m "not integration"
   -n auto
   --cov=virtual_ecosystem
   --cov-report=html:htmlcov/coverage
@@ -114,6 +115,7 @@ addopts = """
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
   "profiling: run profiling tests",
+  "integration: integration tests that should only be run to test releases",
 ]
 python_files = 'test_*.py'
 testpaths = ['tests']
