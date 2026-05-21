@@ -339,11 +339,8 @@ class ResourcePool:
         the local array tracking consumed total biomass.
         """
 
-        # Needs to collapse down to a single mass and element ratio per cell and to
-        # convert to mass units in the density case
+        # Needs to collapse down to a single mass and element ratio per cell
         mass_data = self.data[self.resource.pool_array]
-        if self.density:
-            mass_data *= self.data.grid.cell_area
 
         # Reduce to the PFT if needed
         # TODO - think about indexing here with a more general solution.
@@ -351,7 +348,11 @@ class ResourcePool:
             mass_data = mass_data.sel(pft=self.pft)
 
         # Store elemental biomasses per cell values into array attributes
-        self.elemental_masses = mass_data.to_numpy()
+        if self.density:
+            # in the density case need to convert to mass units
+            self.elemental_masses = mass_data.to_numpy() * self.data.grid.cell_area
+        else:
+            self.elemental_masses = mass_data.to_numpy()
 
         # Create a per cell array to track _total_ consumed biomass
         self.consumed_total_mass = np.zeros(self.data.grid.n_cells)
