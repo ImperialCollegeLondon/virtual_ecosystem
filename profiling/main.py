@@ -73,35 +73,43 @@ if command is None:
     )
 
 # Identify the version of the virtual ecosystem being run.
-command_ve_version = (
-    command + ' -c "import virtual_ecosystem as ve; print(ve.__version__)"'
-)
-ve_version = (
-    subprocess.check_output(command_ve_version, shell=True)
-    .decode("utf-8")
-    .strip()
-    .replace(".", "_")
+command_ve_version = [
+    command,
+    "-c",
+    "import virtual_ecosystem as ve; print(ve.__version__)",
+]
+ve_version = subprocess.check_output(command_ve_version, text=True).strip().replace(
+    ".",
+    "_",
 )
 print(f"Virtual Ecosystem v{ve_version}")
 # Generate terminal command to run `ve_run_cli()` via cProfile.
 output_name = f"VE_{ve_version}__py{ver}__truncated_at_step_{truncation}"
-command_ve_run = (
-    command + f" -m cProfile -o {profiler_folder}/{output_name}.prof profiling/run.py "
-    f"--ver={ver} --path={path} --truncate={truncation}"
-)
+profiler_output = os.path.join(profiler_folder, f"{output_name}.prof")
+command_ve_run = [
+    command,
+    "-m",
+    "cProfile",
+    "-o",
+    profiler_output,
+    "profiling/run.py",
+    f"--ver={ver}",
+    f"--path={path}",
+    f"--truncate={truncation}",
+]
 
 # Run the terminal command within this script via the `subprocess` library.
-subprocess.run(command_ve_run, shell=True)
+subprocess.run(command_ve_run, check=True)
 
 
 # The terminal command if you want to view the results table and/or visual breakdown.
-print(f"python -m snakeviz {profiler_folder}/{output_name}.prof")
+print(f"python -m snakeviz {profiler_output}")
 
 # Copy over the output to a nested folder sorted by Python version for historic runs.
 nested_profiler_folder = f"{profiler_folder}/python{ver}"
 if not os.path.exists(nested_profiler_folder):
     os.makedirs(nested_profiler_folder)
 shutil.copy(
-    f"{profiler_folder}/{output_name}.prof",
+    profiler_output,
     f"{nested_profiler_folder}/{time_stamp}__{output_name}.prof",
 )
