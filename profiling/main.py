@@ -25,24 +25,25 @@ user_os = "mac"
 
 
 # Designate the path from the root directory.
-path = "data/ve_example"
+from pathlib import Path
+
+path = Path.cwd() / "data" / "ve_example"
 
 # Check example data exists to start the simulation.
-if not os.path.exists(f"{path}/config"):
+if not (config_path := path / "config").exists():
     raise FileNotFoundError(
-        f"Config folder not found at {path}/config. Please ensure the path variable is"
+        f"Config folder not found at {config_path}. Please ensure the path variable is"
         " correctly set and the config folder exists."
     )
 
 # Create a folder for the cProfile outputs.
-profiler_folder = f"{path}/cProfile_outputs"
-if not os.path.exists(profiler_folder):
-    os.makedirs(profiler_folder)
+profiler_folder = path / "cProfile_outputs"
+profiler_folder.mkdir(parents=True, exist_ok=True)
 
-# Create a folder for the VE outputs.
-out_folder = f"{path}/out"
-if not os.path.exists(out_folder):
-    os.makedirs(out_folder)
+# Create a folder for the VE outputs, removing it first if it exists already.
+if (out_folder := path / "out").exists():
+    shutil.rmtree(out_folder)
+out_folder.mkdir(parents=True)
 
 # Clear the current ./out folder.
 for filename in os.listdir(out_folder):
