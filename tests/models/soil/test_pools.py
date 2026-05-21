@@ -761,6 +761,24 @@ def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
     assert np.allclose(actual_decay, expected_decay)
 
 
+def test_calculate_enzyme_turnover_negatives(dummy_carbon_data):
+    """Check that enzyme turnover rates handle negative values."""
+    from virtual_ecosystem.models.soil.pools import calculate_enzyme_turnover
+
+    expected_decay = [0.000544296, 0.000229824, 0.0, 7.224e-5]
+
+    # Add negative enzyme pool in
+    enzyme_pool_sizes = dummy_carbon_data["soil_enzyme_pom_bacteria"]
+    enzyme_pool_sizes[2] = -3.4e-2
+
+    actual_decay = calculate_enzyme_turnover(
+        enzyme_pool=enzyme_pool_sizes,
+        turnover_rate=2.4e-2,
+    )
+
+    assert np.allclose(actual_decay, expected_decay)
+
+
 def test_calculate_enzyme_mediated_decomposition(
     dummy_carbon_data, fixture_core_components, environmental_factors, enzyme_classes
 ):
@@ -784,6 +802,34 @@ def test_calculate_enzyme_mediated_decomposition(
     assert np.allclose(actual_decomp, expected_decomp)
 
 
+def test_calculate_enzyme_mediated_decomposition_negatives(
+    dummy_carbon_data, fixture_core_components, environmental_factors, enzyme_classes
+):
+    """Check that particulate organic matter decomposition handles negatives."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_enzyme_mediated_decomposition,
+    )
+
+    soil_c_pool = dummy_carbon_data["soil_cnp_pool_pom"].sel(element="C")
+    soil_enzyme = dummy_carbon_data["soil_enzyme_pom_bacteria"]
+    soil_c_pool[0] = -3.45e-5
+    soil_enzyme[3] = -1.23e-3
+
+    expected_decomp = [0.0, 8.91990315e-3, 1.66740158e-2, 0.0]
+
+    actual_decomp = calculate_enzyme_mediated_decomposition(
+        soil_c_pool=soil_c_pool,
+        soil_enzyme=soil_enzyme,
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        env_factors=environmental_factors,
+        enzyme_class=enzyme_classes["bacteria_pom"],
+    )
+
+    assert np.allclose(actual_decomp, expected_decomp)
+
+
 def test_calculate_maom_desorption(dummy_carbon_data, fixture_soil_constants):
     """Check that mineral associated matter desorption is calculated correctly."""
 
@@ -793,6 +839,25 @@ def test_calculate_maom_desorption(dummy_carbon_data, fixture_soil_constants):
 
     actual_desorption = calculate_maom_desorption(
         soil_c_pool_maom=dummy_carbon_data["soil_cnp_pool_maom"].sel(element="C"),
+        desorption_rate_constant=fixture_soil_constants.maom_desorption_rate,
+    )
+
+    assert np.allclose(actual_desorption, expected_desorption)
+
+
+def test_calculate_maom_desorption_negatives(dummy_carbon_data, fixture_soil_constants):
+    """Check that mineral associated matter desorption handles negative values."""
+
+    from virtual_ecosystem.models.soil.pools import calculate_maom_desorption
+
+    soil_c_pool_maom = dummy_carbon_data["soil_cnp_pool_maom"].sel(element="C")
+    # Add negative value
+    soil_c_pool_maom[3] = -3.33e-3
+
+    expected_desorption = [2.5e-5, 1.7e-5, 4.5e-5, 0.0]
+
+    actual_desorption = calculate_maom_desorption(
+        soil_c_pool_maom=soil_c_pool_maom,
         desorption_rate_constant=fixture_soil_constants.maom_desorption_rate,
     )
 
@@ -860,6 +925,27 @@ def test_calculate_necromass_breakdown(dummy_carbon_data, fixture_soil_constants
         soil_c_pool_necromass=dummy_carbon_data["soil_cnp_pool_necromass"].sel(
             element="C"
         ),
+        necromass_decay_rate=fixture_soil_constants.necromass_decay_rate,
+    )
+
+    assert np.allclose(actual_breakdown, expected_breakdown)
+
+
+def test_calculate_necromass_breakdown_negative(
+    dummy_carbon_data, fixture_soil_constants
+):
+    """Check that necromass breakdown to lmwc handles negative values."""
+
+    from virtual_ecosystem.models.soil.pools import calculate_necromass_breakdown
+
+    expected_breakdown = [0.0134008455, 0.0, 0.0214875626, 0.0242601513]
+
+    # Add negative necromass value in
+    necromasses = dummy_carbon_data["soil_cnp_pool_necromass"].sel(element="C")
+    necromasses[1] = -5.5e-3
+
+    actual_breakdown = calculate_necromass_breakdown(
+        soil_c_pool_necromass=necromasses,
         necromass_decay_rate=fixture_soil_constants.necromass_decay_rate,
     )
 
@@ -938,6 +1024,31 @@ def test_calculate_soil_nutrient_mineralisation(
     assert np.allclose(actual_rate, expected_rate)
 
 
+def test_calculate_soil_nutrient_mineralisation_negatives(
+    dummy_carbon_data, enzyme_mediated_rates
+):
+    """Test soil nutrient mineralisation calculation handles negative values."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_soil_nutrient_mineralisation,
+    )
+
+    pool_carbon = dummy_carbon_data["soil_cnp_pool_pom"].sel(element="C")
+    pool_nutrient = dummy_carbon_data["soil_cnp_pool_pom"].sel(element="N")
+    # Add negative values in
+    pool_carbon[2] = -1.11
+    pool_nutrient[1] = -0.99
+
+    expected_rate = [0.00013585646, 0.0, 0.0, 1.15848952e-5]
+
+    actual_rate = calculate_soil_nutrient_mineralisation(
+        pool_carbon=pool_carbon,
+        pool_nutrient=pool_nutrient,
+        breakdown_rate=enzyme_mediated_rates.pom_to_lmwc,
+    )
+
+    assert np.allclose(actual_rate, expected_rate)
+
+
 def test_calculate_nutrient_flows_to_necromass(
     functional_groups, enzyme_changes, enzyme_classes, biomass_losses
 ):
@@ -993,10 +1104,45 @@ def test_find_necromass_nutrient_outflows(
         assert np.allclose(expected_rates[key], actual_rates[key])
 
 
+def test_find_necromass_nutrient_outflows_negatives(
+    dummy_carbon_data, necromass_breakdown, necromass_sorption
+):
+    """Test that function to find necromass nutrient losses handles negative values."""
+    from virtual_ecosystem.models.soil.pools import find_necromass_nutrient_outflows
+
+    necromass_carbon = dummy_carbon_data["soil_cnp_pool_necromass"].sel(element="C")
+    necromass_nitrogen = dummy_carbon_data["soil_cnp_pool_necromass"].sel(element="N")
+    necromass_phosphorus = dummy_carbon_data["soil_cnp_pool_necromass"].sel(element="P")
+    # Add negative values in
+    necromass_carbon[0] = -0.98
+    necromass_nitrogen[3] = -0.33
+    necromass_phosphorus[1] = -0.01
+
+    expected_rates = {
+        "decay_nitrogen": [0.0, 0.00413222, 0.00466541, 0.0],
+        "sorption_nitrogen": [0.0, 0.01239667, 0.01399624, 0.0],
+        "decay_phosphorus": [0.0, 0.0, 1.65287877e-4, 1.03082538e-4],
+        "sorption_phosphorus": [0.0, 0.0, 4.958636e-4, 3.0924762e-4],
+    }
+
+    actual_rates = find_necromass_nutrient_outflows(
+        necromass_carbon=necromass_carbon,
+        necromass_nitrogen=necromass_nitrogen,
+        necromass_phosphorus=necromass_phosphorus,
+        necromass_decay=necromass_breakdown,
+        necromass_sorption=necromass_sorption,
+    )
+
+    assert set(expected_rates.keys()) == set(actual_rates.keys())
+
+    for key in expected_rates.keys():
+        assert np.allclose(expected_rates[key], actual_rates[key])
+
+
 def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
     dummy_carbon_data, enzyme_mediated_rates, lmwc_sorption, maom_desorption
 ):
-    """Test function to find net exchange of nitrogen between maom and don."""
+    """Test function to calculate net nutrient exchange between maom and lmwc."""
     from virtual_ecosystem.models.soil.pools import (
         calculate_net_nutrient_transfers_from_maom_to_lmwc,
     )
@@ -1013,6 +1159,53 @@ def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
         maom_carbon=dummy_carbon_data["soil_cnp_pool_maom"].sel(element="C"),
         maom_nitrogen=dummy_carbon_data["soil_cnp_pool_maom"].sel(element="N"),
         maom_phosphorus=dummy_carbon_data["soil_cnp_pool_maom"].sel(element="P"),
+        maom_breakdown=enzyme_mediated_rates.maom_to_lmwc,
+        maom_desorption=maom_desorption,
+        lmwc_sorption=lmwc_sorption,
+    )
+
+    assert set(expected_transfers.keys()) == set(actual_transfers.keys())
+
+    for key in expected_transfers.keys():
+        assert np.allclose(expected_transfers[key], actual_transfers[key])
+
+
+def test_calculate_net_nutrient_transfers_from_maom_to_lmwc_negatives(
+    dummy_carbon_data, enzyme_mediated_rates, lmwc_sorption, maom_desorption
+):
+    """Check net nutrient exchange between maom and lmwc handles negatives."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_net_nutrient_transfers_from_maom_to_lmwc,
+    )
+
+    lmwc_carbon = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C")
+    lmwc_nitrogen = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="N")
+    lmwc_phosphorus = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="P")
+    maom_carbon = dummy_carbon_data["soil_cnp_pool_maom"].sel(element="C")
+    maom_nitrogen = dummy_carbon_data["soil_cnp_pool_maom"].sel(element="N")
+    maom_phosphorus = dummy_carbon_data["soil_cnp_pool_maom"].sel(element="P")
+    # Add negative values
+    lmwc_carbon[0] = -1.23
+    maom_carbon[0] = -3.45
+    lmwc_nitrogen[1] = -2.3
+    maom_nitrogen[1] = -4.6
+    lmwc_phosphorus[2] = -0.23
+    maom_phosphorus[2] = -0.46
+    lmwc_nitrogen[3] = -0.99
+    maom_phosphorus[3] = -0.11
+
+    expected_transfers = {
+        "nitrogen": [0.0, 0.0, 0.00073268, 5.76843536e-6],
+        "phosphorus": [0.0, 0.00014283379, 0.0, -1.1428568e-7],
+    }
+
+    actual_transfers = calculate_net_nutrient_transfers_from_maom_to_lmwc(
+        lmwc_carbon=lmwc_carbon,
+        lmwc_nitrogen=lmwc_nitrogen,
+        lmwc_phosphorus=lmwc_phosphorus,
+        maom_carbon=maom_carbon,
+        maom_nitrogen=maom_nitrogen,
+        maom_phosphorus=maom_phosphorus,
         maom_breakdown=enzyme_mediated_rates.maom_to_lmwc,
         maom_desorption=maom_desorption,
         lmwc_sorption=lmwc_sorption,
