@@ -54,8 +54,8 @@ def test_ve_run_with_profiling(capsys):
 
             pr.disable()
             pr.dump_stats("ve_run_profile.prof")
-
-        except Exception:
-            # If the code above fails then tidy up the logger to restore normal
-            # stream logging rather than leaving all other tests logging to the file.
+        finally:
+            # Always tidy up the logger to restore normal stream logging rather
+            # than leaving other tests logging to the file. Any original
+            # exception will still be re-raised by the test framework.
             remove_file_logger()
