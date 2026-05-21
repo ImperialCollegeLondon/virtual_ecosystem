@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     ve_run_args = [
         f"{path}/config",
-        "--out",
+        "--outpath",
         f"{path}/out",
         "--logfile",
         f"{path}/logfile{ver}.log",
