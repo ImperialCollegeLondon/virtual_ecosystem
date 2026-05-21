@@ -32,17 +32,23 @@ def test_ve_run_with_profiling(capsys):
             _ = capsys.readouterr()
 
             example_dir = Path(tempdir) / "ve_example"
-            configs = example_dir / "config"
+            config_dir = example_dir / "config"
             outdir = example_dir / "out"
             outdir.mkdir(exist_ok=True)
-            logfile = outdir / "ve_example.log"
+            logfile = outdir / "logfile.log"
 
             pr = cProfile.Profile()
             pr.enable()
 
             ve_run_cli(
                 args_list=[
-                    str(configs),
+                    str(config_dir / "data_config.toml"),
+                    str(config_dir / "abiotic_config.toml"),
+                    str(config_dir / "animal_config.toml"),
+                    str(config_dir / "hydrology_config.toml"),
+                    str(config_dir / "litter_config.toml"),
+                    str(config_dir / "plant_config.toml"),
+                    str(config_dir / "soil_config.toml"),
                     "--outpath",
                     str(outdir),
                     "--logfile",
