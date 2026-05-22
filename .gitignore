@@ -52,6 +52,9 @@ coverage.xml
 .pytest_cache/
 reports
 
+# Profiling data:
+data/ve_example/*
+
 # Translations
 *.mo
 *.pot
@@ -138,3 +141,6 @@ dmypy.json
 
 # Local PyPI authentication tokens
 .pypirc
+
+# Profiling data
+*.prof
