@@ -67,7 +67,10 @@ from virtual_ecosystem.models.animal.decay import (
     HerbivoryWaste,
     SoilPool,
 )
-from virtual_ecosystem.models.animal.exporter import AnimalCohortDataExporter
+from virtual_ecosystem.models.animal.exporter import (
+    AnimalCohortDataExporter,
+    ResourcePoolDataExporter,
+)
 from virtual_ecosystem.models.animal.functional_group import (
     FunctionalGroup,
     get_functional_group_by_name,
@@ -188,7 +191,8 @@ class AnimalModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        exporter: The export system for animal cohort data.
+        animal_cohort_exporter: The export system for animal cohort data.
+        resource_pool_exporter: The export system for resource pools.
         density_scaling_method: Which density scaling equation to use in initialization.
         functional_groups: The list of animal functional groups present in the
             simulation.
@@ -205,7 +209,8 @@ class AnimalModel(
         self,
         data: Data,
         core_components: CoreComponents,
-        exporter: AnimalCohortDataExporter,
+        animal_cohort_exporter: AnimalCohortDataExporter,
+        resource_pool_exporter: ResourcePoolDataExporter,
         functional_groups: list[FunctionalGroup],
         microbial_c_n_p_ratios: dict[str, dict[str, float]],
         model_constants: AnimalConstants = AnimalConstants(),
@@ -257,8 +262,10 @@ class AnimalModel(
         """The pools of fungal fruiting bodies with associated grid cell ids."""
 
         # Set the exporter - this is always set _regardless_ of the static mode.
-        self.exporter: AnimalCohortDataExporter = exporter
+        self.animal_cohort_exporter: AnimalCohortDataExporter = animal_cohort_exporter
         """Exporter for animal cohort data."""
+        self.resource_pool_exporter: ResourcePoolDataExporter = resource_pool_exporter
+        """Exporter for resource pools."""
 
         # Run the setup if the model is not in deep static mode
         if self._run_setup:
@@ -371,8 +378,18 @@ class AnimalModel(
         """Create the dictionary of animal communities and populate each community with
         animal cohorts."""
 
-        self.exporter.dump(
+        self.animal_cohort_exporter.dump(
             cohorts=self.active_cohorts.values(),
+            time=self.model_timing.start_time,
+            time_index=0,
+        )
+
+        self.resource_pool_exporter.dump(
+            carcass_pools=self.carcass_pools,
+            excrement_pools=self.excrement_pools,
+            fungal_fruiting_pools=self.fungal_fruiting_bodies,
+            soil_pools=self.soil_pools,
+            resource_pools=self.array_resource_pools,
             time=self.model_timing.start_time,
             time_index=0,
         )
@@ -455,9 +472,14 @@ class AnimalModel(
         # Find microbial stoichiometries based on the config
         microbial_c_n_p_ratios = find_microbial_stoichiometries(config=configuration)
 
-        exporter = AnimalCohortDataExporter.from_config(
+        animal_cohort_exporter = AnimalCohortDataExporter.from_config(
             output_directory=core_configuration.data_output_options.out_path,
             config=model_configuration.cohort_data_export,
+        )
+
+        resource_pool_exporter = ResourcePoolDataExporter.from_config(
+            output_directory=core_configuration.data_output_options.out_path,
+            config=model_configuration.resource_pool_export,
         )
 
         LOGGER.info(
@@ -472,7 +494,8 @@ class AnimalModel(
             functional_groups=functional_groups,
             model_constants=model_configuration.constants,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
-            exporter=exporter,
+            animal_cohort_exporter=animal_cohort_exporter,
+            resource_pool_exporter=resource_pool_exporter,
         )
 
     def spinup(self) -> None:
@@ -544,8 +567,18 @@ class AnimalModel(
         self.update_population_densities()
 
         # Dump the cohort data to CSV
-        self.exporter.dump(
+        self.animal_cohort_exporter.dump(
             cohorts=self.active_cohorts.values(),
+            time=self.model_timing.update_datestamps[time_index],
+            time_index=time_index,
+        )
+
+        self.resource_pool_exporter.dump(
+            carcass_pools=self.carcass_pools,
+            excrement_pools=self.excrement_pools,
+            fungal_fruiting_pools=self.fungal_fruiting_bodies,
+            soil_pools=self.soil_pools,
+            resource_pools=self.array_resource_pools,
             time=self.model_timing.update_datestamps[time_index],
             time_index=time_index,
         )
