@@ -200,7 +200,7 @@ class AbioticConstants(AbioticSharedConstants):
     """
 
     min_leaf_area_index_for_mixing: float = 0.5
-    """Minimum leaf area index required for turbulent mixing to occur, dimensionless."""
+    """Minimum leaf area index required for turbulent mixing to occur, [m m-1]."""
 
 
 class AbioticConfiguration(ModelConfigurationRoot):
