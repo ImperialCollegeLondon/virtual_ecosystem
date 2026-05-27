@@ -515,9 +515,13 @@ def calculate_vegetation_temperature(
     )
 
     # Result contains new canopy and understorey temperature
+    mask = np.isfinite(static["leaf_area_index"])
+    canopy_temperature_true = state["canopy_temperature"].copy()
+    canopy_temperature_true[~mask] = np.nan
+
     vegetation_temperature = energy_balance.secant_solve_cells_layers(
         residual_function=residual,
-        initial_guess=state["canopy_temperature"],
+        initial_guess=canopy_temperature_true,
         maxiter_secant=abiotic_constants.maxiter_secant_solver,
         convergence_tolerance=abiotic_constants.convergence_tolerance_secant_solver,
         small_perturbation_second_guess=(
@@ -525,6 +529,7 @@ def calculate_vegetation_temperature(
         ),
         denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
+    vegetation_temperature[~mask] = np.nan
 
     return vegetation_temperature
 
