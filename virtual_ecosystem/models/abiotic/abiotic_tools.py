@@ -390,7 +390,7 @@ def calculate_atmospheric_layer_geometry(
     Args:
         data: Data object
         idx: SimpleNamespace containing layer indices
-        minimum_mixing_depth: Minimum depth for lowest canopy layer
+        minimum_mixing_depth: Minimum depth for lowest canopy layer, [m]
 
     Returns:
         dict containing heights, thickness, layer_top, layer_midpoints
