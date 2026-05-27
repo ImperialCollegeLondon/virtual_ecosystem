@@ -377,16 +377,20 @@ def update_profile_from_reference(
 
 
 def calculate_atmospheric_layer_geometry(
-    data: Data, idx: SimpleNamespace, lowest_canopy_layer_correction: float
+    data: Data, idx: SimpleNamespace, minimum_mixing_depth: float
 ) -> dict[str, NDArray[np.floating]]:
     """Calculate heights, layer thickness, and midpoints for atmospheric layers.
 
     The midpoint values are distances in metres above ground for each cell.
+    For layer heights below the surface layer, a minimum mixing depth is introduced.
+    This is to prevent unrealistically low mixing depths and therefore high temperatures
+    in the lowest canopy layer when the layer height is very low. Note that this is an
+    artificial inflation of the mixing depth.
 
     Args:
         data: Data object
         idx: SimpleNamespace containing layer indices
-        lowest_canopy_layer_correction: Correction factor for lowest canopy layer
+        minimum_mixing_depth: Minimum depth for lowest canopy layer
 
     Returns:
         dict containing heights, thickness, layer_top, layer_midpoints
@@ -396,9 +400,10 @@ def calculate_atmospheric_layer_geometry(
     # surface layer height
     heights = data["layer_heights"].to_numpy().copy()
 
+    # Set minimum mixing depth
     heights[idx.canopy] = np.where(
-        heights[idx.canopy] <= heights[idx.surface],
-        heights[idx.surface] + lowest_canopy_layer_correction,
+        heights[idx.canopy] <= minimum_mixing_depth,
+        minimum_mixing_depth,
         heights[idx.canopy],
     )
     heights_corrected = np.where(
