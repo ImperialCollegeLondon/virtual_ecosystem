@@ -397,7 +397,7 @@ def test_calculate_atmospheric_layer_geometry(
     result = calculate_atmospheric_layer_geometry(
         data=data,
         idx=idx,
-        lowest_canopy_layer_correction=0.1,
+        minimum_mixing_depth=1.5,
     )
 
     for var in ["heights", "thickness", "layer_midpoints"]:
@@ -407,7 +407,7 @@ def test_calculate_atmospheric_layer_geometry(
         [
             [32.0, 32.0, 32.0, 32.0],
             [30.0, 30.0, 30.0, np.nan],
-            [20.0, 20.0, 0.2, np.nan],
+            [20.0, 20.0, 1.5, np.nan],
             [10.0, np.nan, np.nan, np.nan],
             [0.1, 0.1, 0.1, 0.1],
         ]
@@ -420,8 +420,8 @@ def test_calculate_atmospheric_layer_geometry(
     exp_thickness = np.array(
         [
             [2.0, 2.0, 2.0, 31.9],
-            [10.0, 10.0, 29.8, np.nan],
-            [10.0, 19.9, 0.1, np.nan],
+            [10.0, 10.0, 28.5, np.nan],
+            [10.0, 19.9, 1.4, np.nan],
             [9.9, np.nan, np.nan, np.nan],
             [0.1, 0.1, 0.1, 0.1],
         ]
@@ -433,8 +433,8 @@ def test_calculate_atmospheric_layer_geometry(
     exp_midpoints = np.array(
         [
             [31.0, 31.0, 31.0, 16.05],
-            [25.0, 25.0, 15.1, np.nan],
-            [15.0, 10.05, 0.15, np.nan],
+            [25.0, 25.0, 15.75, np.nan],
+            [15.0, 10.05, 0.8, np.nan],
             [5.05, np.nan, np.nan, np.nan],
             [0.05, 0.05, 0.05, 0.05],
         ]

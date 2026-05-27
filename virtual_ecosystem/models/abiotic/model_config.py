@@ -191,9 +191,16 @@ class AbioticConstants(AbioticSharedConstants):
     extinction_coefficient_longwave: float = 0.5
     """Extinction coefficient for longwave radiation, dimensionless."""
 
-    lowest_canopy_layer_correction: float = 0.1
-    """Correction factor for lowest canopy layer ensures it is not below surface layer,
-    [m]."""
+    minimum_mixing_depth: float = 1.5
+    """Minimum mixing depth for lowest canopy layer, [m].
+    
+    This is to prevent unrealistically low mixing depths and therefore high temperatures
+    in the lowest canopy layer when the layer height is very low. Note that this is an
+    artificial inflation of the mixing depth.
+    """
+
+    min_leaf_area_index_for_mixing: float = 0.5
+    """Minimum leaf area index required for turbulent mixing to occur, [m m-1]."""
 
 
 class AbioticConfiguration(ModelConfigurationRoot):
