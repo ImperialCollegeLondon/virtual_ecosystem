@@ -553,12 +553,51 @@ def dummy_animal_exporter():
 
 
 @pytest.fixture
+def dummy_resource_pool_exporter():
+    """Provide a no-op exporter for resource pool data in AnimalModel tests.
+
+    Returns:
+        An object with a ``dump`` method matching the ResourcePoolDataExporter
+        interface but performing no output.
+    """
+
+    class DummyResourcePoolExporter:
+        """No-op stand-in for ResourcePoolDataExporter."""
+
+        def dump(
+            self,
+            carcass_pools,
+            excrement_pools,
+            fungal_fruiting_pools,
+            soil_pools,
+            resource_pools,
+            time,
+            time_index,
+        ):
+            """Ignore export calls in tests that do not check CSV output.
+
+            Args:
+                carcass_pools: Carcass pools keyed by cell id.
+                excrement_pools: Excrement pools keyed by cell id.
+                fungal_fruiting_pools: Fungal fruiting body pools keyed by cell id.
+                soil_pools: Soil pools keyed by cell id and pool-type string.
+                resource_pools: Flat list of ResourcePool instances.
+                time: Export timestamp.
+                time_index: Index of update.
+            """
+            return None
+
+    return DummyResourcePoolExporter()
+
+
+@pytest.fixture
 def animal_model_instance(
     dummy_animal_data,
     fixture_core_components,
     functional_group_list_instance,
     microbial_c_n_p_ratios,
     dummy_animal_exporter,
+    dummy_resource_pool_exporter,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
@@ -572,7 +611,8 @@ def animal_model_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
-        exporter=dummy_animal_exporter,
+        animal_cohort_exporter=dummy_animal_exporter,
+        resource_pool_exporter=dummy_resource_pool_exporter,
         model_constants=AnimalConstants(density_scaling_method="madingley"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -586,6 +626,7 @@ def animal_model_damuth_instance(
     functional_group_list_instance,
     microbial_c_n_p_ratios,
     dummy_animal_exporter,
+    dummy_resource_pool_exporter,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
@@ -599,7 +640,8 @@ def animal_model_damuth_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
-        exporter=dummy_animal_exporter,
+        animal_cohort_exporter=dummy_animal_exporter,
+        resource_pool_exporter=dummy_resource_pool_exporter,
         model_constants=AnimalConstants(density_scaling_method="damuth"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
