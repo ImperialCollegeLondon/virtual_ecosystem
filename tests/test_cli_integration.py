@@ -85,8 +85,8 @@ def test_ve_run(capsys):
     argvalues=(
         pytest.param("-qqq", 0, id="silent"),
         pytest.param("-qq", 3, id="minimal"),
-        pytest.param("-q", 9, id="staged"),
-        pytest.param(None, 11, id="full"),
+        pytest.param("-q", 10, id="staged"),
+        pytest.param(None, 12, id="full"),
     ),
 )
 def test_ve_run_verbosity(capsys, tmp_path, verbosity_flags, output_length):
@@ -186,3 +186,68 @@ def test_ve_run_cli_config(tmp_path, mocker, cli_config, expected_called_value):
     # Retrieve what would have been passed to ve_run and check it matches expectations.
     called_value = run_function.call_args.kwargs["cli_config"]
     assert called_value == expected_called_value
+
+
+def test_ve_run_cli_cli_paths(tmp_path):
+    """Test that cli_paths are passed down to validation.
+
+    This test checks that a data path substitution option is successfully passed
+    through from the ve_run_cli entry point into the actual call to ve_run.
+    """
+
+    from virtual_ecosystem.core.exceptions import ConfigurationError
+    from virtual_ecosystem.entry_points import ve_run_cli
+
+    config = tmp_path / "config.toml"
+    p1 = tmp_path / "data_one.nc"
+    p1.touch()
+
+    config.write_text(
+        f"""[[core.data.variable]]
+  file_path = "{p1}"
+  var_name = "temp"
+[[core.data.variable]]
+  file_path = "$MARKER_ONE"
+  var_name = "prec"
+"""
+    )
+
+    # Fails with undefined MARKER
+    with pytest.raises(ConfigurationError):
+        ve_run_cli(args_list=[str(config), "--validate-config-only"])
+
+    # Works with MARKER defined via env.
+    os.environ["MARKER_ONE"] = str(p1)
+    ve_run_cli(args_list=[str(config), "--validate-config-only"])
+
+    # Fails with duplicate definition via env and CLI
+    with pytest.raises(ConfigurationError):
+        ve_run_cli(
+            args_list=[str(config), "--validate-config-only", f"-pMARKER_ONE={p1}"]
+        )
+
+    # Works with marker defined only via CLI
+    del os.environ["MARKER_ONE"]
+    ve_run_cli(
+        args_list=[str(config), "--validate-config-only", "-p", f"MARKER_ONE={p1}"]
+    )
+
+    # Add another variable
+    config.write_text(
+        """[[core.data.variable]]
+  file_path = "$MARKER_TWO"
+  var_name = "snow"
+"""
+    )
+
+    # Check multiple paths
+    ve_run_cli(
+        args_list=[
+            str(config),
+            "--validate-config-only",
+            "-p",
+            f"MARKER_ONE={p1}",
+            "-p",
+            f"MARKER_TWO={p1}",
+        ]
+    )

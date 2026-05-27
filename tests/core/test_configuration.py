@@ -86,12 +86,11 @@ def test_filepath_placeholder(tmp_path):
     # Object to an unknown environment variable
     with pytest.raises(ValidationError) as err:
         placeholder_field.validate_python("$NO_SUCH_ENV_VAR")
-        assert (
-            str(err) == "Path set by undefined environment variable: $NO_SUCH_ENV_VAR"
-        )
+        assert str(err) == "Path set by undefined marker: $NO_SUCH_ENV_VAR"
 
     # Object when an environment variable does not point to a known file
     os.environ["CONFIG_PATH"] = "no_such_file.py"
+
     # Object to file path not existing
     with pytest.raises(ValidationError) as err:
         placeholder_field.validate_python("$CONFIG_PATH")
@@ -101,9 +100,26 @@ def test_filepath_placeholder(tmp_path):
     tmp_file = tmp_path / "file_to_find.txt"
     tmp_file.touch()
     os.environ["CONFIG_PATH"] = str(tmp_file)
+
     with does_not_raise():
         placeholder_field.validate_python(tmp_file)
         placeholder_field.validate_python("$CONFIG_PATH")
+
+    # Test marker cannot be set by context and environment
+    context = {"cli_paths": {"CONFIG_PATH": str(tmp_file)}}
+
+    with pytest.raises(ValidationError) as err:
+        placeholder_field.validate_python("$CONFIG_PATH", context=context)
+        assert str(err) == (
+            "Path marker defined in both environment variables "
+            "and command line arguments : $CONFIG_PATH"
+        )
+
+    # Test context works when no environment variable clashing
+    del os.environ["CONFIG_PATH"]
+
+    with does_not_raise():
+        placeholder_field.validate_python("$CONFIG_PATH", context=context)
 
     tmp_file.unlink()
 
@@ -140,8 +156,18 @@ def test_dirpath_placeholder(tmp_path):
         placeholder_field.validate_python("$CONFIG_PATH")
         assert str(err) == "Path does not point to a file"
 
-    # Do not object when the path exists either directly or via environment variable
-    os.environ["CONFIG_PATH"] = str(tmp_path)
+    # Test marker cannot be set by context and environment
+    context = {"cli_paths": {"CONFIG_PATH": str(tmp_path)}}
+
+    with pytest.raises(ValidationError) as err:
+        placeholder_field.validate_python("$CONFIG_PATH", context=context)
+        assert str(err) == (
+            "Path marker defined in both environment variables "
+            "and command line arguments : $CONFIG_PATH"
+        )
+
+    # Test context works when no environment variable clashing
+    del os.environ["CONFIG_PATH"]
+
     with does_not_raise():
-        placeholder_field.validate_python(tmp_path)
-        placeholder_field.validate_python("$CONFIG_PATH")
+        placeholder_field.validate_python("$CONFIG_PATH", context=context)
