@@ -34,7 +34,7 @@ There are a number of different ways you can do this and we describe some option
 In general, we strongly advise against creating many copies of configuration files and
 altering each set. This is hard to do systematically and creates a lot of file
 duplication and it is generally easier to use one of the solutions below to run
-alternative models based on the same initial site configuration.
+alternative models based on the same initial core set of config files.
 
 ## Overriding a configuration parameter
 
@@ -42,7 +42,7 @@ The `ve_run` command accepts a `--config` option that can be used to override on
 more of the settings from the configuration file. This makes it fairly easy to have a
 single core set of config files and permute a small number of settings.
 
-For example, say you wanted to rerun the model for your site but using a different
+For example, if you wanted to rerun the model for your site but using a different
 maximum soil depth for microbial activity and leaf albedo then you could run:
 
 ```bash
@@ -54,6 +54,9 @@ ve_run \
   --config core.constants.max_depth_of_microbial_activity=0.5 \
   --config abiotic.constants.leaf_albedo=0.2
 ```
+
+The resulting model run will override any values already set in the configuration files
+and use `max_depth_of_microbial_activity=0.5` and `leaf_albedo=0.2`.
 
 ## Using an alternative configuration file
 
@@ -95,7 +98,8 @@ If you are trying to explore model sensitivity to parameter variation then it is
 easy to loop over combinations of configuration settings using `--config`. However, this
 doesn't work if you need to iterate over different input data files. For example, if you
 have 1000 simulations of climatic patterns from El Niño-Southern Oscillation events then
-you might want to change the abiotic conditions to use each one of those files.
+you might want to change the abiotic conditions to use each one of those input data
+files.
 
 ### File substitution
 
@@ -104,8 +108,8 @@ One approach that works if the models are running in series or on different comp
 placeholder data file location and then copy the appropriate real data to that location
 before running the file.
 
-For example, your might have a data configuration file `climate_data_variables.toml`
-that looks like this:
+For example, your might have a data configuration file
+`config/climate_data_variables.toml` that looks like this:
 
 ```toml
 # Climate data
@@ -134,11 +138,11 @@ ve_run \
 
 File substitution does not work well if you are running models in parallel on the same
 system: the shared location can only point to one file at a time. An alternative
-approach is to set the file path dynamically in the configuration using environment
-variables.
+approach is to set a path marker in the configuration and then provide the file
+path when calling `ve_run` using the `--data-paths` (or `-p`) option.
 
-In this approach, your climate configuration file `climate_data_variables.toml` would
-look like this:
+In this approach, your climate configuration file `config/climate_data_variables.toml`
+would look like this:
 
 ```toml
 # Climate data
@@ -150,19 +154,46 @@ file_path = "$ENSO_FILE"
 var_name = "relative_humidity_ref"
 ```
 
-You can then set the location of that file before running the model
+```{important}
+At present, you can only define dynamic values in this way for configuration options
+that point to file or directory paths,
+
+Also, path markers must use the `$` prefix on all operating systems - it does not vary
+with the syntax of environment variables on different operating systems.
+```
+
+#### Define paths using `ve_run`
+
+You can then set the location of `ENSO_FILE` when running the model using the `-p`
+option. You can repeat this option to provide multiple file substitution markers.
 
 ```bash
-export ENSO_FILE=enso_simulations/enso_0001.nc
-
 ve_run \
   config/climate_data_variables.toml \
   config/soil_config.toml \
   ...
   config/animal_config.toml \
+  -p ENSO_FILE=enso_simulations/enso_0001.nc
 ```
 
-```{important}
-The detection of environment variables is limited to file and directory paths. Also the
-model code looks for the pattern `$VAR_NAME` on all operating systems.
+#### Define paths using environment variables
+
+You can also set the location of file markers using environment variables. These are
+variables that are set in the command line terminal or shell and which can then be
+accessed by commands run later in the same terminal.
+
+It is generally clearer and more reproducible to use the `-p` approach shown above - all
+of the information defining the run is set in one command - but the example code below
+gives an example for setting the path to `ENSO_FILE` using an environment variable.
+
+```bash
+# Set the ENSO_FILE environment variable
+export ENSO_FILE=enso_simulations/enso_0001.nc
+
+# Run the command, which can access the variable to get the correct path.
+ve_run \
+  config/climate_data_variables.toml \
+  config/soil_config.toml \
+  ...
+  config/animal_config.toml \
 ```

@@ -51,18 +51,22 @@ a step-by-step guide to getting up and running. The main sections are:
 
 Once you have your own model running, you can run experiments on the system.
 
-* Develop new model configurations to run different scenarios within your virtual
-  ecosystem. What happens if you remove a top predator? What happens with a 2°C increase
-  in temperature?
+1. Running modifications of your model, for example:
 
-* Run models with different permutations of particular parameters to explore the
-  sensitivity of your simulation to changes in the parameterisation.
+    * Develop new model configurations to run different scenarios within your virtual
+      ecosystem. What happens if you remove a top predator? What happens with a 2°C
+      increase in temperature?
 
-* Isolate a single component of the model to see how it responds to constant inputs
-  through time using the [static model
-  system](./virtual_ecosystem_in_static_mode.ipynb). Although this is primarily intended
-  as a model development tool, it can be useful to understand the details of how
-  different components of your model are behaving.
+    * Run models with different permutations of particular parameters to explore the
+      sensitivity of your simulation to changes in the parameterisation.
+
+    The Virtual Ecosystem provides a number of approaches to support [running modified models](./modifying_a_model.md).
+
+1. Isolate a single component of the model to see how it responds to constant inputs
+   through time using the [static model
+   system](./virtual_ecosystem_in_static_mode.ipynb). Although this is primarily intended
+   as a model development tool, it can be useful to understand the details of how
+   different components of your model are behaving.
 
 ## Reference materials
 
