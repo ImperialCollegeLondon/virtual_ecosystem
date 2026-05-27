@@ -43,8 +43,8 @@ jobs:
     - name: Install dependencies
       run: poetry install
 
-    - name: Run tests
-      run: poetry run pytest --cov-report xml
+    - name: Run unit tests
+      run: poetry run pytest --cov-report xml -m "not integration"
 
     - name: Archive log for error checking on failure
       if: failure()

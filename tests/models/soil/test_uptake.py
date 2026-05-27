@@ -184,6 +184,54 @@ def test_calculate_maximum_uptake_rates(
             )
 
 
+def test_calculate_maximum_uptake_rates_negative_values(
+    dummy_carbon_data, environmental_factors, averaged_soil_temp, functional_groups
+):
+    """Test that calculate_maximum_uptake_rates handles negative values sensibly."""
+    from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
+
+    lmwc_values = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C").to_numpy()
+    don_values = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="N").to_numpy()
+    dop_values = dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="P").to_numpy()
+    ammonium_values = dummy_carbon_data["soil_n_pool_ammonium"].to_numpy()
+    # Replace values with negatives to check that they are handled correctly
+    lmwc_values[0] = -3.3
+    don_values[1] = -0.98
+    dop_values[2] = -0.77
+    ammonium_values[3] = -8.9
+
+    expected_max_rates = {
+        "carbon": [0.0, 0.006607655, 0.056746414, 5.198510e-5],
+        "ammonium": [3.0678432e-5, 0.003038426, 0.000294822, 0.0],
+        "nitrate": [0.00010086, 0.00027369, 4.40132e-5, 1.97134e-5],
+        "inorganic_phosphorus": [2.335011e-6, 1.105475e-5, 4.39608e-5, 2.030086e-6],
+        "organic_nitrogen": [0.0, 0.0, 8.10623e-5, 2.97058e-5],
+        "organic_phosphorus": [0.0, 7.5516e-6, 0.0, 1.1882e-6],
+    }
+
+    actual_max_rates = calculate_maximum_uptake_rates(
+        soil_c_pool_lmwc=lmwc_values,
+        soil_n_pool_don=don_values,
+        soil_n_pool_ammonium=ammonium_values,
+        soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
+        soil_p_pool_dop=dop_values,
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
+        microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=averaged_soil_temp,
+        functional_group=functional_groups["bacteria"],
+    )
+
+    for attr in dir(actual_max_rates):
+        if not attr.startswith("_"):
+            assert attr in expected_max_rates.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(
+                getattr(actual_max_rates, attr),
+                expected_max_rates[attr],
+            )
+
+
 def test_find_net_nutrient_consumptions_free_living(
     carbon_use_efficiency, functional_groups, max_uptake_rates, fixture_soil_constants
 ):

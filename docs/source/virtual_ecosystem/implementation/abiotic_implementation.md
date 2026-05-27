@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.2
+    jupytext_version: 1.19.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -29,11 +29,6 @@ The process-based abiotic model is currently the default abiotic model version i
 Virtual Ecosystem configuration; however, the model is still under development.
 This page provides a summary of the current status and the directions in which we aim to
 take the model development forward.
-
-A known issue is that the `ve_example` simulation fails after approximately five time
-steps. This occurs because the leaf area index in the understorey increases to
-unrealistically high values, which in turn causes numerical instability in the surface
-temperature update. Resolving this issue is a priority for future development.
 ```
 
 ## Required variables
@@ -85,7 +80,8 @@ the model configuration), which produces a smooth oscillation around the monthly
 **Incoming shortwave radiation** is distributed across daylight hours using a half-sine
 curve which is zero at night and peaks at midday. The resulting hourly fractions are
 normalised and used to distribute monthly shortwave absorption across hours, layers,
-and grid cells.
+and grid cells. **Incoming longwave radiation** is assumed to be constant throughout the
+day.
 
 ```{note}
 Daylength is estimated from month and latitude and is constrained between 6 and 18
@@ -173,7 +169,7 @@ away from the surface into the atmosphere.
 
 $\lambda E$:
 Latent Heat Flux. It represents a loss of energy from the
-surface due to evaporation and/or transpiration. ($\lambda$  is the specific latent heat
+surface due to evaporation and/or transpiration. ($\lambda$ is the specific latent heat
 of evaporation,
 units $\mathrm{J\,kg^{-1}}$ and E is the evaporation rate, with units
 $\mathrm{kg\,m^{-2}\,s^{-1}}$).
@@ -328,8 +324,11 @@ Air temperature, (°C)
 $z$:
 Thickness of the air layer we are updating, (m)
 
-In the understorey vegetation, we add the contribution of soil sensible heat flux and
-longwave emission to the equation.
+The surface air temperature is diagnosed from the soil and canopy bottom
+conductances and temperatures, assuming equilibrium between the soil and canopy
+fluxes. This is necessary because the surface layer is too thin to be updated based
+on fluxes over a 1-hour timestep, and we want to avoid unrealistic surface air
+temperatures that would arise from a flux-based update.
 
 Finally, we consider vertical mixing between all vegetation layers and heat is
 transferred to the air above the canopy.

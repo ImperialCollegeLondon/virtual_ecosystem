@@ -12,6 +12,7 @@ def calculate_zero_plane_displacement(
     canopy_height: NDArray[np.floating],
     leaf_area_index: NDArray[np.floating],
     zero_plane_scaling_parameter: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     """Calculate zero plane displacement height.
 
@@ -26,22 +27,31 @@ def calculate_zero_plane_displacement(
         leaf_area_index: Total leaf area index, [m m-1]
         zero_plane_scaling_parameter: Control parameter for scaling d/h, dimensionless
             :cite:p:`raupach_simplified_1994`
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         Zero plane displacement height, [m]
     """
 
-    # Select grid cells where vegetation is present
-    displacement = np.where(leaf_area_index > 0, leaf_area_index, np.nan)
+    # Only compute where LAI > 0 — zero or negative LAI means no canopy
+    has_canopy = leaf_area_index > 0
 
-    # Calculate zero displacement height
-    scale_displacement = np.sqrt(zero_plane_scaling_parameter * displacement)
+    displacement = np.where(has_canopy, leaf_area_index, np.nan)
+    scale_displacement = np.sqrt(
+        np.maximum(zero_plane_scaling_parameter * displacement, 0.0)
+    )
+
+    # Avoid division by zero in (1 - exp(-s)) / s when s approaches 0
+    safe_scale = np.where(
+        scale_displacement > denominator_tolerance, scale_displacement, np.nan
+    )
+
     zero_plane_displacement = (
-        1 - (1 - np.exp(-scale_displacement)) / scale_displacement
+        1.0 - (1.0 - np.exp(-safe_scale)) / safe_scale
     ) * canopy_height
 
-    # No displacement in absence of vegetation
-    return np.nan_to_num(zero_plane_displacement, nan=0.0)
+    # No canopy means zero displacement, no NaN in output
+    return np.where(has_canopy, np.nan_to_num(zero_plane_displacement, nan=0.0), 0.0)
 
 
 def calculate_roughness_length_momentum(
@@ -54,6 +64,7 @@ def calculate_roughness_length_momentum(
     max_ratio_wind_to_friction_velocity: float,
     min_roughness_length: float,
     von_karman_constant: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     """Calculate roughness length governing momentum transfer.
 
@@ -79,15 +90,22 @@ def calculate_roughness_length_momentum(
         von_karman_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         Momentum roughness length, [m]
     """
 
+    has_canopy = leaf_area_index > 0
+
     # Calculate ratio of wind velocity to friction velocity
+    # Safe sqrt — argument is always >= substrate_surface_roughness_length > 0
     ratio_wind_to_friction_velocity = np.sqrt(
-        substrate_surface_roughness_length
-        + (roughness_element_drag_coefficient * leaf_area_index) / 2
+        np.maximum(
+            substrate_surface_roughness_length
+            + (roughness_element_drag_coefficient * leaf_area_index) / 2,
+            denominator_tolerance,
+        )
     )
 
     # Set wind to friction velocity ratio
@@ -95,10 +113,17 @@ def calculate_roughness_length_momentum(
         ratio_wind_to_friction_velocity, max_ratio_wind_to_friction_velocity
     )
 
+    # Safe division — ratio is always positive after the sqrt above
+    safe_ratio = np.maximum(ratio_wind_to_friction_velocity, denominator_tolerance)
+
+    # Safe log — height above displacement must be positive
+    height_above_displacement = np.maximum(
+        canopy_height - zero_plane_displacement, denominator_tolerance
+    )
+
     # Calculate initial roughness length
-    initial_roughness_length = (canopy_height - zero_plane_displacement) * np.exp(
-        -von_karman_constant * (1 / ratio_wind_to_friction_velocity)
-        - roughness_sublayer_depth_parameter
+    initial_roughness_length = height_above_displacement * np.exp(
+        -von_karman_constant / safe_ratio - roughness_sublayer_depth_parameter
     )
 
     # If roughness smaller than the substrate surface drag coefficient, set to value to
@@ -107,10 +132,21 @@ def calculate_roughness_length_momentum(
         initial_roughness_length, substrate_surface_roughness_length
     )
 
-    # If roughness length in nan, zero or below sero, set to minimum value
-    roughness_length = np.nan_to_num(roughness_length, nan=min_roughness_length)
+    # If roughness length in nan, zero or below zero, set to minimum value
+
+    roughness_length = np.where(has_canopy, roughness_length, min_roughness_length)
+
+    # Final safety: replace any NaN, zero, or negative with min_roughness_length
+    roughness_length = np.where(
+        np.isfinite(roughness_length) & (roughness_length > 0),
+        roughness_length,
+        min_roughness_length,
+    )
+
     return np.where(
-        roughness_length <= min_roughness_length, min_roughness_length, roughness_length
+        roughness_length < min_roughness_length,
+        min_roughness_length,
+        roughness_length,
     )
 
 
@@ -121,6 +157,7 @@ def calculate_wind_profile(
     roughness_length: NDArray[np.floating],
     zero_plane_displacement: NDArray[np.floating],
     min_wind_speed: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Calculate wind speed profile.
 
@@ -145,26 +182,37 @@ def calculate_wind_profile(
             theoretically reduced to zero due to the obstruction caused by the roughness
             elements (like trees or buildings), [m]
         min_wind_speed: Minimum wind speed to avoid division by zero, [m s-1]
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         Wind speed, [m s-1]
     """
 
-    # Ensure that heights are greater than roughness length and zero_plane_displacement
-    # to avoid division by zero or negative logarithm
-    heights = np.maximum(wind_heights, roughness_length + 1e-5)
-    heights = np.maximum(wind_heights, zero_plane_displacement + 1e-5)
+    # Guard against heights at or below roughness length or displacement
+    # Both conditions must hold simultaneously — take the maximum of both floors
+    height_floor = np.maximum(
+        roughness_length + zero_plane_displacement + denominator_tolerance,
+        zero_plane_displacement + roughness_length + denominator_tolerance,
+    )
+    heights = np.maximum(wind_heights, height_floor)
+
+    # Safe log arguments — both must be strictly positive
+    numerator = np.maximum(heights - zero_plane_displacement, denominator_tolerance)
+    denominator_log = np.maximum(
+        (reference_height - zero_plane_displacement) / roughness_length,
+        denominator_tolerance,
+    )
 
     wind_speed = (
         reference_wind_speed
-        * np.log((heights - zero_plane_displacement) / roughness_length)
-        / np.log((reference_height - zero_plane_displacement) / roughness_length)
+        * np.log(numerator / roughness_length)
+        / np.log(denominator_log)
     )
-    clipped_wind_speed = np.where(
-        wind_speed >= min_wind_speed, wind_speed, min_wind_speed
-    )
-    masked_wind_speed = np.where(np.isnan(wind_heights), np.nan, clipped_wind_speed)
-    return masked_wind_speed
+
+    clipped_wind_speed = np.maximum(wind_speed, min_wind_speed)
+
+    # Preserve NaN for layers that do not exist
+    return np.where(np.isnan(wind_heights), np.nan, clipped_wind_speed)
 
 
 def calculate_friction_velocity(
@@ -173,6 +221,7 @@ def calculate_friction_velocity(
     roughness_length: NDArray[np.floating],
     zero_plane_displacement: NDArray[np.floating],
     von_karman_constant: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Calculate friction velocity.
 
@@ -199,20 +248,27 @@ def calculate_friction_velocity(
         von_karman_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         Friction velocity, [m s-1].
     """
 
-    return (von_karman_constant * reference_wind_speed) / np.log(
-        (reference_height - zero_plane_displacement) / roughness_length
+    # Safe log argument — reference height must be above displacement + roughness
+    safe_arg = np.maximum(
+        (reference_height - zero_plane_displacement) / roughness_length,
+        denominator_tolerance,
     )
+
+    return (von_karman_constant * reference_wind_speed) / np.log(safe_arg)
 
 
 def calculate_ventilation_rate(
     aerodynamic_resistance: float | NDArray[np.floating],
     characteristic_height: float | NDArray[np.floating],
     understorey_ventilation_rate: float,
+    surface_layer_height: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     """Calculate ventilation rate from the top of the canopy to atmosphere above.
 
@@ -228,17 +284,22 @@ def calculate_ventilation_rate(
             zero plane displacement height [m]
         understorey_ventilation_rate: Understorey ventilation rate, [s-1]. This is used
             in case there is no canopy.
+        surface_layer_height: Height of the surface layer, [m]
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         Ventilation rate [s-1]
     """
 
-    denominator = np.maximum(aerodynamic_resistance * characteristic_height, 1e-3)
+    # Use a threshold rather than exact zero to catch near-zero canopy heights
+    no_canopy = np.asarray(characteristic_height) < surface_layer_height
+
+    denominator = np.maximum(
+        aerodynamic_resistance * characteristic_height, denominator_tolerance
+    )
     ventilation_rate = 1.0 / denominator
 
-    return np.where(
-        characteristic_height == 0.0, understorey_ventilation_rate, ventilation_rate
-    )
+    return np.where(no_canopy, understorey_ventilation_rate, ventilation_rate)
 
 
 def calculate_mixing_coefficients_canopy(
@@ -247,6 +308,7 @@ def calculate_mixing_coefficients_canopy(
     friction_velocity: NDArray[np.floating],
     von_karman_constant: float,
     max_mixing_coefficient: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Calculate turbulent mixing coefficients within canopy.
 
@@ -278,22 +340,36 @@ def calculate_mixing_coefficients_canopy(
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
         max_mixing_coefficient: Maximum mixing coefficient
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         turbulent mixing coefficients, [m2 s-1]
     """
 
+    # Replace NaN midpoints with zero — NaN layers get zero mixing coefficient
+    safe_midpoints = np.nan_to_num(layer_midpoints, nan=0.0)
+
+    # Normalised height — clamp to [0, 1], zero where no canopy
+    z_over_h = np.where(
+        canopy_height > 0,
+        np.clip(
+            safe_midpoints / np.maximum(canopy_height, denominator_tolerance), 0.0, 1.0
+        ),
+        0.0,
+    )
+
     mixing_coefficients = (
         von_karman_constant
-        * friction_velocity
-        * layer_midpoints
-        * (1 - layer_midpoints / canopy_height) ** 2
+        * np.maximum(friction_velocity, 0.0)  # friction velocity must be non-negative
+        * safe_midpoints
+        * (1.0 - z_over_h) ** 2
     )
-    return np.where(
-        mixing_coefficients > max_mixing_coefficient,
-        max_mixing_coefficient,
-        mixing_coefficients,
-    )
+
+    # Non-negative and capped
+    mixing_coefficients = np.clip(mixing_coefficients, 0.0, max_mixing_coefficient)
+
+    # Restore NaN for layers that do not exist
+    return np.where(np.isnan(layer_midpoints), np.nan, mixing_coefficients)
 
 
 def clamp_variable_within_limits(
@@ -431,58 +507,80 @@ def mix_and_ventilate(
     current = input_variable.copy()
     n_layers, n_cols = current.shape
 
-    # Extract neighbor indices
-    above_idx = next_valid_above(current)
+    # Copy to avoid in-place mutation
+    k = mixing_coefficient.copy()
 
-    # Set mixing coefficient for top layer to ventilation rate, as this is the
-    # rate at which the top canopy layer is mixed with the atmosphere above.
-    mixing_coefficient = mixing_coefficient.copy()
-    mixing_coefficient[0, :] = ventilation_rate
+    above_idx = next_valid_above(current)
     cols = np.broadcast_to(np.arange(n_cols), (n_layers, n_cols))
 
-    # Gather neighbours above
-    above = np.full_like(current, np.nan)
-    mask_above = above_idx >= 0
+    mix_flux = np.zeros_like(current)
 
-    # Only fill where BOTH source index is valid AND source value is finite
-    if np.any(mask_above):
-        src_layers = above_idx[mask_above]
-        src_cols = cols[mask_above]
+    # Canopy mixing: rows 1 to n_layers-1
+    # Row 0 is the above-canopy reference and is handled by ventilation below
+    for layer in range(1, n_layers):
+        a_idx = above_idx[layer]
 
-        above_vals = current[src_layers, src_cols]
+        valid = (a_idx >= 0) & np.isfinite(current[layer])
 
-        # avoid propagating NaNs from invalid layers
-        above[mask_above] = above_vals
+        if not np.any(valid):
+            continue
 
-    # Mask valid (non-NaN) values to exclude unoccupied layers from mixing
-    valid = np.isfinite(current) & np.isfinite(above)
+        src_layers = np.where(valid, a_idx, 0)
+        above_vals = current[src_layers, cols[layer]]
 
-    mix_above = np.zeros_like(current)
+        valid = valid & np.isfinite(above_vals)
+        if not np.any(valid):
+            continue
 
-    # Normal case: canopy exists
-    mask_mix = valid & mask_above
+        flux = np.where(
+            valid,
+            k[layer] * (above_vals - current[layer]),
+            0.0,
+        )
 
-    mix_above[mask_mix] = mixing_coefficient[mask_mix] * (
-        above[mask_mix] - current[mask_mix]
-    )
+        mix_flux[layer] += flux
 
-    # No canopy fallback
+        # Vectorised equal-and-opposite on donor layer
+        # Scatter flux back to source rows using np.add.at for safety
+        np.add.at(mix_flux, (src_layers, np.arange(n_cols)), -flux * valid)
+
+    # Ventilation: exchange between row 0 and first valid canopy layer
+    # For cells with canopy: mix top canopy layer toward above-canopy reference
+    # For cells without canopy: mix surface layer toward above-canopy reference
     canopy_exists = np.isfinite(current[1, :])
-    no_canopy = ~canopy_exists
 
+    # Use ventilation rate to exchange row 0 with first canopy layer
+    with_canopy = canopy_exists & np.isfinite(current[0, :])
+    if np.any(with_canopy):
+        # Find the topmost canopy layer for each cell
+        top_canopy_idx = np.full(n_cols, -1, dtype=int)
+        for layer in range(1, surface_index):
+            valid_here = np.isfinite(current[layer, :]) & (top_canopy_idx == -1)
+            top_canopy_idx = np.where(valid_here, layer, top_canopy_idx)
+
+        for col in np.where(with_canopy)[0]:
+            tc = top_canopy_idx[col]
+            if tc < 0:
+                continue
+            v = ventilation_rate[col]
+            diff = current[0, col] - current[tc, col]
+            mix_flux[0, col] -= v * diff
+            mix_flux[tc, col] += v * diff
+
+    # Cells without canopy — direct exchange between row 0 and surface
+    no_canopy = (
+        ~canopy_exists
+        & np.isfinite(current[0, :])
+        & np.isfinite(current[surface_index, :])
+    )
     if np.any(no_canopy):
-        # exchange between top and surface layer only
         diff = current[0, no_canopy] - current[surface_index, no_canopy]
-
         v = ventilation_rate[no_canopy]
+        mix_flux[0, no_canopy] -= v * diff
+        mix_flux[surface_index, no_canopy] += v * diff
 
-        mix_above[0, no_canopy] -= v * diff
-        mix_above[surface_index, no_canopy] += v * diff
+    result = current + mix_flux
 
-    # Vertical mixing
-    result = current + mix_above
-
-    # Return after clamping within limits to prevent overshooting and negative values
     return clamp_variable_within_limits(result, limits)
 
 
@@ -534,6 +632,8 @@ def calculate_aerodynamic_resistance(
     zero_plane_displacement: NDArray[np.floating],
     wind_speed: NDArray[np.floating],
     von_karman_constant: float,
+    fallback_resistance: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Calculate aerodynamic resistance in canopy.
 
@@ -558,23 +658,30 @@ def calculate_aerodynamic_resistance(
         von_karman_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
+        fallback_resistance: Fallback aerodynamic resistance value, [s m-1]
+        denominator_tolerance: Minimum value for denominator to avoid division by zero
 
     Returns:
         aerodynamic resistance in canopy, [s m-1]
     """
 
     # Compute only where valid
-    valid_condition = wind_heights > zero_plane_displacement
-    aero_resistance = np.where(
-        valid_condition,
-        (np.log((wind_heights - zero_plane_displacement) / roughness_length)) ** 2
-        / (von_karman_constant**2 * wind_speed),
-        np.nan,
+    valid_condition = wind_heights > (zero_plane_displacement + roughness_length)
+
+    # Safe log and division
+    safe_wind = np.maximum(wind_speed, denominator_tolerance)
+    safe_arg = np.maximum(
+        (wind_heights - zero_plane_displacement) / roughness_length,
+        denominator_tolerance,
     )
 
-    # Replace invalid values with a small fallback resistance
-    aero_resistance_out = np.where(np.isnan(aero_resistance), 0.001, aero_resistance)
-    return np.where(np.isnan(wind_heights), np.nan, aero_resistance_out)
+    aero_resistance = np.where(
+        valid_condition,
+        np.log(safe_arg) ** 2 / (von_karman_constant**2 * safe_wind),
+        fallback_resistance,
+    )
+
+    return np.where(np.isnan(wind_heights), np.nan, aero_resistance)
 
 
 def calculate_aerodynamic_resistance_understorey(
