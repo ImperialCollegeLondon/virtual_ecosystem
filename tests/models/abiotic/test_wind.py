@@ -167,6 +167,22 @@ def test_calculate_mixing_coefficients():
     assert np.all(result >= 0)
     assert_allclose(result, expected, rtol=1e-6)
 
+    # Test zero canopy height edge case
+    zero_canopy_height = np.zeros(3)
+    layer_midpoints_zero = np.array([[np.nan, np.nan, np.nan], [0.1, 0.1, 0.1]])
+    expected_zero_canopy = k * friction_velocity * layer_midpoints_zero
+
+    zero_result = calculate_mixing_coefficients_canopy(
+        layer_midpoints=layer_midpoints_zero,
+        canopy_height=zero_canopy_height,
+        friction_velocity=friction_velocity,
+        von_karman_constant=k,
+        max_mixing_coefficient=1.0,
+        denominator_tolerance=1e-10,
+    )
+
+    assert_allclose(zero_result, expected_zero_canopy)
+
 
 def test_clamp_variable_within_limits():
     """Test clamping of variable within limits."""
