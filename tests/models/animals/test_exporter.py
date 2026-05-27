@@ -427,6 +427,7 @@ class TestAnimalCohortDataExporter:
         fixture_core_components,
         functional_group_list_instance,
         microbial_c_n_p_ratios,
+        dummy_resource_pool_exporter,
     ):
         """Test that the exporter runs correctly inside an AnimalModel.
 
@@ -436,6 +437,7 @@ class TestAnimalCohortDataExporter:
             fixture_core_components: CoreComponents fixture.
             functional_group_list_instance: List of animal functional groups.
             microbial_c_n_p_ratios: Microbial stoichiometry ratios.
+            dummy_resource_pool_exporter: No-op exporter for resource pools.
         """
         from copy import deepcopy
         from pathlib import Path
@@ -470,7 +472,8 @@ class TestAnimalCohortDataExporter:
             model_constants=AnimalConstants(density_scaling_method="madingley"),
             functional_groups=functional_group_list_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
-            exporter=exporter,
+            animal_cohort_exporter=exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
         )
 
         out_path = output_dir / "animal_cohort_data.csv"
@@ -742,3 +745,627 @@ class TestAnimalCohortDataExporter:
 
         assert exporter._trophic_output_mode == "a"
         assert exporter._write_trophic_header is False
+
+
+class TestResourcePoolDataExporter:
+    """Tests for ResourcePoolDataExporter."""
+
+    def test_from_config_disabled_creates_inactive_exporter(self, tmp_path):
+        """Test that a disabled config creates an inactive exporter.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+        from virtual_ecosystem.models.animal.model_config import (
+            ResourcePoolExportConfig,
+        )
+
+        config = ResourcePoolExportConfig(enabled=False, float_format="%0.3f")
+
+        exporter = ResourcePoolDataExporter.from_config(
+            output_directory=tmp_path,
+            config=config,
+        )
+
+        assert exporter._active is False
+        assert exporter._pool_path is None
+        assert exporter.float_format == "%0.3f"
+
+        exporter.dump(
+            carcass_pools={},
+            excrement_pools={},
+            fungal_fruiting_pools={},
+            soil_pools={},
+            resource_pools=[],
+            time=np.datetime64("2000-01-01"),
+            time_index=0,
+        )
+
+        assert (tmp_path / "resource_pool_data.csv").exists() is False
+
+    def test_from_config_enabled_sets_path(self, tmp_path):
+        """Test that an enabled config sets the output path correctly.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+        """
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+        from virtual_ecosystem.models.animal.model_config import (
+            ResourcePoolExportConfig,
+        )
+
+        config = ResourcePoolExportConfig(enabled=True, float_format="%0.4f")
+
+        exporter = ResourcePoolDataExporter.from_config(
+            output_directory=tmp_path,
+            config=config,
+        )
+
+        assert exporter._active is True
+        assert exporter._pool_path == tmp_path / "resource_pool_data.csv"
+        assert exporter.float_format == "%0.4f"
+
+    def test_from_config_raises_if_output_file_exists(self, tmp_path):
+        """Test that an existing output file raises a ConfigurationError.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+        """
+        from virtual_ecosystem.core.exceptions import ConfigurationError
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+        from virtual_ecosystem.models.animal.model_config import (
+            ResourcePoolExportConfig,
+        )
+
+        (tmp_path / "resource_pool_data.csv").touch()
+
+        config = ResourcePoolExportConfig(enabled=True)
+
+        with pytest.raises(ConfigurationError):
+            ResourcePoolDataExporter.from_config(
+                output_directory=tmp_path,
+                config=config,
+            )
+
+    def test_from_config_raises_if_output_directory_missing(self, tmp_path):
+        """Test that a missing output directory raises a ConfigurationError.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+        """
+        from virtual_ecosystem.core.exceptions import ConfigurationError
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+        from virtual_ecosystem.models.animal.model_config import (
+            ResourcePoolExportConfig,
+        )
+
+        config = ResourcePoolExportConfig(enabled=True)
+
+        with pytest.raises(ConfigurationError):
+            ResourcePoolDataExporter.from_config(
+                output_directory=tmp_path / "does_not_exist",
+                config=config,
+            )
+
+    def test_check_and_set_paths_sets_pool_path(self, tmp_path):
+        """Test _check_and_set_paths sets the pool output path.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+        """
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+
+        exporter = ResourcePoolDataExporter.__new__(ResourcePoolDataExporter)
+        exporter.output_directory = tmp_path
+        exporter._pool_path = None
+
+        exporter._check_and_set_paths()
+
+        assert exporter._pool_path == tmp_path / "resource_pool_data.csv"
+
+    def test_mode_and_header_toggling(self, tmp_path, mocker):
+        """Test that mode and header flags switch from write to append after first dump.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+        import pandas as pd
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+        from virtual_ecosystem.models.animal.model_config import (
+            ResourcePoolExportConfig,
+        )
+
+        exporter = ResourcePoolDataExporter.from_config(
+            output_directory=tmp_path,
+            config=ResourcePoolExportConfig(enabled=True),
+        )
+
+        assert exporter._output_mode == "w"
+        assert exporter._write_header is True
+
+        carcass_pool = mocker.Mock()
+        carcass_pool.scavengeable_cnp = mocker.Mock(C=1.0, N=0.1, P=0.01)
+        carcass_pool.decomposed_cnp = mocker.Mock(C=0.0, N=0.0, P=0.0)
+
+        t1 = np.datetime64("2001-01-01")
+        t2 = np.datetime64("2001-01-02")
+
+        exporter.dump(
+            carcass_pools={0: [carcass_pool]},
+            excrement_pools={},
+            fungal_fruiting_pools={},
+            soil_pools={},
+            resource_pools=[],
+            time=t1,
+            time_index=0,
+        )
+
+        assert exporter._output_mode == "a"
+        assert exporter._write_header is False
+
+        exporter.dump(
+            carcass_pools={0: [carcass_pool]},
+            excrement_pools={},
+            fungal_fruiting_pools={},
+            soil_pools={},
+            resource_pools=[],
+            time=t2,
+            time_index=1,
+        )
+
+        df = pd.read_csv(tmp_path / "resource_pool_data.csv")
+        # two sub-pools (scavengeable + decomposed) x two time steps
+        assert len(df) == 4
+
+    def test_dump_creates_file_with_expected_columns(self, tmp_path, mocker):
+        """Test that dump creates the CSV with the expected column schema.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+        import pandas as pd
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+        from virtual_ecosystem.models.animal.model_config import (
+            ResourcePoolExportConfig,
+        )
+
+        exporter = ResourcePoolDataExporter.from_config(
+            output_directory=tmp_path,
+            config=ResourcePoolExportConfig(enabled=True),
+        )
+
+        carcass_pool = mocker.Mock()
+        carcass_pool.scavengeable_cnp = mocker.Mock(C=1.0, N=0.1, P=0.01)
+        carcass_pool.decomposed_cnp = mocker.Mock(C=0.5, N=0.05, P=0.005)
+
+        exporter.dump(
+            carcass_pools={0: [carcass_pool]},
+            excrement_pools={},
+            fungal_fruiting_pools={},
+            soil_pools={},
+            resource_pools=[],
+            time=np.datetime64("2001-01-01"),
+            time_index=0,
+        )
+
+        df = pd.read_csv(tmp_path / "resource_pool_data.csv")
+        assert set(df.columns) == {
+            "time",
+            "time_index",
+            "pool_type",
+            "pool_name",
+            "sub_pool",
+            "pft",
+            "cell_id",
+            "C",
+            "N",
+            "P",
+        }
+
+    def test_dump_no_op_when_inactive(self, tmp_path, mocker):
+        """Test that dump does nothing when the exporter is inactive.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+        from virtual_ecosystem.models.animal.model_config import (
+            ResourcePoolExportConfig,
+        )
+
+        exporter = ResourcePoolDataExporter.from_config(
+            output_directory=tmp_path,
+            config=ResourcePoolExportConfig(enabled=False),
+        )
+
+        exporter.dump(
+            carcass_pools={0: [mocker.Mock()]},
+            excrement_pools={},
+            fungal_fruiting_pools={},
+            soil_pools={},
+            resource_pools=[],
+            time=np.datetime64("2001-01-01"),
+            time_index=0,
+        )
+
+        assert (tmp_path / "resource_pool_data.csv").exists() is False
+
+    def test_build_carcass_rows_emits_two_rows_per_pool(self, mocker):
+        """Test _build_carcass_rows emits one scavengeable and one decomposed row.
+
+        Args:
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+
+        exporter = ResourcePoolDataExporter.__new__(ResourcePoolDataExporter)
+
+        pool = mocker.Mock()
+        pool.scavengeable_cnp = mocker.Mock(C=10.0, N=2.0, P=0.5)
+        pool.decomposed_cnp = mocker.Mock(C=3.0, N=0.6, P=0.1)
+
+        t = np.datetime64("2001-06-01")
+        rows = exporter._build_carcass_rows(
+            carcass_pools={5: [pool]},
+            time=t,
+            time_index=3,
+        )
+
+        assert len(rows) == 2
+
+        scav = next(r for r in rows if r["sub_pool"] == "scavengeable")
+        assert scav["pool_type"] == "carcass"
+        assert scav["cell_id"] == 5
+        assert scav["C"] == 10.0
+        assert scav["N"] == 2.0
+        assert scav["P"] == 0.5
+        assert scav["pft"] == ""
+        assert scav["time"] == t
+        assert scav["time_index"] == 3
+
+        decomp = next(r for r in rows if r["sub_pool"] == "decomposed")
+        assert decomp["C"] == 3.0
+        assert decomp["N"] == 0.6
+        assert decomp["P"] == 0.1
+
+    def test_build_carcass_rows_multiple_cells_and_pools(self, mocker):
+        """Test _build_carcass_rows handles multiple cells with multiple pools each.
+
+        Args:
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+
+        exporter = ResourcePoolDataExporter.__new__(ResourcePoolDataExporter)
+
+        def make_pool():
+            p = mocker.Mock()
+            p.scavengeable_cnp = mocker.Mock(C=1.0, N=0.1, P=0.01)
+            p.decomposed_cnp = mocker.Mock(C=0.0, N=0.0, P=0.0)
+            return p
+
+        pools = {0: [make_pool(), make_pool()], 1: [make_pool()]}
+
+        rows = exporter._build_carcass_rows(
+            carcass_pools=pools,
+            time=np.datetime64("2001-01-01"),
+            time_index=0,
+        )
+
+        # 3 pool instances x 2 sub-pools each
+        assert len(rows) == 6
+        assert all(r["pool_type"] == "carcass" for r in rows)
+
+    def test_build_excrement_rows_emits_two_rows_per_pool(self, mocker):
+        """Test _build_excrement_rows emits one scavengeable and one decomposed row.
+
+        Args:
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+
+        exporter = ResourcePoolDataExporter.__new__(ResourcePoolDataExporter)
+
+        pool = mocker.Mock()
+        pool.scavengeable_cnp = mocker.Mock(C=8.0, N=1.6, P=0.4)
+        pool.decomposed_cnp = mocker.Mock(C=2.0, N=0.4, P=0.08)
+
+        t = np.datetime64("2002-03-15")
+        rows = exporter._build_excrement_rows(
+            excrement_pools={2: [pool]},
+            time=t,
+            time_index=1,
+        )
+
+        assert len(rows) == 2
+        assert all(r["pool_type"] == "excrement" for r in rows)
+        assert all(r["cell_id"] == 2 for r in rows)
+        assert all(r["pft"] == "" for r in rows)
+
+        scav = next(r for r in rows if r["sub_pool"] == "scavengeable")
+        assert scav["C"] == 8.0
+
+        decomp = next(r for r in rows if r["sub_pool"] == "decomposed")
+        assert decomp["C"] == 2.0
+
+    def test_build_fungal_rows_emits_one_row_per_cell(self, mocker):
+        """Test _build_fungal_rows emits one row per FungalFruitPool.
+
+        Args:
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+
+        exporter = ResourcePoolDataExporter.__new__(ResourcePoolDataExporter)
+
+        pool_0 = mocker.Mock()
+        pool_0.mass_cnp = mocker.Mock(C=5.0, N=0.2, P=0.05)
+
+        pool_1 = mocker.Mock()
+        pool_1.mass_cnp = mocker.Mock(C=3.0, N=0.12, P=0.03)
+
+        t = np.datetime64("2003-07-01")
+        rows = exporter._build_fungal_rows(
+            fungal_fruiting_pools={0: pool_0, 1: pool_1},
+            time=t,
+            time_index=2,
+        )
+
+        assert len(rows) == 2
+        assert all(r["pool_type"] == "fungal_fruiting" for r in rows)
+        assert all(r["sub_pool"] == "" for r in rows)
+        assert all(r["pft"] == "" for r in rows)
+
+        row_0 = next(r for r in rows if r["cell_id"] == 0)
+        assert row_0["C"] == 5.0
+        assert row_0["N"] == 0.2
+        assert row_0["P"] == 0.05
+
+    def test_build_soil_rows_emits_one_row_per_pool_type_per_cell(self, mocker):
+        """Test _build_soil_rows emits one row per (cell, pool-type) combination.
+
+        Args:
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+
+        exporter = ResourcePoolDataExporter.__new__(ResourcePoolDataExporter)
+
+        bacteria = mocker.Mock()
+        bacteria.mass_cnp = mocker.Mock(C=4.0, N=0.8, P=0.13)
+
+        pom = mocker.Mock()
+        pom.mass_cnp = mocker.Mock(C=7.0, N=0.35, P=0.07)
+
+        t = np.datetime64("2004-01-01")
+        rows = exporter._build_soil_rows(
+            soil_pools={0: {"bacteria": bacteria, "pom": pom}},
+            time=t,
+            time_index=0,
+        )
+
+        assert len(rows) == 2
+        assert all(r["pool_type"] == "soil" for r in rows)
+        assert all(r["sub_pool"] == "" for r in rows)
+        assert all(r["pft"] == "" for r in rows)
+        assert all(r["cell_id"] == 0 for r in rows)
+
+        bac_row = next(r for r in rows if r["pool_name"] == "bacteria")
+        assert bac_row["C"] == 4.0
+        assert bac_row["N"] == 0.8
+
+        pom_row = next(r for r in rows if r["pool_name"] == "pom")
+        assert pom_row["C"] == 7.0
+
+    def test_build_resource_pool_rows_no_pft(self, mocker):
+        """Test _build_resource_pool_rows handles pools without PFT partitioning.
+
+        Args:
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+
+        exporter = ResourcePoolDataExporter.__new__(ResourcePoolDataExporter)
+
+        pool = mocker.Mock()
+        pool.resource.pool_array = "subcanopy_vegetation_cnp"
+        pool.pft = None
+        pool.elemental_masses = np.array(
+            [
+                [20.0, 2.0, 1.0],
+                [15.0, 1.5, 0.75],
+            ]
+        )
+
+        t = np.datetime64("2005-04-01")
+        rows = exporter._build_resource_pool_rows(
+            resource_pools=[pool],
+            time=t,
+            time_index=4,
+        )
+
+        # one row per cell
+        assert len(rows) == 2
+        assert all(r["pool_type"] == "plant_array" for r in rows)
+        assert all(r["pool_name"] == "subcanopy_vegetation_cnp" for r in rows)
+        assert all(r["pft"] == "" for r in rows)
+        assert all(r["sub_pool"] == "" for r in rows)
+
+        row_0 = next(r for r in rows if r["cell_id"] == 0)
+        assert row_0["C"] == 20.0
+        assert row_0["N"] == 2.0
+        assert row_0["P"] == 1.0
+
+        row_1 = next(r for r in rows if r["cell_id"] == 1)
+        assert row_1["C"] == 15.0
+
+    def test_build_resource_pool_rows_with_pft(self, mocker):
+        """Test _build_resource_pool_rows records PFT identity in the pft column.
+
+        Args:
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+
+        exporter = ResourcePoolDataExporter.__new__(ResourcePoolDataExporter)
+
+        pool = mocker.Mock()
+        pool.resource.pool_array = "canopy_foliage_cnp"
+        pool.pft = "broadleaf"
+        pool.elemental_masses = np.array([[10.0, 1.0, 0.5]])
+
+        rows = exporter._build_resource_pool_rows(
+            resource_pools=[pool],
+            time=np.datetime64("2006-01-01"),
+            time_index=0,
+        )
+
+        assert len(rows) == 1
+        assert rows[0]["pft"] == "broadleaf"
+        assert rows[0]["pool_name"] == "canopy_foliage_cnp"
+        assert rows[0]["C"] == 10.0
+
+    def test_dump_all_pool_types_appear_in_output(self, tmp_path, mocker):
+        """Test that dump writes rows for all five pool types in a single call.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+            mocker: Pytest mocker fixture.
+        """
+        import numpy as np
+        import pandas as pd
+
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+        from virtual_ecosystem.models.animal.model_config import (
+            ResourcePoolExportConfig,
+        )
+
+        exporter = ResourcePoolDataExporter.from_config(
+            output_directory=tmp_path,
+            config=ResourcePoolExportConfig(enabled=True),
+        )
+
+        carcass = mocker.Mock()
+        carcass.scavengeable_cnp = mocker.Mock(C=1.0, N=0.1, P=0.01)
+        carcass.decomposed_cnp = mocker.Mock(C=0.0, N=0.0, P=0.0)
+
+        excrement = mocker.Mock()
+        excrement.scavengeable_cnp = mocker.Mock(C=2.0, N=0.2, P=0.02)
+        excrement.decomposed_cnp = mocker.Mock(C=0.0, N=0.0, P=0.0)
+
+        fungal = mocker.Mock()
+        fungal.mass_cnp = mocker.Mock(C=3.0, N=0.12, P=0.03)
+
+        soil = mocker.Mock()
+        soil.mass_cnp = mocker.Mock(C=4.0, N=0.8, P=0.13)
+
+        resource_pool = mocker.Mock()
+        resource_pool.resource.pool_array = "litter_pool_above_metabolic_cnp"
+        resource_pool.pft = None
+        resource_pool.elemental_masses = np.array([[5.0, 0.5, 0.05]])
+
+        exporter.dump(
+            carcass_pools={0: [carcass]},
+            excrement_pools={0: [excrement]},
+            fungal_fruiting_pools={0: fungal},
+            soil_pools={0: {"bacteria": soil}},
+            resource_pools=[resource_pool],
+            time=np.datetime64("2001-01-01"),
+            time_index=0,
+        )
+
+        df = pd.read_csv(tmp_path / "resource_pool_data.csv")
+        assert set(df["pool_type"].unique()) == {
+            "carcass",
+            "excrement",
+            "fungal_fruiting",
+            "soil",
+            "plant_array",
+        }
+
+    def test_exporter_runs_inside_animal_model(
+        self,
+        tmp_path,
+        dummy_animal_data,
+        fixture_core_components,
+        functional_group_list_instance,
+        microbial_c_n_p_ratios,
+        dummy_animal_exporter,
+    ):
+        """Test that the resource pool exporter runs correctly inside an AnimalModel.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+            dummy_animal_data: Data fixture for the animal model.
+            fixture_core_components: CoreComponents fixture.
+            functional_group_list_instance: List of animal functional groups.
+            microbial_c_n_p_ratios: Microbial stoichiometry ratios.
+            dummy_animal_exporter: No-op cohort exporter.
+        """
+        from copy import deepcopy
+
+        import pandas as pd
+
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
+        from virtual_ecosystem.models.animal.model_config import (
+            AnimalConstants,
+            ResourcePoolExportConfig,
+        )
+
+        resource_pool_exporter = ResourcePoolDataExporter.from_config(
+            output_directory=tmp_path,
+            config=ResourcePoolExportConfig(enabled=True),
+        )
+
+        model = AnimalModel(
+            data=deepcopy(dummy_animal_data),
+            core_components=fixture_core_components,
+            model_constants=AnimalConstants(density_scaling_method="madingley"),
+            functional_groups=functional_group_list_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=resource_pool_exporter,
+        )
+
+        out_path = tmp_path / "resource_pool_data.csv"
+        assert out_path.exists()
+
+        assert resource_pool_exporter._output_mode == "a"
+        assert resource_pool_exporter._write_header is False
+
+        df_initial = pd.read_csv(out_path)
+        initial_rows = len(df_initial)
+        assert initial_rows > 0
+        assert set(df_initial["pool_type"].unique()) >= {"carcass", "excrement"}
+
+        model.update(time_index=0)
+
+        df_updated = pd.read_csv(out_path)
+        assert len(df_updated) > initial_rows
