@@ -188,6 +188,20 @@ class AbioticConstants(AbioticSharedConstants):
     understorey_ventilation_rate: float = 0.1
     """Understorey ventilation rate, comes into place when there is no canopy, [s-1]."""
 
+    extinction_coefficient_longwave: float = 0.5
+    """Extinction coefficient for longwave radiation, dimensionless."""
+
+    minimum_mixing_depth: float = 1.5
+    """Minimum mixing depth for lowest canopy layer, [m].
+    
+    This is to prevent unrealistically low mixing depths and therefore high temperatures
+    in the lowest canopy layer when the layer height is very low. Note that this is an
+    artificial inflation of the mixing depth.
+    """
+
+    min_leaf_area_index_for_mixing: float = 0.5
+    """Minimum leaf area index required for turbulent mixing to occur, [m m-1]."""
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""

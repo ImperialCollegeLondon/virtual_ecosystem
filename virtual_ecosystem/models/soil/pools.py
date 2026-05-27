@@ -1437,7 +1437,7 @@ def calculate_enzyme_turnover(
         The rate at which enzymes are lost from the pool [kg C m^-3 day^-1]
     """
 
-    return turnover_rate * enzyme_pool
+    return np.where(enzyme_pool > 0, turnover_rate * enzyme_pool, 0)
 
 
 def calculate_enzyme_mediated_decomposition(
@@ -1492,8 +1492,10 @@ def calculate_enzyme_mediated_decomposition(
         * env_factors.clay_saturation
     )
 
-    return (
-        rate_constant * soil_enzyme * soil_c_pool / (saturation_constant + soil_c_pool)
+    return np.where(
+        (soil_enzyme > 0.0) & (soil_c_pool > 0.0),
+        rate_constant * soil_enzyme * soil_c_pool / (saturation_constant + soil_c_pool),
+        0.0,
     )
 
 
@@ -1515,7 +1517,9 @@ def calculate_maom_desorption(
         The rate of MAOM desorption to LMWC [kg C m^-3 day^-1]
     """
 
-    return desorption_rate_constant * soil_c_pool_maom
+    return np.where(
+        soil_c_pool_maom > 0.0, desorption_rate_constant * soil_c_pool_maom, 0.0
+    )
 
 
 def calculate_sorption_to_maom(
@@ -1561,7 +1565,9 @@ def calculate_necromass_breakdown(
         The amount of necromass that breakdown to LMWC [kg C m^-3 day^-1]
     """
 
-    return necromass_decay_rate * soil_c_pool_necromass
+    return np.where(
+        soil_c_pool_necromass > 0, necromass_decay_rate * soil_c_pool_necromass, 0
+    )
 
 
 def calculate_litter_mineralisation_fluxes(
@@ -1674,8 +1680,13 @@ def calculate_soil_nutrient_mineralisation(
         breakdown [kg nutrient m^-3 day^-1]
     """
 
-    carbon_nutrient_ratio = pool_carbon / pool_nutrient
-    return breakdown_rate / carbon_nutrient_ratio
+    # Mineralisation should not occur if carbon or nutrient component is negative
+    return np.divide(
+        breakdown_rate * pool_nutrient,
+        pool_carbon,
+        out=np.zeros_like(breakdown_rate, dtype=float),
+        where=(pool_carbon > 0) & (pool_nutrient > 0),
+    )
 
 
 def calculate_nutrient_flows_to_necromass(
@@ -1763,15 +1774,33 @@ def find_necromass_nutrient_outflows(
         m^-3 day^-1].
     """
 
-    # Find carbon:nitrogen and carbon:phosphorus ratios of the necromass
-    c_n_ratio = necromass_carbon / necromass_nitrogen
-    c_p_ratio = necromass_carbon / necromass_phosphorus
-
+    # If either necromass carbon or the relevant nutrient is negative, this is treated
+    # as zero so there is no flow
     return {
-        "decay_nitrogen": necromass_decay / c_n_ratio,
-        "sorption_nitrogen": necromass_sorption / c_n_ratio,
-        "decay_phosphorus": necromass_decay / c_p_ratio,
-        "sorption_phosphorus": necromass_sorption / c_p_ratio,
+        "decay_nitrogen": np.divide(
+            necromass_decay * necromass_nitrogen,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_nitrogen > 0),
+        ),
+        "sorption_nitrogen": np.divide(
+            necromass_sorption * necromass_nitrogen,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_nitrogen > 0),
+        ),
+        "decay_phosphorus": np.divide(
+            necromass_decay * necromass_phosphorus,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_phosphorus > 0),
+        ),
+        "sorption_phosphorus": np.divide(
+            necromass_sorption * necromass_phosphorus,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_phosphorus > 0),
+        ),
     }
 
 
@@ -1814,19 +1843,32 @@ def calculate_net_nutrient_transfers_from_maom_to_lmwc(
         phosphorus [kg nutrient m^-3 day^-1]
     """
 
-    # Find carbon:nitrogen ratio of the lwmc and maom
-    c_n_ratio_lmwc = lmwc_carbon / lmwc_nitrogen
-    c_n_ratio_maom = maom_carbon / maom_nitrogen
-
-    maom_nitrogen_gain = lmwc_sorption / c_n_ratio_lmwc
-    maom_nitrogen_loss = (maom_breakdown + maom_desorption) / c_n_ratio_maom
-
-    # Find carbon:phosphorus ratio of the lwmc and maom
-    c_p_ratio_lmwc = lmwc_carbon / lmwc_phosphorus
-    c_p_ratio_maom = maom_carbon / maom_phosphorus
-
-    maom_phosphorus_gain = lmwc_sorption / c_p_ratio_lmwc
-    maom_phosphorus_loss = (maom_breakdown + maom_desorption) / c_p_ratio_maom
+    # Find gain and loss for MAOM separately (negatives have to be controlled for by
+    # setting rates to zero)
+    maom_nitrogen_gain = np.divide(
+        lmwc_sorption * lmwc_nitrogen,
+        lmwc_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(lmwc_carbon > 0) & (lmwc_nitrogen > 0),
+    )
+    maom_nitrogen_loss = np.divide(
+        (maom_breakdown + maom_desorption) * maom_nitrogen,
+        maom_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(maom_carbon > 0) & (maom_nitrogen > 0),
+    )
+    maom_phosphorus_gain = np.divide(
+        lmwc_sorption * lmwc_phosphorus,
+        lmwc_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(lmwc_carbon > 0) & (lmwc_phosphorus > 0),
+    )
+    maom_phosphorus_loss = np.divide(
+        (maom_breakdown + maom_desorption) * maom_phosphorus,
+        maom_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(maom_carbon > 0) & (maom_phosphorus > 0),
+    )
 
     return {
         "nitrogen": maom_nitrogen_loss - maom_nitrogen_gain,
