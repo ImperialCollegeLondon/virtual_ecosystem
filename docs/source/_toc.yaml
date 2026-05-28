@@ -55,6 +55,7 @@ subtrees:
           - file: using_the_ve/virtual_ecosystem_in_use
           - file: using_the_ve/running_ve_with_your_own_data
             title: Using your own data
+          - file: using_the_ve/modifying_a_model
           - file: using_the_ve/virtual_ecosystem_in_static_mode
           - file: using_the_ve/variables/variables
           - file: using_the_ve/core_settings/overview
