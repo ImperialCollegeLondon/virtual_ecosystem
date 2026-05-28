@@ -1024,7 +1024,7 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Concentration of dissolved labile inorganic phosphorus in the topsoil layer"
 name = "dissolved_phosphorus"
-unit = "kg N m^-3"
+unit = "kg P m^-3"
 variable_type = "float"
 
 [[variable]]
