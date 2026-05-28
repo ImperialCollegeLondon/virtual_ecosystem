@@ -616,7 +616,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil low molecular weight carbon pool. Carbon, nitrogen and phosphorous content"
+description = "Soil low molecular weight organic pool. Carbon, nitrogen and phosphorous content"
 name = "soil_cnp_pool_lmwc"
 unit = "kg m^-3"
 variable_type = "float"
@@ -632,28 +632,28 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Soil bacterial biomass (carbon) pool"
 name = "soil_c_pool_bacteria"
-unit = "kg C m^-3"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Soil saprotrophic fungal biomass (carbon) pool"
 name = "soil_c_pool_saprotrophic_fungi"
-unit = "kg C m^-3"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Soil arbuscular mycorrhizal fungal biomass (carbon) pool"
 name = "soil_c_pool_arbuscular_mycorrhiza"
-unit = "kg C m^-3"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Soil ectomycorrhizal fungal biomass (carbon) pool"
 name = "soil_c_pool_ectomycorrhiza"
-unit = "kg C m^-3"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
@@ -674,35 +674,35 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Amount of nitrogen contained in the soil ammonium (NH4+) pool"
 name = "soil_n_pool_ammonium"
-unit = "kg N m^-3"
+unit = "kg{N} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of nitrogen contained in the soil nitrate (NO3-) pool"
 name = "soil_n_pool_nitrate"
-unit = "kg N m^-3"
+unit = "kg{N} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of phosphorus in a primary mineral form"
 name = "soil_p_pool_primary"
-unit = "kg P m^-3"
+unit = "kg{P} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of inorganic phosphorus that is associated with secondary minerals"
 name = "soil_p_pool_secondary"
-unit = "kg P m^-3"
+unit = "kg{P} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of inorganic phosphorus that is in a labile form"
 name = "soil_p_pool_labile"
-unit = "kg P m^-3"
+unit = "kg{P} m^-3"
 variable_type = "float"
 
 [[variable]]
@@ -1010,49 +1010,49 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Concentration of dissolved nitrate in the topsoil layer"
 name = "dissolved_nitrate"
-unit = "kg N m^-3"
+unit = "kg{N} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Concentration of dissolved ammonium in the topsoil layer"
 name = "dissolved_ammonium"
-unit = "kg N m^-3"
+unit = "kg{N} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Concentration of dissolved labile inorganic phosphorus in the topsoil layer"
 name = "dissolved_phosphorus"
-unit = "kg P m^-3"
+unit = "kg{P} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of nitrogen provided by arbuscular mycorrhizal fungi to their plant partners"
 name = "arbuscular_mycorrhizal_n_supply"
-unit = "kg N"
+unit = "kg{N}"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of phosphorous provided by arbuscular mycorrhizal fungi to their plant partners"
 name = "arbuscular_mycorrhizal_p_supply"
-unit = "kg P"
+unit = "kg{P}"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of nitrogen provided by ectomycorrhizal fungi to their plant partners"
 name = "ectomycorrhizal_n_supply"
-unit = "kg N"
+unit = "kg{N}"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of phosphorous provided by ectomycorrhizal fungi to their plant partners"
 name = "ectomycorrhizal_p_supply"
-unit = "kg P"
+unit = "kg{P}"
 variable_type = "float"
 
 [[variable]]
@@ -1101,28 +1101,28 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Amount of bacterial enzyme class which breaks down particulate organic matter"
 name = "soil_enzyme_pom_bacteria"
-unit = "kg C m^-3"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of bacterial enzyme class which breaks down mineral associated organic matter"
 name = "soil_enzyme_maom_bacteria"
-unit = "kg C m^-3"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of fungal enzyme class which breaks down particulate organic matter"
 name = "soil_enzyme_pom_fungi"
-unit = "kg C m^-3"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Amount of fungal enzyme class which breaks down mineral associated organic matter"
 name = "soil_enzyme_maom_fungi"
-unit = "kg C m^-3"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
