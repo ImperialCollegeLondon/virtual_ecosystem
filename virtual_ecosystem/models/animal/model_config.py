@@ -467,6 +467,18 @@ class AnimalExportConfig(Configuration):
     float_format: str = "%0.5f"
 
 
+class ResourcePoolExportConfig(Configuration):
+    """Configuration for resource pool data export.
+
+    Attributes:
+        enabled: Whether resource pool export is active.
+        float_format: Float format string used when writing numeric data.
+    """
+
+    enabled: bool = False
+    float_format: str = "%0.5f"
+
+
 class AnimalConfiguration(ModelConfigurationRoot):
     """Root configuration class for the animal model."""
 
@@ -479,4 +491,8 @@ class AnimalConfiguration(ModelConfigurationRoot):
     cohort_data_export: AnimalExportConfig = Field(
         default_factory=AnimalExportConfig,
         description="Export settings for animal cohort CSV output.",
+    )
+    resource_pool_export: ResourcePoolExportConfig = Field(
+        default_factory=ResourcePoolExportConfig,
+        description="Export settings for resource pool CSV output.",
     )

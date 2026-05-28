@@ -17,6 +17,7 @@ def prepared_animal_model_instance(
     constants_instance,
     microbial_c_n_p_ratios,
     dummy_animal_exporter,
+    dummy_resource_pool_exporter,
 ):
     """Animal model instance in which setup has already been run."""
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
@@ -24,7 +25,8 @@ def prepared_animal_model_instance(
     model = AnimalModel(
         data=dummy_animal_data,
         core_components=fixture_core_components,
-        exporter=dummy_animal_exporter,
+        animal_cohort_exporter=dummy_animal_exporter,
+        resource_pool_exporter=dummy_resource_pool_exporter,
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -48,6 +50,7 @@ class TestAnimalModel:
         functional_group_list_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test `AnimalModel` initialization with both scaling methods."""
         from virtual_ecosystem.core.base_model import BaseModel
@@ -58,7 +61,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=dummy_animal_data,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=AnimalConstants(density_scaling_method=scaling_method),
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -81,6 +85,7 @@ class TestAnimalModel:
                 (
                     [
                         (INFO, "Animal cohort data exporter not active."),
+                        (INFO, "Resource pool data exporter not active."),
                         (
                             INFO,
                             "Information required to initialise the animal model "
@@ -465,6 +470,7 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test calculation of total consumption of soil by animals is correct."""
         from copy import deepcopy
@@ -479,7 +485,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=litter_soil_data_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -609,6 +616,7 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test that the function to update fungal fruiting bodies works as expected."""
         import numpy as np
@@ -624,7 +632,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=litter_soil_data_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -684,6 +693,7 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test that updating the data object based on FungalFruitPool changes works."""
         import numpy as np
@@ -696,7 +706,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=litter_soil_data_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -716,6 +727,7 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test _initialize_communities."""
 
@@ -734,7 +746,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=animal_data_for_model_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,

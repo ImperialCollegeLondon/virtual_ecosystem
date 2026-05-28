@@ -34,3 +34,8 @@ cohort_attributes = [
 ]
 
 float_format = "%0.5f"
+
+
+[animal.resource_pool_export]
+enabled = true
+float_format = "%0.5f"
