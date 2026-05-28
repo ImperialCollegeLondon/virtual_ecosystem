@@ -244,7 +244,9 @@ def ve_run(
     cfg_paths: str | Path | Sequence[str | Path] = [],
     cfg_strings: str | list[str] = [],
     cli_config: dict[str, Any] = {},
+    cli_paths: dict[str, Path] = {},
     logfile: Path | None = None,
+    validate_only: bool = False,
     progress: Progress = Progress.FULL,
 ) -> None:
     """Perform a Virtual Ecosystem simulation.
@@ -259,8 +261,11 @@ def ve_run(
         cfg_strings: An alternate string providing TOML formatted configuration data
         cli_config: Configuration settings provided by the user at the command line,
             used to override configuration settings in files.
+        cli_paths: Configuration settings provided by the user at the command line,
+            used to dynamically set paths to input data files.
         logfile: An optional path to a log file, otherwise logging will print to the
             console.
+        validate_only: Should the command exit after config validation.
         progress: A Progress enum instance setting the level of output to be printed to
             the console when ve_run is running.
     """
@@ -290,7 +295,15 @@ def ve_run(
 
     # Generate the compiled configuration for the simulation. This step also registers
     # the models required to run the simulation.
-    configuration: CompiledConfiguration = generate_configuration(config_data.data)
+    configuration: CompiledConfiguration = generate_configuration(
+        config_data.data, context={"cli_paths": cli_paths}
+    )
+
+    if progress > Progress.MINIMAL:
+        print("* Configuration validated")
+
+    if validate_only:
+        return
 
     # Get the core configuration class
     core_configuration: CoreConfiguration = configuration.get_subconfiguration(
