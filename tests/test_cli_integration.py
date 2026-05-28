@@ -292,10 +292,10 @@ def test_ve_run_cli_cli_paths(tmp_path):
 
     config.write_text(
         f"""[[core.data.variable]]
-  file_path = "{p1}"
+  file_path = '{p1}'
   var_name = "temp"
 [[core.data.variable]]
-  file_path = "$MARKER_ONE"
+  file_path = '$MARKER_ONE'
   var_name = "prec"
 """
     )
@@ -323,7 +323,7 @@ def test_ve_run_cli_cli_paths(tmp_path):
     # Add another variable
     config.write_text(
         """[[core.data.variable]]
-  file_path = "$MARKER_TWO"
+  file_path = '$MARKER_TWO'
   var_name = "snow"
 """
     )
