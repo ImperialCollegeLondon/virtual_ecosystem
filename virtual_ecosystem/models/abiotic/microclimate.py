@@ -54,6 +54,8 @@ def prepare_static_inputs(
         np.nansum(data["leaf_area_index"][idx.canopy].to_numpy(), axis=0)
     )
 
+    leaf_area_index = data["leaf_area_index"].copy().to_numpy()
+
     # Evapotranspiration from plant and hydrology model, [mm per time interval]
     evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
 
@@ -79,7 +81,7 @@ def prepare_static_inputs(
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
         idx=idx,
-        lowest_canopy_layer_correction=abiotic_constants.lowest_canopy_layer_correction,
+        minimum_mixing_depth=abiotic_constants.minimum_mixing_depth,
     )
 
     # Absorbed longwave radiation, [W m-2]
@@ -102,6 +104,7 @@ def prepare_static_inputs(
 
     return {
         "canopy_height": canopy_height,
+        "leaf_area_index": leaf_area_index,
         "lai_sum": leaf_area_index_sum,
         "evapotranspiration": evapotranspiration,
         "atmospheric_pressure": atmospheric_pressure_true,
@@ -512,9 +515,13 @@ def calculate_vegetation_temperature(
     )
 
     # Result contains new canopy and understorey temperature
+    mask = np.isfinite(static["leaf_area_index"])
+    canopy_temperature_true = state["canopy_temperature"].copy()
+    canopy_temperature_true[~mask] = np.nan
+
     vegetation_temperature = energy_balance.secant_solve_cells_layers(
         residual_function=residual,
-        initial_guess=state["canopy_temperature"],
+        initial_guess=canopy_temperature_true,
         maxiter_secant=abiotic_constants.maxiter_secant_solver,
         convergence_tolerance=abiotic_constants.convergence_tolerance_secant_solver,
         small_perturbation_second_guess=(
@@ -522,6 +529,7 @@ def calculate_vegetation_temperature(
         ),
         denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
+    vegetation_temperature[~mask] = np.nan
 
     return vegetation_temperature
 
@@ -660,6 +668,7 @@ def update_air_temperature(
     abiotic_bounds: AbioticSimpleBounds,
     idx: SimpleNamespace,
     denominator_tolerance: float,
+    min_leaf_area_index_for_mixing: float,
 ) -> NDArray[np.floating]:
     """Update air temperature profiles based on calculated fluxes and turbulent mixing.
 
@@ -669,6 +678,8 @@ def update_air_temperature(
         abiotic_bounds: Bounds for air temperature to ensure physical realism
         idx: Indices for different layer types
         denominator_tolerance: Small value to prevent division by zero in calculations
+        min_leaf_area_index_for_mixing: Minimum leaf area index required for turbulent
+            mixing to occur.
 
     Returns:
         Updated air temperature profiles for microclimate model
@@ -691,8 +702,15 @@ def update_air_temperature(
     )
 
     # Update all air temperatures, [C]
+    # We assume here that if the canopy is very thin, it is in
+    # equilibrium with the air. This is to prevent unrealistic air temperatures when
+    # there is very little canopy.
     air_temperature = np.copy(state["air_temperature"])
-    air_temperature[idx.canopy] = canopy_air_temperature
+    air_temperature[idx.canopy] = np.where(
+        static["leaf_area_index"][idx.canopy] > min_leaf_area_index_for_mixing,
+        canopy_air_temperature,
+        state["air_temperature"][idx.canopy],
+    )
     air_temperature[idx.surface] = surface_air_temperature
 
     air_temperature = wind.mix_and_ventilate(
@@ -910,6 +928,7 @@ def run_hour_step(
         abiotic_bounds=abiotic_bounds,
         idx=idx,
         denominator_tolerance=abiotic_constants.denominator_tolerance,
+        min_leaf_area_index_for_mixing=abiotic_constants.min_leaf_area_index_for_mixing,
     )
     state["air_temperature"] = air_temperature
 

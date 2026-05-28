@@ -34,6 +34,7 @@ def test_prepare_static_inputs_returns_consistent_outputs(
     # Check expected keys exist
     expected_keys = {
         "canopy_height",
+        "leaf_area_index",
         "lai_sum",
         "evapotranspiration",
         "atmospheric_pressure",
@@ -51,6 +52,7 @@ def test_prepare_static_inputs_returns_consistent_outputs(
 
     assert result["canopy_height"].shape == (n_cells,)
     assert result["lai_sum"].shape == (n_cells,)
+    assert result["leaf_area_index"].shape == (n_layers, n_cells)
     assert result["evapotranspiration"].shape == (n_layers, n_cells)
     assert result["atmospheric_pressure"].shape == (n_layers, n_cells)
     assert result["atmospheric_co2"].shape == (n_layers, n_cells)
@@ -611,6 +613,7 @@ def test_update_air_temperature(
         abiotic_bounds=abiotic_bounds,
         idx=idx,
         denominator_tolerance=1e-10,
+        min_leaf_area_index_for_mixing=0.1,
     )
 
     # Check output is correct shape and type

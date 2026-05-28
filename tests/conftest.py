@@ -1028,6 +1028,8 @@ def fixture_static_inputs(
         np.nansum(data["leaf_area_index"][indices.canopy].to_numpy(), axis=0)
     )
 
+    leaf_area_index = data["leaf_area_index"].copy().to_numpy()
+
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
@@ -1049,7 +1051,7 @@ def fixture_static_inputs(
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
         idx=indices,
-        lowest_canopy_layer_correction=0.1,
+        minimum_mixing_depth=abiotic_constants.minimum_mixing_depth,
     )
 
     # Absorbed longwave radiation by canopy, [W m-2]
@@ -1079,6 +1081,7 @@ def fixture_static_inputs(
 
     return {
         "canopy_height": canopy_height,
+        "leaf_area_index": leaf_area_index,
         "lai_sum": leaf_area_index_sum,
         "evapotranspiration": evapotranspiration.to_numpy() / days,
         "atmospheric_pressure": atmospheric_pressure_true,
