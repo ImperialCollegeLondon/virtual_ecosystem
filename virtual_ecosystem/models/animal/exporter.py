@@ -803,7 +803,7 @@ class ResourcePoolDataExporter:
                     {
                         "time": time,
                         "time_index": time_index,
-                        "pool_type": "plant_array",
+                        "pool_type": "resource_array",
                         "pool_name": pool_name,
                         "sub_pool": "",
                         "pft": pft,
