@@ -13,7 +13,6 @@ configuration class.
 
 from __future__ import annotations
 
-import os
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any, ClassVar, TypeAlias, TypeVar
@@ -49,10 +48,9 @@ def placeholder_validator(path: str, info: ValidationInfo) -> str:
     This custom validator rejects ``<FILEPATH_PLACEHOLDER>`` and
     ``<DIRPATH_PLACEHOLDER>``  values when loading file paths. It also looks for file or
     directory pathways defined using markers ('$MARKER_NAME') and substitutes in paths
-    defined either through environment variables or through the ``cli_paths`` argument
-    to ``ve_run``. When ``cli_paths`` are provided, the ``info.context`` dictionary
-    passed down to this validator should contain a ``cli_paths`` entry that is a
-    dictionary providing a mapping of marker names to paths.
+    defined through the ``cli_paths`` argument to ``ve_run``. When ``cli_paths`` are
+    provided, the ``info.context`` dictionary passed down to this validator should
+    contain a ``cli_paths`` dictionary mapping marker names to paths.
 
     Args:
         path: A field path value to validate.
@@ -71,24 +69,10 @@ def placeholder_validator(path: str, info: ValidationInfo) -> str:
         else:
             context_path = None
 
-        # Is the marker defined in the environment?
-        if marker in os.environ:
-            environ_path = os.environ[marker]
-        else:
-            environ_path = None
+        if context_path is None:
+            raise ValueError(f"Undefined path marker: {path!s}")
 
-        # Handle no substitution or double
-        if context_path is None and environ_path is None:
-            raise ValueError(f"Path set by undefined marker: {path}.")
-
-        if context_path is not None and environ_path is not None:
-            raise ValueError(
-                f"Path marker defined in both environment variables "
-                f"and command line arguments : {path}."
-            )
-
-        # These two variables now contain None and an (alleged) path
-        path = context_path or environ_path  # type: ignore[assignment]
+        path = context_path
 
     return path
 

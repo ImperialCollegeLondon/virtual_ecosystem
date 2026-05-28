@@ -138,8 +138,9 @@ ve_run \
 
 File substitution does not work well if you are running models in parallel on the same
 system: the shared location can only point to one file at a time. An alternative
-approach is to set a path marker in the configuration and then provide the file
-path when calling `ve_run` using the `--data-paths` (or `-p`) option.
+approach is to set a **path marker** in the configuration and then provide the file
+path when calling `ve_run` using the `--data-paths` (or `-p`) option. The path marker
+must be a string starting with a dollar sign - for example'$ENSO_FILE'.
 
 In this approach, your climate configuration file `config/climate_data_variables.toml`
 would look like this:
@@ -147,25 +148,21 @@ would look like this:
 ```toml
 # Climate data
 [[core.data.variable]]
-file_path = "$ENSO_FILE"
+file_path = '$ENSO_FILE'
 var_name = "air_temperature_ref"
 [[core.data.variable]]
-file_path = "$ENSO_FILE"
+file_path = '$ENSO_FILE'
 var_name = "relative_humidity_ref"
 ```
 
 ```{important}
 At present, you can only define dynamic values in this way for configuration options
-that point to file or directory paths,
-
-Also, path markers must use the `$` prefix on all operating systems - it does not vary
-with the syntax of environment variables on different operating systems.
+that point to file or directory paths.
 ```
 
-#### Define paths using `ve_run`
-
 You can then set the location of `ENSO_FILE` when running the model using the `-p`
-option. You can repeat this option to provide multiple file substitution markers.
+option. Note that the dollar sign should not be included when setting the `-p` argument.
+You can use multiple `-p` options to provide multiple path markers.
 
 ```bash
 ve_run \
@@ -174,26 +171,4 @@ ve_run \
   ...
   config/animal_config.toml \
   -p ENSO_FILE=enso_simulations/enso_0001.nc
-```
-
-#### Define paths using environment variables
-
-You can also set the location of file markers using environment variables. These are
-variables that are set in the command line terminal or shell and which can then be
-accessed by commands run later in the same terminal.
-
-It is generally clearer and more reproducible to use the `-p` approach shown above - all
-of the information defining the run is set in one command - but the example code below
-gives an example for setting the path to `ENSO_FILE` using an environment variable.
-
-```bash
-# Set the ENSO_FILE environment variable
-export ENSO_FILE=enso_simulations/enso_0001.nc
-
-# Run the command, which can access the variable to get the correct path.
-ve_run \
-  config/climate_data_variables.toml \
-  config/soil_config.toml \
-  ...
-  config/animal_config.toml \
 ```

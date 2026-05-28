@@ -304,18 +304,7 @@ def test_ve_run_cli_cli_paths(tmp_path):
     with pytest.raises(ConfigurationError):
         ve_run_cli(args_list=[str(config), "--validate-config-only"])
 
-    # Works with MARKER defined via env.
-    os.environ["MARKER_ONE"] = str(p1)
-    ve_run_cli(args_list=[str(config), "--validate-config-only"])
-
-    # Fails with duplicate definition via env and CLI
-    with pytest.raises(ConfigurationError):
-        ve_run_cli(
-            args_list=[str(config), "--validate-config-only", f"-pMARKER_ONE={p1}"]
-        )
-
-    # Works with marker defined only via CLI
-    del os.environ["MARKER_ONE"]
+    # Works with marker defined via CLI
     ve_run_cli(
         args_list=[str(config), "--validate-config-only", "-p", f"MARKER_ONE={p1}"]
     )
