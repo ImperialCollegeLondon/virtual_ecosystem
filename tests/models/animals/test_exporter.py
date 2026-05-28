@@ -1210,7 +1210,7 @@ class TestResourcePoolDataExporter:
 
         # one row per cell
         assert len(rows) == 2
-        assert all(r["pool_type"] == "plant_array" for r in rows)
+        assert all(r["pool_type"] == "resource_array" for r in rows)
         assert all(r["pool_name"] == "subcanopy_vegetation_cnp" for r in rows)
         assert all(r["pft"] == "" for r in rows)
         assert all(r["sub_pool"] == "" for r in rows)
@@ -1306,7 +1306,7 @@ class TestResourcePoolDataExporter:
             "excrement",
             "fungal_fruiting",
             "soil",
-            "plant_array",
+            "resource_array",
         }
 
     def test_exporter_runs_inside_animal_model(
