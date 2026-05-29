@@ -885,8 +885,8 @@ def calculate_microbial_changes(
         constants: Set of constants for the soil model.
         microbial_groups: Set of microbial functional groups used by the soil model.
         enzyme_classes: Details of the enzyme classes used by the soil model.
-        carbon_supply: The carbon supply to each symbiotic microbial partner [kg{C} m^-3
-            day^-1]
+        carbon_supply: The carbon supply to each symbiotic microbial partner
+            [kg{C} m^-3 day^-1]
 
     Returns:
         A dataclass containing the rate at which microbes uptake LMWC, DON and DOP, and
@@ -1333,7 +1333,7 @@ def calculate_enzyme_production(
     Args:
         microbial_groups: Set of microbial functional groups defined in the soil model
         growth_rates: The (gross) growth rates of each microbial group
-        [kg{C} m^-3 day^-1]
+            [kg{C} m^-3 day^-1]
 
     Returns:
         A dictionary containing the total production rate of each enzyme class
@@ -1371,7 +1371,7 @@ def calculate_fruiting_body_production(
     Args:
         microbial_groups: Set of microbial functional groups defined in the soil model
         growth_rates: The (gross) growth rates of each microbial group
-        [kg{C} m^-3 day^-1]
+            [kg{C} m^-3 day^-1]
 
     Returns:
         The total production rate of fungal fruiting bodies by the soil microbes
