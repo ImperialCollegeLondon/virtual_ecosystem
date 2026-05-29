@@ -591,11 +591,11 @@ class SoilModel(
 
         Args:
             total_production: The total production of fungal fruiting bodies over the
-                integration time period, per volume of soil [kg C m^-3]
+                integration time period, per volume of soil [kg{C} m^-3]
 
         Returns:
             A data array containing the rate at which fungal fruiting bodies are
-            produced per unit area [kg C m^-2 day^-1].
+            produced per unit area [kg{C} m^-2 day^-1].
         """
 
         return {
@@ -614,8 +614,8 @@ class SoilModel(
         it is assumed dissolved nutrient concentrations are taken to be zero.
 
         Returns:
-            A data array containing the size of each dissolved nutrient pool [kg
-            nutrient m^-3].
+            A data array containing the size of each dissolved nutrient pool
+            [kg{nutrient} m^-3].
         """
 
         return {
@@ -810,16 +810,16 @@ def estimate_past_mycorrhizal_supply(
 
     Args:
         soil_c_pool_lmwc: The amount of carbon in the labile mineral associated organic
-            matter pool [kg C m^-3]
+            matter pool [kg{C} m^-3]
         soil_n_pool_don: The amount of nitrogen in the dissolved organic nitrogen pool
-            [kg N m^-3]
-        soil_n_pool_ammonium: Size of the soil ammonium pool [kg N m^-3]
-        soil_n_pool_nitrate: Size of the soil nitrate pool [kg N m^-3]
+            [kg{N} m^-3]
+        soil_n_pool_ammonium: Size of the soil ammonium pool [kg{N} m^-3]
+        soil_n_pool_nitrate: Size of the soil nitrate pool [kg{N} m^-3]
         soil_p_pool_dop: The amount of phosphorus in the dissolved organic phosphorus
-            pool [kg P m^-3]
-        soil_p_pool_labile: Size of the labile phosphorus pool [kg P m^-3]
-        microbe_pool_size: Size of the microbial pool of interest [kg C m^-3]
-        soil_temp: Soil temperature [degrees C]
+            pool [kg{P} m^-3]
+        soil_p_pool_labile: Size of the labile phosphorus pool [kg{P} m^-3]
+        microbe_pool_size: Size of the microbial pool of interest [kg{C} m^-3]
+        soil_temp: Soil temperature [Celsius]
         microbial_group: Constants associated with the microbial group of interest.
         env_factors: Data class containing the various factors through which the
             environment effects soil cycling rates.
