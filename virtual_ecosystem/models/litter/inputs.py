@@ -28,11 +28,11 @@ class LitterInputs:
     """Total deadwood input rate to litter of each nutrient [kg m^-2 day^-1]"""
 
     leaf_lignin: DataArray
-    """Lignin proportion of leaf input [kg lignin C (kg C)^-1]"""
+    """Lignin proportion of leaf input [kg{lignin C} kg{C}^-1]"""
     root_lignin: DataArray
-    """Lignin proportion of root input [kg lignin C (kg C)^-1]"""
+    """Lignin proportion of root input [kg{lignin C} kg{C}^-1]"""
     stem_lignin: DataArray
-    """Lignin proportion of deadwood input [kg lignin C (kg C)^-1]"""
+    """Lignin proportion of deadwood input [kg{lignin C} kg{C}^-1]"""
 
     leaves_meta_split: DataArray
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
@@ -40,15 +40,15 @@ class LitterInputs:
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
 
     woody: DataArray
-    """Total input rate to the woody litter pool [kg C m^-2 day^-1]"""
+    """Total input rate to the woody litter pool [kg{C} m^-2 day^-1]"""
     above_metabolic: DataArray
-    """Total input rate to the above ground metabolic litter pool [kg C m^-2 day^-1]"""
+    """Total input rate to the above ground metabolic litter pool [kg{C} m^-2 day^-1]"""
     above_structural: DataArray
-    """Total input rate to the above ground structural litter pool [kg C m^-2 day^-1]"""
+    """Total input rate to the above ground structural litter pool [kg{C} m^-2 day^-1]"""
     below_metabolic: DataArray
-    """Total input rate to the below ground metabolic litter pool [kg C m^-2 day^-1]"""
+    """Total input rate to the below ground metabolic litter pool [kg{C} m^-2 day^-1]"""
     below_structural: DataArray
-    """Total input rate to the below ground structural litter pool [kg C m^-2 day^-1]"""
+    """Total input rate to the below ground structural litter pool [kg{C} m^-2 day^-1]"""
 
     @classmethod
     def create_from_data(
@@ -127,8 +127,8 @@ def combine_input_sources(data: Data, update_interval: float) -> dict[str, DataA
 
     Returns:
         A dictionary containing the combined rate at which each input pools is added to
-        [kg C m^-2 day^-1], as well as the carbon to nitrogen ratios [unitless], carbon
-        to phosphorus ratios [unitless] and lignin proportions [kg lignin C (kg C)^-1]
+        [kg{C} m^-2 day^-1], as well as the carbon to nitrogen ratios [unitless], carbon
+        to phosphorus ratios [unitless] and lignin proportions [kg{lignin C} kg{C}^-1]
         of each of these pools.
     """
 
@@ -182,9 +182,9 @@ def calculate_metabolic_proportions_of_input(
     inputs either as they all flow into just the metabolic pool.
 
     Args:
-        total_input: The total amount of carbon in each input pools [kg C m^-3], as
-            well as the nitrogen content [kg N m^-3], phosphorus content [kg P m^-3] and
-            lignin proportions [kg lignin C (kg C)^-1] of each of these pools.
+        total_input: The total amount of carbon in each input pools [kg{C} m^-3], as
+            well as the nitrogen content [kg{N} m^-3], phosphorus content [kg{P} m^-3]
+            and lignin proportions [kg{lignin C} kg{C}^-1] of each of these pools.
         constants: Set of constants for the litter model.
 
     Returns:
@@ -228,9 +228,9 @@ def partion_plant_inputs_between_pools(
     structural pools based on lignin concentration and carbon nitrogen ratios.
 
     Args:
-        total_input: The the total pool size for each input pools [kg C m^-3], as
+        total_input: The the total pool size for each input pools [kg{C} m^-3], as
             well as the carbon to nitrogen ratios [unitless], carbon to phosphorus
-            ratios [unitless] and lignin proportions [kg lignin C (kg C)^-1] of each of
+            ratios [unitless] and lignin proportions [kg{lignin C} kg{C}^-1] of each of
             these pools.
         metabolic_splits: Dictionary containing the proportion of each input that
             goes to the relevant metabolic pool. This is for three input types:
@@ -239,7 +239,7 @@ def partion_plant_inputs_between_pools(
     Returns:
         A dictionary containing the rate of biomass flow into each of the five litter
         pools (woody, above ground metabolic, above ground structural, below ground
-        metabolic and below ground structural) [kg C m^-2 day^-1]
+        metabolic and below ground structural) [kg{C} m^-2 day^-1]
     """
 
     # Calculate input to each of the five litter pools
@@ -279,9 +279,9 @@ def split_pool_into_metabolic_and_structural_litter(
     biomass, the functional form is taken from :cite:t:`parton_dynamics_1988`.
 
     Args:
-        input_masses: Mass of each nutrient in the input biomass [kg C m^-2]
+        input_masses: Mass of each nutrient in the input biomass [kg{C} m^-2]
         lignin_proportion: Proportion of input biomass carbon that is lignin
-            [kg lignin C (kg C)^-1]
+            [kg{lignin C} kg{C}^-1]
         max_metabolic_fraction: Fraction of pool that becomes metabolic litter for the
             easiest to breakdown case, i.e. no lignin, ample nitrogen [unitless]
         split_sensitivity_nitrogen: Sets how rapidly the split changes in response to
@@ -355,10 +355,10 @@ def merge_input_lignin_proportions(
 
     Args:
         turnover_mass: Input mass coming from the natural turnover of plant tissue
-            [kg C]
+            [kg{C}]
         herbivory_waste_mass: Input mass coming from the mechanical inefficiencies of
-            herbivory [kg C]
-        total_mass: The combined mass of the two input sources [kg C]
+            herbivory [kg{C}]
+        total_mass: The combined mass of the two input sources [kg{C}]
         turnover_lignin_proportion: Proportion of lignin in the input mass from
             natural plant turnover [unitless]
         herbivory_waste_lignin_proportion: Proportion of lignin in the input mass from
@@ -366,7 +366,7 @@ def merge_input_lignin_proportions(
 
     Returns:
         The proportion of carbon that is lignin carbon in the total mass of the new
-        combined input stream [kg lignin C (kg C)^-1]
+        combined input stream [kg{lignin C} kg{C}^-1]
     """
 
     return (
@@ -385,9 +385,9 @@ def average_nutrient_ratios(
 
     Args:
         mass_1: Total carbon mass of the first pool/input stream
-            [kg C m^-2 or kg C m^-2]
+            [kg{C} m^-2 or kg{C} m^-2]
         mass_2: Total carbon mass of the second pool/input stream
-            [kg C m^-2 or kg C m^-2]
+            [kg{C} m^-2 or kg{C} m^-2]
         nutrient_ratio_1: Carbon to nutrient ratio of the first pool/input stream
             [unitless]
         nutrient_ratio_2: Carbon to nutrient ratio of the second pool/input stream
@@ -407,38 +407,38 @@ class InputChemistries:
     """Dataclass containing the chemistry for the input to each litter pool."""
 
     above_metabolic_nitrogen: DataArray
-    """Nitrogen input rate to the aboveground metabolic pool [kg N m^-2 day^-1]"""
+    """Nitrogen input rate to the aboveground metabolic pool [kg{N} m^-2 day^-1]"""
     above_structural_nitrogen: DataArray
-    """Nitrogen input rate to the aboveground structural pool [kg N m^-2 day^-1]"""
+    """Nitrogen input rate to the aboveground structural pool [kg{N} m^-2 day^-1]"""
     woody_nitrogen: DataArray
-    """Nitrogen input rate to the woody pool [kg N m^-2 day^-1]"""
+    """Nitrogen input rate to the woody pool [kg{N} m^-2 day^-1]"""
     below_metabolic_nitrogen: DataArray
-    """Nitrogen input rate to the belowground metabolic pool [kg N m^-2 day^-1]"""
+    """Nitrogen input rate to the belowground metabolic pool [kg{N} m^-2 day^-1]"""
     below_structural_nitrogen: DataArray
-    """Nitrogen input rate to the belowground structural pool [kg N m^-2 day^-1]"""
+    """Nitrogen input rate to the belowground structural pool [kg{N} m^-2 day^-1]"""
 
     above_metabolic_phosphorus: DataArray
-    """Phosphorus input rate to the aboveground metabolic pool [kg P m^-2 day^-1]"""
+    """Phosphorus input rate to the aboveground metabolic pool [kg{P} m^-2 day^-1]"""
     above_structural_phosphorus: DataArray
-    """Phosphorus input rate to the aboveground structural pool [kg P m^-2 day^-1]"""
+    """Phosphorus input rate to the aboveground structural pool [kg{P} m^-2 day^-1]"""
     woody_phosphorus: DataArray
-    """Phosphorus input rate to the woody pool [kg P m^-2 day^-1]"""
+    """Phosphorus input rate to the woody pool [kg{P} m^-2 day^-1]"""
     below_metabolic_phosphorus: DataArray
-    """Phosphorus input rate to the belowground metabolic pool [kg P m^-2 day^-1]"""
+    """Phosphorus input rate to the belowground metabolic pool [kg{P} m^-2 day^-1]"""
     below_structural_phosphorus: DataArray
-    """Phosphorus input rate to the belowground structural pool [kg P m^-2 day^-1]"""
+    """Phosphorus input rate to the belowground structural pool [kg{P} m^-2 day^-1]"""
 
     above_structural_lignin: DataArray
     """Lignin proportion of input to the aboveground structural pool.
     
-    Units of [kg lignin C (kg C)^-1]
+    Units of [kg{lignin C} kg{C}^-1]
     """
     woody_lignin: DataArray
-    """Lignin proportion of input to the woody pool [kg lignin C (kg C)^-1]"""
+    """Lignin proportion of input to the woody pool [kg{lignin C} kg{C}^-1]"""
     below_structural_lignin: DataArray
     """Lignin proportion of input to the belowground structural pool.
      
-    Units of [kg lignin C (kg C)^-1]
+    Units of [kg{lignin C} kg{C}^-1]
     """
 
 
@@ -507,7 +507,7 @@ def calculate_litter_input_lignin_concentrations(
     Returns:
         Dictionary containing the lignin concentration of the input to each of the
         three lignin containing litter pools (woody, above and below ground
-        structural) [kg lignin C (kg C)^-1]
+        structural) [kg{lignin C} kg{C}^-1]
     """
 
     lignin_proportion_woody = litter_inputs.stem_lignin
@@ -552,7 +552,7 @@ def calculate_litter_input_nutrient_masses(
 
     Returns:
         Dictionary containing input rates of the nutrients (nitrogen or phosphorus) into
-        each of the pools [kg nut m^-2 day^-1]
+        each of the pools [kg{nutrient} m^-2 day^-1]
     """
 
     if nutrient not in {"nitrogen", "phosphorus"}:
@@ -608,8 +608,8 @@ def find_nutrient_split_between_litter_pools(
     If there isn't, then there is no nutrient flow to either pool.
 
     Args:
-        input_carbon_rate: Rate of carbon input [kg C m^-2 day^-1]
-        input_nutrient_rate: Rate of nutrient input [kg nut m^-2 day^-1]
+        input_carbon_rate: Rate of carbon input [kg{C} m^-2 day^-1]
+        input_nutrient_rate: Rate of nutrient input [kg{nutrient} m^-2 day^-1]
         metabolic_split: Proportion of organic matter input that flows to the metabolic
             litter pool [unitless]
         meta_to_struct_nutrient_ratio: Ratio of the nutrient concentrations (relative to
@@ -618,7 +618,7 @@ def find_nutrient_split_between_litter_pools(
 
     Returns:
         A tuple containing the nutrient input rate to the metabolic and structural
-        litter pools [kg nut m^-2 day^-1], in that order.
+        litter pools [kg{nutrient} m^-2 day^-1], in that order.
     """
 
     # Calculate rate of carbon input to each pool
@@ -667,17 +667,18 @@ def calculate_nutrient_split(
     litter pools are in a fixed proportion.
 
     Args:
-        carbon_input_meta: Rate of carbon input to the metabolic pool [kg C m^-2 day^-1]
-        carbon_input_struct: Rate of carbon input to the structural pool [kg C m^-2
-            day^-1]
-        input_nutrient_rate: Total rate of nutrient input [kg nut m^-2 day^-1]
+        carbon_input_meta: Rate of carbon input to the metabolic pool
+            [kg{C} m^-2 day^-1]
+        carbon_input_struct: Rate of carbon input to the structural pool
+            [kg{C} m^-2 day^-1]
+        input_nutrient_rate: Total rate of nutrient input [kg{nutrient} m^-2 day^-1]
         meta_to_struct_nutrient_ratio: Ratio of the nutrient concentrations (relative to
             carbon mass) for the inputs to the metabolic and structural litter pools
             [unitless]
 
     Returns:
         A tuple containing the rate of nutrient flow to the metabolic and structural
-        litter pools, respectively [kg nut m^-2 day^-1]
+        litter pools, respectively [kg{nutrient} m^-2 day^-1]
     """
 
     # Find ratio of the carbon contents of the two pools

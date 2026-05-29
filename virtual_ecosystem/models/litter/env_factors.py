@@ -37,8 +37,8 @@ def calculate_environmental_factors(
     other models.
 
     Args:
-        air_temperatures: Air temperatures, for all above ground layers [C]
-        soil_temperatures: Soil temperatures, for all soil layers [C]
+        air_temperatures: Air temperatures, for all above ground layers [Celsius]
+        soil_temperatures: Soil temperatures, for all soil layers [Celsius]
         water_potentials: Water potentials, for all soil layers [kPa]
         layer_structure: The LayerStructure instance for the simulation.
         constants: Set of constants for the litter model
@@ -103,10 +103,10 @@ def calculate_temperature_effect_on_litter_decomp(
     This function is taken from :cite:t:`kirschbaum_modelling_2002`.
 
     Args:
-        temperature: The temperature of the litter layer [C]
+        temperature: The temperature of the litter layer [Celsius]
         reference_temp: The reference temperature for changes in litter decomposition
-            rates with temperature [C]
-        offset_temp: Temperature offset [C]
+            rates with temperature [Celsius]
+        offset_temp: Temperature offset [Celsius]
         temp_response: Factor controlling response strength to changing temperature
             [unitless]
 
@@ -168,13 +168,13 @@ def average_temperature_over_microbially_active_layers(
     depth lies within each layer.
 
     Args:
-        soil_temperatures: Soil temperatures to be averaged [C]
-        surface_temperature: Air temperature just above the soil surface [C]
+        soil_temperatures: Soil temperatures to be averaged [Celsius]
+        surface_temperature: Air temperature just above the soil surface [Celsius]
         layer_structure: The LayerStructure instance for the simulation.
 
     Returns:
         The average temperature across the soil depth considered to be microbially
-        active [C]
+        active [Celsius]
     """
 
     # Find weighting for each layer in the average by dividing the microbially active
