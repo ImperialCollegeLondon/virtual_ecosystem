@@ -57,7 +57,7 @@ class LitterChemistry:
             input_chemistries: An InputChemistries instance containing the chemical
                 compositions of the input to each litter pool
             original_pools: The size of each litter pool after animal consumption, but
-                before litter inputs and decay [kg C m^-2].
+                before litter inputs and decay [kg{C} m^-2].
             update_interval: The update interval for the litter model [days]
         """
 
@@ -102,13 +102,13 @@ class LitterChemistry:
             litter_losses: An LitterInputs instance containing the total loss of carbon,
                 nitrogen, phosphorus and lignin from each litter pool.
             original_pools: The size of each litter pool after animal consumption, but
-                before litter inputs and decay [kg C m^-2].
+                before litter inputs and decay [kg{C} m^-2].
             update_interval: The update interval for the litter model [days]
 
         Returns:
             Dictionary containing the updated lignin proportions for the 3 relevant
             litter pools (above ground structural, dead wood, and below ground
-            structural) [kg lignin C (kg C)^-1]
+            structural) [kg{lignin C} kg{C}^-1]
         """
 
         new_lignin_proportion_above_struct = calculate_updated_pool_lignin_proportion(
@@ -167,7 +167,7 @@ def calculate_updated_nutrient_pools(
         litter_losses: An LitterInputs instance containing the total loss of carbon,
             nitrogen and phosphorus from each litter pool.
         original_pools: The size of each litter pool after animal consumption, but
-            before litter inputs and decay [kg C m^-2]
+            before litter inputs and decay [kg{C} m^-2]
         update_interval: The update interval for the litter model [days]
 
     Returns:
@@ -206,7 +206,7 @@ def calculate_litter_chemistry_factor(
 
     Args:
         lignin_proportion: The proportion of litter pool carbon that is held in the form
-            of lignin (or similar polymers) [kg lignin C (kg C)^-1]
+            of lignin (or similar polymers) [kg{lignin C} kg{C}^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
             lignin inhibits the breakdown of litter [unitless]
 
@@ -234,21 +234,21 @@ def calculate_updated_pool_lignin_proportion(
 
     Args:
         initial_carbon: The total carbon mass of the litter pool before inputs and decay
-            [kg C m^-2]
+            [kg{C} m^-2]
         input_carbon_rate: The rate of carbon input to the litter pool
-            [kg C m^-2 day^-1]
-        carbon_loss: Total loss of carbon from the litter pool due to decay [kg C m^-2]
+            [kg{C} m^-2 day^-1]
+        carbon_loss: Total loss of carbon from the litter pool due to decay [kg{C} m^-2]
         initial_lignin_proportion: The lignin proportion of the litter pool at the
-            start of the update interval [kg lignin C (kg C)^-1]
+            start of the update interval [kg{lignin C} kg{C}^-1]
         input_lignin_proportion: The lignin proportion of the input biomass
-            [kg lignin C (kg C)^-1]
+            [kg{lignin C} kg{C}^-1]
         lignin_loss: Total loss of lignin from the litter pool due to decay
-            [kg lignin C m^-2]
+            [kg{lignin C} m^-2]
         update_interval: The update interval for the litter model [days]
 
     Returns:
         The new lignin proportion at the end of the update interval
-        [kg lignin C (kg C)^-1]
+        [kg{lignin C} kg{C}^-1]
     """
 
     input_carbon_total = input_carbon_rate * update_interval

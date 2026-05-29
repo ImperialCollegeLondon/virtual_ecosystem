@@ -18,49 +18,49 @@ class LitterLosses:
     """The full set losses for the litter pools, as well as the mineralisation rates."""
 
     above_metabolic_carbon: NDArray[np.floating]
-    """Carbon loss from the aboveground metabolic pool [kg C m^-2]"""
+    """Carbon loss from the aboveground metabolic pool [kg{C} m^-2]"""
     above_structural_carbon: NDArray[np.floating]
-    """Carbon loss from the aboveground structural pool [kg C m^-2]"""
+    """Carbon loss from the aboveground structural pool [kg{C} m^-2]"""
     woody_carbon: NDArray[np.floating]
-    """Carbon loss from the woody pool [kg C m^-2]"""
+    """Carbon loss from the woody pool [kg{C} m^-2]"""
     below_metabolic_carbon: NDArray[np.floating]
-    """Carbon loss from the belowground metabolic pool [kg C m^-2]"""
+    """Carbon loss from the belowground metabolic pool [kg{C} m^-2]"""
     below_structural_carbon: NDArray[np.floating]
-    """Carbon loss from the belowground structural pool [kg C m^-2]"""
+    """Carbon loss from the belowground structural pool [kg{C} m^-2]"""
 
     above_metabolic_nitrogen: NDArray[np.floating]
-    """Nitrogen loss from the aboveground metabolic pool [kg N m^-2]"""
+    """Nitrogen loss from the aboveground metabolic pool [kg{N} m^-2]"""
     above_structural_nitrogen: NDArray[np.floating]
-    """Nitrogen loss from the aboveground structural pool [kg N m^-2]"""
+    """Nitrogen loss from the aboveground structural pool [kg{N} m^-2]"""
     woody_nitrogen: NDArray[np.floating]
-    """Nitrogen loss from the woody pool [kg N m^-2]"""
+    """Nitrogen loss from the woody pool [kg{N} m^-2]"""
     below_metabolic_nitrogen: NDArray[np.floating]
-    """Nitrogen loss from the belowground metabolic pool [kg N m^-2]"""
+    """Nitrogen loss from the belowground metabolic pool [kg{N} m^-2]"""
     below_structural_nitrogen: NDArray[np.floating]
-    """Nitrogen loss from the belowground structural pool [kg N m^-2]"""
+    """Nitrogen loss from the belowground structural pool [kg{N} m^-2]"""
 
     above_metabolic_phosphorus: NDArray[np.floating]
-    """Phosphorus loss from the aboveground metabolic pool [kg P m^-2]"""
+    """Phosphorus loss from the aboveground metabolic pool [kg{P} m^-2]"""
     above_structural_phosphorus: NDArray[np.floating]
-    """Phosphorus loss from the aboveground structural pool [kg P m^-2]"""
+    """Phosphorus loss from the aboveground structural pool [kg{P} m^-2]"""
     woody_phosphorus: NDArray[np.floating]
-    """Phosphorus loss from the woody pool [kg P m^-2]"""
+    """Phosphorus loss from the woody pool [kg{P} m^-2]"""
     below_metabolic_phosphorus: NDArray[np.floating]
-    """Phosphorus loss from the belowground metabolic pool [kg P m^-2]"""
+    """Phosphorus loss from the belowground metabolic pool [kg{P} m^-2]"""
     below_structural_phosphorus: NDArray[np.floating]
-    """Phosphorus loss from the belowground structural pool [kg P m^-2]"""
+    """Phosphorus loss from the belowground structural pool [kg{P} m^-2]"""
 
     above_structural_lignin: NDArray[np.floating]
-    """Lignin loss from the aboveground structural pool [kg lignin C m^-2]"""
+    """Lignin loss from the aboveground structural pool [kg{lignin C} m^-2]"""
     woody_lignin: NDArray[np.floating]
-    """Lignin loss from the woody pool [kg lignin C m^-2]"""
+    """Lignin loss from the woody pool [kg{lignin C} m^-2]"""
     below_structural_lignin: NDArray[np.floating]
-    """Lignin loss from the belowground structural pool [kg lignin C m^-2]"""
+    """Lignin loss from the belowground structural pool [kg{lignin C} m^-2]"""
 
     N_mineralisation_rate: NDArray[np.floating]
-    """Total nitrogen mineralisation rate from all litter pools [kg N m^-3 day^-1]"""
+    """Total nitrogen mineralisation rate from all litter pools [kg{N} m^-3 day^-1]"""
     P_mineralisation_rate: NDArray[np.floating]
-    """Total phosphorus mineralisation rate from all litter pools [kg P m^-3 day^-1]"""
+    """Total phosphorus mineralisation rate from all litter pools [kg{P} m^-3 day^-1]"""
 
 
 def calculate_litter_losses(
@@ -78,9 +78,9 @@ def calculate_litter_losses(
 
     Args:
         data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-        original_pools: Pool sizes before any litter input and decay [kg C m^-2].
-        final_pools: Pool sizes after litter input and decay [kg C m^-2].
-        litter_inputs: The inputs to each litter pool [kg C m^-2 day^-1].
+        original_pools: Pool sizes before any litter input and decay [kg{C} m^-2].
+        final_pools: Pool sizes after litter input and decay [kg{C} m^-2].
+        litter_inputs: The inputs to each litter pool [kg{C} m^-2 day^-1].
         input_chemistries: The chemical compositions of the inputs to each litter pool.
         update_interval: The time period over which the litter pools are updated [days].
         active_microbe_depth: The depth at which microbial activity is assumed to cease
@@ -321,13 +321,13 @@ def calculate_carbon_pool_loss(
     calculation of the loss.
 
     Args:
-        old_pool_size: The size of the litter pool before the update [kg C m^-2].
-        final_pool_size: The size of the litter pool after the update [kg C m^-2].
-        input_rate: The rate of carbon input to the litter pool [kg C m^-2 day^-1].
+        old_pool_size: The size of the litter pool before the update [kg{C} m^-2].
+        final_pool_size: The size of the litter pool after the update [kg{C} m^-2].
+        input_rate: The rate of carbon input to the litter pool [kg{C} m^-2 day^-1].
         update_interval: The time period over which the litter pools are updated [days].
 
     Returns:
-        The total loss of carbon from the pool due to decay [kg C m^-2]
+        The total loss of carbon from the pool due to decay [kg{C} m^-2]
     """
 
     return old_pool_size + (input_rate * update_interval) - final_pool_size
@@ -354,20 +354,20 @@ def calculate_nutrient_pool_loss(
     split.
 
     Args:
-        initial_pool_carbon: Amount of carbon in the litter pool before the update [kg C
-            m^-2]
+        initial_pool_carbon: Amount of carbon in the litter pool before the update
+            [kg{C} m^-2]
         initial_pool_nutrient: Amount of nutrient in the litter pool before the update
-            [kg nut m^-2]
+            [kg{nutrient} m^-2]
         carbon_loss: The total loss of carbon from the pool over the decay period
-            [kg C m^-2]
-        input_rate_carbon: The rate of carbon input to the litter pool [kg C m^-2
-            day^-1]
-        input_rate_nutrient: The rate of nutrient input to the litter pool [kg nut m^-2
-            day^-1]
+            [kg{C} m^-2]
+        input_rate_carbon: The rate of carbon input to the litter pool
+            [kg{C} m^-2 day^-1]
+        input_rate_nutrient: The rate of nutrient input to the litter pool
+            [kg{nutrient} m^-2 day^-1]
         update_interval: The time period over which the litter pools are updated [days].
 
     Returns:
-        The total loss of nutrient from the pool due to decay [kg nutrient m^-2]
+        The total loss of nutrient from the pool due to decay [kg{nutrient} m^-2]
     """
 
     # Find the fraction of the initial pool that has decayed, and the fraction of input
@@ -412,18 +412,18 @@ def calculate_lignin_pool_loss(
     based on this assumed split.
 
     Args:
-        initial_pool_size: The size of the litter pool before the update [kg C m^-2].
+        initial_pool_size: The size of the litter pool before the update [kg{C} m^-2].
         carbon_loss: The total loss of carbon from the pool over the decay period
-            [kg C m^-2].
-        input_rate: The rate of carbon input to the litter pool [kg C m^-2 day^-1].
+            [kg{C} m^-2].
+        input_rate: The rate of carbon input to the litter pool [kg{C} m^-2 day^-1].
         initial_lignin_proportion: The lignin proportion of the litter pool before the
-            update [kg lignin C (kg C)^-1]
+            update [kg{lignin C} kg{C}^-1]
         input_lignin_proportion: The lignin proportion of the input to the litter
-            pool [kg lignin C (kg C)^-1]
+            pool [kg{lignin C} kg{C}^-1]
         update_interval: The time period over which the litter pools are updated [days].
 
     Returns:
-        The total loss of lignin from the pool due to decay [kg lignin C m^-2]
+        The total loss of lignin from the pool due to decay [kg{lignin C} m^-2]
     """
 
     # Find the fraction of the initial pool that has decayed, and the fraction of input

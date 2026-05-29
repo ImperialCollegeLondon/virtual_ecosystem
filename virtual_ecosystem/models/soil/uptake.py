@@ -24,22 +24,22 @@ class NetNutrientConsumption:
     """
 
     carbon: NDArray[np.floating]
-    """Uptake of low molecular weight carbon [kg C m^-3 day^-1]."""
+    """Uptake of low molecular weight carbon [kg{C} m^-3 day^-1]."""
 
     organic_nitrogen: NDArray[np.floating]
-    """Uptake of dissolved organic nitrogen [kg N m^-3 day^-1]."""
+    """Uptake of dissolved organic nitrogen [kg{N} m^-3 day^-1]."""
 
     ammonium: NDArray[np.floating]
-    """Uptake of ammonium [kg N m^-3 day^-1]."""
+    """Uptake of ammonium [kg{N} m^-3 day^-1]."""
 
     nitrate: NDArray[np.floating]
-    """Uptake of nitrate [kg N m^-3 day^-1]."""
+    """Uptake of nitrate [kg{N} m^-3 day^-1]."""
 
     organic_phosphorus: NDArray[np.floating]
-    """Uptake of dissolved organic phosphorus [kg P m^-3 day^-1]."""
+    """Uptake of dissolved organic phosphorus [kg{P} m^-3 day^-1]."""
 
     inorganic_phosphorus: NDArray[np.floating]
-    """Uptake of labile inorganic phosphorus [kg P m^-3 day^-1]."""
+    """Uptake of labile inorganic phosphorus [kg{P} m^-3 day^-1]."""
 
 
 @dataclass
@@ -47,28 +47,28 @@ class MaxUptakeRates:
     """Maximum rate at which each nutrient can be taken up by the microbial group."""
 
     carbon: NDArray[np.floating]
-    """Maximum uptake of low molecular weight carbon [kg C m^-3 day^-1]."""
+    """Maximum uptake of low molecular weight carbon [kg{C} m^-3 day^-1]."""
 
     organic_nitrogen: NDArray[np.floating]
-    """Maximum uptake rate of organic nitrogen [kg N m^-3 day^-1].
+    """Maximum uptake rate of organic nitrogen [kg{N} m^-3 day^-1].
     
     This nitrogen is taken up along with the :term:`LMWC` uptake.
     """
 
     organic_phosphorus: NDArray[np.floating]
-    """Maximum uptake rate of organic phosphorus [kg P m^-3 day^-1].
+    """Maximum uptake rate of organic phosphorus [kg{P} m^-3 day^-1].
     
     This phosphorus is taken up along with the :term:`LMWC` uptake.
     """
 
     ammonium: NDArray[np.floating]
-    """Maximum uptake rate of ammonium [kg N m^-3 day^-1]."""
+    """Maximum uptake rate of ammonium [kg{N} m^-3 day^-1]."""
 
     nitrate: NDArray[np.floating]
-    """Maximum uptake rate of nitrate [kg N m^-3 day^-1]."""
+    """Maximum uptake rate of nitrate [kg{N} m^-3 day^-1]."""
 
     inorganic_phosphorus: NDArray[np.floating]
-    """Maximum uptake rate of labile inorganic phosphorus [kg P m^-3 day^-1]."""
+    """Maximum uptake rate of labile inorganic phosphorus [kg{P} m^-3 day^-1]."""
 
 
 def calculate_nutrient_uptake_rates(
@@ -125,20 +125,20 @@ def calculate_nutrient_uptake_rates(
     than the microbes can use the surplus is added to the soil as :term:`LMWC`.
 
     Args:
-        soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
-        soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
-        soil_n_pool_ammonium: Soil ammonium pool [kg N m^-3]
-        soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
-        soil_p_pool_dop: Dissolved organic phosphorus pool [kg P m^-3]
-        soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
-        microbial_pool_size: Amount of biomass for functional of interest [kg C m^-3]
+        soil_c_pool_lmwc: Low molecular weight carbon pool [kg{C} m^-3]
+        soil_n_pool_don: Dissolved organic nitrogen pool [kg{N} m^-3]
+        soil_n_pool_ammonium: Soil ammonium pool [kg{N} m^-3]
+        soil_n_pool_nitrate: Soil nitrate pool [kg{N} m^-3]
+        soil_p_pool_dop: Dissolved organic phosphorus pool [kg{P} m^-3]
+        soil_p_pool_labile: Labile inorganic phosphorus pool [kg{P} m^-3]
+        microbial_pool_size: Amount of biomass for functional of interest [kg{C} m^-3]
         external_carbon_supply: Additional supply of carbon to the microbial group from
-            external sources (i.e. partner plants) [kg C m^-3 day^-1]
+            external sources (i.e. partner plants) [kg{C} m^-3 day^-1]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
         pH_factor: A factor capturing the impact of soil pH on microbial rates
             [unitless]
-        soil_temp: soil temperature for each soil grid cell [degrees C]
+        soil_temp: soil temperature for each soil grid cell [Celsius]
         constants: Set of constants for the soil model.
         functional_group: A data class containing the parameters defining the microbial
             functional group
@@ -353,7 +353,7 @@ def find_net_nutrient_consumptions_symbiotic(
         actual_carbon_gain: The rate at which carbon is assimilated to biomass [kg C
             m^-3 day^-1]
         external_carbon_supply: Additional supply of carbon to the microbial group from
-            symbiotic partner plants [kg C m^-3 day^-1]
+            symbiotic partner plants [kg{C} m^-3 day^-1]
         carbon_use_efficiency: Carbon use efficiency of the microbial group (varies with
             temperature) [unitless]
         functional_group: A data class containing the parameters defining the microbial
@@ -441,7 +441,7 @@ def calculate_actual_carbon_gain(
     Args:
         max_uptake_rates: Maximum uptake rates for each nutrient class [kg m^-3 day^-1]
         external_carbon_supply: Additional supply of carbon to the microbial group from
-            external sources (i.e. partner plants) [kg C m^-3 day^-1]
+            external sources (i.e. partner plants) [kg{C} m^-3 day^-1]
         carbon_use_efficiency: Carbon use efficiency of the microbial group (varies with
             temperature) [unitless]
         functional_group: A data class containing the parameters defining the microbial
@@ -500,13 +500,13 @@ def calculate_maximum_uptake_rates(
     (ammonium and nitrate), and inorganic phosphorus.
 
     Args:
-        soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
-        soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
-        soil_n_pool_ammonium: Soil ammonium pool [kg N m^-3]
-        soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
-        soil_p_pool_dop: Dissolved organic phosphorus pool [kg P m^-3]
-        soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
-        microbial_pool_size: Amount of biomass for functional of interest [kg C m^-3]
+        soil_c_pool_lmwc: Low molecular weight carbon pool [kg{C} m^-3]
+        soil_n_pool_don: Dissolved organic nitrogen pool [kg{N} m^-3]
+        soil_n_pool_ammonium: Soil ammonium pool [kg{N} m^-3]
+        soil_n_pool_nitrate: Soil nitrate pool [kg{N} m^-3]
+        soil_p_pool_dop: Dissolved organic phosphorus pool [kg{P} m^-3]
+        soil_p_pool_labile: Labile inorganic phosphorus pool [kg{P} m^-3]
+        microbial_pool_size: Amount of biomass for functional of interest [kg{C} m^-3]
         lmwc_c_n_ratio: Carbon to nitrogen ratio of the low molecular weight carbon pool
             [unitless]
         lmwc_c_p_ratio: Carbon to phosphorus ratio of the low molecular weight carbon
@@ -515,7 +515,7 @@ def calculate_maximum_uptake_rates(
             rates [unitless]
         pH_factor: A factor capturing the impact of soil pH on microbial rates
             [unitless]
-        soil_temp: soil temperature for each soil grid cell [degrees C]
+        soil_temp: soil temperature for each soil grid cell [Celsius]
         constants: Set of constants for the soil model.
         functional_group: A data class containing the parameters defining the microbial
             functional group
@@ -623,23 +623,24 @@ def calculate_highest_achievable_nutrient_uptake(
 
     Args:
         labile_nutrient_pool: Mass of nutrient that is in a readily uptakeable (labile)
-            form [kg nut m^-3]
-        microbial_pool_size: Size of microbial biomass (carbon) pool of interest [kg C
-            m^-3]
+            form [kg{nutrient} m^-3]
+        microbial_pool_size: Size of microbial biomass (carbon) pool of interest
+            [kg{C} m^-3]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
         pH_factor: A factor capturing the impact of soil pH on microbial rates
             [unitless]
-        soil_temp: soil temperature for each soil grid cell [degrees C]
+        soil_temp: soil temperature for each soil grid cell [Celsius]
         max_uptake_rate: Maximum possible uptake rate of the nutrient (at reference
             temperature) [day^-1]
         activation_energy_uptake: Activation energy for nutrient uptake for the
-            microbial group in question [J K^-1].
+            microbial group in question [J Kelvin^-1].
         half_saturation_constant: Half saturation constant for nutrient uptake (at
-            reference temperature) [kg nut m^-3]
+            reference temperature) [kg{nutrient} m^-3]
         activation_energy_uptake_saturation: Activation energy for nutrient uptake
-            saturation for the microbial group in question [J K^-1].
-        reference_temperature: The reference temperature of the Arrhenius equation [C]
+            saturation for the microbial group in question [J Kelvin^-1].
+        reference_temperature: The reference temperature of the Arrhenius equation
+            [Celsius]
 
     Returns:
         The maximum uptake rate by the soil microbial biomass for the nutrient in

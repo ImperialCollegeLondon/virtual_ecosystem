@@ -98,13 +98,13 @@ def calculate_decay_rates(
 
     Args:
         lignin_above_structural: Proportion of above ground structural pool which is
-            lignin [kg lignin C (kg C)^-1]
+            lignin [kg{lignin C} kg{C}^-1]
         lignin_woody: Proportion of dead wood pool which is lignin
-            [kg lignin C (kg C)^-1]
+            [kg{lignin C} kg{C}^-1]
         lignin_below_structural: Proportion of below ground structural pool which is
-            lignin [kg lignin C (kg C)^-1]
-        air_temperatures: Air temperatures, for all above ground layers [C]
-        soil_temperatures: Soil temperatures, for all soil layers [C]
+            lignin [kg{lignin C} kg{C}^-1]
+        air_temperatures: Air temperatures, for all above ground layers [Celsius]
+        soil_temperatures: Soil temperatures, for all soil layers [Celsius]
         water_potentials: Water potentials, for all soil layers [kPa]
         layer_structure: The LayerStructure instance for the simulation.
         constants: Set of constants for the litter model
@@ -181,7 +181,7 @@ def calculate_total_C_mineralised(
         update_interval: Interval that the litter pools are being updated for [days]
 
     Returns:
-        Rate of carbon mineralisation from litter into soil [kg C m^-3 day^-1].
+        Rate of carbon mineralisation from litter into soil [kg{C} m^-3 day^-1].
     """
 
     # Calculate mineralisation from each pool
@@ -234,9 +234,9 @@ def calculate_updated_pools(
 
     Args:
         post_consumption_pools: The five litter pools after animal consumption has been
-            subtracted [kg C m^-2]
+            subtracted [kg{C} m^-2]
         decay_rates: Dictionary containing the rates of decay for all 5 litter pools
-            [kg C m^-2 day^-1]
+            [kg{C} m^-2 day^-1]
         litter_inputs: An LitterInputs instance containing the total input of each plant
             biomass type, the proportion of the input that goes to the relevant
             metabolic pool for each input type (expect deadwood) and the total input
@@ -247,7 +247,7 @@ def calculate_updated_pools(
     Returns:
         Dictionary containing the updated pool densities for all 5 litter pools (above
         ground metabolic, above ground structural, dead wood, below ground metabolic,
-        and below ground structural) [kg C m^-2]
+        and below ground structural) [kg{C} m^-2]
     """
 
     return {
@@ -307,15 +307,15 @@ def calculate_final_pool_size(
     size with at the litter decay rate.
 
     Args:
-        input_rate: The rate of input of carbon to the new pool [kg C m^-2 day^-1]
-        decay_rate: The rate at which the pool decays (in carbon terms) [kg C m^-2
+        input_rate: The rate of input of carbon to the new pool [kg{C} m^-2 day^-1]
+        decay_rate: The rate at which the pool decays (in carbon terms) [kg{C} m^-2
             day^-1]
-        initial_pool: The size of the pool at the start of the update interval [kg C
-            m^-2]
+        initial_pool: The size of the pool at the start of the update interva
+            [kg{C} m^-2]
         update_interval: Interval that the litter pools are being updated for [days]
 
     Returns:
-        The size of the pool at the end of the time step [kg C m^-2]
+        The size of the pool at the end of the time step [kg{C} m^-2]
     """
 
     equilibrium_pool = input_rate / decay_rate
@@ -340,7 +340,7 @@ def calculate_litter_decay_metabolic_above(
             litter pool [day^-1]
 
     Returns:
-        Rate of decay of the above ground metabolic litter pool [kg C m^-2 day^-1]
+        Rate of decay of the above ground metabolic litter pool [kg{C} m^-2 day^-1]
     """
 
     return litter_decay_coefficient * temperature_factor
@@ -360,14 +360,14 @@ def calculate_litter_decay_structural_above(
         temperature_factor: A multiplicative factor capturing the impact of temperature
             on litter decomposition [unitless]
         lignin_proportion: The proportion of the above ground structural pool which is
-            lignin [kg lignin C (kg C)^-1]
+            lignin [kg{lignin C} kg{C}^-1]
         litter_decay_coefficient: The decay coefficient for the above ground structural
             litter pool [day^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
             lignin inhibits the breakdown of litter [unitless]
 
     Returns:
-        Rate of decay of the above ground structural litter pool [kg C m^-2 day^-1]
+        Rate of decay of the above ground structural litter pool [kg{C} m^-2 day^-1]
     """
 
     litter_chemistry_factor = calculate_litter_chemistry_factor(
@@ -391,14 +391,14 @@ def calculate_litter_decay_woody(
         temperature_factor: A multiplicative factor capturing the impact of temperature
             on litter decomposition [unitless]
         lignin_proportion: The proportion of the woody litter pool which is lignin
-            [kg lignin C (kg C)^-1]
+            [kg{lignin C} kg{C}^-1]
         litter_decay_coefficient: The decay coefficient for the woody litter pool
             [day^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
             lignin inhibits the breakdown of litter [unitless]
 
     Returns:
-        Rate of decay of the woody litter pool [kg C m^-2 day^-1]
+        Rate of decay of the woody litter pool [kg{C} m^-2 day^-1]
     """
 
     litter_chemistry_factor = calculate_litter_chemistry_factor(
@@ -426,7 +426,7 @@ def calculate_litter_decay_metabolic_below(
             litter pool [day^-1]
 
     Returns:
-        Rate of decay of the below ground metabolic litter pool [kg C m^-2 day^-1]
+        Rate of decay of the below ground metabolic litter pool [kg{C} m^-2 day^-1]
     """
 
     return litter_decay_coefficient * temperature_factor * moisture_factor
@@ -449,14 +449,14 @@ def calculate_litter_decay_structural_below(
         moisture_factor: A multiplicative factor capturing the impact of soil moisture
             on litter decomposition [unitless]
         lignin_proportion: The proportion of the below ground structural pool which is
-            lignin [kg lignin C (kg C)^-1]
+            lignin [kg{lignin C} kg{C}^-1]
         litter_decay_coefficient: The decay coefficient for the below ground structural
             litter pool [day^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
             lignin inhibits the breakdown of litter [unitless]
 
     Returns:
-        Rate of decay of the below ground structural litter pool [kg C m^-2 day^-1]
+        Rate of decay of the below ground structural litter pool [kg{C} m^-2 day^-1]
     """
 
     litter_chemistry_factor = calculate_litter_chemistry_factor(
@@ -480,11 +480,11 @@ def calculate_carbon_mineralised(
     to track that.
 
     Args:
-        carbon_loss: Total amount of carbon lost from the litter pool [kg C m^-2]
+        carbon_loss: Total amount of carbon lost from the litter pool [kg{C} m^-2]
         carbon_use_efficiency: Carbon use efficiency of litter pool [unitless]
 
     Returns:
-        Rate at which carbon is mineralised from the litter pool [kg C m^-2]
+        Rate at which carbon is mineralised from the litter pool [kg{C} m^-2]
     """
 
     return carbon_use_efficiency * carbon_loss
