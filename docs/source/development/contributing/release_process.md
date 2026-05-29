@@ -65,10 +65,8 @@ perform to create a releasable commit on `develop`. These are as follows:
    branch. If any changes are needed before releasing, do come back and check that those
    changes have also built successfully.
 
-1. The tests run as part of the CI are unit tests, we do not run an extended integration
-   test. So, before releasing you should check that the model runs successfully with the
-   example data (we provide [instructions for how to do
-   this](../../using_the_ve/example_data.md)).
+1. The tests run as part of the CI are unit tests. Before releasing you should ensure
+   the integration tests pass as well by running `pytest -m "integration"` locally.
 
 1. Some of the documentation consists of Jupyter note books that are stored in an
    executed form in order to reduce documentation build times. However, these need to be
