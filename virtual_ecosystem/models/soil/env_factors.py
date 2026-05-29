@@ -97,7 +97,8 @@ def calculate_temperature_effect_on_microbes(
     Args:
         soil_temperature: The temperature of the soil [Celsius]
         activation_energy: Energy of activation [J mol^-1]
-        reference_temperature: The reference temperature of the Arrhenius equation [Celsius]
+        reference_temperature: The reference temperature of the Arrhenius equation
+            [Celsius]
 
     Returns:
         A multiplicative factor capturing the effect of temperature on microbial rates
@@ -314,8 +315,10 @@ def calculate_denitrification_temperature_factor(
         soil_temp: Temperature of the relevant segment of soil [Celsius]
         factor_at_infinity: Value of temperature factor at infinite temperature
             [unitless]
-        minimum_temp: Minimum temperature at which denitrification can still happen [Kelvin]
-        thermal_sensitivity: Sensitivity of the factor to changes in temperature [Kelvin]
+        minimum_temp: Minimum temperature at which denitrification can still happen
+            [Kelvin]
+        thermal_sensitivity: Sensitivity of the factor to changes in temperature
+            [Kelvin]
 
     Returns:
         A factor capturing the impact of soil temperature on the denitrification rate

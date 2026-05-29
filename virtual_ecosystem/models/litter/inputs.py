@@ -44,11 +44,13 @@ class LitterInputs:
     above_metabolic: DataArray
     """Total input rate to the above ground metabolic litter pool [kg{C} m^-2 day^-1]"""
     above_structural: DataArray
-    """Total input rate to the above ground structural litter pool [kg{C} m^-2 day^-1]"""
+    """Total input rate to the above ground structural litter pool [kg{C} m^-2 day^-1]
+    """
     below_metabolic: DataArray
     """Total input rate to the below ground metabolic litter pool [kg{C} m^-2 day^-1]"""
     below_structural: DataArray
-    """Total input rate to the below ground structural litter pool [kg{C} m^-2 day^-1]"""
+    """Total input rate to the below ground structural litter pool [kg{C} m^-2 day^-1]
+    """
 
     @classmethod
     def create_from_data(

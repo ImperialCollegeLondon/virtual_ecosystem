@@ -132,7 +132,8 @@ class MicrobialChanges:
     """Rate at which fungal fruiting bodies are being produced [kg{C} m^-3 day^-1]."""
 
     arbuscular_mycorrhiza_n_supply: NDArray[np.floating]
-    """Supply rate of nitrogen to plants by arbuscular mycorrhiza [kg{N} m^-3 day^-1]."""
+    """Supply rate of nitrogen to plants by arbuscular mycorrhiza [kg{N} m^-3 day^-1].
+    """
 
     arbuscular_mycorrhiza_p_supply: NDArray[np.floating]
     """Supply rate of phosphorus to plants by arbuscular mycorrhiza [kg{P} m^-3 day^-1].
@@ -1512,8 +1513,8 @@ def calculate_maom_desorption(
 
     Args:
         soil_c_pool_maom: Size of the mineral associated organic matter pool
-        [kg{C} m^-3] desorption_rate_constant: Rate constant for MAOM desorption
-        [day^-1]
+            [kg{C} m^-3]
+        desorption_rate_constant: Rate constant for MAOM desorption [day^-1]
 
     Returns:
         The rate of MAOM desorption to LMWC [kg{C} m^-3 day^-1]
@@ -1710,8 +1711,8 @@ def calculate_nutrient_flows_to_necromass(
         enzyme_classes: Details of the enzyme classes used by the soil model.
 
     Returns:
-        A tuple containing the rates at which nitrogen [kg{N} m^-3 day^-1] and phosphorus
-        [kg{P} m^-3 day^-1] are added to the soil necromass pool
+        A tuple containing the rates at which nitrogen [kg{N} m^-3 day^-1] and
+        phosphorus [kg{P} m^-3 day^-1] are added to the soil necromass pool
     """
 
     # Calculate nutrient flows due to cellular losses
