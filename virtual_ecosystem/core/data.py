@@ -246,9 +246,9 @@ class Data:
             raise ValueError(msg)
 
         if key not in self.data.data_vars:
-            LOGGER.info(f"Adding data array for '{key}'")
+            LOGGER.debug(f"Adding data array for '{key}'")
         else:
-            LOGGER.info(f"Replacing data array for '{key}'")
+            LOGGER.debug(f"Replacing data array for '{key}'")
 
         # Add variable_metadata from known variables database - these needs to be done
         # for both adding and replacing variables as the science models do not attempt
