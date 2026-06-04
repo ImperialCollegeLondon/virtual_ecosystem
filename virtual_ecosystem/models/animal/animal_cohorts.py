@@ -1680,8 +1680,6 @@ class AnimalCohort:
     ) -> None:
         """Inflict combined background, senescence, and starvation mortalities.
 
-        TODO: Review the use of ceil in number_dead, it fails for large animals.
-
         Args:
             dt: The time passed in the timestep (days).
             carcass_pools: The local carcass pool to which dead individuals go.
@@ -1717,8 +1715,12 @@ class AnimalCohort:
         )  # starvation mortality
         u_t = u_bg + u_se + u_st
 
-        # Calculate the total number of dead individuals
-        number_dead = ceil(pop_size * (1 - exp(-u_t * dt)))
+        # Calculate the total number of dead individuals w/ stochastic rounding
+        expected_dead = pop_size * (1 - exp(-u_t * dt))
+        floor_dead = int(expected_dead)
+        remainder = expected_dead - floor_dead
+        stochastic_extra = 1 if random.random() < remainder else 0
+        number_dead = floor_dead + stochastic_extra
 
         # Remove the dead individuals from the cohort
         self.die_individual(number_dead, carcass_pools)

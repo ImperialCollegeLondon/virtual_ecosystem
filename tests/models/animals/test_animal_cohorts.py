@@ -2489,7 +2489,7 @@ class TestAnimalCohort:
 
     @pytest.mark.parametrize(
         "is_mature, u_bg, lambda_se, t_to_maturity, t_since_maturity, lambda_max, J_st,"
-        "zeta_st, mass_current, mass_max, dt, expected_dead",
+        "zeta_st, mass_current, mass_max, pop_size, dt, mock_random, expected_dead",
         [
             pytest.param(
                 True,
@@ -2502,9 +2502,28 @@ class TestAnimalCohort:
                 0.05,
                 600,
                 600,
+                100,
                 30,
+                0.99,  # above remainder (0.870) → floor only
+                12,
+                id="mature_all_mortalities_no_extra",
+            ),
+            pytest.param(
+                True,
+                0.001,
+                0.003,
+                365,
+                30,
+                1.0,
+                0.6,
+                0.05,
+                600,
+                600,
+                100,
+                30,
+                0.0,  # below remainder (0.870) → floor + 1
                 13,
-                id="mature_with_all_mortalities",
+                id="mature_all_mortalities_with_extra",
             ),
             pytest.param(
                 False,
@@ -2517,9 +2536,64 @@ class TestAnimalCohort:
                 0.05,
                 600,
                 600,
+                100,
                 30,
+                0.99,  # above remainder (0.927) → floor only
+                3,
+                id="immature_no_senescence_no_extra",
+            ),
+            pytest.param(
+                False,
+                0.001,
+                0.003,
+                365,
+                30,
+                1.0,
+                0.6,
+                0.05,
+                600,
+                600,
+                100,
+                30,
+                0.0,  # below remainder (0.927) → floor + 1
                 4,
-                id="immature_without_senescence",
+                id="immature_no_senescence_with_extra",
+            ),
+            pytest.param(
+                # Core regression: large-bodied cohort of 1 with low mortality.
+                # expected_dead ≈ 0.030 so ceil would always kill it; floor should not.
+                False,
+                0.001,
+                0.0,
+                365,
+                0,
+                0.0,
+                0.6,
+                0.05,
+                600,
+                600,
+                1,
+                30,
+                0.99,  # above remainder (0.030) → 0 deaths
+                0,
+                id="single_large_animal_no_death",
+            ),
+            pytest.param(
+                False,
+                0.001,
+                0.0,
+                365,
+                0,
+                0.0,
+                0.6,
+                0.05,
+                600,
+                600,
+                1,
+                30,
+                0.0,  # below remainder (0.030) → 1 death
+                1,
+                id="single_large_animal_one_death",
             ),
         ],
     )
@@ -2536,33 +2610,40 @@ class TestAnimalCohort:
         zeta_st,
         mass_current,
         mass_max,
+        pop_size,
         dt,
+        mock_random,
         expected_dead,
         predator_cohort_instance,
         carcass_pool_instance,
     ):
-        """Test the calculation of total non-predation mortality in a cohort."""
-        from math import ceil, exp
+        """Test stochastic rounding of non-predation mortality.
+
+        ``random.random`` is mocked to give deterministic control over the
+        stochastic branch.  Each logical scenario is split into a ``_no_extra``
+        case (mock value above the fractional remainder) and a ``_with_extra``
+        case (mock value of 0.0, always below the remainder).  The
+        ``single_large_animal`` cases are the primary regression: with ``ceil``
+        a cohort of 1 with expected_dead ≈ 0.03 would die every timestep; with
+        stochastic rounding it dies with probability 0.03.
+        """
+        from math import exp, floor
 
         import virtual_ecosystem.models.animal.scaling_functions as sf
 
-        # Use the predator cohort instance and set initial individuals to 100
         cohort = predator_cohort_instance
-        cohort.individuals = 100  # Set initial individuals count
+        cohort.individuals = pop_size
         cohort.is_mature = is_mature
         cohort.time_to_maturity = t_to_maturity
         cohort.time_since_maturity = t_since_maturity
         cohort.functional_group.adult_mass = mass_max
 
-        # Mock `mass_current` properly as a property on the class
         mocker.patch.object(
             type(cohort),
             "mass_current",
             new_callable=mocker.PropertyMock,
             return_value=mass_current,
         )
-
-        # Mocking the mortality functions to return predefined values
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.background_mortality",
             return_value=u_bg,
@@ -2578,49 +2659,39 @@ class TestAnimalCohort:
             return_value=(
                 lambda_max
                 / (1 + exp((mass_current - J_st * mass_max) / (zeta_st * mass_max)))
+                if lambda_max > 0.0
+                else 0.0
             ),
         )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.random.random",
+            return_value=mock_random,
+        )
 
-        # Diagnostics
-        print(f"Initial individuals: {cohort.individuals}")
-
-        # Run the method
         cohort.inflict_non_predation_mortality(dt, [carcass_pool_instance])
 
-        # Calculate expected number of deaths inside the test
-        u_bg_value = sf.background_mortality(u_bg)
-        u_se_value = (
-            sf.senescence_mortality(lambda_se, t_to_maturity, t_since_maturity)
-            if is_mature
-            else 0.0
+        # Recompute independently to guard against parametrize drift.
+        u_t = (
+            sf.background_mortality(u_bg)
+            + (
+                sf.senescence_mortality(lambda_se, t_to_maturity, t_since_maturity)
+                if is_mature
+                else 0.0
+            )
+            + sf.starvation_mortality(lambda_max, J_st, zeta_st, mass_current, mass_max)
         )
-        u_st_value = sf.starvation_mortality(
-            lambda_max, J_st, zeta_st, mass_current, mass_max
-        )
-        u_t = u_bg_value + u_se_value + u_st_value
-
-        number_dead = ceil(100 * (1 - exp(-u_t * dt)))
-
-        # Diagnostics
-        print(
-            f"background: {u_bg_value},"
-            f"senescence: {u_se_value},"
-            f"starvation: {u_st_value}"
-        )
-        print(f"Calculated total mortality rate: {u_t}")
-        print(
-            f"Calculated number dead: {number_dead},"
-            f"Expected number dead: {expected_dead}"
-        )
-        print(
-            f"Remaining individuals: {cohort.individuals},"
-            f"Expected remaining: {100 - expected_dead}"
+        continuous_dead = pop_size * (1 - exp(-u_t * dt))
+        floor_dead = floor(continuous_dead)
+        remainder = continuous_dead - floor_dead
+        expected_from_formula = floor_dead + (1 if mock_random < remainder else 0)
+        assert expected_from_formula == expected_dead, (
+            f"Parametrize mismatch: formula gives {expected_from_formula}, "
+            f"expected_dead={expected_dead} (remainder={remainder:.6f}, "
+            f"mock_random={mock_random})."
         )
 
-        # Verify
-        assert cohort.individuals == 100 - expected_dead, (
-            "The calculated number of dead individuals doesn't match the expected "
-            "value."
+        assert cohort.individuals == pop_size - expected_dead, (
+            f"Expected {pop_size - expected_dead} survivors, got {cohort.individuals}."
         )
 
     @pytest.mark.parametrize(
