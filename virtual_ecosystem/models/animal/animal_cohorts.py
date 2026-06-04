@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 import uuid
 from _collections_abc import Callable, Mapping
-from math import ceil, exp, log, sqrt
+from math import ceil, exp, floor, log, sqrt
 from typing import Literal, TypeVar, cast
 
 from numpy import mean, timedelta64
@@ -1717,10 +1717,7 @@ class AnimalCohort:
 
         # Calculate the total number of dead individuals w/ stochastic rounding
         expected_dead = pop_size * (1 - exp(-u_t * dt))
-        floor_dead = int(expected_dead)
-        remainder = expected_dead - floor_dead
-        stochastic_extra = 1 if random.random() < remainder else 0
-        number_dead = floor_dead + stochastic_extra
+        number_dead = floor(expected_dead + random.random())
 
         # Remove the dead individuals from the cohort
         self.die_individual(number_dead, carcass_pools)
