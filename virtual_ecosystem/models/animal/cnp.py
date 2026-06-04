@@ -5,7 +5,7 @@ managing pools of stoichiometric explicit mass: carbon (C), nitrogen (N), and ph
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.models.soil.model_config import SoilConfiguration
@@ -59,13 +59,11 @@ class CNP:
         Raises:
             ValueError: If C, N, or P is negative.
         """
-        for name, value in asdict(self).items():
-            if value < 0:
-                raise ValueError(
-                    f"{name.capitalize()} mass cannot be negative. Current values: "
-                    f"C={self.C}, N={self.N},"
-                    f"P={self.P}."
-                )
+        if self.C < 0 or self.N < 0 or self.P < 0:
+            raise ValueError(
+                f"CNP mass cannot be negative. Current values: "
+                f"C={self.C}, N={self.N}, P={self.P}."
+            )
 
     def update(self, *, C: float = 0.0, N: float = 0.0, P: float = 0.0) -> None:
         """Update C, N, and P values. Positive values add; negative values subtract.

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_vp_sat
+from scipy.optimize import brentq
 
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_aboveground_layer_thickness,
@@ -92,6 +93,101 @@ def test_calculate_longwave_emission(
 
     assert np.all(result[valid] > 400.0)
     assert np.all(result[valid] < 500.0)
+
+
+def test_calculate_absorbed_longwave_radiation(
+    fixture_core_components, dummy_climate_data_varying_canopy, fixture_abiotic_indices
+):
+    """Test that absorbed longwave radiation is calculated correctly."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_absorbed_longwave_radiation,
+    )
+
+    lyr_str = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
+    idx = fixture_abiotic_indices
+
+    leaf_area_index = np.nan_to_num(data["leaf_area_index"].to_numpy(), nan=0.0)
+    downward_longwave = np.array([400.0, 400.0, 400.0, 400.0])
+
+    leaf_emissivity = 0.97
+    soil_emissivity = 0.95
+    stefan_boltzmann = 5.67e-8
+    zero_celsius = 273.15
+    extinction_coefficient_lw = 0.5
+
+    result = calculate_absorbed_longwave_radiation(
+        downward_longwave=downward_longwave,
+        leaf_area_index=leaf_area_index,
+        leaf_emissivity=leaf_emissivity,
+        soil_emissivity=soil_emissivity,
+        extinction_coefficient_lw=extinction_coefficient_lw,
+        surface_index=idx.surface,
+        topsoil_index=idx.topsoil,
+    )
+
+    surface_row = result[idx.surface, :]
+
+    # Shape
+    assert result.shape == (lyr_str.n_layers, data.grid.n_cells)
+
+    # All values non-negative
+    assert np.all(result >= 0.0)
+
+    # Empty canopy slot rows 4-10 are zero
+    assert np.all(result[4:11, :] == 0.0)
+
+    # NaN LAI cells within canopy rows are zero
+    assert result[1, 3] == 0.0
+    assert result[2, 2] == 0.0
+    assert result[2, 3] == 0.0
+    assert result[3, 1] == 0.0
+    assert result[3, 2] == 0.0
+    assert result[3, 3] == 0.0
+
+    # Surface layer positive for all cells
+    assert np.all(surface_row > 0.0)
+
+    # Exact surface values
+    lai_cum = np.array([3.0, 2.0, 1.0, 0.0])
+    transmittance = np.exp(-extinction_coefficient_lw * lai_cum)
+    expected_surface = leaf_emissivity * (downward_longwave * transmittance)
+
+    assert np.allclose(surface_row, expected_surface, rtol=1e-5)
+
+    # Energy conservation
+    total_per_cell = np.nansum(result, axis=0)
+    upper_bound = downward_longwave
+
+    assert np.all(total_per_cell <= upper_bound + 1e-6)
+
+    # Physical reasonableness: implied T_leaf within plausible bounds
+    air_temperature = 22.0
+    rho_cp = 1.2 * 1005.0
+    r_a = 50.0
+
+    for cell in range(data.grid.n_cells):
+        lw_abs = surface_row[cell]
+
+        def residual(leaf_temperature_celsius):
+            leaf_temperature_kelvin = leaf_temperature_celsius + zero_celsius
+            lw_emit = leaf_emissivity * stefan_boltzmann * leaf_temperature_kelvin**4
+            sh = (rho_cp / r_a) * (leaf_temperature_celsius - air_temperature)
+            return lw_abs - lw_emit - sh
+
+        # Find equilibrium T_leaf — search over a wide but physical range
+        leaf_temperature_eq = brentq(residual, -40.0, 80.0)
+
+        assert -10.0 <= leaf_temperature_eq <= 60.0
+
+    # Energy conservation: total absorbed <= downward
+
+    total_per_cell = np.nansum(result, axis=0)
+
+    # Maximum possible absorption: all downward at emissivity=1
+    upper_bound = downward_longwave
+
+    assert np.all(total_per_cell <= upper_bound + 1e-6)
 
 
 def test_calculate_sensible_heat_flux(
@@ -195,6 +291,7 @@ def test_energy_balance_residual_only(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
+    fixture_core_components,
 ):
     """Test energy balance residual without flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -218,6 +315,7 @@ def test_energy_balance_residual_only(
         density_air=data["density_air"].to_numpy(),
         aerodynamic_resistance=aerodynamic_resistance_2d,
         latent_heat_vapourisation=data["latent_heat_vapourisation"].to_numpy() * 1000,
+        surface_index=fixture_core_components.layer_structure.index_surface_scalar,
         leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
@@ -235,6 +333,7 @@ def test_energy_balance_return_fluxes(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
+    fixture_core_components,
 ):
     """Test energy balance residual with flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -255,6 +354,7 @@ def test_energy_balance_return_fluxes(
         density_air=data["density_air"].to_numpy(),
         aerodynamic_resistance=aerodynamic_resistance_2d,
         latent_heat_vapourisation=data["latent_heat_vapourisation"].to_numpy() * 1000,
+        surface_index=fixture_core_components.layer_structure.index_surface_scalar,
         leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
@@ -279,10 +379,10 @@ def test_energy_balance_return_fluxes(
         assert np.all(np.isfinite(result[key][mask]))
 
 
-def test_update_air_temperature(dummy_climate_data_varying_canopy):
+def test_update_canopy_air_temperature(dummy_climate_data_varying_canopy):
     """Test update air temperature in canopy."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
-        update_air_temperature,
+        update_canopy_air_temperature,
     )
 
     data = dummy_climate_data_varying_canopy
@@ -291,7 +391,7 @@ def test_update_air_temperature(dummy_climate_data_varying_canopy):
         heights=data["layer_heights"].to_numpy()
     )
 
-    result = update_air_temperature(
+    result = update_canopy_air_temperature(
         air_temperature=data["air_temperature"].to_numpy(),
         sensible_heat_flux=data["sensible_heat_flux"].to_numpy(),
         specific_heat_air=data["specific_heat_air"].to_numpy(),
@@ -306,6 +406,85 @@ def test_update_air_temperature(dummy_climate_data_varying_canopy):
     assert np.all(result[valid] < 45.0)
 
 
+def test_update_surface_air_temperature(
+    dummy_climate_data_varying_canopy, fixture_state_inputs, fixture_abiotic_indices
+):
+    """Test update surface air temperature."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        update_surface_air_temperature,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    state = fixture_state_inputs
+    idx = fixture_abiotic_indices
+
+    result = update_surface_air_temperature(
+        canopy_air_temperature=data["canopy_temperature"][idx.canopy].to_numpy(),
+        state=state,
+        idx=idx,
+        denominator_tolerance=1e-10,
+    )
+
+    # Mask valid values
+    valid = ~np.isnan(result)
+
+    assert np.all(result[valid] > 10.0)
+    assert np.all(result[valid] < 45.0)
+
+
+def test_update_specific_humidity(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test update specific humidity."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        update_specific_humidity,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    lystr = fixture_core_components.layer_structure
+
+    above_ground_layer_thickness = compute_aboveground_layer_thickness(
+        heights=data["layer_heights"].to_numpy()
+    )
+
+    evapotranspiration = data["transpiration"] + data["canopy_evaporation"]
+    specific_humidity = lystr.from_template()
+    specific_humidity[lystr.index_filled_atmosphere] = np.array(
+        [
+            [0.02, 0.02, 0.02, 0.02],
+            [0.012, 0.012, 0.012, np.nan],
+            [0.014, 0.014, np.nan, np.nan],
+            [0.015, np.nan, np.nan, np.nan],
+            [0.012, 0.012, 0.012, 0.012],
+        ]
+    )
+
+    exp = np.array(
+        [
+            [0.02, 0.02, 0.02, 0.02],
+            [0.01757769, 0.01757769, 0.01386545, np.nan],
+            [0.01798406, 0.01600204, np.nan, np.nan],
+            [0.01741458, np.nan, np.nan, np.nan],
+            [0.56976892, 0.6494502, 0.80881275, 0.80881275],
+        ]
+    )
+
+    result = update_specific_humidity(
+        evapotranspiration=evapotranspiration.to_numpy(),
+        soil_evaporation=data["soil_evaporation"].to_numpy(),
+        specific_humidity=specific_humidity.to_numpy(),
+        layer_thickness=above_ground_layer_thickness,
+        density_air=data["density_air"].to_numpy(),
+        mm_to_kg=1e-3,
+        cell_area=fixture_core_components.grid.cell_area,
+        time_interval=3600.0,
+        surface_index=lystr.index_surface_scalar,
+    )
+
+    np.testing.assert_allclose(exp, result[lystr.index_filled_atmosphere], rtol=1e-6)
+
+
 def test_update_humidity_vpd(
     dummy_climate_data_varying_canopy, fixture_core_components, fixture_core_constants
 ):
@@ -317,7 +496,6 @@ def test_update_humidity_vpd(
 
     data = dummy_climate_data_varying_canopy
     lystr = fixture_core_components.layer_structure
-    canopy_index = lystr.index_filled_canopy
     atm_index = lystr.index_filled_atmosphere
     pyr_const = PyrealmCoreConst()
 
@@ -325,7 +503,6 @@ def test_update_humidity_vpd(
         heights=data["layer_heights"][atm_index].to_numpy()
     )
 
-    evapotranspiration = data["transpiration"] + data["canopy_evaporation"]
     saturated_vapour_pressure = calc_vp_sat(
         ta=data["air_temperature"][atm_index].to_numpy(), core_const=pyr_const
     )
@@ -338,44 +515,22 @@ def test_update_humidity_vpd(
             [0.012, 0.012, 0.012, 0.012],
         ]
     )
-
-    mixing_coefficient = np.array(
-        [
-            [0.001, 0.001, 0.001, 0.001],
-            [0.005, 0.005, 0.005, np.nan],
-            [0.01, 0.01, np.nan, np.nan],
-            [0.001, np.nan, np.nan, np.nan],
-            [0.012, 0.012, 0.012, 0.012],
-        ]
-    )
-    ventilation_rate = np.array([0.01, 0.01, 0.01, 0.01])
-    time_interval = 3600.0
     mask = np.isnan(specific_humidity)
 
     # Run function
     result = update_humidity_vpd(
-        canopy_evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
-        understorey_evapotranspiration=evapotranspiration[
-            lystr.index_surface_scalar
-        ].to_numpy(),
-        soil_evaporation=data["soil_evaporation"].to_numpy(),
         saturated_vapour_pressure=saturated_vapour_pressure,
-        specific_humidity=specific_humidity,
+        specific_humidity_mixed=specific_humidity,
         layer_thickness=above_ground_layer_thickness,
         atmospheric_pressure=data["atmospheric_pressure"][atm_index].to_numpy(),
         density_air=data["density_air"][atm_index].to_numpy(),
-        mixing_coefficient=mixing_coefficient,
-        ventilation_rate=ventilation_rate,
         molecular_weight_ratio_water_to_dry_air=(
             fixture_core_constants.molecular_weight_ratio_water_to_dry_air
         ),
         dry_air_factor=1
         - fixture_core_constants.molecular_weight_ratio_water_to_dry_air,
-        mm_to_kg=1e-3,
         cell_area=fixture_core_components.grid.cell_area,
-        limits_specific_humidity=(0, 60),
         limits_relative_humidity=(0.001, 99.999),
-        time_interval=time_interval,
         denominator_tolerance=1e-12,
         limits_vapour_pressure_deficit=(0.01, 50),
     )
@@ -560,6 +715,7 @@ def test_make_canopy_residual_changes_with_temperature(
         aerodynamic_resistance=aerodynamic_resistance,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        surface_index=0,
     )
 
     temperature1 = np.ones(shape) * 28
@@ -604,6 +760,7 @@ def test_make_canopy_residual_uses_state(
         aerodynamic_resistance=aerodynamic_resistance,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        surface_index=0,
     )
 
     temperature1 = np.ones(shape) * 29
@@ -653,6 +810,7 @@ def test_make_canopy_residual_with_nans(
         aerodynamic_resistance=aerodynamic_resistance,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        surface_index=0,
     )
 
     temperature = np.array(

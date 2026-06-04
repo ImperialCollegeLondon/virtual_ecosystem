@@ -726,6 +726,7 @@ def dummy_climate_data(fixture_core_components):
         "aerodynamic_resistance_canopy": 30.0,  # s m-1
         "ground_heat_flux": 20.0,
         "conductive_flux_understorey": 50.0,
+        "ventilation_rate": 0.1,
     }
     for var, val in spatially_constant.items():
         data[var] = DataArray(np.repeat(val, 4), dims=["cell_id"])
@@ -746,6 +747,9 @@ def dummy_climate_data(fixture_core_components):
     # - Vertically structured
     data["wind_speed"] = from_template()
     data["wind_speed"][lyr_str.index_filled_atmosphere] = 0.1
+
+    data["mixing_coefficient"] = from_template()
+    data["mixing_coefficient"][lyr_str.index_filled_atmosphere] = 0.1
 
     data["atmospheric_pressure"] = from_template()
     data["atmospheric_pressure"][lyr_str.index_filled_atmosphere] = 96.0
@@ -875,6 +879,12 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     dummy_climate_data["wind_speed"][index_filled_canopy] = [
         [0.3, 0.3, 0.3, np.nan],
         [0.25, 0.25, np.nan, np.nan],
+        [0.1, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["mixing_coefficient"][index_filled_canopy] = [
+        [0.1, 0.1, 0.1, np.nan],
+        [0.1, 0.1, np.nan, np.nan],
         [0.1, np.nan, np.nan, np.nan],
     ]
 
@@ -1018,6 +1028,8 @@ def fixture_static_inputs(
         np.nansum(data["leaf_area_index"][indices.canopy].to_numpy(), axis=0)
     )
 
+    leaf_area_index = data["leaf_area_index"].copy().to_numpy()
+
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
@@ -1038,6 +1050,8 @@ def fixture_static_inputs(
 
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
+        idx=indices,
+        minimum_mixing_depth=abiotic_constants.minimum_mixing_depth,
     )
 
     # Absorbed longwave radiation by canopy, [W m-2]
@@ -1067,6 +1081,7 @@ def fixture_static_inputs(
 
     return {
         "canopy_height": canopy_height,
+        "leaf_area_index": leaf_area_index,
         "lai_sum": leaf_area_index_sum,
         "evapotranspiration": evapotranspiration.to_numpy() / days,
         "atmospheric_pressure": atmospheric_pressure_true,

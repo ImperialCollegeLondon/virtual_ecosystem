@@ -40,12 +40,12 @@ class SoilConstants(Configuration):
     :cite:t:`Qiao2019`."""
 
     cue_reference_temp: float = 20.0
-    """Reference temperature for carbon use efficiency [°C]. Default value taken from
-    :cite:t:`Qiao2019`."""
+    """Reference temperature for carbon use efficiency [Celsius]. Default value taken
+    from :cite:t:`Qiao2019`."""
 
     logit_cue_with_temperature: float = -0.039
     """Change in the logit of carbon use efficiency with unit increase in temperature
-    [°C^-1]. Parameter estimated from a beta-logit GLMM using the data from 
+    [Celsius^-1]. Parameter estimated from a beta-logit GLMM using the data from 
     :cite:t:`Qiao2019`."""
 
     soil_microbe_water_potential_optimum: float = Field(default=-3.0, lt=0.0)
@@ -178,7 +178,7 @@ class SoilConstants(Configuration):
     particularly clear."""
 
     tectonic_uplift_rate_phosphorus: float = 0.0
-    """Rate at which tectonic uplift exposes new primary phosphorus [kg P m^-3 day^-1].
+    """Rate at which tectonic uplift exposes new primary phosphorus [kg{P} m^-3 day^-1].
     This rate is essentially zero for decadal simulations. We have only included to
     give the flexibility to run longer term test scenarios."""
 
@@ -198,13 +198,13 @@ class SoilConstants(Configuration):
     default value from there."""
 
     nitrification_optimum_temperature: float = 311.15
-    """Soil temperature at which nitrification is maximised [K]. Value taken from
+    """Soil temperature at which nitrification is maximised [Kelvin]. Value taken from
     :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied independently of
     :attr:`SoilConstants.nitrification_maximum_temperature` and
     :attr:`SoilConstants.nitrification_thermal_sensitivity`!"""
 
     nitrification_maximum_temperature: float = 343.15
-    """Temperature at which our empirical nitrification model stops working [K].
+    """Temperature at which our empirical nitrification model stops working [Kelvin].
     This is well outside field values so this should be too much of a problem. Value
     taken from :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied
     independently of :attr:`SoilConstants.nitrification_optimum_temperature` and
@@ -224,29 +224,29 @@ class SoilConstants(Configuration):
     :attr:`SoilConstants.denitrification_thermal_sensitivity`!"""
 
     denitrification_minimum_temperature: float = 273.15 - 46.02
-    """Temperature at which denitrification stops entirely [K]. Value is obtained from
-    :cite:t:`xu-ri_terrestrial_2008`, and converted to Kelvin. The expression we are
-    using does not function below this temperature, but this is not a major problem as
-    it is a very low temperature. This value should not be varied independently of
+    """Temperature at which denitrification stops entirely [Kelvin]. Value is obtained
+    from :cite:t:`xu-ri_terrestrial_2008`, and converted to Kelvin. The expression we
+    are using does not function below this temperature, but this is not a major problem
+    as it is a very low temperature. This value should not be varied independently of
     :attr:`SoilConstants.denitrification_infinite_temperature_factor` and
     :attr:`SoilConstants.denitrification_thermal_sensitivity`!"""
 
     denitrification_thermal_sensitivity: float = 308.56
-    """Sensitivity of denitrification rate to changes in temperature [K]. Value is
+    """Sensitivity of denitrification rate to changes in temperature [Kelvin]. Value is
     obtained from :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied
     independently of :attr:`SoilConstants.denitrification_infinite_temperature_factor`
     and :attr:`SoilConstants.denitrification_minimum_temperature`!"""
 
     nitrogen_fixation_cost_zero_celcius: float = 59.19651970522086
-    """Cost (in carbon) that plants pay to their symbiotic partners at zero Celsius [kg
-    C kg N^-1]. This is cost per unit of nitrogen received, and will be higher than the
-    symbiotic partners actually spend to fix the nitrogen. Value is obtained from
-    :cite:t:`brzostek_modeling_2014`. 
+    """Cost (in carbon) that plants pay to their symbiotic partners at zero Celsius
+    [kg{C} kg{N}^-1]. This is cost per unit of nitrogen received, and will be higher 
+    than the symbiotic partners actually spend to fix the nitrogen. Value is obtained 
+    from :cite:t:`brzostek_modeling_2014`. 
     """
 
     nitrogen_fixation_cost_infinite_temp_offset: float = -0.8034802947791453
     """Difference in nitrogen fixation cost between zero Celsius and infinite limit.
-    Units of [kg C kg N^-1]. This limit of infinite temperature is not biologically
+    Units of [kg{C} kg{N}^-1]. This limit of infinite temperature is not biologically
     meaningful and is instead just a way of characterising the form of the empirical
     function. A negative value means that the cost in the infinite temperature limit is
     higher than at zero Celsius. Value is obtained from
@@ -254,22 +254,22 @@ class SoilConstants(Configuration):
 
     nitrogen_fixation_cost_thermal_sensitivity: float = 0.27
     """Sensitivity of symbiotic nitrogen fixation cost to changes in temperature
-    [°C^-1]. Value is obtained from :cite:t:`brzostek_modeling_2014`."""
+    [Celsius^-1]. Value is obtained from :cite:t:`brzostek_modeling_2014`."""
 
     nitrogen_fixation_cost_equality_temperature: float = 50.28
     """Positive temperature at which nitrogen fixation cost is the same at zero Celsius.
-    [°C]. Value is obtained from :cite:t:`brzostek_modeling_2014`."""
+    [Celsius]. Value is obtained from :cite:t:`brzostek_modeling_2014`."""
 
     free_living_N_fixation_reference_rate: float = 15.0 * 1e-4 / 365.25
     """Rate at which free living microbes fix nitrogen (at the reference temperature).
-    Units of [kg N m^-2 day^-1]. Value specific to tropical forests, and is taken from
+    Units of [kg{N} m^-2 day^-1]. Value specific to tropical forests, and is taken from
     :cite:t:`lin_modelling_2000` (with the units adjusted). Should not be changed
     independently from :attr:`SoilConstants.free_living_N_fixation_reference_temp`."""
 
     free_living_N_fixation_reference_temp: float = 293.15
-    """Temperature reference rate of free-living nitrogen fixation was measured at [K].
-    Value taken from :cite:t:`lin_modelling_2000`. Should not be changed independently
-    from :attr:`SoilConstants.free_living_N_fixation_reference_rate`.
+    """Temperature reference rate of free-living nitrogen fixation was measured at
+    [Kelvin]. Value taken from :cite:t:`lin_modelling_2000`. Should not be changed
+    independently from :attr:`SoilConstants.free_living_N_fixation_reference_rate`.
     """
 
     free_living_N_fixation_q10_coefficent: float = 3.0
@@ -289,12 +289,12 @@ class SoilConstants(Configuration):
     [day^-1]. Default value taken from :cite:t:`parton_dynamics_1988`. """
 
     ammonium_deposition_rate: float = 1.5e-4 / 365.25
-    """Rate at which ammonium is deposited into the system [kg N m^-2 day^-1]. We are
+    """Rate at which ammonium is deposited into the system [kg{N} m^-2 day^-1]. We are
     assuming that deposition rates won't vary substantially over the area the 
     simulation encompasses. Value taken from :cite:t:`vet_global_2014`."""
 
     phosphorus_deposition_rate: float = 5e-6 / 365.25
-    """Rate at which phosphorus is deposited into the system [kg P m^-2 day^-1].
+    """Rate at which phosphorus is deposited into the system [kg{P} m^-2 day^-1].
     We are assuming that deposition rates won't vary substantially over the area the
     simulation encompasses. Value taken from :cite:t:`Mahowald2008`."""
 
@@ -345,14 +345,14 @@ class SoilEnzymeClass(Configuration):
     """The maximum rate of the enzyme at the reference temperature [day^-1]."""
     half_saturation_constant: float = Field(default=70.0)
     """The half saturation constant for the enzyme at the reference temperature. Units
-    of [kg C m^-3]."""
+    of [kg{C} m^-3]."""
     activation_energy_rate: float = Field(default=37000)
-    """Activation energy for enzyme rate with temperature [J K^-1]."""
+    """Activation energy for enzyme rate with temperature [J Kelvin^-1]."""
     activation_energy_saturation: float = Field(default=30000)
-    """Activation energy for enzyme saturation with temperature [J K^-1]."""
+    """Activation energy for enzyme saturation with temperature [J Kelvin^-1]."""
     # TODO - This should change to Kelvin when we change the default units to Kelvin
     reference_temperature: float = Field(default=12.0)
-    """The temperature that enzyme rate and saturation were measured at [°C]."""
+    """The temperature that enzyme rate and saturation were measured at [Celsius]."""
     turnover_rate: float = Field(default=0.024)
     """The turnover rate of the enzyme [day^-1]."""
     c_n_ratio: float = Field(default=5.2)
@@ -371,30 +371,30 @@ class SoilMicrobialGroup(Configuration):
     max_uptake_rate_labile_C: float = Field(default=0.04)
     """Maximum rate at the reference temperature of labile carbon uptake [day^-1]."""
     activation_energy_uptake_rate: float = Field(default=47000)
-    """Activation energy for nutrient uptake [J K^-1]."""
+    """Activation energy for nutrient uptake [J Kelvin^-1]."""
     half_sat_labile_C_uptake: float = Field(default=0.364)
-    """Half saturation constant for uptake of labile carbon (LMWC) [kg C m^-3]."""
+    """Half saturation constant for uptake of labile carbon (LMWC) [kg{C} m^-3]."""
     activation_energy_uptake_saturation: float = Field(default=30000)
-    """Activation energy for nutrient uptake saturation constants [J K^-1]."""
+    """Activation energy for nutrient uptake saturation constants [J Kelvin^-1]."""
     max_uptake_rate_ammonium: float = Field(default=0.005)
     """Maximum possible rate for ammonium uptake [day^-1]."""
     half_sat_ammonium_uptake: float = Field(default=0.02275)
-    """Half saturation constant for uptake of ammonium [kg N m^-3]."""
+    """Half saturation constant for uptake of ammonium [kg{N} m^-3]."""
     max_uptake_rate_nitrate: float = Field(default=0.0005)
     """Maximum possible rate for nitrate uptake [day^-1]."""
     half_sat_nitrate_uptake: float = Field(default=0.02275)
-    """Half saturation constant for uptake of nitrate [kg N m^-3]."""
+    """Half saturation constant for uptake of nitrate [kg{N} m^-3]."""
     max_uptake_rate_labile_p: float = Field(default=0.0025)
     """Maximum possible rate for labile inorganic phosphorus uptake [day^-1]."""
     half_sat_labile_p_uptake: float = Field(default=0.02275)
-    """Half saturation constant for uptake of labile inorganic phosphorus [kg P m^-3].
+    """Half saturation constant for uptake of labile inorganic phosphorus [kg{P} m^-3].
     """
     turnover_rate: float = Field(default=0.005)
     """Microbial maintenance turnover rate at reference temperature [day^-1]."""
     activation_energy_turnover: float = Field(default=20000)
-    """Activation energy for microbial maintenance turnover rate [J K^-1]."""
+    """Activation energy for microbial maintenance turnover rate [J Kelvin^-1]."""
     reference_temperature: float = Field(default=12.0)
-    """The temperature that turnover and uptake rates were measured at [°C]."""
+    """The temperature that turnover and uptake rates were measured at [Celsius]."""
     c_n_ratio: float = Field(default=5.2)
     """Ratio of carbon to nitrogen in biomass [unitless]."""
     c_p_ratio: float = Field(default=16)

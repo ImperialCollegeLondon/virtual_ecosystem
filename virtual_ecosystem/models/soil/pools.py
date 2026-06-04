@@ -51,21 +51,21 @@ class MicrobialChanges:
     lmwc_uptake: NDArray[np.floating]
     """Total rate of microbial uptake of low molecular weight carbon.
     
-    Units of [kg C m^-3 day^-1]."""
+    Units of [kg{C} m^-3 day^-1]."""
 
     don_uptake: NDArray[np.floating]
     """Total rate of microbial uptake of dissolved organic nitrogen.
     
-    Units of [kg N m^-3 day^-1]."""
+    Units of [kg{N} m^-3 day^-1]."""
 
     ammonium_change: NDArray[np.floating]
-    """Total change in the ammonium pool due to microbial activity [kg N m^-3 day^-1].
+    """Total change in the ammonium pool due to microbial activity [kg{N} m^-3 day^-1].
     
     This change arises from the balance of immobilisation and mineralisation of
     ammonium. A positive value indicates a net immobilisation (uptake) of ammonium."""
 
     nitrate_change: NDArray[np.floating]
-    """Total change in the nitrate pool due to microbial activity [kg N m^-3 day^-1].
+    """Total change in the nitrate pool due to microbial activity [kg{N} m^-3 day^-1].
 
     This change arises from the balance of immobilisation and mineralisation of
     nitrate. A positive value indicates a net immobilisation (uptake) of nitrate."""
@@ -73,76 +73,77 @@ class MicrobialChanges:
     dop_uptake: NDArray[np.floating]
     """Total rate of microbial uptake of dissolved organic phosphorus.
     
-    Units of [kg P m^-3 day^-1]."""
+    Units of [kg{P} m^-3 day^-1]."""
 
     labile_p_change: NDArray[np.floating]
     """Total change in the labile inorganic phosphorus pool due to microbial activity.
     
-    Units of [kg P m^-3 day^-1]. This change arises from the balance of immobilisation
+    Units of [kg{P} m^-3 day^-1]. This change arises from the balance of immobilisation
     and mineralisation of labile P. A positive value indicates a net immobilisation
     (uptake) of P. """
 
     bacteria_change: NDArray[np.floating]
-    """Rate of change of bacterial biomass pool [kg C m^-3 day^-1]."""
+    """Rate of change of bacterial biomass pool [kg{C} m^-3 day^-1]."""
 
     saprotrophic_fungi_change: NDArray[np.floating]
-    """Rate of change of saprotrophic fungal biomass pool [kg C m^-3 day^-1]."""
+    """Rate of change of saprotrophic fungal biomass pool [kg{C} m^-3 day^-1]."""
 
     arbuscular_mycorrhiza_change: NDArray[np.floating]
-    """Rate of change of arbuscular mycorrhizal fungi biomass pool [kg C m^-3 day^-1].
+    """Rate of change of arbuscular mycorrhizal fungi biomass pool [kg{C} m^-3 day^-1].
     """
 
     ectomycorrhiza_change: NDArray[np.floating]
-    """Rate of change of ectomycorrhizal fungi biomass pool [kg C m^-3 day^-1]."""
+    """Rate of change of ectomycorrhizal fungi biomass pool [kg{C} m^-3 day^-1]."""
 
     pom_enzyme_bacteria_change: NDArray[np.floating]
     """Rate of change for the bacterially produced :term:`POM` degrading enzymes.
 
-    Units of [kg C m^-3 day^-1].
+    Units of [kg{C} m^-3 day^-1].
     """
 
     maom_enzyme_bacteria_change: NDArray[np.floating]
     """Rate of change for the bacterially produced :term:`MAOM` degrading enzymes.
     
-    Units of [kg C m^-3 day^-1].
+    Units of [kg{C} m^-3 day^-1].
     """
 
     pom_enzyme_fungi_change: NDArray[np.floating]
     """Rate of change for the fungally produced :term:`POM` degrading enzymes.
 
-    Units of [kg C m^-3 day^-1].
+    Units of [kg{C} m^-3 day^-1].
     """
 
     maom_enzyme_fungi_change: NDArray[np.floating]
     """Rate of change for the fungally produced :term:`MAOM` degrading enzymes.
     
-    Units of [kg C m^-3 day^-1].
+    Units of [kg{C} m^-3 day^-1].
     """
 
     necromass_generation: NDArray[np.floating]
-    """Rate at which necromass is being produced [kg C m^-3 day^-1]."""
+    """Rate at which necromass is being produced [kg{C} m^-3 day^-1]."""
 
     necromass_n_flow: NDArray[np.floating]
-    """Nitrogen flow associated with necromass generation [kg N m^-3 day^-1]."""
+    """Nitrogen flow associated with necromass generation [kg{N} m^-3 day^-1]."""
 
     necromass_p_flow: NDArray[np.floating]
-    """Phosphorus flow associated with necromass generation [kg P m^-3 day^-1]."""
+    """Phosphorus flow associated with necromass generation [kg{P} m^-3 day^-1]."""
 
     fruiting_body_production: NDArray[np.floating]
-    """Rate at which fungal fruiting bodies are being produced [kg C m^-3 day^-1]."""
+    """Rate at which fungal fruiting bodies are being produced [kg{C} m^-3 day^-1]."""
 
     arbuscular_mycorrhiza_n_supply: NDArray[np.floating]
-    """Supply rate of nitrogen to plants by arbuscular mycorrhiza [kg N m^-3 day^-1]."""
+    """Supply rate of nitrogen to plants by arbuscular mycorrhiza [kg{N} m^-3 day^-1].
+    """
 
     arbuscular_mycorrhiza_p_supply: NDArray[np.floating]
-    """Supply rate of phosphorus to plants by arbuscular mycorrhiza [kg P m^-3 day^-1].
+    """Supply rate of phosphorus to plants by arbuscular mycorrhiza [kg{P} m^-3 day^-1].
     """
 
     ectomycorrhiza_n_supply: NDArray[np.floating]
-    """Supply rate of nitrogen to plants by ectomycorrhiza [kg N m^-3 day^-1]."""
+    """Supply rate of nitrogen to plants by ectomycorrhiza [kg{N} m^-3 day^-1]."""
 
     ectomycorrhiza_p_supply: NDArray[np.floating]
-    """Supply rate of phosphorus to plants by ectomycorrhiza [kg P m^-3 day^-1].
+    """Supply rate of phosphorus to plants by ectomycorrhiza [kg{P} m^-3 day^-1].
     """
 
 
@@ -153,13 +154,13 @@ class EnzymeMediatedRates:
     pom_to_lmwc: NDArray[np.floating]
     """Rate of particulate organic matter decomposition to low molecular weight carbon.
     
-    Units of [kg C m^-3 day^-1].
+    Units of [kg{C} m^-3 day^-1].
     """
 
     maom_to_lmwc: NDArray[np.floating]
     """Rate of mineral associated organic matter decomposition to LMWC.
 
-    Units of [kg C m^-3 day^-1].
+    Units of [kg{C} m^-3 day^-1].
     """
 
 
@@ -170,49 +171,49 @@ class EnzymePoolChanges:
     net_change_pom_bacteria: NDArray[np.floating]
     """Net change in the bacterially produced enzyme pool that breaks down :term:`POM`.
     
-    Units of [kg C m^-3 day^-1]
+    Units of [kg{C} m^-3 day^-1]
     """
 
     net_change_maom_bacteria: NDArray[np.floating]
     """Net change in the bacterially produced enzyme pool that breaks down :term:`MAOM`.
     
-    Units of [kg C m^-3 day^-1]
+    Units of [kg{C} m^-3 day^-1]
     """
 
     net_change_pom_fungi: NDArray[np.floating]
     """Net change in the fungally produced enzyme pool that breaks down :term:`POM`.
     
-    Units of [kg C m^-3 day^-1]
+    Units of [kg{C} m^-3 day^-1]
     """
 
     net_change_maom_fungi: NDArray[np.floating]
     """Net change in the fungally produced enzyme pool that breaks down :term:`MAOM`.
     
-    Units of [kg C m^-3 day^-1]
+    Units of [kg{C} m^-3 day^-1]
     """
 
     denaturation_pom_bacteria: NDArray[np.floating]
     """Denaturation rate for the :term:`POM` degrading enzyme produced by bacteria.
     
-    Units of [kg C m^-3 day^-1]
+    Units of [kg{C} m^-3 day^-1]
     """
 
     denaturation_maom_bacteria: NDArray[np.floating]
     """Denaturation rate for the :term:`MAOM` degrading enzyme produced by bacteria.
     
-    Units of [kg C m^-3 day^-1]
+    Units of [kg{C} m^-3 day^-1]
     """
 
     denaturation_pom_fungi: NDArray[np.floating]
     """Denaturation rate for the :term:`POM` degrading enzyme produced by fungi.
     
-    Units of [kg C m^-3 day^-1]
+    Units of [kg{C} m^-3 day^-1]
     """
 
     denaturation_maom_fungi: NDArray[np.floating]
     """Denaturation rate for the :term:`MAOM` degrading enzyme produced by fungi.
     
-    Units of [kg C m^-3 day^-1]
+    Units of [kg{C} m^-3 day^-1]
     """
 
 
@@ -221,16 +222,16 @@ class BiomassLosses:
     """Losses of biomass from each microbial functional group due to turnover."""
 
     bacteria: NDArray[np.floating]
-    """Rate of loss of bacterial biomass [kg C m^-3 day^-1]."""
+    """Rate of loss of bacterial biomass [kg{C} m^-3 day^-1]."""
 
     saprotrophic_fungi: NDArray[np.floating]
-    """Rate of loss of saprotrophic fungal biomass [kg C m^-3 day^-1]."""
+    """Rate of loss of saprotrophic fungal biomass [kg{C} m^-3 day^-1]."""
 
     ectomycorrhiza: NDArray[np.floating]
-    """Rate of loss of ectomycorrhizal fungal biomass [kg C m^-3 day^-1]."""
+    """Rate of loss of ectomycorrhizal fungal biomass [kg{C} m^-3 day^-1]."""
 
     arbuscular_mycorrhiza: NDArray[np.floating]
-    """Rate of loss of arbuscular mycorrhizal fungal biomass [kg C m^-3 day^-1]."""
+    """Rate of loss of arbuscular mycorrhizal fungal biomass [kg{C} m^-3 day^-1]."""
 
 
 @dataclass
@@ -238,22 +239,22 @@ class WaterRemovalRates:
     """Rate at which each soluble nutrient pool is removed due to soil water flows."""
 
     lmwc: NDArray[np.floating]
-    """Removal rate for the low molecular weight carbon pool [kg C m^-3 day^-1]."""
+    """Removal rate for the low molecular weight carbon pool [kg{C} m^-3 day^-1]."""
 
     don: NDArray[np.floating]
-    """Loss of dissolved organic nitrogen due to LMWC removal [kg N m^-3 day^-1]."""
+    """Loss of dissolved organic nitrogen due to LMWC removal [kg{N} m^-3 day^-1]."""
 
     dop: NDArray[np.floating]
-    """Loss of dissolved organic phosphorus due to LMWC removal [kg P m^-3 day^-1]."""
+    """Loss of dissolved organic phosphorus due to LMWC removal [kg{P} m^-3 day^-1]."""
 
     ammonium: NDArray[np.floating]
-    """Removal rate for the soil ammonium pool [kg N m^-3 day^-1]."""
+    """Removal rate for the soil ammonium pool [kg{N} m^-3 day^-1]."""
 
     nitrate: NDArray[np.floating]
-    """Removal rate for the soil nitrate pool [kg N m^-3 day^-1]."""
+    """Removal rate for the soil nitrate pool [kg{N} m^-3 day^-1]."""
 
     labile_P: NDArray[np.floating]
-    """Removal rate for the labile inorganic phosphorus pool [kg P m^-3 day^-1]."""
+    """Removal rate for the labile inorganic phosphorus pool [kg{P} m^-3 day^-1]."""
 
 
 @dataclass
@@ -261,30 +262,30 @@ class LitterMineralisationFluxes:
     """Fluxes into each soil pool due to mineralisation from litter model."""
 
     lmwc: NDArray[np.floating]
-    """Mineralisation into the low molecular weight carbon pool [kg C m^-3 day^-1]."""
+    """Mineralisation into the low molecular weight carbon pool [kg{C} m^-3 day^-1]."""
 
     pom: NDArray[np.floating]
-    """Mineralisation into the particulate organic matter pool [kg C m^-3 day^-1]."""
+    """Mineralisation into the particulate organic matter pool [kg{C} m^-3 day^-1]."""
 
     don: NDArray[np.floating]
-    """Mineralisation into the dissolved organic nitrogen pool [kg N m^-3 day^-1]."""
+    """Mineralisation into the dissolved organic nitrogen pool [kg{N} m^-3 day^-1]."""
 
     ammonium: NDArray[np.floating]
-    """Mineralisation into the ammonium pool [kg N m^-3 day^-1]."""
+    """Mineralisation into the ammonium pool [kg{N} m^-3 day^-1]."""
 
     particulate_n: NDArray[np.floating]
-    """Mineralisation into the particulate organic nitrogen pool [kg N m^-3 day^-1]."""
+    """Mineralisation into the particulate organic nitrogen pool [kg{N} m^-3 day^-1]."""
 
     dop: NDArray[np.floating]
-    """Mineralisation into the dissolved organic phosphorus pool [kg P m^-3 day^-1]."""
+    """Mineralisation into the dissolved organic phosphorus pool [kg{P} m^-3 day^-1]."""
 
     labile_p: NDArray[np.floating]
-    """Mineralisation into the labile inorganic phosphorus pool [kg P m^-3 day^-1]."""
+    """Mineralisation into the labile inorganic phosphorus pool [kg{P} m^-3 day^-1]."""
 
     particulate_p: NDArray[np.floating]
     """Mineralisation into the particulate organic phosphorus pool.
     
-    Units of [kg P m^-3 day^-1].
+    Units of [kg{P} m^-3 day^-1].
     """
 
 
@@ -293,105 +294,105 @@ class PoolData:
     """Data class collecting the full set of soil pools updated by the soil model."""
 
     soil_cnp_pool_maom_carbon: NDArray[np.floating]
-    """Carbon content of the mineral associated organic matter pool [kg C m^-3]."""
+    """Carbon content of the mineral associated organic matter pool [kg{C} m^-3]."""
 
     soil_cnp_pool_maom_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the :term:`MAOM` pool [kg N m^-3]."""
+    """Nitrogen content of the :term:`MAOM` pool [kg{N} m^-3]."""
 
     soil_cnp_pool_maom_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the :term:`MAOM` pool [kg P m^-3]."""
+    """Phosphorus content of the :term:`MAOM` pool [kg{P} m^-3]."""
 
     soil_cnp_pool_lmwc_carbon: NDArray[np.floating]
-    """Carbon content of the low molecular weight carbon pool [kg C m^-3]."""
+    """Carbon content of the low molecular weight carbon pool [kg{C} m^-3]."""
 
     soil_cnp_pool_lmwc_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the :term:`LMWC` pool [kg N m^-3]."""
+    """Nitrogen content of the :term:`LMWC` pool [kg{N} m^-3]."""
 
     soil_cnp_pool_lmwc_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the :term:`LMWC` pool [kg P m^-3]."""
+    """Phosphorus content of the :term:`LMWC` pool [kg{P} m^-3]."""
 
     soil_c_pool_bacteria: NDArray[np.floating]
-    """Bacterial biomass pool [kg C m^-3]."""
+    """Bacterial biomass pool [kg{C} m^-3]."""
 
     soil_c_pool_saprotrophic_fungi: NDArray[np.floating]
-    """Saprotrophic fungi biomass pool [kg C m^-3]."""
+    """Saprotrophic fungi biomass pool [kg{C} m^-3]."""
 
     soil_c_pool_arbuscular_mycorrhiza: NDArray[np.floating]
-    """Arbuscular mycorrhizal fungi biomass pool [kg C m^-3]."""
+    """Arbuscular mycorrhizal fungi biomass pool [kg{C} m^-3]."""
 
     soil_c_pool_ectomycorrhiza: NDArray[np.floating]
-    """Ectomycorrhizal fungi biomass pool [kg C m^-3]."""
+    """Ectomycorrhizal fungi biomass pool [kg{C} m^-3]."""
 
     soil_cnp_pool_pom_carbon: NDArray[np.floating]
-    """Carbon content of the particulate organic matter pool [kg C m^-3]."""
+    """Carbon content of the particulate organic matter pool [kg{C} m^-3]."""
 
     soil_cnp_pool_pom_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the :term:`POM` pool [kg N m^-3]."""
+    """Nitrogen content of the :term:`POM` pool [kg{N} m^-3]."""
 
     soil_cnp_pool_pom_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the :term:`POM` pool [kg P m^-3]."""
+    """Phosphorus content of the :term:`POM` pool [kg{P} m^-3]."""
 
     soil_cnp_pool_necromass_carbon: NDArray[np.floating]
-    """Carbon content of the microbial necromass pool [kg C m^-3]."""
+    """Carbon content of the microbial necromass pool [kg{C} m^-3]."""
 
     soil_cnp_pool_necromass_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the microbial necromass pool [kg N m^-3]."""
+    """Nitrogen content of the microbial necromass pool [kg{N} m^-3]."""
 
     soil_cnp_pool_necromass_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the microbial necromass pool [kg P m^-3]."""
+    """Phosphorus content of the microbial necromass pool [kg{P} m^-3]."""
 
     soil_enzyme_pom_bacteria: NDArray[np.floating]
-    """Bacteria produced enzyme class which breaks down :term:`POM` [kg C m^-3]."""
+    """Bacteria produced enzyme class which breaks down :term:`POM` [kg{C} m^-3]."""
 
     soil_enzyme_maom_bacteria: NDArray[np.floating]
-    """Bacteria produced enzyme class which breaks down :term:`MAOM` [kg C m^-3]."""
+    """Bacteria produced enzyme class which breaks down :term:`MAOM` [kg{C} m^-3]."""
 
     soil_enzyme_pom_fungi: NDArray[np.floating]
-    """Fungi produced enzyme class which breaks down :term:`POM` [kg C m^-3]."""
+    """Fungi produced enzyme class which breaks down :term:`POM` [kg{C} m^-3]."""
 
     soil_enzyme_maom_fungi: NDArray[np.floating]
-    """Fungi produced enzyme class which breaks down :term:`MAOM` [kg C m^-3]."""
+    """Fungi produced enzyme class which breaks down :term:`MAOM` [kg{C} m^-3]."""
 
     soil_n_pool_ammonium: NDArray[np.floating]
-    r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg N m^-3]."""
+    r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg{N} m^-3]."""
 
     soil_n_pool_nitrate: NDArray[np.floating]
-    r"""Soil nitrate (:math:`\ce{NO3-}`) pool [kg N m^-3]."""
+    r"""Soil nitrate (:math:`\ce{NO3-}`) pool [kg{N} m^-3]."""
 
     soil_p_pool_primary: NDArray[np.floating]
-    """Primary mineral phosphorus pool [kg P m^-3]."""
+    """Primary mineral phosphorus pool [kg{P} m^-3]."""
 
     soil_p_pool_secondary: NDArray[np.floating]
-    """Secondary (inorganic) mineral phosphorus pool [kg P m^-3]."""
+    """Secondary (inorganic) mineral phosphorus pool [kg{P} m^-3]."""
 
     soil_p_pool_labile: NDArray[np.floating]
-    """Inorganic labile phosphorus pool [kg P m^-3]."""
+    """Inorganic labile phosphorus pool [kg{P} m^-3]."""
 
     new_fungal_fruiting_body_production: NDArray[np.floating]
-    """Fungal fruiting biomass produced during simulation time step [kg C m^-3]."""
+    """Fungal fruiting biomass produced during simulation time step [kg{C} m^-3]."""
 
     new_amf_n_supply: NDArray[np.floating]
     """Nitrogen supplied to plants by arbuscular mycorrhiza over integration time.
 
-    Units of [kg N m^-3].
+    Units of [kg{N} m^-3].
     """
 
     new_amf_p_supply: NDArray[np.floating]
     """Phosphorus supplied to plants by arbuscular mycorrhiza over integration time.
 
-    Units of [kg P m^-3].
+    Units of [kg{P} m^-3].
     """
 
     new_emf_n_supply: NDArray[np.floating]
     """Nitrogen supplied to plants by ectomycorrhiza over integration time.
 
-    Units of [kg N m^-3].
+    Units of [kg{N} m^-3].
     """
 
     new_emf_p_supply: NDArray[np.floating]
     """Phosphorus supplied to plants by ectomycorrhiza over integration time.
 
-    Units of [kg P m^-3].
+    Units of [kg{P} m^-3].
     """
 
 
@@ -878,14 +879,14 @@ def calculate_microbial_changes(
 
     Args:
         pools: Data class containing the various soil pools.
-        soil_temp: soil temperature for each soil grid cell [degrees C]
+        soil_temp: soil temperature for each soil grid cell [Celsius]
         env_factors: Data class containing the various factors through which the
             environment effects soil cycling rates.
         constants: Set of constants for the soil model.
         microbial_groups: Set of microbial functional groups used by the soil model.
         enzyme_classes: Details of the enzyme classes used by the soil model.
-        carbon_supply: The carbon supply to each symbiotic microbial partner [kg C m^-3
-            day^-1]
+        carbon_supply: The carbon supply to each symbiotic microbial partner
+            [kg{C} m^-3 day^-1]
 
     Returns:
         A dataclass containing the rate at which microbes uptake LMWC, DON and DOP, and
@@ -1087,10 +1088,10 @@ def calculate_biomass_losses(
     Args:
         pools: Data class containing the various soil pools.
         microbial_groups: Set of microbial functional groups defined in the soil model.
-        soil_temp: temperature of the microbially active soil [degrees C]
+        soil_temp: temperature of the microbially active soil [Celsius]
 
     Returns:
-        The rate of biomass loss of each microbial functional group [kg C m^-3 day^-1]
+        The rate of biomass loss of each microbial functional group [kg{C} m^-3 day^-1]
     """
 
     return BiomassLosses(
@@ -1115,7 +1116,7 @@ def calculate_enzyme_mediated_rates(
 
     Args:
         pools: Data class containing the various soil pools.
-        soil_temp: soil temperature for each soil grid cell [degrees C]
+        soil_temp: soil temperature for each soil grid cell [Celsius]
         env_factors: Data class containing the various factors through which the
             environment effects soil cycling rates.
         enzyme_classes: Details of the enzyme classes used in the soil model.
@@ -1169,17 +1170,17 @@ def calculate_nutrient_removal_by_water(
     removal rate of the LMWC pool.
 
     Args:
-        soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
-        soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
-        soil_p_pool_dop: Dissolved organic phosphorus pool [kg P m^-3]
-        soil_n_pool_ammonium: Soil ammonium pool [kg N m^-3]
-        soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
-        soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
+        soil_c_pool_lmwc: Low molecular weight carbon pool [kg{C} m^-3]
+        soil_n_pool_don: Dissolved organic nitrogen pool [kg{N} m^-3]
+        soil_p_pool_dop: Dissolved organic phosphorus pool [kg{P} m^-3]
+        soil_n_pool_ammonium: Soil ammonium pool [kg{N} m^-3]
+        soil_n_pool_nitrate: Soil nitrate pool [kg{N} m^-3]
+        soil_p_pool_labile: Labile inorganic phosphorus pool [kg{P} m^-3]
         vertical_flow_rates: Rates of flow downwards between the different soil layers
             [mm day^-1]
         soil_moisture: Volume of water contained in topsoil layer [mm]
         layer_structure: The details of the layer structure used across the Virtual
-                Ecosystem.
+            Ecosystem.
         constants: Set of constants for the soil model.
 
     Returns:
@@ -1242,7 +1243,7 @@ def calculate_enzyme_changes(
 
     Args:
         pools: Data class containing the various soil pools.
-        enzyme_production: Production rates for each class of enzyme [kg C m^-3 day^-1]
+        enzyme_production: Production rates for each class of enzyme [kg{C} m^-3 day^-1]
         constants: Set of constants for the soil model.
         enzyme_classes: Details of the enzyme classes used in the soil model.
 
@@ -1300,8 +1301,9 @@ def calculate_net_enzyme_change(
     in the enzyme pool of interest.
 
     Args:
-        enzyme_pool_size: Amount of enzyme class of interest [kg C m^-3]
-        enzyme_production: Production rate for the enzyme in question [kg C m^-3 day^-1]
+        enzyme_pool_size: Amount of enzyme class of interest [kg{C} m^-3]
+        enzyme_production: Production rate for the enzyme in question
+            [kg{C} m^-3 day^-1]
         enzyme_turnover_rate: Rate at which the enzyme denatures [day^-1]
 
     Returns:
@@ -1330,12 +1332,12 @@ def calculate_enzyme_production(
 
     Args:
         microbial_groups: Set of microbial functional groups defined in the soil model
-        growth_rates: The (gross) growth rates of each microbial group [kg C m^-3
-            day^-1]
+        growth_rates: The (gross) growth rates of each microbial group
+            [kg{C} m^-3 day^-1]
 
     Returns:
-        A dictionary containing the total production rate of each enzyme class [kg C
-        m^-3 day^-1]
+        A dictionary containing the total production rate of each enzyme class
+        [kg{C} m^-3 day^-1]
     """
 
     production_rates: dict[str, NDArray[np.floating]] = {}
@@ -1368,12 +1370,12 @@ def calculate_fruiting_body_production(
 
     Args:
         microbial_groups: Set of microbial functional groups defined in the soil model
-        growth_rates: The (gross) growth rates of each microbial group [kg C m^-3
-            day^-1]
+        growth_rates: The (gross) growth rates of each microbial group
+            [kg{C} m^-3 day^-1]
 
     Returns:
-        The total production rate of fungal fruiting bodies by the soil microbes [kg C
-        m^-3 day^-1]
+        The total production rate of fungal fruiting bodies by the soil microbes
+        [kg{C} m^-3 day^-1]
     """
 
     fruiting_body_production = np.zeros_like(growth_rates["bacteria"])
@@ -1402,13 +1404,13 @@ def calculate_maintenance_biomass_synthesis(
     decay, but also include loses due to extracellular enzyme excretion.
 
     Args:
-        microbe_pool_size: Size of the microbial pool of interest [kg C m^-3]
-        soil_temp: soil temperature for each soil grid cell [degrees C]
+        microbe_pool_size: Size of the microbial pool of interest [kg{C} m^-3]
+        soil_temp: soil temperature for each soil grid cell [Celsius]
         microbial_group: Constants associated with the microbial group of interest
 
     Returns:
         The rate of microbial biomass loss that must be matched to maintain a steady
-        population [kg C m^-3 day^-1]
+        population [kg{C} m^-3 day^-1]
     """
 
     temp_factor = calculate_temperature_effect_on_microbes(
@@ -1430,14 +1432,14 @@ def calculate_enzyme_turnover(
     """Calculate the turnover rate of a specific enzyme class.
 
     Args:
-        enzyme_pool: The pool size for the enzyme class in question [kg C m^-3]
+        enzyme_pool: The pool size for the enzyme class in question [kg{C} m^-3]
         turnover_rate: The rate at which enzymes in the pool turnover [day^-1]
 
     Returns:
-        The rate at which enzymes are lost from the pool [kg C m^-3 day^-1]
+        The rate at which enzymes are lost from the pool [kg{C} m^-3 day^-1]
     """
 
-    return turnover_rate * enzyme_pool
+    return np.where(enzyme_pool > 0, turnover_rate * enzyme_pool, 0)
 
 
 def calculate_enzyme_mediated_decomposition(
@@ -1454,17 +1456,17 @@ def calculate_enzyme_mediated_decomposition(
     are then used to find the decomposition rate of the pool in question.
 
     Args:
-        soil_c_pool: Size of organic matter pool [kg C m^-3]
+        soil_c_pool: Size of organic matter pool [kg{C} m^-3]
         soil_enzyme: Amount of enzyme class which breaks down the organic matter pool in
-            question [kg C m^-3]
-        soil_temp: soil temperature for each soil grid cell [degrees C]
+            question [kg{C} m^-3]
+        soil_temp: soil temperature for each soil grid cell [Celsius]
         env_factors: Data class containing the various factors through which the
             environment effects soil cycling rates.
         enzyme_class: Constants associated with the enzyme class in question.
 
     Returns:
-        The rate of decomposition of the organic matter pool in question [kg C m^-3
-        day^-1]
+        The rate of decomposition of the organic matter pool in question
+        [kg{C} m^-3 day^-1]
     """
 
     # Calculate the factors which impact the rate and saturation constants
@@ -1492,8 +1494,10 @@ def calculate_enzyme_mediated_decomposition(
         * env_factors.clay_saturation
     )
 
-    return (
-        rate_constant * soil_enzyme * soil_c_pool / (saturation_constant + soil_c_pool)
+    return np.where(
+        (soil_enzyme > 0.0) & (soil_c_pool > 0.0),
+        rate_constant * soil_enzyme * soil_c_pool / (saturation_constant + soil_c_pool),
+        0.0,
     )
 
 
@@ -1508,14 +1512,17 @@ def calculate_maom_desorption(
     rates. This may be something we want to alter in future.
 
     Args:
-        soil_c_pool_maom: Size of the mineral associated organic matter pool [kg C m^-3]
+        soil_c_pool_maom: Size of the mineral associated organic matter pool
+            [kg{C} m^-3]
         desorption_rate_constant: Rate constant for MAOM desorption [day^-1]
 
     Returns:
-        The rate of MAOM desorption to LMWC [kg C m^-3 day^-1]
+        The rate of MAOM desorption to LMWC [kg{C} m^-3 day^-1]
     """
 
-    return desorption_rate_constant * soil_c_pool_maom
+    return np.where(
+        soil_c_pool_maom > 0.0, desorption_rate_constant * soil_c_pool_maom, 0.0
+    )
 
 
 def calculate_sorption_to_maom(
@@ -1532,11 +1539,11 @@ def calculate_sorption_to_maom(
     rates. This may be something we want to alter in future.
 
     Args:
-        soil_c_pool: Size of carbon pool [kg C m^-3]
+        soil_c_pool: Size of carbon pool [kg{C} m^-3]
         sorption_rate_constant: Rate constant for sorption to MAOM [day^-1]
 
     Returns:
-        The rate of sorption to MAOM [kg C m^-3 day^-1]
+        The rate of sorption to MAOM [kg{C} m^-3 day^-1]
     """
 
     return np.where(soil_c_pool >= 0, sorption_rate_constant * soil_c_pool, 0)
@@ -1554,14 +1561,16 @@ def calculate_necromass_breakdown(
     to bear in mind when planning future model improvements.
 
     Args:
-        soil_c_pool_necromass: Size of the microbial necromass pool [kg C m^-3]
+        soil_c_pool_necromass: Size of the microbial necromass pool [kg{C} m^-3]
         necromass_decay_rate: Rate at which necromass decays into LMWC [day^-1]
 
     Returns:
-        The amount of necromass that breakdown to LMWC [kg C m^-3 day^-1]
+        The amount of necromass that breakdown to LMWC [kg{C} m^-3 day^-1]
     """
 
-    return necromass_decay_rate * soil_c_pool_necromass
+    return np.where(
+        soil_c_pool_necromass > 0, necromass_decay_rate * soil_c_pool_necromass, 0
+    )
 
 
 def calculate_litter_mineralisation_fluxes(
@@ -1634,14 +1643,14 @@ def calculate_litter_mineralisation_split(
 
     Args:
         mineralisation_rate: The rate at which the nutrient is being mineralised from
-            the litter [kg C m^-3 day^-1]
+            the litter [kg{C} m^-3 day^-1]
         litter_leaching_coefficient: Fraction of the litter mineralisation of the
             nutrient that occurs via leaching rather than as particulates [unitless]
 
     Returns:
         The rate at which the nutrient is added to the soil as particulates (first part
-        of tuple) and as dissolved matter (second part of tuple) [kg nutrient m^-3
-        day^-1].
+        of tuple) and as dissolved matter (second part of tuple)
+        [kg{nutrient} m^-3 day^-1].
     """
 
     return (
@@ -1663,19 +1672,24 @@ def calculate_soil_nutrient_mineralisation(
     (e.g. phosphatase enzymes).
 
     Args:
-        pool_carbon: The carbon content of the organic matter pool [kg C m^-3]
-        pool_nutrient: The nutrient content of the organic matter pool [kg nutrient
-            m^-3]
+        pool_carbon: The carbon content of the organic matter pool [kg{C} m^-3]
+        pool_nutrient: The nutrient content of the organic matter pool
+            [kg{nutrient} m^-3]
         breakdown_rate: The rate at which the pool is being broken down (expressed in
-            carbon terms) [kg C m^-3 day^-1]
+            carbon terms) [kg{C} m^-3 day^-1]
 
     Returns:
         The rate at which the nutrient in question is mineralised due to organic matter
-        breakdown [kg nutrient m^-3 day^-1]
+        breakdown [kg{nutrient} m^-3 day^-1]
     """
 
-    carbon_nutrient_ratio = pool_carbon / pool_nutrient
-    return breakdown_rate / carbon_nutrient_ratio
+    # Mineralisation should not occur if carbon or nutrient component is negative
+    return np.divide(
+        breakdown_rate * pool_nutrient,
+        pool_carbon,
+        out=np.zeros_like(breakdown_rate, dtype=float),
+        where=(pool_carbon > 0) & (pool_nutrient > 0),
+    )
 
 
 def calculate_nutrient_flows_to_necromass(
@@ -1691,14 +1705,14 @@ def calculate_nutrient_flows_to_necromass(
 
     Args:
         biomass_losses: Rate at which biomass of each microbial functional group becomes
-            necromass [kg C m^-3 day^-1]
+            necromass [kg{C} m^-3 day^-1]
         enzyme_changes: Details of the rate change for the soil enzyme pools.
         microbial_groups: Set of microbial functional groups defined in the soil model
         enzyme_classes: Details of the enzyme classes used by the soil model.
 
     Returns:
-        A tuple containing the rates at which nitrogen [kg N m^-3 day^-1] and phosphorus
-        [kg P m^-3 day^-1] are added to the soil necromass pool
+        A tuple containing the rates at which nitrogen [kg{N} m^-3 day^-1] and
+        phosphorus [kg{P} m^-3 day^-1] are added to the soil necromass pool
     """
 
     # Calculate nutrient flows due to cellular losses
@@ -1746,32 +1760,51 @@ def find_necromass_nutrient_outflows(
     split between pathways as the carbon does.
 
     Args:
-        necromass_carbon: The amount of carbon stored as microbial necromass [kg C m^-3]
-        necromass_nitrogen: The amount of nitrogen stored as microbial necromass [kg N
-            m^-3]
-        necromass_phosphorus: The amount of phosphorus stored as microbial necromass [kg
-            P m^-3]
-        necromass_decay: The rate at which necromass decays to form lmwc [kg C m^-3
-            day^-1]
+        necromass_carbon: The amount of carbon stored as microbial necromass
+            [kg{C} m^-3]
+        necromass_nitrogen: The amount of nitrogen stored as microbial necromass
+            [kg{N} m^-3]
+        necromass_phosphorus: The amount of phosphorus stored as microbial necromass
+            [kg{P} m^-3]
+        necromass_decay: The rate at which necromass decays to form lmwc
+            [kg{C} m^-3 day^-1]
         necromass_sorption: The rate at which necromass gets sorbed to soil minerals to
-            form mineral associated organic matter [kg C m^-3 day^-1]
+            form mineral associated organic matter [kg{C} m^-3 day^-1]
 
     Returns:
         A dictionary containing the rates at which nitrogen and phosphorus contained in
         necromass is released as dissolved organic nitrogen, and the rates at which they
-        gets sorbed to soil minerals to form soil associated organic matter [kg nutrient
-        m^-3 day^-1].
+        gets sorbed to soil minerals to form soil associated organic matter
+        [kg{nutrient} m^-3 day^-1].
     """
 
-    # Find carbon:nitrogen and carbon:phosphorus ratios of the necromass
-    c_n_ratio = necromass_carbon / necromass_nitrogen
-    c_p_ratio = necromass_carbon / necromass_phosphorus
-
+    # If either necromass carbon or the relevant nutrient is negative, this is treated
+    # as zero so there is no flow
     return {
-        "decay_nitrogen": necromass_decay / c_n_ratio,
-        "sorption_nitrogen": necromass_sorption / c_n_ratio,
-        "decay_phosphorus": necromass_decay / c_p_ratio,
-        "sorption_phosphorus": necromass_sorption / c_p_ratio,
+        "decay_nitrogen": np.divide(
+            necromass_decay * necromass_nitrogen,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_nitrogen > 0),
+        ),
+        "sorption_nitrogen": np.divide(
+            necromass_sorption * necromass_nitrogen,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_nitrogen > 0),
+        ),
+        "decay_phosphorus": np.divide(
+            necromass_decay * necromass_phosphorus,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_phosphorus > 0),
+        ),
+        "sorption_phosphorus": np.divide(
+            necromass_sorption * necromass_phosphorus,
+            necromass_carbon,
+            out=np.zeros_like(necromass_carbon, dtype=float),
+            where=(necromass_carbon > 0) & (necromass_phosphorus > 0),
+        ),
     }
 
 
@@ -1789,44 +1822,57 @@ def calculate_net_nutrient_transfers_from_maom_to_lmwc(
     """Calculate the net rate of transfer of nutrients between MAOM and LMWC.
 
     Args:
-        lmwc_carbon: The amount of carbon stored as low molecular weight carbon [kg C
-            m^-3]
+        lmwc_carbon: The amount of carbon stored as low molecular weight carbon
+            [kg{C} m^-3]
         lmwc_nitrogen: The amount of nitrogen stored as low molecular weight
-            carbon/dissolved organic nitrogen [kg N m^-3]
+            carbon/dissolved organic nitrogen [kg{N} m^-3]
         lmwc_phosphorus: The amount of phosphorus stored as low molecular weight
-            carbon/dissolved organic phosphorus [kg P m^-3]
+            carbon/dissolved organic phosphorus [kg{P} m^-3]
         maom_carbon: The amount of carbon stored as mineral associated organic matter
-            [kg C m^-3]
+            [kg{C} m^-3]
         maom_nitrogen: The amount of nitrogen stored as mineral associated organic
-            matter [kg N m^-3]
+            matter [kg{N} m^-3]
         maom_phosphorus: The amount of phosphorus stored as mineral associated organic
-            matter [kg P m^-3]
+            matter [kg{P} m^-3]
         maom_breakdown: The rate at which the mineral associated organic matter pool is
-            being broken down by enzymes (expressed in carbon terms) [kg C m^-3 day^-1]
+            being broken down by enzymes (expressed in carbon terms) [kg{C} m^-3 day^-1]
         maom_desorption: The rate at which the mineral associated organic matter pool is
-            spontaneously desorbing [kg C m^-3 day^-1]
+            spontaneously desorbing [kg{C} m^-3 day^-1]
         lmwc_sorption: The rate at which the low molecular weight carbon pool is sorbing
-            to minerals to form mineral associated organic matter [kg C m^-3 day^-1]
+            to minerals to form mineral associated organic matter [kg{C} m^-3 day^-1]
 
     Returns:
         The net nutrient transfer rates of transfer from mineral associated organic
         matter into dissolved organic forms. This is currently includes nitrogen and
-        phosphorus [kg nutrient m^-3 day^-1]
+        phosphorus [kg{nutrient} m^-3 day^-1]
     """
 
-    # Find carbon:nitrogen ratio of the lwmc and maom
-    c_n_ratio_lmwc = lmwc_carbon / lmwc_nitrogen
-    c_n_ratio_maom = maom_carbon / maom_nitrogen
-
-    maom_nitrogen_gain = lmwc_sorption / c_n_ratio_lmwc
-    maom_nitrogen_loss = (maom_breakdown + maom_desorption) / c_n_ratio_maom
-
-    # Find carbon:phosphorus ratio of the lwmc and maom
-    c_p_ratio_lmwc = lmwc_carbon / lmwc_phosphorus
-    c_p_ratio_maom = maom_carbon / maom_phosphorus
-
-    maom_phosphorus_gain = lmwc_sorption / c_p_ratio_lmwc
-    maom_phosphorus_loss = (maom_breakdown + maom_desorption) / c_p_ratio_maom
+    # Find gain and loss for MAOM separately (negatives have to be controlled for by
+    # setting rates to zero)
+    maom_nitrogen_gain = np.divide(
+        lmwc_sorption * lmwc_nitrogen,
+        lmwc_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(lmwc_carbon > 0) & (lmwc_nitrogen > 0),
+    )
+    maom_nitrogen_loss = np.divide(
+        (maom_breakdown + maom_desorption) * maom_nitrogen,
+        maom_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(maom_carbon > 0) & (maom_nitrogen > 0),
+    )
+    maom_phosphorus_gain = np.divide(
+        lmwc_sorption * lmwc_phosphorus,
+        lmwc_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(lmwc_carbon > 0) & (lmwc_phosphorus > 0),
+    )
+    maom_phosphorus_loss = np.divide(
+        (maom_breakdown + maom_desorption) * maom_phosphorus,
+        maom_carbon,
+        out=np.zeros_like(lmwc_sorption, dtype=float),
+        where=(maom_carbon > 0) & (maom_phosphorus > 0),
+    )
 
     return {
         "nitrogen": maom_nitrogen_loss - maom_nitrogen_gain,
@@ -1846,13 +1892,13 @@ def calculate_rate_of_nitrification(
     :cite:t:`fatichi_mechanistic_2019`.
 
     Args:
-        soil_temp: Temperature of the relevant segment of soil [C]
+        soil_temp: Temperature of the relevant segment of soil [Celsius]
         effective_saturation: Effective saturation of the soil with water [unitless]
-        soil_n_pool_ammonium: Soil ammonium pool [kg N m^-3]
+        soil_n_pool_ammonium: Soil ammonium pool [kg{N} m^-3]
         constants: Set of constants for the soil model.
 
     Returns:
-        The rate at which ammonium nitrifies to form nitrate [kg N m^-3 day^-1].
+        The rate at which ammonium nitrifies to form nitrate [kg{N} m^-3 day^-1].
     """
 
     # Calculate moisture and temperature factors
@@ -1888,13 +1934,13 @@ def calculate_rate_of_denitrification(
     :cite:t:`fatichi_mechanistic_2019`.
 
     Args:
-        soil_temp: Temperature of the relevant segment of soil [C]
+        soil_temp: Temperature of the relevant segment of soil [Celsius]
         effective_saturation: Effective saturation of the soil with water [unitless]
-        soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
+        soil_n_pool_nitrate: Soil nitrate pool [kg{N} m^-3]
         constants: Set of constants for the soil model.
 
     Returns:
-        The rate at which ammonium nitrifies to form nitrate [kg N m^-3 day^-1].
+        The rate at which ammonium nitrifies to form nitrate [kg{N} m^-3 day^-1].
     """
 
     # Calculate moisture and temperature factors
@@ -1927,8 +1973,8 @@ def calculate_symbiotic_nitrogen_fixation(
 
     Args:
         carbon_supply: The rate at which carbon is supplied to symbiotic partners by
-            plants for the purpose of nitrogen fixation [kg C m^-3 day^-1]
-        soil_temp: Temperature of the relevant soil zone [C]
+            plants for the purpose of nitrogen fixation [kg{C} m^-3 day^-1]
+        soil_temp: Temperature of the relevant soil zone [Celsius]
         constants: Set of constants for the soil model.
 
     Returns:
@@ -1965,10 +2011,10 @@ def calculate_free_living_nitrogen_fixation(
     review.
 
     Args:
-        soil_temp: Temperature of the relevant soil zone [C]
+        soil_temp: Temperature of the relevant soil zone [Celsius]
         fixation_at_reference: Rate of nitrogen fixation at the reference temperature
-            [kg N m^-2 day^-1]
-        reference_temperature: Reference temperature [K]
+            [kg{N} m^-2 day^-1]
+        reference_temperature: Reference temperature [Kelvin]
         q10_nitrogen_fixation: Q10 temperature coefficient for free-living nitrogen
             fixation [unitless]
         active_depth: The depth to which the soil is considered to be biologically
@@ -1976,7 +2022,7 @@ def calculate_free_living_nitrogen_fixation(
 
     Returns:
         The rate at which nitrogen is fixed by free living (i.e. non-symbiotic) microbes
-        [kg N m^-3 day^-1]
+        [kg{N} m^-3 day^-1]
     """
 
     soil_temp_in_kelvin = convert_temperature(
@@ -2004,8 +2050,8 @@ def calculate_net_formation_of_secondary_P(
     secondary mineral phosphorus breaking down.
 
     Args:
-        soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
-        soil_p_pool_secondary: Secondary mineral phosphorus pool [kg P m^-3]
+        soil_p_pool_labile: Labile inorganic phosphorus pool [kg{P} m^-3]
+        soil_p_pool_secondary: Secondary mineral phosphorus pool [kg{P} m^-3]
         secondary_p_breakdown_rate: Rate constant for breakdown of secondary mineral
             phosphorus to labile phosphorus [day^-1]
         labile_p_sorption_rate: Rate constant for sorption of labile inorganic
@@ -2013,7 +2059,7 @@ def calculate_net_formation_of_secondary_P(
 
     Returns:
         The net rate of labile inorganic phosphorus that has become secondary mineral
-        phosphorus (this can be negative) [kg P m^-3 day^-1]
+        phosphorus (this can be negative) [kg{P} m^-3 day^-1]
     """
 
     association_rate = np.where(
@@ -2037,8 +2083,8 @@ def calculate_fungal_fruiting_body_decay(
     ratios of the fungal fruiting bodies pool.
 
     Args:
-        decay_rate: The rate at which fungal fruiting bodies decay in carbon terms [kg C
-            m^-3 day^-1]
+        decay_rate: The rate at which fungal fruiting bodies decay in carbon terms
+            [kg{C} m^-3 day^-1]
         fungal_fruiting_body_c_n_ratio: The carbon to nitrogen ratio of fungal fruiting
             bodies pool [unitless]
         fungal_fruiting_body_c_p_ratio: The carbon to phosphorus ratio of fungal

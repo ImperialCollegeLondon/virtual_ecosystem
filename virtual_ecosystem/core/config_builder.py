@@ -159,6 +159,9 @@ def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None
     a configuration file payload for values stored under keys ending in `_path` and
     resolves the paths.
 
+    It does not attempt to resolve paths when the value starts with ``$`` as these are
+    taken to be marker values for used in path substitution.
+
     Args:
         config_dir: A folder containing a configuration file.
         config_dict: A dictionary of contents of the configuration file, which may
@@ -183,14 +186,17 @@ def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None
                 raise ValueError(
                     f"The value for config key '{key}' is not a string: {item}"
                 )
-            file_path = Path(item)
-            if not file_path.is_absolute():
-                # The resolve method is used here because it is the only method to
-                # resolve ../ entries from relative file paths and then the path is made
-                # explicitly absolute
-                file_resolved = (config_dir / file_path).resolve().absolute()
+            # Do not resolve file markers
+            if not item.startswith("$"):
+                # Otherwise update the entry if the path is relative
+                file_path = Path(item)
+                if not file_path.is_absolute():
+                    # The resolve method is used here because it is the only method to
+                    # resolve ../ entries from relative file paths and then the path is
+                    # made explicitly absolute
+                    file_resolved = (config_dir / file_path).resolve().absolute()
 
-                config_dict[key] = str(file_resolved)
+                    config_dict[key] = str(file_resolved)
 
 
 class ConfigurationLoader:
@@ -581,7 +587,9 @@ def build_configuration_model(
     return combined_model
 
 
-def generate_configuration(data: dict[str, Any] = {}) -> CompiledConfiguration:
+def generate_configuration(
+    data: dict[str, Any] = {}, context: Any | None = None
+) -> CompiledConfiguration:
     """Generate a configuration model from configuration data.
 
     This method takes a dictionary of configuration data and tries to build a validated
@@ -596,8 +604,13 @@ def generate_configuration(data: dict[str, Any] = {}) -> CompiledConfiguration:
     then a validated configuration object is returned, otherwise the specific validation
     errors are written to the log and the function raises a :class`ConfigurationError`
 
+    The pydantic validation process allows validation context to be passed to a
+    validator object and this context is shared with daughter validators. At the moment,
+    this is only used to pass path substitutions to validation.
+
     Args:
         data: A dictionary of unvalidated configuration data.
+        context: Additional context to be passed to validation.
     """
     requested_modules = list(data.keys())
     if "disturbance" in requested_modules:
@@ -616,7 +629,7 @@ def generate_configuration(data: dict[str, Any] = {}) -> CompiledConfiguration:
     LOGGER.info("Configuration model built.")
 
     try:
-        configuration = ConfigurationModel().model_validate(data)
+        configuration = ConfigurationModel().model_validate(data, context=context)
     except ValidationError as validation_errors:
         for error in validation_errors.errors():
             LOGGER.error(

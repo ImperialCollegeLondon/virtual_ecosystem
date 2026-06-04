@@ -95,9 +95,10 @@ def calculate_temperature_effect_on_microbes(
     handle these conversions in general.
 
     Args:
-        soil_temperature: The temperature of the soil [C]
+        soil_temperature: The temperature of the soil [Celsius]
         activation_energy: Energy of activation [J mol^-1]
-        reference_temperature: The reference temperature of the Arrhenius equation [C]
+        reference_temperature: The reference temperature of the Arrhenius equation
+            [Celsius]
 
     Returns:
         A multiplicative factor capturing the effect of temperature on microbial rates
@@ -255,10 +256,10 @@ def calculate_nitrification_temperature_factor(
     Form of this function is taken from :cite:t:`xu-ri_terrestrial_2008`.
 
     Args:
-        soil_temp: Temperature of the relevant segment of soil [C]
-        optimum_temp: Temperature at which nitrification is maximised [K]
+        soil_temp: Temperature of the relevant segment of soil [Celsius]
+        optimum_temp: Temperature at which nitrification is maximised [Kelvin]
         max_temp: Maximum temperature for which this expression still gives a meaningful
-            result [K]
+            result [Kelvin]
         thermal_sensitivity: Sensitivity of the factor to changes in temperature
             [unitless]
 
@@ -311,11 +312,13 @@ def calculate_denitrification_temperature_factor(
     :cite:t:`xu-ri_terrestrial_2008`.
 
     Args:
-        soil_temp: Temperature of the relevant segment of soil [C]
+        soil_temp: Temperature of the relevant segment of soil [Celsius]
         factor_at_infinity: Value of temperature factor at infinite temperature
             [unitless]
-        minimum_temp: Minimum temperature at which denitrification can still happen [K]
-        thermal_sensitivity: Sensitivity of the factor to changes in temperature [K]
+        minimum_temp: Minimum temperature at which denitrification can still happen
+            [Kelvin]
+        thermal_sensitivity: Sensitivity of the factor to changes in temperature
+            [Kelvin]
 
     Returns:
         A factor capturing the impact of soil temperature on the denitrification rate
@@ -353,19 +356,20 @@ def calculate_symbiotic_nitrogen_fixation_carbon_cost(
     Kelvin units so this is the only function in the soil model to use Celsius units.
 
     Args:
-        soil_temp: Temperature of the relevant soil zone [C]
-        cost_at_zero_celsius: The cost nitrogen fixation at zero Celsius [kg C kg N^-1]
+        soil_temp: Temperature of the relevant soil zone [Celsius]
+        cost_at_zero_celsius: The cost nitrogen fixation at zero Celsius
+            [kg{C} kg{N}^-1]
         infinite_temp_cost_offset: The difference between the nitrogen fixation cost at
             zero Celsius and the cost that it tends towards at very high temperatures
-            [kg C kg N^-1]
+            [kg{C} kg{N}^-1]
         thermal_sensitivity: Sensitivity of nitrogen fixation cost to changes in
-            temperature [C^-1]
+            temperature [Celsius^-1]
         cost_equality_temp: Temperature (positive) at which the nitrogen fixation cost
-            is the same as it is at zero Celsius [C]
+            is the same as it is at zero Celsius [Celsius]
 
     Returns:
         The carbon cost that plants have to pay their microbial symbionts to fix per
-        unit of nitrogen fixed [kg C kg N^-1]
+        unit of nitrogen fixed [kg{C} kg{N}^-1]
     """
 
     return np.where(
@@ -400,7 +404,7 @@ def calculate_solute_removal_by_soil_water(
     to soil moisture in mm.
 
     Args:
-        solute_density: The density of the solute in the soil [kg solute m^-3]
+        solute_density: The density of the solute in the soil [kg{solute} m^-3]
         exit_rate: Rate at which water exits the microbially active portion of the soil
             [mm day^-1]
         soil_moisture: Volume of water contained in topsoil layer [mm]
@@ -409,7 +413,7 @@ def calculate_solute_removal_by_soil_water(
 
     Returns:
         The rate at which the solute in question is removed from the soil by the flow of
-        water [kg solute m^-3 day^-1]
+        water [kg{solute} m^-3 day^-1]
     """
 
     return np.where(
@@ -433,12 +437,12 @@ def calculate_carbon_use_efficiency(
     TODO - This should be adapted to use an Arrhenius function at some point.
 
     Args:
-        soil_temp: soil temperature for each soil grid cell [degrees C]
+        soil_temp: soil temperature for each soil grid cell [Celsius]
         reference_cue_logit: Logit of the carbon use efficiency at reference temp
             [unitless]
-        cue_reference_temp: Reference temperature [degrees C]
+        cue_reference_temp: Reference temperature [Celsius]
         logit_cue_with_temp: Rate of change in the logit of carbon use efficiency with
-            increasing temperature [degree C^-1]
+            increasing temperature [Celsius^-1]
 
     Returns:
         The carbon use efficiency (CUE) of the microbial community

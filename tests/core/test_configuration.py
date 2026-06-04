@@ -62,8 +62,14 @@ def test_pydantic_models(tmp_path):
         assert hasattr(config, submodel)
 
 
-def test_filepath_placeholder(tmp_path):
-    """Validate the FILEPATH_PLACEHOLDER custom field."""
+@pytest.mark.parametrize(argnames="toggle_test", argvalues=(True, False))
+def test_path_validation(tmp_path, toggle_test):
+    """Validate the validation of custom path fields.
+
+    The toggle_test argument switches between testing FILEPATH_VALIDATOR and
+    DIRPATH_VALIDATOR, which differ in their default placeholders and whether the
+    provided path must be a file or a directory.
+    """
     from pydantic import TypeAdapter, ValidationError
 
     from virtual_ecosystem.core.configuration import (
@@ -71,24 +77,40 @@ def test_filepath_placeholder(tmp_path):
         FILEPATH_PLACEHOLDER,
     )
 
-    filepath_placeholder_field = TypeAdapter(FILEPATH_PLACEHOLDER)
-    dirpath_placeholder_field = TypeAdapter(DIRPATH_PLACEHOLDER)
+    field = FILEPATH_PLACEHOLDER if toggle_test else DIRPATH_PLACEHOLDER
+    # Hack the default from the field metadata.
+    default = field.__metadata__[1].default
 
-    # Object early to <..._PLACEHOLDER> patterns in input
+    placeholder_field = TypeAdapter(field)
+
+    # Object early to <FILEPATH_PLACEHOLDER> patterns in input
     with pytest.raises(ValidationError) as err:
-        filepath_placeholder_field.validate_python("<FILEPATH_PLACEHOLDER>")
-        dirpath_placeholder_field.validate_python("<DIRPATH_PLACEHOLDER>")
+        placeholder_field.validate_python(default)
         assert str(err) == "Path placeholder value in configuration."
 
-    # Object to file path not existing
+    # Object to file path not existing - handled by pydantic
     with pytest.raises(ValidationError) as err:
-        filepath_placeholder_field.validate_python("no_such_file.py")
-
+        placeholder_field.validate_python("no_such_file")
         assert str(err) == "Path does not point to a file"
 
-    # Do not object when the path exists.
-    tmp_file = tmp_path / "file_to_find.txt"
-    tmp_file.touch()
+    # Object to unknown file marker
+    with pytest.raises(ValidationError) as err:
+        placeholder_field.validate_python("$CONFIG_PATH")
+        assert str(err) == "Undefined path marker: $CONFIG_PATH"
+
+    # Generate a file or dir to pass in.
+    if toggle_test:
+        tmp_file = tmp_path / "file_to_find.txt"
+        tmp_file.touch()
+    else:
+        tmp_file = tmp_path
+
+    # Do not object when the path exists
     with does_not_raise():
-        filepath_placeholder_field.validate_python(tmp_file)
-    tmp_file.unlink()
+        placeholder_field.validate_python(tmp_file)
+
+    # Provide a context mapping a marker to the path
+    context = {"cli_paths": {"CONFIG_PATH": str(tmp_file)}}
+
+    with does_not_raise():
+        placeholder_field.validate_python("$CONFIG_PATH", context=context)

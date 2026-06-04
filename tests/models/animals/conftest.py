@@ -101,6 +101,9 @@ def animal_data_for_model_instance(fixture_core_components):
     # Populate non- PFT structured ArrayResource pools
     for pool in ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]:
         data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
+        data[pool + "_consumed"] = xarray.zeros_like(
+            vegetation_biomass.sel(pft="pioneer").drop_vars("pft")
+        )
 
     # Populate pft structured ArrayResource pools
     plant_model_pools = [
@@ -113,6 +116,7 @@ def animal_data_for_model_instance(fixture_core_components):
     ]
     for pool in plant_model_pools:
         data[pool] = vegetation_biomass.copy()
+        data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
 
     litter_pools = DataArray(np.full(data.grid.n_cells, fill_value=1.5), dims="cell_id")
     litter_ratios = DataArray(
@@ -418,8 +422,12 @@ def dummy_animal_data(animal_fixture_core_components):
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
     # Populate non- PFT structured ArrayResource pools
-    for pool in ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]:
+    subcanopy_pools = ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]
+    for pool in subcanopy_pools:
         data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
+        data[pool + "_consumed"] = xarray.zeros_like(
+            vegetation_biomass.sel(pft="pioneer").drop_vars("pft")
+        )
 
     # Populate pft structured ArrayResource pools
     plant_model_pools = [
@@ -432,6 +440,7 @@ def dummy_animal_data(animal_fixture_core_components):
     ]
     for pool in plant_model_pools:
         data[pool] = vegetation_biomass.copy()
+        data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
 
     data["diurnal_temperature_range"] = from_template()
     data["diurnal_temperature_range"][lyr_str.index_surface_scalar] = 10.0
@@ -544,12 +553,51 @@ def dummy_animal_exporter():
 
 
 @pytest.fixture
+def dummy_resource_pool_exporter():
+    """Provide a no-op exporter for resource pool data in AnimalModel tests.
+
+    Returns:
+        An object with a ``dump`` method matching the ResourcePoolDataExporter
+        interface but performing no output.
+    """
+
+    class DummyResourcePoolExporter:
+        """No-op stand-in for ResourcePoolDataExporter."""
+
+        def dump(
+            self,
+            carcass_pools,
+            excrement_pools,
+            fungal_fruiting_pools,
+            soil_pools,
+            resource_pools,
+            time,
+            time_index,
+        ):
+            """Ignore export calls in tests that do not check CSV output.
+
+            Args:
+                carcass_pools: Carcass pools keyed by cell id.
+                excrement_pools: Excrement pools keyed by cell id.
+                fungal_fruiting_pools: Fungal fruiting body pools keyed by cell id.
+                soil_pools: Soil pools keyed by cell id and pool-type string.
+                resource_pools: Flat list of ResourcePool instances.
+                time: Export timestamp.
+                time_index: Index of update.
+            """
+            return None
+
+    return DummyResourcePoolExporter()
+
+
+@pytest.fixture
 def animal_model_instance(
     dummy_animal_data,
     fixture_core_components,
     functional_group_list_instance,
     microbial_c_n_p_ratios,
     dummy_animal_exporter,
+    dummy_resource_pool_exporter,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
@@ -563,7 +611,8 @@ def animal_model_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
-        exporter=dummy_animal_exporter,
+        animal_cohort_exporter=dummy_animal_exporter,
+        resource_pool_exporter=dummy_resource_pool_exporter,
         model_constants=AnimalConstants(density_scaling_method="madingley"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -577,6 +626,7 @@ def animal_model_damuth_instance(
     functional_group_list_instance,
     microbial_c_n_p_ratios,
     dummy_animal_exporter,
+    dummy_resource_pool_exporter,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
@@ -590,7 +640,8 @@ def animal_model_damuth_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
-        exporter=dummy_animal_exporter,
+        animal_cohort_exporter=dummy_animal_exporter,
+        resource_pool_exporter=dummy_resource_pool_exporter,
         model_constants=AnimalConstants(density_scaling_method="damuth"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -1039,7 +1090,12 @@ def litter_soil_data_instance(fixture_core_components):
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
     # Populate non- PFT structured ArrayResource pools
-    for pool in ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]:
+    for pool in [
+        "subcanopy_vegetation_cnp",
+        "subcanopy_seedbank_cnp",
+        "subcanopy_seedbank_cnp_consumed",
+        "subcanopy_vegetation_cnp_consumed",
+    ]:
         data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
 
     # Populate pft structured ArrayResource pools
@@ -1053,6 +1109,18 @@ def litter_soil_data_instance(fixture_core_components):
     ]
     for pool in plant_model_pools:
         data[pool] = vegetation_biomass.copy()
+
+    # Populate pft structured consumption pools with empty zeros
+    plant_model_consumption_pools = [
+        "canopy_foliage_cnp_consumed",
+        "canopy_seed_cnp_consumed",
+        "canopy_fruit_cnp_consumed",
+        "foliage_turnover_cnp_consumed",
+        "seed_turnover_cnp_consumed",
+        "fruit_turnover_cnp_consumed",
+    ]
+    for pool in plant_model_consumption_pools:
+        data[pool] = xarray.zeros_like(vegetation_biomass)
 
     data["litter_pool_above_metabolic_cnp"] = DataArray(
         np.stack(

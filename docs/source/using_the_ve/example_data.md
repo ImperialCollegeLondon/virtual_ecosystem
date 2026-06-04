@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.1
+    jupytext_version: 1.19.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -120,34 +120,55 @@ contents.
 
 ## Configuration files
 
-The `config` directory contains configuration files that combine to provide a basic
-complete configuration for the example data. The example configuration files are:
+The `config` directory contains configuration files required to configure simulation
+runs using the example data. To configure a simulation `ve_run` needs to be provided
+with the data configuration, as well as a configuration file for each model you wish to
+run. All models need to be provided, with the exception of the `abiotic` model which can
+be replaced with the `abiotic_simple` model.
 
-* The **`ve_run.toml`** configures the models to be used in the simulation and the order
-  in which they are initialised and updated.
+The specific contents of each config file are as follows:
 
 * The **`data_config.toml`** file configures the initial variables to be loaded and sets
   the paths to the source files providing those variables.
 
+* The **`abiotic_config.toml`** file provides basic configuration needed to setup the
+  `abiotic` model.
+
+* The **`abiotic_simple_config.toml`** file provides basic configuration needed to setup
+  the `abiotic_simple` model. If you wish to run the `abiotic_simple` model, you
+  **must** `ve_run` with a path to this config file **instead** of
+  `abiotic_config.toml`.
+
 * The **`animal_config.toml`** file provides basic configuration for the
   `animal` model to set functional group definitions and cohort data export.
+
+* The **`hydrology_config.toml`** file provides basic configuration needed to setup the
+  `abiotic` model.
+
+* The **`litter_config.toml`** file provides basic configuration needed to setup the
+  `litter` model.
 
 * The **`plant_config.toml`** file provides basic configuration for the
   `plants` model to set functional group definitions.
 
-* The **`soil_microbial_groups.toml`** file provides basic configuration for the
-  `soil` model to set microbial functional group definitions.
+* The **`soil_config.toml`** file provides basic configuration for the `soil` model to
+  set microbial functional group definitions.
 
 The dropdown boxes below reveal the contents of these files, so you can see what the
 configuration format and example settings look like in practice.
 
-````{dropdown} config/ve_run.toml
-```{literalinclude} ../../../virtual_ecosystem/example_data/config/ve_run.toml
+````{dropdown} config/data_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/data_config.toml
 ```
 ````
 
-````{dropdown} config/data_config.toml
-```{literalinclude} ../../../virtual_ecosystem/example_data/config/data_config.toml
+````{dropdown} config/abiotic_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/abiotic_config.toml
+```
+````
+
+````{dropdown} config/abiotic_simple_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/abiotic_simple_config.toml
 ```
 ````
 
@@ -156,13 +177,23 @@ configuration format and example settings look like in practice.
 ```
 ````
 
+````{dropdown} config/hydrology_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/hydrology_config.toml
+```
+````
+
+````{dropdown} config/litter_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/litter_config.toml
+```
+````
+
 ````{dropdown} config/plant_config.toml
 ```{literalinclude} ../../../virtual_ecosystem/example_data/config/plant_config.toml
 ```
 ````
 
-````{dropdown} config/soil_microbial_groups.toml
-```{literalinclude} ../../../virtual_ecosystem/example_data/config/soil_microbial_groups.toml
+````{dropdown} config/soil_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/soil_config.toml
 ```
 ````
 

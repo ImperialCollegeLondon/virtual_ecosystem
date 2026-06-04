@@ -76,6 +76,12 @@ class AnimalConstants(Configuration):
     density_scaling_method: DENSITY_SCALING_METHODS = "madingley"
     """The density scaling method to use within a simulation."""
 
+    total_heterotroph_biomass_density_kg_m2: float = 0.151  # Madingley global median
+    """Total heterotroph biomass density in the system, used for normalizing density."""
+
+    _ELEMENTAL_MASS_NOISE_TOLERANCE = 1e-10
+    """The value used for clamping negative mass movement created by fp errors."""
+
     def get_population_density_terms(
         self, taxa: TaxaType, diet: DietType
     ) -> tuple[float, ...]:
@@ -461,6 +467,18 @@ class AnimalExportConfig(Configuration):
     float_format: str = "%0.5f"
 
 
+class ResourcePoolExportConfig(Configuration):
+    """Configuration for resource pool data export.
+
+    Attributes:
+        enabled: Whether resource pool export is active.
+        float_format: Float format string used when writing numeric data.
+    """
+
+    enabled: bool = False
+    float_format: str = "%0.5f"
+
+
 class AnimalConfiguration(ModelConfigurationRoot):
     """Root configuration class for the animal model."""
 
@@ -473,4 +491,8 @@ class AnimalConfiguration(ModelConfigurationRoot):
     cohort_data_export: AnimalExportConfig = Field(
         default_factory=AnimalExportConfig,
         description="Export settings for animal cohort CSV output.",
+    )
+    resource_pool_export: ResourcePoolExportConfig = Field(
+        default_factory=ResourcePoolExportConfig,
+        description="Export settings for resource pool CSV output.",
     )

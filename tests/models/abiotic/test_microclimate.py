@@ -34,6 +34,7 @@ def test_prepare_static_inputs_returns_consistent_outputs(
     # Check expected keys exist
     expected_keys = {
         "canopy_height",
+        "leaf_area_index",
         "lai_sum",
         "evapotranspiration",
         "atmospheric_pressure",
@@ -51,6 +52,7 @@ def test_prepare_static_inputs_returns_consistent_outputs(
 
     assert result["canopy_height"].shape == (n_cells,)
     assert result["lai_sum"].shape == (n_cells,)
+    assert result["leaf_area_index"].shape == (n_layers, n_cells)
     assert result["evapotranspiration"].shape == (n_layers, n_cells)
     assert result["atmospheric_pressure"].shape == (n_layers, n_cells)
     assert result["atmospheric_co2"].shape == (n_layers, n_cells)
@@ -386,6 +388,7 @@ def test_calculate_thermodynamics_day_and_night(
     fixture_state_inputs,
     fixture_abiotic_constants,
     fixture_core_constants,
+    fixture_abiotic_indices,
 ):
     """Test _calculate_thermodynamics produces expected outputs for day and night."""
 
@@ -397,7 +400,7 @@ def test_calculate_thermodynamics_day_and_night(
     static = fixture_static_inputs
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
-
+    idx = fixture_abiotic_indices
     n_cells = data.grid.n_cells
     n_layers = 14
     hour = 0
@@ -423,6 +426,7 @@ def test_calculate_thermodynamics_day_and_night(
         n_cells=n_cells,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        idx=idx,
     )
 
     assert isinstance(result_day, dict)
@@ -442,6 +446,7 @@ def test_calculate_thermodynamics_day_and_night(
         n_cells=n_cells,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        idx=idx,
     )
 
     assert np.all(result_night["aerodynamic_resistance_canopy"] == 50.0)
@@ -460,6 +465,7 @@ def test_calculate_vegetation_temperature(
     dummy_climate_data_varying_canopy,
     fixture_static_inputs,
     fixture_state_inputs,
+    fixture_abiotic_indices,
 ):
     """Test calculate_vegetation_temperature produces expected outputs."""
 
@@ -472,12 +478,14 @@ def test_calculate_vegetation_temperature(
     core_constants = fixture_core_constants
     static = fixture_static_inputs
     state = fixture_state_inputs
+    idx = fixture_abiotic_indices
 
     result = calculate_vegetation_temperature(
         state=state,
         static=static,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        idx=idx,
     )
 
     # Shape checks
@@ -499,6 +507,7 @@ def test_calculate_vegetation_fluxes(
     fixture_core_constants,
     fixture_static_inputs,
     fixture_state_inputs,
+    fixture_abiotic_indices,
 ):
     """Test calculate_vegetation_fluxes produces expected outputs."""
 
@@ -510,12 +519,14 @@ def test_calculate_vegetation_fluxes(
     state = fixture_state_inputs
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
+    idx = fixture_abiotic_indices
 
     result = calculate_vegetation_fluxes(
         state=state,
         static=static,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
+        idx=idx,
     )
 
     # Assert all expected keys exist and have correct shapes
@@ -563,7 +574,7 @@ def test_calculate_soil_fluxes(
     )
 
     # Check values, output keys and shapes
-    expected_ground_flux = np.array([66.480601, 59.697267, 46.130601, 46.130601])
+    expected_ground_flux = np.array([798.372356, 581.340243, 372.640243, 212.973576])
 
     np.testing.assert_allclose(
         result["ground_heat_flux"], expected_ground_flux, rtol=1e-5, atol=1e-5
@@ -601,6 +612,8 @@ def test_update_air_temperature(
         static=static,
         abiotic_bounds=abiotic_bounds,
         idx=idx,
+        denominator_tolerance=1e-10,
+        min_leaf_area_index_for_mixing=0.1,
     )
 
     # Check output is correct shape and type
@@ -672,7 +685,12 @@ def test_update_atmospheric_humidity(
 
     # VPD should be reduced where evapotranspiration or mixing adds moisture
     assert np.all(result["vapour_pressure_deficit"][mask] > 0.0)
-    assert np.all(result["vapour_pressure"][mask] <= vp_sat[mask])
+
+    # VP should be below saturation except above canopy where it accumulated with mixing
+    tolerance = 0.02
+    assert np.all(
+        result["vapour_pressure"][1:][mask[1:]] <= vp_sat[1:][mask[1:]] + tolerance
+    )
 
     # RH should be between 0 and 100
     assert np.all(

@@ -44,6 +44,7 @@ unrealistic.
 """  # noqa: D205, D415
 
 from collections.abc import Callable
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
@@ -52,9 +53,9 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.model_config import CoreConstants
-from virtual_ecosystem.models.abiotic import wind
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_weights_from_absorbed_radiation,
+    find_last_valid_row,
     set_unintended_nan_to_zero,
 )
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
@@ -171,6 +172,79 @@ def calculate_sensible_heat_flux(
     )
 
 
+def calculate_absorbed_longwave_radiation(
+    downward_longwave: NDArray[np.floating],
+    leaf_area_index: NDArray[np.floating],
+    leaf_emissivity: float,
+    soil_emissivity: float,
+    extinction_coefficient_lw: float,
+    surface_index: int,
+    topsoil_index: int,
+) -> NDArray[np.floating]:
+    """Calculate absorbed longwave radiation per layer using Beer-Lambert attenuation.
+
+    Each canopy layer absorbs downward longwave attenuated from above. The surface
+    layer receives the remainder after full canopy attenuation. The topsoil receives
+    what the surface layer transmitted.
+
+    Upward longwave from the soil is NOT included here — it is already accounted
+    for in calculate_soil_fluxes via longwave_emission_soil, which drives the
+    ground heat flux and soil sensible heat flux to the surface air layer.
+    Including it here would double-count the soil longwave emission.
+
+    Args:
+        downward_longwave: Downward longwave at top of canopy [W m-2], shape (cells,)
+        leaf_area_index: LAI per layer, shape (layers, cells), NaN for empty layers
+        leaf_emissivity: Leaf emissivity, dimensionless
+        soil_emissivity: Soil emissivity, dimensionless
+        extinction_coefficient_lw: Longwave extinction coefficient, typically ~0.5
+        surface_index: Row index of surface layer
+        topsoil_index: Row index of topsoil layer
+
+    Returns:
+        Absorbed longwave radiation per layer, shape (layers, cells) [W m-2].
+    """
+    n_layers, n_cells = leaf_area_index.shape
+    absorbed = np.zeros((n_layers, n_cells))
+
+    cumulative_lai = np.zeros(n_cells)
+    arriving = downward_longwave.copy().astype(float)
+
+    for layer in range(n_layers):
+        lai = np.nan_to_num(leaf_area_index[layer], nan=0.0)
+
+        if layer == surface_index:
+            # Downward sky LW attenuated through full canopy above
+            transmittance = np.exp(-extinction_coefficient_lw * cumulative_lai)
+            arriving_down = downward_longwave * transmittance
+            absorbed[layer] = leaf_emissivity * arriving_down
+
+            # What passes through to soil
+            arriving = (1.0 - leaf_emissivity) * arriving_down
+
+        elif layer == topsoil_index:
+            # Soil absorbs what the surface layer transmitted
+            absorbed[layer] = soil_emissivity * arriving
+
+        else:
+            transmittance_above = np.exp(-extinction_coefficient_lw * cumulative_lai)
+            transmittance_below = np.exp(
+                -extinction_coefficient_lw * (cumulative_lai + lai)
+            )
+
+            absorbed[layer] = np.where(
+                lai > 0,
+                leaf_emissivity
+                * downward_longwave
+                * (transmittance_above - transmittance_below),
+                0.0,
+            )
+
+            cumulative_lai += lai
+
+    return absorbed
+
+
 def update_soil_temperature(
     ground_heat_flux: NDArray[np.floating],
     soil_temperature: NDArray[np.floating],
@@ -271,6 +345,7 @@ def calculate_energy_balance_residual(
     density_air: NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
+    surface_index: int,
     leaf_emissivity: float,
     stefan_boltzmann_constant: float,
     zero_Celsius: float,
@@ -302,6 +377,7 @@ def calculate_energy_balance_residual(
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
+        surface_index: Row index of surface layer
         leaf_emissivity: Leaf emissivity, dimensionless
         stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
         zero_Celsius: Factor to convert between Celsius and Kelvin
@@ -353,6 +429,8 @@ def calculate_energy_balance_residual(
         - sensible_heat_flux_canopy
         - latent_heat_flux_canopy
     )
+    # Add longwave_emission from surface to net radiation and energy balance residual
+    energy_balance_residual[1] += 0.5 * longwave_emission_canopy[surface_index]
 
     if return_fluxes:
         energy_balance = {
@@ -367,14 +445,14 @@ def calculate_energy_balance_residual(
         return energy_balance_residual
 
 
-def update_air_temperature(
+def update_canopy_air_temperature(
     air_temperature: NDArray[np.floating],
     sensible_heat_flux: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
     mixing_layer_thickness: NDArray[np.floating],
 ) -> NDArray[np.floating]:
-    r"""Update air temperature in steady state.
+    r"""Update air temperature surrounding canopy in steady state.
 
     The new air temperature :math:`T_{a}^{new}` is updated following
     :cite:t:`bonan_climate_2019`:
@@ -404,61 +482,153 @@ def update_air_temperature(
     """
 
     # Update air temperature over a layer of height z (e.g., canopy height)
-    heat_into_air = -sensible_heat_flux
     new_air_temperature = air_temperature + (
-        heat_into_air / (density_air * specific_heat_air * mixing_layer_thickness)
+        sensible_heat_flux / (density_air * specific_heat_air * mixing_layer_thickness)
     )
     return new_air_temperature
 
 
-def update_humidity_vpd(
-    canopy_evapotranspiration: NDArray[np.floating],
-    understorey_evapotranspiration: NDArray[np.floating],
-    soil_evaporation: NDArray[np.floating],
-    saturated_vapour_pressure: NDArray[np.floating],
-    specific_humidity: NDArray[np.floating],
-    layer_thickness: NDArray[np.floating],
-    atmospheric_pressure: NDArray[np.floating],
-    density_air: NDArray[np.floating],
-    mixing_coefficient: NDArray[np.floating],
-    ventilation_rate: NDArray[np.floating],
-    molecular_weight_ratio_water_to_dry_air: float,
-    dry_air_factor: float,
-    mm_to_kg: float,
-    cell_area: float,
-    limits_specific_humidity: tuple[float, float],
-    limits_relative_humidity: tuple[float, float, float],
-    limits_vapour_pressure_deficit: tuple[float, float, float],
-    time_interval: float,
+def update_surface_air_temperature(
+    canopy_air_temperature: NDArray[np.floating],
+    state: dict[str, NDArray[np.floating]],
+    idx: SimpleNamespace,
     denominator_tolerance: float,
-) -> dict[str, NDArray[np.floating]]:
-    """Update specific humidity and vapour pressure deficit for a multilayer canopy.
+):
+    """Update surface air temperature in equilibrium with soil and canopy fluxes.
 
-    This function adds the water from soil evaporation and canopy evapotranspiration to
-    each atmospheric layer, mixes between the layers and with the atmosphere above.
+    The surface air temperature is diagnosed from the soil and canopy bottom
+    conductances and temperatures, assuming equilibrium between the soil and canopy
+    fluxes. This is necessary because the surface layer is too thin to be updated based
+    on fluxes over a 1-hour timestep, and we want to avoid unrealistic surface air
+    temperatures that would arise from a flux-based update.
+
+    For cells with fewer canopy layers, the bottom canopy temperature is the last
+    finite value in the canopy temperature array. For cells with no canopy, the
+    above-canopy reference temperature is used instead.
 
     Args:
-        canopy_evapotranspiration: Evapotranspiration from canopy layers, [mm]
-        understorey_evapotranspiration: Understorey evapotranspiration, [mm]
+        canopy_air_temperature: Canopy air temperature, [C]
+        state: Dictionary of state variables
+        idx: Layer structure index
+        denominator_tolerance: Small value to prevent division by zero
+
+    Returns:
+        Updated surface air temperature, [C]
+    """
+
+    # Last finite canopy temperature per cell — bottom-most occupied canopy layer
+    # Returns NaN for cells with no canopy
+    canopy_bottom_temperature = find_last_valid_row(canopy_air_temperature)
+
+    # For cells with no canopy, fall back to above-canopy reference (row 0)
+    has_canopy = np.isfinite(canopy_bottom_temperature)
+    canopy_bottom_temperature = np.where(
+        has_canopy,
+        canopy_bottom_temperature,
+        state["air_temperature"][0],  # above-canopy reference
+    )
+
+    # Conductance-weighted average of soil and canopy bottom temperatures
+    g_soil = 1.0 / np.maximum(
+        state["aerodynamic_resistance_soil"], denominator_tolerance
+    )
+    g_canopy = 1.0 / np.maximum(
+        state["aerodynamic_resistance_canopy"], denominator_tolerance
+    )
+
+    surface_air_temperature = (
+        g_soil * state["soil_temperature"][idx.topsoil]
+        + g_canopy * canopy_bottom_temperature
+    ) / (g_soil + g_canopy)
+
+    return surface_air_temperature
+
+
+def update_specific_humidity(
+    evapotranspiration: NDArray[np.floating],
+    soil_evaporation: NDArray[np.floating],
+    specific_humidity: NDArray[np.floating],
+    layer_thickness: NDArray[np.floating],
+    density_air: NDArray[np.floating],
+    mm_to_kg: float,
+    cell_area: float,
+    time_interval: float,
+    surface_index: int,
+) -> NDArray[np.floating]:
+    """Update specific humidity from evapotranspiration and soil evaporation.
+
+    This function adds the water from soil evaporation and canopy evapotranspiration to
+    each atmospheric layer. No limits are applied at this stage and no vertical mixing.
+
+    Args:
+        evapotranspiration: Evapotranspiration, [mm]
         soil_evaporation: Soil evaporation to surface layer, [mm]
         saturated_vapour_pressure: Saturated vapour pressure, [kPa]
         specific_humidity: Specific humidity, [kg kg-1]
         layer_thickness: Layer thickness, [m]
-        atmospheric_pressure: Atmospheric pressure, [kPa]
         density_air: Density of air, [kg m-3]
-        mixing_coefficient: Turbulent mixing coefficient, [m2 s-1]
-        ventilation_rate: Ventilation rate, [s-1]
-        molecular_weight_ratio_water_to_dry_air: Molecular weight ratio of water to dry
-            air, dimensionless
-        dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
         mm_to_kg: Factor to convert variable unit from millimeters to kilograms of
             water per square meter
         cell_area: Grid cell area, [m2]
-        limits_specific_humidity: Realistic bounds of specific humidity, [kg kg-1]
+        time_interval: Time interval, [s]
+        surface_index: Index of surface layer
+
+    Returns:
+        update specific_humidity, [kg kg-1]
+    """
+
+    # Convert evapotranspiration and soil evaporation [mm] to [kg m2 s-1] time interval
+    evapotranspiration_kg_m2 = evapotranspiration * mm_to_kg / time_interval
+    soil_evap_kg_m2 = soil_evaporation * mm_to_kg / time_interval
+
+    # Calculate air layer volumes [m3]
+    layer_volumes = layer_thickness * cell_area
+    air_mass_per_layer = layer_volumes * density_air
+
+    # Add ET and soil evaporation as mass flux [kg]
+    added_mass = np.zeros_like(layer_thickness)
+    added_mass += evapotranspiration_kg_m2 * cell_area * time_interval
+    added_mass[surface_index] += soil_evap_kg_m2 * cell_area * time_interval
+
+    # Update water mass in air
+    water_mass_in_air = specific_humidity * air_mass_per_layer
+    water_mass_in_air += added_mass
+
+    # Convert back to specific humidity and fill layer above with reference value
+    specific_humidity_out = water_mass_in_air / air_mass_per_layer
+    specific_humidity_out[0, :] = specific_humidity[0, :]
+
+    return specific_humidity_out
+
+
+def update_humidity_vpd(
+    saturated_vapour_pressure: NDArray[np.floating],
+    specific_humidity_mixed: NDArray[np.floating],
+    atmospheric_pressure: NDArray[np.floating],
+    layer_thickness: NDArray[np.floating],
+    molecular_weight_ratio_water_to_dry_air: float,
+    dry_air_factor: float,
+    density_air: NDArray[np.floating],
+    cell_area: float,
+    limits_relative_humidity: tuple[float, float, float],
+    limits_vapour_pressure_deficit: tuple[float, float, float],
+    denominator_tolerance: float,
+) -> dict[str, NDArray[np.floating]]:
+    """Update atmospheric humidity and vapour pressure deficit.
+
+    Args:
+        saturated_vapour_pressure: Saturated vapour pressure, [kPa]
+        specific_humidity_mixed: Specific humidity vertically mixed, [kg kg-1]
+        atmospheric_pressure: Atmospheric pressure, [kPa]
+        layer_thickness: Layer thickness, [m]
+        molecular_weight_ratio_water_to_dry_air: Molecular weight ratio of water to dry
+            air, dimensionless
+        dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
+        density_air: Density of air, [kg m-3]
+        cell_area: Grid cell area, [m2]
         limits_relative_humidity: Realistic bounds of relative humidity, []
         limits_vapour_pressure_deficit: Realistic bounds for vapour pressure deficit,
             [kPa]
-        time_interval: Time interval, [s]
         denominator_tolerance: Small value to prevent division by zero
 
 
@@ -468,81 +638,44 @@ def update_humidity_vpd(
     """
 
     # Create a mask of where the input was NaN (no true canopy)
-    input_nan_mask = np.isnan(specific_humidity)
-
-    # Convert evapotranspiration and soil evaporation [mm] to [kg m2 s-1] time interval
-    canopy_et_kg_m2 = canopy_evapotranspiration * mm_to_kg / time_interval
-    understorey_et_kg_m2 = understorey_evapotranspiration * mm_to_kg / time_interval
-    soil_evap_kg_m2 = soil_evaporation * mm_to_kg / time_interval
+    input_nan_mask = np.isnan(specific_humidity_mixed)
 
     # Calculate air layer volumes [m3]
     layer_volumes = layer_thickness * cell_area
     air_mass_per_layer = layer_volumes * density_air
 
-    # Add ET and soil evaporation as mass flux [kg]
-    added_mass = np.zeros_like(layer_thickness)
-    added_mass[1 : len(canopy_et_kg_m2) + 1] += (
-        canopy_et_kg_m2 * cell_area * time_interval
-    )
-    added_mass[-1] += (
-        (soil_evap_kg_m2 + understorey_et_kg_m2) * cell_area * time_interval
-    )
-
-    # Update water mass in air
-    water_mass_in_air = specific_humidity * air_mass_per_layer
-    water_mass_in_air += added_mass
-
-    # Convert back to specific humidity
-    specific_humidity = water_mass_in_air / air_mass_per_layer
-
-    # Vertical mixing
-    specific_humidity_updated = wind.mix_and_ventilate(
-        input_variable=specific_humidity,
-        mixing_coefficient=mixing_coefficient,
-        ventilation_rate=ventilation_rate,
-        limits=limits_specific_humidity,
-        surface_index=-1,
-    )
-    # NOTE Advection not implemented as everything is removed with time interval > 1h
-    # and horizontal transfer is not implemented
-    # specific_humidity_advected = wind.advect_water_from_toplayer(
-    #     specific_humidity=specific_humidity_updated[0],
-    #     layer_thickness=layer_thickness[0],
-    #     density_air=density_air[0],
-    #     wind_speed=wind_speed,
-    #     characteristic_length=np.sqrt(cell_area),
-    #     time_interval=time_interval,
-    # )
-    # specific_humidity_updated[0] = specific_humidity_advected
-
     # Saturation constraint and condensation
     # Saturation specific humidity
     saturation_specific_humidity = (
         molecular_weight_ratio_water_to_dry_air
-        * dry_air_factor
-        * saturated_vapour_pressure
+        + dry_air_factor * saturated_vapour_pressure
     ) / np.maximum(
         atmospheric_pressure - saturated_vapour_pressure, denominator_tolerance
     )
 
-    # Excess humidity goes to condensation
-    excess_specific_humidity = np.maximum(
-        specific_humidity_updated - saturation_specific_humidity,
-        limits_specific_humidity[0],
+    # Negative values mean supersaturation
+    specific_humidity_deficit = saturation_specific_humidity - specific_humidity_mixed
+
+    # Excess humidity available for condensation, [kg kg-1]
+    excess_specific_humidity = np.where(
+        specific_humidity_deficit > 0,
+        0.0,
+        specific_humidity_deficit,
     )
 
     # Convert excess to condensed water, [mm]
-    condensation_mm = excess_specific_humidity * air_mass_per_layer / mm_to_kg
+    condensed_water_mass = -excess_specific_humidity * air_mass_per_layer
 
-    # Remove excess from air
-    specific_humidity_updated = np.minimum(
-        specific_humidity_updated, saturation_specific_humidity
-    )
+    # Convert to equivalent water depth, [mm]
+    condensation_mm = condensed_water_mass / cell_area
+
+    # Remove excess from air, not the sign of the excess is negative
+    specific_humidity_updated = specific_humidity_mixed + excess_specific_humidity
 
     # Vapour pressure [kPa]
     vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (
-        molecular_weight_ratio_water_to_dry_air * dry_air_factor
-        + specific_humidity_updated
+        molecular_weight_ratio_water_to_dry_air
+        + dry_air_factor * specific_humidity_updated
     )
 
     # Compute new relative humidity (%)
@@ -707,10 +840,7 @@ def secant_solve_cells_layers(
 
         next_residual = residual_function(next_temperature)
 
-        max_update = np.nanmax(
-            np.abs(next_temperature - current_temperature)
-            / (np.abs(current_temperature) + denominator_tolerance)
-        )
+        max_update = np.nanmax(np.abs(next_temperature - current_temperature))
 
         if max_update < convergence_tolerance:
             return next_temperature
@@ -733,6 +863,7 @@ def make_canopy_residual(
     aerodynamic_resistance: NDArray[np.floating],
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
+    surface_index: int,
 ) -> Callable[[NDArray[np.floating]], NDArray[np.floating]]:
     """Creates a residual function for canopy temperature to be used in root finding.
 
@@ -744,6 +875,7 @@ def make_canopy_residual(
         aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
         abiotic_constants: Constants related to abiotic processes.
         core_constants: Core constants.
+        surface_index: Row index of surface layer.
 
     Returns:
         A function that takes canopy_temperature as input and returns the energy balance
@@ -761,6 +893,7 @@ def make_canopy_residual(
             density_air=state["density_air"],
             aerodynamic_resistance=aerodynamic_resistance,
             latent_heat_vapourisation=state["latent_heat_vapourisation"],
+            surface_index=surface_index,
             leaf_emissivity=abiotic_constants.leaf_emissivity,
             stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
             zero_Celsius=core_constants.zero_Celsius,

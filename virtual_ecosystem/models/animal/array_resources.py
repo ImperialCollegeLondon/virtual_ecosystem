@@ -145,17 +145,29 @@ class ArrayResource:
         self.data: Data = data
         """The data instance containing array resources."""
 
-        # Validate the array names
+        # Validate the pool array name
         if self.pool_array not in data:
             raise ValueError(f"Array resource not found: {self.pool_array}")
 
-        if self.consumed_array in data:
-            raise ValueError(
-                f"Resource consumption array already exists: {self.consumed_array}"
-            )
+        # Create the consumption pool array if not handled elsewhere.
+        if self.consumed_array not in data:
+            # Create the consumption array in data
+            self.data[self.consumed_array] = xr.zeros_like(self.data[self.pool_array])
+            return
 
-        # Create the consumption array in data
-        self.data[self.consumed_array] = xr.zeros_like(self.data[self.pool_array])
+        # Otherwise, since the consumption pool exists in data, double check the array
+        # dimensions are congruent. Using xr.equal with xr.zeros_like here to test the
+        # equality of the dimension coordinates without asserting that the values are
+        # equal.
+        if self.consumed_array in data and not (
+            xr.zeros_like(data[self.pool_array]).equals(
+                xr.zeros_like(data[self.consumed_array])
+            )
+        ):
+            raise ValueError(
+                f"Resource consumption array dimensions ({self.consumed_array}) "
+                f"do not match resource pool array ({self.pool_array})."
+            )
 
     def get_pools(self, data: Data) -> list[ResourcePool]:
         """Return a list of resource pools from an ArrayResource.
@@ -327,11 +339,8 @@ class ResourcePool:
         the local array tracking consumed total biomass.
         """
 
-        # Needs to collapse down to a single mass and element ratio per cell and to
-        # convert to mass units in the density case
+        # Needs to collapse down to a single mass and element ratio per cell
         mass_data = self.data[self.resource.pool_array]
-        if self.density:
-            mass_data *= self.data.grid.cell_area
 
         # Reduce to the PFT if needed
         # TODO - think about indexing here with a more general solution.
@@ -339,7 +348,11 @@ class ResourcePool:
             mass_data = mass_data.sel(pft=self.pft)
 
         # Store elemental biomasses per cell values into array attributes
-        self.elemental_masses = mass_data.to_numpy()
+        if self.density:
+            # in the density case need to convert to mass units
+            self.elemental_masses = mass_data.to_numpy() * self.data.grid.cell_area
+        else:
+            self.elemental_masses = mass_data.to_numpy()
 
         # Create a per cell array to track _total_ consumed biomass
         self.consumed_total_mass = np.zeros(self.data.grid.n_cells)

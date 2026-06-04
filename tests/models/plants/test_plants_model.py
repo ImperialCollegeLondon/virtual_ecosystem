@@ -1,11 +1,12 @@
 """Tests for the model.plants.plants_model submodule."""
 
 from contextlib import nullcontext as does_not_raise
+from copy import deepcopy
 
 import numpy as np
 import pytest
 import xarray
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_less
 
 from virtual_ecosystem.core.exceptions import InitialisationError
 
@@ -264,6 +265,175 @@ def test_PlantsModel_set_shortwave_absorption(
             "layer_fapar_canopy",
         ],
     )
+
+
+@pytest.fixture
+def fxt_plants_model_hbvry(fxt_plants_model):
+    """Add herbivory to model.
+
+    This fixture modifies the consumption pools in fxt_plants_model, which default to
+    zero, to add herbivory of 50% of the fruit, seed and foliage in each cohort.
+    """
+    for cid in fxt_plants_model.grid.cell_id:
+        for tissue in ("fruit", "seed", "foliage"):
+            # Get the biomass and divide in half
+            consumed_biomass = (
+                fxt_plants_model.biomasses[cid]
+                .get_tissue(tissue)
+                .as_array(with_carbon=True)
+            ) / 2
+
+            # Construct an xarray with dimensions to make it easier to group cohort data
+            # back up to PFT for insertion into PFT structured consumption pool
+            target_array = fxt_plants_model.data[f"canopy_{tissue}_cnp_consumed"]
+            consumed_biomass_by_pft = xarray.DataArray(
+                consumed_biomass,
+                dims=("element", "pft"),
+                coords={
+                    "element": target_array.element,
+                    "pft": fxt_plants_model.biomasses[cid].community.cohorts.pft_names,
+                },
+            )
+
+            # Explicitly insert chunks of data grouped by PFT to enforce PFT order on
+            # the consumption pool PFT dimension and handle possible missing PFTs within
+            # communities.
+            for pft_name, pft_data in consumed_biomass_by_pft.groupby("pft"):
+                target_array.loc[cid, pft_name, :] = pft_data.sum("pft")
+
+    return fxt_plants_model
+
+
+def test_PlantsModel_apply_herbivory(fxt_plants_model_hbvry):
+    """Check the sequencing and processes for applying herbivory."""
+
+    from virtual_ecosystem.models.plants.canopy import calculate_canopies
+
+    # Save (deep) copies of the initial biomasses and herbivory affected traits for
+    # comparison to values after applying herbivory
+    initial_biomasses = deepcopy(fxt_plants_model_hbvry.biomasses)
+    initial_lai = {
+        ky: cm.stem_traits.lai.squeeze().copy()
+        for ky, cm in fxt_plants_model_hbvry.communities.items()
+    }
+    initial_tau_f = {
+        ky: cm.stem_traits.tau_f.squeeze().copy()
+        for ky, cm in fxt_plants_model_hbvry.communities.items()
+    }
+
+    # Calculate canopy characteristics of communities _before_ herbivory
+    pristine_canopies = calculate_canopies(
+        communities=fxt_plants_model_hbvry.communities,
+        max_canopy_layers=fxt_plants_model_hbvry.layer_structure.n_canopy_layers,
+    )
+
+    # Run herbivory
+    fxt_plants_model_hbvry.apply_herbivory()
+
+    # Check that the modelled biomasses have been appropriately reduced by 50%,
+    # including proportional distribution of PFT herbivory back down to cohort level.
+    for cid in fxt_plants_model_hbvry.grid.cell_id:
+        for tissue in ("fruit", "seed", "foliage"):
+            assert_allclose(
+                initial_biomasses[cid].get_tissue(tissue).as_array(with_carbon=True)
+                / 2,
+                fxt_plants_model_hbvry.biomasses[cid]
+                .get_tissue(tissue)
+                .as_array(with_carbon=True),
+            )
+
+    # Check that the LAI has been reduced to 75%: 50% of foliage lost in total is an
+    # average of 25% lost over the timestep and LAI scales linearly with foliage mass
+    # (or vice versa).
+    for cid in fxt_plants_model_hbvry.grid.cell_id:
+        assert_allclose(
+            fxt_plants_model_hbvry.communities[cid].stem_traits.lai.squeeze(),
+            initial_lai[cid] * 0.75,
+        )
+
+    # Check that the tau_f has been increased to compensate for foliage loss. The
+    # calculation here is: Wf / tau + H = Wf / tau', where Wf is the allometric
+    # expectation of foliage mass and H is the mass of foliage lost to herbivory.
+    for cid in fxt_plants_model_hbvry.grid.cell_id:
+        W_f = fxt_plants_model_hbvry.communities[cid].stem_allometry.foliage_mass
+        assert_allclose(
+            W_f / initial_tau_f[cid] + W_f / 2,
+            W_f / fxt_plants_model_hbvry.communities[cid].stem_traits.tau_f.squeeze(),
+        )
+
+    # Check the canopy asbsorption has been altered - here just simply checking that the
+    # average community absorption has strictly decreased. _Might_ be able to work out
+    # the expectated new values given a halving of leaf area index, but seems fussy. It
+    # just should go down.
+    damaged_canopies = calculate_canopies(
+        communities=fxt_plants_model_hbvry.communities,
+        max_canopy_layers=fxt_plants_model_hbvry.layer_structure.n_canopy_layers,
+    )
+
+    for pristine, damaged in zip(pristine_canopies.values(), damaged_canopies.values()):
+        assert_array_less(
+            damaged.community_data.average_layer_absorption,
+            pristine.community_data.average_layer_absorption,
+        )
+
+
+def test_PlantsModel_update_allometry(fxt_plants_model_hbvry):
+    """Check update allometry correctly resets traits."""
+    from pyrealm.demography.tmodel import StemAllometry
+
+    # Store the original foliage mass from the allometry and the tau_f values
+    original_Wf = [
+        deepcopy(c.stem_allometry.foliage_mass)
+        for c in fxt_plants_model_hbvry.communities.values()
+    ]
+    original_tau_f = [
+        deepcopy(c.stem_traits.tau_f)
+        for c in fxt_plants_model_hbvry.communities.values()
+    ]
+
+    # Apply herbivory to perturb the traits
+    fxt_plants_model_hbvry.apply_herbivory()
+
+    # Calculate the foliage mass with perturbed LAI to make sure update_allometry has an
+    # actual issue to fix
+    perturbed_Wf = [
+        StemAllometry(
+            stem_traits=c.stem_traits, at_dbh=c.cohorts.dbh_values
+        ).foliage_mass
+        for c in fxt_plants_model_hbvry.communities.values()
+    ]
+    perturbed_tau_f = [
+        deepcopy(c.stem_traits.tau_f)
+        for c in fxt_plants_model_hbvry.communities.values()
+    ]
+
+    # Herbivory effects on LAI should have reduced expected foliage mass by 25%
+    for orig, pert in zip(original_Wf, perturbed_Wf):
+        assert_allclose(orig * 0.75, pert)
+
+    # And tau_f should be lower (reflecting shorter turnover)
+    for orig, pert in zip(original_tau_f, perturbed_tau_f):
+        assert_array_less(pert, orig)
+
+    fxt_plants_model_hbvry.update_allometry()
+
+    restored_Wf = [
+        deepcopy(c.stem_allometry.foliage_mass)
+        for c in fxt_plants_model_hbvry.communities.values()
+    ]
+
+    restored_tau_f = [
+        deepcopy(c.stem_traits.tau_f)
+        for c in fxt_plants_model_hbvry.communities.values()
+    ]
+
+    # LAI effects on foliage mass should now have been removed
+    for orig, pert in zip(original_Wf, restored_Wf):
+        assert_allclose(orig, pert)
+
+    # And tau_f should be restored
+    for orig, pert in zip(original_tau_f, restored_tau_f):
+        assert_allclose(pert, orig)
 
 
 def test_PlantsModel_estimate_gpp(fxt_plants_model):

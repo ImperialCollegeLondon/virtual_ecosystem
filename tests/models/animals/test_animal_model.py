@@ -17,6 +17,7 @@ def prepared_animal_model_instance(
     constants_instance,
     microbial_c_n_p_ratios,
     dummy_animal_exporter,
+    dummy_resource_pool_exporter,
 ):
     """Animal model instance in which setup has already been run."""
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
@@ -24,7 +25,8 @@ def prepared_animal_model_instance(
     model = AnimalModel(
         data=dummy_animal_data,
         core_components=fixture_core_components,
-        exporter=dummy_animal_exporter,
+        animal_cohort_exporter=dummy_animal_exporter,
+        resource_pool_exporter=dummy_resource_pool_exporter,
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -48,6 +50,7 @@ class TestAnimalModel:
         functional_group_list_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test `AnimalModel` initialization with both scaling methods."""
         from virtual_ecosystem.core.base_model import BaseModel
@@ -58,7 +61,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=dummy_animal_data,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=AnimalConstants(density_scaling_method=scaling_method),
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -81,6 +85,7 @@ class TestAnimalModel:
                 (
                     [
                         (INFO, "Animal cohort data exporter not active."),
+                        (INFO, "Resource pool data exporter not active."),
                         (
                             INFO,
                             "Information required to initialise the animal model "
@@ -90,23 +95,6 @@ class TestAnimalModel:
                             INFO,
                             "animal model: required initial data variables checked",
                         ),
-                        (
-                            INFO,
-                            "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
-                        ),
-                        (
-                            INFO,
-                            "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
-                        ),
-                        (INFO, "Adding data array for 'canopy_foliage_cnp_consumed'"),
-                        (INFO, "Adding data array for 'canopy_seed_cnp_consumed'"),
-                        (INFO, "Adding data array for 'canopy_fruit_cnp_consumed'"),
-                        (
-                            INFO,
-                            "Adding data array for 'foliage_turnover_cnp_consumed'",
-                        ),
-                        (INFO, "Adding data array for 'seed_turnover_cnp_consumed'"),
-                        (INFO, "Adding data array for 'fruit_turnover_cnp_consumed'"),
                         (
                             INFO,
                             "Adding data array for "
@@ -482,6 +470,7 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test calculation of total consumption of soil by animals is correct."""
         from copy import deepcopy
@@ -496,7 +485,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=litter_soil_data_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -626,6 +616,7 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test that the function to update fungal fruiting bodies works as expected."""
         import numpy as np
@@ -641,7 +632,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=litter_soil_data_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -701,6 +693,7 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test that updating the data object based on FungalFruitPool changes works."""
         import numpy as np
@@ -713,7 +706,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=litter_soil_data_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -733,8 +727,9 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
-        """Test the new _initialize_communities logic more rigorously."""
+        """Test _initialize_communities."""
 
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
@@ -751,156 +746,41 @@ class TestAnimalModel:
         model = AnimalModel(
             data=animal_data_for_model_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
-        # Reset any cohorts created during __init__ so we test initialization in
-        # isolation.
         model.active_cohorts = {}
         model.communities = {
             cell_id: [] for cell_id in animal_data_for_model_instance.grid.cell_id
         }
 
-        # Call the new initialization method
         model._initialize_communities(functional_group_list_instance)
 
-        # Check all communities have lists
+        # Every cell has a community list.
         for cell_id in animal_data_for_model_instance.grid.cell_id:
             assert isinstance(model.communities[cell_id], list)
 
-        # Check there are active cohorts
-        assert len(model.active_cohorts) > 0
+        # Every functional group has at least one cohort.
+        fg_names_with_cohorts = {
+            c.functional_group.name for c in model.active_cohorts.values()
+        }
+        expected_fg_names = {fg.name for fg in functional_group_list_instance}
+        assert fg_names_with_cohorts == expected_fg_names
 
-        # Check types
+        # Every cohort has the correct initial state and is registered in its community.
         for cohort in model.active_cohorts.values():
             assert isinstance(cohort, AnimalCohort)
-            assert cohort.centroid_key in model.data.grid.cell_id
-            assert cohort.individuals >= model.minimum_cohort_size
-
-        # Check conservation of total individuals
-        for fg in functional_group_list_instance:
-            estimated_total = model._estimate_total_individuals(fg)
-            actual_total = sum(
-                c.individuals
-                for c in model.active_cohorts.values()
-                if c.functional_group.name == fg.name
+            assert cohort.age == 0.0
+            assert cohort.mass_current == pytest.approx(
+                cohort.functional_group.adult_mass
             )
-            assert abs(estimated_total - actual_total) <= len(model.data.grid.cell_id)
-
-        # Check cohort count is reasonable
-        total_expected = model.target_cohorts_per_fg * len(
-            functional_group_list_instance
-        )
-        assert len(model.active_cohorts) <= total_expected
-
-    @pytest.mark.parametrize(
-        "density,expect_damuth_call,scaling_method",
-        [
-            (0.05, False, "damuth"),
-            (None, True, "damuth"),
-            (0.00001, False, "damuth"),
-            (0.0, False, "damuth"),
-            (1000.0, False, "damuth"),
-            (0.333, False, "damuth"),
-            (-0.1, False, "damuth"),
-            (0.05, False, "madingley"),
-            (None, True, "madingley"),
-            (0.00001, False, "madingley"),
-            (0.0, False, "madingley"),
-            (1000.0, False, "madingley"),
-            (0.333, False, "madingley"),
-            (-0.1, False, "madingley"),
-        ],
-        ids=[
-            "standard_empirical_damuth",
-            "damuth_fallback_damuth",
-            "very_low_density_damuth",
-            "zero_density_damuth",
-            "very_high_density_damuth",
-            "fractional_density_damuth",
-            "negative_density_damuth",
-            "standard_empirical_madingley",
-            "madingley_fallback_madingley",
-            "very_low_density_madingley",
-            "zero_density_madingley",
-            "very_high_density_madingley",
-            "fractional_density_madingley",
-            "negative_density_madingley",
-        ],
-    )
-    def test_estimate_total_individuals(
-        self,
-        mocker,
-        animal_model_instance,
-        animal_model_damuth_instance,
-        density,
-        expect_damuth_call,
-        scaling_method,
-    ):
-        """Parametrized test for _estimate_total_individuals."""
-
-        from math import ceil
-
-        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
-        from virtual_ecosystem.models.animal.model_config import AnimalConstants
-
-        # Always patch damuths_law to return predictable 42.0
-        mock_damuth = mocker.patch(
-            "virtual_ecosystem.models.animal.animal_model.damuths_law",
-            return_value=42.0,
-        )
-
-        # Choose correct model instance
-        if scaling_method == "damuth":
-            model = animal_model_damuth_instance
-        elif scaling_method == "madingley":
-            model = animal_model_instance
-
-        n_cells = model.data.grid.n_cells
-        cell_area = model.data.grid.cell_area
-
-        # Create functional group with scaling method consistency
-        fg = FunctionalGroup(
-            name="test_fg",
-            taxa="mammal",
-            diet="herbivore",
-            metabolic_type="endothermic",
-            reproductive_environment="terrestrial",
-            reproductive_type="iteroparous",
-            development_type="direct",
-            development_status="adult",
-            offspring_functional_group="test_fg",
-            excretion_type="uricotelic",
-            migration_type="none",
-            vertical_occupancy="ground",
-            birth_mass=0.1,
-            adult_mass=10.0,
-            constants=AnimalConstants(density_scaling_method=scaling_method),
-            density_individuals_m2=density,
-        )
-
-        result = model._estimate_total_individuals(fg)
-
-        if density is not None:
-            # Empirical density path
-            expected_total = int(density * n_cells * cell_area)
-            assert result == expected_total
-            mock_damuth.assert_not_called()
-
-        else:
-            # Fallback scaling path
-            if scaling_method == "damuth":
-                expected_total = ceil(42.0 * n_cells * cell_area)
-                assert result == expected_total
-                mock_damuth.assert_called_once_with(10.0, fg.population_density_terms)
-            else:
-                # madingley fallback: real calculation, can't match 42.0
-                assert isinstance(result, int)
-                assert result >= 0
-                mock_damuth.assert_not_called()
+            assert cohort.individuals >= model.minimum_cohort_size
+            assert cohort.centroid_key in model.data.grid.cell_id
+            assert cohort in model.communities[cohort.centroid_key]
 
     @pytest.mark.parametrize(
         "total_individuals,target_cohorts,min_cohort_size,expected_n_cohorts",
