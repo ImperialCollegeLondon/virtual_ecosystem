@@ -2504,9 +2504,9 @@ class TestAnimalCohort:
                 600,
                 100,
                 30,
-                0.99,  # above remainder (0.870) → floor only
-                12,
-                id="mature_all_mortalities_no_extra",
+                0.99,  # 12.870 + 0.99 = 13.86 → int = 13 (with extra)
+                13,
+                id="mature_all_mortalities_with_extra",
             ),
             pytest.param(
                 True,
@@ -2521,9 +2521,9 @@ class TestAnimalCohort:
                 600,
                 100,
                 30,
-                0.0,  # below remainder (0.870) → floor + 1
-                13,
-                id="mature_all_mortalities_with_extra",
+                0.0,  # 12.870 + 0.0 = 12.87 → int = 12 (no extra)
+                12,
+                id="mature_all_mortalities_no_extra",
             ),
             pytest.param(
                 False,
@@ -2538,32 +2538,30 @@ class TestAnimalCohort:
                 600,
                 100,
                 30,
-                0.99,  # above remainder (0.927) → floor only
+                0.99,  # 3.927 + 0.99 = 4.917 → int = 4 (with extra)
+                4,
+                id="immature_no_senescence_with_extra",
+            ),
+            pytest.param(
+                False,
+                0.001,
+                0.003,
+                365,
+                30,
+                1.0,
+                0.6,
+                0.05,
+                600,
+                600,
+                100,
+                30,
+                0.0,  # 3.927 + 0.0 = 3.927 → int = 3 (no extra)
                 3,
                 id="immature_no_senescence_no_extra",
             ),
             pytest.param(
                 False,
                 0.001,
-                0.003,
-                365,
-                30,
-                1.0,
-                0.6,
-                0.05,
-                600,
-                600,
-                100,
-                30,
-                0.0,  # below remainder (0.927) → floor + 1
-                4,
-                id="immature_no_senescence_with_extra",
-            ),
-            pytest.param(
-                # Core regression: large-bodied cohort of 1 with low mortality.
-                # expected_dead ≈ 0.030 so ceil would always kill it; floor should not.
-                False,
-                0.001,
                 0.0,
                 365,
                 0,
@@ -2574,26 +2572,26 @@ class TestAnimalCohort:
                 600,
                 1,
                 30,
-                0.99,  # above remainder (0.030) → 0 deaths
-                0,
-                id="single_large_animal_no_death",
-            ),
-            pytest.param(
-                False,
-                0.001,
-                0.0,
-                365,
-                0,
-                0.0,
-                0.6,
-                0.05,
-                600,
-                600,
-                1,
-                30,
-                0.0,  # below remainder (0.030) → 1 death
+                0.99,  # 0.030 + 0.99 = 1.02 → int = 1 (one death)
                 1,
                 id="single_large_animal_one_death",
+            ),
+            pytest.param(
+                False,
+                0.001,
+                0.0,
+                365,
+                0,
+                0.0,
+                0.6,
+                0.05,
+                600,
+                600,
+                1,
+                30,
+                0.0,  # 0.030 + 0.0 = 0.030 → int = 0 (no death)
+                0,
+                id="single_large_animal_no_death",
             ),
         ],
     )
@@ -2620,16 +2618,14 @@ class TestAnimalCohort:
         """Test stochastic rounding of non-predation mortality.
 
         ``random.random`` is mocked to give deterministic control over the
-        stochastic branch.  Each logical scenario is split into a ``_no_extra``
-        case (mock value above the fractional remainder) and a ``_with_extra``
-        case (mock value of 0.0, always below the remainder).  The
+        stochastic branch.  The compact rounding form ``int(expected + U)``
+        means a high ``U`` (e.g. 0.99) pushes the value over the next integer,
+        producing more deaths, while ``U=0.0`` truncates down.  The
         ``single_large_animal`` cases are the primary regression: with ``ceil``
         a cohort of 1 with expected_dead ≈ 0.03 would die every timestep; with
-        stochastic rounding it dies with probability 0.03.
+        stochastic rounding it only dies when ``U < 0.03``.
         """
-        from math import exp, floor
-
-        import virtual_ecosystem.models.animal.scaling_functions as sf
+        from math import exp
 
         cohort = predator_cohort_instance
         cohort.individuals = pop_size
@@ -2670,26 +2666,24 @@ class TestAnimalCohort:
 
         cohort.inflict_non_predation_mortality(dt, [carcass_pool_instance])
 
-        # Recompute independently to guard against parametrize drift.
-        u_t = (
-            sf.background_mortality(u_bg)
-            + (
-                sf.senescence_mortality(lambda_se, t_to_maturity, t_since_maturity)
-                if is_mature
-                else 0.0
-            )
-            + sf.starvation_mortality(lambda_max, J_st, zeta_st, mass_current, mass_max)
+        # Recompute using the same values the mocks returned so the guard
+        # sees the same u_t as the implementation did.
+        u_bg_mocked = u_bg
+        u_se_mocked = (
+            lambda_se * exp(t_since_maturity / t_to_maturity) if is_mature else 0.0
         )
-        continuous_dead = pop_size * (1 - exp(-u_t * dt))
-        floor_dead = floor(continuous_dead)
-        remainder = continuous_dead - floor_dead
-        expected_from_formula = floor_dead + (1 if mock_random < remainder else 0)
+        u_st_mocked = (
+            lambda_max
+            / (1 + exp((mass_current - J_st * mass_max) / (zeta_st * mass_max)))
+            if lambda_max > 0.0
+            else 0.0
+        )
+        u_t = u_bg_mocked + u_se_mocked + u_st_mocked
+        expected_from_formula = int(pop_size * (1 - exp(-u_t * dt)) + mock_random)
         assert expected_from_formula == expected_dead, (
             f"Parametrize mismatch: formula gives {expected_from_formula}, "
-            f"expected_dead={expected_dead} (remainder={remainder:.6f}, "
-            f"mock_random={mock_random})."
+            f"expected_dead={expected_dead} (mock_random={mock_random})."
         )
-
         assert cohort.individuals == pop_size - expected_dead, (
             f"Expected {pop_size - expected_dead} survivors, got {cohort.individuals}."
         )
