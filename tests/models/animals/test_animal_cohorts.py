@@ -2488,204 +2488,63 @@ class TestAnimalCohort:
         )
 
     @pytest.mark.parametrize(
-        "is_mature, u_bg, lambda_se, t_to_maturity, t_since_maturity, lambda_max, J_st,"
-        "zeta_st, mass_current, mass_max, pop_size, dt, mock_random, expected_dead",
+        "is_mature, mock_dead, pop_size, expected_survivors",
         [
-            pytest.param(
-                True,
-                0.001,
-                0.003,
-                365,
-                30,
-                1.0,
-                0.6,
-                0.05,
-                600,
-                600,
-                100,
-                30,
-                0.99,  # 12.870 + 0.99 = 13.86 → int = 13 (with extra)
-                13,
-                id="mature_all_mortalities_with_extra",
-            ),
-            pytest.param(
-                True,
-                0.001,
-                0.003,
-                365,
-                30,
-                1.0,
-                0.6,
-                0.05,
-                600,
-                600,
-                100,
-                30,
-                0.0,  # 12.870 + 0.0 = 12.87 → int = 12 (no extra)
-                12,
-                id="mature_all_mortalities_no_extra",
-            ),
-            pytest.param(
-                False,
-                0.001,
-                0.003,
-                365,
-                30,
-                1.0,
-                0.6,
-                0.05,
-                600,
-                600,
-                100,
-                30,
-                0.99,  # 3.927 + 0.99 = 4.917 → int = 4 (with extra)
-                4,
-                id="immature_no_senescence_with_extra",
-            ),
-            pytest.param(
-                False,
-                0.001,
-                0.003,
-                365,
-                30,
-                1.0,
-                0.6,
-                0.05,
-                600,
-                600,
-                100,
-                30,
-                0.0,  # 3.927 + 0.0 = 3.927 → int = 3 (no extra)
-                3,
-                id="immature_no_senescence_no_extra",
-            ),
-            pytest.param(
-                False,
-                0.001,
-                0.0,
-                365,
-                0,
-                0.0,
-                0.6,
-                0.05,
-                600,
-                600,
-                1,
-                30,
-                0.99,  # 0.030 + 0.99 = 1.02 → int = 1 (one death)
-                1,
-                id="single_large_animal_one_death",
-            ),
-            pytest.param(
-                False,
-                0.001,
-                0.0,
-                365,
-                0,
-                0.0,
-                0.6,
-                0.05,
-                600,
-                600,
-                1,
-                30,
-                0.0,  # 0.030 + 0.0 = 0.030 → int = 0 (no death)
-                0,
-                id="single_large_animal_no_death",
-            ),
+            pytest.param(True, 12, 100, 88, id="mature_all_mortalities"),
+            pytest.param(False, 3, 100, 97, id="immature_no_senescence"),
+            pytest.param(False, 0, 1, 1, id="single_large_animal_no_death"),
+            pytest.param(False, 1, 1, 0, id="single_large_animal_one_death"),
         ],
     )
     def test_inflict_non_predation_mortality(
         self,
         mocker,
         is_mature,
-        u_bg,
-        lambda_se,
-        t_to_maturity,
-        t_since_maturity,
-        lambda_max,
-        J_st,
-        zeta_st,
-        mass_current,
-        mass_max,
+        mock_dead,
         pop_size,
-        dt,
-        mock_random,
-        expected_dead,
+        expected_survivors,
         predator_cohort_instance,
         carcass_pool_instance,
     ):
-        """Test stochastic rounding of non-predation mortality.
+        """Test that non-predation mortality removes the correct number of individuals.
 
-        ``random.random`` is mocked to give deterministic control over the
-        stochastic branch.  The compact rounding form ``int(expected + U)``
-        means a high ``U`` (e.g. 0.99) pushes the value over the next integer,
-        producing more deaths, while ``U=0.0`` truncates down.  The
-        ``single_large_animal`` cases are the primary regression: with ``ceil``
-        a cohort of 1 with expected_dead ≈ 0.03 would die every timestep; with
-        stochastic rounding it only dies when ``U < 0.03``.
+        ``binomial`` is mocked to return a fixed number of deaths, decoupling the
+        test from the stochastic draw and from the specific mortality rate values.
+        The ``single_large_animal`` cases are the primary regression: the old
+        ``ceil`` implementation would guarantee at least one death per timestep
+        regardless of how low the mortality rate was.
         """
-        from math import exp
-
         cohort = predator_cohort_instance
         cohort.individuals = pop_size
         cohort.is_mature = is_mature
-        cohort.time_to_maturity = t_to_maturity
-        cohort.time_since_maturity = t_since_maturity
-        cohort.functional_group.adult_mass = mass_max
 
         mocker.patch.object(
             type(cohort),
             "mass_current",
             new_callable=mocker.PropertyMock,
-            return_value=mass_current,
+            return_value=600,
         )
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.background_mortality",
-            return_value=u_bg,
+            return_value=0.001,
         )
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.senescence_mortality",
-            return_value=(
-                lambda_se * exp(t_since_maturity / t_to_maturity) if is_mature else 0.0
-            ),
+            return_value=0.003,
         )
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.starvation_mortality",
-            return_value=(
-                lambda_max
-                / (1 + exp((mass_current - J_st * mass_max) / (zeta_st * mass_max)))
-                if lambda_max > 0.0
-                else 0.0
-            ),
+            return_value=0.001,
         )
         mocker.patch(
-            "virtual_ecosystem.models.animal.animal_cohorts.random.random",
-            return_value=mock_random,
+            "virtual_ecosystem.models.animal.animal_cohorts.binomial",
+            return_value=mock_dead,
         )
 
-        cohort.inflict_non_predation_mortality(dt, [carcass_pool_instance])
+        cohort.inflict_non_predation_mortality(30, [carcass_pool_instance])
 
-        # Recompute using the same values the mocks returned so the guard
-        # sees the same u_t as the implementation did.
-        u_bg_mocked = u_bg
-        u_se_mocked = (
-            lambda_se * exp(t_since_maturity / t_to_maturity) if is_mature else 0.0
-        )
-        u_st_mocked = (
-            lambda_max
-            / (1 + exp((mass_current - J_st * mass_max) / (zeta_st * mass_max)))
-            if lambda_max > 0.0
-            else 0.0
-        )
-        u_t = u_bg_mocked + u_se_mocked + u_st_mocked
-        expected_from_formula = int(pop_size * (1 - exp(-u_t * dt)) + mock_random)
-        assert expected_from_formula == expected_dead, (
-            f"Parametrize mismatch: formula gives {expected_from_formula}, "
-            f"expected_dead={expected_dead} (mock_random={mock_random})."
-        )
-        assert cohort.individuals == pop_size - expected_dead, (
-            f"Expected {pop_size - expected_dead} survivors, got {cohort.individuals}."
+        assert cohort.individuals == expected_survivors, (
+            f"Expected {expected_survivors} survivors, got {cohort.individuals}."
         )
 
     @pytest.mark.parametrize(
