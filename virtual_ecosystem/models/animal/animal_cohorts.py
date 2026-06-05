@@ -9,6 +9,7 @@ from math import ceil, exp, log, sqrt
 from typing import Literal, TypeVar, cast
 
 from numpy import mean, timedelta64
+from numpy.random import binomial
 from numpy.typing import NDArray
 
 import virtual_ecosystem.models.animal.scaling_functions as sf
@@ -1680,7 +1681,9 @@ class AnimalCohort:
     ) -> None:
         """Inflict combined background, senescence, and starvation mortalities.
 
-        TODO: Review the use of ceil in number_dead, it fails for large animals.
+        The number of deaths is drawn from a binomial distribution with trial size
+        ``pop_size`` and per-individual death probability ``1 - exp(-u_t * dt)`` where
+        ``u_t`` is the sum of background, senescence, and starvation mortality rates.
 
         Args:
             dt: The time passed in the timestep (days).
@@ -1701,12 +1704,9 @@ class AnimalCohort:
 
         u_se = 0.0
         if self.is_mature:
-            # senescence mortality is only experienced by mature adults.
             u_se = sf.senescence_mortality(
                 self.constants.lambda_se, t_to_maturity, t_since_maturity
-            )  # senesence mortality
-        elif self.is_mature is False:
-            u_se = 0.0
+            )  # senescence mortality only experienced by mature adults
 
         u_st = sf.starvation_mortality(
             self.constants.lambda_max,
@@ -1717,8 +1717,8 @@ class AnimalCohort:
         )  # starvation mortality
         u_t = u_bg + u_se + u_st
 
-        # Calculate the total number of dead individuals
-        number_dead = ceil(pop_size * (1 - exp(-u_t * dt)))
+        # Calculate the total number of dead individuals w/ binomial draw
+        number_dead = binomial(n=pop_size, p=1 - exp(-u_t * dt))
 
         # Remove the dead individuals from the cohort
         self.die_individual(number_dead, carcass_pools)
