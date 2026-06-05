@@ -776,7 +776,7 @@ class TestAnimalModel:
             assert isinstance(cohort, AnimalCohort)
             assert cohort.age == 0.0
             assert cohort.mass_current == pytest.approx(
-                cohort.functional_group.adult_mass
+                cohort.functional_group.birth_mass
             )
             assert cohort.individuals >= model.minimum_cohort_size
             assert cohort.centroid_key in model.data.grid.cell_id
