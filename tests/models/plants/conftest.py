@@ -57,10 +57,10 @@ def fixture_exporter(tmpdir, fixture_configuration):
 
 
 @pytest.fixture
-def plants_cohort_data():
+def plants_cohort_data(tricky_plant_cohorts):
     """Construct a simple initial cohort dataframe."""
 
-    return pd.DataFrame(
+    data = pd.DataFrame(
         {
             "plant_cohorts_cell_id": [0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
             "plant_cohorts_n": [400, 100, 100, 300, 100, 200, 100, 100, 100, 100],
@@ -79,6 +79,23 @@ def plants_cohort_data():
             "plant_cohorts_dbh": [1.0, 0.1, 0.01, 1.0, 0.1, 1.0, 0.01, 1.0, 0.1, 0.01],
         }
     )
+
+    if tricky_plant_cohorts:
+        data = pd.DataFrame(
+            {
+                "plant_cohorts_cell_id": [1, 2, 3, 3],
+                "plant_cohorts_n": [0, 1, 1, 1],
+                "plant_cohorts_pft": [
+                    "broadleaf",
+                    "broadleaf",
+                    "broadleaf",
+                    "broadleaf",
+                ],
+                "plant_cohorts_dbh": [1.0, 1.0, 1.0, 0.1],
+            }
+        )
+
+    return data
 
 
 @pytest.fixture

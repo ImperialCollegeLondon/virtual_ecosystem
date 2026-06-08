@@ -205,7 +205,10 @@ def test_PlantsModel_from_config(
     )
 
 
-def test_PlantsModel_update_canopy_layers(fxt_plants_model, fixture_canopy_layer_data):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False, True])
+def test_PlantsModel_update_canopy_layers(
+    fxt_plants_model, fixture_canopy_layer_data, tricky_plant_cohorts
+):
     """Simple test that update canopy layers restores overwritten data."""
 
     # Overwrite the existing canopy derived data in each layer - this also nukes the

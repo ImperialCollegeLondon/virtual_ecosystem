@@ -782,48 +782,50 @@ class PlantsModel(
         for cell_id, canopy, community in zip(
             self.canopies, self.canopies.values(), self.communities.values()
         ):
-            # Get the indices of the array to be filled in
-            fill_idx = (slice(0, canopy.heights.size), (cell_id,))
+            # Handle empty canopies
+            # - currently this is being detected by the calculated canopy having no
+            #   layers. If pyrealm changes the handling of empty communities, then need
+            #   to track here. In particular, empty pyrealm canopies emerge from a
+            #   cohort with no individuals. The canopy max height is defined by the
+            #   hypothetical maximum size of the trees of which there no individuals -
+            #   which is misleading to say the least.
 
-            # Insert canopy layer heights
-            # TODO - #695 At present, pyrealm returns a column array which _I think_
-            #        always has zero as the last entry. We don't want that value, so it
-            #        is being clipped out here but keep an eye on this definition and
-            #        update if pyrealm changes. In the meantime, keep this guard check
-            #        to raise if the issue arises.
+            if canopy.heights.size > 0:
+                # Otherwise get the indices of the array to be filled in
+                fill_idx = (slice(0, canopy.heights.size), (cell_id,))
 
-            if canopy.heights[-1, :].item() > 0:
-                raise ValueError("Last canopy.height is non-zero")
+                # Insert canopy layer heights
+                # TODO - #695 At present, pyrealm returns a column array which _I think_
+                #        always has zero as the last entry. We don't want that value, so
+                #        it is being clipped out here but keep an eye on this definition
+                #        and update if pyrealm changes. In the meantime, keep this guard
+                #        check to raise if the issue arises.
 
-            heights[fill_idx] = np.concatenate(
-                [[[canopy.max_stem_height]], canopy.heights[0:-1, :]]
-            )
+                if canopy.heights[-1, :].item() > 0:
+                    raise ValueError("Last canopy.height is non-zero")
 
-            # Insert canopy fapar:
-            # TODO - #695 currently 1D, not 2D - consistency in pyrealm? keepdims?
-            fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
+                heights[fill_idx] = np.concatenate(
+                    [[[canopy.max_stem_height]], canopy.heights[0:-1, :]]
+                )
 
-            # Calculate the per stem leaf mass  as (stem leaf area * (1/sigma) * L) and
-            # then scale up to the number of individuals and sum across cohorts to give
-            # a total mass per layer within the cell.
-            # TODO - need to expose the per cohort data to allow selective herbivory.
-            # BUG  - The calculation here needs to be robust to no plants being present
-            #        in a cell. At the moment, even with plants present, the scaling of
-            #        the model is resulting in cohort total LAI of zero, which gives
-            #        zero division and hence np.nan in the expected leaf mass per cohort
-            #        per layer, which then breaks the setting of the filled layer mask.
-            #        But with actually no plants present, the code still needs to work.
+                # Insert canopy fapar:
+                # TODO - #695 currently 1D, not 2D - consistency in pyrealm? keepdims?
+                fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
 
-            cohort_leaf_mass_per_layer = (
-                canopy.cohort_data.stem_leaf_area
-                * (1 / community.stem_traits.sla)
-                * community.stem_traits.lai
-            ) * community.cohorts.n_individuals
+                # Calculate the per stem leaf mass  as (stem leaf area * (1/sigma) * L)
+                # and then scale up to the number of individuals and sum across cohorts
+                # to give a total mass per layer within the cell.
 
-            mass[fill_idx] = cohort_leaf_mass_per_layer.sum(axis=1, keepdims=True)
+                cohort_leaf_mass_per_layer = (
+                    canopy.cohort_data.stem_leaf_area
+                    * (1 / community.stem_traits.sla)
+                    * community.stem_traits.lai
+                ) * community.cohorts.n_individuals
 
-            # LAI - insert community average LAI values from light capture model
-            lai[fill_idx] = canopy.community_data.average_layer_lai[:, None]
+                mass[fill_idx] = cohort_leaf_mass_per_layer.sum(axis=1, keepdims=True)
+
+                # LAI - insert community average LAI values from light capture model
+                lai[fill_idx] = canopy.community_data.average_layer_lai[:, None]
 
         # Insert the canopy layers into the data objects
         self.data["layer_heights"][self._canopy_layer_indices, :] = heights
@@ -831,9 +833,12 @@ class PlantsModel(
         self.data["layer_fapar"][self._canopy_layer_indices, :] = fapar
         self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = mass
 
-        # Add the above canopy reference height
-        self.data["layer_heights"][self.layer_structure.index_above, :] = (
-            heights[0, :] + self.layer_structure.above_canopy_height_offset
+        # Add the above canopy reference height, handling np.nan in first row where
+        # plants are absent
+        self.data["layer_heights"][self.layer_structure.index_above, :] = np.where(
+            np.isnan(heights[0, :]),
+            self.layer_structure.above_canopy_height_offset,
+            heights[0, :] + self.layer_structure.above_canopy_height_offset,
         )
 
         # Update the filled canopy layers
