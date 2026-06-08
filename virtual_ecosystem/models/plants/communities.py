@@ -12,6 +12,7 @@ instances.
 
 from collections.abc import Mapping
 
+import numpy as np
 import pandas as pd
 from pyrealm.demography.community import Cohorts, Community
 from pyrealm.demography.flora import Flora
@@ -102,16 +103,30 @@ class PlantCommunities(dict, Mapping[int, Community]):
             raise ValueError(msg)
 
         # Now build the pyrealm community objects for each cell
-        for cell_id, cell_cohort_data in cohort_data_grouped:
+        communities = {k: v for k, v in cohort_data_grouped}
+
+        for cell_id in grid.cell_id:
+            if cell_id in communities:
+                # Build cohorts object with provided data
+                cell_cohort_data = communities[cell_id]
+                cohorts = Cohorts(
+                    n_individuals=cell_cohort_data["plant_cohorts_n"].to_numpy(),
+                    pft_names=cell_cohort_data["plant_cohorts_pft"].to_numpy(),
+                    dbh_values=cell_cohort_data["plant_cohorts_dbh"].to_numpy(),
+                )
+            else:
+                # Empty cohorts object
+                cohorts = Cohorts(
+                    dbh_values=np.array([]),
+                    n_individuals=np.array([]),
+                    pft_names=np.array([]),
+                )
+
             self[cell_id] = Community(
                 cell_id=cell_id,
                 cell_area=grid.cell_area,  # Note this is constant
                 flora=flora,
-                cohorts=Cohorts(
-                    n_individuals=cell_cohort_data["plant_cohorts_n"].to_numpy(),
-                    pft_names=cell_cohort_data["plant_cohorts_pft"].to_numpy(),
-                    dbh_values=cell_cohort_data["plant_cohorts_dbh"].to_numpy(),
-                ),
+                cohorts=cohorts,
             )
 
         LOGGER.info("Plant cohort data loaded")
