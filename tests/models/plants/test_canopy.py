@@ -62,12 +62,13 @@ def test_initialise_canopy_layers(plants_data, fixture_core_components):
     )
 
 
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 @pytest.mark.parametrize(
     "max_canopy_layers, expected_exception, expected_log",
     [
-        (10, does_not_raise(), None),
-        (5, does_not_raise(), None),
-        (
+        pytest.param(10, does_not_raise(), None, id="10_layers"),
+        pytest.param(5, does_not_raise(), None, id="5_layers"),
+        pytest.param(
             1,
             pytest.raises(RuntimeError),
             (
@@ -77,6 +78,7 @@ def test_initialise_canopy_layers(plants_data, fixture_core_components):
                     "layers, configured maximum is 1",
                 ),
             ),
+            id="1_layer",
         ),
     ],
 )
@@ -88,8 +90,14 @@ def test_calculate_canopies(
     max_canopy_layers,
     expected_exception,
     expected_log,
+    tricky_plant_cohorts,
 ):
-    """Test the calculate_canopies function with different max_canopy_layers values."""
+    """Test the calculate_canopies function with different max_canopy_layers values.
+
+    This does not use the tricky cohorts because it is primarily aimed at checking the
+    layer clipping. The test_PlantsModel_update_canopy_layers test is aimed at
+    validating the expected arrays of layer heights etc.
+    """
     from pyrealm.demography.canopy import Canopy
 
     from virtual_ecosystem.models.plants.canopy import calculate_canopies

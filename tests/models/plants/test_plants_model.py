@@ -1,4 +1,14 @@
-"""Tests for the model.plants.plants_model submodule."""
+"""Tests for the model.plants.plants_model submodule.
+
+The cohort data fixture used to run the full model in these tests has two payloads - one
+with fairly sensible cohorts and the other with edge cases. These can be selected by
+passing the tricky_plant_cohorts argument to the test function, which pytest passes down
+to parameterise the `plants_cohort_data` fixture. Only one test in this module uses the
+tricky data but the other tests still need to be parameterised (there doesn't seem to be
+a way to set a default on the fixture).
+
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+"""
 
 from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
@@ -54,6 +64,7 @@ def wipe_canopy_layers(model):
         model.data[layer] = model.layer_structure.from_template()
 
 
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 def test_PlantsModel__init__(
     plants_data,
     plants_cohort_data,
@@ -62,6 +73,7 @@ def test_PlantsModel__init__(
     fixture_core_components,
     fixture_canopy_layer_data,
     fixture_exporter,
+    tricky_plant_cohorts,
 ):
     """Test the PlantsModel.__init__ method."""
 
@@ -96,6 +108,7 @@ def test_PlantsModel__init__(
     )
 
 
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 @pytest.mark.parametrize(
     argnames="new_data,context_manager,error_message",
     argvalues=(
@@ -137,7 +150,7 @@ def test_PlantsModel__init__errors(
     plants_cohort_data,
     extra_pft_traits,
     fixture_core_components,
-    fixture_canopy_layer_data,
+    tricky_plant_cohorts,
     fixture_exporter,
     new_data,
     context_manager,
@@ -169,11 +182,13 @@ def test_PlantsModel__init__errors(
     assert str(ctxt.value) == error_message
 
 
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 def test_PlantsModel_from_config(
     plants_data,
     fixture_configuration,
     fixture_core_components,
     fixture_canopy_layer_data,
+    tricky_plant_cohorts,
 ):
     """Test the PlantsModel.from_config factory method."""
 
@@ -207,9 +222,16 @@ def test_PlantsModel_from_config(
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False, True])
 def test_PlantsModel_update_canopy_layers(
-    fxt_plants_model, fixture_canopy_layer_data, tricky_plant_cohorts
+    fxt_plants_model,
+    fixture_canopy_layer_data,
+    tricky_plant_cohorts,  # Passed down to fixtures to set cohort inputs
 ):
-    """Simple test that update canopy layers restores overwritten data."""
+    """Simple test that update canopy layers restores overwritten data.
+
+    The tricky_plant_cohorts argument is passed down to fixtures to swap between a set
+    of cohorts that provide all PFTs in all cells and a set with odd edge cases (no
+    cohorts at all, cohorts with no individuals, only one PFT)
+    """
 
     # Overwrite the existing canopy derived data in each layer - this also nukes the
     # soil and surface depths _which_ are not correctly regenerated in this test, so the
@@ -238,8 +260,9 @@ def test_PlantsModel_update_canopy_layers(
     )
 
 
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 def test_PlantsModel_set_shortwave_absorption(
-    fxt_plants_model, fixture_canopy_layer_data
+    fxt_plants_model, fixture_canopy_layer_data, tricky_plant_cohorts
 ):
     """Simple test that update canopy layers restores overwritten data."""
 
@@ -307,7 +330,8 @@ def fxt_plants_model_hbvry(fxt_plants_model):
     return fxt_plants_model
 
 
-def test_PlantsModel_apply_herbivory(fxt_plants_model_hbvry):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_apply_herbivory(fxt_plants_model_hbvry, tricky_plant_cohorts):
     """Check the sequencing and processes for applying herbivory."""
 
     from virtual_ecosystem.models.plants.canopy import calculate_canopies
@@ -380,7 +404,8 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model_hbvry):
         )
 
 
-def test_PlantsModel_update_allometry(fxt_plants_model_hbvry):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_update_allometry(fxt_plants_model_hbvry, tricky_plant_cohorts):
     """Check update allometry correctly resets traits."""
     from pyrealm.demography.tmodel import StemAllometry
 
@@ -439,7 +464,8 @@ def test_PlantsModel_update_allometry(fxt_plants_model_hbvry):
         assert_allclose(pert, orig)
 
 
-def test_PlantsModel_estimate_gpp(fxt_plants_model):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_estimate_gpp(fxt_plants_model, tricky_plant_cohorts):
     """Test the estimate_gpp method."""
 
     # Set the canopy and absorbed irradiance
@@ -551,11 +577,8 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     )
 
 
-# @pytest.mark.skip(
-#     reason="The DBH increase check fails - we need to fix this but that is going "
-#     "to be tricky and we need to unblock the CI."
-# )
-def test_PlantsModel_allocate_gpp(fxt_plants_model):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
     """Test the allocate_gpp method."""
 
     # Populate the data variables required for update
@@ -625,7 +648,10 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model):
         )
 
 
-def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_update(
+    fxt_plants_model, fixture_canopy_layer_data, tricky_plant_cohorts
+):
     """Test the update method."""
 
     # The update method runs both update_canopy_layers and set_shortwave_absorption so
@@ -659,7 +685,8 @@ def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
     #         assert np.allclose(cohort.dbh, 0.13)
 
 
-def test_PlantsModel_calculate_turnover(fxt_plants_model):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_calculate_turnover(fxt_plants_model, tricky_plant_cohorts):
     """Test the calculate_turnover method of the plants model."""
 
     # Check reset
@@ -679,7 +706,8 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
     assert np.allclose(fxt_plants_model.data["root_lignin"], consts.root_lignin)
 
 
-def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model, tricky_plant_cohorts):
     """Test the calculate_nutrient_uptake method of the plants model."""
 
     # Provide transpiration values
@@ -719,7 +747,8 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
     )
 
 
-def test_PlantsModel_apply_mortality(mocker, fxt_plants_model):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_apply_mortality(mocker, fxt_plants_model, tricky_plant_cohorts):
     """Test the apply_mortality method of the plants model."""
 
     # Patch the RNG in mortality to kill one of every cohort - easier calculation of
@@ -779,7 +808,8 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model):
                 )
 
 
-def test_PlantsModel_apply_recruitment(fxt_plants_model):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_apply_recruitment(fxt_plants_model, tricky_plant_cohorts):
     """Test the apply_recruitment method of the plants model."""
 
     original_n_cohorts = [
@@ -811,7 +841,8 @@ def test_PlantsModel_apply_recruitment(fxt_plants_model):
     assert np.all(np.less(original_n_cohorts, new_n_cohorts))
 
 
-def test_convert_to_litter_units(fxt_plants_model):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_convert_to_litter_units(fxt_plants_model, tricky_plant_cohorts):
     """Tests the helper function that converts to litter model units."""
 
     input_mass = np.array([1e5, 3.4e2, 123.7, 0.007])
@@ -824,7 +855,8 @@ def test_convert_to_litter_units(fxt_plants_model):
     assert np.allclose(expected_input_density, actual_input_density)
 
 
-def test_convert_to_soil_units(fxt_plants_model):
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_convert_to_soil_units(fxt_plants_model, tricky_plant_cohorts):
     """Tests the helper function that converts to soil model units."""
 
     print(fxt_plants_model.model_timing.update_interval_quantity)
