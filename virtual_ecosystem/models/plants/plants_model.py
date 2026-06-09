@@ -271,7 +271,7 @@ class PlantsModel(
         self._canopy_layer_indices: NDArray[np.bool_]
         """The indices of the canopy layers within wider vertical profile. This is 
         a shorter reference to self.layer_structure.index_canopy."""
-        self.canopies: dict[int, Canopy]
+        self.canopies: dict[int, Canopy | None]
         """A dictionary giving the canopy structure of each grid cell."""
         self.stem_allocations: dict[int, StemAllocation]
         """A dictionary giving the stem allocation of GPP for the community in each grid
@@ -783,15 +783,19 @@ class PlantsModel(
             self.canopies, self.canopies.values(), self.communities.values()
         ):
             # Handle empty canopies
-            # - currently this is being detected by the calculated canopy having no
-            #   layers. If pyrealm changes the handling of empty communities, then need
-            #   to track here. In particular, empty pyrealm canopies emerge from a
-            #   cohort with no individuals. The canopy max height is defined by the
-            #   hypothetical maximum size of the trees of which there no individuals -
-            #   which is misleading to say the least.
+            # - At the moment pyrealm does not handle canopies from no cohorts in the
+            #   cell (represented as None) and handles canopies from cohorts with no
+            #   individuals by reporting zero layer heights. These two pathways should
+            #   be synchronised in a future pyrealm release.
+            # - Of note, empty pyrealm canopies from cohorts with no
+            #   individuals. The canopy max height is defined by the hypothetical
+            #   maximum size of the trees of which there no individuals - which is
+            #   misleading to say the least.
 
-            if canopy.heights.size > 0:
-                # Otherwise get the indices of the array to be filled in
+            # If canopy height data is present then fill in the appropriate layers,
+            # otherwise leave the cell with NA data.
+            if canopy is not None and canopy.heights.size > 0:
+                # Array indices of filled layers in this cell
                 fill_idx = (slice(0, canopy.heights.size), (cell_id,))
 
                 # Insert canopy layer heights
@@ -833,8 +837,8 @@ class PlantsModel(
         self.data["layer_fapar"][self._canopy_layer_indices, :] = fapar
         self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = mass
 
-        # Add the above canopy reference height, handling np.nan in first row where
-        # plants are absent
+        # Add the above canopy reference height, handling np.nan in first row when
+        # the canopy is empty.
         self.data["layer_heights"][self.layer_structure.index_above, :] = np.where(
             np.isnan(heights[0, :]),
             self.layer_structure.above_canopy_height_offset,
@@ -844,10 +848,12 @@ class PlantsModel(
         # Update the filled canopy layers
         self.layer_structure.set_filled_canopy(canopy_heights=heights)
 
-        # Update the below canopy light fraction
+        # Update the below canopy light fraction, handling cells with no canopy
+        # Note - dual path here: no cohorts = None, extinct cohorts have defined
+        # transmission of 1.
         self.below_canopy_light_fraction = np.array(
             [
-                cnpy.community_data.transmission_to_ground
+                1 if cnpy is None else cnpy.community_data.transmission_to_ground
                 for cnpy in self.canopies.values()
             ]
         )
@@ -1079,6 +1085,16 @@ class PlantsModel(
             # Get the canopy and community for the cell
             canopy = self.canopies[cell_id]
             community = self.communities[cell_id]
+
+            # Handle cells with no canopy. Using continue here leaves the transpiration
+            # values for the cell as np.nan
+            if canopy is None:
+                # The .per_stem_gpp and .per_stem_transpiration dictionaries for the
+                # cell is filled with an empty array. Once we have a better handle on
+                # empty community structure this needs to be resolved.
+                self.per_stem_gpp[cell_id] = np.array([])
+                self.per_stem_transpiration[cell_id] = np.array([])
+                continue
 
             # Get cohort data into vertical structure - the cohort canopy data only
             # contains occupied layers - so for example a block of 3 canopy layers by 4
