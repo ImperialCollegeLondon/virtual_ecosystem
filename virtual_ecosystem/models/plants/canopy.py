@@ -79,7 +79,7 @@ def initialise_canopy_layers(
 
 def calculate_canopies(
     communities: PlantCommunities, max_canopy_layers: int
-) -> dict[int, Canopy]:
+) -> dict[int, Canopy | None]:
     """Calculate the canopy structure of communities.
 
     This function takes a PlantCommunities object and calculates the canopy
@@ -99,24 +99,35 @@ def calculate_canopies(
     # TODO - this could be a method of PlantCommunities but creates circular import of
     #        PlantCohorts
 
+    # TODO - pyrealm does not currently support an empty Canopy object (no cohorts) so
+    #        this currently uses None as a placeholder for cells with no cohorts.
+
     # TODO - maybe return dict[str, NDArray] as the number of layers is only going to
     #        increase with the need for more resources and cohort data.
 
     # Loop over the communities in each cell
-    canopies: dict[int, Canopy] = {}
+    canopies: dict[int, Canopy | None] = {}
     for cell_id, community in communities.items():
-        # Calculate the PPA canopy model for the community in the cell
-        canopies[cell_id] = Canopy(community, fit_ppa=True)
+        # Represent canopy of empty communities as None, otherwise calculate the Canopy
+        # object for the community
+        if community.n_cohorts == 0:
+            canopy = None
+        else:
+            # Calculate the PPA canopy model for the community in the cell
+            canopy = Canopy(community, fit_ppa=True)
 
-        # Fail if canopy representation has more layers than the configuration.
-        n_canopy_layers = canopies[cell_id].heights.size
-        if max_canopy_layers < n_canopy_layers:
-            msg = (
-                f"Canopy representation for the plant community in cell "
-                f"{cell_id} has {n_canopy_layers} layers, "
-                f"configured maximum is {max_canopy_layers}"
-            )
-            LOGGER.critical(msg)
-            raise RuntimeError(msg)
+            # Fail if canopy representation has more layers than the configuration.
+            n_canopy_layers = canopy.heights.size
+            if max_canopy_layers < n_canopy_layers:
+                msg = (
+                    f"Canopy representation for the plant community in cell "
+                    f"{cell_id} has {n_canopy_layers} layers, "
+                    f"configured maximum is {max_canopy_layers}"
+                )
+                LOGGER.critical(msg)
+                raise RuntimeError(msg)
+
+        # Store canopy representation
+        canopies[cell_id] = canopy
 
     return canopies

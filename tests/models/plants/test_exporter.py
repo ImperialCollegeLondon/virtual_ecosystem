@@ -286,6 +286,7 @@ def csv_row_check(path: Path | None, n_rows: int, attr: list[str] = []) -> None:
         assert set(content.columns) == set(attr)
 
 
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 @pytest.mark.parametrize(
     argnames="required,attributes",
     argvalues=(
@@ -295,9 +296,16 @@ def csv_row_check(path: Path | None, n_rows: int, attr: list[str] = []) -> None:
     ),
 )
 def test_CommunityDataExporter_dump_cohort_data(
-    tmp_path, fixture_exporter_components, required, attributes
+    tmp_path,
+    fixture_exporter_components,
+    tricky_plant_cohorts,  # Set that the straightforward cohort data gets used
+    required,
+    attributes,
 ):
-    """Test CommunityDataExporter _dump_cohort_data method."""
+    """Test CommunityDataExporter _dump_cohort_data method.
+
+    tricky_plant_cohorts
+    """
 
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
@@ -337,6 +345,7 @@ def test_CommunityDataExporter_dump_cohort_data(
         assert "biomass_foliage_n_actual_element_mass" in content.columns
 
 
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 @pytest.mark.parametrize(
     argnames="required,attributes",
     argvalues=(
@@ -348,7 +357,11 @@ def test_CommunityDataExporter_dump_cohort_data(
     ),
 )
 def test_CommunityDataExporter_dump_community_canopy_data(
-    tmp_path, fixture_exporter_components, required, attributes
+    tmp_path,
+    fixture_exporter_components,
+    tricky_plant_cohorts,  # Set that the straightforward cohort data gets used
+    required,
+    attributes,
 ):
     """Test CommunityDataExporter _dump_community_canopy_data method."""
 
@@ -382,6 +395,7 @@ def test_CommunityDataExporter_dump_community_canopy_data(
     csv_row_check(path=out_path, n_rows=cell_n_layers.sum(), attr=attributes)
 
 
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 @pytest.mark.parametrize(
     argnames="required,attributes",
     argvalues=(
@@ -391,7 +405,11 @@ def test_CommunityDataExporter_dump_community_canopy_data(
     ),
 )
 def test_CommunityDataExporter_dump_stem_canopy_data(
-    tmp_path, fixture_exporter_components, required, attributes
+    tmp_path,
+    fixture_exporter_components,
+    tricky_plant_cohorts,  # Set that the straightforward cohort data gets used
+    required,
+    attributes,
 ):
     """Test CommunityDataExporter _dump_stem_canopy_data method."""
 
@@ -428,6 +446,7 @@ def test_CommunityDataExporter_dump_stem_canopy_data(
     csv_row_check(path=out_path, n_rows=cell_n_stem_layers, attr=attributes)
 
 
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 @pytest.mark.parametrize(
     argnames=("required"),
     argvalues=(

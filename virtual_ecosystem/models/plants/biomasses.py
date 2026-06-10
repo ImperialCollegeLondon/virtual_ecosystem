@@ -209,8 +209,10 @@ class BiomassTissueABC(ABC):
         # NOTE - this relies on the community being updated by reference when
         #        recruitment happens. If this changes then the match of the number of
         #        columns to the PFTs needs to be maintained some other way.
-        for pft in self.community.flora.name:
+        for pft in set(self.community.cohorts.pft_names):
+            # boolean index along carbon_mass array
             in_pft = self.community.cohorts.pft_names == pft
+            # aggregate masses across cohorts in the PFT and assign total.
             total_pft_carbon_biomass[in_pft] = self.carbon_mass[in_pft].sum()
 
         return self.carbon_mass / total_pft_carbon_biomass
@@ -326,7 +328,7 @@ class FoliageBiomass(BiomassTissueABC):
 
         # Need to use copy to avoid the biomass and allometry masses refer to the same
         # object!
-        carbon_mass = community.stem_allometry.foliage_mass.squeeze().copy()
+        carbon_mass = pyrealm_handling(community.stem_allometry.foliage_mass.copy())
         for elem in with_elements:
             ideal_ratio = np.array(
                 [
@@ -366,10 +368,12 @@ class FoliageBiomass(BiomassTissueABC):
             The increases in element quantities needed to support growth at the ideal
             ratio for the tissue.
         """
-        self.carbon_mass += allocation.delta_foliage_mass.squeeze()
+        carbon_mass = pyrealm_handling(allocation.delta_foliage_mass)
+
+        self.carbon_mass += carbon_mass
 
         nutrient_ideal_ratio_increase = {
-            ky: (allocation.delta_foliage_mass * (1 / elem.ideal_ratio)).squeeze()
+            ky: carbon_mass * (1 / elem.ideal_ratio)
             for ky, elem in self.element_masses.items()
         }
 
@@ -385,14 +389,13 @@ class FoliageBiomass(BiomassTissueABC):
         Returns:
             The element quantity lost to turnover for foliage tissue.
         """
+        carbon_mass = pyrealm_handling(allocation.foliage_turnover)
         elemental_turnovers = {
-            ky: (
-                (allocation.foliage_turnover * (1 / elem.turnover_ratio)).squeeze()
-            ).squeeze()
+            ky: (carbon_mass * (1 / elem.turnover_ratio))
             for ky, elem in self.element_masses.items()
         }
 
-        return {"C": allocation.foliage_turnover.squeeze(), **elemental_turnovers}
+        return {"C": carbon_mass, **elemental_turnovers}
 
 
 @dataclass
@@ -414,7 +417,9 @@ class ReproductiveBiomass(BiomassTissueABC):
         element_masses: dict[str, Element] = {}
 
         # Use copy to avoid maintaining a reference to the allometry
-        carbon_mass = community.stem_allometry.reproductive_tissue_mass.squeeze().copy()
+        carbon_mass = pyrealm_handling(
+            community.stem_allometry.reproductive_tissue_mass.copy()
+        )
 
         for elem in with_elements:
             ideal_ratio = np.array(
@@ -452,14 +457,14 @@ class ReproductiveBiomass(BiomassTissueABC):
             ratio for the tissue.
         """
 
-        carbon_increase = (
+        carbon_increase = pyrealm_handling(
             allocation.delta_foliage_mass
             * self.community.stem_traits.p_foliage_for_reproductive_tissue
         )
-        self.carbon_mass += carbon_increase.squeeze()
+        self.carbon_mass += carbon_increase
 
         nutrient_ideal_ratio_increase = {
-            ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
+            ky: (carbon_increase * (1 / elem.ideal_ratio))
             for ky, elem in self.element_masses.items()
         }
 
@@ -480,22 +485,13 @@ class ReproductiveBiomass(BiomassTissueABC):
         # element  - maybe this should a cached property?
 
         cx_ratios = self.Cx_ratio
-
+        carbon_mass = pyrealm_handling(allocation.reproductive_tissue_turnover)
         elemental_turnovers = {
-            ky: (
-                (
-                    allocation.reproductive_tissue_turnover * (1 / cx_ratios[ky])
-                ).squeeze()
-            ).squeeze()
+            ky: carbon_mass * (1 / cx_ratios[ky])
             for ky, elem in self.element_masses.items()
         }
 
-        LOGGER.debug(f"412: {cx_ratios!r}, {allocation.reproductive_tissue_turnover!r}")
-
-        return {
-            "C": allocation.reproductive_tissue_turnover.squeeze(),
-            **elemental_turnovers,
-        }
+        return {"C": carbon_mass, **elemental_turnovers}
 
 
 @dataclass
@@ -523,8 +519,8 @@ class FruitBiomass(BiomassTissueABC):
 
         # Multiplication here avoids the need to copy() the array to avoid the reference
         # back to the allometry
-        carbon_mass = (
-            community.stem_allometry.reproductive_tissue_mass.squeeze() * fruit_fraction
+        carbon_mass = pyrealm_handling(
+            community.stem_allometry.reproductive_tissue_mass * fruit_fraction
         )
 
         for elem in with_elements:
@@ -568,15 +564,15 @@ class FruitBiomass(BiomassTissueABC):
             for name in self.community.cohorts.pft_names
         ]
 
-        carbon_increase = (
+        carbon_increase = pyrealm_handling(
             allocation.delta_foliage_mass
             * self.community.stem_traits.p_foliage_for_reproductive_tissue
             * fruit_fraction
         )
-        self.carbon_mass += carbon_increase.squeeze()
+        self.carbon_mass += carbon_increase
 
         nutrient_ideal_ratio_increase = {
-            ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
+            ky: (carbon_increase * (1 / elem.ideal_ratio))
             for ky, elem in self.element_masses.items()
         }
 
@@ -605,11 +601,11 @@ class FruitBiomass(BiomassTissueABC):
         ]
 
         carbon_turnover = (
-            allocation.reproductive_tissue_turnover.squeeze() * fruit_fraction
+            pyrealm_handling(allocation.reproductive_tissue_turnover) * fruit_fraction
         )
 
         elemental_turnovers = {
-            ky: ((carbon_turnover * (1 / cx_ratios[ky])).squeeze()).squeeze()
+            ky: (carbon_turnover * (1 / cx_ratios[ky]))
             for ky, elem in self.element_masses.items()
         }
 
@@ -643,7 +639,8 @@ class SeedBiomass(BiomassTissueABC):
         # Multiplication here avoids the need to copy() the array to avoid the reference
         # back to the allometry
         carbon_mass = (
-            community.stem_allometry.reproductive_tissue_mass.squeeze() * seed_fraction
+            pyrealm_handling(community.stem_allometry.reproductive_tissue_mass)
+            * seed_fraction
         )
 
         for elem in with_elements:
@@ -688,15 +685,15 @@ class SeedBiomass(BiomassTissueABC):
             for name in self.community.cohorts.pft_names
         ]
 
-        carbon_increase = (
+        carbon_increase = pyrealm_handling(
             allocation.delta_foliage_mass
             * self.community.stem_traits.p_foliage_for_reproductive_tissue
             * seed_fraction
         )
-        self.carbon_mass += carbon_increase.squeeze()
+        self.carbon_mass += carbon_increase
 
         nutrient_ideal_ratio_increase = {
-            ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
+            ky: (carbon_increase * (1 / elem.ideal_ratio))
             for ky, elem in self.element_masses.items()
         }
 
@@ -725,11 +722,11 @@ class SeedBiomass(BiomassTissueABC):
         ]
 
         carbon_turnover = (
-            allocation.reproductive_tissue_turnover.squeeze() * seed_fraction
+            pyrealm_handling(allocation.reproductive_tissue_turnover) * seed_fraction
         )
 
         elemental_turnovers = {
-            ky: ((carbon_turnover * (1 / cx_ratios[ky])).squeeze()).squeeze()
+            ky: (carbon_turnover * (1 / cx_ratios[ky]))
             for ky, elem in self.element_masses.items()
         }
 
@@ -755,7 +752,7 @@ class StemBiomass(BiomassTissueABC):
         element_masses: dict[str, Element] = {}
 
         # Use copy to avoid maintaining a reference to the allometry
-        carbon_mass = community.stem_allometry.stem_mass.squeeze().copy()
+        carbon_mass = pyrealm_handling(community.stem_allometry.stem_mass.copy())
 
         for elem in with_elements:
             ideal_ratio = np.array(
@@ -789,10 +786,10 @@ class StemBiomass(BiomassTissueABC):
             The increases in element quantities needed to support growth at the ideal
             ratio for the tissue.
         """
-        self.carbon_mass += allocation.delta_stem_mass.squeeze()
+        self.carbon_mass += pyrealm_handling(allocation.delta_stem_mass)
 
         nutrient_ideal_ratio_increase = {
-            ky: (allocation.delta_stem_mass * (1 / elem.ideal_ratio)).squeeze()
+            ky: pyrealm_handling(allocation.delta_stem_mass) * (1 / elem.ideal_ratio)
             for ky, elem in self.element_masses.items()
         }
 
@@ -809,11 +806,11 @@ class StemBiomass(BiomassTissueABC):
             The element quantity lost to turnover for foliage tissue.
         """
         elemental_turnovers = {
-            ky: np.zeros_like(self.carbon_mass).squeeze()
+            ky: np.zeros_like(self.carbon_mass)
             for ky, elem in self.element_masses.items()
         }
 
-        return {"C": np.zeros_like(self.carbon_mass).squeeze(), **elemental_turnovers}
+        return {"C": np.zeros_like(self.carbon_mass), **elemental_turnovers}
 
 
 @dataclass
@@ -835,11 +832,11 @@ class RootBiomass(BiomassTissueABC):
         element_masses: dict[str, Element] = {}
 
         # until pyrealm 2.0.1
-        fine_root_mass = (
+        fine_root_mass = pyrealm_handling(
             community.stem_allometry.foliage_mass
             * community.stem_traits.zeta
             * community.stem_traits.sla
-        ).squeeze()
+        )
 
         for elem in with_elements:
             ideal_ratio = np.array(
@@ -879,16 +876,16 @@ class RootBiomass(BiomassTissueABC):
             ratio for the tissue.
         """
 
-        carbon_increase = (
+        carbon_increase = pyrealm_handling(
             allocation.delta_foliage_mass
             * self.community.stem_traits.zeta
             * self.community.stem_traits.sla
         )
 
-        self.carbon_mass += carbon_increase.squeeze()
+        self.carbon_mass += carbon_increase
 
         nutrient_ideal_ratio_increase = {
-            ky: (carbon_increase * (1 / elem.ideal_ratio)).squeeze()
+            ky: (carbon_increase * (1 / elem.ideal_ratio))
             for ky, elem in self.element_masses.items()
         }
 
@@ -906,15 +903,38 @@ class RootBiomass(BiomassTissueABC):
         """
 
         cx_ratios = self.Cx_ratio
+        carbon_mass = pyrealm_handling(allocation.fine_root_turnover)
 
         elemental_turnovers = {
-            ky: (
-                (allocation.fine_root_turnover * (1 / cx_ratios[ky])).squeeze()
-            ).squeeze()
+            ky: (carbon_mass * (1 / cx_ratios[ky]))
             for ky, elem in self.element_masses.items()
         }
 
-        return {"C": allocation.fine_root_turnover.squeeze(), **elemental_turnovers}
+        return {"C": carbon_mass, **elemental_turnovers}
+
+
+def pyrealm_handling(arr: NDArray):
+    """Handle pyrealm dimensions.
+
+    The pyrealm package in version 2.0 and 3.0 returns 2D arrays of cohort data that
+    have length 1 in the second dimension: np.array([[1.5, 1.6]]). Those can be
+    collapsed using squeeze() _but_ this breaks on communities with a single cohort
+    because squeeze is greedy and collapses np.array([[1.5]]) to the zero-dimension case
+    np.array(1.5).
+
+    You can specify _which_ axis to squeeze (e.g. squeeze(1)) but the test data uses 1D
+    arrays as inputs, and it seems likely that pyrealm should change to stop doing this
+    as a default. So for the moment this function is used to simplify 2D to 1D.
+
+    Args:
+        arr: A numpy array.
+    """
+
+    if arr.ndim > 1:
+        # Specifically suppress pyrealm arrays with length 1 in axis 1.
+        return arr.squeeze(0)
+
+    return arr
 
 
 @dataclass
