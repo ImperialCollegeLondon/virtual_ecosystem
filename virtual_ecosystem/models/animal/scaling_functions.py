@@ -214,13 +214,13 @@ def metabolic_rate(
     mass_g = mass * 1000  # convert kg to g
 
     if metabolic_type == MetabolicType.ENDOTHERMIC:
-        Ib, bf = terms["basal"]
-        If, bb = terms["field"]
+        Ib, bb = terms["basal"]
+        If, bf = terms["field"]
         Tk = 310.0  # fixed body temperature for endotherms [K]
     elif metabolic_type == MetabolicType.ECTOTHERMIC:
-        Ib, bf = terms["basal"]
-        If, bb = terms["field"]
-        Tk = temperature + 274.15  # body temperature equals ambient [K]
+        Ib, bb = terms["basal"]
+        If, bf = terms["field"]
+        Tk = temperature + 273.15  # body temperature equals ambient [K]
     else:
         raise ValueError(f"Invalid metabolic type: {metabolic_type}")
 
