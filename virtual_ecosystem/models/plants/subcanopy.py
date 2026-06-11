@@ -417,8 +417,6 @@ class Subcanopy:
             subcanopy_volume_m3 * self.data["dissolved_phosphorus"].to_numpy()
         )
 
-        # TODO need to remove uptake from soil
-
         # Assimilate the gained masses into the vegetation first to update the
         # nutrient masses that are available for allocation to seedbank
 
