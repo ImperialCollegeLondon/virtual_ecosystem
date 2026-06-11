@@ -91,7 +91,6 @@ class PlantsModel(
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "foliage_turnover_cnp_consumed",
         "seed_turnover_cnp_consumed",
         "fruit_turnover_cnp_consumed",
     ),
@@ -455,13 +454,11 @@ class PlantsModel(
             "seed_turnover_cnp",
             "fruit_turnover_cnp",
             "root_turnover_cnp",
-            "foliage_turnover_cnp",
             "stem_turnover_cnp",
             # Biomass consumption pools
             "canopy_foliage_cnp_consumed",
             "canopy_seed_cnp_consumed",
             "canopy_fruit_cnp_consumed",
-            "foliage_turnover_cnp_consumed",
             "seed_turnover_cnp_consumed",
             "fruit_turnover_cnp_consumed",
         ]

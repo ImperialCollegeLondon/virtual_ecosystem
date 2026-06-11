@@ -196,6 +196,8 @@ class ArrayResource:
         return [ResourcePool(data=data, resource=self, pft=None, density=self.density)]
 
 
+# TODO - NEED TO IMPLEMENT WASTE HERE AS WELL
+# TODO - SOME OF THE CONSUMPTIONS ARE NON_SENSICAL
 ARRAY_RESOURCES = [
     ArrayResourceDefinition(
         pool_array="subcanopy_vegetation_cnp",
@@ -228,13 +230,6 @@ ARRAY_RESOURCES = [
         consumed_array="canopy_fruit_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.CANOPY,
         diet_type=DietType.FRUIT,
-        partition_by_pft=True,
-    ),
-    ArrayResourceDefinition(
-        pool_array="foliage_turnover_cnp",
-        consumed_array="foliage_turnover_cnp_consumed",
-        vertical_occupancy=VerticalOccupancy.GROUND,
-        diet_type=DietType.FOLIAGE,
         partition_by_pft=True,
     ),
     ArrayResourceDefinition(

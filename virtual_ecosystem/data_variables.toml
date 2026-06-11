@@ -1323,13 +1323,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "C, N, and P of foliage turnover consumed by animals"
-name = "foliage_turnover_cnp_consumed"
-unit = "kg"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "C, N, and P of seed turnover consumed by animals"
 name = "seed_turnover_cnp_consumed"
 unit = "kg"

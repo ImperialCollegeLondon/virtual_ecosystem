@@ -1103,7 +1103,6 @@ def litter_soil_data_instance(fixture_core_components):
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "foliage_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
     ]
@@ -1115,7 +1114,6 @@ def litter_soil_data_instance(fixture_core_components):
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "foliage_turnover_cnp_consumed",
         "seed_turnover_cnp_consumed",
         "fruit_turnover_cnp_consumed",
     ]
