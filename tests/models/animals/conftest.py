@@ -106,16 +106,17 @@ def animal_data_for_model_instance(fixture_core_components):
         )
 
     # Populate pft structured ArrayResource pools
-    plant_model_pools = [
+    plant_model_pools = ["foliage_turnover_cnp"]
+    plant_model_pools_consumed = [
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "foliage_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
     ]
-    for pool in plant_model_pools:
+    for pool in plant_model_pools + plant_model_pools_consumed:
         data[pool] = vegetation_biomass.copy()
+    for pool in plant_model_pools_consumed:
         data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
 
     litter_pools = DataArray(np.full(data.grid.n_cells, fill_value=1.5), dims="cell_id")
@@ -430,16 +431,19 @@ def dummy_animal_data(animal_fixture_core_components):
         )
 
     # Populate pft structured ArrayResource pools
-    plant_model_pools = [
+    plant_model_pools = ["foliage_turnover_cnp"]
+    # Some variables are consumed from so need to be treated separately
+    plant_model_pools_consumed = [
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "foliage_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
     ]
-    for pool in plant_model_pools:
+    for pool in plant_model_pools_consumed + plant_model_pools:
         data[pool] = vegetation_biomass.copy()
+
+    for pool in plant_model_pools_consumed:
         data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
 
     data["diurnal_temperature_range"] = from_template()
@@ -1174,13 +1178,23 @@ def herbivory_waste_pool_instance():
     from virtual_ecosystem.models.animal.decay import HerbivoryWaste
 
     # Create an instance of HerbivoryWaste with the valid plant_matter_type
-    herbivory_waste = HerbivoryWaste(plant_matter_type="leaf")
+    herbivory_waste = HerbivoryWaste()
 
     # Manually set the additional attributes
-    herbivory_waste.mass_current = 0.5  # Initial mass in kg
-    herbivory_waste.c_n_ratio = 20.0  # Carbon to Nitrogen ratio [unitless]
-    herbivory_waste.c_p_ratio = 150.0  # Carbon to Phosphorus ratio [unitless]
-    herbivory_waste.lignin_proportion = (
+    herbivory_waste.above_ground_mass_cnp = {
+        "C": 0.5,
+        "N": 0.025,
+        "P": 0.00333,
+    }  # Initial masses in kg
+    herbivory_waste.above_ground_lignin_proportion = (
+        0.25  # Proportion of lignin in the mass [unitless]
+    )
+    herbivory_waste.below_ground_mass_cnp = {
+        "C": 0.15,
+        "N": 0.005,
+        "P": 0.001,
+    }  # Initial masses in kg
+    herbivory_waste.below_ground_lignin_proportion = (
         0.25  # Proportion of lignin in the mass [unitless]
     )
 

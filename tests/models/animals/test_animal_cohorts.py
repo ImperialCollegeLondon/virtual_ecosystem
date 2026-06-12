@@ -2914,9 +2914,7 @@ class TestAnimalCohort:
         cohort.territory = territory
 
         # Create dummy herbivory waste pool map
-        herbivory_waste = {
-            cell_id: HerbivoryWaste("leaf") for cell_id in pool_map.keys()
-        }
+        herbivory_waste = {cell_id: HerbivoryWaste() for cell_id in pool_map.keys()}
 
         result = cohort.get_herbivory_waste_pools(herbivory_waste)
 

@@ -1197,7 +1197,9 @@ class AnimalCohort:
                 total_gain[elem] += gain_cnp[elem] * conv_eff
 
             if herbivory_waste_pools and litter_cnp:
-                herbivory_waste_pools[resource.cell_id].add_waste(litter_cnp)
+                herbivory_waste_pools[resource.cell_id].add_waste(
+                    litter_cnp, vertical_occupancy=resource.vertical_occupancy
+                )
 
         return total_gain
 
