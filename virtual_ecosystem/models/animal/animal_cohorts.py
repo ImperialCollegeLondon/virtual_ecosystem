@@ -1182,7 +1182,7 @@ class AnimalCohort:
             # small F*dt (linear regime) and B for large F*dt (full depletion).
             requested = resource.mass_current * (1.0 - exp(-F * dt_days))
 
-            gain_cnp, litter_cnp = resource.get_eaten(requested, self)
+            gain_cnp, litter_cnp, litter_lignin = resource.get_eaten(requested, self)
 
             # Clamp floating point noise before passing to downstream validators.
             gain_cnp = self._clamp_cnp_noise(gain_cnp)
@@ -1198,7 +1198,9 @@ class AnimalCohort:
 
             if herbivory_waste_pools and litter_cnp:
                 herbivory_waste_pools[resource.cell_id].add_waste(
-                    litter_cnp, vertical_occupancy=resource.vertical_occupancy
+                    litter_cnp,
+                    vertical_occupancy=resource.vertical_occupancy,
+                    input_lignin=litter_lignin,
                 )
 
         return total_gain

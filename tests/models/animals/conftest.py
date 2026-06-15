@@ -143,6 +143,21 @@ def animal_data_for_model_instance(fixture_core_components):
     data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
     data["litter_pool_below_structural_cnp"] = litter_cnp_template
 
+    # Populate lignin contents of consumed pools
+    lignin_contents = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+    lignin_pools = [
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "senesced_leaf_lignin",
+        "lignin_above_structural",
+        "lignin_below_structural",
+        "lignin_woody",
+    ]
+    for pool in lignin_pools:
+        data[pool] = lignin_contents
+
     return data
 
 
@@ -445,6 +460,21 @@ def dummy_animal_data(animal_fixture_core_components):
 
     for pool in plant_model_pools_consumed:
         data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
+
+    # Populate lignin contents of consumed pools
+    lignin_contents = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+    lignin_pools = [
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "senesced_leaf_lignin",
+        "lignin_above_structural",
+        "lignin_below_structural",
+        "lignin_woody",
+    ]
+    for pool in lignin_pools:
+        data[pool] = lignin_contents
 
     data["diurnal_temperature_range"] = from_template()
     data["diurnal_temperature_range"][lyr_str.index_surface_scalar] = 10.0
@@ -924,6 +954,7 @@ def array_plant_list_instance(animal_data_for_model_instance):
             consumed_array="subcanopy_vegetation_cnp_consumed",
             vertical_occupancy=VerticalOccupancy.GROUND,
             diet_type=DietType.FOLIAGE,
+            lignin_array="subcanopy_vegetation_litter_lignin",
         ),
         data=animal_data_for_model_instance,
     )
@@ -934,6 +965,7 @@ def array_plant_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.1,
             cell_id=0,
         ),
         CellResource(
@@ -941,6 +973,7 @@ def array_plant_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.15,
             cell_id=1,
         ),
     ]
@@ -967,6 +1000,7 @@ def array_litter_list_instance(animal_data_for_model_instance):
             consumed_array="litter_consumed_woody_cnp",
             vertical_occupancy=VerticalOccupancy.GROUND,
             diet_type=DietType.DETRITUS,
+            lignin_array="lignin_woody",
             density=True,
         ),
         data=animal_data_for_model_instance,
@@ -978,6 +1012,7 @@ def array_litter_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.3,
             cell_id=0,
         ),
         CellResource(
@@ -985,6 +1020,7 @@ def array_litter_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.5,
             cell_id=1,
         ),
     ]
@@ -1168,6 +1204,21 @@ def litter_soil_data_instance(fixture_core_components):
         dims=("cell_id", "element"),
         coords=dict(cell_id=cell_ids, element=elements),
     )
+
+    # Populate lignin contents of consumed pools
+    lignin_contents = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+    lignin_pools = [
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "senesced_leaf_lignin",
+        "lignin_above_structural",
+        "lignin_below_structural",
+        "lignin_woody",
+    ]
+    for pool in lignin_pools:
+        data[pool] = lignin_contents
 
     return data
 
