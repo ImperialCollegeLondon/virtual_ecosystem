@@ -114,6 +114,8 @@ class AnimalModel(
         "canopy_fruit_cnp_consumed",
         "seed_turnover_cnp_consumed",
         "fruit_turnover_cnp_consumed",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
     ),
     vars_populated_by_init=(
         "total_animal_respiration",
@@ -140,6 +142,10 @@ class AnimalModel(
         "soil_c_pool_saprotrophic_fungi",
         "soil_c_pool_arbuscular_mycorrhiza",
         "soil_c_pool_ectomycorrhiza",
+        "subcanopy_vegetation_cnp",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_cnp",
+        "subcanopy_seedbank_litter_lignin",
     ),
     vars_populated_by_first_update=(
         "decomposed_excrement_cnp",
@@ -158,8 +164,10 @@ class AnimalModel(
     vars_updated=(
         "decomposed_excrement_cnp",
         "decomposed_carcasses_cnp",
-        "herbivory_waste_leaf_cnp",
-        "herbivory_waste_leaf_lignin",
+        "herbivory_waste_above_cnp",
+        "herbivory_waste_above_lignin",
+        "herbivory_waste_below_cnp",
+        "herbivory_waste_below_lignin",
         "total_animal_respiration",
         "litter_consumed_above_metabolic_cnp",
         "litter_consumed_above_structural_cnp",

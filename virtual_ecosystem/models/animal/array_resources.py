@@ -210,6 +210,8 @@ ARRAY_RESOURCES = [
         consumed_array="subcanopy_vegetation_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.FOLIAGE,
+        # TODO - Currently subcanopy lignin is just a constant, so using this array
+        # works, if lignin becomes more dynamic, this will have to be revisited
         lignin_array="subcanopy_vegetation_litter_lignin",
     ),
     ArrayResourceDefinition(
@@ -217,6 +219,8 @@ ARRAY_RESOURCES = [
         consumed_array="subcanopy_seedbank_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.SEEDS,
+        # TODO - Currently subcanopy lignin is just a constant, so using this array
+        # works, if lignin becomes more dynamic, this will have to be revisited
         lignin_array="subcanopy_seedbank_litter_lignin",
     ),
     ArrayResourceDefinition(
