@@ -265,7 +265,7 @@ class PlantsModel(
         self._canopy_layer_indices: NDArray[np.bool_]
         """The indices of the canopy layers within wider vertical profile. This is 
         a shorter reference to self.layer_structure.index_canopy."""
-        self.canopies: dict[int, Canopy]
+        self.canopies: dict[int, Canopy | None]
         """A dictionary giving the canopy structure of each grid cell."""
         self.stem_allocations: dict[int, StemAllocation]
         """A dictionary giving the stem allocation of GPP for the community in each grid
@@ -775,48 +775,54 @@ class PlantsModel(
         for cell_id, canopy, community in zip(
             self.canopies, self.canopies.values(), self.communities.values()
         ):
-            # Get the indices of the array to be filled in
-            fill_idx = (slice(0, canopy.heights.size), (cell_id,))
+            # Handle empty canopies
+            # - At the moment pyrealm does not handle canopies from no cohorts in the
+            #   cell (represented as None) and handles canopies from cohorts with no
+            #   individuals by reporting zero layer heights. These two pathways should
+            #   be synchronised in a future pyrealm release.
+            # - Of note, empty pyrealm canopies from cohorts with no
+            #   individuals. The canopy max height is defined by the hypothetical
+            #   maximum size of the trees of which there no individuals - which is
+            #   misleading to say the least.
 
-            # Insert canopy layer heights
-            # TODO - #695 At present, pyrealm returns a column array which _I think_
-            #        always has zero as the last entry. We don't want that value, so it
-            #        is being clipped out here but keep an eye on this definition and
-            #        update if pyrealm changes. In the meantime, keep this guard check
-            #        to raise if the issue arises.
+            # If canopy height data is present then fill in the appropriate layers,
+            # otherwise leave the cell with NA data.
+            if canopy is not None and canopy.heights.size > 0:
+                # Array indices of filled layers in this cell
+                fill_idx = (slice(0, canopy.heights.size), (cell_id,))
 
-            if canopy.heights[-1, :].item() > 0:
-                raise ValueError("Last canopy.height is non-zero")
+                # Insert canopy layer heights
+                # TODO - #695 At present, pyrealm returns a column array which _I think_
+                #        always has zero as the last entry. We don't want that value, so
+                #        it is being clipped out here but keep an eye on this definition
+                #        and update if pyrealm changes. In the meantime, keep this guard
+                #        check to raise if the issue arises.
 
-            heights[fill_idx] = np.concatenate(
-                [[[canopy.max_stem_height]], canopy.heights[0:-1, :]]
-            )
+                if canopy.heights[-1, :].item() > 0:
+                    raise ValueError("Last canopy.height is non-zero")
 
-            # Insert canopy fapar:
-            # TODO - #695 currently 1D, not 2D - consistency in pyrealm? keepdims?
-            fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
+                heights[fill_idx] = np.concatenate(
+                    [[[canopy.max_stem_height]], canopy.heights[0:-1, :]]
+                )
 
-            # Calculate the per stem leaf mass  as (stem leaf area * (1/sigma) * L) and
-            # then scale up to the number of individuals and sum across cohorts to give
-            # a total mass per layer within the cell.
-            # TODO - need to expose the per cohort data to allow selective herbivory.
-            # BUG  - The calculation here needs to be robust to no plants being present
-            #        in a cell. At the moment, even with plants present, the scaling of
-            #        the model is resulting in cohort total LAI of zero, which gives
-            #        zero division and hence np.nan in the expected leaf mass per cohort
-            #        per layer, which then breaks the setting of the filled layer mask.
-            #        But with actually no plants present, the code still needs to work.
+                # Insert canopy fapar:
+                # TODO - #695 currently 1D, not 2D - consistency in pyrealm? keepdims?
+                fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
 
-            cohort_leaf_mass_per_layer = (
-                canopy.cohort_data.stem_leaf_area
-                * (1 / community.stem_traits.sla)
-                * community.stem_traits.lai
-            ) * community.cohorts.n_individuals
+                # Calculate the per stem leaf mass  as (stem leaf area * (1/sigma) * L)
+                # and then scale up to the number of individuals and sum across cohorts
+                # to give a total mass per layer within the cell.
 
-            mass[fill_idx] = cohort_leaf_mass_per_layer.sum(axis=1, keepdims=True)
+                cohort_leaf_mass_per_layer = (
+                    canopy.cohort_data.stem_leaf_area
+                    * (1 / community.stem_traits.sla)
+                    * community.stem_traits.lai
+                ) * community.cohorts.n_individuals
 
-            # LAI - insert community average LAI values from light capture model
-            lai[fill_idx] = canopy.community_data.average_layer_lai[:, None]
+                mass[fill_idx] = cohort_leaf_mass_per_layer.sum(axis=1, keepdims=True)
+
+                # LAI - insert community average LAI values from light capture model
+                lai[fill_idx] = canopy.community_data.average_layer_lai[:, None]
 
         # Insert the canopy layers into the data objects
         self.data["layer_heights"][self._canopy_layer_indices, :] = heights
@@ -824,18 +830,23 @@ class PlantsModel(
         self.data["layer_fapar"][self._canopy_layer_indices, :] = fapar
         self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = mass
 
-        # Add the above canopy reference height
-        self.data["layer_heights"][self.layer_structure.index_above, :] = (
-            heights[0, :] + self.layer_structure.above_canopy_height_offset
+        # Add the above canopy reference height, handling np.nan in first row when
+        # the canopy is empty.
+        self.data["layer_heights"][self.layer_structure.index_above, :] = np.where(
+            np.isnan(heights[0, :]),
+            self.layer_structure.above_canopy_height_offset,
+            heights[0, :] + self.layer_structure.above_canopy_height_offset,
         )
 
         # Update the filled canopy layers
         self.layer_structure.set_filled_canopy(canopy_heights=heights)
 
-        # Update the below canopy light fraction
+        # Update the below canopy light fraction, handling cells with no canopy
+        # Note - dual path here: no cohorts = None, extinct cohorts have defined
+        # transmission of 1.
         self.below_canopy_light_fraction = np.array(
             [
-                cnpy.community_data.transmission_to_ground
+                1 if cnpy is None else cnpy.community_data.transmission_to_ground
                 for cnpy in self.canopies.values()
             ]
         )
@@ -1067,6 +1078,16 @@ class PlantsModel(
             # Get the canopy and community for the cell
             canopy = self.canopies[cell_id]
             community = self.communities[cell_id]
+
+            # Handle cells with no canopy. Using continue here leaves the transpiration
+            # values for the cell as np.nan
+            if canopy is None:
+                # The .per_stem_gpp and .per_stem_transpiration dictionaries for the
+                # cell is filled with an empty array. Once we have a better handle on
+                # empty community structure this needs to be resolved.
+                self.per_stem_gpp[cell_id] = np.array([])
+                self.per_stem_transpiration[cell_id] = np.array([])
+                continue
 
             # Get cohort data into vertical structure - the cohort canopy data only
             # contains occupied layers - so for example a block of 3 canopy layers by 4

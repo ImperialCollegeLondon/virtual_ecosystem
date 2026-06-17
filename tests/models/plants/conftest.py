@@ -57,10 +57,15 @@ def fixture_exporter(tmpdir, fixture_configuration):
 
 
 @pytest.fixture
-def plants_cohort_data():
-    """Construct a simple initial cohort dataframe."""
+def plants_cohort_data(tricky_plant_cohorts):
+    """Construct a simple initial cohort dataframe.
 
-    return pd.DataFrame(
+    The tricky plant cohorts switch can be passed down through tests to switch from
+    a normal set of cohorts and a set with edge cases (no cohorts at all, empty cohorts,
+    only one of 2 PFTs.)
+    """
+
+    data = pd.DataFrame(
         {
             "plant_cohorts_cell_id": [0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
             "plant_cohorts_n": [400, 100, 100, 300, 100, 200, 100, 100, 100, 100],
@@ -79,6 +84,23 @@ def plants_cohort_data():
             "plant_cohorts_dbh": [1.0, 0.1, 0.01, 1.0, 0.1, 1.0, 0.01, 1.0, 0.1, 0.01],
         }
     )
+
+    if tricky_plant_cohorts:
+        data = pd.DataFrame(
+            {
+                "plant_cohorts_cell_id": [1, 2, 3, 3],
+                "plant_cohorts_n": [0, 1, 1, 1],
+                "plant_cohorts_pft": [
+                    "broadleaf",
+                    "broadleaf",
+                    "broadleaf",
+                    "broadleaf",
+                ],
+                "plant_cohorts_dbh": [1.0, 1.0, 1.0, 0.1],
+            }
+        )
+
+    return data
 
 
 @pytest.fixture
@@ -190,26 +212,29 @@ def fixture_canopy_layer_data(
     from pyrealm.demography.canopy import Canopy
     from pyrealm.demography.community import Cohorts, Community
 
-    # Package the community data up into cell groups
-    cells = plants_cohort_data.groupby("plant_cohorts_cell_id")
-
     # Build the pyrealm community for each cell
-    communities = [
-        Community(
-            flora=flora,
-            cell_area=fixture_core_components.grid.cell_area,
-            cell_id=int(cell_id),
-            cohorts=Cohorts(
-                dbh_values=cell_data["plant_cohorts_dbh"].to_numpy(),
-                n_individuals=cell_data["plant_cohorts_n"].to_numpy(),
-                pft_names=cell_data["plant_cohorts_pft"].to_numpy(),
-            ),
+    communities = []
+    for cell_id in fixture_core_components.grid.cell_id:
+        chrts = plants_cohort_data[plants_cohort_data.plant_cohorts_cell_id == cell_id]
+        communities.append(
+            Community(
+                flora=flora,
+                cell_area=fixture_core_components.grid.cell_area,
+                cell_id=int(cell_id),
+                cohorts=Cohorts(
+                    dbh_values=chrts["plant_cohorts_dbh"].to_numpy(),
+                    n_individuals=chrts["plant_cohorts_n"].to_numpy(),
+                    pft_names=chrts["plant_cohorts_pft"].to_numpy(),
+                ),
+            )
         )
-        for cell_id, cell_data in cells
-    ]
 
     # Fit the PPA solution for each cell
-    canopies = [Canopy(cmnty, fit_ppa=True) for cmnty in communities]
+    # Handle communities with no cohorts
+    canopies = [
+        Canopy(cmnty, fit_ppa=True) if cmnty.n_cohorts else None
+        for cmnty in communities
+    ]
 
     # Extract direct pyrealm canopy data for different variable test cases.
     lyr_struct = fixture_core_components.layer_structure
@@ -231,15 +256,24 @@ def fixture_canopy_layer_data(
 
     # Fill in the plant canopy data
     for idx, (cmty, cnpy) in enumerate(zip(communities, canopies)):
-        # Heights - need to add top of canopy and reference height and remove the zero
-        #           that is always included in pyrealm list of heights.
-        heights = np.concat(
-            [
-                [cnpy.max_stem_height + lyr_struct.above_canopy_height_offset],
-                [cnpy.max_stem_height],
-                cnpy.heights[:-1, 0],
-            ]
-        )
+        if cnpy is None:
+            # Set canopy top at 2m up.
+            expected["layer_heights_full"][1][0, idx] = 2
+            expected["layer_heights_canopy"][1][0, idx] = 2
+            continue
+
+        if cnpy.heights.size:
+            # Heights - need to add top of canopy and reference height and remove the
+            #           zero that is always included in pyrealm list of heights.
+            heights = np.concat(
+                [
+                    [cnpy.max_stem_height + lyr_struct.above_canopy_height_offset],
+                    [cnpy.max_stem_height],
+                    cnpy.heights[:-1, 0],
+                ]
+            )
+        else:
+            heights = np.array([2])
 
         cnpy_height_idx = np.arange(0, heights.size)
         expected["layer_heights_full"][1][cnpy_height_idx, idx] = heights

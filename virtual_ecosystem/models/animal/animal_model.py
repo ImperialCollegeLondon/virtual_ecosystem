@@ -602,6 +602,9 @@ class AnimalModel(
     def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
         """Initializes the animal communities.
 
+        TODO: Review relationship between birth mass initialization and adult mass in
+        heterotroph biomass normalization
+
         Args:
             functional_groups: The list of functional groups that will populate the
             model.
@@ -626,7 +629,7 @@ class AnimalModel(
             for size, cell_id in zip(cohort_sizes, cohort_locations):
                 self.create_new_cohort(
                     functional_group=fg,
-                    mass=fg.adult_mass,
+                    mass=fg.birth_mass,
                     age=0.0,
                     individuals=size,
                     centroid_key=cell_id,
