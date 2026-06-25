@@ -246,26 +246,21 @@ class DataOutputConfiguration(Configuration):
     validation.
     """
 
-    save_initial_state: bool = False
-    "Whether the initial state should be saved"
-    save_continuous_data: bool = True
-    "Whether continuous data should be saved"
-    save_final_state: bool = True
-    "Whether the final state should be saved"
-    save_merged_config: bool = True
-    "Whether to save a merged TOML file containing all config options"
     out_path: DIRPATH_PLACEHOLDER = Path("<DIRPATH_PLACEHOLDER>")
     "Directory path for output files"
-    out_initial_file_name: str = "initial_state.nc"
-    """File name for initial state output file"""
-    out_folder_continuous: str = "."
-    "Folder to save states of simulation with time to"
-    out_continuous_file_name: str = "all_continuous_data.nc"
-    """Name of file to save combined continuous data to"""
-    out_final_file_name: str = "final_state.nc"
-    """File name for final state output file"""
-    out_merge_file_name: str = "ve_full_model_configuration.toml"
-    """Name for TOML file containing merged configs"""
+    output_data_file_name: str = "model_data.zarr"
+    "The output file name for the model data."
+    save_initial_state: bool = False
+    "Whether the initial state should be saved"
+    initial_state_file_name: str = "initial_state.nc"
+    "The output file name for the initial state data file."
+    save_compiled_configuration: bool = True
+    "Whether to save a TOML file containing the compiled configuration for a model"
+    compiled_configuration_file_name: str = "compiled_configuration.toml"
+    "The output file name for the compiled configuration TOML file."
+    variables_to_save: tuple[str, ...] = tuple()
+    """A list of output variables to save from the model. If this list is empty then all
+    variables will be saved."""
 
 
 class LayersConfiguration(Configuration):
