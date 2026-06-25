@@ -7,6 +7,7 @@ import os
 import sys
 from collections.abc import Sequence
 from enum import IntEnum
+from importlib.metadata import version
 from itertools import chain
 from pathlib import Path
 from typing import Any, cast
@@ -275,7 +276,10 @@ def ve_run(
         progress = Progress.SILENT
 
     if progress > Progress.SILENT:
-        print("Starting Virtual Ecosystem simulation.")
+        print(
+            "Starting Virtual Ecosystem simulation using version "
+            f"{version('virtual_ecosystem')}."
+        )
 
     # Switch from console logging to file logging
     if logfile is not None:
