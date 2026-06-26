@@ -277,13 +277,14 @@ def ve_run(
 
     if progress > Progress.SILENT:
         print(
-            "Starting Virtual Ecosystem simulation using version "
+            "Starting Virtual Ecosystem simulation using v"
             f"{version('virtual_ecosystem')}."
         )
 
     # Switch from console logging to file logging
     if logfile is not None:
         add_file_logger(logfile)
+        LOGGER.info(f"Using Virtual Ecosystem v{version('virtual_ecosystem')}.")
         if progress > Progress.SILENT:
             print(f"Logging to: {logfile}")
 
