@@ -425,6 +425,40 @@ class Data:
 
         out.to_netcdf(output_file_path)
 
+    def save_to_zarr(
+        self,
+        output_file_path: Path,
+        timing: ModelTiming,
+        variables_to_save: list[str] | None = None,
+    ) -> None:
+        """Save the contents of the data object as a NetCDF file.
+
+        Either the whole contents of the data object or specific variables of interest
+        can be saved using this function.
+
+        Args:
+            output_file_path: Path location to save the Virtual Ecosystem model state.
+            timing: The ModelTiming instance for the simulation
+            variables_to_save: List of variables to be saved. If not provided then all
+                variables are saved.
+        """
+
+        # Check that the folder to save to exists and that there isn't already a file
+        # saved there
+        check_outfile(output_file_path)
+
+        # If the file path is okay then write the model state out as a NetCDF. Should
+        # check if all variables should be saved or just the requested ones.
+        if variables_to_save:
+            out = self.data[variables_to_save]
+        else:
+            out = self.data
+
+        # Add the timestamps to the output
+        out["timestamp"] = DataArray(timing.update_datestamps, dims="time_index")
+
+        out.to_zarr(output_file_path, consolidated=False)
+
     def save_timeslice_to_netcdf(
         self,
         output_file_path: Path,
@@ -465,6 +499,48 @@ class Data:
         # Save and close new dataset
         time_slice.to_netcdf(Path(output_file_path))
         time_slice.close()
+
+    def export_current_state_to_zarr(
+        self,
+        output_file_path: Path,
+        variables_to_save: list[str],
+        time_index: int,
+        timestamp: np.datetime64,
+    ) -> None:
+        """Export requested variables in current data state to ``zarr`` format.
+
+        Args:
+            output_file_path: Path to the zarr data store.
+            variables_to_save: List of variables to save in the file
+            time_index: The time index of the slice being saved
+            timestamp: The timestamp of the start of the timeslice
+
+        """
+
+        # Create a dataset with the added time dimension and timestamp
+        time_slice = (
+            self.data[variables_to_save]
+            .expand_dims({"time_index": 1})
+            .assign_coords(time_index=[time_index])
+        )
+        time_slice["timestamp"] = DataArray([timestamp], dims="time_index")
+
+        # Save the variables to the zarr store, appending along time index after the
+        # first time step.
+        # TODO - will need to do something cleverer if we aren't writing all time steps
+        #        and potentially skipping zero. Create a flag on data that records if
+        #        any data has been written by this method
+        if time_index == 0:
+            time_slice.to_zarr(
+                output_file_path, mode="a", consolidated=False, zarr_format=2
+            )
+        else:
+            time_slice.to_zarr(
+                output_file_path,
+                append_dim="time_index",
+                consolidated=False,
+                zarr_format=2,
+            )
 
     def add_from_dict(self, output_dict: dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.
