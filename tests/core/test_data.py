@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import xarray as xr
-from xarray import DataArray, Dataset, open_dataset, testing
+from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import ConfigurationError
@@ -713,9 +713,11 @@ def test_on_core_axis(
 @pytest.mark.parametrize(
     argnames=["folder", "file_name", "raises", "save_specific", "exp_log"],
     argvalues=[
-        (None, "initial.nc", does_not_raise(), False, ()),
-        (None, "initial.nc", does_not_raise(), True, ()),
-        (
+        pytest.param(
+            None, "initial.nc", does_not_raise(), False, (), id="good_allvars"
+        ),
+        pytest.param(None, "initial.nc", does_not_raise(), True, (), id="good_subset"),
+        pytest.param(
             "bad_folder",
             "initial.nc",
             pytest.raises(ConfigurationError),
@@ -726,8 +728,9 @@ def test_on_core_axis(
                     "The user specified output directory (bad_folder) doesn't exist!",
                 ),
             ),
+            id="no_out_dir",
         ),
-        (
+        pytest.param(
             "pyproject.toml",
             "initial.nc",
             pytest.raises(ConfigurationError),
@@ -739,8 +742,9 @@ def test_on_core_axis(
                     "directory!",
                 ),
             ),
+            id="out_dir_not_dir",
         ),
-        (
+        pytest.param(
             None,
             "already_exists.nc",
             pytest.raises(ConfigurationError),
@@ -751,6 +755,7 @@ def test_on_core_axis(
                     "A file in the user specified output folder (",
                 ),
             ),
+            id="output_exists",
         ),
     ],
 )
@@ -847,7 +852,7 @@ def test_save_to_netcdf(
         ),
     ],
 )
-def test_save_timeslice_to_netcdf(
+def test_save_current_state_to_zarr(
     caplog, shared_datadir, dummy_litter_data, folder, file_name, raises, expected_log
 ):
     """Test that data object can append to an existing NetCDF file."""
@@ -953,179 +958,5 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="elevation",
-        ),
-    )
-
-
-@pytest.mark.parametrize("time_index", [0, 1])
-def test_output_current_state(mocker, dummy_litter_data, time_index):
-    """Test that function to output the current data state works as intended."""
-
-    # Set up the registry with the litter model
-    from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
-
-    register_module("virtual_ecosystem.models.litter")
-
-    # Patch the relevant lower level function so no actual files get saved.
-    mock_save = mocker.patch("virtual_ecosystem.main.Data.save_timeslice_to_netcdf")
-
-    # Extract model from registry and put into expected dictionary format
-    models_cfd = {"litter": MODULE_REGISTRY["litter"].model}
-
-    # Only variables in the data object that are updated by a model should be output
-    all_variables = [
-        models_cfd[model_nm].vars_updated for model_nm in models_cfd.keys()
-    ]
-    # Then flatten the list to generate list of variables to output
-    variables_to_save = [item for sublist in all_variables for item in sublist]
-
-    # Then call the top level function
-    outpath = dummy_litter_data.output_current_state(
-        variables_to_save=variables_to_save,
-        output_directory_path=Path("."),
-        time_index=time_index,
-        timestamp=np.datetime64("2000-01-01"),
-    )
-
-    # Check that the mocked function was called once with correct input (which is
-    # calculated in the higher level function)
-    mock_save.assert_called_once()
-    assert mock_save.call_args == mocker.call(
-        output_file_path=Path(f"./continuous_state{time_index:05}.nc"),
-        variables_to_save=[
-            "litter_pool_above_metabolic_cnp",
-            "litter_pool_above_structural_cnp",
-            "litter_pool_woody_cnp",
-            "litter_pool_below_metabolic_cnp",
-            "litter_pool_below_structural_cnp",
-            "lignin_above_structural",
-            "lignin_woody",
-            "lignin_below_structural",
-            "litter_mineralisation_rate_cnp",
-        ],
-        time_index=time_index,
-        timestamp=np.datetime64("2000-01-01"),
-    )
-    assert outpath == Path(f"./continuous_state{time_index:05}.nc")
-
-
-def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
-    """Test that function to merge the continuous data files works as intended."""
-    from virtual_ecosystem.core.data import merge_continuous_data_files
-
-    # Simple and slightly more complex data for the file
-    variables_to_save = ["lignin_woody", "soil_temperature"]
-
-    # Save first data file
-    dummy_litter_data.save_timeslice_to_netcdf(
-        output_file_path=shared_datadir / "continuous_state1.nc",
-        variables_to_save=variables_to_save,
-        time_index=1,
-        timestamp=np.datetime64("2000-01-01"),
-    )
-
-    # Alter data so that files differ (slightly)
-    dummy_litter_data["lignin_woody"] = DataArray(
-        [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
-    )
-    dummy_litter_data["soil_temperature"][12][0] = 15.0
-
-    # Save second data file
-    dummy_litter_data.save_timeslice_to_netcdf(
-        output_file_path=shared_datadir / "continuous_state2.nc",
-        variables_to_save=variables_to_save,
-        time_index=2,
-        timestamp=np.datetime64("2000-02-01"),
-    )
-
-    # Merge data
-    merge_continuous_data_files(
-        merged_file_path=shared_datadir / "all_continuous_data.nc",
-        continuous_data_files=[
-            shared_datadir / "continuous_state1.nc",
-            shared_datadir / "continuous_state2.nc",
-        ],
-    )
-
-    # Check that original two files have been deleted
-    assert len(list(shared_datadir.rglob("continuous_state*.nc"))) == 0
-
-    # Load in and test full combined data
-    out_file = shared_datadir / "all_continuous_data.nc"
-    full_data = open_dataset(out_file)
-
-    # Check that data file is as expected
-    testing.assert_allclose(
-        full_data["lignin_woody"],
-        DataArray(
-            [[0.5, 0.8, 0.35, 0.35], [0.1, 0.05, 0.2, 0.01]],
-            dims=["time_index", "cell_id"],
-            coords={"cell_id": [0, 1, 2, 3], "time_index": [1, 2]},
-        ),
-    )
-    testing.assert_allclose(
-        full_data["soil_temperature"].isel(layers=range(11, 14)),
-        DataArray(
-            [
-                [
-                    [np.nan, np.nan, np.nan, np.nan],
-                    [20, 20, 20, 20],
-                    [19.5, 18.7, 18.7, 17.6],
-                ],
-                [
-                    [np.nan, np.nan, np.nan, np.nan],
-                    [15.0, 20, 20, 20],
-                    [19.5, 18.7, 18.7, 17.6],
-                ],
-            ],
-            dims=["time_index", "layers", "cell_id"],
-            coords={
-                "cell_id": [0, 1, 2, 3],
-                "time_index": [1, 2],
-                "layers": [11, 12, 13],
-                "layer_roles": ("layers", ["surface", "topsoil", "subsoil"]),
-            },
-        ),
-    )
-
-    # Close data set and delete file
-    full_data.close()
-    out_file.unlink()
-
-
-def test_merge_continuous_file_already_exists(
-    shared_datadir, caplog, dummy_litter_data
-):
-    """Test that the merge continuous function fails if file name already used."""
-    from virtual_ecosystem.core.data import merge_continuous_data_files
-
-    # Simple and slightly more complex data for the file
-    variables_to_save = ["lignin_woody", "soil_temperature"]
-
-    # Save first data file
-    dummy_litter_data.save_timeslice_to_netcdf(
-        output_file_path=shared_datadir / "continuous_state1.nc",
-        variables_to_save=variables_to_save,
-        time_index=1,
-        timestamp=np.datetime64("2000-01-01"),
-    )
-
-    with pytest.raises(ConfigurationError):
-        # Merge data
-        merge_continuous_data_files(
-            shared_datadir / "already_exists.nc",
-            continuous_data_files=[
-                shared_datadir / "continuous_state1.nc",
-                shared_datadir / "already_exists.nc",
-            ],
-        )
-
-    log_check(
-        caplog,
-        (
-            (
-                CRITICAL,
-                "A file in the user specified output folder (",
-            ),
         ),
     )

@@ -457,7 +457,7 @@ def ve_run(
             raise to_raise
 
         # Append updated data to the output data store
-        data.export_current_state_to_zarr(
+        data.save_current_state_to_zarr(
             output_file_path=zarr_store_path,
             variables_to_save=variables_to_save,
             time_index=time_index,
