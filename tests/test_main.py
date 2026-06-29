@@ -4,6 +4,7 @@ This module tests both the main simulation function `ve_run` and the other funct
 defined in main.py that it calls.
 """
 
+import re
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, ERROR, INFO
 from typing import cast
@@ -165,7 +166,7 @@ def test_ve_run_model_issues(caplog, config_content, expected_log_entries, mocke
     argvalues=(
         pytest.param(0, 0, id="silent"),
         pytest.param(1, 3, id="minimal"),
-        pytest.param(2, 10, id="staged"),
+        pytest.param(2, 12, id="staged"),
         pytest.param(3, 12, id="full"),
     ),
 )
@@ -191,10 +192,6 @@ def test_ve_run_progress_reporting(capsys, tmp_path, progress_value, output_leng
     ve_run(
         cfg_strings=f"""
 [core.data_output_options]
-save_initial_state = false
-save_continuous_data = false
-save_final_state = false
-save_merged_config = false
 out_path='{out_dir!s}'
 [core.data]
 variable = []
@@ -206,8 +203,20 @@ variable = []
 
     out, err = capsys.readouterr()
 
+    # Nothing in std_err
     assert len(err.splitlines()) == 0
-    output = [v for v in out.splitlines() if v]  # drop blank lines
+
+    # std_out contains the expected number of lines: remove empty lines.
+    # For the simulation progress bar (starting e.g ' 62%|'), which is only written with
+    # FULL reporting, the number of lines can vary. So check there _are_ some when FULL
+    # but otherwise strip them out and count other lines
+    output = [v for v in out.splitlines() if v]
+    output_is_progress_bar = [re.search(r"^ *[0-9]+%\|", v) is not None for v in output]
+    output = [v for v, pbar in zip(output, output_is_progress_bar) if not pbar]
+
+    if progress_value == 3:
+        assert sum(output_is_progress_bar) > 1
+
     assert len(output) == output_length
 
 

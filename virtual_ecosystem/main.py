@@ -275,7 +275,7 @@ def ve_run(
 
     if progress > Progress.SILENT:
         print(
-            "Starting Virtual Ecosystem simulation using v"
+            "* Starting Virtual Ecosystem simulation using v"
             f"{version('virtual_ecosystem')}."
         )
 
@@ -284,7 +284,7 @@ def ve_run(
         add_file_logger(logfile)
         LOGGER.info(f"Using Virtual Ecosystem v{version('virtual_ecosystem')}.")
         if progress > Progress.SILENT:
-            print(f"Logging to: {logfile}")
+            print(f"* Logging to: {logfile}")
 
     if progress > Progress.MINIMAL:
         print("* Loading configuration")
@@ -430,6 +430,9 @@ def ve_run(
             data.save_to_zarr(
                 output_file_path=zarr_store_path, group=group, variables_to_save=vars
             )
+
+    if progress > Progress.MINIMAL:
+        print("* Initialisation data export complete.")
 
     # Take the models in their current execution sequence and change to the model update
     # sequence
