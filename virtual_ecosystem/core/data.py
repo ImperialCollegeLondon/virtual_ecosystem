@@ -380,7 +380,7 @@ class Data:
     def save_to_zarr(
         self,
         output_file_path: Path,
-        group: str,
+        group: str | None = None,
         variables_to_save: list[str] | None = None,
     ) -> None:
         """Save variables from the data object to a Zarr store.
@@ -395,8 +395,7 @@ class Data:
                 variables.
         """
 
-        # If the file path is okay then write the model state out as a NetCDF. Should
-        # check if all variables should be saved or just the requested ones.
+        # Check if all variables should be saved or just the requested ones.
         if variables_to_save:
             out = self.data[variables_to_save]
         else:
@@ -409,26 +408,30 @@ class Data:
     def save_current_state_to_zarr(
         self,
         output_file_path: Path,
-        group: str,
-        variables_to_save: list[str],
         time_index: int,
         timestamp: np.datetime64,
+        variables_to_save: list[str] = [],
+        group: str | None = None,
     ) -> None:
         """Export requested variables in current data state to ``zarr`` format.
 
         Args:
             output_file_path: Path to the zarr data store.
-            group: A zarr group to export the data to.
-            variables_to_save: List of variables to save in the file
             time_index: The time index of the slice being saved
             timestamp: The timestamp of the start of the timeslice
+            variables_to_save: An optional list of variables to be exported.
+            group: An optional zarr group to export the data to.
         """
 
+        # Check if all variables should be saved or just the requested ones.
+        if variables_to_save:
+            out = self.data[variables_to_save]
+        else:
+            out = self.data
+
         # Create a dataset with the added time dimension and timestamp
-        time_slice = (
-            self.data[variables_to_save]
-            .expand_dims({"time_index": 1})
-            .assign_coords(time_index=[time_index])
+        time_slice = out.expand_dims({"time_index": 1}).assign_coords(
+            time_index=[time_index]
         )
         time_slice["timestamp"] = DataArray([timestamp], dims="time_index")
 
