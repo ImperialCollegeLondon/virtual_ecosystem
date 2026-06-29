@@ -308,9 +308,6 @@ def generate_config_strings(
         start_date = "2020-01-01"
         update_interval = "2 weeks"
         run_length = "50 years"
-        [core.data_output_options]
-        save_initial_state = true
-        initial_state_file_name = "model_at_start.nc"
 
         [core.layers]
         canopy_layers = 10
