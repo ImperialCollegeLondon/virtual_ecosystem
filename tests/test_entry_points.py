@@ -6,6 +6,7 @@ This module check that the model entry points exist and function as expected
 import shutil
 import subprocess
 from contextlib import nullcontext as does_not_raise
+from importlib.metadata import version
 from pathlib import Path
 
 import pytest
@@ -29,9 +30,11 @@ def test_version():
     result = subprocess.run(
         [shutil.which("ve_run"), "--version"], capture_output=True, text=True
     )
+    version_printed_in_log = version("virtual_ecosystem")
 
     assert result.returncode == 0
     assert result.stdout == f"ve_run {expected_version}\n"
+    assert expected_version == version_printed_in_log
 
 
 @pytest.mark.parametrize(

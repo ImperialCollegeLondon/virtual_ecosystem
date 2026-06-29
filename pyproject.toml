@@ -63,7 +63,7 @@ types-jsonschema = "^4.26.0"
 types-tqdm = "^4.68.0.20260608"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.155.6"
+hypothesis = "^6.155.7"
 pytest = ">=9.1.1,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
@@ -73,16 +73,16 @@ pytest-xdist = {extras = ["psutil"], version = "^3.8.0"}
 [tool.poetry.group.devenv.dependencies]
 codespell = "^2.4.1" 
 ipykernel = "^7.3.0" 
-ipython = ">=9.14.1" # SPEC0
+ipython = ">=9.15.0" # SPEC0
 isort = ">=5.12,<9.0" 
 jupyterlab = "^4.6.0" 
 jupyterlab-myst = "^2.7.0" 
-jupytext = "^1.19.2" 
+jupytext = "^1.19.4" 
 matplotlib = ">=3.11.0" # SPEC0
 mypy = "^2.1.0" 
 pre-commit = ">=4.6.0,<5" 
 snakeviz = ">=2.2.2,<3.0.0"
-ruff = ">=0.15.18,<0.16.0" 
+ruff = ">=0.15.20,<0.16.0" 
 
 [tool.poetry.group.docs.dependencies]
 autodocsumm = "^0.2.8"
