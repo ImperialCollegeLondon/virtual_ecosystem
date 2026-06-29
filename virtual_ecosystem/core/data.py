@@ -126,29 +126,15 @@ from itertools import groupby
 from pathlib import Path
 from typing import Any
 
-import dask
 import numpy as np
 from xarray import DataArray, Dataset
 
 from virtual_ecosystem.core.axes import AXIS_VALIDATORS, validate_dataarray
-from virtual_ecosystem.core.core_components import ModelTiming
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.core.readers import load_to_dataarray
-from virtual_ecosystem.core.utils import check_outfile
-
-# There are ongoing xarray issues with NetCDF not being thread safe and this causes
-# segfaults on different architectures in testing using `xarray.open_mfdataset`
-# See:
-# - https://github.com/pydata/xarray/issues/7079
-# - https://github.com/pydata/xarray/issues/3961
-#
-# Following advice on both those issues, we currently explicitly stop dask from trying
-# to use parallel file processing and use open_mfdataset(..., lock=False)
-dask.config.set(scheduler="single-threaded")
-
 
 # TODO: Model timing is currently used when writing the data to file to provide the
 #       datestamps of the time_index dimension. This should probably be passed to
@@ -391,64 +377,23 @@ class Data:
             LOGGER.critical(msg)
             raise ConfigurationError(msg)
 
-    def save_to_netcdf(
-        self,
-        output_file_path: Path,
-        timing: ModelTiming,
-        variables_to_save: list[str] | None = None,
-    ) -> None:
-        """Save the contents of the data object as a NetCDF file.
-
-        Either the whole contents of the data object or specific variables of interest
-        can be saved using this function.
-
-        Args:
-            output_file_path: Path location to save the Virtual Ecosystem model state.
-            timing: The ModelTiming instance for the simulation
-            variables_to_save: List of variables to be saved. If not provided then all
-                variables are saved.
-        """
-
-        # Check that the folder to save to exists and that there isn't already a file
-        # saved there
-        check_outfile(output_file_path)
-
-        # If the file path is okay then write the model state out as a NetCDF. Should
-        # check if all variables should be saved or just the requested ones.
-        if variables_to_save:
-            out = self.data[variables_to_save]
-        else:
-            out = self.data
-
-        # Add the timestamps to the output
-        out["timestamp"] = DataArray(timing.update_datestamps, dims="time_index")
-
-        out.to_netcdf(output_file_path)
-
     def save_to_zarr(
         self,
         output_file_path: Path,
-        timing: ModelTiming,
+        group: str,
         variables_to_save: list[str] | None = None,
     ) -> None:
-        """Save the contents of the data object as a Zarr file.
-
-        NOTE: This is currently not used because of issues with aligning the initial
-              input data and data from model initialisation with the model run.
+        """Save variables from the data object to a Zarr store.
 
         Either the whole contents of the data object or specific variables of interest
         can be saved using this function.
 
         Args:
             output_file_path: Path location to save the Virtual Ecosystem model state.
-            timing: The ModelTiming instance for the simulation
-            variables_to_save: List of variables to be saved. If not provided then all
-                variables are saved.
+            group: A zarr group to export the data to.
+            variables_to_save: List of variables to be saved, defaulting to all
+                variables.
         """
-
-        # Check that the folder to save to exists and that there isn't already a file
-        # saved there
-        check_outfile(output_file_path)
 
         # If the file path is okay then write the model state out as a NetCDF. Should
         # check if all variables should be saved or just the requested ones.
@@ -457,14 +402,14 @@ class Data:
         else:
             out = self.data
 
-        # Add the timestamps to the output
-        out["timestamp"] = DataArray(timing.update_datestamps, dims="time_index")
-
-        out.to_zarr(output_file_path, consolidated=False, zarr_format=2)
+        out.to_zarr(
+            output_file_path, group=group, mode="a", consolidated=False, zarr_format=2
+        )
 
     def save_current_state_to_zarr(
         self,
         output_file_path: Path,
+        group: str,
         variables_to_save: list[str],
         time_index: int,
         timestamp: np.datetime64,
@@ -473,10 +418,10 @@ class Data:
 
         Args:
             output_file_path: Path to the zarr data store.
+            group: A zarr group to export the data to.
             variables_to_save: List of variables to save in the file
             time_index: The time index of the slice being saved
             timestamp: The timestamp of the start of the timeslice
-
         """
 
         # Create a dataset with the added time dimension and timestamp
@@ -496,11 +441,16 @@ class Data:
         #        any data has been written by this method
         if time_index == 0:
             time_slice.to_zarr(
-                output_file_path, mode="a", consolidated=False, zarr_format=2
+                output_file_path,
+                group=group,
+                mode="a",
+                consolidated=False,
+                zarr_format=2,
             )
         else:
             time_slice.to_zarr(
                 output_file_path,
+                group=group,
                 append_dim="time_index",
                 consolidated=False,
                 zarr_format=2,

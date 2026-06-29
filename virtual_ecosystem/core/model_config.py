@@ -250,10 +250,6 @@ class DataOutputConfiguration(Configuration):
     "Directory path for output files"
     output_data_file_name: str = "model_data.zarr"
     "The output file name for the model data."
-    save_initial_state: bool = False
-    "Whether the initial state should be saved"
-    initial_state_file_name: str = "initial_state.nc"
-    "The output file name for the initial state data file."
     save_compiled_configuration: bool = True
     "Whether to save a TOML file containing the compiled configuration for a model"
     compiled_configuration_file_name: str = "compiled_configuration.toml"

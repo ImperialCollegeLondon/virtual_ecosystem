@@ -6,7 +6,6 @@ model.
 import sys
 from collections.abc import Sequence
 from enum import IntEnum
-from itertools import chain
 from pathlib import Path
 from typing import Any, cast
 
@@ -351,6 +350,20 @@ def ve_run(
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
+    # Check the variables to save
+    if not output_config.variables_to_save:
+        # Output all variables if the config is an empty list
+        variables_to_save = tuple(runtime_variables.keys())
+    else:
+        unknown_variables = set(output_config.variables_to_save).difference(
+            runtime_variables.keys()
+        )
+        if unknown_variables:
+            raise ConfigurationError(
+                f"Unknown names in 'variables_to_save': {','.join(unknown_variables)}"
+            )
+        variables_to_save = output_config.variables_to_save
+
     # Get the model initialisation sequence and initialise
     init_sequence = {
         model_name: configuration._model_classes[model_name]
@@ -385,23 +398,33 @@ def ve_run(
 
     # TODO - A model spin up might be needed here in future
 
-    # Save the initial state of the model - all input variables with no selection using
-    # variables_to_save.
-    # TODO - can we add this to the same zarr store?
-    #        See https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/1665
-    if output_config.save_initial_state:
-        data.save_to_netcdf(
-            output_file_path=output_config.out_path
-            / output_config.initial_state_file_name,
-            timing=core_components.model_timing,
-        )
-        if progress > Progress.MINIMAL:
-            print("* Saved model initial state")
+    # Identify which variables should be saved to the different zarr store groups:
+    # - the 'inputs' group contains variables provided to the model
+    # - the 'init' group contains variable states after model initialisation.
+    # - the 'outputs' group contains the model values at each time step
 
-    # Only variables in the data object that are updated by a model should be output
-    all_variables = (model.vars_updated for model in models_init.values())
-    # Then flatten the list to generate list of variables to output
-    variables_to_save = list(chain.from_iterable(all_variables))
+    # Identify variable groups to save
+    data_vars_to_save = [
+        k
+        for k in variables_to_save
+        if runtime_variables[k].vars_populated_by_init == ["data"]
+    ]
+    init_vars_to_save = [
+        k
+        for k in variables_to_save
+        if runtime_variables[k].vars_populated_by_init
+        and runtime_variables[k].vars_populated_by_init != ["data"]
+    ]
+    update_vars_to_save = [
+        k for k in variables_to_save if runtime_variables[k].vars_updated
+    ]
+
+    # Export any input and init vars now.
+    for vars, group in ((data_vars_to_save, "inputs"), (init_vars_to_save, "init")):
+        if vars:
+            data.save_to_zarr(
+                output_file_path=zarr_store_path, group=group, variables_to_save=vars
+            )
 
     # Take the models in their current execution sequence and change to the model update
     # sequence
@@ -459,7 +482,8 @@ def ve_run(
         # Append updated data to the output data store
         data.save_current_state_to_zarr(
             output_file_path=zarr_store_path,
-            variables_to_save=variables_to_save,
+            variables_to_save=update_vars_to_save,
+            group="outputs",
             time_index=time_index,
             timestamp=core_components.model_timing.update_datestamps[time_index],
         )
