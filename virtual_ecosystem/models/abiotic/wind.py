@@ -373,7 +373,8 @@ def calculate_mixing_coefficients_canopy(
 
 
 def clamp_variable_within_limits(
-    variable: NDArray[np.floating], limits: tuple[float, float]
+    variable: NDArray[np.floating],
+    limits: tuple[float | NDArray[np.floating], float | NDArray[np.floating]],
 ) -> NDArray[np.floating]:
     """Clamp an array of canopy data within limits.
 
@@ -393,6 +394,9 @@ def clamp_variable_within_limits(
         limits: A tuple giving the upper and lower bounds within which to clamp the data
     """
 
+    # Unpack limits explicitly to support NDArray bounds
+    lower, upper = limits
+
     # Get a map of nan values and initialise the out_of_limits array
     out_of_limits = np.zeros_like(variable[0])
     nan_map = np.isnan(variable)
@@ -401,7 +405,7 @@ def clamp_variable_within_limits(
     # Loop up from the row index of lowest layer, stopping before the top layer
     for layer in np.arange(n_layers - 1, 0, -1):
         # Calculate the clamped values for the current layer
-        in_limits = np.clip(variable[layer], *limits)
+        in_limits = np.clip(variable[layer], lower, upper)
 
         # Add under and overshoots to the out_of_limits array, trapping cells that
         # contain no vegetation in the layer (np.nan)
@@ -474,7 +478,7 @@ def mix_and_ventilate(
     input_variable: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
     ventilation_rate: NDArray[np.floating],
-    limits: tuple[float, float],
+    limits: tuple[float | NDArray[np.floating], float | NDArray[np.floating]],
     surface_index: int,
 ) -> NDArray[np.floating]:
     """Apply vertical mixing and top-layer ventilation across multiple vertical layers.
