@@ -460,8 +460,8 @@ def calculate_thermodynamics(
                 denominator_tolerance=abiotic_constants.denominator_tolerance,
             )
         )
+        aerodynamic_resistance_canopy = aerodynamic_resistance_canopy.squeeze()
         aerodynamic_resistance_soil = state["aerodynamic_resistance_soil"]
-
     else:
         aerodynamic_resistance_canopy = np.repeat(
             abiotic_constants.aerodynamic_resistance_canopy_night, n_cells
