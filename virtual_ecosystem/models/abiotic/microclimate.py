@@ -807,7 +807,7 @@ def update_atmospheric_humidity(
         / (static["atmospheric_pressure"] - saturated_vapour_pressure_air)
     )
     max_specific_humidity = mixing_ratio_saturation / (1 + mixing_ratio_saturation)
-
+    mean_max_specific_humidity = np.nanmean(max_specific_humidity[idx.atm], axis=0)
     # Vertical mixing
     specific_humidity_mixed = wind.mix_and_ventilate(
         input_variable=specific_humidity_with_added_water,
@@ -815,8 +815,8 @@ def update_atmospheric_humidity(
         ventilation_rate=state["ventilation_rate"],
         limits=(
             abiotic_constants.min_specific_humidity,
-            max_specific_humidity[0],
-        ),  # TODO layer specific?
+            mean_max_specific_humidity,
+        ),
         surface_index=idx.surface,
     )
 
