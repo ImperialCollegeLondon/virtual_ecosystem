@@ -539,7 +539,7 @@ def alpha_i_j(alpha_0_pred: float, mass: float, w_bar_i_j: float) -> float:
 
 
 def k_i_j(
-    alpha_i_j: float, N_i_t: float, intersection_area: float, theta_i_j: float
+    alpha_i_j: float, N_j_t: float, intersection_area: float, theta_i_j: float
 ) -> float:
     """Potential number of prey items eaten off j by i.
 
@@ -550,7 +550,7 @@ def k_i_j(
     Args:
         alpha_i_j: Rate at which an individual predator searches its environment and
             kills prey in m2/(day*g).
-        N_i_t: Number of consumer individuals.
+        N_j_t: Number of prey individuals.
         intersection_area: The overlapping area between predator and prey territories
           in m2.
         theta_i_j: The cumulative density of organisms with a mass lying within the
@@ -559,7 +559,8 @@ def k_i_j(
     Returns:
         Potential number of prey items eaten off j by i [integer number of individuals]
     """
-    return alpha_i_j * (N_i_t / intersection_area) * theta_i_j
+    #      m2/(day*g) * (con_ind / m2) * prey_ind/m2
+    return alpha_i_j * (N_j_t / intersection_area) * theta_i_j
 
 
 def H_i_j(

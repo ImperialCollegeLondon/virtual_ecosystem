@@ -880,12 +880,13 @@ class AnimalCohort:
         return sf.alpha_i_j(self.constants.alpha_0_pred, self.mass_current, w_bar)
 
     def calculate_potential_prey_consumed(
-        self, alpha: float, theta_i_j: float, intersection_area: float
+        self, alpha: float, n_prey: float, theta_i_j: float, intersection_area: float
     ) -> float:
         """Calculate the potential number of prey consumed.
 
         Args:
             alpha: The predation search rate in m2/(day*g).
+            n_prey: The number of prey individuals.
             theta_i_j: The cumulative density of organisms with a mass lying within the
                 same predator specific mass bin.
             intersection_area: The overlapping area between predator and prey
@@ -894,7 +895,7 @@ class AnimalCohort:
         Returns:
             The potential number of prey items consumed.
         """
-        return sf.k_i_j(alpha, self.individuals, intersection_area, theta_i_j)
+        return sf.k_i_j(alpha, n_prey, intersection_area, theta_i_j)
 
     def calculate_total_handling_time_for_predation(
         self,
@@ -945,7 +946,7 @@ class AnimalCohort:
                         self.constants.sigma_opt_pred_prey,
                     ),
                 ),
-                self.individuals,
+                prey.individuals,
                 intersection_areas[id(prey)],
                 bin_densities.get(self._mass_bin(prey.mass_current, theta_opt), 0.0),
             )
@@ -995,7 +996,7 @@ class AnimalCohort:
         target_bin = self._mass_bin(target_cohort.mass_current, theta_opt)
         theta = bin_densities.get(target_bin, 0.0)
         k_target = self.calculate_potential_prey_consumed(
-            alpha, theta, intersection_area
+            alpha, N_target, theta, intersection_area
         )
         return (
             self.individuals * (k_target / (1 + total_handling_time)) * (1 / N_target)
