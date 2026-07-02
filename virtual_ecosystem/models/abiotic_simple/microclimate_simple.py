@@ -1,7 +1,8 @@
 r"""The ``models.abiotic_simple.microclimate_simple`` module uses linear regressions
 from :cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018` to predict
-atmospheric temperature, relative humidity, and vapour pressure deficit at ground level
-(1.5 m) given the above canopy conditions and leaf area index of intervening canopy. A
+atmospheric temperature, relative humidity, and vapour pressure deficit at measurement
+height (default 1.5 m) given the above canopy conditions and leaf area index of
+intervening canopy. A
 within canopy profile is then interpolated using an exponential curve between the above
 canopy observation and ground level prediction. The same method is applied to derive a
 vertical wind profile within the canopy, except that we use a logarithmic interpolation.
@@ -46,7 +47,7 @@ def run_simple_microclimate(
     to derive vertical profiles of these variables from external climate data such as
     regional climate models or satellite observations. Note that these sources provide
     data at different heights and with different underlying assumptions which lead to
-    different biases in the model output. For below canopy values (1.5 m),
+    different biases in the model output. For below canopy values (default is 1.5 m),
     the implementation is based on :cite:t:`hardwick_relationship_2015` as
 
     :math:`y = m * LAI + c`
@@ -59,8 +60,8 @@ def run_simple_microclimate(
     The values for all atmospheric layers as defined by 'layer_heights' in the Virtual
     Ecosystem (including canopy layers and surface layer) are calculated by exponential
     (for atmospheric temperature, relative humidity, vapour pressure deficit) or
-    logarithmic (for wind speed) regression
-    and interpolation between the input at the top of the canopy and the 1.5 m values.
+    logarithmic (for wind speed) regression and interpolation between the input at the
+    top of the canopy and the measurement height values.
 
     Soil temperature is interpolated between the surface layer and the temperature at
     1 m depth which which approximately equals the mean annual temperature, i.e. can
@@ -129,6 +130,7 @@ def run_simple_microclimate(
             leaf_area_index_sum=leaf_area_index_sum,
             layer_structure=layer_structure,
             layer_heights=data["layer_heights"].to_numpy(),
+            measurement_height=constants.measurement_height,
             upper_bound=upper,
             lower_bound=lower,
             gradient=gradient,
@@ -141,6 +143,7 @@ def run_simple_microclimate(
         leaf_area_index_sum=leaf_area_index_sum,
         layer_structure=layer_structure,
         layer_heights=data["layer_heights"].to_numpy(),
+        measurement_height=constants.measurement_height,
         upper_bound=upper_wind,
         lower_bound=lower_wind,
         gradient=gradient_wind,
@@ -237,6 +240,7 @@ def log_interpolation(
     leaf_area_index_sum: NDArray[np.floating],
     layer_structure: LayerStructure,
     layer_heights: NDArray[np.floating],
+    measurement_height: float,
     upper_bound: float,
     lower_bound: float,
     gradient: float,
@@ -248,6 +252,7 @@ def log_interpolation(
         leaf_area_index_sum: Leaf area index summed over all canopy layers, [m m-1]
         layer_structure: The LayerStructure instance for the simulation.
         layer_heights: Vertical layer heights, [m]
+        measurement_height: Height at which to interpolate the variable, [m]
         lower_bound: Minimum allowed value, used to constrain log interpolation. Note
             that currently no conservation of water and energy!
         upper_bound: Maximum allowed value, used to constrain log interpolation.
@@ -257,7 +262,7 @@ def log_interpolation(
         vertical logarithmic profile of provided variable
     """
 
-    # Calculate microclimatic variable at 1.5 m as function of leaf area index
+    # Calculate microclimatic variable at measurement height as function of LAI
     lai_regression = leaf_area_index_sum * gradient + reference_data
 
     # Avoid invalid heights
@@ -267,8 +272,10 @@ def log_interpolation(
     reference_height = positive_layer_heights[layer_structure.index_above]
 
     # Calculate per cell slope and intercept for logarithmic within-canopy profile
-    slope = (reference_data - lai_regression) / (np.log(reference_height) - np.log(1.5))
-    intercept = lai_regression - slope * np.log(1.5)
+    slope = (reference_data - lai_regression) / (
+        np.log(reference_height) - np.log(measurement_height)
+    )
+    intercept = lai_regression - slope * np.log(measurement_height)
 
     # Calculate the values within cells by layer
     layer_values = np.log(positive_layer_heights) * slope + intercept
@@ -285,6 +292,7 @@ def exp_interpolation(
     leaf_area_index_sum: NDArray[np.floating],
     layer_structure: LayerStructure,
     layer_heights: NDArray[np.floating],
+    measurement_height: float,
     upper_bound: float,
     lower_bound: float,
     gradient: float,
@@ -296,6 +304,7 @@ def exp_interpolation(
         leaf_area_index_sum: Leaf area index summed over all canopy layers, [m m-1]
         layer_structure: The LayerStructure instance for the simulation.
         layer_heights: Vertical layer heights, [m]
+        measurement_height: Height at which to interpolate the variable, [m]
         lower_bound: Minimum allowed value, used to constrain exp interpolation. Note
             that currently no conservation of water and energy!
         upper_bound: Maximum allowed value, used to constrain exp interpolation.
@@ -305,7 +314,7 @@ def exp_interpolation(
         vertical exponential profile of provided variable
     """
 
-    # Value at 1.5 m from LAI regression
+    # Value at measurement height from LAI regression
     lai_regression = leaf_area_index_sum * gradient + reference_data
 
     # Avoid invalid heights
@@ -314,9 +323,9 @@ def exp_interpolation(
     # Top height
     reference_height = positive_layer_heights[layer_structure.index_above]
 
-    # Normalized vertical coordinate: 0 at canopy top, 1 at 1.5 m
+    # Normalized vertical coordinate: 0 at canopy top, 1 at measurement height
     relative_canopy_depth = (reference_height - positive_layer_heights) / (
-        reference_height - 1.5
+        reference_height - measurement_height
     )
 
     # Normalized exponential profile
