@@ -416,12 +416,28 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
 def k_i_k(alpha_i_k: float, B_k_t: float, A_cell: float) -> float:
     """Potential biomass of plant k eaten by one herbivore per day.
 
-    Implements ``K_i,k = alpha_i,k * (phi * B_k,t / A_cell)**2`` in native Madingley
-    units: biomass in grams and cell area in hectares. The kg biomass and m^2 area
-    are converted here because this is where they enter the equation.
+    TODO: check madingley code implementation is the same as the paper
 
-    (Madingley eq 30) - phi = 1.0 in our system because all of an available resource
-    pool is exploitable.
+    This is Madingley's Holling Type III herbivory response (Harfoot et al. 2014,
+    eq. 30): ``K_i,k = alpha_i,k * (phi_herb,f * B_k,t / A_cell)**2``. Squaring the
+    stock biomass density (``B_k,t / A_cell``) is the Type III density-squared
+    encounter term, saturated downstream by the ``1 + sum(K_i,l . H_i,l)`` handling
+    denominator. ``phi_herb,f`` is the proportion of stock k experienced by the
+    cohort; it is 1.0 in our system because each cohort experiences the whole
+    available pool, so it does not appear below.
+
+    Madingley parameterises ``alpha_i,k`` as a linear area-swept-per-day search rate
+    [ha/day], so applying it to the squared density leaves one factor of area
+    uncancelled: the published form is empirical and not dimensionally homogeneous as
+    written, and the residual is absorbed by calibration at native units rather than by
+    the constants' formal dimensions. The interpreted unit, biomass per day per
+    herbivore, is realised in ``F_i_k``, where ``N_i,t`` scales to the whole herbivore
+    cohort and one factor of ``B_k,t`` cancels algebraically against the ``1/B_k,t``
+    divisor. That leaves the fraction eaten per day rising with stock biomass, so total
+    consumption scales with ``B_k,t**2`` before saturation -- the Type III signature.
+
+    Biomass is native grams and cell area native hectares, so the kg biomass and m^2
+    area are converted here, at the point they enter the equation.
 
     TODO: Update name
 
@@ -433,6 +449,7 @@ def k_i_k(alpha_i_k: float, B_k_t: float, A_cell: float) -> float:
     Returns:
         Potential biomass eaten by one herbivore per day [g/day].
     """
+
     B_k_t_g = B_k_t * 1000.0  # kg -> g
     A_cell_ha = A_cell / 10000.0  # m^2 -> ha
     return alpha_i_k * (B_k_t_g / A_cell_ha) ** 2
@@ -548,15 +565,27 @@ def alpha_i_j(alpha_0_pred: float, mass: float, w_bar_i_j: float) -> float:
 def k_i_j(
     alpha_i_j: float, N_j_t: float, intersection_area: float, theta_i_j: float
 ) -> float:
-    """Potential number of prey eaten from cohort j by one predator.
+    """Potential number of prey eaten from cohort j by one predator per day.
 
-    Implements ``K_i,j = alpha_i,j * (N_j,t / A) * Theta_i,j`` in native units.
+    TODO: check madingley code to ensure their paper form is the same as their code
+
+    This is Madingley's Holling Type III predation response (Harfoot et al. 2014,
+    eq. 34): ``K_i,j = alpha_i,j * (N_j,t / A_cell) * Theta_i,j``. The product of the
+    focal prey density (``N_j,t / A_cell``) and the bin density (``Theta_i,j``) is the
+    Type III density-squared encounter term, saturated downstream by the
+    ``1 + sum(K_i,m . H_i,m)`` handling denominator.
+
+    Madingley parameterises ``alpha_i,j`` as a linear area-swept-per-day search rate
+    [ha/day], so applying it to the squared density leaves one factor of area
+    uncancelled: the published form is empirical and not dimensionally homogeneous as
+    written, and the residual is absorbed by calibration at native units rather than by
+    the constants' formal dimensions. The interpreted unit, prey per predator per day,
+    is realised in ``F_i_j_individual``, where ``N_i,t`` scales to the whole predator
+    cohort and the prey count ``N_j,t`` cancels algebraically.
+
     ``alpha_i_j`` arrives in ha/day and ``theta_i_j`` is already a native ha density
-    (built in _build_prey_bin_densities), so the m^2 territory intersection is
-    converted to ha here to match. ``N_j_t`` is a count (no conversion); the predator
-    count N_i,t is applied once in F_i_j_individual.  (Madingley eq 34)
-
-    TODO: Update name
+    (from ``_build_prey_bin_densities``), so the m^2 intersection is converted to ha
+    here to match. ``N_j_t`` is the prey cohort abundance and is not converted.
 
     Args:
         alpha_i_j: Predator search-and-kill rate [ha/day].
@@ -565,8 +594,9 @@ def k_i_j(
         theta_i_j: Cumulative prey density in j's mass bin [individuals/ha].
 
     Returns:
-        Potential number of prey eaten by one predator per day.
+        Potential number of prey eaten by one predator [prey . predator^-1 . day^-1].
     """
+
     intersection_area_ha = intersection_area / 10000.0  # m^2 -> ha
     return alpha_i_j * (N_j_t / intersection_area_ha) * theta_i_j
 
