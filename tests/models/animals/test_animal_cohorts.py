@@ -1198,23 +1198,29 @@ class TestAnimalCohort:
         assert result == 0.8, "Expected predation search rate not returned."
 
     def test_calculate_potential_prey_consumed(self, mocker, herbivore_cohort_instance):
-        """Test calculation of potential number of prey consumed."""
+        """Test calculation of potential number of prey consumed.
+
+        The prey cohort's abundance ``n_prey`` (Madingley ``N_j,t``) is the value
+        forwarded to ``k_i_j``; it is deliberately set different from the predator
+        cohort's own ``individuals`` so a regression to the predator-count swap would
+        fail this test.
+        """
         alpha = 0.8
+        n_prey = 1234.0
         theta_i_j = 0.7
         intersection_area = 5000.0
-
         mock_k_i_j = mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.k_i_j",
             return_value=15.0,
         )
 
         result = herbivore_cohort_instance.calculate_potential_prey_consumed(
-            alpha, theta_i_j, intersection_area
+            alpha, n_prey, theta_i_j, intersection_area
         )
 
         mock_k_i_j.assert_called_once_with(
             alpha,
-            herbivore_cohort_instance.individuals,
+            n_prey,
             intersection_area,
             theta_i_j,
         )

@@ -574,7 +574,7 @@ def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
 
 
 @pytest.mark.parametrize(
-    "alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output",
+    "alpha_i_j, N_j_t, A_cell, theta_i_j, expected_output",
     [
         pytest.param(0.1, 100, 1.0, 0.5, 5.0, id="basic_scenario"),
         pytest.param(0.2, 50, 2.0, 0.75, 3.75, id="varied_parameters"),
@@ -586,16 +586,16 @@ def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
         pytest.param(0.1, 100, 1.0, 0.0, 0.0, id="zero_theta_i_j"),
     ],
 )
-def test_k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output):
+def test_k_i_j(alpha_i_j, N_j_t, A_cell, theta_i_j, expected_output):
     """Testing the calculation of potential prey items eaten."""
     from virtual_ecosystem.models.animal.scaling_functions import k_i_j
 
     # Handle special case where division by zero might occur
     if A_cell == 0:
         with pytest.raises(ZeroDivisionError):
-            k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j)
+            k_i_j(alpha_i_j, N_j_t, A_cell, theta_i_j)
     else:
-        calculated_output = k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j)
+        calculated_output = k_i_j(alpha_i_j, N_j_t, A_cell, theta_i_j)
         assert calculated_output == pytest.approx(expected_output, rel=1e-6)
 
 
