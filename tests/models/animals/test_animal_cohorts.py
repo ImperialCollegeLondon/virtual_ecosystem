@@ -1110,7 +1110,9 @@ class TestAnimalCohort:
 
         N = herbivore_cohort_instance.individuals
         expected = (
-            N * (potential_biomass_consumed / (1.0 + total_handling_t)) / plant_biomass
+            N
+            * (potential_biomass_consumed / (1.0 + total_handling_t))
+            / (plant_biomass * 1000.0)  # kg -> g, matches F_i_k
         )
 
         assert rate == pytest.approx(expected, rel=1e-6), (
@@ -1303,18 +1305,18 @@ class TestAnimalCohort:
         predator_cohort_instance,
         mocker,
     ):
-        """Test that get_territory_intersection and theta_i_j are never called.
+        """Test that get_territory_intersection is never called.
 
-        Verifies the redundant recomputation has been eliminated in favour of
-        the pre-computed bin_densities and intersection_areas dicts.
+        Verifies the redundant recomputation has been eliminated in favour of the
+        pre-computed bin_densities and intersection_areas dicts.
         """
         prey = mocker.Mock()
         prey.mass_current = 50.0
+        prey.individuals = 10
 
         mock_territory = mocker.patch.object(
             predator_cohort_instance, "get_territory_intersection"
         )
-        mock_theta = mocker.patch.object(predator_cohort_instance, "theta_i_j")
         mocker.patch.object(predator_cohort_instance, "_mass_bin", return_value=5)
         mocker.patch(
             "virtual_ecosystem.models.animal.animal_cohorts.sf.w_bar_i_j",
@@ -1338,7 +1340,6 @@ class TestAnimalCohort:
         )
 
         mock_territory.assert_not_called()
-        mock_theta.assert_not_called()
 
     def test_calculate_total_handling_time_for_predation_missing_bin_defaults_to_zero(
         self,
@@ -1460,40 +1461,6 @@ class TestAnimalCohort:
         predator_cohort_instance.F_i_j_individual(target, 5000.0, 0.1, {5: 0.001}, 1.0)
 
         mock_draw.assert_not_called()
-
-    def test_F_i_j_individual_does_not_call_theta_i_j(
-        self,
-        predator_cohort_instance,
-        mocker,
-    ):
-        """Test that theta_i_j is never called directly.
-
-        Bin density lookups use the pre-computed bin_densities dict instead.
-        """
-        target = mocker.Mock()
-        target.mass_current = 50.0
-        target.individuals = 10
-
-        mock_theta = mocker.patch.object(predator_cohort_instance, "theta_i_j")
-        mocker.patch.object(predator_cohort_instance, "_mass_bin", return_value=5)
-        mocker.patch(
-            "virtual_ecosystem.models.animal.animal_cohorts.sf.w_bar_i_j",
-            return_value=0.5,
-        )
-        mocker.patch.object(
-            predator_cohort_instance,
-            "calculate_predation_search_rate",
-            return_value=0.8,
-        )
-        mocker.patch.object(
-            predator_cohort_instance,
-            "calculate_potential_prey_consumed",
-            return_value=4.0,
-        )
-
-        predator_cohort_instance.F_i_j_individual(target, 5000.0, 0.1, {5: 0.001}, 1.0)
-
-        mock_theta.assert_not_called()
 
     @pytest.mark.parametrize(
         "F_value, mass_current, individuals, expected_behavior",
@@ -3577,8 +3544,8 @@ class TestAnimalCohort:
     ):
         """Test that a single cohort produces one bin entry with correct density.
 
-        Density is individuals / cell_area. With cell_area=10000 and individuals=10,
-        expected density is 0.001.
+        Density is individuals / cell_area_ha (native individuals/ha). With
+        cell_area=10000 m^2 (1 ha) and individuals=10, expected density is 10.0.
         """
         prey = mocker.Mock()
         prey.mass_current = 50.0
@@ -3588,7 +3555,8 @@ class TestAnimalCohort:
 
         result = predator_cohort_instance._build_prey_bin_densities([prey], 0.1)
 
-        assert result == {5: pytest.approx(10 / 10000)}
+        cell_area_ha = predator_cohort_instance.grid.cell_area / 10000.0
+        assert result == {5: pytest.approx(10 / cell_area_ha)}
 
     def test_build_prey_bin_densities_two_cohorts_different_bins(
         self, predator_cohort_instance, mocker
@@ -3612,9 +3580,10 @@ class TestAnimalCohort:
             [prey_a, prey_b], 0.1
         )
 
+        cell_area_ha = predator_cohort_instance.grid.cell_area / 10000.0
         assert result == {
-            5: pytest.approx(10 / 10000),
-            7: pytest.approx(20 / 10000),
+            5: pytest.approx(10 / cell_area_ha),
+            7: pytest.approx(20 / cell_area_ha),
         }
 
     def test_build_prey_bin_densities_two_cohorts_same_bin(
@@ -3639,7 +3608,8 @@ class TestAnimalCohort:
             [prey_a, prey_b], 0.1
         )
 
-        assert result == {5: pytest.approx(40 / 10000)}
+        cell_area_ha = predator_cohort_instance.grid.cell_area / 10000.0
+        assert result == {5: pytest.approx(40 / cell_area_ha)}
 
     def test_build_prey_bin_densities_calls_mass_bin_once_per_cohort(
         self, predator_cohort_instance, mocker

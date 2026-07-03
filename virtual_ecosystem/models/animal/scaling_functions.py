@@ -2,9 +2,6 @@
 scaling equations" (relationships between body-mass and a trait) required by the broader
 :mod:`~virtual_ecosystem.models.animal` module
 
-To Do:
-- streamline units of scaling functions [kg]->[kg] etc
-
 """  # noqa: D205, D415
 
 from collections.abc import Sequence
