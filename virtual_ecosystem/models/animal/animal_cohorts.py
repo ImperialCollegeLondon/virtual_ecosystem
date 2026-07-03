@@ -1553,36 +1553,6 @@ class AnimalCohort:
         if any(v > 0 for v in total_gain.values()):
             self.eat(total_gain, excrement_pools)
 
-    def theta_i_j(
-        self,
-        animal_list: list[AnimalCohort],
-        theta_opt: float,
-        target_bin: int,
-    ) -> float:
-        """Cumulative density of prey within the same mass bin as the target prey.
-
-        Implements Equation 38 of Harfoot et al. (2014). Sums the density of all
-        prey cohorts that fall in the same predator-specific mass bin as the target
-        cohort, where bin assignment follows Equation 39 (_mass_bin).
-
-        Args:
-            animal_list: Prey cohorts available to this predator.
-            theta_opt: This predator's optimal prey-predator mass ratio for this
-                foraging encounter, drawn once per encounter and passed in to
-                ensure consistency with the w_bar_i_j calculation.
-            target_bin: The bin index of the target prey cohort, computed by the
-                caller via _mass_bin prior to this call.
-
-        Returns:
-            Cumulative prey density in individuals per m² within the matching bin.
-        """
-        A_cell = self.grid.cell_area
-        return sum(
-            cohort.individuals / A_cell
-            for cohort in animal_list
-            if self._mass_bin(cohort.mass_current, theta_opt) == target_bin
-        )
-
     def eat(
         self, mass_consumed: dict[str, float], excrement_pools: list[ExcrementPool]
     ) -> None:
