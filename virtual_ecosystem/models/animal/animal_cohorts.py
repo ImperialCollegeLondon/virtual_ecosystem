@@ -753,7 +753,11 @@ class AnimalCohort:
     ) -> float:
         """Calculate the instantaneous consumption rate on a plant resource.
 
-        Implements the Holling Type II functional response for herbivory.
+        Implements the Holling Type III functional response for herbivory.
+
+        The potential biomass numerator arrives in g/day from ``k_i_k`` (native
+        Madingley units), so the resource biomass divisor is converted kg -> g here
+        to match; this leaves F as a clean per-day rate.
 
         Args:
             resource: The target plant resource being consumed.
@@ -766,10 +770,12 @@ class AnimalCohort:
         Returns:
             The instantaneous consumption rate [1/day] of the target resource.
         """
+
+        resource_mass_g = resource.mass_current * 1000.0  # kg -> g, matches k_i_k
         return (
             self.individuals
             * (potential_biomass_consumed / (1.0 + total_handling_t))
-            / resource.mass_current
+            / resource_mass_g
         )
 
     def calculate_theta_opt_i(self) -> float:

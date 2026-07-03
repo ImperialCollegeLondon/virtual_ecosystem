@@ -393,45 +393,49 @@ def starvation_mortality(
 def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
     """Effective rate at which an individual herbivore searches its environment.
 
-    This is linear scaling of herbivore search times with current body mass.
+    Linear scaling of herbivore search rate with current body mass (Madingley).
+    The native Madingley constant ``alpha_0_herb`` is in ha day^-1 g^-1, so the
+    kg body mass is converted to grams before applying it; the returned search
+    rate is therefore in native ha/day. Area is not converted here -- it enters
+    the functional response in ``k_i_k``, where ``A_cell`` is the normaliser.
 
     TODO: Update name
 
-    Madingley
-
     Args:
-        alpha_0_herb: Effective rate per unit body mass at which a herbivore searches
-          its environment in m2/(day*g).
-        mass: The current body mass of the foraging herbivore in g.
+        alpha_0_herb: Native Madingley effective search rate per unit body mass
+            [ha day^-1 g^-1], value 1e-11.
+        mass: Current body mass of the foraging herbivore [kg].
 
     Returns:
-        A float of the effective search rate in [m2/day].
-
+        Effective search rate [ha/day].
     """
-
-    return alpha_0_herb * mass
+    mass_g = mass * 1000.0  # kg -> g, native Madingley unit for alpha_0_herb
+    return alpha_0_herb * mass_g
 
 
 def k_i_k(alpha_i_k: float, B_k_t: float, A_cell: float) -> float:
-    """The potential biomass (g) of plant k eaten by cohort i, per day.
+    """Potential biomass of plant k eaten by one herbivore per day.
 
-    TODO: update name
+    Implements ``K_i,k = alpha_i,k * (phi * B_k,t / A_cell)**2`` in native Madingley
+    units: biomass in grams and cell area in hectares. The kg biomass and m^2 area
+    are converted here because this is where they enter the equation.
 
-    Madingley
+    (Madingley eq 30) - phi = 1.0 in our system because all of an available resource
+    pool is exploitable.
+
+    TODO: Update name
 
     Args:
-        alpha_i_k: Effective rate at which an individual herbivore searches its
-          environment.
-        B_k_t: Plant resource bool biomass.
-        A_cell: The area of one cell [standard = 1 ha]
+        alpha_i_k: Herbivore search rate [ha/day].
+        B_k_t: Plant resource biomass [kg].
+        A_cell: Area of one cell [m^2].
 
     Returns:
-        A float of The potential biomass (g) of plant k eating by cohort i, per day
-        [g/day]
-
+        Potential biomass eaten by one herbivore per day [g/day].
     """
-
-    return alpha_i_k * ((B_k_t) / A_cell) ** 2
+    B_k_t_g = B_k_t * 1000.0  # kg -> g
+    A_cell_ha = A_cell / 10000.0  # m^2 -> ha
+    return alpha_i_k * (B_k_t_g / A_cell_ha) ** 2
 
 
 def H_i_k(h_herb_0: float, M_ref: float, M_i_t: float, b_herb: float) -> float:

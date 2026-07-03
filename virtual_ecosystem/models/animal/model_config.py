@@ -234,27 +234,27 @@ class AnimalConstants(Configuration):
 
     # Trophic parameters
 
-    alpha_0_herb: float = 1.0e-7  # ha/(day*g) [Madingley] converted to m2/(day*g)
+    alpha_0_herb: float = 1.0e-11  # ha/(d*g) [Madingley]
     """Effective rate per unit mass at which a herbivore searches its environment."""
-    alpha_0_pred: float = 1.0e-2  # ha/(day*g) [Madingley] converted to m2/(day*g)
+    alpha_0_pred: float = 1.0e-6  # ha/(d*g) [Madingley]
     """Effective rate per unit mass at which a predator searches its environment."""
 
-    b_herb: float = 0.7  # ( ),b_herb)
+    b_herb: float = 0.7  # unitless [Madingley]
     """Herbivore exponent of the power-law function relating the handling time of
       autotroph matter to herbivore mass."""
 
-    b_pred: float = 0.05  # Toy Values
+    b_pred: float = 0.7  # unitless [Madingley]
     """Carnivore exponent of the power-law relationship between the handling time of
       prey and the ratio of prey to predator body mass."""
 
-    M_herb_ref: float = 1.0  # M_herb_ref [Madingley] g
+    M_herb_ref: float = 1.0  # g [Madingley]
     """Reference mass for herbivore handling time."""
 
-    h_herb_0: float = 0.7  # h_pred_0 [Madingley]
-    """Time that it would take a herbivore of body mass equal to the reference mass,
+    h_herb_0: float = 0.7  # days [Madingley]
+    """Time [d] that it would take a herbivore of body mass equal to the reference mass,
     to handle one gram of autotroph biomass"""
 
-    M_pred_ref: float = 1.0  # toy value TODO: find real value
+    M_pred_ref: float = 1.0  # g toy value TODO: find real value
     """The reference value for predator mass."""
     sigma_opt_pred_prey: float = 0.7  # sigma_opt_pred-prey [Madingley]
     """Standard deviation of the normal distribution describing realized attack rates
@@ -270,8 +270,8 @@ class AnimalConstants(Configuration):
     """The standard deviations of the realized attack rates around the optimal
     predator-prey body mass ratio for which to calculate predator specific cumulative
     prey densities."""
-    h_pred_0: float = 0.5  # h_pred_0 [Madingley]
-    """Time that it would take a predator of body mass equal to the reference mass,
+    h_pred_0: float = 0.5  # days [Madingley]
+    """Time [d] that it would take a predator of body mass equal to the reference mass,
     to handle a prey individual of body mass equal to one gram."""
 
     # Activity parameters
