@@ -774,8 +774,7 @@ class AnimalCohort:
         return (
             self.individuals
             * (potential_biomass_consumed / (1.0 + total_handling_t))
-            / resource.mass_current
-            * 1000.0  # kg -> g, matches k_i_k
+            / (resource.mass_current * 1000.0)  # kg -> g, matches k_i_k
         )
 
     def calculate_theta_opt_i(self) -> float:
