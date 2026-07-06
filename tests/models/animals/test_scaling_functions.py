@@ -424,16 +424,15 @@ def test_starvation_mortality(
 @pytest.mark.parametrize(
     "alpha_0_herb, mass, expected_search_rate",
     [
-        pytest.param(0.1, 1.0, 0.1, id="base_rate"),
-        pytest.param(0.2, 5.0, 1.0, id="increased_rate"),
-        pytest.param(0.05, 10.0, 0.5, id="decreased_rate"),
+        pytest.param(0.1, 1.0, 100.0, id="base_rate"),
+        pytest.param(0.2, 5.0, 1000.0, id="increased_rate"),
+        pytest.param(0.05, 10.0, 500.0, id="decreased_rate"),
         pytest.param(0.0, 10.0, 0.0, id="zero_rate"),
         pytest.param(0.1, 0.0, 0.0, id="zero_mass"),
     ],
 )
 def test_alpha_i_k(alpha_0_herb, mass, expected_search_rate):
-    """Testing effective search rate calculation for various herbivore body masses."""
-
+    """Test herbivore search rate; mass [kg] is converted to native grams (x1000)."""
     from virtual_ecosystem.models.animal.scaling_functions import alpha_i_k
 
     calculated_search_rate = alpha_i_k(alpha_0_herb, mass)
@@ -443,16 +442,16 @@ def test_alpha_i_k(alpha_0_herb, mass, expected_search_rate):
 @pytest.mark.parametrize(
     "alpha_i_k, B_k_t, A_cell, expected_biomass",
     [
-        pytest.param(0.1, 1000, 1, 100000.0, id="standard_scenario"),
-        pytest.param(0.2, 1000, 1, 200000.0, id="increased_search_rate"),
-        pytest.param(0.1, 2000, 1, 400000.0, id="increased_plant_biomass"),
-        pytest.param(0.1, 1000, 2, 25000.0, id="increased_cell_area"),
+        pytest.param(0.1, 1000, 1, 1e19, id="standard_scenario"),
+        pytest.param(0.2, 1000, 1, 2e19, id="increased_search_rate"),
+        pytest.param(0.1, 2000, 1, 4e19, id="increased_plant_biomass"),
+        pytest.param(0.1, 1000, 2, 2.5e18, id="increased_cell_area"),
         pytest.param(0, 1000, 1, 0.0, id="zero_search_rate"),
         pytest.param(0.1, 0, 1, 0.0, id="zero_plant_biomass"),
     ],
 )
 def test_k_i_k(alpha_i_k, B_k_t, A_cell, expected_biomass):
-    """Testing the potential biomass eaten calculation for various scenarios."""
+    """Test potential biomass eaten; B_k_t [kg] -> g and A_cell [m^2] -> ha inside."""
     from virtual_ecosystem.models.animal.scaling_functions import k_i_k
 
     calculated_biomass = k_i_k(alpha_i_k, B_k_t, A_cell)
@@ -462,14 +461,16 @@ def test_k_i_k(alpha_i_k, B_k_t, A_cell, expected_biomass):
 @pytest.mark.parametrize(
     "h_herb_0, M_ref, M_i_t, b_herb, expected_handling_time, expect_exception",
     [
-        pytest.param(1.0, 10.0, 10.0, 0.75, 1.0, False, id="M_ref_equals_M_i_t"),
-        pytest.param(1.0, 10.0, 5.0, 0.75, 1.6817928, False, id="M_i_t_half_of_M_ref"),
+        pytest.param(1.0, 10.0, 0.01, 0.75, 1.0, False, id="M_ref_equals_M_i_t"),
         pytest.param(
-            1.0, 10.0, 20.0, 0.75, 0.5946035, False, id="M_i_t_double_of_M_ref"
+            1.0, 10.0, 0.005, 0.75, 1.681792830507429, False, id="M_i_t_half_of_M_ref"
         ),
-        pytest.param(2.0, 10.0, 10.0, 0.75, 2.0, False, id="increased_h_herb_0"),
-        pytest.param(1.0, 10.0, 10.0, 1.0, 1.0, False, id="increased_b_herb"),
-        pytest.param(1.0, 10.0, 10.0, 0.0, 1.0, False, id="b_herb_zero"),
+        pytest.param(
+            1.0, 10.0, 0.02, 0.75, 0.5946035575013605, False, id="M_i_t_double_of_M_ref"
+        ),
+        pytest.param(2.0, 10.0, 0.01, 0.75, 2.0, False, id="increased_h_herb_0"),
+        pytest.param(1.0, 10.0, 0.01, 1.0, 1.0, False, id="increased_b_herb"),
+        pytest.param(1.0, 10.0, 0.01, 0.0, 1.0, False, id="b_herb_zero"),
         pytest.param(
             1.0, 10.0, 0.0, 0.75, None, True, id="M_i_t_zero_expect_exception"
         ),
@@ -478,7 +479,13 @@ def test_k_i_k(alpha_i_k, B_k_t, A_cell, expected_biomass):
 def test_H_i_k(
     h_herb_0, M_ref, M_i_t, b_herb, expected_handling_time, expect_exception
 ):
-    """Testing the handling time calculation for various herbivore masses."""
+    """Test herbivory handling time across reference/current mass ratios.
+
+    ``M_ref`` is a native reference mass in grams and ``M_i_t`` is the current
+    herbivore mass in kg, which ``H_i_k`` converts to grams internally. Inputs are
+    chosen so ``M_i_t`` in grams equals, halves, or doubles ``M_ref``, isolating the
+    power-law ratio. Zero current mass raises ``ZeroDivisionError``.
+    """
     from virtual_ecosystem.models.animal.scaling_functions import H_i_k
 
     if expect_exception:
@@ -557,16 +564,16 @@ def test_w_bar_i_j(
 @pytest.mark.parametrize(
     "alpha_0_pred, mass, w_bar_i_j, expected_search_rate",
     [
-        pytest.param(0.1, 10.0, 0.5, 0.5, id="basic_scenario"),
-        pytest.param(0.2, 5.0, 0.75, 0.75, id="different_values"),
+        pytest.param(0.1, 10.0, 0.5, 500.0, id="basic_scenario"),
+        pytest.param(0.2, 5.0, 0.75, 750.0, id="different_values"),
         pytest.param(0.0, 10.0, 0.5, 0.0, id="zero_alpha_0_pred"),
         pytest.param(0.1, 0.0, 0.5, 0.0, id="zero_mass"),
         pytest.param(0.1, 10.0, 0.0, 0.0, id="zero_w_bar_i_j"),
-        pytest.param(0.1, 10.0, 1.0, 1.0, id="w_bar_i_j_is_1"),
+        pytest.param(0.1, 10.0, 1.0, 1000.0, id="w_bar_i_j_is_1"),
     ],
 )
 def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
-    """Testing the effective search rate calculation for various inputs."""
+    """Test predator search rate; mass [kg] is converted to native grams (x1000)."""
     from virtual_ecosystem.models.animal.scaling_functions import alpha_i_j
 
     calculated_search_rate = alpha_i_j(alpha_0_pred, mass, w_bar_i_j)
@@ -574,51 +581,61 @@ def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
 
 
 @pytest.mark.parametrize(
-    "alpha_i_j, N_j_t, A_cell, theta_i_j, expected_output",
+    "alpha_i_j, N_j_t, intersection_area, theta_i_j, expected_output",
     [
-        pytest.param(0.1, 100, 1.0, 0.5, 5.0, id="basic_scenario"),
-        pytest.param(0.2, 50, 2.0, 0.75, 3.75, id="varied_parameters"),
+        pytest.param(0.1, 100, 1.0, 0.5, 50000.0, id="basic_scenario"),
+        pytest.param(0.2, 50, 2.0, 0.75, 37500.0, id="varied_parameters"),
         pytest.param(0.0, 100, 1.0, 0.5, 0.0, id="zero_search_rate"),
-        pytest.param(0.1, 0, 1.0, 0.5, 0.0, id="zero_predator_population"),
+        pytest.param(0.1, 0, 1.0, 0.5, 0.0, id="zero_prey_population"),
         pytest.param(
-            0.1, 100, 0.0, 0.5, float("inf"), id="zero_cell_area_expect_inf_or_error"
+            0.1, 100, 0.0, 0.5, float("inf"), id="zero_area_expect_inf_or_error"
         ),
         pytest.param(0.1, 100, 1.0, 0.0, 0.0, id="zero_theta_i_j"),
     ],
 )
-def test_k_i_j(alpha_i_j, N_j_t, A_cell, theta_i_j, expected_output):
-    """Testing the calculation of potential prey items eaten."""
+def test_k_i_j(alpha_i_j, N_j_t, intersection_area, theta_i_j, expected_output):
+    """Test potential prey eaten; intersection_area [m^2] -> ha inside k_i_j."""
     from virtual_ecosystem.models.animal.scaling_functions import k_i_j
 
-    # Handle special case where division by zero might occur
-    if A_cell == 0:
+    if intersection_area == 0:
         with pytest.raises(ZeroDivisionError):
-            k_i_j(alpha_i_j, N_j_t, A_cell, theta_i_j)
+            k_i_j(alpha_i_j, N_j_t, intersection_area, theta_i_j)
     else:
-        calculated_output = k_i_j(alpha_i_j, N_j_t, A_cell, theta_i_j)
+        calculated_output = k_i_j(alpha_i_j, N_j_t, intersection_area, theta_i_j)
         assert calculated_output == pytest.approx(expected_output, rel=1e-6)
 
 
 @pytest.mark.parametrize(
     "h_pred_0, M_ref, M_i_t, b_pred, prey_mass, expected_handling_time",
     [
-        pytest.param(1.0, 10.0, 10.0, 0.75, 1.0, 1.0, id="basic_scenario"),
-        pytest.param(1.0, 10.0, 5.0, 0.75, 1.0, 1.6817928, id="M_i_t_half_of_M_ref"),
-        pytest.param(1.0, 10.0, 20.0, 0.75, 1.0, 0.5946036, id="M_i_t_double_of_M_ref"),
-        pytest.param(2.0, 10.0, 10.0, 0.75, 1.0, 2.0, id="increased_h_pred_0"),
-        pytest.param(1.0, 10.0, 10.0, 1.0, 1.0, 1.0, id="increased_b_pred"),
+        pytest.param(1.0, 10.0, 0.01, 0.75, 0.001, 1.0, id="basic_scenario"),
         pytest.param(
-            1.0, 10.0, 10.0, 0.75, 5.0, 5.0, id="larger_prey_mass_scales_linearly"
+            1.0, 10.0, 0.005, 0.75, 0.001, 1.681792830507429, id="M_i_t_half_of_M_ref"
         ),
-        pytest.param(1.0, 10.0, 10.0, 0.75, 0.0, 0.0, id="zero_prey_mass_returns_zero"),
-        pytest.param(1.0, 0.0, 10.0, 0.75, 1.0, 0.0, id="zero_M_ref_leads_to_zero"),
         pytest.param(
-            1.0, 10.0, 0.0, 0.75, 1.0, float("inf"), id="zero_M_i_t_expect_inf"
+            1.0, 10.0, 0.02, 0.75, 0.001, 0.5946035575013605, id="M_i_t_double_of_M_ref"
+        ),
+        pytest.param(2.0, 10.0, 0.01, 0.75, 0.001, 2.0, id="increased_h_pred_0"),
+        pytest.param(1.0, 10.0, 0.01, 1.0, 0.001, 1.0, id="increased_b_pred"),
+        pytest.param(
+            1.0, 10.0, 0.01, 0.75, 0.005, 5.0, id="larger_prey_mass_scales_linearly"
+        ),
+        pytest.param(1.0, 10.0, 0.01, 0.75, 0.0, 0.0, id="zero_prey_mass_returns_zero"),
+        pytest.param(1.0, 0.0, 0.01, 0.75, 0.001, 0.0, id="zero_M_ref_leads_to_zero"),
+        pytest.param(
+            1.0, 10.0, 0.0, 0.75, 0.001, float("inf"), id="zero_M_i_t_expect_inf"
         ),
     ],
 )
 def test_H_i_j(h_pred_0, M_ref, M_i_t, b_pred, prey_mass, expected_handling_time):
-    """Test handling time calculation for various predator mass and prey mass inputs."""
+    """Test predation handling time across predator mass ratios and prey masses.
+
+    ``M_ref`` is a native reference mass in grams; ``M_i_t`` (predator) and
+    ``prey_mass`` are in kg, both converted to grams inside ``H_i_j``. Predator
+    inputs isolate the power-law ratio (M_i_t in grams equal/half/double M_ref) and
+    ``prey_mass`` enters linearly, so 0.001 kg -> 1 g gives a unit prey factor and
+    0.005 kg -> 5 g scales it fivefold. Zero predator mass raises ``ZeroDivisionError``.
+    """
     from virtual_ecosystem.models.animal.scaling_functions import H_i_j
 
     if M_i_t == 0:

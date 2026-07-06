@@ -710,7 +710,7 @@ class AnimalCohort:
         TODO: update name
 
         Returns:
-            A float representing the search efficiency rate in [m2/(day*g)].
+            A float representing the search efficiency rate in [ha/day].
         """
 
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
@@ -720,8 +720,8 @@ class AnimalCohort:
     ) -> float:
         """Calculate total handling time across all plant resources.
 
-        Computes the denominator sum Σ K_i,l · H_i,l from the Holling Type II functional
-        response,
+        Computes the denominator sum Σ K_i,l · H_i,l from the Holling Type III
+        functional response,
 
         Args:
             plant_list: A list of plant resources available for consumption by the
@@ -753,7 +753,11 @@ class AnimalCohort:
     ) -> float:
         """Calculate the instantaneous consumption rate on a plant resource.
 
-        Implements the Holling Type II functional response for herbivory.
+        Implements the Holling Type III functional response for herbivory.
+
+        The potential biomass numerator arrives in g/day from ``k_i_k`` (native
+        Madingley units), so the resource biomass divisor is converted kg -> g here
+        to match; this leaves F as a clean per-day rate.
 
         Args:
             resource: The target plant resource being consumed.
@@ -766,10 +770,11 @@ class AnimalCohort:
         Returns:
             The instantaneous consumption rate [1/day] of the target resource.
         """
+
         return (
             self.individuals
             * (potential_biomass_consumed / (1.0 + total_handling_t))
-            / resource.mass_current
+            / (resource.mass_current * 1000.0)  # kg -> g, matches k_i_k
         )
 
     def calculate_theta_opt_i(self) -> float:
@@ -827,8 +832,11 @@ class AnimalCohort:
     ) -> dict[int, float]:
         """Build a mapping of mass bin index to cumulative prey density.
 
-        Pre-computes the per-bin prey density for all bins represented in
-        animal_list in a single pass.
+        Pre-computes the per-bin prey density (Madingley Theta_i,j) for all bins
+        represented in animal_list in a single pass. The density is returned in
+        native Madingley units (individuals/ha): cell area is converted from m^2 to
+        hectares here, at the point the density is formed, so that k_i_j can combine
+        it with an ha/day search rate and an ha territory intersection consistently.
 
         Args:
             animal_list: Prey cohorts available to this predator.
@@ -836,15 +844,18 @@ class AnimalCohort:
                 foraging encounter, drawn once per encounter in delta_mass_predation.
 
         Returns:
-            Dict mapping each occupied bin index to the sum of
-            individuals / cell_area for all prey cohorts assigned to that bin.
+            Dict mapping each occupied bin index to the cumulative prey density
+            (sum of individuals / cell_area, in individuals/ha) for all prey cohorts
+            assigned to that bin.
         """
-        A_cell = self.grid.cell_area
+        A_cell_ha = self.grid.cell_area / 10000.0  # m^2 -> ha, native theta unit
         bin_densities: dict[int, float] = {}
 
         for cohort in animal_list:
             b = self._mass_bin(cohort.mass_current, theta_opt)
-            bin_densities[b] = bin_densities.get(b, 0.0) + cohort.individuals / A_cell
+            bin_densities[b] = (
+                bin_densities.get(b, 0.0) + cohort.individuals / A_cell_ha
+            )
 
         return bin_densities
 
@@ -874,7 +885,7 @@ class AnimalCohort:
             w_bar: Probability of successfully capturing prey.
 
         Returns:
-            A float value of the search rate in m2/day
+            A float value of the search rate in ha/day
 
         """
         return sf.alpha_i_j(self.constants.alpha_0_pred, self.mass_current, w_bar)
@@ -885,7 +896,7 @@ class AnimalCohort:
         """Calculate the potential number of prey consumed.
 
         Args:
-            alpha: The predation search rate in m2/(day*g).
+            alpha: The predation search rate in ha/day.
             n_prey: The number of prey individuals.
             theta_i_j: The cumulative density of organisms with a mass lying within the
                 same predator specific mass bin.
@@ -910,7 +921,7 @@ class AnimalCohort:
         Harfoot et al. (2014), which represents the total time in days, per day
         spent searching, that would be taken to handle all potential prey items
         across all prey cohorts. This is dimensionless (days of handling per day
-        of searching) and forms the saturation term in the Holling Type II
+        of searching) and forms the saturation term in the Holling Type III
         denominator: 1 + ∑(K_i,m · H_i,m).
 
         Args:
@@ -963,7 +974,7 @@ class AnimalCohort:
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
-        Implements the Holling type II functional response for predation. All
+        Implements the Holling type III functional response for predation. All
         encounter-level quantities (theta_opt, bin_densities, total_handling_time)
         are pre-computed once per encounter in delta_mass_predation and passed in
         to avoid redundant recomputation across prey.
@@ -976,7 +987,7 @@ class AnimalCohort:
                 per encounter in delta_mass_predation.
             bin_densities: Pre-computed mapping of mass bin index to cumulative prey
                 density, built once per encounter by _build_prey_bin_densities.
-            total_handling_time: Pre-computed Holling type II denominator sum
+            total_handling_time: Pre-computed Holling type III denominator sum
                 ∑(K_i,m · H_i,m), built once per encounter in delta_mass_predation.
 
         Returns:
@@ -1026,7 +1037,7 @@ class AnimalCohort:
                 per encounter in delta_mass_predation.
             bin_densities: Pre-computed mapping of mass bin index to cumulative prey
                 density, built once per encounter by _build_prey_bin_densities.
-            total_handling_time: Pre-computed Holling type II denominator sum
+            total_handling_time: Pre-computed Holling type III denominator sum
                 ∑(K_i,m · H_i,m), built once per encounter in delta_mass_predation.
 
         Returns:
@@ -1139,7 +1150,7 @@ class AnimalCohort:
     ) -> dict[str, float]:
         """Generic foraging function for all non-predation resources.
 
-        Implements a Holling Type II functional response over a list of resources.
+        Implements a Holling Type III functional response over a list of resources.
         Cohort-level quantities (search efficiency and total handling time) are
         precomputed once per foraging bout before the resource loop.
 
@@ -1174,7 +1185,7 @@ class AnimalCohort:
         conv_eff = self.functional_group.conversion_efficiency
 
         for resource in resources:
-            # Holling Type II: potential biomass eaten from this resource per day.
+            # Holling Type III: potential biomass eaten from this resource per day.
             potential_biomass_consumed = sf.k_i_k(alpha, resource.mass_current, A_cell)
             # Instantaneous consumption rate [1/day] for this resource.
             F = self.F_i_k(resource, potential_biomass_consumed, total_handling_t)
@@ -1541,36 +1552,6 @@ class AnimalCohort:
         # -- assimilate & deposit wastes
         if any(v > 0 for v in total_gain.values()):
             self.eat(total_gain, excrement_pools)
-
-    def theta_i_j(
-        self,
-        animal_list: list[AnimalCohort],
-        theta_opt: float,
-        target_bin: int,
-    ) -> float:
-        """Cumulative density of prey within the same mass bin as the target prey.
-
-        Implements Equation 38 of Harfoot et al. (2014). Sums the density of all
-        prey cohorts that fall in the same predator-specific mass bin as the target
-        cohort, where bin assignment follows Equation 39 (_mass_bin).
-
-        Args:
-            animal_list: Prey cohorts available to this predator.
-            theta_opt: This predator's optimal prey-predator mass ratio for this
-                foraging encounter, drawn once per encounter and passed in to
-                ensure consistency with the w_bar_i_j calculation.
-            target_bin: The bin index of the target prey cohort, computed by the
-                caller via _mass_bin prior to this call.
-
-        Returns:
-            Cumulative prey density in individuals per m² within the matching bin.
-        """
-        A_cell = self.grid.cell_area
-        return sum(
-            cohort.individuals / A_cell
-            for cohort in animal_list
-            if self._mass_bin(cohort.mass_current, theta_opt) == target_bin
-        )
 
     def eat(
         self, mass_consumed: dict[str, float], excrement_pools: list[ExcrementPool]

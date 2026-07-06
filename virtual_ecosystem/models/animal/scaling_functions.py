@@ -2,9 +2,6 @@
 scaling equations" (relationships between body-mass and a trait) required by the broader
 :mod:`~virtual_ecosystem.models.animal` module
 
-To Do:
-- streamline units of scaling functions [kg]->[kg] etc
-
 """  # noqa: D205, D415
 
 from collections.abc import Sequence
@@ -393,70 +390,94 @@ def starvation_mortality(
 def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
     """Effective rate at which an individual herbivore searches its environment.
 
-    This is linear scaling of herbivore search times with current body mass.
+    Linear scaling of herbivore search rate with current body mass (Madingley).
+    The native Madingley constant ``alpha_0_herb`` is in ha day^-1 g^-1, so the
+    kg body mass is converted to grams before applying it; the returned search
+    rate is therefore in native ha/day. Area is not converted here -- it enters
+    the functional response in ``k_i_k``, where ``A_cell`` is the normaliser.
 
     TODO: Update name
 
-    Madingley
-
     Args:
-        alpha_0_herb: Effective rate per unit body mass at which a herbivore searches
-          its environment in m2/(day*g).
-        mass: The current body mass of the foraging herbivore in g.
+        alpha_0_herb: Native Madingley effective search rate per unit body mass
+            [ha day^-1 g^-1], value 1e-11.
+        mass: Current body mass of the foraging herbivore [kg].
 
     Returns:
-        A float of the effective search rate in [m2/day].
-
+        Effective search rate [ha/day].
     """
-
-    return alpha_0_herb * mass
+    mass_g = mass * 1000.0  # kg -> g, native Madingley unit for alpha_0_herb
+    return alpha_0_herb * mass_g
 
 
 def k_i_k(alpha_i_k: float, B_k_t: float, A_cell: float) -> float:
-    """The potential biomass (g) of plant k eaten by cohort i, per day.
+    """Potential biomass of plant k eaten by one herbivore per day.
 
-    TODO: update name
+    TODO: check madingley code implementation is the same as the paper
 
-    Madingley
+    This is Madingley's Holling Type III herbivory response (Harfoot et al. 2014,
+    eq. 30): ``K_i,k = alpha_i,k * (phi_herb,f * B_k,t / A_cell)**2``. Squaring the
+    stock biomass density (``B_k,t / A_cell``) is the Type III density-squared
+    encounter term, saturated downstream by the ``1 + sum(K_i,l . H_i,l)`` handling
+    denominator. ``phi_herb,f`` is the proportion of stock k experienced by the
+    cohort; it is 1.0 in our system because each cohort experiences the whole
+    available pool, so it does not appear below.
+
+    Madingley parameterises ``alpha_i,k`` as a linear area-swept-per-day search rate
+    [ha/day], so applying it to the squared density leaves one factor of area
+    uncancelled: the published form is empirical and not dimensionally homogeneous as
+    written, and the residual is absorbed by calibration at native units rather than by
+    the constants' formal dimensions. The interpreted unit, biomass per day per
+    herbivore, is realised in ``F_i_k``, where ``N_i,t`` scales to the whole herbivore
+    cohort and one factor of ``B_k,t`` cancels algebraically against the ``1/B_k,t``
+    divisor. That leaves the fraction eaten per day rising with stock biomass, so total
+    consumption scales with ``B_k,t**2`` before saturation -- the Type III signature.
+
+    Biomass is native grams and cell area native hectares, so the kg biomass and m^2
+    area are converted here, at the point they enter the equation.
+
+    TODO: Update name
 
     Args:
-        alpha_i_k: Effective rate at which an individual herbivore searches its
-          environment.
-        B_k_t: Plant resource bool biomass.
-        A_cell: The area of one cell [standard = 1 ha]
+        alpha_i_k: Herbivore search rate [ha/day].
+        B_k_t: Plant resource biomass [kg].
+        A_cell: Area of one cell [m^2].
 
     Returns:
-        A float of The potential biomass (g) of plant k eating by cohort i, per day
-        [g/day]
-
+        Potential biomass eaten by one herbivore per day [g/day].
     """
 
-    return alpha_i_k * ((B_k_t) / A_cell) ** 2
+    B_k_t_g = B_k_t * 1000.0  # kg -> g
+    A_cell_ha = A_cell / 10000.0  # m^2 -> ha
+    return alpha_i_k * (B_k_t_g / A_cell_ha) ** 2
 
 
 def H_i_k(h_herb_0: float, M_ref: float, M_i_t: float, b_herb: float) -> float:
-    """Handling time of plant resource k by cohort i.
+    """Handling time for a herbivore of cohort i to handle 1 g of plant resource k.
 
-    Time (days) for an individual of cohort i to handle 1 gram of plant resource.
+    ``H_i,k = h_herb_0 * (M_ref / M_i_t)^b_herb`` in native Madingley units. The
+    ratio M_ref/M_i_t only cancels its unit if both masses match, so the kg
+    herbivore mass is converted to grams to sit against the native gram M_ref --
+    this is the fractional-power term, safe because b_herb acts on a dimensionless
+    ratio. M_ref stays in its native grams.
+
+    (Madingley)
 
     TODO: update name
 
-    Madingley
-
     Args:
-        h_herb_0: Time in days that it would take a herbivore of mass = M_ref to handle
-          1g of autotroph mass.
-        M_ref: Reference body mass.
-        M_i_t: Current herbivore mass
-        b_herb: Exponent of the power-law function relating the handling time of
-          autotroph matter to herbivore mass
+        h_herb_0: Native time for a reference-mass herbivore to handle 1 g of
+            autotroph mass [days].
+        M_ref: Native herbivore reference mass [g].
+        M_i_t: Current herbivore mass [kg].
+        b_herb: Exponent of the power-law relating handling time of autotroph
+            matter to herbivore mass [-].
 
     Returns:
-        A float of the handling time (days).
-
+        Handling time to handle 1 g of plant resource [days].
     """
-
-    return h_herb_0 * (M_ref / M_i_t) ** b_herb
+    M_i_t_g = M_i_t * 1000.0  # kg -> g, to match native gram M_ref in ratio
+    return h_herb_0 * (M_ref / M_i_t_g) ** b_herb
 
 
 def theta_opt_i(
@@ -517,78 +538,93 @@ def w_bar_i_j(
 def alpha_i_j(alpha_0_pred: float, mass: float, w_bar_i_j: float) -> float:
     """Rate at which an individual predator searches its environment and kills prey.
 
-    This is linear scaling of herbivore search times with current body mass.
+    Linear scaling of predator search rate with current body mass (Madingley),
+    weighted by capture success. The native constant ``alpha_0_pred`` is in
+    ha day^-1 g^-1, so the kg body mass is converted to grams before applying it;
+    the returned rate is native ha/day. Area is not converted here -- it enters the
+    functional response in ``k_i_j``.
 
-    TODO: update name
-
-    Madingley
-
+    TODO: Update name
 
     Args:
-        alpha_0_pred: Constant describing effective rate per unit body mass at which any
-          predator searches its environment in m2/(day*g).
-        mass: The current body mass of the foraging herbivore.
-        w_bar_i_j: The probability of successfully capturing a prey item.
+        alpha_0_pred: Native Madingley search rate per unit body mass
+            [ha day^-1 g^-1], value 1e-6.
+        mass: Current body mass of the foraging predator [kg].
+        w_bar_i_j: Probability of successfully capturing a prey item [0-1].
 
     Returns:
-        A float of the effective search rate in [m2/day]
-
+        Effective search-and-kill rate [ha/day].
     """
-
-    return alpha_0_pred * mass * w_bar_i_j
+    mass_g = mass * 1000.0  # kg -> g, native Madingley unit for alpha_0_pred
+    return alpha_0_pred * mass_g * w_bar_i_j
 
 
 def k_i_j(
     alpha_i_j: float, N_j_t: float, intersection_area: float, theta_i_j: float
 ) -> float:
-    """Potential number of prey items eaten off j by i.
+    """Potential number of prey eaten from cohort j by one predator per day.
 
-    TODO: update name
+    TODO: check madingley code to ensure their paper form is the same as their code
 
-    Madingley
+    This is Madingley's Holling Type III predation response (Harfoot et al. 2014,
+    eq. 34): ``K_i,j = alpha_i,j * (N_j,t / A_cell) * Theta_i,j``. The product of the
+    focal prey density (``N_j,t / A_cell``) and the bin density (``Theta_i,j``) is the
+    Type III density-squared encounter term, saturated downstream by the
+    ``1 + sum(K_i,m . H_i,m)`` handling denominator.
+
+    Madingley parameterises ``alpha_i,j`` as a linear area-swept-per-day search rate
+    [ha/day], so applying it to the squared density leaves one factor of area
+    uncancelled: the published form is empirical and not dimensionally homogeneous as
+    written, and the residual is absorbed by calibration at native units rather than by
+    the constants' formal dimensions. The interpreted unit, prey per predator per day,
+    is realised in ``F_i_j_individual``, where ``N_i,t`` scales to the whole predator
+    cohort and the prey count ``N_j,t`` cancels algebraically.
+
+    ``alpha_i_j`` arrives in ha/day and ``theta_i_j`` is already a native ha density
+    (from ``_build_prey_bin_densities``), so the m^2 intersection is converted to ha
+    here to match. ``N_j_t`` is the prey cohort abundance and is not converted.
 
     Args:
-        alpha_i_j: Rate at which an individual predator searches its environment and
-            kills prey in m2/(day*g).
-        N_j_t: Number of prey individuals.
-        intersection_area: The overlapping area between predator and prey territories
-          in m2.
-        theta_i_j: The cumulative density of organisms with a mass lying within the
-            same predator specific mass bin.
+        alpha_i_j: Predator search-and-kill rate [ha/day].
+        N_j_t: Abundance of the target prey cohort j [individuals].
+        intersection_area: Overlap between predator and prey territories [m^2].
+        theta_i_j: Cumulative prey density in j's mass bin [individuals/ha].
 
     Returns:
-        Potential number of prey items eaten off j by i [integer number of individuals]
+        Potential number of prey eaten by one predator [prey . predator^-1 . day^-1].
     """
-    #      m2/(day*g) * (con_ind / m2) * prey_ind/m2
-    return alpha_i_j * (N_j_t / intersection_area) * theta_i_j
+
+    intersection_area_ha = intersection_area / 10000.0  # m^2 -> ha
+    return alpha_i_j * (N_j_t / intersection_area_ha) * theta_i_j
 
 
 def H_i_j(
     h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float, prey_mass: float
 ) -> float:
-    """Handling time of prey cohort j by cohort i.
+    """Handling time of one prey individual of cohort j by cohort i.
 
-    Time (days) for an individual of cohort i to handle 1 individual of cohort j.
+    ``H_i,j = h_pred_0 * (M_ref / M_i_t)^b_pred * prey_mass`` in native units. The
+    ratio M_ref/M_i_t only cancels its unit if both masses match, so the kg predator
+    mass is converted to grams to sit against the native gram M_ref -- this is the
+    fractional-power term, safe because b_pred acts on a dimensionless ratio.
+    prey_mass is a power-1 factor in native grams, so it converts by a clean kg -> g.
 
-    TODO: update name
-
-    Madingley
+    TODO: Update name
 
     Args:
-        h_pred_0: Time that it would take a predator of body mass equal to the reference
-          mass, to handle a prey individual of body mass equal to one gram.
-        M_ref: Reference body mass.
-        M_i_t: Current predator mass.
-        b_pred: Exponent of the power-law function relating the handling time of
-          prey to predator mass.
-        prey_mass: the mass of prey being handled.
+        h_pred_0: Native time for a reference-mass predator to handle a 1 g prey
+            individual [days], default value 0.5.
+        M_ref: Native predator reference mass [g].
+        M_i_t: Current predator mass [kg].
+        b_pred: Exponent of the handling-time power law [-].
+        prey_mass: Mass of the prey individual being handled [kg].
 
     Returns:
-        A float of the handling time (days).
-
+        Handling time for one prey individual [days].
     """
-
-    return h_pred_0 * ((M_ref / M_i_t) ** b_pred) * prey_mass
+    M_i_t_g = M_i_t * 1000.0  # kg -> g, to match native gram M_ref in ratio
+    prey_mass_g = prey_mass * 1000.0  # kg -> g, native linear handling factor
+    return h_pred_0 * (M_ref / M_i_t_g) ** b_pred * prey_mass_g
 
 
 def juvenile_dispersal_speed(
