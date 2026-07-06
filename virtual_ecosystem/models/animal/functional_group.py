@@ -6,6 +6,7 @@ constants and rate equations used by AnimalCohorts in the
 from collections.abc import Iterable
 from math import isnan
 from pathlib import Path
+from statistics import mean
 
 import pandas as pd
 
@@ -108,6 +109,18 @@ class FunctionalGroup:
         """Optional lower critical temperature for ectotherms [°C]."""
         self.constants = constants
         """Animal constants."""
+        reference_mean, reference_sd = _resolve_reference_annual_climate(
+            self.vertical_occupancy,
+            self.constants.placeholder_annual_temp_terms,
+        )
+        self.reference_annual_mean_temp = reference_mean
+        """Annual mean temperature the functional group is adapted to [°C], averaged
+            across occupied strata. Placeholder fallback for deriving ectotherm thermal
+            tolerances when ``t_opt``/``t_max_crit``/``t_min_crit`` are not all set."""
+        self.reference_annual_temp_sd = reference_sd
+        """Standard deviation of annual temperature the functional group is adapted to
+            [°C], averaged across occupied strata. See
+            :attr:`reference_annual_mean_temp`."""
         self.broad_diet: DietType = self.diet.coarse_category()
         """The broad trophic category, herbivore, carnivore, omnivore."""
         self.cnp_proportions = self.constants.cnp_proportion_terms[self.taxa]
@@ -144,6 +157,53 @@ class FunctionalGroup:
             TaxaType("reptile"),
         }
         """Whether the functional group is a vertebrate."""
+
+
+def _resolve_reference_annual_climate(
+    vertical_occupancy: VerticalOccupancy,
+    placeholder_annual_temp_terms: dict[VerticalOccupancy, dict[str, float]],
+) -> tuple[float, float]:
+    """Average the placeholder annual temperature terms across occupied strata.
+
+    The annual mean temperature and its standard deviation that a functional group
+    is adapted to are taken as the unweighted mean, across the strata the group
+    occupies, of the per-stratum placeholder terms. This mirrors the unweighted
+    stratum averaging applied to the *experienced* climate in
+    :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_stratum_climate`,
+    keeping the reference and experienced climates on the same footing.
+
+    Note:
+        Averaging the standard deviation across strata is a placeholder
+        simplification, not a statistically rigorous pooling of variances. It is
+        harmless while the per-stratum values are equal, but is the first term to
+        revisit once strata carry genuinely different variability.
+
+    Args:
+        vertical_occupancy: The combined vertical occupancy flag of the functional
+            group, spanning one or more atomic strata.
+        placeholder_annual_temp_terms: Per-stratum placeholder terms keyed by atomic
+            :class:`~virtual_ecosystem.models.animal.animal_traits.VerticalOccupancy`
+            member, each providing ``"mean_temp"`` and ``"temp_sd"`` [°C].
+
+    Returns:
+        A tuple of (reference annual mean temperature, reference annual temperature
+        standard deviation), each averaged across the occupied strata [°C].
+
+    Raises:
+        ValueError: If ``vertical_occupancy`` contains no recognised atomic strata.
+    """
+    strata = list(vertical_occupancy)
+    if not strata:
+        raise ValueError(
+            f"No recognised vertical occupancy strata in: {vertical_occupancy}"
+        )
+
+    means = [placeholder_annual_temp_terms[stratum]["mean_temp"] for stratum in strata]
+    sds = [placeholder_annual_temp_terms[stratum]["temp_sd"] for stratum in strata]
+    # look, I know this is bad. It's a silly temporary solution until we get this
+    # data directly from the abiotic model. Until then its taking the mean of 1.0s
+
+    return mean(means), mean(sds)
 
 
 def import_functional_groups(

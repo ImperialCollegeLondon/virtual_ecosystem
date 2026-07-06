@@ -1909,10 +1909,12 @@ class AnimalModel(
         range fall back to the corresponding ground values to avoid NaN propagation.
 
         Note:
-            Annual mean temperature and annual temperature SD are currently
-            placeholder constants from
-            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
-            and should be replaced once the abiotic model exposes those fields.
+            Annual mean temperature and annual temperature SD are per-functional-group
+            reference values, resolved once at
+            :class:`~virtual_ecosystem.models.animal.functional_group.FunctionalGroup`
+            construction by averaging placeholder per-stratum terms across occupied
+            strata. Replace the placeholder terms once the abiotic model exposes real
+            per-cell annual statistics.
         """
         lyr = self.layer_structure
 
@@ -1958,6 +1960,6 @@ class AnimalModel(
             cohort.update_activity_window(
                 temperature=temperature,
                 diurnal_temp_range=diurnal_range,
-                annual_mean_temp=cohort.constants.placeholder_annual_mean_temp,
-                annual_temp_sd=cohort.constants.placeholder_annual_temp_sd,
+                annual_mean_temp=cohort.functional_group.reference_annual_mean_temp,
+                annual_temp_sd=cohort.functional_group.reference_annual_temp_sd,
             )
