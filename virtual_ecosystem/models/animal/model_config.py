@@ -234,9 +234,9 @@ class AnimalConstants(Configuration):
 
     # Trophic parameters
 
-    alpha_0_herb: float = 1.0e-11  # ha/(d*g) [Madingley]
+    alpha_0_herb: float = 1.0e-11  # ha/(day*g) [Madingley]
     """Effective rate per unit mass at which a herbivore searches its environment."""
-    alpha_0_pred: float = 1.0e-6  # ha/(d*g) [Madingley]
+    alpha_0_pred: float = 1.0e-6  # ha/(day*g) [Madingley]
     """Effective rate per unit mass at which a predator searches its environment."""
 
     b_herb: float = 0.7  # unitless [Madingley]

@@ -710,7 +710,7 @@ class AnimalCohort:
         TODO: update name
 
         Returns:
-            A float representing the search efficiency rate in [h/day].
+            A float representing the search efficiency rate in [ha/day].
         """
 
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
@@ -771,11 +771,11 @@ class AnimalCohort:
             The instantaneous consumption rate [1/day] of the target resource.
         """
 
-        resource_mass_g = resource.mass_current * 1000.0  # kg -> g, matches k_i_k
         return (
             self.individuals
             * (potential_biomass_consumed / (1.0 + total_handling_t))
-            / resource_mass_g
+            / resource.mass_current
+            * 1000.0  # kg -> g, matches k_i_k
         )
 
     def calculate_theta_opt_i(self) -> float:
@@ -886,7 +886,7 @@ class AnimalCohort:
             w_bar: Probability of successfully capturing prey.
 
         Returns:
-            A float value of the search rate in h/day
+            A float value of the search rate in ha/day
 
         """
         return sf.alpha_i_j(self.constants.alpha_0_pred, self.mass_current, w_bar)
@@ -897,7 +897,7 @@ class AnimalCohort:
         """Calculate the potential number of prey consumed.
 
         Args:
-            alpha: The predation search rate in h/day.
+            alpha: The predation search rate in ha/day.
             n_prey: The number of prey individuals.
             theta_i_j: The cumulative density of organisms with a mass lying within the
                 same predator specific mass bin.
