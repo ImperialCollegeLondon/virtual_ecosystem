@@ -67,6 +67,39 @@ DietTypeSer = Annotated[
 """Custom data type to serialise and deserialise DietType Flag values."""
 
 
+def deserialise_vertical_occupancy(occupancy: str) -> VerticalOccupancy:
+    """Deserialise string vertical occupancy terms to VerticalOccupancy.
+
+    For standard ``Enum`` types, pydantic correctly serialises and deserialises a
+    string representation, but VerticalOccupancy is a ``Flag``, which has underlying
+    numeric values. If these are serialised and deserialised as with an ``Enum``, then
+    users would need to use numeric occupancy codes in the configuration.
+
+    This function takes a string such as "SOIL" or "SOIL|GROUND" and returns the
+    appropriate VerticalOccupancy.
+    """
+
+    return reduce(operator.or_, [VerticalOccupancy[o] for o in occupancy.split("|")])
+
+
+def serialise_vertical_occupancy(occupancy: VerticalOccupancy) -> str:
+    """Serialise VerticalOccupancy Flag value to string.
+
+    This shim simply exports the ``VerticalOccupancy._name_`` attribute, which is a
+    string representation of the Flag value.
+    """
+
+    return occupancy._name_  # type: ignore[return-value]
+
+
+VerticalOccupancySer = Annotated[
+    VerticalOccupancy,
+    PlainSerializer(serialise_vertical_occupancy),
+    PlainValidator(deserialise_vertical_occupancy),
+]
+"""Custom data type to serialise and deserialise VerticalOccupancy Flag values."""
+
+
 class AnimalConstants(Configuration):
     """Dataclass to store all constants related to animals.
 
@@ -301,15 +334,15 @@ class AnimalConstants(Configuration):
     # required variables ( annual mean temperature, annual
     # temperature SD) are exposed via the data object.
 
-    placeholder_annual_temp_terms: dict[VerticalOccupancy, dict[str, float]] = Field(
+    placeholder_annual_temp_terms: dict[VerticalOccupancySer, dict[str, float]] = Field(
         default_factory=lambda: {
             VerticalOccupancy.CANOPY: {"mean_temp": 27.0, "temp_sd": 1.0},
             VerticalOccupancy.GROUND: {"mean_temp": 24.0, "temp_sd": 1.0},
             VerticalOccupancy.SOIL: {"mean_temp": 21.5, "temp_sd": 1.0},
         }
     )
-    """Placeholder per-stratum annual temperature terms: ``mean_temp`` and ``temp_sd``
-    [°C]."""
+    """Placeholder per-stratum annual temperature terms structured by vertical
+    occupancy: ``mean_temp`` and ``temp_sd`` [°C]."""
 
     # Madingley dispersal parameters
 
