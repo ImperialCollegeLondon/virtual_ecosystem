@@ -86,6 +86,7 @@ class AnimalCohortDataExporter:
         "reproductive_mass_carbon",
         "reproductive_mass_nitrogen",
         "reproductive_mass_phosphorus",
+        "activity_window_proportion",
     }
 
     """The set of valid attribute names that can be selected for cohort export."""
@@ -393,6 +394,7 @@ class AnimalCohortDataExporter:
             "reproductive_mass_carbon": repro_cnp.C,
             "reproductive_mass_nitrogen": repro_cnp.N,
             "reproductive_mass_phosphorus": repro_cnp.P,
+            "activity_window_proportion": cohort.sigma_f_t,
         }
 
     def _build_trophic_rows(
@@ -430,12 +432,14 @@ class AnimalCohortDataExporter:
                 {
                     "time": time,
                     "time_index": time_index,
+                    "functional_group": cohort.functional_group.name,
                     "consumer_cohort_id": str(cohort.id),
                     "consumer_territory": cohort.territory,
                     "resource_kind": resource_kind,
                     "resource_id": resource_id,
                     "resource_cell_id": resource_cell_id,
                     "prey_territory": prey_territory,
+                    "activity_window_proportion": cohort.sigma_f_t,
                     "C": cnp["C"],
                     "N": cnp["N"],
                     "P": cnp["P"],
