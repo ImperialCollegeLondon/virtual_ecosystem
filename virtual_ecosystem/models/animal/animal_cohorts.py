@@ -103,6 +103,8 @@ class AnimalCohort:
         """The list of grid cells currently occupied by the cohort."""
         self.sigma_f_t: float = 1.0
         """The Activity window fraction in [0, 1]."""
+        self.reference_temp: float = self.functional_group.reference_annual_mean_temp
+        """The mean reference temp of the functional group over vertical strata."""
         self.current_temperature: float = (
             self.functional_group.reference_annual_mean_temp
         )

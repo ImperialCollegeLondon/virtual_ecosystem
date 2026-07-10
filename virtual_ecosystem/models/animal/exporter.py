@@ -87,6 +87,8 @@ class AnimalCohortDataExporter:
         "reproductive_mass_nitrogen",
         "reproductive_mass_phosphorus",
         "activity_window_proportion",
+        "reference_temp",
+        "current_temperature",
     }
 
     """The set of valid attribute names that can be selected for cohort export."""
@@ -395,6 +397,8 @@ class AnimalCohortDataExporter:
             "reproductive_mass_nitrogen": repro_cnp.N,
             "reproductive_mass_phosphorus": repro_cnp.P,
             "activity_window_proportion": cohort.sigma_f_t,
+            "reference_temp": cohort.reference_temp,
+            "current_temperature": cohort.current_temperature,
         }
 
     def _build_trophic_rows(
