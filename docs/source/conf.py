@@ -206,8 +206,14 @@ nitpick_ignore = [
     ("py:class", "virtual_ecosystem.models.animal.animal_traits.Annotated"),
     ("py:class", "virtual_ecosystem.models.animal.model_config.serialise_diet_type"),
     ("py:class", "virtual_ecosystem.models.animal.model_config.deserialise_diet_type"),
-    ("py:class", "virtual_ecosystem.models.animal.model_config.serialise_diet_type"),
-    ("py:class", "virtual_ecosystem.models.animal.model_config.deserialise_diet_type"),
+    (
+        "py:class",
+        "virtual_ecosystem.models.animal.model_config.serialise_vertical_occupancy",
+    ),
+    (
+        "py:class",
+        "virtual_ecosystem.models.animal.model_config.deserialise_vertical_occupancy",
+    ),
     ("py:class", "always"),
     # This broke when pandas upgraded to 3.0. We should review this once we've upgraded
     # to that major version
