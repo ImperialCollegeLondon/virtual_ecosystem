@@ -254,7 +254,7 @@ You can reduce the size of the output data by only saving specific variables:
 
 ```{code-block} ipython3
 variables_to_save = ["variable_a", "variable_b"]
-data.save_to_netcdf(
+data.save_to_zarr(
     output_file_path=output_file_path,
     variables_to_save=variables_to_save
 )
