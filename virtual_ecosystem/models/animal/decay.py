@@ -753,15 +753,15 @@ class HerbivoryWaste:
             strata: The strata the pool belongs to (either "above" or "below)
         """
 
-        setattr(
-            self,
-            f"{strata}_ground_lignin_proportion",
-            (
-                lignin_added * carbon_added
-                + (
-                    getattr(self, f"{strata}_ground_lignin_proportion")
-                    * getattr(self, f"{strata}_ground_mass_cnp")["C"]
-                )
-            )
-            / (carbon_added + getattr(self, f"{strata}_ground_mass_cnp")["C"]),
-        )
+        current_lignin = getattr(self, f"{strata}_ground_lignin_proportion")
+
+        # if no carbon is added, lignin proportion remains unchanged
+        if carbon_added == 0:
+            new_lignin_proportion = current_lignin
+        else:
+            current_carbon = getattr(self, f"{strata}_ground_mass_cnp")["C"]
+            new_lignin_proportion = (
+                lignin_added * carbon_added + current_lignin * current_carbon
+            ) / (carbon_added + current_carbon)
+
+        setattr(self, f"{strata}_ground_lignin_proportion", new_lignin_proportion)

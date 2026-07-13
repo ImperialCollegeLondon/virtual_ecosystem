@@ -584,3 +584,10 @@ class TestHerbivoryWaste:
         # Check that lignin values have been updated
         assert np.isclose(waste_pool.above_ground_lignin_proportion, 0.108333334)
         assert np.isclose(waste_pool.below_ground_lignin_proportion, 0.275)
+
+        # Check that zero addition case is handled
+        waste_pool.update_lignin(carbon_added=0.0, lignin_added=0.15, strata="above")
+        waste_pool.update_lignin(carbon_added=0.0, lignin_added=0.25, strata="below")
+
+        assert np.isclose(waste_pool.above_ground_lignin_proportion, 0.108333334)
+        assert np.isclose(waste_pool.below_ground_lignin_proportion, 0.275)
