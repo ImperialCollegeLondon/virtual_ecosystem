@@ -49,9 +49,9 @@ class LitterInputs:
     """Lignin proportion of below-ground herbivore waste input [kg{lignin C} kg{C}^-1]
     """
 
-    leaves_meta_split: DataArray
+    leaf_meta_split: DataArray
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
-    roots_meta_split: DataArray
+    root_meta_split: DataArray
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
     subcanopy_meta_split: DataArray
     """Fraction of subcanopy vegetation input that goes to metabolic litter [unitless]
@@ -163,39 +163,32 @@ def combine_input_sources(data: Data, update_interval: float) -> dict[str, DataA
         cell_area=data.grid.cell_area,
         update_interval=update_interval,
     )
-    root_rates = convert_to_input_masses_to_rates_per_area(
-        data["root_turnover_cnp"],
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-    deadwood_rates = convert_to_input_masses_to_rates_per_area(
-        data["stem_turnover_cnp"],
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-    subcanopy_rates = convert_to_input_masses_to_rates_per_area(
-        data["subcanopy_vegetation_litter_cnp"],
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-    herbivore_waste_above_rates = convert_to_input_masses_to_rates_per_area(
-        data["herbivory_waste_above_cnp"],
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-    herbivore_waste_below_rates = convert_to_input_masses_to_rates_per_area(
-        data["herbivory_waste_below_cnp"],
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
+
+    # The other input streams are not broken up by pft so don't need special handling
+    other_input_streams = [
+        "stem_turnover",
+        "root_turnover",
+        "subcanopy_vegetation_litter",
+        "herbivory_waste_above",
+        "herbivory_waste_below",
+    ]
+
+    rates = {
+        name: convert_to_input_masses_to_rates_per_area(
+            data[f"{name}_cnp"],
+            cell_area=data.grid.cell_area,
+            update_interval=update_interval,
+        )
+        for name in other_input_streams
+    }
 
     return {
         "leaf_mass": leaf_rates,
-        "deadwood_mass": deadwood_rates,
-        "root_mass": root_rates,
-        "subcanopy_mass": subcanopy_rates,
-        "herbivore_waste_above_mass": herbivore_waste_above_rates,
-        "herbivore_waste_below_mass": herbivore_waste_below_rates,
+        "deadwood_mass": rates["stem_turnover"],
+        "root_mass": rates["root_turnover"],
+        "subcanopy_mass": rates["subcanopy_vegetation_litter"],
+        "herbivore_waste_above_mass": rates["herbivory_waste_above"],
+        "herbivore_waste_below_mass": rates["herbivory_waste_below"],
         "leaf_lignin": data["senesced_leaf_lignin"],
         "root_lignin": data["root_lignin"],
         "stem_lignin": data["stem_lignin"],
@@ -227,52 +220,23 @@ def calculate_metabolic_proportions_of_input(
     """
 
     # Calculate split of each input biomass type
-    leaves_metabolic_split = split_pool_into_metabolic_and_structural_litter(
-        input_masses=total_input["leaf_mass"],
-        lignin_proportion=total_input["leaf_lignin"],
-        max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
-        split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
-        split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
-    )
-
-    roots_metabolic_split = split_pool_into_metabolic_and_structural_litter(
-        input_masses=total_input["root_mass"],
-        lignin_proportion=total_input["root_lignin"],
-        max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
-        split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
-        split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
-    )
-
-    subcanopy_metabolic_split = split_pool_into_metabolic_and_structural_litter(
-        input_masses=total_input["subcanopy_mass"],
-        lignin_proportion=total_input["subcanopy_lignin"],
-        max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
-        split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
-        split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
-    )
-
-    herb_waste_above_metabolic_split = split_pool_into_metabolic_and_structural_litter(
-        input_masses=total_input["herbivore_waste_above_mass"],
-        lignin_proportion=total_input["herbivore_waste_above_lignin"],
-        max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
-        split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
-        split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
-    )
-
-    herb_waste_below_metabolic_split = split_pool_into_metabolic_and_structural_litter(
-        input_masses=total_input["herbivore_waste_below_mass"],
-        lignin_proportion=total_input["herbivore_waste_below_lignin"],
-        max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
-        split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
-        split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
-    )
+    split_variables = [
+        "leaf",
+        "root",
+        "subcanopy",
+        "herbivore_waste_above",
+        "herbivore_waste_below",
+    ]
 
     return {
-        "leaves_meta_split": leaves_metabolic_split,
-        "roots_meta_split": roots_metabolic_split,
-        "subcanopy_meta_split": subcanopy_metabolic_split,
-        "herbivore_waste_above_meta_split": herb_waste_above_metabolic_split,
-        "herbivore_waste_below_meta_split": herb_waste_below_metabolic_split,
+        f"{var}_meta_split": split_pool_into_metabolic_and_structural_litter(
+            input_masses=total_input[f"{var}_mass"],
+            lignin_proportion=total_input[f"{var}_lignin"],
+            max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
+            split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
+            split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
+        )
+        for var in split_variables
     }
 
 
@@ -310,7 +274,7 @@ def partion_plant_inputs_between_pools(
     woody_input = total_input["deadwood_mass"].sel(element="C")
     above_ground_metabolic_input = (
         (
-            metabolic_splits["leaves_meta_split"]
+            metabolic_splits["leaf_meta_split"]
             * total_input["leaf_mass"].sel(element="C")
         )
         + (
@@ -324,7 +288,7 @@ def partion_plant_inputs_between_pools(
     )
     above_ground_strutural_input = (
         (
-            (1 - metabolic_splits["leaves_meta_split"])
+            (1 - metabolic_splits["leaf_meta_split"])
             * total_input["leaf_mass"].sel(element="C")
         )
         + (
@@ -337,13 +301,13 @@ def partion_plant_inputs_between_pools(
         )
     )
     below_ground_metabolic_input = (
-        metabolic_splits["roots_meta_split"] * total_input["root_mass"].sel(element="C")
+        metabolic_splits["root_meta_split"] * total_input["root_mass"].sel(element="C")
     ) + (
         metabolic_splits["herbivore_waste_below_meta_split"]
         * total_input["herbivore_waste_below_mass"].sel(element="C")
     )
     below_ground_structural_input = (
-        1 - metabolic_splits["roots_meta_split"]
+        1 - metabolic_splits["root_meta_split"]
     ) * total_input["root_mass"].sel(element="C") + (
         1 - metabolic_splits["herbivore_waste_below_meta_split"]
     ) * total_input["herbivore_waste_below_mass"].sel(element="C")
@@ -607,65 +571,40 @@ def calculate_litter_input_nutrient_masses(
     element_symbol = nutrient[0].upper()
 
     # Calculate nutrient split for each (non-wood) input biomass type
-    root_nutrient_meta, root_nutrient_struct = find_nutrient_split_between_litter_pools(
-        input_carbon_rate=litter_inputs.root_mass.sel(element="C"),
-        input_nutrient_rate=litter_inputs.root_mass.sel(element=element_symbol),
-        metabolic_split=litter_inputs.roots_meta_split,
-        meta_to_struct_nutrient_ratio=meta_to_struct_nutrient_ratio,
-    )
+    split_variables = [
+        "leaf",
+        "root",
+        "subcanopy",
+        "herbivore_waste_above",
+        "herbivore_waste_below",
+    ]
+    nutrient_splits = {}
 
-    leaf_nutrient_meta, leaf_nutrient_struct = find_nutrient_split_between_litter_pools(
-        input_carbon_rate=litter_inputs.leaf_mass.sel(element="C"),
-        input_nutrient_rate=litter_inputs.leaf_mass.sel(element=element_symbol),
-        metabolic_split=litter_inputs.leaves_meta_split,
-        meta_to_struct_nutrient_ratio=meta_to_struct_nutrient_ratio,
-    )
-
-    subcanopy_nutrient_meta, subcanopy_nutrient_struct = (
-        find_nutrient_split_between_litter_pools(
-            input_carbon_rate=litter_inputs.subcanopy_mass.sel(element="C"),
-            input_nutrient_rate=litter_inputs.subcanopy_mass.sel(
-                element=element_symbol
-            ),
-            metabolic_split=litter_inputs.subcanopy_meta_split,
+    for pool_name in split_variables:
+        mass = getattr(litter_inputs, f"{pool_name}_mass")
+        meta, struct = find_nutrient_split_between_litter_pools(
+            input_carbon_rate=mass.sel(element="C"),
+            input_nutrient_rate=mass.sel(element=element_symbol),
+            metabolic_split=getattr(litter_inputs, f"{pool_name}_meta_split"),
             meta_to_struct_nutrient_ratio=meta_to_struct_nutrient_ratio,
         )
-    )
-
-    herb_waste_above_nutrient_meta, herb_waste_above_nutrient_struct = (
-        find_nutrient_split_between_litter_pools(
-            input_carbon_rate=litter_inputs.herbivore_waste_above_mass.sel(element="C"),
-            input_nutrient_rate=litter_inputs.herbivore_waste_above_mass.sel(
-                element=element_symbol
-            ),
-            metabolic_split=litter_inputs.herbivore_waste_above_meta_split,
-            meta_to_struct_nutrient_ratio=meta_to_struct_nutrient_ratio,
-        )
-    )
-
-    herb_waste_below_nutrient_meta, herb_waste_below_nutrient_struct = (
-        find_nutrient_split_between_litter_pools(
-            input_carbon_rate=litter_inputs.herbivore_waste_below_mass.sel(element="C"),
-            input_nutrient_rate=litter_inputs.herbivore_waste_below_mass.sel(
-                element=element_symbol
-            ),
-            metabolic_split=litter_inputs.herbivore_waste_below_meta_split,
-            meta_to_struct_nutrient_ratio=meta_to_struct_nutrient_ratio,
-        )
-    )
+        nutrient_splits[pool_name] = {
+            "meta": meta,
+            "struct": struct,
+        }
 
     return {
         f"woody_{nutrient}": litter_inputs.deadwood_mass.sel(element=element_symbol),
-        f"below_metabolic_{nutrient}": root_nutrient_meta
-        + herb_waste_below_nutrient_meta,
-        f"below_structural_{nutrient}": root_nutrient_struct
-        + herb_waste_below_nutrient_struct,
-        f"above_metabolic_{nutrient}": leaf_nutrient_meta
-        + subcanopy_nutrient_meta
-        + herb_waste_above_nutrient_meta,
-        f"above_structural_{nutrient}": leaf_nutrient_struct
-        + subcanopy_nutrient_struct
-        + herb_waste_above_nutrient_struct,
+        f"below_metabolic_{nutrient}": nutrient_splits["root"]["meta"]
+        + nutrient_splits["herbivore_waste_below"]["meta"],
+        f"below_structural_{nutrient}": nutrient_splits["root"]["struct"]
+        + nutrient_splits["herbivore_waste_below"]["struct"],
+        f"above_metabolic_{nutrient}": nutrient_splits["leaf"]["meta"]
+        + nutrient_splits["subcanopy"]["meta"]
+        + nutrient_splits["herbivore_waste_above"]["meta"],
+        f"above_structural_{nutrient}": nutrient_splits["leaf"]["struct"]
+        + nutrient_splits["subcanopy"]["struct"]
+        + nutrient_splits["herbivore_waste_above"]["struct"],
     }
 
 

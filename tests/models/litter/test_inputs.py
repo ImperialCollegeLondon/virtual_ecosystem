@@ -18,8 +18,8 @@ def test_determine_all_plant_to_litter_flows(
     from virtual_ecosystem.models.litter.inputs import LitterInputs
 
     expected_inputs = {
-        "leaves_meta_split": [0.81240302, 0.64019755, 0.42407771, 0.00894268],
-        "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
+        "leaf_meta_split": [0.81240302, 0.64019755, 0.42407771, 0.00894268],
+        "root_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
         "subcanopy_meta_split": [0.82815, 0.57, 0.0, 0.827026],
         "herbivore_waste_above_meta_split": [
             0.7638626,
@@ -240,8 +240,8 @@ def test_calculate_metabolic_proportions_of_input(
     )
 
     expected_proportions = {
-        "leaves_meta_split": [0.81240302, 0.64019755, 0.42407771, 0.00894268],
-        "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
+        "leaf_meta_split": [0.81240302, 0.64019755, 0.42407771, 0.00894268],
+        "root_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
         "subcanopy_meta_split": [0.82815, 0.57, 0.0, 0.827026],
         "herbivore_waste_above_meta_split": [
             0.7638626,
@@ -533,7 +533,7 @@ def test_find_nutrient_split_between_litter_pools(
     actual_n_meta, actual_n_struct = find_nutrient_split_between_litter_pools(
         input_carbon_rate=dummy_litter_data["root_turnover_cnp"].sel(element="C"),
         input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].sel(element="N"),
-        metabolic_split=litter_inputs.roots_meta_split,
+        metabolic_split=litter_inputs.root_meta_split,
         meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
     )
 
@@ -585,9 +585,9 @@ def test_calculate_nutrient_split(
 
     actual_n_meta, actual_n_struct = calculate_nutrient_split(
         carbon_input_meta=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
-        * litter_inputs.roots_meta_split,
+        * litter_inputs.root_meta_split,
         carbon_input_struct=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
-        * (1 - litter_inputs.roots_meta_split),
+        * (1 - litter_inputs.root_meta_split),
         input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
         meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
     )
