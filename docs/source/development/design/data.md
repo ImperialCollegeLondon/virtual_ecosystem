@@ -244,14 +244,13 @@ data
 ## Data output
 
 The entire contents of the `Data` object can be output using the
-{meth}`~virtual_ecosystem.core.data.Data.save_to_netcdf` method:
+{meth}`~virtual_ecosystem.core.data.Data.save_to_zarr` method:
 
 ```{code-block} ipython3
-data.save_to_netcdf(output_file_path=output_file_path)
+data.save_to_zarr(output_file_path=output_file_path)
 ```
 
-Alternatively, a smaller netCDF can be output containing only variables of interest.
-This is done by providing a list specifying what those variables are to the function.
+You can reduce the size of the output data by only saving specific variables:
 
 ```{code-block} ipython3
 variables_to_save = ["variable_a", "variable_b"]
@@ -260,3 +259,8 @@ data.save_to_netcdf(
     variables_to_save=variables_to_save
 )
 ```
+
+In practise, when a simulation is running, the science models only write the current
+value of variables to the `Data` object. The main model code uses the
+{meth}`~virtual_ecosystem.core.data.Data.save_current_state_to_zarr` method to build up
+a complete data store by appending variables at each time step.
