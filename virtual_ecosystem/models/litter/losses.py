@@ -70,7 +70,7 @@ def calculate_litter_losses(
     litter_inputs: LitterInputs,
     input_chemistries: InputChemistries,
     update_interval: float,
-    active_microbe_depth: float,
+    biotic_topsoil_depth: float,
 ) -> LitterLosses:
     """Calculate the loss of carbon, nitrogen and phosphorus from each litter pool.
 
@@ -83,8 +83,8 @@ def calculate_litter_losses(
         litter_inputs: The inputs to each litter pool [kg{C} m^-2 day^-1].
         input_chemistries: The chemical compositions of the inputs to each litter pool.
         update_interval: The time period over which the litter pools are updated [days].
-        active_microbe_depth: The depth at which microbial activity is assumed to cease
-            [m].
+        biotic_topsoil_depth: The depth we assume that biologically active topsoil
+            extends down to [m].
 
     Returns:
         A dataclass containing the total losses of each nutrient from each litter pool,
@@ -276,14 +276,14 @@ def calculate_litter_losses(
         + woody_nitrogen
         + below_metabolic_nitrogen
         + below_structural_nitrogen
-    ) / (update_interval * active_microbe_depth)
+    ) / (update_interval * biotic_topsoil_depth)
     P_mineralisation_rate = (
         above_metabolic_phosphorus
         + above_structural_phosphorus
         + woody_phosphorus
         + below_metabolic_phosphorus
         + below_structural_phosphorus
-    ) / (update_interval * active_microbe_depth)
+    ) / (update_interval * biotic_topsoil_depth)
 
     return LitterLosses(
         above_metabolic_carbon=above_metabolic_carbon,

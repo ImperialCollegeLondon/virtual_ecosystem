@@ -47,7 +47,7 @@ def test_calculate_litter_losses(
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,
         update_interval=2.0,
-        active_microbe_depth=fixture_core_constants.max_depth_of_microbial_activity,
+        biotic_topsoil_depth=fixture_core_constants.biotic_topsoil_depth,
     )
 
     # Convert to a dict to check the values

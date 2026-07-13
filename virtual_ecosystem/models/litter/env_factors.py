@@ -164,8 +164,8 @@ def average_temperature_over_microbially_active_layers(
     """Average soil temperatures over the microbially active layers.
 
     First the average temperature is found for each layer. Then an average across the
-    microbially active depth is taken, weighting by how much of the microbially active
-    depth lies within each layer.
+    microbially active depth (biotic topsoil) is taken, weighting by how much of the
+    microbially active depth lies within each layer.
 
     Args:
         soil_temperatures: Soil temperatures to be averaged [Celsius]
@@ -181,7 +181,7 @@ def average_temperature_over_microbially_active_layers(
     # depth in each layer by the total depth of microbial activity
     layer_weights = (
         layer_structure.soil_layer_active_thickness
-        / layer_structure.max_depth_of_microbial_activity
+        / layer_structure.biotic_topsoil_depth
     )
 
     # Find the average for each layer
@@ -227,7 +227,7 @@ def average_water_potential_over_microbially_active_layers(
     # depth in each layer by the total depth of microbial activity
     layer_weights = (
         layer_structure.soil_layer_active_thickness
-        / layer_structure.max_depth_of_microbial_activity
+        / layer_structure.biotic_topsoil_depth
     )
 
     # Find the average for each layer

@@ -1249,7 +1249,7 @@ def soil_fungi_instance(litter_soil_data_instance, microbial_cnp_ratios):
         cell_id=0,
         data=litter_soil_data_instance,
         cell_area=litter_soil_data_instance.grid.cell_area,
-        max_depth_microbial_activity=0.2,
+        biotic_topsoil_depth=0.2,
         c_n_p_ratios=microbial_cnp_ratios,
     )
 
@@ -1265,7 +1265,7 @@ def soil_fungi_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=litter_soil_data_instance.grid.cell_area,
-            max_depth_microbial_activity=0.2,
+            biotic_topsoil_depth=0.2,
             c_n_p_ratios=microbial_cnp_ratios,
         )
         for cell_id in litter_soil_data_instance.grid.cell_id
@@ -1282,7 +1282,7 @@ def pom_instance(litter_soil_data_instance, microbial_cnp_ratios):
         cell_id=0,
         data=litter_soil_data_instance,
         cell_area=litter_soil_data_instance.grid.cell_area,
-        max_depth_microbial_activity=0.2,
+        biotic_topsoil_depth=0.2,
         c_n_p_ratios=microbial_cnp_ratios,
     )
 
@@ -1298,7 +1298,7 @@ def pom_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=litter_soil_data_instance.grid.cell_area,
-            max_depth_microbial_activity=0.2,
+            biotic_topsoil_depth=0.2,
             c_n_p_ratios=microbial_cnp_ratios,
         )
         for cell_id in litter_soil_data_instance.grid.cell_id
@@ -1315,7 +1315,7 @@ def bacteria_instance(litter_soil_data_instance, microbial_cnp_ratios):
         cell_id=0,
         data=litter_soil_data_instance,
         cell_area=litter_soil_data_instance.grid.cell_area,
-        max_depth_microbial_activity=0.2,
+        biotic_topsoil_depth=0.2,
         c_n_p_ratios=microbial_cnp_ratios,
     )
 
@@ -1331,7 +1331,7 @@ def bacteria_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=litter_soil_data_instance.grid.cell_area,
-            max_depth_microbial_activity=0.2,
+            biotic_topsoil_depth=0.2,
             c_n_p_ratios=microbial_cnp_ratios,
         )
         for cell_id in litter_soil_data_instance.grid.cell_id

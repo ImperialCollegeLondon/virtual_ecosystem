@@ -600,7 +600,7 @@ class SoilModel(
 
         return {
             "production_of_fungal_fruiting_bodies": total_production
-            * self.core_constants.max_depth_of_microbial_activity
+            * self.core_constants.biotic_topsoil_depth
             / self.model_timing.update_interval_quantity.to("days").magnitude
         }
 
@@ -660,7 +660,7 @@ class SoilModel(
         return {
             f"{full}_{nut}_supply": updated_soil_pools[f"new_{abbr}_{nut}_supply"]
             * self.grid.cell_area
-            * self.core_constants.max_depth_of_microbial_activity
+            * self.core_constants.biotic_topsoil_depth
             for nut, (abbr, full) in var_combinations
         }
 
@@ -683,14 +683,14 @@ class SoilModel(
         if isinstance(output_rate, float):
             return np.array(
                 output_rate
-                * self.core_constants.max_depth_of_microbial_activity
+                * self.core_constants.biotic_topsoil_depth
                 * self.grid.cell_area
                 * self.model_timing.update_interval_quantity.to("days").magnitude
             )
         else:
             return (
                 output_rate
-                * self.core_constants.max_depth_of_microbial_activity
+                * self.core_constants.biotic_topsoil_depth
                 * self.grid.cell_area
                 * self.model_timing.update_interval_quantity.to("days").magnitude
             )

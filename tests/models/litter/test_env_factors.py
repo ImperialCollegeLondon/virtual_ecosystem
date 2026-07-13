@@ -75,7 +75,7 @@ def test_average_temperature_over_microbially_active_layers(
         fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
             [0.5, 0.25]
         )
-        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
+        fixture_core_components.layer_structure.biotic_topsoil_depth = 0.75
 
     actual_av_temps = average_temperature_over_microbially_active_layers(
         soil_temperatures=dummy_litter_data["soil_temperature"],
@@ -115,7 +115,7 @@ def test_average_water_potential_over_microbially_active_layers(
         fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
             [0.5, 0.25]
         )
-        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
+        fixture_core_components.layer_structure.biotic_topsoil_depth = 0.75
 
     actual_water_pots = average_water_potential_over_microbially_active_layers(
         water_potentials=dummy_litter_data["matric_potential"],
@@ -164,7 +164,7 @@ def test_calculate_environmental_factors(
         fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
             [0.5, 0.25]
         )
-        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
+        fixture_core_components.layer_structure.biotic_topsoil_depth = 0.75
 
     actual_factors = calculate_environmental_factors(
         air_temperatures=dummy_litter_data["air_temperature"],
