@@ -1121,6 +1121,7 @@ def fixture_static_inputs(
     )
     zero_plane_displacement = np.ones(data.grid.n_cells) * 2.0
     ventilation_rate = np.ones(data.grid.n_cells) * 2.0
+    roughness_length = np.ones(data.grid.n_cells) * 1.0
     wind_speed = data["wind_speed"].to_numpy()
 
     return {
@@ -1136,7 +1137,8 @@ def fixture_static_inputs(
         "mixing_coefficient": mixing_coefficient.to_numpy(),
         "zero_plane_displacement": zero_plane_displacement,
         "wind_speed": wind_speed,
-        "ventialtion_rate": ventilation_rate,
+        "ventilation_rate": ventilation_rate,
+        "roughness_length": roughness_length,
     }
 
 
