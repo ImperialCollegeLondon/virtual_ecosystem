@@ -438,11 +438,30 @@ def calculate_thermodynamics(
 
     # Aerodynamic resistances for day and nighttime, [s m-1]
     if is_day:
-        aerodynamic_resistance_canopy = np.repeat(
-            abiotic_constants.aerodynamic_resistance_canopy_day, n_cells
+        # Fallback for no canopy
+        wind_height = np.nan_to_num(
+            static["geometry"]["heights"][1],
+            nan=abiotic_constants.wind_reference_height,
         )
-        aerodynamic_resistance_soil = state["aerodynamic_resistance_soil"]
+        wind_speed = np.where(
+            np.isnan(static["wind_speed"][1]),
+            static["wind_speed"][idx.above],
+            static["wind_speed"][1],
+        )
 
+        aerodynamic_resistance_canopy = aerodynamic_resistance_canopy = (
+            wind.calculate_aerodynamic_resistance(
+                wind_heights=wind_height,
+                roughness_length=static["roughness_length"],
+                zero_plane_displacement=static["zero_plane_displacement"],
+                wind_speed=wind_speed,
+                von_karman_constant=core_constants.von_karmans_constant,
+                fallback_resistance=abiotic_constants.aerodynamic_resistance_canopy_day,
+                denominator_tolerance=abiotic_constants.denominator_tolerance,
+            )
+        )
+        aerodynamic_resistance_canopy = aerodynamic_resistance_canopy.squeeze()
+        aerodynamic_resistance_soil = state["aerodynamic_resistance_soil"]
     else:
         aerodynamic_resistance_canopy = np.repeat(
             abiotic_constants.aerodynamic_resistance_canopy_night, n_cells

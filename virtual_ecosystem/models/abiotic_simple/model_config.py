@@ -26,6 +26,9 @@ class AbioticSharedConstants(Configuration):
     to 0.98 depending on soil texture, moisture, and surface roughness. Value taken
     from :cite:t:`molders_plant_2005`."""
 
+    measurement_height: float = 1.5
+    """Height below canopy at which atmospheric variables are measured, [m]."""
+
 
 class AbioticSimpleConstants(AbioticSharedConstants):
     """Dataclass to store all constants for the `abiotic_simple` model."""

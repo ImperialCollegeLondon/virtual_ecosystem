@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.3
+    jupytext_version: 1.19.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -60,8 +60,8 @@ function is called to perform the steps outlined below.
 
 ### Step 1: Linear regression above ground
 
-The linear regression for below canopy values (1.5 m) is based on
-{cite:t}`hardwick_relationship_2015` as
+The linear regression for below canopy values at measurement height (default 1.5 m) is
+based on {cite:t}`hardwick_relationship_2015` as
 
 $$y = m * LAI + c$$
 
@@ -77,9 +77,10 @@ We assume that the gradient remains constant throughout the simulation.
 :class: bg-primary
 :width: 450px
 
-Linear regression between leaf area index (LAI) and abiotic variables at 1.5 m above the
-ground. The y-axis is intersected at the temperature at reference height.
-Orange crosses indicate 1.5 m and reference height.
+Linear regression between leaf area index (LAI) and abiotic variables at measurement
+height, here 1.5 m above the ground. The y-axis is intersected at the temperature at
+reference height 2 m above the canopy. Orange crosses indicate measurement and reference
+height.
 :::
 
 ### Step 2: Interpolation above ground
@@ -88,8 +89,8 @@ The values for any other aboveground heights, including but not limited to
 canopy layers and surface layer, are calculated by logarithmic regression (for wind speed)
 or exponential regression (for air temperature, relative humidity and vapour pressure
 deficit) and
-interpolation between the input at reference height 2 m above the canopy and the 1.5 m
-values, see {numref}`abiotic_simple_step2`.
+interpolation between the input at reference height 2 m above the canopy and the
+measured values at 1.5 m, see {numref}`abiotic_simple_step2`.
 
 :::{figure} ../../_static/images/abiotic_simple_step_2.svg
 :name: abiotic_simple_step2
@@ -98,9 +99,10 @@ values, see {numref}`abiotic_simple_step2`.
 :width: 450px
 
 Logarithmic (solid blue curve) and exponential (dashed blue curve) interpolation between
-abiotic variables at 1.5 m and the reference height 2 m above the canopy. This approach
-returns values at any height of interest. Orange crosses indicate 1.5 m and reference
-height as in {numref}`abiotic_simple_step1`.
+abiotic variables at measurement height, here 1.5 m, and the reference height 2 m above
+the canopy. This approach
+returns values at any height of interest. Orange crosses indicate measurement and
+reference height as in {numref}`abiotic_simple_step1`.
 :::
 
 ### Step 3: Broadcasting constant atmospheric properties

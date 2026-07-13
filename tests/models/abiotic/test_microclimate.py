@@ -431,7 +431,6 @@ def test_calculate_thermodynamics_day_and_night(
 
     assert isinstance(result_day, dict)
     assert result_day["aerodynamic_resistance_canopy"].shape == (n_cells,)
-    assert np.all(result_day["aerodynamic_resistance_canopy"] == 20.0)
     np.testing.assert_allclose(
         result_day["aerodynamic_resistance_soil"],
         data["aerodynamic_resistance_soil"],
