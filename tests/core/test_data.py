@@ -739,7 +739,9 @@ def test_save_to_zarr(
     # Load in zarr data to check the contents
     # NOTE - For some reason, unless the engine is specified, the xarray process to
     #        guess the engine runs into a permissions issue.
-    saved_data = xr.open_dataset(out_path, group=group, engine="zarr")
+    saved_data = xr.open_dataset(
+        out_path, group=group, engine="zarr", consolidated=False
+    )
 
     # Then check that expected keys are in it and the values match
     assert "litter_pool_woody_cnp" in saved_data
@@ -806,8 +808,12 @@ def test_save_current_state_to_zarr(
         timestamp=np.datetime64("2001-01-01"),
     )
 
-    # Load fil again, and then check that contents still meet expectation
-    saved_data = xr.open_dataset(out_path, group=group)
+    # Load in zarr data to check the contents
+    # NOTE - For some reason, unless the engine is specified, the xarray process to
+    #        guess the engine runs into a permissions issue.
+    saved_data = xr.open_dataset(
+        out_path, group=group, engine="zarr", consolidated=False
+    )
 
     assert "lignin_woody" in saved_data
     # The saved data should now have coords with time_index in them but otherwise be the
