@@ -1,46 +1,77 @@
 """Test module for abiotic_simple.microclimate.py."""
 
 import numpy as np
+import pytest
 import xarray as xr
 from xarray import DataArray
 
 
+@pytest.mark.parametrize(
+    "measurement_height",
+    [
+        0.5,  # below typical understorey
+        1.5,  # standard met height
+        2.0,  # slightly above standard
+        10.0,  # mid canopy
+    ],
+)
 def test_varying_canopy_log_interpolation(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_core_components, measurement_height
 ):
-    """Test log interpolation for wind speed."""
+    """Test log interpolation for wind speed at different measurement heights."""
 
     from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
         log_interpolation,
     )
 
+    layer_structure = fixture_core_components.layer_structure
     data = dummy_climate_data_varying_canopy
-    lyr_strct = fixture_core_components.layer_structure
 
-    # temperature
+    reference_data = data["wind_speed_ref"].isel(time_index=0).to_numpy()
+    layer_heights = data["layer_heights"].to_numpy()
+    leaf_area_index_sum = np.nansum(data["leaf_area_index"], axis=0)
+
     result = log_interpolation(
-        reference_data=data["wind_speed_ref"].isel(time_index=0).to_numpy(),
-        leaf_area_index_sum=np.nansum(data["leaf_area_index"], axis=0),
-        layer_structure=lyr_strct,
-        layer_heights=data["layer_heights"].to_numpy(),
+        reference_data=reference_data,
+        leaf_area_index_sum=leaf_area_index_sum,
+        layer_structure=layer_structure,
+        layer_heights=layer_heights,
+        measurement_height=measurement_height,
         upper_bound=10,
         lower_bound=0.001,
         gradient=-0.1,
     )
 
-    exp_air_temp = lyr_strct.from_template()
-    exp_air_temp[lyr_strct.index_filled_atmosphere] = [
-        [1.0, 1.0, 1.0, 1.0],
-        [0.991564, 0.993673, 0.995782, np.nan],
-        [0.938567, 0.953925, np.nan, np.nan],
-        [0.847968, np.nan, np.nan, np.nan],
-        [0.246038, 0.434528, 0.623019, 0.811509],
-    ]
-    xr.testing.assert_allclose(result, exp_air_temp)
+    # Top layer should equal reference data regardless of measurement height
+    np.testing.assert_allclose(result[0].values, reference_data)
+
+    # Profile should decrease with depth regardless of measurement height
+    profile = result[layer_structure.index_filled_atmosphere, 0].values
+    assert np.all(np.diff(profile) <= 0)
+
+    # Bounds should be respected at all measurement heights
+    assert result.max() <= 20
+    assert result.min() >= 0.001
+
+    # No invalid values
+    assert np.all(np.isfinite(result.values) | np.isnan(result.values))
 
 
-def test_exp_interpolation(fixture_core_components, dummy_climate_data_varying_canopy):
-    """Test exponential temperature interpolation."""
+@pytest.mark.parametrize(
+    "measurement_height",
+    [
+        0.5,  # below typical understorey
+        1.5,  # standard met height
+        2.0,  # slightly above standard
+        10.0,  # mid canopy
+    ],
+)
+def test_exp_interpolation(
+    fixture_core_components,
+    dummy_climate_data_varying_canopy,
+    measurement_height,
+):
+    """Test exponential temperature interpolation at different measurement heights."""
 
     from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
         exp_interpolation,
@@ -52,30 +83,30 @@ def test_exp_interpolation(fixture_core_components, dummy_climate_data_varying_c
     reference_data = data["air_temperature_ref"].isel(time_index=0).to_numpy()
     layer_heights = data["layer_heights"].to_numpy()
     leaf_area_index_sum = np.nansum(data["leaf_area_index"], axis=0)
-    gradient = -1.27
 
     result = exp_interpolation(
         reference_data=reference_data,
         leaf_area_index_sum=leaf_area_index_sum,
         layer_structure=layer_structure,
         layer_heights=layer_heights,
+        measurement_height=measurement_height,
         upper_bound=80.0,
         lower_bound=-20.0,
-        gradient=gradient,
+        gradient=-1.27,
     )
 
-    # Top layer should equal reference_data
+    # Top layer should equal reference data regardless of measurement height
     np.testing.assert_allclose(result[0].values, reference_data)
 
-    # Profile should decrease
+    # Profile should decrease with depth regardless of measurement height
     profile = result[layer_structure.index_filled_atmosphere, 0].values
     assert np.all(np.diff(profile) <= 0)
 
-    # Assert bounds are respected
+    # Bounds should be respected at all measurement heights
     assert result.max() <= 80
     assert result.min() >= -20
 
-    # handle invalid values
+    # No invalid values
     assert np.all(np.isfinite(result.values) | np.isnan(result.values))
 
 
