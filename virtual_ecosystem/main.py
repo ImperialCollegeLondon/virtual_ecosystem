@@ -409,7 +409,7 @@ def ve_run(
     # - the 'outputs' group contains the model values at each time step
 
     # Identify variable groups to save
-    data_vars_to_save = [
+    input_vars_to_save = [
         k
         for k in variables_to_save
         if runtime_variables[k].vars_populated_by_init == ["data"]
@@ -420,12 +420,12 @@ def ve_run(
         if runtime_variables[k].vars_populated_by_init
         and runtime_variables[k].vars_populated_by_init != ["data"]
     ]
-    update_vars_to_save = [
+    output_vars_to_save = [
         k for k in variables_to_save if runtime_variables[k].vars_updated
     ]
 
     # Export any input and init vars now.
-    for vars, group in ((data_vars_to_save, "inputs"), (init_vars_to_save, "init")):
+    for vars, group in ((input_vars_to_save, "inputs"), (init_vars_to_save, "init")):
         if vars:
             data.save_to_zarr(
                 output_file_path=zarr_store_path, group=group, variables_to_save=vars
@@ -490,7 +490,7 @@ def ve_run(
         # Append updated data to the output data store
         data.save_current_state_to_zarr(
             output_file_path=zarr_store_path,
-            variables_to_save=update_vars_to_save,
+            variables_to_save=output_vars_to_save,
             group="outputs",
             time_index=time_index,
             timestamp=core_components.model_timing.update_datestamps[time_index],
