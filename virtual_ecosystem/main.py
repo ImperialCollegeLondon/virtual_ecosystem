@@ -10,6 +10,7 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import Any, cast
 
+import zarr
 from tqdm import tqdm
 
 from virtual_ecosystem.core.base_model import BaseDisturbance, BaseModel
@@ -515,6 +516,9 @@ def ve_run(
         pbar.update(n=1)
 
     pbar.close()
+
+    # Consolidate the metadata in the Zarr store
+    zarr.consolidate_metadata(zarr_store_path)
 
     if progress > Progress.MINIMAL:
         print("* Simulation completed")
