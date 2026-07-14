@@ -23,3 +23,24 @@ def test_get_flora_from_config(fixture_configuration):
     assert isinstance(flora, Flora)
     assert flora.n_pfts == 2
     assert isinstance(extra_traits, ExtraTraitsPFT)
+
+
+def test_get_flora_from_config_new(fixture_configuration):
+    """Testing the pyrealm flora loading mechanism.
+
+    This tests the loader in two different configurations (data in TOML, data in CSV)
+    and checks the loader fails if both are present.
+    """
+
+    from pyrealm.demography.flora import Flora
+
+    from virtual_ecosystem.models.plants.functional_types import (
+        get_flora_from_config_new,
+    )
+
+    # Initial fixture_config uses PFT definitions in the file
+    flora, extra_traits = get_flora_from_config_new(config=fixture_configuration.plants)
+
+    assert isinstance(flora, Flora)
+    assert flora.n_pfts == 2
+    assert isinstance(extra_traits, ExtraTraitsPFT)

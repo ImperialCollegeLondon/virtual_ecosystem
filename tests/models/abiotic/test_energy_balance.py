@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calc_vp_sat
+from pyrealm.core.hygro import calculate_vp_sat
 from scipy.optimize import brentq
 
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
@@ -503,8 +503,8 @@ def test_update_humidity_vpd(
         heights=data["layer_heights"][atm_index].to_numpy()
     )
 
-    saturated_vapour_pressure = calc_vp_sat(
-        ta=data["air_temperature"][atm_index].to_numpy(), core_const=pyr_const
+    saturated_vapour_pressure = calculate_vp_sat(
+        tc=data["air_temperature"][atm_index].to_numpy(), core_const=pyr_const
     )
     specific_humidity = np.array(
         [

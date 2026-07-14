@@ -636,7 +636,7 @@ def test_update_atmospheric_humidity(
 ):
     """Test update atmospheric humidity."""
 
-    from pyrealm.core.hygro import calc_vp_sat
+    from pyrealm.core.hygro import calculate_vp_sat
 
     from virtual_ecosystem.models.abiotic.microclimate import (
         update_atmospheric_humidity,
@@ -651,8 +651,8 @@ def test_update_atmospheric_humidity(
     pyrealm_core_constants = PyrealmCoreConst()
     abiotic_bounds = AbioticSimpleBounds()
 
-    vp_sat = calc_vp_sat(
-        ta=state["air_temperature"],
+    vp_sat = calculate_vp_sat(
+        tc=state["air_temperature"],
         core_const=pyrealm_core_constants,
     )
     result = update_atmospheric_humidity(
