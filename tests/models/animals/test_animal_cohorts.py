@@ -1058,6 +1058,7 @@ class TestAnimalCohort:
                     available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
                     consumed_total_mass=np.zeros(1, dtype=float),
                     vertical_occupancy=herbivore_cohort_instance.functional_group.vertical_occupancy,
+                    lignin_proportion=0.0,
                     cell_id=i,
                 )
             )
@@ -1796,11 +1797,12 @@ class TestAnimalCohort:
         mock_consume.assert_not_called()
 
     @pytest.mark.parametrize(
-        "gain, litter, expect_waste_call, expect_error, test_id",
+        "gain, litter, lignin, expect_waste_call, expect_error, test_id",
         [
             (
                 {"C": 10.0, "N": 5.0, "P": 2.0},
                 {"C": 3.0, "N": 1.0, "P": 0.5},
+                0.1,
                 2,
                 None,
                 "standard",
@@ -1808,6 +1810,7 @@ class TestAnimalCohort:
             (
                 {"C": 0.0, "N": 0.0, "P": 0.0},
                 {"C": 0.0, "N": 0.0, "P": 0.0},
+                0.0,
                 2,
                 None,
                 "no_gain",
@@ -1815,6 +1818,7 @@ class TestAnimalCohort:
             (
                 {"C": 4.0, "N": 2.0, "P": 1.0},
                 {"C": 1.0, "N": 0.5, "P": 0.25},
+                0.2,
                 0,
                 KeyError,
                 "no_waste_pool",
@@ -1822,6 +1826,7 @@ class TestAnimalCohort:
             (
                 {"C": 5.0, "N": 2.5, "P": 1.0},
                 {},
+                0.0,
                 0,
                 None,
                 "no_litter",
@@ -1835,6 +1840,7 @@ class TestAnimalCohort:
         mocker,
         gain,
         litter,
+        lignin,
         expect_waste_call,
         expect_error,
         test_id,
@@ -1854,11 +1860,11 @@ class TestAnimalCohort:
         resource1 = mocker.Mock()
         resource1.mass_current = 10.0
         resource1.cell_id = 1
-        resource1.get_eaten.return_value = (gain, litter)
+        resource1.get_eaten.return_value = (gain, litter, lignin)
         resource2 = mocker.Mock()
         resource2.mass_current = 5.0
         resource2.cell_id = 2
-        resource2.get_eaten.return_value = (gain, litter)
+        resource2.get_eaten.return_value = (gain, litter, lignin)
 
         # Waste pool, with conditional presence based on test
         if test_id == "no_waste_pool":
@@ -2706,6 +2712,7 @@ class TestAnimalCohort:
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(1, dtype=float),
             vertical_occupancy=getattr(VerticalOccupancy, resource_vertical),
+            lignin_proportion=None,
             cell_id=0,
         )
 
@@ -2820,9 +2827,7 @@ class TestAnimalCohort:
         cohort.territory = territory
 
         # Create dummy herbivory waste pool map
-        herbivory_waste = {
-            cell_id: HerbivoryWaste("leaf") for cell_id in pool_map.keys()
-        }
+        herbivory_waste = {cell_id: HerbivoryWaste() for cell_id in pool_map.keys()}
 
         result = cohort.get_herbivory_waste_pools(herbivory_waste)
 
