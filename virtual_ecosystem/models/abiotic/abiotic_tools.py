@@ -13,7 +13,7 @@ import bottleneck as bn
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calc_vp_sat
+from pyrealm.core.hygro import calculate_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -196,8 +196,8 @@ def calculate_actual_vapour_pressure(
         actual vapour pressure, [kPa]
     """
 
-    saturation_vapour_pressure_air = calc_vp_sat(
-        ta=air_temperature.to_numpy(),
+    saturation_vapour_pressure_air = calculate_vp_sat(
+        tc=air_temperature.to_numpy(),
         core_const=pyrealm_core_constants,
     )
     return saturation_vapour_pressure_air * relative_humidity / 100.0
@@ -318,8 +318,8 @@ def calculate_specific_humidity(
         Specific humidity, [kg kg-1]
     """
     # Saturation vapor pressure
-    saturation_vapour_pressure = calc_vp_sat(
-        ta=air_temperature,
+    saturation_vapour_pressure = calculate_vp_sat(
+        tc=air_temperature,
         core_const=pyrealm_core_constants,
     )
 
@@ -486,9 +486,9 @@ def generate_diurnal_cycle_from_monthly_data(
     )
 
     # Relative humidity (constant vapour pressure approach)
-    e_s_mean = calc_vp_sat(monthly_air_temperature)
+    e_s_mean = calculate_vp_sat(monthly_air_temperature)
     e_a = monthly_relative_humidity / 100.0 * e_s_mean
-    e_s_hourly = calc_vp_sat(air_temperature_hourly)
+    e_s_hourly = calculate_vp_sat(air_temperature_hourly)
     relative_humidity_hourly = np.clip(100.0 * e_a[None, :] / e_s_hourly, 0.0, 100.0)
 
     # Evapotranspiration — conserve monthly total, distribute by radiation.
