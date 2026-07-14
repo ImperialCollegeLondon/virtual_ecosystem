@@ -23,6 +23,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     MetabolicType,
     TaxaType,
+    VerticalOccupancy,
 )
 
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
@@ -300,14 +301,15 @@ class AnimalConstants(Configuration):
     # required variables ( annual mean temperature, annual
     # temperature SD) are exposed via the data object.
 
-    placeholder_annual_mean_temp: float = 20.0
-    """Annual mean temperature used as a toy stand-in for $T_{Annual}^C$ [°C].
-    Replace once abiotic model exposes this."""
-
-    placeholder_annual_temp_sd: float = 5.0
-    """Standard deviation of monthly temperatures across the climatological year,
-    used as a toy stand-in for $\\sigma_{T_{Annual}^C}$ [°C]. Replace once abiotic
-    model exposes this."""
+    placeholder_annual_temp_terms: dict[VerticalOccupancy, dict[str, float]] = Field(
+        default_factory=lambda: {
+            VerticalOccupancy.CANOPY: {"mean_temp": 27.0, "temp_sd": 1.0},
+            VerticalOccupancy.GROUND: {"mean_temp": 24.0, "temp_sd": 1.0},
+            VerticalOccupancy.SOIL: {"mean_temp": 21.5, "temp_sd": 1.0},
+        }
+    )
+    """Placeholder per-stratum annual temperature terms: ``mean_temp`` and ``temp_sd``
+    [°C]."""
 
     # Madingley dispersal parameters
 

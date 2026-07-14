@@ -101,7 +101,6 @@ class AnimalModel(
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "foliage_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
         "litter_pool_above_metabolic_cnp",
@@ -114,9 +113,10 @@ class AnimalModel(
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "foliage_turnover_cnp_consumed",
         "seed_turnover_cnp_consumed",
         "fruit_turnover_cnp_consumed",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
     ),
     vars_populated_by_init=(
         "total_animal_respiration",
@@ -143,12 +143,18 @@ class AnimalModel(
         "soil_c_pool_saprotrophic_fungi",
         "soil_c_pool_arbuscular_mycorrhiza",
         "soil_c_pool_ectomycorrhiza",
+        "subcanopy_vegetation_cnp",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_cnp",
+        "subcanopy_seedbank_litter_lignin",
     ),
     vars_populated_by_first_update=(
         "decomposed_excrement_cnp",
         "decomposed_carcasses_cnp",
-        "herbivory_waste_leaf_cnp",
-        "herbivory_waste_leaf_lignin",
+        "herbivory_waste_above_cnp",
+        "herbivory_waste_above_lignin",
+        "herbivory_waste_below_cnp",
+        "herbivory_waste_below_lignin",
         "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
@@ -159,8 +165,10 @@ class AnimalModel(
     vars_updated=(
         "decomposed_excrement_cnp",
         "decomposed_carcasses_cnp",
-        "herbivory_waste_leaf_cnp",
-        "herbivory_waste_leaf_lignin",
+        "herbivory_waste_above_cnp",
+        "herbivory_waste_above_lignin",
+        "herbivory_waste_below_cnp",
+        "herbivory_waste_below_lignin",
         "total_animal_respiration",
         "litter_consumed_above_metabolic_cnp",
         "litter_consumed_above_structural_cnp",
@@ -179,7 +187,6 @@ class AnimalModel(
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "foliage_turnover_cnp_consumed",
         "seed_turnover_cnp_consumed",
         "fruit_turnover_cnp_consumed",
     ),
@@ -248,8 +255,8 @@ class AnimalModel(
         """The excrement pools in the model with associated grid cell ids."""
         self.carcass_pools: dict[int, list[CarcassPool]]
         """The carcass pools in the model with associated grid cell ids."""
-        self.leaf_waste_pools: dict[int, HerbivoryWaste]
-        """A pool for leaves removed by herbivory but not actually consumed."""
+        self.herbivory_waste_pools: dict[int, HerbivoryWaste]
+        """Pool for plant biomass removed by herbivory but not actually consumed."""
         self.microbial_c_n_p_ratios: dict[str, dict[str, float]]
         """The CNP ratios of the different microbial functional groups."""
         # TODO: make the following two modifiable
@@ -351,9 +358,8 @@ class AnimalModel(
             for cell_id in self.data.grid.cell_id
         }
 
-        self.leaf_waste_pools = {
-            cell_id: HerbivoryWaste(plant_matter_type="leaf")
-            for cell_id in self.data.grid.cell_id
+        self.herbivory_waste_pools = {
+            cell_id: HerbivoryWaste() for cell_id in self.data.grid.cell_id
         }
 
         self.active_cohorts = {}
@@ -919,22 +925,22 @@ class AnimalModel(
     def calculate_litter_additions_from_herbivory(self) -> dict[str, DataArray]:
         """Calculate additions to litter due to herbivory mechanical inefficiencies.
 
-        TODO - At present the only type of herbivory this works for is leaf herbivory,
-        that should be changed once herbivory as a whole is fleshed out.
-
         Returns:
-            A dictionary containing details of the leaf litter addition due to herbivory
-            this comprises of the masses of carbon, nitrogen and phosphorus added [kg],
-            and the proportion of input carbon that is lignin [unitless].
+            A dictionary containing details of additions to the above and below ground
+            litter due to herbivory. This comprises of the masses of carbon, nitrogen
+            and phosphorus added [kg], and the proportion of input carbon that is lignin
+            [unitless].
         """
 
         nutrients = ["C", "N", "P"]
 
-        leaf_cnp = stack(
+        above_cnp = stack(
             [
                 array(
                     [
-                        self.leaf_waste_pools[cell_id].mass_cnp[nutrient]
+                        self.herbivory_waste_pools[cell_id].above_ground_mass_cnp[
+                            nutrient
+                        ]
                         for cell_id in self.data.grid.cell_id
                     ]
                 )
@@ -943,24 +949,53 @@ class AnimalModel(
             axis=1,
         )
 
-        leaf_lignin = [
-            self.leaf_waste_pools[cell_id].lignin_proportion
+        above_lignin = [
+            self.herbivory_waste_pools[cell_id].above_ground_lignin_proportion
+            for cell_id in self.data.grid.cell_id
+        ]
+
+        below_cnp = stack(
+            [
+                array(
+                    [
+                        self.herbivory_waste_pools[cell_id].below_ground_mass_cnp[
+                            nutrient
+                        ]
+                        for cell_id in self.data.grid.cell_id
+                    ]
+                )
+                for nutrient in nutrients
+            ],
+            axis=1,
+        )
+
+        below_lignin = [
+            self.herbivory_waste_pools[cell_id].below_ground_lignin_proportion
             for cell_id in self.data.grid.cell_id
         ]
 
         # Reset all of the herbivory waste pools to zero
-        for waste in self.leaf_waste_pools.values():
-            waste.mass_cnp["C"] = 0.0
-            waste.mass_cnp["N"] = 0.0
-            waste.mass_cnp["P"] = 0.0
+        for waste in self.herbivory_waste_pools.values():
+            waste.above_ground_lignin_proportion = 0.0
+            waste.below_ground_lignin_proportion = 0.0
+            for nutrient in nutrients:
+                waste.above_ground_mass_cnp[nutrient] = 0.0
+                waste.below_ground_mass_cnp[nutrient] = 0.0
 
         return {
-            "herbivory_waste_leaf_cnp": DataArray(
-                data=leaf_cnp,
+            "herbivory_waste_above_cnp": DataArray(
+                data=above_cnp,
                 coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
-            "herbivory_waste_leaf_lignin": DataArray(
-                array(leaf_lignin), dims="cell_id"
+            "herbivory_waste_above_lignin": DataArray(
+                array(above_lignin), dims="cell_id"
+            ),
+            "herbivory_waste_below_cnp": DataArray(
+                data=below_cnp,
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
+            ),
+            "herbivory_waste_below_lignin": DataArray(
+                array(below_lignin), dims="cell_id"
             ),
         }
 
@@ -1607,7 +1642,7 @@ class AnimalModel(
                 carcass_pool_map=carcass_pool_map,  # for prey remains
                 scavenge_carcass_pools=scavenge_carcass_pools,
                 scavenge_excrement_pools=scavenge_waste_pools,
-                herbivory_waste_pools=self.leaf_waste_pools,
+                herbivory_waste_pools=self.herbivory_waste_pools,
                 dt=dt,
             )
 
