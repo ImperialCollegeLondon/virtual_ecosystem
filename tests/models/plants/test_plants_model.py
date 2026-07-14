@@ -686,12 +686,12 @@ def test_PlantsModel_update(
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
-def test_PlantsModel_calculate_turnover(fxt_plants_model, tricky_plant_cohorts):
-    """Test the calculate_turnover method of the plants model."""
+def test_PlantsModel_populate_lignin_proportions(fxt_plants_model):
+    """Test the populate_lignin_proportions method of the plants model."""
 
     # Check reset
     fxt_plants_model.reset_update_vars()
-    fxt_plants_model.calculate_turnover()
+    fxt_plants_model.populate_lignin_proportions()
     consts = fxt_plants_model.model_constants
 
     # Check that all expected variables are generated and have the correct value
@@ -704,6 +704,14 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model, tricky_plant_cohorts):
         consts.plant_reproductive_tissue_lignin,
     )
     assert np.allclose(fxt_plants_model.data["root_lignin"], consts.root_lignin)
+    assert np.allclose(
+        fxt_plants_model.data["subcanopy_vegetation_litter_lignin"],
+        consts.subcanopy_vegetation_lignin,
+    )
+    assert np.allclose(
+        fxt_plants_model.data["subcanopy_seedbank_litter_lignin"],
+        consts.subcanopy_seedbank_lignin,
+    )
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
