@@ -83,6 +83,7 @@ from virtual_ecosystem.models.animal.model_config import (
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     biomass_density_to_individuals,
+    cells_within_distance,
     heterotroph_normalization_factor,
     prey_group_selection,
     raw_biomass_density_kg_m2,
@@ -311,9 +312,6 @@ class AnimalModel(
         # Convert pint update_interval to timedelta64 once during initialization.
         self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
 
-        # Determine grid square adjacency
-        self._setup_grid_neighbours()
-
         self.functional_groups = functional_groups
 
         # Initialise the array resources for the model and then the resulting resource
@@ -532,7 +530,7 @@ class AnimalModel(
         self.reset_trophic_records()
         self.update_activity_windows_community()
         self.forage_community(self.update_interval_timedelta)
-        self.migrate_community()
+        self.migrate_community(self.update_interval_timedelta)
         self.birth_community()
         self.metamorphose_community()
         self.migrate_external_community()
@@ -582,16 +580,6 @@ class AnimalModel(
             time=self.model_timing.update_datestamps[time_index],
             time_index=time_index,
         )
-
-    def _setup_grid_neighbours(self) -> None:
-        """Set up grid neighbours for the model.
-
-        Currently, this is redundant with the set_neighbours method of grid.
-        This will become a more complex animal specific implementation to manage
-        functional group specific adjacency.
-
-        """
-        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
 
     def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
         """Initializes the animal communities.
@@ -1210,35 +1198,56 @@ class AnimalModel(
         self.abandon_communities(migrant)
         self.update_community_occupancy(migrant, destination_centroid)
 
-    def migrate_community(self) -> None:
+    def migrate_community(self, dt: timedelta64) -> None:
         """This handles migrating all cohorts with a centroid in the community.
 
         This migration method initiates migration for two reasons:
         1) The cohort is starving and needs to move for a chance at resource access
         2) An initial migration event immediately after birth.
 
-        TODO: MGO - migrate distance mod for larger territories?
+        The destination is drawn uniformly from the cells the cohort can actually
+        reach within its mass-scaled dispersal distance, rather than from the
+        immediately adjacent cells alone. Cohorts too slow to clear a single cell
+        still move one cell when dispersal is triggered, as the dispersal probability
+        already scales with distance.
 
-
+        Args:
+            dt: The time passed in the timestep.
         """
+
+        dt_days = float(dt / timedelta64(1, "D"))
+        cell_side = sqrt(self.data.grid.cell_area)
+
         for cohort in self.active_cohorts.values():
             is_starving = cohort.is_below_mass_threshold(
+                # check to see if the cohort is hungry enough to migrate
                 self.model_constants.dispersal_mass_threshold
             )
             is_juvenile_and_migrate = (
+                # check for juvenile migration
                 cohort.age == 0.0
-                and random.random() <= cohort.migrate_juvenile_probability()
+                and random.random() <= cohort.migrate_juvenile_probability(dt_days)
+                # probability based on proportion of cohort that could make it to the
+                # new cell
             )
-            migrate = is_starving or is_juvenile_and_migrate
+            migrate = is_starving or is_juvenile_and_migrate  # bool
 
             if not migrate:
                 continue
 
-            # Get the list of neighbors for the current cohort's cell
-            neighbour_keys = self.data.grid.neighbours[cohort.centroid_key]
+            candidate_keys = cells_within_distance(
+                # find all the grid cells within migrating distance
+                cohort.centroid_key,
+                cohort.get_dispersal_distance(dt_days),
+                cell_side,
+                self.data.grid.cell_nx,
+                self.data.grid.cell_ny,
+            )
 
-            destination_key = choice(neighbour_keys)
-            self.migrate(cohort, destination_key)
+            if not candidate_keys:
+                continue
+
+            self.migrate(cohort, choice(candidate_keys))
 
     def remove_dead_cohort(self, cohort: AnimalCohort) -> None:
         """Removes an AnimalCohort from the model's cohorts and relevant communities.

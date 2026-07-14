@@ -627,27 +627,125 @@ def H_i_j(
     return h_pred_0 * (M_ref / M_i_t_g) ** b_pred * prey_mass_g
 
 
-def juvenile_dispersal_speed(
-    current_mass: float, V_disp: float, M_disp_ref: float, o_disp: float
+def dispersal_distance(
+    current_mass: float,
+    V_disp: float,
+    M_disp_ref: float,
+    o_disp: float,
+    dt_days: float,
 ) -> float:
-    """Dispersal speed of cohorts during diffusive natal dispersal event [km/month].
+    """Distance a cohort can travel in a single timestep [m].
 
-    Madingley
+    Madingley eq. (diffusive natal dispersal). ``V_disp`` is the dispersal speed of
+    an individual of reference body mass, expressed in the Madingley-native units of
+    km/month, and ``M_disp_ref`` is that reference mass in grams. ``current_mass`` is
+    supplied in kg and is converted to grams at the point it enters the mass ratio,
+    and the km/month speed is converted to metres over the model timestep.
 
     Args:
-        current_mass: The mass of an individual of the cohort during the current time
-            step [kg].
-        V_disp: Diffusive dispersal speed on an individual with reference body-mass.
-        M_disp_ref: A reference body-mass.
-        o_disp: The power-law exponent for the mass-dispersal speed scaling
-          relationship.
+        current_mass: Mass of an individual of the cohort in the current timestep [kg].
+        V_disp: Dispersal speed of an individual of mass ``M_disp_ref`` [km/month].
+        M_disp_ref: Reference body mass for the dispersal speed scaling [g].
+        o_disp: Power-law exponent for the mass-dispersal speed scaling relationship.
+        dt_days: Length of the model timestep [days].
 
     Returns:
-        The dispersal speed of a juvenile cohort in km/month.
-
+        The distance the cohort can travel over the timestep [m].
     """
 
-    return V_disp * (current_mass / M_disp_ref) ** o_disp
+    # mass_g -> current_mass * 1000.0  kg -> g, to match the native gram M_disp_ref
+    speed_km_month = V_disp * ((current_mass * 1000.0) / M_disp_ref) ** o_disp
+
+    # km/month -> m/timestep: 1000 m per km, Madingley month taken as 30 days.
+    return speed_km_month * 1000.0 * (dt_days / 30.0)
+
+
+def cells_within_distance(
+    centroid_key: int,
+    distance_m: float,
+    cell_side: float,
+    cell_nx: int,
+    cell_ny: int,
+) -> list[int]:
+    """Grid cells reachable from a centroid within a given travel distance.
+
+    Reachability is Euclidean: a cell is reachable if the straight-line distance
+    between its centre and the centroid's centre is no greater than ``distance_m``.
+    The set returned is therefore the disc of radius ``distance_m`` about the
+    centroid, clipped to the grid bounds and with the centroid itself excluded.
+
+    This follows Madingley, in which a dispersing cohort travels a vector of length
+    ``d_i`` in a random direction. Because the dispersal distance is already in
+    metres, the disc can be evaluated directly against cell-centre geometry rather
+    than being approximated by counting orthogonal or diagonal grid steps. Step-count
+    metrics distort the disc: Manhattan distance overcharges diagonal movement
+    (a diagonal neighbour costs two steps rather than the true 1.41 cell-widths),
+    while Chebyshev distance undercharges it (a diagonal neighbour costs one).
+
+    The radius is clamped to a minimum of one cell side, so that a cohort whose
+    dispersal is triggered always has somewhere to go, even when its travel distance
+    is shorter than a single cell. This preserves the single-cell move for slow
+    cohorts: the dispersal *probability* already scales with distance, so distance
+    must not also be allowed to shrink the destination set to nothing, or short-range
+    dispersers would never move at all.
+
+    Note:
+        Cell centres are used as the reference points, so a cell is reachable when
+        its centre is within range even if part of the cell is not, and vice versa.
+        This is the same centroid-to-centroid abstraction used everywhere else in
+        the territory and dispersal code.
+
+    Args:
+        centroid_key: The grid cell key anchoring the move.
+        distance_m: The distance the cohort can travel this timestep [m].
+        cell_side: The side length of a grid cell [m].
+        cell_nx: Number of cells along the x-axis.
+        cell_ny: Number of cells along the y-axis.
+
+    Returns:
+        The keys of all in-bounds cells within reach, excluding the centroid itself.
+    """
+
+    # Clamp to at least one cell side so a triggered move is always possible.
+    radius_m = max(distance_m, cell_side)
+
+    # Grid keys are row-major: key = row * cell_nx + col. Recover the centroid's
+    # (row, col) so offsets are applied in grid space rather than key space, where a
+    # +1 offset would silently wrap across the row boundary.
+    row, col = divmod(int(centroid_key), int(cell_nx))
+
+    # The disc is inscribed in a square of half-width `radius_cells`, so only that
+    # bounding box needs scanning. Cells in the box but outside the disc are then
+    # rejected by the distance test below.
+    radius_cells = int(radius_m // cell_side)
+
+    # Compare squared distances to avoid a square root in the inner loop.
+    radius_sq = (radius_m / cell_side) ** 2
+
+    reachable: list[int] = []
+
+    for dr in range(-radius_cells, radius_cells + 1):
+        for dc in range(-radius_cells, radius_cells + 1):
+            # The centroid is the cohort's current cell, not a destination.
+            if dr == 0 and dc == 0:
+                continue
+
+            # Euclidean test in units of cell sides. Diagonal neighbours sit at
+            # sqrt(2) ~ 1.41 cell-widths and so are only reachable once the cohort
+            # can travel that far, which is the behaviour the step-count metrics
+            # were failing to capture.
+            if dr * dr + dc * dc > radius_sq:
+                continue
+
+            nr, nc = row + dr, col + dc
+
+            # Bounds check in grid space. Out-of-grid cells are dropped rather than
+            # wrapped, so an edge cohort simply has fewer destinations. This matches
+            # the non-periodic boundary used by bfs_territory.
+            if 0 <= nr < cell_ny and 0 <= nc < cell_nx:
+                reachable.append(nr * cell_nx + nc)
+
+    return reachable
 
 
 def territory_size(
