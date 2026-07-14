@@ -123,7 +123,7 @@ def test_initialise_models(
             """[core]
             data = {}
             [core.data_output_options]
-            save_merged_config = false
+            save_compiled_configuration = false
             [core.timing]
             start_date = "2020-01-01"
             run_length = "50 years"
