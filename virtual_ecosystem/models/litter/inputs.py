@@ -165,30 +165,27 @@ def combine_input_sources(data: Data, update_interval: float) -> dict[str, DataA
     )
 
     # The other input streams are not broken up by pft so don't need special handling
-    other_input_streams = [
-        "stem_turnover",
-        "root_turnover",
-        "subcanopy_vegetation_litter",
-        "herbivory_waste_above",
-        "herbivory_waste_below",
-    ]
+    # (just name conversion)
+    other_input_streams = (
+        ("stem_turnover_cnp", "deadwood_mass"),
+        ("root_turnover_cnp", "root_mass"),
+        ("subcanopy_vegetation_litter_cnp", "subcanopy_mass"),
+        ("herbivory_waste_above_cnp", "herbivore_waste_above_mass"),
+        ("herbivory_waste_below_cnp", "herbivore_waste_below_mass"),
+    )
 
     rates = {
-        name: convert_to_input_masses_to_rates_per_area(
-            data[f"{name}_cnp"],
+        new_name: convert_to_input_masses_to_rates_per_area(
+            data[old_name],
             cell_area=data.grid.cell_area,
             update_interval=update_interval,
         )
-        for name in other_input_streams
+        for old_name, new_name in other_input_streams
     }
 
     return {
         "leaf_mass": leaf_rates,
-        "deadwood_mass": rates["stem_turnover"],
-        "root_mass": rates["root_turnover"],
-        "subcanopy_mass": rates["subcanopy_vegetation_litter"],
-        "herbivore_waste_above_mass": rates["herbivory_waste_above"],
-        "herbivore_waste_below_mass": rates["herbivory_waste_below"],
+        **rates,
         "leaf_lignin": data["senesced_leaf_lignin"],
         "root_lignin": data["root_lignin"],
         "stem_lignin": data["stem_lignin"],
