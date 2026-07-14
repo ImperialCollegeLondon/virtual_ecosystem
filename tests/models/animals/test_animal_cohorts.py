@@ -2335,63 +2335,41 @@ class TestAnimalCohort:
         mock_eat.assert_not_called()
 
     @pytest.mark.parametrize(
-        "mass_current, V_disp, M_disp_ref, o_disp, expected_probability",
+        "distance_in_cell_sides, expected_probability",
         [
-            pytest.param(10, 0.5, 10, 0.5, 0.5, id="normal_case"),
-            pytest.param(10, 1.5, 10, 0.5, 1.0, id="cap_at_1"),
-            pytest.param(10, 0, 10, 0.5, 0, id="zero_velocity"),
-            pytest.param(0, 0.5, 10, 0.5, 0, id="zero_mass"),
+            pytest.param(0.5, 0.5, id="half_a_cell"),
+            pytest.param(1.0, 1.0, id="exactly_one_cell"),
+            pytest.param(2.5, 1.0, id="cap_at_1"),
+            pytest.param(0.0, 0.0, id="zero_distance"),
         ],
     )
     def test_migrate_juvenile_probability(
         self,
         mocker,
-        mass_current,
-        V_disp,
-        M_disp_ref,
-        o_disp,
+        distance_in_cell_sides,
         expected_probability,
         herbivore_cohort_instance,
     ):
-        """Test the calculation of juvenile migration probability."""
+        """Test the calculation of juvenile migration probability.
+
+        The probability is the proportion of a cell side the cohort can clear in one
+        timestep, clamped at one.
+        """
         from math import sqrt
 
-        # Assign test-specific values to the cohort instance
         cohort = herbivore_cohort_instance
+        grid_side = sqrt(cohort.grid.cell_area)
 
-        # Mock `mass_current` properly as a property on the class
         mocker.patch.object(
-            type(cohort),
-            "mass_current",
-            new_callable=mocker.PropertyMock,
-            return_value=mass_current,
+            cohort,
+            "get_dispersal_distance",
+            return_value=distance_in_cell_sides * grid_side,
         )
 
-        # Mock `constants`
-        cohort.constants = mocker.MagicMock(
-            V_disp=V_disp, M_disp_ref=M_disp_ref, o_disp=o_disp
-        )
+        probability_of_dispersal = cohort.migrate_juvenile_probability(dt_days=30.0)
 
-        # Mock `juvenile_dispersal_speed`
-        mocked_velocity = V_disp * (mass_current / M_disp_ref) ** o_disp
-        mocker.patch(
-            "virtual_ecosystem.models.animal.scaling_functions.juvenile_dispersal_speed",
-            return_value=mocked_velocity,
-        )
-
-        # Calculate expected probability
-        A_cell = herbivore_cohort_instance.grid.cell_area
-        grid_side = sqrt(A_cell)
-        calculated_probability = mocked_velocity / grid_side
-        expected_probability = min(calculated_probability, 1.0)  # Cap at 1.0
-
-        # Call the method under test
-        probability_of_dispersal = cohort.migrate_juvenile_probability()
-
-        # Assertion to check if the method returns the correct probability
-        assert probability_of_dispersal == expected_probability, (
-            f"Expected {expected_probability}, but got {probability_of_dispersal}."
-        )
+        assert probability_of_dispersal == pytest.approx(expected_probability)
+        cohort.get_dispersal_distance.assert_called_once_with(30.0)
 
     @pytest.mark.parametrize(
         "is_mature, mock_dead, pop_size, expected_survivors",

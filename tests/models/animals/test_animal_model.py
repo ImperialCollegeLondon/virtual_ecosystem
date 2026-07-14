@@ -1035,32 +1035,12 @@ class TestAnimalModel:
     @pytest.mark.parametrize(
         "mass_ratio, age, probability_output, should_migrate",
         [
-            (0.5, 5.0, False, True),  # Starving non-juvenile, should migrate
-            (
-                1.0,
-                0.0,
-                False,
-                False,
-            ),  # Well-fed juvenile, low probability, should not migrate
-            (
-                1.0,
-                0.0,
-                1.0,
-                True,
-            ),  # Well-fed juvenile, high probability (1.0), should migrate
-            (
-                0.5,
-                0.0,
-                1.0,
-                True,
-            ),  # Starving juvenile, high probability (1.0), should migrate
-            (
-                0.5,
-                0.0,
-                0.0,
-                True,
-            ),  # Starving juvenile, low probability (0.0), should migrate
-            (1.0, 5.0, False, False),  # Well-fed non-juvenile, should not migrate
+            (0.5, 5.0, 0.0, True),
+            (1.0, 0.0, 0.0, False),
+            (1.0, 0.0, 1.0, True),
+            (0.5, 0.0, 1.0, True),
+            (0.5, 0.0, 0.0, True),
+            (1.0, 5.0, 0.0, False),
         ],
         ids=[
             "starving_non_juvenile",
@@ -1081,7 +1061,19 @@ class TestAnimalModel:
         animal_model_instance,
         herbivore_cohort_instance,
     ):
-        """Test migrate_community method in the AnimalModel class."""
+        """Test migrate_community method in the AnimalModel class.
+
+        The dispersal distance is mocked to one cell side so that the reachable set is
+        the cohort's orthogonal neighbours, and the destination is asserted to fall
+        within that set rather than merely to exist.
+        """
+        from math import sqrt
+
+        from numpy import timedelta64
+
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            cells_within_distance,
+        )
 
         # Empty the communities and cohorts before the test
         animal_model_instance.communities = {
@@ -1089,58 +1081,52 @@ class TestAnimalModel:
         }
         animal_model_instance.active_cohorts = {}
 
-        # Set up mock cohort with dynamic mass and age values
         cohort = herbivore_cohort_instance
         cohort.age = age
-        cohort.mass_cnp.C = (
-            cohort.functional_group.adult_mass
-            * mass_ratio
-            * cohort.cnp_proportions["C"]
-        )
-        cohort.mass_cnp.N = (
-            cohort.functional_group.adult_mass
-            * mass_ratio
-            * cohort.cnp_proportions["N"]
-        )
-        cohort.mass_cnp.P = (
-            cohort.functional_group.adult_mass
-            * mass_ratio
-            * cohort.cnp_proportions["P"]
-        )
+        for element in ("C", "N", "P"):
+            setattr(
+                cohort.mass_cnp,
+                element,
+                cohort.functional_group.adult_mass
+                * mass_ratio
+                * cohort.cnp_proportions[element],
+            )
 
-        cohort_id = cohort.id
-        animal_model_instance.active_cohorts[cohort_id] = cohort
+        animal_model_instance.active_cohorts[cohort.id] = cohort
 
         # Mock `is_below_mass_threshold` to simulate starvation
-        is_starving = mass_ratio < 1.0
         mocker.patch.object(
-            cohort,
-            "is_below_mass_threshold",
-            return_value=is_starving,
+            cohort, "is_below_mass_threshold", return_value=mass_ratio < 1.0
         )
 
         # Mock the juvenile migration probability based on the test parameter
         mocker.patch.object(
-            cohort,
-            "migrate_juvenile_probability",
-            return_value=probability_output,
+            cohort, "migrate_juvenile_probability", return_value=probability_output
         )
 
-        # Mock the migrate method
+        # Pin the dispersal distance so the reachable set is deterministic
+        cell_side = sqrt(animal_model_instance.data.grid.cell_area)
+        mocker.patch.object(cohort, "get_dispersal_distance", return_value=cell_side)
+
         mock_migrate = mocker.patch.object(animal_model_instance, "migrate")
 
-        # Call the migrate_community method
-        animal_model_instance.migrate_community()
+        animal_model_instance.migrate_community(timedelta64(30, "D"))
 
-        # Check migration behavior
         if should_migrate:
-            # Assert migrate was called with correct cohort
             mock_migrate.assert_called_once_with(cohort, mocker.ANY)
+
+            expected_destinations = cells_within_distance(
+                centroid_key=cohort.centroid_key,
+                distance_m=cell_side,
+                cell_side=cell_side,
+                cell_nx=animal_model_instance.data.grid.cell_nx,
+                cell_ny=animal_model_instance.data.grid.cell_ny,
+            )
+            _, destination = mock_migrate.call_args.args
+            assert destination in expected_destinations
         else:
-            # Assert migrate was NOT called
             mock_migrate.assert_not_called()
 
-        # Assert that starvation check was applied
         cohort.is_below_mass_threshold.assert_called_once()
 
     @pytest.mark.parametrize(
