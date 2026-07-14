@@ -11,17 +11,20 @@ instances.
 """  # noqa: D205
 
 from collections.abc import Mapping
+from typing import Any
 
 import numpy as np
 import pandas as pd
-from pyrealm.demography.community import Cohorts, Community
+from pyrealm.demography.cohorts import Cohorts
 from pyrealm.demography.flora import Flora
 
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 
 
-class PlantCommunities(dict, Mapping[int, Community]):
+class PlantCommunities(
+    dict, Mapping[int, Any]
+):  ## pyrealm 3 HACK - Community replaced with Any
     """Records the plant community with each grid cell across a simulation.
 
     A ``PlantCommunities`` instance provides a dictionary mapping each grid cell onto a

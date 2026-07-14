@@ -14,7 +14,7 @@ from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
-from pyrealm.demography.community import Cohorts, Community
+from pyrealm.demography.cohorts import Cohorts
 from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
@@ -809,7 +809,10 @@ class PlantsModel(
                     raise ValueError("Last canopy.height is non-zero")
 
                 heights[fill_idx] = np.concatenate(
-                    [[[canopy.max_stem_height]], canopy.heights[0:-1, :]]
+                    [
+                        [[canopy.max_stem_height]],
+                        canopy.heights[0:-1, :],
+                    ]
                 )
 
                 # Insert canopy fapar:
@@ -1590,7 +1593,10 @@ class PlantsModel(
 
             # Add per-stem uptake to the biomass surplus pools
             self.biomasses[cell_id]._adjust_surpluses(
-                {"N": ammonium_uptake + nitrate_uptake, "P": phosphorous_uptake}
+                {
+                    "N": ammonium_uptake + nitrate_uptake,
+                    "P": phosphorous_uptake,
+                }
             )
 
     def convert_to_litter_units(self, input_mass: xr.DataArray) -> xr.DataArray:

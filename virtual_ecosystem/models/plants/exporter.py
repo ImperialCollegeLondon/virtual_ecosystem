@@ -17,7 +17,6 @@ from typing import ClassVar
 import numpy as np
 import pandas as pd
 from pyrealm.demography.canopy import Canopy, CohortCanopyData, CommunityCanopyData
-from pyrealm.demography.community import Cohorts
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
@@ -84,9 +83,12 @@ class CommunityDataExporter:
             [
                 "cell_id",
                 "time",
-                *StemAllometry.array_attrs,
-                *Cohorts.array_attrs,
-                *StemAllocation.array_attrs,
+                *StemAllometry._array_attrs,
+                # *list(Cohorts.columns),
+                # pyrealm 3 HACK - the object being exported is a Cohorts df instance
+                #    with columns but the imported object is the class not the instance and
+                #    that does not have columns
+                *StemAllocation._array_attrs,
                 *Biomasses.array_attrs,
             ]
         ),
@@ -96,7 +98,7 @@ class CommunityDataExporter:
                 "heights",
                 "cell_id",
                 "time",
-                *CommunityCanopyData.array_attrs,
+                *CommunityCanopyData._array_attrs,
             ]
         ),
         "stem_canopy_attributes": set(
@@ -105,7 +107,7 @@ class CommunityDataExporter:
                 "cohort_id",
                 "cell_id",
                 "time",
-                *CohortCanopyData.array_attrs,
+                *CohortCanopyData._array_attrs,
             ]
         ),
     }

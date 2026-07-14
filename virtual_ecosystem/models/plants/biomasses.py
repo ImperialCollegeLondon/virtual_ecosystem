@@ -75,8 +75,7 @@ from typing import ClassVar
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.demography.community import Community
-from pyrealm.demography.core import CohortMethods, PandasExporter
+from pyrealm.demography.core import ToDataFrameMixin
 from pyrealm.demography.tmodel import StemAllocation
 from xarray import DataArray
 
@@ -938,7 +937,7 @@ def pyrealm_handling(arr: NDArray):
 
 
 @dataclass
-class Biomasses(CohortMethods, PandasExporter):
+class Biomasses(ToDataFrameMixin):
     """A class holding biomasses for a set of plant cohorts and tissues.
 
     This class holds the current ratios across tissue type for a community object, which
