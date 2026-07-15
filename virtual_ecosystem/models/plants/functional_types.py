@@ -45,6 +45,11 @@ class VEFlora(Flora):
 
     # Additional traits populated during validation - these hold the reference values
     # for lai and tau_f, which are modified by herbivory.
+
+    # HACK pyrealm 3 - This doesn't really work properly with strict mode (which we want
+    #      to use) and the enforcement of equal lengths for attributes. It works for
+    #      now, but it probably makes more sense to add these directly after to Cohorts
+    #      after running create_cohorts. Keep this for now.
     lai_base: None | list[float] = None
     tau_f_base: None | list[float] = None
 
