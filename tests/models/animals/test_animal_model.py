@@ -2725,7 +2725,7 @@ class TestAnimalModel:
         model = prepared_animal_model_instance
         lyr_str = model.layer_structure
 
-        warm = 31.0
+        warm = 23.0
         cold = 5.0
 
         for key in ("air_temperature", "canopy_temperature", "soil_temperature"):
