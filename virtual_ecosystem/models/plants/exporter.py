@@ -86,8 +86,9 @@ class CommunityDataExporter:
                 *StemAllometry._array_attrs,
                 # *list(Cohorts.columns),
                 # pyrealm 3 HACK - the object being exported is a Cohorts df instance
-                #    with columns but the imported object is the class not the instance and
-                #    that does not have columns
+                #    with columns but the imported object is the class not the instance
+                #    and that does not have columns. Need to work out how to repopulate
+                #    this list - probably
                 *StemAllocation._array_attrs,
                 *Biomasses.array_attrs,
             ]
