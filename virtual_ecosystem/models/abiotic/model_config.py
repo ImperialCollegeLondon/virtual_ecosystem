@@ -139,10 +139,10 @@ class AbioticConstants(AbioticSharedConstants):
     initial_flux_value: float = 0.001
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
 
-    aerodynamic_resistance_canopy_night: float = 50.0
+    aerodynamic_resistance_canopy_night: float = 100.0
     """Aerodynamic resistance of the canopy at night, [s m-1]."""
 
-    aerodynamic_resistance_soil_night: float = 50.0
+    aerodynamic_resistance_soil_night: float = 100.0
     """Aerodynamic resistance of the soil at night, [s m-1]."""
 
     aerodynamic_resistance_canopy_day: float = 20.0

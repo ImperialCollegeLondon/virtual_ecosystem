@@ -1,6 +1,7 @@
 """Test module for abiotic.wind.py."""
 
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 
 
@@ -184,47 +185,85 @@ def test_calculate_mixing_coefficients():
     assert_allclose(zero_result, expected_zero_canopy)
 
 
-def test_clamp_variable_within_limits():
-    """Test clamping of variable within limits."""
+class TestClampVariableWithinLimits:
+    """Tests for clamp_variable_within_limits."""
 
-    from virtual_ecosystem.models.abiotic.wind import clamp_variable_within_limits
-
-    # Set limits
-    limits = (4, 6)
-
-    # Cells with mix of issues: undershoot and overshoot, can be absorbed by a single
-    # cell vs need to spread further up into canopy, empty layers and complete, and mix
-    # of under and overshoot. Two cases explicitly test the edge case where undershoot
-    # and overshoot cannot be absorbed within the canopy, leading to out of limit values
-    # in the top layer.
-
-    n = np.nan
-    variable = np.array(
+    @pytest.mark.parametrize(
+        "variable, limits, expected",
         [
-            [5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5, 5],
-            [5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5, 8],
-            [5, 5, 5, 5, 3, 4, 5, 5, 5, 7, 5, 2],
-            [5, n, 5, n, n, 4, 4, 5, n, n, 7, 7],
-            [5, 5, 3, 3, 5, 0, 2, 7, 7, 7, 9, 3],
-        ]
+            # No clamping needed — values within limits unchanged
+            (
+                np.array([[0.5, 0.5], [0.5, 0.5], [0.5, 0.5]], dtype=float),
+                (0.0, 1.0),
+                np.array([[0.5, 0.5], [0.5, 0.5], [0.5, 0.5]], dtype=float),
+            ),
+            # Upper clamp — residual propagates up one layer
+            (
+                np.array([[0.0, 0.0], [0.0, 0.0], [1.5, 1.5]], dtype=float),
+                (0.0, 1.0),
+                np.array([[0.0, 0.0], [0.5, 0.5], [1.0, 1.0]], dtype=float),
+            ),
+            # Lower clamp — negative residual propagates up
+            (
+                np.array([[0.5, 0.5], [0.0, 0.0], [-0.5, -0.5]], dtype=float),
+                (0.0, 1.0),
+                np.array([[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]], dtype=float),
+            ),
+            # Residual propagates across multiple layers
+            (
+                np.array([[0.0, 0.0], [0.9, 0.9], [1.5, 1.5]], dtype=float),
+                (0.0, 1.0),
+                np.array([[0.4, 0.4], [1.0, 1.0], [1.0, 1.0]], dtype=float),
+            ),
+            # Cell-varying NDArray limits — each cell clamped independently
+            (
+                np.array([[0.0, 0.0], [0.0, 0.0], [1.5, 1.5]], dtype=float),
+                (np.array([0.0, 0.0]), np.array([1.0, 2.0])),
+                np.array([[0.0, 0.0], [0.5, 0.0], [1.0, 1.5]], dtype=float),
+            ),
+        ],
     )
+    def test_clamping(self, variable, limits, expected):
+        """Clamping behaviour: no clamp, upper, lower, multi-layer, and array limits."""
 
-    variable_expected = np.array(
-        [
-            [5, 5, 5, 5, 5, 0, 5, 5, 5, 6, 7, 5],
-            [5, 5, 5, 5, 4, 4, 4, 5, 5, 6, 6, 6],
-            [5, 5, 5, 4, 4, 4, 4, 5, 6, 6, 6, 4],
-            [5, n, 4, n, n, 4, 4, 6, n, n, 6, 6],
-            [5, 5, 4, 4, 5, 4, 4, 6, 6, 6, 6, 4],
-        ]
-    )
+        from virtual_ecosystem.models.abiotic.wind import clamp_variable_within_limits
 
-    clamped_variable = clamp_variable_within_limits(variable=variable, limits=limits)
+        result = clamp_variable_within_limits(variable.copy(), limits)
+        np.testing.assert_allclose(result, expected)
 
-    assert_allclose(clamped_variable, variable_expected)
+    def test_nan_skipped_and_residual_carried(self):
+        """NaN cells are skipped and residuals carried to next valid layer above."""
 
-    # sanity checks: the column sums should be maintained.
-    assert_allclose(variable.sum(axis=0), clamped_variable.sum(axis=0))
+        from virtual_ecosystem.models.abiotic.wind import clamp_variable_within_limits
+
+        variable = np.array(
+            [[0.0], [np.nan], [1.5]],
+            dtype=float,
+        )
+        result = clamp_variable_within_limits(variable, limits=(0.0, 1.0))
+
+        np.testing.assert_allclose(result[2], [1.0])  # clamped
+        assert np.isnan(result[1])  # NaN preserved
+        np.testing.assert_allclose(result[0], [0.5])  # residual absorbed
+
+    def test_column_total_conserved(self):
+        """Column totals are conserved when all residuals can be absorbed."""
+
+        from virtual_ecosystem.models.abiotic.wind import clamp_variable_within_limits
+
+        variable = np.array([[0.0, 0.0], [0.0, 0.0], [1.5, 0.8]], dtype=float)
+        original_total = variable.sum(axis=0).copy()
+        result = clamp_variable_within_limits(variable, limits=(0.0, 1.0))
+        np.testing.assert_allclose(result.sum(axis=0), original_total)
+
+    def test_top_layer_can_exceed_limits(self):
+        """Top layer is allowed to exceed limits if residuals cannot be absorbed."""
+
+        from virtual_ecosystem.models.abiotic.wind import clamp_variable_within_limits
+
+        variable = np.array([[0.9], [1.5]], dtype=float)
+        result = clamp_variable_within_limits(variable, limits=(0.0, 1.0))
+        assert result[0] > 1.0
 
 
 def test_next_valid_above(dummy_climate_data_varying_canopy):
@@ -331,7 +370,7 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
         input_variable=input_humidity,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
-        limits=(0, 100),
+        limits=(0, np.repeat(100, 4)),
         surface_index=lyrstr.index_surface_scalar,
     )
     assert_allclose(result_hum, exp_hum, rtol=1e-6, atol=1e-6)
@@ -340,7 +379,7 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
         input_variable=input_temp,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
-        limits=(-20, 100),
+        limits=(-20, np.repeat(80, 4)),
         surface_index=lyrstr.index_surface_scalar,
     )
     assert_allclose(result_temp, exp_temp, rtol=1e-6, atol=1e-6)
