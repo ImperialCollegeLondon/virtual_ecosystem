@@ -103,11 +103,16 @@ class AnimalCohort:
         """The list of grid cells currently occupied by the cohort."""
         self.sigma_f_t: float = 1.0
         """The Activity window fraction in [0, 1]."""
-        self.current_temperature: float = constants.placeholder_annual_mean_temp
+        self.reference_temp: float = self.functional_group.reference_annual_mean_temp
+        """The mean reference temp of the functional group over vertical strata."""
+        self.current_temperature: float = (
+            self.functional_group.reference_annual_mean_temp
+        )
         """Mean territory temperature [°C] last recorded by
-        :meth:`update_activity_window`. Seeded to the placeholder annual mean so
-        that endotherms and any cohort that calls :meth:`metabolize` before its
-        first activity-window update receive a physically reasonable value."""
+        :meth:`update_activity_window`. Seeded to the functional group's reference
+        annual mean so that endotherms and any cohort that calls :meth:`metabolize`
+        before its first activity-window update receive a physically reasonable
+        value."""
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = find_decay_consumed_split(

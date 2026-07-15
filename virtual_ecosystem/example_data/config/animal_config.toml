@@ -31,6 +31,9 @@ cohort_attributes = [
   "reproductive_mass_carbon",
   "reproductive_mass_nitrogen",
   "reproductive_mass_phosphorus",
+  "activity_window_proportion",
+  "reference_temp",
+  "current_temperature",
 ]
 
 float_format = "%0.5f"
