@@ -1253,6 +1253,12 @@ class AnimalModel(
             dt: The time passed in the timestep.
         """
 
+        if any(
+            c.centroid_key >= self.data.grid.n_cells
+            for c in self.active_cohorts.values()
+        ):
+            raise ValueError("cohort centroid outside self.data.grid — grid mismatch")
+
         dt_days = float(dt / timedelta64(1, "D"))
 
         for cohort in self.active_cohorts.values():
@@ -1274,7 +1280,7 @@ class AnimalModel(
 
             candidate_keys = cells_within_distance(
                 # find all the grid cells within migrating distance
-                self.grid,
+                self.data.grid,
                 cohort.centroid_key,
                 cohort.get_dispersal_distance(dt_days),
             )

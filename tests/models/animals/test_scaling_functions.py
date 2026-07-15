@@ -679,6 +679,7 @@ def test_dispersal_distance(
     assert calculated_distance == pytest.approx(expected_distance, rel=1e-6)
 
 
+@pytest.mark.parametrize("populate_matrix", [False, True], ids=["on_demand", "cached"])
 @pytest.mark.parametrize(
     "centroid_key, distance_m, expected_keys",
     [
@@ -689,10 +690,7 @@ def test_dispersal_distance(
             id="below_one_cell_clamps_to_orthogonal_neighbours",
         ),
         pytest.param(
-            12,
-            10.0,
-            [7, 11, 13, 17],
-            id="exactly_one_cell_excludes_diagonals",
+            12, 10.0, [7, 11, 13, 17], id="exactly_one_cell_excludes_diagonals"
         ),
         pytest.param(
             12,
@@ -706,21 +704,13 @@ def test_dispersal_distance(
             [2, 6, 7, 8, 10, 11, 13, 14, 16, 17, 18, 22],
             id="two_cells_excludes_knight_offsets",
         ),
-        pytest.param(
-            0,
-            10.0,
-            [1, 5],
-            id="corner_centroid_is_clipped_not_wrapped",
-        ),
-        pytest.param(
-            10,
-            10.0,
-            [5, 11, 15],
-            id="edge_centroid_is_clipped_not_wrapped",
-        ),
+        pytest.param(0, 10.0, [1, 5], id="corner_centroid_is_clipped_not_wrapped"),
+        pytest.param(10, 10.0, [5, 11, 15], id="edge_centroid_is_clipped_not_wrapped"),
     ],
 )
-def test_cells_within_distance(centroid_key, distance_m, expected_keys):
+def test_cells_within_distance(
+    populate_matrix, centroid_key, distance_m, expected_keys
+):
     """Test the Euclidean reachability set on a 5x5 grid of 10 m cells.
 
     A diagonal neighbour lies sqrt(2) ~ 14.14 m away, so it enters the set only once
@@ -728,16 +718,19 @@ def test_cells_within_distance(centroid_key, distance_m, expected_keys):
     Manhattan diamond and the Chebyshev square. The ``two_cells`` case additionally
     checks that offsets such as (1, 2), at sqrt(5) ~ 22.4 m, are excluded at a 20 m
     radius even though they are only two orthogonal steps away.
+
+    Both the on-demand and cached branches of
+    :meth:`~virtual_ecosystem.core.grid.Grid.get_distances` are exercised via
+    ``populate_matrix``; they must return identical reachable sets.
     """
+    from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.models.animal.scaling_functions import cells_within_distance
 
-    reachable = cells_within_distance(
-        centroid_key=centroid_key,
-        distance_m=distance_m,
-        cell_side=10.0,
-        cell_nx=5,
-        cell_ny=5,
-    )
+    grid = Grid(grid_type="square", cell_area=100.0, cell_nx=5, cell_ny=5)
+    if populate_matrix:
+        grid.populate_distances()
+
+    reachable = cells_within_distance(grid, centroid_key, distance_m)
 
     assert sorted(reachable) == expected_keys
     assert centroid_key not in reachable

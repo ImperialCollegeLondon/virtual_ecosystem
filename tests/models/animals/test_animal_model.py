@@ -1206,6 +1206,9 @@ class TestAnimalModel:
 
         cohort = herbivore_cohort_instance
         cohort.age = age
+        # Pin the centroid to a valid cell of the model's data grid so the
+        # out-of-grid centroid guard in migrate_community does not fire.
+        cohort.centroid_key = animal_model_instance.data.grid.cell_id[0]
         for element in ("C", "N", "P"):
             setattr(
                 cohort.mass_cnp,
@@ -1239,11 +1242,9 @@ class TestAnimalModel:
             mock_migrate.assert_called_once_with(cohort, mocker.ANY)
 
             expected_destinations = cells_within_distance(
-                centroid_key=cohort.centroid_key,
-                distance_m=cell_side,
-                cell_side=cell_side,
-                cell_nx=animal_model_instance.data.grid.cell_nx,
-                cell_ny=animal_model_instance.data.grid.cell_ny,
+                animal_model_instance.data.grid,
+                cohort.centroid_key,
+                cell_side,
             )
             _, destination = mock_migrate.call_args.args
             assert destination in expected_destinations
