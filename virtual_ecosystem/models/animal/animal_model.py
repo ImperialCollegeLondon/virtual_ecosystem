@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import uuid
 from itertools import chain
-from math import ceil, sqrt
+from math import ceil
 from random import choice
 from typing import Any, cast
 
@@ -303,6 +303,9 @@ class AnimalModel(
         """
 
         self.model_constants = model_constants
+
+        # initialize grid distances for use by dispersal methods
+        self.data.grid.populate_distances()
 
         # Which density scaling equations are used, "damuth" or "madingley"
         self.density_scaling_method = self.model_constants.density_scaling_method
@@ -1251,7 +1254,6 @@ class AnimalModel(
         """
 
         dt_days = float(dt / timedelta64(1, "D"))
-        cell_side = sqrt(self.data.grid.cell_area)
 
         for cohort in self.active_cohorts.values():
             is_starving = cohort.is_below_mass_threshold(
@@ -1272,11 +1274,9 @@ class AnimalModel(
 
             candidate_keys = cells_within_distance(
                 # find all the grid cells within migrating distance
+                self.grid,
                 cohort.centroid_key,
                 cohort.get_dispersal_distance(dt_days),
-                cell_side,
-                self.data.grid.cell_nx,
-                self.data.grid.cell_ny,
             )
 
             if not candidate_keys:

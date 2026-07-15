@@ -10,6 +10,7 @@ from math import asin, ceil, exp, isnan, log, pi
 import numpy as np
 from scipy.special import expit
 
+from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
@@ -661,91 +662,43 @@ def dispersal_distance(
 
 
 def cells_within_distance(
+    grid: Grid,
     centroid_key: int,
     distance_m: float,
-    cell_side: float,
-    cell_nx: int,
-    cell_ny: int,
 ) -> list[int]:
-    """Grid cells reachable from a centroid within a given travel distance.
+    """Grid cells whose centroids lie within a travel distance of a centroid.
 
-    Reachability is Euclidean: a cell is reachable if the straight-line distance
-    between its centre and the centroid's centre is no greater than ``distance_m``.
-    The set returned is therefore the disc of radius ``distance_m`` about the
-    centroid, clipped to the grid bounds and with the centroid itself excluded.
+    Reachability is Euclidean centroid-to-centroid, delegated to
+    :meth:`~virtual_ecosystem.core.grid.Grid.get_distances`, which matches the metric
+    used by :meth:`~virtual_ecosystem.core.grid.Grid.set_neighbours`. When the grid's
+    full distance matrix has been populated via
+    :meth:`~virtual_ecosystem.core.grid.Grid.populate_distances`, this reads the cached
+    distances; otherwise it falls back to computing the single row on demand, returning
+    identical values either way.
 
-    This follows Madingley, in which a dispersing cohort travels a vector of length
-    ``d_i`` in a random direction. Because the dispersal distance is already in
-    metres, the disc can be evaluated directly against cell-centre geometry rather
-    than being approximated by counting orthogonal or diagonal grid steps. Step-count
-    metrics distort the disc: Manhattan distance overcharges diagonal movement
-    (a diagonal neighbour costs two steps rather than the true 1.41 cell-widths),
-    while Chebyshev distance undercharges it (a diagonal neighbour costs one).
-
-    The radius is clamped to a minimum of one cell side, so that a cohort whose
-    dispersal is triggered always has somewhere to go, even when its travel distance
-    is shorter than a single cell. This preserves the single-cell move for slow
-    cohorts: the dispersal *probability* already scales with distance, so distance
-    must not also be allowed to shrink the destination set to nothing, or short-range
-    dispersers would never move at all.
-
-    Note:
-        Cell centres are used as the reference points, so a cell is reachable when
-        its centre is within range even if part of the cell is not, and vice versa.
-        This is the same centroid-to-centroid abstraction used everywhere else in
-        the territory and dispersal code.
+    The distance is clamped to a minimum of one cell side so that a triggered dispersal
+    always has at least the orthogonal neighbours available, even for a cohort too slow
+    to clear a single cell.
 
     Args:
+        grid: The simulation grid.
         centroid_key: The grid cell key anchoring the move.
         distance_m: The distance the cohort can travel this timestep [m].
-        cell_side: The side length of a grid cell [m].
-        cell_nx: Number of cells along the x-axis.
-        cell_ny: Number of cells along the y-axis.
 
     Returns:
         The keys of all in-bounds cells within reach, excluding the centroid itself.
     """
 
-    # Clamp to at least one cell side so a triggered move is always possible.
-    radius_m = max(distance_m, cell_side)
+    # Clamp to at least one cell side. Uses <= below, matching set_neighbours, so the
+    # orthogonal neighbours at exactly sqrt(cell_area) are retained.
+    distance_m = max(distance_m, np.sqrt(grid.cell_area))
 
-    # Grid keys are row-major: key = row * cell_nx + col. Recover the centroid's
-    # (row, col) so offsets are applied in grid space rather than key space, where a
-    # +1 offset would silently wrap across the row boundary.
-    row, col = divmod(int(centroid_key), int(cell_nx))
+    # get_distances returns shape (1, n_cells); the reachable cell ids are the column
+    # indices of the single row, hence [1].
+    reachable = np.where(grid.get_distances(centroid_key, None) <= distance_m)[1]
 
-    # The disc is inscribed in a square of half-width `radius_cells`, so only that
-    # bounding box needs scanning. Cells in the box but outside the disc are then
-    # rejected by the distance test below.
-    radius_cells = int(radius_m // cell_side)
-
-    # Compare squared distances to avoid a square root in the inner loop.
-    radius_sq = (radius_m / cell_side) ** 2
-
-    reachable: list[int] = []
-
-    for dr in range(-radius_cells, radius_cells + 1):
-        for dc in range(-radius_cells, radius_cells + 1):
-            # The centroid is the cohort's current cell, not a destination.
-            if dr == 0 and dc == 0:
-                continue
-
-            # Euclidean test in units of cell sides. Diagonal neighbours sit at
-            # sqrt(2) ~ 1.41 cell-widths and so are only reachable once the cohort
-            # can travel that far, which is the behaviour the step-count metrics
-            # were failing to capture.
-            if dr * dr + dc * dc > radius_sq:
-                continue
-
-            nr, nc = row + dr, col + dc
-
-            # Bounds check in grid space. Out-of-grid cells are dropped rather than
-            # wrapped, so an edge cohort simply has fewer destinations. This matches
-            # the non-periodic boundary used by bfs_territory.
-            if 0 <= nr < cell_ny and 0 <= nc < cell_nx:
-                reachable.append(nr * cell_nx + nc)
-
-    return reachable
+    # The centroid's self-distance is zero, so drop it from the destination set.
+    return reachable[reachable != centroid_key].tolist()
 
 
 def territory_size(
