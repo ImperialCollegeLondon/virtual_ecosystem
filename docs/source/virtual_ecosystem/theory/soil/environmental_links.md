@@ -38,6 +38,49 @@ is the the rate at which nutrients leach from the soil. As such, this process do
 fit into any of the cases mentioned already, and so it will be discussed in a separate
 section.
 
+## Finding soil and litter layer temperatures
+
+Before we discuss the different classes of environmental response, we need to mention
+how the environment itself is determined. The temperatures and soil waster potentials
+are calculated using the abiotic and hydrology models which use their own layer
+definitions that do not correspond to the depth of the biotically active topsoil.
+
+:::{note}
+
+The Virtual Ecosystem uses two different definitions of "topsoil", the uppermost layer
+of the hydrology model and the entire simulated depth of the soil model. This allows the
+depth of soil that is considered to be (microbially active) topsoil to be altered by
+users, without forcing them to update the entire setup of the hydrology model to match.
+In places in the documentation where both definitions of topsoil are pertinent the soil
+model specific definition of topsoil is referred to as the "biotic topsoil".
+
+:::
+
+For the above-ground litter, things are pretty straightforward as the air temperature of
+the layer immediately above the soil surface is just used. (As this litter is
+above-ground, soil water potential is not relevant).
+
+The below-ground litter is assumed to be spread out evenly over the topsoil, so the
+process for calculating the relevant soil temperatures is identical to that of the
+(biotic) topsoil (which we discuss below).
+
+The (biotic) topsoil is simulated as a single stratum (of user configurable) depth. This
+stratum uses a homogeneous environment, e.g. a single temperature is used for its entire
+extent. The environmental variables for this stratum are calculated as follows:
+
+$$
+T = \sum^N_{i=1} f_i *\frac{V_{i-1} + V_{i}}{2}
+$$
+
+where $N$ is the number of soil layers, $f_i$ is the fraction of soil layer $i$ that
+lies within the (biotic) topsoil, and $V_{i}$ is the value of the environmental variable
+of interest at depth $i$. No values are generated for "layer zero", so for each variable
+we need to choose a value for it. For temperature, we chose $T_0$ to be the air
+temperature of the layer immediately above the soil surface. For soil water potential,
+we set $\psi_0 = \psi_1$, which amounts to assuming that the soil water potential does
+not change between the soil surface and the first depth simulated by the hydrology
+model.
+
 ## Changes to rates of implicitly microbially driven processes
 
 The soil model explicitly represents the soil microbes involved in decomposition.
