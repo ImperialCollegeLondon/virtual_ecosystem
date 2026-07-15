@@ -80,7 +80,7 @@ from pyrealm.demography.tmodel import StemAllocation
 from xarray import DataArray
 
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
+from virtual_ecosystem.models.plants.communities import Community
 
 
 @dataclass
@@ -119,9 +119,6 @@ class BiomassTissueABC(ABC):
     """A tissue name for derived classes."""
     community: Community
     """The community object that the tissue is associated with."""
-    extra_pft_traits: ExtraTraitsPFT
-    # TODO: consider where best to store shared attributes like community - probably at
-    #       the Biomasses level and synchronise across tissues.
 
     carbon_mass: NDArray[np.floating]
     """An 1D array of tissue carbon mass for each stem in cohorts in the community."""
@@ -134,7 +131,6 @@ class BiomassTissueABC(ABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of Tissue based on the PFT traits."""
@@ -317,11 +313,9 @@ class FoliageBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of FoliageBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
@@ -329,20 +323,13 @@ class FoliageBiomass(BiomassTissueABC):
         # object!
         carbon_mass = pyrealm_handling(community.stem_allometry.foliage_mass.copy())
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][f"foliage_c_{elem.lower()}_ratio"]
-                    for name in pft_names
-                ]
-            )
-            turnover_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][
-                        f"leaf_turnover_c_{elem.lower()}_ratio"
-                    ]
-                    for name in pft_names
-                ]
-            )
+            ideal_ratio = community.cohorts[
+                f"foliage_c_{elem.lower()}_ratio"
+            ].to_numpy()
+
+            turnover_ratio = community.cohorts[
+                f"leaf_turnover_c_{elem.lower()}_ratio"
+            ].to_numpy()
 
             element_masses[elem] = Element(
                 name=elem,
@@ -353,7 +340,6 @@ class FoliageBiomass(BiomassTissueABC):
 
         return cls(
             carbon_mass=carbon_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
@@ -407,11 +393,9 @@ class ReproductiveBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of FoliageBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
@@ -421,15 +405,10 @@ class ReproductiveBiomass(BiomassTissueABC):
         )
 
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][
-                        f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
-                    ]
-                    for name in pft_names
-                ]
-            )
             # Turnover ratio is identical to ideal ratio
+            ideal_ratio = community.cohorts[
+                f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
+            ]
             turnover_ratio = ideal_ratio
 
             element_masses[elem] = Element(
@@ -441,7 +420,6 @@ class ReproductiveBiomass(BiomassTissueABC):
 
         return cls(
             carbon_mass=carbon_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
@@ -458,7 +436,7 @@ class ReproductiveBiomass(BiomassTissueABC):
 
         carbon_increase = pyrealm_handling(
             allocation.delta_foliage_mass
-            * self.community.stem_traits.p_foliage_for_reproductive_tissue
+            * self.community.cohorts["p_foliage_for_reproductive_tissue"]
         )
         self.carbon_mass += carbon_increase
 
@@ -503,18 +481,14 @@ class FruitBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of FoliageBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
         # Get the proportion of reproductive tissue allocated to fruit
-        fruit_fraction = [
-            extra_pft_traits.traits[name]["fruit_flesh_fraction"] for name in pft_names
-        ]
+        fruit_fraction = community.cohorts["fruit_flesh_fraction"]
 
         # Multiplication here avoids the need to copy() the array to avoid the reference
         # back to the allometry
@@ -523,14 +497,9 @@ class FruitBiomass(BiomassTissueABC):
         )
 
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][
-                        f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
-                    ]
-                    for name in pft_names
-                ]
-            )
+            ideal_ratio = community.cohorts[
+                f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
+            ]
             # Turnover ratio is identical to ideal ratio
             turnover_ratio = ideal_ratio
 
@@ -543,7 +512,6 @@ class FruitBiomass(BiomassTissueABC):
 
         return cls(
             carbon_mass=carbon_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
@@ -558,14 +526,11 @@ class FruitBiomass(BiomassTissueABC):
             ratio for the tissue.
         """
 
-        fruit_fraction = [
-            self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
-            for name in self.community.cohorts.pft_names
-        ]
+        fruit_fraction = self.community.cohorts["fruit_flesh_fraction"]
 
         carbon_increase = pyrealm_handling(
             allocation.delta_foliage_mass
-            * self.community.stem_traits.p_foliage_for_reproductive_tissue
+            * self.community.cohorts["p_foliage_for_reproductive_tissue"]
             * fruit_fraction
         )
         self.carbon_mass += carbon_increase
@@ -588,20 +553,15 @@ class FruitBiomass(BiomassTissueABC):
             The element quantity lost to turnover for reproductive tissue.
         """
 
+        # Get the proportion of reproductive tissue allocated to fruit
+        carbon_turnover = (
+            pyrealm_handling(allocation.reproductive_tissue_turnover)
+            * self.community.cohorts["fruit_flesh_fraction"]
+        )
+
         # TODO: Caching locally to avoid calling the property constructor for each
         # element  - maybe this should a cached property?
-
         cx_ratios = self.Cx_ratio
-
-        # Get the proportion of reproductive tissue allocated to fruit
-        fruit_fraction = [
-            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
-            for name in self.community.cohorts.pft_names
-        ]
-
-        carbon_turnover = (
-            pyrealm_handling(allocation.reproductive_tissue_turnover) * fruit_fraction
-        )
 
         elemental_turnovers = {
             ky: (carbon_turnover * (1 / cx_ratios[ky]))
@@ -621,37 +581,25 @@ class SeedBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of FoliageBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
         # Get the proportion of reproductive tissue allocated to seed
-        seed_fraction = [
-            1 - extra_pft_traits.traits[name]["fruit_flesh_fraction"]
-            for name in pft_names
-        ]
-
-        # Multiplication here avoids the need to copy() the array to avoid the reference
-        # back to the allometry
-        carbon_mass = (
-            pyrealm_handling(community.stem_allometry.reproductive_tissue_mass)
-            * seed_fraction
+        # - Multiplication here avoids the need to copy() the array to avoid the
+        #   reference back to the allometry
+        carbon_mass = pyrealm_handling(
+            community.stem_allometry.reproductive_tissue_mass
+            * (1 - community.cohorts["fruit_flesh_fraction"])
         )
 
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][
-                        f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
-                    ]
-                    for name in pft_names
-                ]
-            )
             # Turnover ratio is identical to ideal ratio
+            ideal_ratio = community.cohorts[
+                f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
+            ]
             turnover_ratio = ideal_ratio
 
             element_masses[elem] = Element(
@@ -663,7 +611,6 @@ class SeedBiomass(BiomassTissueABC):
 
         return cls(
             carbon_mass=carbon_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
@@ -679,15 +626,10 @@ class SeedBiomass(BiomassTissueABC):
         """
 
         # Get the proportion of reproductive tissue allocated to seed
-        seed_fraction = [
-            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
-            for name in self.community.cohorts.pft_names
-        ]
-
         carbon_increase = pyrealm_handling(
             allocation.delta_foliage_mass
-            * self.community.stem_traits.p_foliage_for_reproductive_tissue
-            * seed_fraction
+            * self.community.cohorts.p_foliage_for_reproductive_tissue
+            * self.community.cohorts["fruit_flesh_fraction"]
         )
         self.carbon_mass += carbon_increase
 
@@ -715,13 +657,8 @@ class SeedBiomass(BiomassTissueABC):
         cx_ratios = self.Cx_ratio
 
         # Get the proportion of reproductive tissue allocated to seed
-        seed_fraction = [
-            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
-            for name in self.community.cohorts.pft_names
-        ]
-
-        carbon_turnover = (
-            pyrealm_handling(allocation.reproductive_tissue_turnover) * seed_fraction
+        carbon_turnover = pyrealm_handling(allocation.reproductive_tissue_turnover) * (
+            1 - self.community.cohorts["fruit_flesh_fraction"]
         )
 
         elemental_turnovers = {
@@ -742,11 +679,9 @@ class StemBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of WoodBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
@@ -754,12 +689,7 @@ class StemBiomass(BiomassTissueABC):
         carbon_mass = pyrealm_handling(community.stem_allometry.stem_mass.copy())
 
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][f"deadwood_c_{elem.lower()}_ratio"]
-                    for name in pft_names
-                ]
-            )
+            ideal_ratio = community.cohorts[f"deadwood_c_{elem.lower()}_ratio"]
             turnover_ratio = np.zeros_like(ideal_ratio)
 
             element_masses[elem] = Element(
@@ -771,7 +701,6 @@ class StemBiomass(BiomassTissueABC):
 
         return cls(
             carbon_mass=carbon_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
@@ -822,30 +751,21 @@ class RootBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of FoliageBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
         # until pyrealm 2.0.1
         fine_root_mass = pyrealm_handling(
             community.stem_allometry.foliage_mass
-            * community.stem_traits.zeta
-            * community.stem_traits.sla
+            * community.cohorts["zeta"]
+            * community.cohorts["sla"]
         )
 
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][
-                        f"root_turnover_c_{elem.lower()}_ratio"
-                    ]
-                    for name in pft_names
-                ]
-            )
+            ideal_ratio = community.cohorts[f"root_turnover_c_{elem.lower()}_ratio"]
             turnover_ratio = np.ones_like(ideal_ratio)
 
             element_masses[elem] = Element(
@@ -860,7 +780,6 @@ class RootBiomass(BiomassTissueABC):
         return cls(
             # carbon_mass=community.stem_allometry.fine_root_mass,
             carbon_mass=fine_root_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
@@ -877,8 +796,8 @@ class RootBiomass(BiomassTissueABC):
 
         carbon_increase = pyrealm_handling(
             allocation.delta_foliage_mass
-            * self.community.stem_traits.zeta
-            * self.community.stem_traits.sla
+            * self.community.cohorts["zeta"]
+            * self.community.cohorts["sla"]
         )
 
         self.carbon_mass += carbon_increase
@@ -954,8 +873,6 @@ class Biomasses(ToDataFrameMixin):
     """The community object that the stoichiometry is associated with."""
     element_surpluses: dict[str, NDArray[np.floating]] = field(init=False)
     """The surplus of the element per cohort."""
-    extra_pft_traits: ExtraTraitsPFT
-    """Additional traits specific to the plant functional types."""
     tissue_names: list[str] = field(init=False)
     """A list giving the name of each tissue."""
     elements: tuple[str, ...] = field(init=False)
@@ -1003,14 +920,13 @@ class Biomasses(ToDataFrameMixin):
         # the constructor. Is there ever a case we'd use the __init__ though?
 
         self.element_surplus = {
-            elem: np.zeros(self.community.n_cohorts) for elem in self.elements
+            elem: np.zeros(len(self.community.cohorts)) for elem in self.elements
         }
 
     @classmethod
     def default_init(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
         tissues: list[type[BiomassTissueABC]],
     ):
@@ -1031,7 +947,6 @@ class Biomasses(ToDataFrameMixin):
         default_tissues: list[BiomassTissueABC] = [
             tissue.from_pft_default_ratios(
                 community=community,
-                extra_pft_traits=extra_pft_traits,
                 with_elements=with_elements,
             )
             for tissue in tissues
@@ -1040,7 +955,6 @@ class Biomasses(ToDataFrameMixin):
         return cls(
             tissues=default_tissues,
             community=community,
-            extra_pft_traits=extra_pft_traits,
         )
 
     @property

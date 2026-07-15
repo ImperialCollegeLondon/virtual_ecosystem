@@ -7,23 +7,11 @@ from xarray import DataArray
 
 
 @pytest.fixture
-def flora(fixture_configuration):
+def fixture_flora(fixture_configuration):
     """Construct a minimal Flora object."""
     from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
-    flora, _ = get_flora_from_config(config=fixture_configuration.plants)
-
-    return flora
-
-
-@pytest.fixture
-def extra_pft_traits(fixture_configuration):
-    """Construct a minimal Flora object."""
-    from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
-
-    _, extra_pft_traits = get_flora_from_config(config=fixture_configuration.plants)
-
-    return extra_pft_traits
+    return get_flora_from_config(config=fixture_configuration.plants)
 
 
 @pytest.fixture

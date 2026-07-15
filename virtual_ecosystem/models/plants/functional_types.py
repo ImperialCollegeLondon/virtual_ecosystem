@@ -3,12 +3,10 @@
 * Defines an extended :class:`~pyrealm.demography.flora.Flora` class to hold additional
   traits used in the Virtual Ecosystem and to add required computed and reference traits
 
-* Provides a simple loader with error checking for failure modes.
+* Provides a simple loader function with error checking for failure modes.
 """  # noqa: D415
 
 from __future__ import annotations
-
-from typing import ClassVar
 
 import pandas as pd
 from pydantic import computed_field, model_validator
@@ -24,9 +22,11 @@ class VEFlora(Flora):
     required for the Virtual Ecosystem.
     """
 
-    # HACK pyrealm3 - mutable defaults. Somehow this is OK in the pyrealm definition of
-    #      Flora , but not here. It might be better to have them as tuples throughout.
-    #      See: https://github.com/ImperialCollegeLondon/pyrealm/issues/695
+    # HACK pyrealm3 - extended class has mutable defaults. Somehow this is OK in the
+    #      pyrealm definition of Flora , but not here. It might be better to have them
+    #      as tuples throughout. See:
+    #           https://github.com/ImperialCollegeLondon/pyrealm/issues/695
+
     # ruff: disable[RUF012]
     deadwood_c_n_ratio: list[float] = [60.7]
     deadwood_c_p_ratio: list[float] = [856.5]
@@ -85,8 +85,7 @@ def get_flora_from_config(config: PlantsConfiguration) -> VEFlora:
         config: A validated PlantsConfiguration instance.
 
     Returns:
-        A tuple containing a populated :class:`pyrealm.demography.flora.Flora` instance
-        and an :class:`ExtraTraitsPFT` instance.
+        A  populated :class:`VEFlora` instance.
     """
 
     # Read the file, handling file IO and parsing errors.
@@ -96,79 +95,3 @@ def get_flora_from_config(config: PlantsConfiguration) -> VEFlora:
         raise excep
 
     return flora
-
-
-class ExtraTraitsPFT:  ## TODO pyrealm3 - kill this once Community rehashed.
-    """A dataclass to hold additional traits for a plant functional type.
-
-    This class is used to store traits that are not part of the standard PFT definition
-    in Pyrealm, but are used in the Virtual Ecosystem. Each instance of this class maps
-    to one PFT, keyed by the PFT name. The structure is:
-
-    {'pft_name': {'trait_name': trait_value, ...},
-     'pft_name_2': {'trait_name': trait_value, ...}, ...}
-    """
-
-    array_attrs: ClassVar[tuple[str, ...]] = (
-        "deadwood_c_n_ratio",
-        "deadwood_c_p_ratio",
-        "leaf_turnover_c_n_ratio",
-        "leaf_turnover_c_p_ratio",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
-        "root_turnover_c_p_ratio",
-        "root_turnover_c_n_ratio",
-        "foliage_c_n_ratio",
-        "foliage_c_p_ratio",
-        "c_mass_fruit_flesh",
-        "c_mass_per_fruit_seed",
-        "seeds_per_fruit",
-    )
-    """Additional array attributes accepted by the ExtraTraitsPFT class."""
-
-    traits: dict[str, dict[str, float]]
-
-    def __init__(self, traits: dict[str, dict[str, float]]):
-        """Initialise the ExtraTraitsPFT instance with a dictionary of traits."""
-        self.traits = traits
-
-        # Calculate the fruit flesh fraction from the masses and seed number
-        for pft in self.traits.keys():
-            self.traits[pft]["fruit_flesh_fraction"] = self.traits[pft][
-                "c_mass_fruit_flesh"
-            ] / (
-                self.traits[pft]["c_mass_fruit_flesh"]
-                + (
-                    self.traits[pft]["c_mass_per_fruit_seed"]
-                    * self.traits[pft]["seeds_per_fruit"]
-                )
-            )
-
-    @classmethod
-    def _from_file_data(cls, input_traits: list) -> ExtraTraitsPFT:
-        """Initialise the ExtraTraitsPFT instance.
-
-        Args:
-            input_traits: A list of dictionaries, where each dictionary represents
-                traits for a plant functional type.
-        """
-        traits = {}
-        for pft in input_traits:
-            traits[pft["name"]] = {k: v for k, v in pft.items() if k != "name"}
-
-        return cls(traits)
-
-    @classmethod
-    def from_df(cls, df) -> ExtraTraitsPFT:
-        """Load additional traits from a DataFrame.
-
-        Args:
-            df: A pandas DataFrame containing additional traits.
-
-        Returns:
-            An instance of ExtraTraitsPFT with the loaded traits.
-        """
-
-        traits = df.to_dict(orient="records")
-
-        return cls._from_file_data(traits)

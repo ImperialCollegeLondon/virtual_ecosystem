@@ -10,21 +10,44 @@ of size-structured plant cohorts using :class:`pyrealm.demography.community.Coho
 instances.
 """  # noqa: D205
 
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Iterator, Mapping
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
-from pyrealm.demography.cohorts import Cohorts
-from pyrealm.demography.flora import Flora
+from pyrealm.demography.cohorts import Cohorts, create_cohorts
+from pyrealm.demography.tmodel import StemAllometry
 
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.plants.functional_types import VEFlora
 
 
-class PlantCommunities(
-    dict, Mapping[int, Any]
-):  ## pyrealm 3 HACK - Community replaced with Any
+@dataclass
+class Community:
+    """A representation of a community.
+
+    This replaces the now deprecated pyrealm.demography.community.Community class and is
+    a temporary placeholder as we move the plants model over to adopt pyrealm 3.
+
+    """
+
+    # pyrealm 3 HACK - temporary stand-in. The plan is to remove Community completely,
+    # have all cohorts at the simulation level and only move to communities for canopy
+    # and GPP calculations
+
+    cell_id: int
+    cell_area: float
+    flora: VEFlora
+    cohorts: Cohorts
+    stem_allometry: StemAllometry = field(init=False)
+
+    def __post_init__(self):
+        """Populates the stem allometry."""
+        self.stem_allometry = StemAllometry(self.cohorts)
+
+
+class PlantCommunities(dict, Mapping[int, Community]):
     """Records the plant community with each grid cell across a simulation.
 
     A ``PlantCommunities`` instance provides a dictionary mapping each grid cell onto a
@@ -54,15 +77,23 @@ class PlantCommunities(
         flora: A flora containing the plant functional types used in the cohorts.
         grid: The grid for the simulation, providing the area of the grid cells and the
                 expected cell ids.
+        cohort_id_generator: An iterator providing cohort IDs.
     """
 
-    def __init__(self, cohort_data: pd.DataFrame, flora: Flora, grid: Grid):
+    def __init__(
+        self,
+        cohort_data: pd.DataFrame,
+        flora: VEFlora,
+        grid: Grid,
+        cohort_id_generator: Iterator,
+    ):
         """Initialise the community object.
 
         Args:
             cohort_data: A pandas dataframe of cohort data.
             flora: A flora object.
             grid: A grid object
+            cohort_id_generator: An iterator providing cohort IDs.
         """
 
         # Validate the data being used to generate the Plants object form a dataframe
@@ -97,7 +128,7 @@ class PlantCommunities(
             raise ValueError(msg)
 
         # Check the PFTs are known
-        bad_pfts = set(cohort_data["plant_cohorts_pft"]).difference(flora.name.tolist())
+        bad_pfts = set(cohort_data["plant_cohorts_pft"]).difference(flora.name)
         if bad_pfts:
             msg = "Plant cohort data includes PFT names not in flora: " + ",".join(
                 bad_pfts
@@ -112,17 +143,21 @@ class PlantCommunities(
             if cell_id in communities:
                 # Build cohorts object with provided data
                 cell_cohort_data = communities[cell_id]
-                cohorts = Cohorts(
+                cohorts = create_cohorts(
+                    flora=flora,
+                    cid_generator=cohort_id_generator,
+                    dbh_value=cell_cohort_data["plant_cohorts_dbh"].to_numpy(),
+                    pft_name=cell_cohort_data["plant_cohorts_pft"].to_numpy(),
                     n_individuals=cell_cohort_data["plant_cohorts_n"].to_numpy(),
-                    pft_names=cell_cohort_data["plant_cohorts_pft"].to_numpy(),
-                    dbh_values=cell_cohort_data["plant_cohorts_dbh"].to_numpy(),
                 )
             else:
                 # Empty cohorts object
-                cohorts = Cohorts(
-                    dbh_values=np.array([]),
+                cohorts = create_cohorts(
+                    flora=flora,
+                    cid_generator=cohort_id_generator,
+                    dbh_value=np.array([]),
+                    pft_name=np.array([]),
                     n_individuals=np.array([]),
-                    pft_names=np.array([]),
                 )
 
             self[cell_id] = Community(

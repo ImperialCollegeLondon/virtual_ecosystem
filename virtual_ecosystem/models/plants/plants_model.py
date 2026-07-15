@@ -5,6 +5,7 @@ the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
 import numpy as np
@@ -14,8 +15,7 @@ from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
-from pyrealm.demography.cohorts import Cohorts
-from pyrealm.demography.flora import Flora
+from pyrealm.demography.cohorts import Cohorts, cohort_id_generator
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
 
@@ -39,10 +39,10 @@ from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
     initialise_canopy_layers,
 )
-from virtual_ecosystem.models.plants.communities import PlantCommunities
+from virtual_ecosystem.models.plants.communities import Community, PlantCommunities
 from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 from virtual_ecosystem.models.plants.functional_types import (
-    ExtraTraitsPFT,
+    VEFlora,
     get_flora_from_config,
 )
 from virtual_ecosystem.models.plants.model_config import (
@@ -232,9 +232,8 @@ class PlantsModel(
         data: Data,
         core_components: CoreComponents,
         exporter: CommunityDataExporter,
-        flora: Flora,
+        flora: VEFlora,
         cohort_data: pandas.DataFrame,
-        extra_pft_traits: ExtraTraitsPFT,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
         static: bool = False,
@@ -249,12 +248,12 @@ class PlantsModel(
         super().__init__(data, core_components, static)
 
         # Define and populate model specific attributes
-        self.flora: Flora
+        self.flora: VEFlora
         """A flora containing the plant functional types used in the plants model."""
         self.initial_cohort_data: pandas.DataFrame
         """A dataframe providing the initial cohort data."""
-        self.extra_pft_traits: ExtraTraitsPFT
-        """The extra traits for each plant functional type, keyed by PFT name."""
+        self.cohort_id_generator: Iterator
+        """Set of constants for the plants model"""
         self.model_constant: PlantsConstants
         """Set of constants for the plants model"""
         self.communities: PlantCommunities
@@ -311,21 +310,22 @@ class PlantsModel(
         """A CommunityDataExporter instance providing configuration and methods for
         export of community data."""
 
+        self.cohort_id_generator = cohort_id_generator(mode="str")
+        # Initialise the cohort generator.
+
         # Run the setup if the model is not in deep static mode
         if self._run_setup:
             self._setup(
                 flora=flora,
                 cohort_data=cohort_data,
-                extra_pft_traits=extra_pft_traits,
                 model_constants=model_constants,
                 pyrealm_config=pyrealm_config,
             )
 
     def _setup(
         self,
-        flora: Flora,
+        flora: VEFlora,
         cohort_data: pandas.DataFrame,
-        extra_pft_traits: ExtraTraitsPFT,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
     ) -> None:
@@ -336,7 +336,6 @@ class PlantsModel(
 
         # Set the instance attributes from the __init__ arguments
         self.flora = flora
-        self.extra_pft_traits = extra_pft_traits
         self.model_constants = model_constants
 
         # Adjust flora rates to timestep
@@ -362,13 +361,12 @@ class PlantsModel(
         object.__setattr__(self.flora, "tau_r", self.flora.tau_r * updates_per_year)
         object.__setattr__(self.flora, "tau_rt", self.flora.tau_rt * updates_per_year)
 
-        # Need to store tau_f_base in the extra traits to use to reset after herbivory
-        # effects have been estimated.
-        self.extra_pft_traits.traits["tau_f_base"] = self.flora.tau_f
-
         # Now build the communities with the updated rates
         self.communities = PlantCommunities(
-            cohort_data=cohort_data, flora=self.flora, grid=self.grid
+            cohort_data=cohort_data,
+            flora=self.flora,
+            grid=self.grid,
+            cohort_id_generator=self.cohort_id_generator,
         )
 
         # Define the set of tissues to be tracked for each stem.
@@ -386,7 +384,6 @@ class PlantsModel(
         self.biomasses = {
             cell_id: Biomasses.default_init(
                 community=community,
-                extra_pft_traits=extra_pft_traits,
                 with_elements=["N", "P"],
                 tissues=self.biomass_tissues,
             )
@@ -582,7 +579,7 @@ class PlantsModel(
         )
 
         # Generate the flora
-        flora, extra_traits = get_flora_from_config(config=model_configuration)
+        flora = get_flora_from_config(config=model_configuration)
 
         # Load the initial cohort data - use of FILEPATH_PLACEHOLDER guarantees that
         # this path has been set and exists.
@@ -608,7 +605,6 @@ class PlantsModel(
                 static=model_configuration.static,
                 flora=flora,
                 cohort_data=cohort_data,
-                extra_pft_traits=extra_traits,
                 model_constants=model_configuration.constants,
                 exporter=exporter,
                 pyrealm_config=core_configuration.pyrealm,
@@ -967,17 +963,17 @@ class PlantsModel(
 
             # Note here that LAI is calculated reset to the PFT standard before the
             # stem allocation is next calculated
-            community.stem_traits.lai = (
-                (average_foliage_mass * community.stem_traits.sla)
+            community.cohorts["lai"] = (
+                (average_foliage_mass * community.cohorts["sla"])
                 / community.stem_allometry.crown_area
             ).squeeze()
 
             # 3. Increase leaf turnover to account for herbivory replacement costs
             #    within T model
-            community.stem_traits.tau_f = (
-                (community.stem_allometry.foliage_mass * community.stem_traits.tau_f)
+            community.cohorts["tau_f"] = (
+                (community.stem_allometry.foliage_mass * community.cohorts["tau_f"])
                 / (
-                    foliage_carbon_loss * community.stem_traits.tau_f
+                    foliage_carbon_loss * community.cohorts["tau_f"]
                     + community.stem_allometry.foliage_mass
                 )
             ).squeeze()
@@ -1199,8 +1195,8 @@ class PlantsModel(
             # Calculate the allocation of GPP in kgC m2 per stem, since the T Model is
             # calibrated using per kg values.
             stem_allocation = StemAllocation(
-                stem_traits=community.stem_traits,
-                stem_allometry=community.stem_allometry,
+                cohorts=community.cohorts,
+                allometry=community.stem_allometry,
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
 
@@ -1353,22 +1349,11 @@ class PlantsModel(
 
         for community in self.communities.values():
             # Reset LAI
-            community.stem_traits.lai = np.array(
-                [
-                    self.extra_pft_traits.traits[pft]["lai_base"]
-                    for pft in community.cohorts.pft_names
-                ]
-            )
+            community.cohorts["lai"] = community.cohorts["lai_base"]
 
             # Reset tau_f adjusting for update speed.
-            community.stem_traits.tau_f = (
-                np.array(
-                    [
-                        self.extra_pft_traits.traits[pft]["tau_f_base"]
-                        for pft in community.cohorts.pft_names
-                    ]
-                )
-                * self.model_timing.updates_per_year
+            community.cohorts["tau_f"] = (
+                community.cohorts["tau_f_base"] * self.model_timing.updates_per_year
             )
 
             # Update community allometry with new dbh values
@@ -1506,7 +1491,6 @@ class PlantsModel(
                 )
                 new_biomasses = Biomasses.default_init(
                     community=new_community,
-                    extra_pft_traits=self.extra_pft_traits,
                     with_elements=["N", "P"],
                     tissues=self.biomass_tissues,
                 )
