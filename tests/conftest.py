@@ -308,11 +308,6 @@ def generate_config_strings(
         start_date = "2020-01-01"
         update_interval = "2 weeks"
         run_length = "50 years"
-        [core.data_output_options]
-        save_initial_state = true
-        save_final_state = true
-        out_initial_file_name = "model_at_start.nc"
-        out_final_file_name = "model_at_end.nc"
 
         [core.layers]
         canopy_layers = 10
@@ -493,7 +488,13 @@ def dummy_litter_data(fixture_core_components):
 
     data["air_temperature"] = lyr_strct.from_template()
     data["air_temperature"][lyr_strct.index_filled_atmosphere] = np.array(
-        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+        [
+            30.0,
+            29.844995,
+            28.87117,
+            27.206405,
+            16.145945,
+        ]
     )[:, None]
 
     # Stoichiometric variables
@@ -767,7 +768,13 @@ def dummy_climate_data(fixture_core_components):
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
-        [32.0, 30.0, 20.0, 10.0, lyr_str.surface_layer_height]
+        [
+            32.0,
+            30.0,
+            20.0,
+            10.0,
+            lyr_str.surface_layer_height,
+        ]
     )[:, None]
 
     data["layer_heights"][lyr_str.index_all_soil] = lyr_str.soil_layer_depths[:, None]
@@ -785,12 +792,24 @@ def dummy_climate_data(fixture_core_components):
 
     data["air_temperature"] = from_template()
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.8, 28.9, 27.2, 22.0]
+        [
+            30.0,
+            29.8,
+            28.9,
+            27.2,
+            22.0,
+        ]
     )[:, None]
 
     data["diurnal_temperature_range"] = from_template()
     data["diurnal_temperature_range"][lyr_str.index_filled_atmosphere] = np.array(
-        [5, 4, 3, 2, 1]
+        [
+            5,
+            4,
+            3,
+            2,
+            1,
+        ]
     )[:, None]
 
     data["soil_temperature"] = from_template()
@@ -798,22 +817,43 @@ def dummy_climate_data(fixture_core_components):
 
     data["matric_potential"] = from_template()
     data["matric_potential"][lyr_str.index_all_soil] = np.array(
-        [[-3.0, -10.0, -250.0, -10000.0], [-3.0, -10.0, -250.0, -10000.0]]
+        [
+            [-3.0, -10.0, -250.0, -10000.0],
+            [-3.0, -10.0, -250.0, -10000.0],
+        ]
     )
 
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
-        [90.0, 91.0, 93.0, 96.0, 98.0]
+        [
+            90.0,
+            91.0,
+            93.0,
+            96.0,
+            98.0,
+        ]
     )[:, None]
 
     data["vapour_pressure"] = from_template()
     data["vapour_pressure"][lyr_str.index_filled_atmosphere] = np.array(
-        [3.82, 3.82, 3.70, 3.46, 2.59]
+        [
+            3.82,
+            3.82,
+            3.70,
+            3.46,
+            2.59,
+        ]
     )[:, None]
 
     data["vapour_pressure_deficit"] = from_template()
     data["vapour_pressure_deficit"][lyr_str.index_filled_atmosphere] = np.array(
-        [0.42, 0.37, 0.27, 0.14, 0.05]
+        [
+            0.42,
+            0.37,
+            0.27,
+            0.14,
+            0.05,
+        ]
     )[:, None]
 
     data["shortwave_absorption"] = from_template()
@@ -845,7 +885,11 @@ def dummy_climate_data(fixture_core_components):
 
     data["canopy_temperature"] = from_template()
     data["canopy_temperature"][lyr_str.index_filled_canopy] = np.array(
-        [29.8, 28.9, 27.2]
+        [
+            29.8,
+            28.9,
+            27.2,
+        ]
     )[:, None]
     data["canopy_temperature"][lyr_str.index_surface_scalar] = 22.0
 

@@ -113,22 +113,37 @@ def dummy_carbon_data(fixture_core_components):
 
     data["matric_potential"] = lyr_str.from_template()
     data["matric_potential"][lyr_str.index_all_soil] = np.array(
-        [[-3.0, -10.0, -250.0, -10000.0], [-2.8625, -8.978, -137.8, -8553.25]]
+        [
+            [-3.0, -10.0, -250.0, -10000.0],
+            [-2.8625, -8.978, -137.8, -8553.25],
+        ]
     )
 
     data["soil_temperature"] = lyr_str.from_template()
     data["soil_temperature"][lyr_str.index_all_soil] = np.array(
-        [[35.0, 37.5, 40.0, 25.0], [22.5, 22.5, 22.5, 22.5]]
+        [
+            [35.0, 37.5, 40.0, 25.0],
+            [22.5, 22.5, 22.5, 22.5],
+        ]
     )
 
     data["vertical_flow"] = lyr_str.from_template()
     data["vertical_flow"][lyr_str.index_all_soil] = np.array(
-        [[0.1, 0.5, 2.5, 1.59], [0.15, 0.75, 2.75, 1.33]]
+        [
+            [0.1, 0.5, 2.5, 1.59],
+            [0.15, 0.75, 2.75, 1.33],
+        ]
     )
 
     data["air_temperature"] = lyr_str.from_template()
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+        [
+            30.0,
+            29.844995,
+            28.87117,
+            27.206405,
+            16.145945,
+        ]
     )[:, None]
 
     data["decomposed_excrement_cnp"] = DataArray(
@@ -186,7 +201,8 @@ def fixture_soil_configuration(microbial_groups_cfg):
 
     config_data = ConfigurationLoader(
         cfg_strings=[
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'",
+            "[core.grid]\ncell_nx = 2\ncell_ny=2\n"
+            "[core.timing]\nupdate_interval = '12 hours'",
             "[hydrology]",
             microbial_groups_cfg,
         ]
