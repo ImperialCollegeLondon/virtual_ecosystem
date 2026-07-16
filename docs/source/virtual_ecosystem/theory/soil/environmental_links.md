@@ -41,9 +41,9 @@ section.
 ## Finding soil and litter layer temperatures
 
 Before we discuss the different classes of environmental response, we need to mention
-how the environment itself is determined. The temperatures and soil waster potentials
-are calculated using the abiotic and hydrology models which use their own layer
-definitions that do not correspond to the depth of the biotically active topsoil.
+how the environment itself is determined. The temperatures and soil water potentials are
+calculated using the abiotic and hydrology models which use their own layer definitions
+that do not correspond to the depth of the biotically active topsoil.
 
 :::{note}
 
@@ -51,7 +51,7 @@ The Virtual Ecosystem uses two different definitions of "topsoil", the uppermost
 of the hydrology model and the entire simulated depth of the soil model. This allows the
 depth of soil that is considered to be (microbially active) topsoil to be altered by
 users, without forcing them to update the entire setup of the hydrology model to match.
-In places in the documentation where both definitions of topsoil are pertinent the soil
+In places in the documentation where both definitions of topsoil are pertinent, the soil
 model specific definition of topsoil is referred to as the "biotic topsoil".
 
 :::

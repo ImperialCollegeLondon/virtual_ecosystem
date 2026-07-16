@@ -59,7 +59,7 @@ ecosystems.
 The soil model is a topsoil model, and does not represent subsoil processes. Our
 justification for doing this is that the topsoil is far more microbially active, so the
 majority of changes in total soil carbon storage are due to changes in this layer. While
-changes in subsoil absolutely do effect total soil carbon storage, we did not believe
+changes in subsoil absolutely do affect total soil carbon storage, we did not believe
 that the size of the effect would justify the the additional modelling complexity it
 would entail.
 
