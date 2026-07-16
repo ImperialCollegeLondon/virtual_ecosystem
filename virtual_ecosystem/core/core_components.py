@@ -54,7 +54,7 @@ class CoreComponents:
         self.layer_structure = LayerStructure(
             config=config.layers,
             n_cells=self.grid.n_cells,
-            max_depth_of_microbial_activity=self.core_constants.max_depth_of_microbial_activity,
+            microbial_simulation_depth=self.core_constants.microbial_simulation_depth,
         )
         self.model_timing = ModelTiming(config=config.timing)
 
@@ -185,14 +185,14 @@ class LayerStructure:
         is created and are constant through the runtime of the model.
 
         1. The ``active_soil`` role indicates soil layers that fall even partially above
-           the configured `max_depth_of_microbial_activity`. The `soil_layer_thickness`
+           the configured `microbial_simulation_depth`. The `soil_layer_thickness`
            attribute provides the thickness of each soil layer - including both top- and
            sub-soil layers - and the `soil_layer_active_thickness` records the thickness
-           of biologically active soil within each layer. Note that the ``soil_layers``
-           provides the sequence of depths of soil horizons relative to the surface and
-           these values provide the thickness of individual layers: the default
-           ``soil_layers`` values of ``[-0.25, -1.00]`` give thickness values of
-           ``[0.25, 0.75]``.
+           of soil within the soil-microbial simulation zone within each layer. Note
+           that the ``soil_layers`` provides the sequence of depths of soil horizons
+           relative to the surface and these values provide the thickness of individual
+           layers: the default ``soil_layers`` values of ``[-0.25, -1.00]`` give
+           thickness values of ``[0.25, 0.75]``.
 
         2. The ``all_soil`` role is the combination of the ``topsoil`` and ``subsoil``
            layers.
@@ -261,8 +261,8 @@ class LayerStructure:
     # these values rather than doing it internally.
     n_cells: InitVar[int]
     """The number of grid cells in the simulation."""
-    max_depth_of_microbial_activity: float
-    """The maximum soil depth of significant microbial activity."""
+    microbial_simulation_depth: float
+    """Depth above which soil is included in the soil-microbial simulation [m]."""
 
     # Attributes populated by __post_init__
     n_canopy_layers: int = field(init=False)
@@ -363,10 +363,10 @@ class LayerStructure:
 
         # Check that the maximum depth of the last layer is greater than the max depth
         # of microbial activity.
-        if self.soil_layer_depths[-1] > -self.max_depth_of_microbial_activity:
+        if self.soil_layer_depths[-1] > -self.microbial_simulation_depth:
             to_raise = ConfigurationError(
-                "Maximum depth of soil layers is less than the maximum depth "
-                "of microbial activity"
+                "Maximum depth of soil layers is less than the soil-microbial "
+                "simulation depth"
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -377,7 +377,7 @@ class LayerStructure:
         self.soil_layer_active_thickness = np.clip(
             np.minimum(
                 self.soil_layer_thickness,
-                (soil_layer_boundaries + self.max_depth_of_microbial_activity)[:-1],
+                (soil_layer_boundaries + self.microbial_simulation_depth)[:-1],
             ),
             a_min=0,
             a_max=np.inf,

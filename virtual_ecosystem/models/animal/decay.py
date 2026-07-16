@@ -369,7 +369,7 @@ class SoilPool:
         cell_id: int,
         data: "Data",
         cell_area: float,
-        max_depth_microbial_activity: float,
+        microbial_simulation_depth: float,
         c_n_p_ratios: dict[str, dict[str, float]],
     ) -> None:
         accepted_names = ["pom", "bacteria", "fungi"]
@@ -389,18 +389,18 @@ class SoilPool:
         if pool_name == "pom":
             self.mass_cnp = self._extract_pom_cnp_mass(
                 data=data,
-                biotic_activity_depth=max_depth_microbial_activity,
+                microbial_simulation_depth=microbial_simulation_depth,
             )
         elif pool_name == "bacteria":
             self.mass_cnp = self._extract_bacteria_cnp_mass(
                 data=data,
-                biotic_activity_depth=max_depth_microbial_activity,
+                microbial_simulation_depth=microbial_simulation_depth,
                 c_n_p_ratios_bacteria=c_n_p_ratios["bacteria"],
             )
         else:
             self.mass_cnp = self._extract_fungi_cnp_mass(
                 data=data,
-                biotic_activity_depth=max_depth_microbial_activity,
+                microbial_simulation_depth=microbial_simulation_depth,
                 c_n_p_ratios=c_n_p_ratios,
             )
 
@@ -411,13 +411,13 @@ class SoilPool:
                 f"({self.mass_cnp})."
             )
 
-    def _extract_pom_cnp_mass(self, data: Data, biotic_activity_depth: float):
+    def _extract_pom_cnp_mass(self, data: Data, microbial_simulation_depth: float):
         """Extract the CNP masses of the :term`POM` soil pool.
 
         Args:
             data: The Virtual Ecosystem data object
-            biotic_activity_depth: The soil depth at which biotic activity is assumed to
-                halt [m]
+            microbial_simulation_depth: Depth of the zone simulated by the
+                soil-microbial model [m]
         """
 
         carbon_stock = (
@@ -432,24 +432,24 @@ class SoilPool:
 
         # Convert stocks (kg m^-3) into masses by multiplying by grid square area and by
         # soil active depth
-        carbon_mass = carbon_stock * self.cell_area * biotic_activity_depth
-        nitrogen_mass = nitrogen_stock * self.cell_area * biotic_activity_depth
-        phosphorus_mass = phosphorus_stock * self.cell_area * biotic_activity_depth
+        carbon_mass = carbon_stock * self.cell_area * microbial_simulation_depth
+        nitrogen_mass = nitrogen_stock * self.cell_area * microbial_simulation_depth
+        phosphorus_mass = phosphorus_stock * self.cell_area * microbial_simulation_depth
 
         return CNP(C=carbon_mass, N=nitrogen_mass, P=phosphorus_mass)
 
     def _extract_bacteria_cnp_mass(
         self,
         data: Data,
-        biotic_activity_depth: float,
+        microbial_simulation_depth: float,
         c_n_p_ratios_bacteria: dict[str, float],
     ):
         """Extract the CNP masses of the soil bacteria pool.
 
         Args:
             data: The Virtual Ecosystem data object
-            biotic_activity_depth: The soil depth at which biotic activity is assumed to
-                halt [m]
+            microbial_simulation_depth: Depth of the zone simulated by the
+                soil-microbial model [m]
             c_n_p_ratios_bacteria: Carbon to nitrogen and carbon to phosphorus ratios
                 for bacterial biomass [unitless]
         """
@@ -464,7 +464,7 @@ class SoilPool:
 
         # Convert stock (kg m^-3) into mass by multiplying by grid square area and by
         # soil active depth
-        carbon_mass = carbon_stock * self.cell_area * biotic_activity_depth
+        carbon_mass = carbon_stock * self.cell_area * microbial_simulation_depth
         nitrogen_mass = carbon_mass / c_n_p_ratios_bacteria["N"]
         phosphorus_mass = carbon_mass / c_n_p_ratios_bacteria["P"]
 
@@ -473,7 +473,7 @@ class SoilPool:
     def _extract_fungi_cnp_mass(
         self,
         data: Data,
-        biotic_activity_depth: float,
+        microbial_simulation_depth: float,
         c_n_p_ratios: dict[str, dict[str, float]],
     ):
         """Extract the CNP masses of the soil fungi pools.
@@ -488,8 +488,8 @@ class SoilPool:
 
         Args:
             data: The Virtual Ecosystem data object
-            biotic_activity_depth: The soil depth at which biotic activity is assumed to
-                halt [m]
+            microbial_simulation_depth: Depth of the zone simulated by the
+                soil-microbial model [m]
             c_n_p_ratios: Carbon to nitrogen and carbon to phosphorus ratios for soil
                 microbial pools [unitless]
         """
@@ -539,9 +539,9 @@ class SoilPool:
 
         # Convert stock (kg m^-3) into mass by multiplying by grid square area and by
         # soil active depth
-        carbon_mass = carbon_stock * self.cell_area * biotic_activity_depth
-        nitrogen_mass = nitrogen_stock * self.cell_area * biotic_activity_depth
-        phosphorus_mass = phosphorus_stock * self.cell_area * biotic_activity_depth
+        carbon_mass = carbon_stock * self.cell_area * microbial_simulation_depth
+        nitrogen_mass = nitrogen_stock * self.cell_area * microbial_simulation_depth
+        phosphorus_mass = phosphorus_stock * self.cell_area * microbial_simulation_depth
 
         return CNP(C=carbon_mass, N=nitrogen_mass, P=phosphorus_mass)
 

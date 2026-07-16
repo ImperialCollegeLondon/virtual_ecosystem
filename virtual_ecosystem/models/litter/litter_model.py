@@ -323,7 +323,7 @@ class LitterModel(
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
             ).magnitude,
-            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
+            microbial_simulation_depth=self.core_constants.microbial_simulation_depth,
         )
 
         # Calculate all the litter chemistry changes

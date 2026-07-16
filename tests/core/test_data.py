@@ -2,12 +2,12 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, ERROR, INFO, WARNING
-from pathlib import Path
 
 import numpy as np
 import pytest
 import xarray as xr
-from xarray import DataArray, Dataset, open_dataset, testing
+from xarray import DataArray, Dataset
+from xarray.testing import assert_allclose
 
 from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import ConfigurationError
@@ -710,209 +710,127 @@ def test_on_core_axis(
         assert str(err.value) == err_message
 
 
-@pytest.mark.parametrize(
-    argnames=["folder", "file_name", "raises", "save_specific", "exp_log"],
-    argvalues=[
-        (None, "initial.nc", does_not_raise(), False, ()),
-        (None, "initial.nc", does_not_raise(), True, ()),
-        (
-            "bad_folder",
-            "initial.nc",
-            pytest.raises(ConfigurationError),
-            "",
-            (
-                (
-                    CRITICAL,
-                    "The user specified output directory (bad_folder) doesn't exist!",
-                ),
-            ),
-        ),
-        (
-            "pyproject.toml",
-            "initial.nc",
-            pytest.raises(ConfigurationError),
-            False,
-            (
-                (
-                    CRITICAL,
-                    "The user specified output folder (pyproject.toml) isn't a "
-                    "directory!",
-                ),
-            ),
-        ),
-        (
-            None,
-            "already_exists.nc",
-            pytest.raises(ConfigurationError),
-            False,
-            (
-                (
-                    CRITICAL,
-                    "A file in the user specified output folder (",
-                ),
-            ),
-        ),
-    ],
-)
-def test_save_to_netcdf(
+@pytest.mark.parametrize(argnames="group", argvalues=("vars", None))
+@pytest.mark.parametrize(argnames="save_specific", argvalues=(False, True))
+def test_save_to_zarr(
     shared_datadir,
-    caplog,
-    fixture_core_components,
     dummy_litter_data,
-    folder,
-    file_name,
+    group,
     save_specific,
-    raises,
-    exp_log,
 ):
-    """Test that data object can save as NetCDF."""
+    """Test that data object can save as Zarr.
 
-    if folder:
-        out_path = Path(folder) / file_name
+    This tests combinations of:
+    1. writing all or some variables, and
+    2. writing data to a group within the Zarr store.
+    """
+
+    out_path = shared_datadir / "test_output.zarr"
+
+    if save_specific:
+        dummy_litter_data.save_to_zarr(
+            output_file_path=out_path,
+            group=group,
+            variables_to_save=["litter_pool_woody_cnp"],
+        )
     else:
-        out_path = shared_datadir / file_name
+        dummy_litter_data.save_to_zarr(output_file_path=out_path, group=group)
 
-    with raises:
-        if save_specific:
-            dummy_litter_data.save_to_netcdf(
-                output_file_path=out_path,
-                timing=fixture_core_components.model_timing,
-                variables_to_save=["litter_pool_woody_cnp"],
-            )
-        else:
-            dummy_litter_data.save_to_netcdf(
-                output_file_path=out_path,
-                timing=fixture_core_components.model_timing,
-            )
+    # Load in zarr data to check the contents
+    # NOTE - For some reason, unless the engine is specified, the xarray process to
+    #        guess the engine runs into a permissions issue.
+    saved_data = xr.open_dataset(
+        out_path, group=group, engine="zarr", consolidated=False
+    )
 
-        # Load in netcdf data to check the contents
-        saved_data = xr.open_dataset(out_path)
+    # Then check that expected keys are in it and the values match
+    assert "litter_pool_woody_cnp" in saved_data
+    assert_allclose(
+        dummy_litter_data["litter_pool_woody_cnp"],
+        saved_data["litter_pool_woody_cnp"],
+    )
 
-        # Then check that expected keys are in it
-        if save_specific:
-            assert "litter_pool_woody_cnp" in saved_data
-            assert "litter_pool_above_metabolic_cnp" not in saved_data
-        else:
-            assert "litter_pool_woody_cnp" in saved_data
-            assert "litter_pool_above_metabolic_cnp" in saved_data
+    if save_specific:
+        assert "litter_pool_above_metabolic_cnp" not in saved_data
+    else:
+        assert "litter_pool_above_metabolic_cnp" in saved_data
 
-        # Close the dataset (otherwise windows has a problem)
-        saved_data.close()
-
-    log_check(caplog, exp_log)
+    # Close the dataset (otherwise windows has a problem)
+    saved_data.close()
 
 
-@pytest.mark.parametrize(
-    argnames=["folder", "file_name", "raises", "expected_log"],
-    argvalues=[
-        (
-            "bad_folder",
-            "initial.nc",
-            pytest.raises(ConfigurationError),
-            (
-                (INFO, "Replacing data array for 'lignin_woody'"),
-                (
-                    CRITICAL,
-                    "The user specified output directory (bad_folder) doesn't exist!",
-                ),
-            ),
-        ),
-        (
-            "pyproject.toml",
-            "initial.nc",
-            pytest.raises(ConfigurationError),
-            (
-                (INFO, "Replacing data array for 'lignin_woody'"),
-                (
-                    CRITICAL,
-                    "The user specified output folder (pyproject.toml) isn't a "
-                    "directory!",
-                ),
-            ),
-        ),
-        (
-            None,
-            "already_exists.nc",
-            pytest.raises(ConfigurationError),
-            (
-                (INFO, "Replacing data array for 'lignin_woody'"),
-                (CRITICAL, "A file in the user specified output folder ("),
-            ),
-        ),
-        (
-            None,
-            "continuous1.nc",
-            does_not_raise(),
-            (),
-        ),
-    ],
-)
-def test_save_timeslice_to_netcdf(
-    caplog, shared_datadir, dummy_litter_data, folder, file_name, raises, expected_log
+@pytest.mark.parametrize(argnames="group", argvalues=("vars", None))
+@pytest.mark.parametrize(argnames="save_specific", argvalues=(False, True))
+def test_save_current_state_to_zarr(
+    shared_datadir, dummy_litter_data, group, save_specific
 ):
-    """Test that data object can append to an existing NetCDF file."""
+    """Test that the save current state method appends correctly."""
 
-    if folder:
-        out_path = Path(folder) / file_name
+    out_path = shared_datadir / "test_output.zarr"
+
+    # Write data to zarr
+    var_to_save = ["lignin_woody", "soil_temperature"] if save_specific else []
+    dummy_litter_data.save_current_state_to_zarr(
+        out_path,
+        group=group,
+        variables_to_save=var_to_save,
+        time_index=0,
+        timestamp=np.datetime64("2000-01-01"),
+    )
+
+    # NOTE - For some reason, unless the engine is specified, the xarray process to
+    #        guess the engine runs into a permissions issue.
+    saved_data = xr.open_dataset(out_path, group=group, engine="zarr")
+
+    assert "lignin_woody" in saved_data
+    # The saved data should now have coords with time_index in them but otherwise be the
+    # same as the values in the data object
+    vals = dummy_litter_data["lignin_woody"].to_numpy().copy()
+    expected = xr.DataArray(
+        vals[None, :],
+        coords=dict(time_index=np.array([0]), cell_id=np.arange(4)),
+    )
+    assert_allclose(expected, saved_data["lignin_woody"])
+
+    if save_specific:
+        assert "litter_pool_above_metabolic_cnp" not in saved_data
     else:
-        out_path = shared_datadir / file_name
+        assert "litter_pool_above_metabolic_cnp" in saved_data
 
-    with raises:
-        # Change data to check that appending works
-        dummy_litter_data["lignin_woody"] = DataArray(
-            [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
-        )
-        dummy_litter_data["soil_temperature"][12][0] = 15.0
-        # Append data to netcdf file
-        dummy_litter_data.save_timeslice_to_netcdf(
-            out_path,
-            variables_to_save=["lignin_woody", "soil_temperature"],
-            time_index=1,
-            timestamp=np.datetime64("2000-01-01"),
-        )
+    # Alter the data and export again to the next step
+    dummy_litter_data["lignin_woody"] *= 2
 
-        # Load file, and then check that contents meet expectation
-        saved_data = xr.open_dataset(out_path)
-        xr.testing.assert_allclose(
-            saved_data["lignin_woody"],
-            DataArray(
-                [[0.1, 0.05, 0.2, 0.01]],
-                dims=["time_index", "cell_id"],
-                coords={"cell_id": [0, 1, 2, 3], "time_index": [1]},
-            ),
-        )
-        xr.testing.assert_allclose(
-            saved_data["soil_temperature"].isel(layers=range(11, 14)),
-            DataArray(
-                [
-                    [
-                        [np.nan, np.nan, np.nan, np.nan],
-                        [15.0, 20, 20, 20],
-                        [19.5, 18.7, 18.7, 17.6],
-                    ],
-                ],
-                dims=["time_index", "layers", "cell_id"],
-                coords={
-                    "cell_id": [0, 1, 2, 3],
-                    "time_index": [1],
-                    "layers": [11, 12, 13],
-                    "layer_roles": ("layers", ["surface", "topsoil", "subsoil"]),
-                },
-            ),
-        )
+    dummy_litter_data.save_current_state_to_zarr(
+        out_path,
+        group=group,
+        variables_to_save=var_to_save,
+        time_index=1,
+        timestamp=np.datetime64("2001-01-01"),
+    )
 
-        # Check that only expected variables were added
-        assert set(saved_data.keys()) == {
-            "lignin_woody",
-            "soil_temperature",
-            "timestamp",
-        }
-        # Finally, close the dataset
-        saved_data.close()
+    # Load in zarr data to check the contents
+    # NOTE - For some reason, unless the engine is specified, the xarray process to
+    #        guess the engine runs into a permissions issue.
+    saved_data = xr.open_dataset(
+        out_path, group=group, engine="zarr", consolidated=False
+    )
 
-    # Finally check that the error message was as expected
-    if expected_log:
-        log_check(caplog, expected_log)
+    assert "lignin_woody" in saved_data
+    # The saved data should now have coords with time_index in them but otherwise be the
+    # same as the values in the data object
+    expected = xr.DataArray(
+        np.vstack([vals, vals * 2]),
+        coords=dict(time_index=np.array([0, 1]), cell_id=np.arange(4)),
+    )
+    assert_allclose(expected, saved_data["lignin_woody"])
+
+    if save_specific:
+        assert "litter_pool_above_metabolic_cnp" not in saved_data
+    else:
+        assert "litter_pool_above_metabolic_cnp" in saved_data
+
+    # Finally, close the dataset
+    saved_data.close()
 
 
 def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
@@ -953,179 +871,5 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="elevation",
-        ),
-    )
-
-
-@pytest.mark.parametrize("time_index", [0, 1])
-def test_output_current_state(mocker, dummy_litter_data, time_index):
-    """Test that function to output the current data state works as intended."""
-
-    # Set up the registry with the litter model
-    from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
-
-    register_module("virtual_ecosystem.models.litter")
-
-    # Patch the relevant lower level function so no actual files get saved.
-    mock_save = mocker.patch("virtual_ecosystem.main.Data.save_timeslice_to_netcdf")
-
-    # Extract model from registry and put into expected dictionary format
-    models_cfd = {"litter": MODULE_REGISTRY["litter"].model}
-
-    # Only variables in the data object that are updated by a model should be output
-    all_variables = [
-        models_cfd[model_nm].vars_updated for model_nm in models_cfd.keys()
-    ]
-    # Then flatten the list to generate list of variables to output
-    variables_to_save = [item for sublist in all_variables for item in sublist]
-
-    # Then call the top level function
-    outpath = dummy_litter_data.output_current_state(
-        variables_to_save=variables_to_save,
-        output_directory_path=Path("."),
-        time_index=time_index,
-        timestamp=np.datetime64("2000-01-01"),
-    )
-
-    # Check that the mocked function was called once with correct input (which is
-    # calculated in the higher level function)
-    mock_save.assert_called_once()
-    assert mock_save.call_args == mocker.call(
-        output_file_path=Path(f"./continuous_state{time_index:05}.nc"),
-        variables_to_save=[
-            "litter_pool_above_metabolic_cnp",
-            "litter_pool_above_structural_cnp",
-            "litter_pool_woody_cnp",
-            "litter_pool_below_metabolic_cnp",
-            "litter_pool_below_structural_cnp",
-            "lignin_above_structural",
-            "lignin_woody",
-            "lignin_below_structural",
-            "litter_mineralisation_rate_cnp",
-        ],
-        time_index=time_index,
-        timestamp=np.datetime64("2000-01-01"),
-    )
-    assert outpath == Path(f"./continuous_state{time_index:05}.nc")
-
-
-def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
-    """Test that function to merge the continuous data files works as intended."""
-    from virtual_ecosystem.core.data import merge_continuous_data_files
-
-    # Simple and slightly more complex data for the file
-    variables_to_save = ["lignin_woody", "soil_temperature"]
-
-    # Save first data file
-    dummy_litter_data.save_timeslice_to_netcdf(
-        output_file_path=shared_datadir / "continuous_state1.nc",
-        variables_to_save=variables_to_save,
-        time_index=1,
-        timestamp=np.datetime64("2000-01-01"),
-    )
-
-    # Alter data so that files differ (slightly)
-    dummy_litter_data["lignin_woody"] = DataArray(
-        [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
-    )
-    dummy_litter_data["soil_temperature"][12][0] = 15.0
-
-    # Save second data file
-    dummy_litter_data.save_timeslice_to_netcdf(
-        output_file_path=shared_datadir / "continuous_state2.nc",
-        variables_to_save=variables_to_save,
-        time_index=2,
-        timestamp=np.datetime64("2000-02-01"),
-    )
-
-    # Merge data
-    merge_continuous_data_files(
-        merged_file_path=shared_datadir / "all_continuous_data.nc",
-        continuous_data_files=[
-            shared_datadir / "continuous_state1.nc",
-            shared_datadir / "continuous_state2.nc",
-        ],
-    )
-
-    # Check that original two files have been deleted
-    assert len(list(shared_datadir.rglob("continuous_state*.nc"))) == 0
-
-    # Load in and test full combined data
-    out_file = shared_datadir / "all_continuous_data.nc"
-    full_data = open_dataset(out_file)
-
-    # Check that data file is as expected
-    testing.assert_allclose(
-        full_data["lignin_woody"],
-        DataArray(
-            [[0.5, 0.8, 0.35, 0.35], [0.1, 0.05, 0.2, 0.01]],
-            dims=["time_index", "cell_id"],
-            coords={"cell_id": [0, 1, 2, 3], "time_index": [1, 2]},
-        ),
-    )
-    testing.assert_allclose(
-        full_data["soil_temperature"].isel(layers=range(11, 14)),
-        DataArray(
-            [
-                [
-                    [np.nan, np.nan, np.nan, np.nan],
-                    [20, 20, 20, 20],
-                    [19.5, 18.7, 18.7, 17.6],
-                ],
-                [
-                    [np.nan, np.nan, np.nan, np.nan],
-                    [15.0, 20, 20, 20],
-                    [19.5, 18.7, 18.7, 17.6],
-                ],
-            ],
-            dims=["time_index", "layers", "cell_id"],
-            coords={
-                "cell_id": [0, 1, 2, 3],
-                "time_index": [1, 2],
-                "layers": [11, 12, 13],
-                "layer_roles": ("layers", ["surface", "topsoil", "subsoil"]),
-            },
-        ),
-    )
-
-    # Close data set and delete file
-    full_data.close()
-    out_file.unlink()
-
-
-def test_merge_continuous_file_already_exists(
-    shared_datadir, caplog, dummy_litter_data
-):
-    """Test that the merge continuous function fails if file name already used."""
-    from virtual_ecosystem.core.data import merge_continuous_data_files
-
-    # Simple and slightly more complex data for the file
-    variables_to_save = ["lignin_woody", "soil_temperature"]
-
-    # Save first data file
-    dummy_litter_data.save_timeslice_to_netcdf(
-        output_file_path=shared_datadir / "continuous_state1.nc",
-        variables_to_save=variables_to_save,
-        time_index=1,
-        timestamp=np.datetime64("2000-01-01"),
-    )
-
-    with pytest.raises(ConfigurationError):
-        # Merge data
-        merge_continuous_data_files(
-            shared_datadir / "already_exists.nc",
-            continuous_data_files=[
-                shared_datadir / "continuous_state1.nc",
-                shared_datadir / "already_exists.nc",
-            ],
-        )
-
-    log_check(
-        caplog,
-        (
-            (
-                CRITICAL,
-                "A file in the user specified output folder (",
-            ),
         ),
     )

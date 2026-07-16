@@ -231,7 +231,8 @@ def test_generate_soil_model(
 
     # Build the config object and core components
     cfg_strings = [
-        "[core]\n[core.timing]\nupdate_interval = '12 hours'",
+        "[core.grid]\ncell_nx = 2\ncell_ny=2\n"
+        "[core.timing]\nupdate_interval = '12 hours'",
         "[hydrology]",
         microbial_groups_cfg,
         cfg_string,
@@ -742,7 +743,12 @@ def test_convert_fruiting_body_production_to_rate(fixture_soil_model):
     """Test that conversion of fruiting body production to a rate works."""
 
     total_production = np.array(
-        [2.02358244e-6, 0.00026018971, 0.00047134783, 0.0003977219095]
+        [
+            2.02358244e-6,
+            0.00026018971,
+            0.00047134783,
+            0.0003977219095,
+        ]
     )
 
     expected_rate = [1.01179122e-6, 0.000130094855, 0.000235673915, 0.00019886095475]
