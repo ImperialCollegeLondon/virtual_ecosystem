@@ -727,6 +727,7 @@ def dummy_climate_data(fixture_core_components):
         "downward_shortwave_radiation": 220.0,  # W m-2 (24h monthly mean)
         "downward_longwave_radiation": 400.0,  # W m-2 (24h monthly mean)
         "mean_annual_temperature": 20.0,  # C
+        "diurnal_temperature_range_ref": 5.0,  # C
     }
 
     for var, value in ref_values.items():

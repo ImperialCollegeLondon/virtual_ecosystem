@@ -46,6 +46,7 @@ class AbioticModel(
         "relative_humidity_ref",
         "shortwave_absorption",
         "wind_speed_ref",
+        "diurnal_temperature_range_ref",
         "downward_longwave_radiation",
         # These four aren't actually required but they _are_ populated by
         # HydrologyModel.__init__ and the current logic for static model update checking
@@ -84,6 +85,7 @@ class AbioticModel(
         "atmospheric_pressure_ref",
         "atmospheric_co2_ref",
         "wind_speed_ref",
+        "diurnal_temperature_range_ref",
         "leaf_area_index",
         "layer_heights",
         "downward_shortwave_radiation",
@@ -217,10 +219,13 @@ class AbioticModel(
         )
 
         # Initialise diurnal temperature range, [C]
-        diurnal_temperature_range = initial_microclimate["air_temperature"].copy()
+        diurnal_temperature_range = self.layer_structure.from_template()
+        layer_values = (
+            self.data["diurnal_temperature_range_ref"].isel(time_index=0).values
+        )
         self.data["diurnal_temperature_range"] = diurnal_temperature_range.where(
             diurnal_temperature_range.isnull(),
-            other=5.0,  # TODO add data when available
+            other=layer_values,
         )
 
         # Generate initial profiles of canopy temperature and heat fluxes from soil and
