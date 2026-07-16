@@ -69,17 +69,18 @@ assumed to be homogeneous. This means that for each environmental variable and a
 value must be found for the entire zone. These are calculated as follows:
 
 $$
-T = \sum^N_{i=1} f_i *\frac{V_{i-1} + V_{i}}{2}
+V = \sum^N_{i=1} f_i *\frac{V_{i-1} + V_{i}}{2}
 $$
 
 where $N$ is the number of soil layers, $f_i$ is the fraction of soil layer $i$ that
-lies within the (biotic) topsoil, and $V_{i}$ is the value of the environmental variable
-of interest at depth $i$. No values are generated for "layer zero", so for each variable
-we need to choose a value for it. For temperature, we chose $T_0$ to be the air
+lies within the soil-microbial simulation zone, and $V_{i}$ is the value of the
+environmental variable at the bottom of layer $i$ (equivalent to the top of layer
+$i+1$). The abiotic and hydrology models only calculate variables for the bottom of each
+layer, which means values for the top of the 1st layer ($V_0$) must be estimated. We
+assume the temperature at the top of the first soil layer ($T_0$) to be equal to the air
 temperature of the layer immediately above the soil surface. For soil water potential,
-we set $\psi_0 = \psi_1$, which amounts to assuming that the soil water potential does
-not change between the soil surface and the first depth simulated by the hydrology
-model.
+we assume that it is constant across the first soil layer (i.e. we set $\psi_0 =
+\psi_1$).
 
 ## Changes to rates of implicitly microbially driven processes
 
