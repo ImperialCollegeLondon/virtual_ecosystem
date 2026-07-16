@@ -159,11 +159,7 @@ class BiomassTissueABC(ABC):
         }
 
     def add_elemental_masses(self, masses: dict[str, NDArray[np.floating]]) -> None:
-        """Return the current element masses for the tissue.
-
-        Returns:
-            The element deficit for the specified tissue.
-        """
+        """Add elemental masses to the tissues."""
 
         try:
             for ky, elem in self.element_masses.items():
@@ -757,13 +753,6 @@ class RootBiomass(BiomassTissueABC):
 
         element_masses: dict[str, Element] = {}
 
-        # until pyrealm 2.0.1
-        fine_root_mass = pyrealm_handling(
-            community.stem_allometry.foliage_mass
-            * community.cohorts["zeta"]
-            * community.cohorts["sla"]
-        )
-
         for elem in with_elements:
             ideal_ratio = community.cohorts[f"root_turnover_c_{elem.lower()}_ratio"]
             turnover_ratio = np.ones_like(ideal_ratio)
@@ -771,15 +760,13 @@ class RootBiomass(BiomassTissueABC):
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=fine_root_mass / ideal_ratio,
-                # actual_element_mass=community.stem_allometry.fine_root_mass
-                # / ideal_ratio,
+                actual_element_mass=community.stem_allometry.fine_root_mass
+                / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
         return cls(
-            # carbon_mass=community.stem_allometry.fine_root_mass,
-            carbon_mass=fine_root_mass,
+            carbon_mass=community.stem_allometry.fine_root_mass,
             community=community,
             element_masses=element_masses,
         )

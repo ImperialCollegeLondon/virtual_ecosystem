@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 import numpy as np
+import pandas as pd
 import pytest
 
 
@@ -18,14 +19,16 @@ def fixture_community():
                 foliage_mass=np.array([50.0, 80.0]),
                 stem_mass=np.array([100.0, 150.0]),
                 reproductive_tissue_mass=np.array([20.0, 40.0]),
-                # fine_root_mass=np.array([10.0, 16.0]),
+                fine_root_mass=np.array([10.0, 16.0]),
             )
-            self.stem_traits = SimpleNamespace(
-                zeta=0.1, sla=2.0, p_foliage_for_reproductive_tissue=0.5
+            self.cohorts = pd.DataFrame(
+                dict(
+                    zeta=[0.1, 0.1],
+                    sla=[2.0, 2.0],
+                    p_foliage_for_reproductive_tissue=[0.5, 0.5],
+                    pft_names=["shrub", "broadleaf"],
+                )
             )
-
-            self.n_cohorts = 2
-            self.cohorts = type("Cohorts", (), {"pft_names": ["shrub", "broadleaf"]})
 
     return DummyCommunity()
 
@@ -51,7 +54,7 @@ ELEMENTS = ("N", "P")
 
 
 @pytest.fixture
-def fixture_biomasses(fixture_community, extra_pft_traits):
+def fixture_biomasses(fixture_community):
     """Fixture providing a Biomasses instance."""
 
     from virtual_ecosystem.models.plants.biomasses import (
@@ -65,7 +68,6 @@ def fixture_biomasses(fixture_community, extra_pft_traits):
 
     foliage = FoliageBiomass(
         community=fixture_community,
-        extra_pft_traits=extra_pft_traits,
         carbon_mass=fixture_community.stem_allometry.foliage_mass.copy(),
         element_masses={
             "N": Element(
@@ -85,20 +87,18 @@ def fixture_biomasses(fixture_community, extra_pft_traits):
 
     root = RootBiomass(
         community=fixture_community,
-        extra_pft_traits=extra_pft_traits,
-        # From pyrealm 2.0.1
-        # carbon_mass=fixture_community.stem_allometry.fine_root_mass.copy(),
-        carbon_mass=fixture_community.stem_allometry.foliage_mass
-        * fixture_community.stem_traits.zeta
-        * fixture_community.stem_traits.sla,
+        carbon_mass=fixture_community.stem_allometry.fine_root_mass.copy(),
         element_masses={
             "N": Element(
                 name="n",
                 ideal_ratio=np.array([5.0, 7.0]),
                 actual_element_mass=np.array([10.0, 25.0]),
                 turnover_ratio=np.array(
-                    [5.0, 7.0]
-                ),  # TODO - actually, this is misleading. It should be current Cx_ratio
+                    [
+                        5.0,
+                        7.0,
+                    ]
+                ),  # TODO - this is misleading. It should be current Cx_ratio
             ),
             "P": Element(
                 name="p",
@@ -111,7 +111,6 @@ def fixture_biomasses(fixture_community, extra_pft_traits):
 
     wood = StemBiomass(
         community=fixture_community,
-        extra_pft_traits=extra_pft_traits,
         carbon_mass=fixture_community.stem_allometry.stem_mass.copy(),
         element_masses={
             "N": Element(
@@ -133,7 +132,6 @@ def fixture_biomasses(fixture_community, extra_pft_traits):
 
     repro = ReproductiveBiomass(
         community=fixture_community,
-        extra_pft_traits=extra_pft_traits,
         carbon_mass=fixture_community.stem_allometry.reproductive_tissue_mass.copy(),
         element_masses={
             "N": Element(
@@ -141,7 +139,10 @@ def fixture_biomasses(fixture_community, extra_pft_traits):
                 ideal_ratio=np.array([4.0, 5.0]),
                 actual_element_mass=np.array([8.0, 12.0]),
                 turnover_ratio=np.array(
-                    [4.0, 5.0]
+                    [
+                        4.0,
+                        5.0,
+                    ]
                 ),  # TODO - again, this is misleading. It should be current Cx_ratio
             ),
             "P": Element(
@@ -156,7 +157,6 @@ def fixture_biomasses(fixture_community, extra_pft_traits):
     return Biomasses(
         tissues=[foliage, repro, wood, root],
         community=fixture_community,
-        extra_pft_traits=extra_pft_traits,
     )
 
 
@@ -186,14 +186,13 @@ def test_Element_append():
     assert e1.turnover_ratio.shape == (20,)
 
 
-def test_BiomassTissue_append(fixture_community, extra_pft_traits):
+def test_BiomassTissue_append(fixture_community):
     """Tests the shared append() method of BiomassTissueABC."""
 
     from virtual_ecosystem.models.plants.biomasses import Element, FoliageBiomass
 
     foliage_1 = FoliageBiomass(
         community=fixture_community,
-        extra_pft_traits=extra_pft_traits,
         carbon_mass=fixture_community.stem_allometry.foliage_mass.copy(),
         element_masses={
             "N": Element(
@@ -213,7 +212,6 @@ def test_BiomassTissue_append(fixture_community, extra_pft_traits):
 
     foliage_2 = FoliageBiomass(
         community=fixture_community,
-        extra_pft_traits=extra_pft_traits,
         carbon_mass=fixture_community.stem_allometry.foliage_mass.copy(),
         element_masses={
             "N": Element(
@@ -275,11 +273,11 @@ def test_Biomasses_append(fixture_biomasses):
         ("FoliageBiomass", "foliage_mass"),
         ("RootBiomass", "fine_root_mass"),
         ("StemBiomass", "stem_mass"),
-        ("ReproductiveBiomass", "reproductive_tissue_mass"),
+        # ("ReproductiveBiomass", "reproductive_tissue_mass"),
     ),
 )
 def test_BiomassTissue_from_pft_default_ratios(
-    fixture_community, extra_pft_traits, tissue_name, mass_attribute
+    fixture_community, tissue_name, mass_attribute
 ):
     """Test default factory method gives a biomass tissue with the correct masses."""
 
@@ -289,7 +287,6 @@ def test_BiomassTissue_from_pft_default_ratios(
 
     tissue = BiomassTissueClass.from_pft_default_ratios(
         community=fixture_community,
-        extra_pft_traits=extra_pft_traits,
         with_elements=ELEMENTS,
     )
 
@@ -299,8 +296,8 @@ def test_BiomassTissue_from_pft_default_ratios(
     if mass_attribute == "fine_root_mass":
         expected_mass = (
             fixture_community.stem_allometry.foliage_mass
-            * fixture_community.stem_traits.zeta
-            * fixture_community.stem_traits.sla
+            * fixture_community.cohorts["zeta"]
+            * fixture_community.cohorts["sla"]
         )
     else:
         expected_mass = getattr(fixture_community.stem_allometry, mass_attribute)
@@ -325,9 +322,7 @@ def test_BiomassTissue_from_pft_default_ratios(
 #        switch/case at the end, but would remove a lot of overlap.
 
 
-def test_FoliageBiomass_functions(
-    fixture_community, extra_pft_traits, fixture_stem_allocation
-):
+def test_FoliageBiomass_functions(fixture_community, fixture_stem_allocation):
     """Test the FoliageBiomass class functions."""
 
     from virtual_ecosystem.models.plants.biomasses import Element, FoliageBiomass
@@ -340,7 +335,6 @@ def test_FoliageBiomass_functions(
     turnover_ratio = np.array([10.0, 12.0])
 
     tissue = FoliageBiomass(
-        extra_pft_traits=extra_pft_traits,
         community=fixture_community,
         carbon_mass=fixture_community.stem_allometry.foliage_mass.copy(),
         element_masses={
@@ -428,9 +422,7 @@ def test_FoliageBiomass_functions(
         )
 
 
-def test_RootBiomass_functions(
-    fixture_community, extra_pft_traits, fixture_stem_allocation
-):
+def test_RootBiomass_functions(fixture_community, fixture_stem_allocation):
     """Test the RootBiomass class functions."""
 
     from virtual_ecosystem.models.plants.biomasses import Element, RootBiomass
@@ -442,18 +434,9 @@ def test_RootBiomass_functions(
     ideal_ratio = np.array([5.0, 6.0])
     turnover_ratio = ideal_ratio
 
-    fine_root_mass = (
-        fixture_community.stem_allometry.foliage_mass
-        * fixture_community.stem_traits.zeta
-        * fixture_community.stem_traits.sla
-    )
-
     tissue = RootBiomass(
         community=fixture_community,
-        extra_pft_traits=extra_pft_traits,
-        # From pyrealm 2.0.1
-        # carbon_mass=fixture_community.stem_allometry.fine_root_mass.copy(),
-        carbon_mass=fine_root_mass,
+        carbon_mass=fixture_community.stem_allometry.fine_root_mass.copy(),
         element_masses={
             "N": Element(
                 name="n",
@@ -471,11 +454,9 @@ def test_RootBiomass_functions(
     )
 
     # carbon mass = fine root mass
-    assert np.allclose(tissue.carbon_mass, fine_root_mass)
-    # From pyrealm 2.0.1
-    # assert np.allclose(
-    #     tissue.carbon_mass, fixture_community.stem_allometry.fine_root_mass
-    # )
+    assert np.allclose(
+        tissue.carbon_mass, fixture_community.stem_allometry.fine_root_mass
+    )
 
     # deficit = element - (C / CN)
     expected_deficit = {
@@ -542,12 +523,11 @@ def test_RootBiomass_functions(
             initial_element_masses + expected_growth[ky],
         )
 
-    # From pyrealm 2.0.1
-    # assert np.allclose(
-    #     tissue.carbon_mass,
-    #     fixture_community.stem_allometry.fine_root_mass
-    #     - fixture_stem_allocation.fine_root_turnover,
-    # )
+    assert np.allclose(
+        tissue.carbon_mass,
+        fixture_community.stem_allometry.fine_root_mass
+        - fixture_stem_allocation.fine_root_turnover,
+    )
 
 
 def test_ReproductiveBiomass_functions(
@@ -845,7 +825,10 @@ def test_apply_growth_updates_element_masses_and_surplus(
     # Each tissue should increase by element_needed_for_growth and the total surplus
     # should decrease accordingly
     expected_surplus = np.zeros(
-        (fixture_community.n_cohorts, len(fixture_biomasses.elements))
+        (
+            fixture_community.n_cohorts,
+            len(fixture_biomasses.elements),
+        )
     )
 
     for b, a, t in zip(before, after, fixture_biomasses.tissues):

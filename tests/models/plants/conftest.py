@@ -338,7 +338,6 @@ def fxt_plants_model(
     plants_data,
     flora,
     plants_cohort_data,
-    extra_pft_traits,
     fixture_core_components,
     fixture_plants_constants,
     fixture_exporter,
@@ -354,7 +353,6 @@ def fxt_plants_model(
         core_components=fixture_core_components,
         flora=flora,
         cohort_data=plants_cohort_data,
-        extra_pft_traits=extra_pft_traits,
         exporter=fixture_exporter,
         model_constants=fixture_plants_constants,
     )
