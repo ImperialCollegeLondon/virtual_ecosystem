@@ -65,7 +65,7 @@ the soil-microbial model, so the process for calculating the relevant soil tempe
 is identical to that of the soil microbes (which we discuss below).
 
 The zone the soil-microbial model is simulated for is of user configurable depth and is
-assumed to be homogeneous. This means that for each environmental variable and average
+assumed to be homogeneous. This means that for each environmental variable an average
 value must be found for the entire zone. These are calculated as follows:
 
 $$
