@@ -215,10 +215,6 @@ nitpick_ignore = [
         "virtual_ecosystem.models.animal.model_config.deserialise_vertical_occupancy",
     ),
     ("py:class", "always"),
-    # This broke when pandas upgraded to 3.0. We should review this once we've upgraded
-    # to that major version
-    ("py:class", "pandas.core.frame.DataFrame"),
-    ("py:class", "pandas.DataFrame"),
 ]
 
 
@@ -230,10 +226,7 @@ intersphinx_mapping = {
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
     "pyrealm": ("https://pyrealm.readthedocs.io/en/stable/", None),
-    # TODO - This is currently pinned to the version we use as there are changes in
-    # 3.0 (stable) which break the docs build. Once we have moved to 3.0 we should
-    # revert this to stable
-    "pandas": ("http://pandas.pydata.org/pandas-docs/version/2.3/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
     "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
 
