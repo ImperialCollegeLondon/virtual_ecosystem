@@ -23,6 +23,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     MetabolicType,
     TaxaType,
+    VerticalOccupancy,
 )
 
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
@@ -64,6 +65,39 @@ DietTypeSer = Annotated[
     PlainValidator(deserialise_diet_type),
 ]
 """Custom data type to serialise and deserialise DietType Flag values."""
+
+
+def deserialise_vertical_occupancy(occupancy: str) -> VerticalOccupancy:
+    """Deserialise string vertical occupancy terms to VerticalOccupancy.
+
+    For standard ``Enum`` types, pydantic correctly serialises and deserialises a
+    string representation, but VerticalOccupancy is a ``Flag``, which has underlying
+    numeric values. If these are serialised and deserialised as with an ``Enum``, then
+    users would need to use numeric occupancy codes in the configuration.
+
+    This function takes a string such as "SOIL" or "SOIL|GROUND" and returns the
+    appropriate VerticalOccupancy.
+    """
+
+    return reduce(operator.or_, [VerticalOccupancy[o] for o in occupancy.split("|")])
+
+
+def serialise_vertical_occupancy(occupancy: VerticalOccupancy) -> str:
+    """Serialise VerticalOccupancy Flag value to string.
+
+    This shim simply exports the ``VerticalOccupancy._name_`` attribute, which is a
+    string representation of the Flag value.
+    """
+
+    return occupancy._name_  # type: ignore[return-value]
+
+
+VerticalOccupancySer = Annotated[
+    VerticalOccupancy,
+    PlainSerializer(serialise_vertical_occupancy),
+    PlainValidator(deserialise_vertical_occupancy),
+]
+"""Custom data type to serialise and deserialise VerticalOccupancy Flag values."""
 
 
 class AnimalConstants(Configuration):
@@ -300,14 +334,79 @@ class AnimalConstants(Configuration):
     # required variables ( annual mean temperature, annual
     # temperature SD) are exposed via the data object.
 
-    placeholder_annual_mean_temp: float = 20.0
-    """Annual mean temperature used as a toy stand-in for $T_{Annual}^C$ [°C].
-    Replace once abiotic model exposes this."""
+    placeholder_annual_temp_terms: dict[VerticalOccupancySer, dict[str, float]] = Field(
+        # ------------------------------------------------------------------------------
+        # Placeholder reference climate for the ectotherm activity window (Madingley
+        # eqs. 42-47). These are NOT the temperatures cohorts experience at runtime;
+        # they are the *annual reference climate each functional group is adapted to*,
+        # and they set where a group's thermal tolerance window sits. Runtime
+        # microclimate temperatures are supplied separately, per cohort, by
+        #  get_mean_territory_climate.
+        #
+        # How the window is derived from these terms (sd = temp_sd, mean = mean_temp):
+        #     T_opt      = mean + 1.53*sd + 1.51
+        #     T_max_crit = mean + 1.60*sd + 6.61
+        #     T_min_crit = T_opt - (T_max_crit - T_opt) / 3  ==  mean + 1.51*sd - 0.19
+        # The intercepts (1.51, 6.61) place the ENTIRE active band ABOVE the reference
+        # mean: with sd = 1, T_opt sits ~3C above mean and T_min_crit ~1.3C above it.
+        # So the reference mean is not the centre of the active band - the animal is
+        # adapted to be active at temperatures WARMER than its annual mean (basking).
+        #
+        # Consequence for tuning: a cohort is active only when its experienced daily
+        # cycle overlaps [T_min_crit, T_max_crit]. With sd = 1 the cold-edge condition
+        #  is experienced_T + diurnal_range/2  >  reference_mean + 1.32
+        # i.e. the reference mean must sit ROUGHLY 1.5C BELOW the temperature the cohort
+        # experiences, not equal to it. Setting mean_temp at or above the experienced
+        # temperature pushes T_min_crit above ambient and yields a zero window.
+        #
+        # Per-stratum offsets (mean_temp = measured stratum mean - offset):
+        #   - canopy/ground use a ~1.5C offset, giving fractional (~0.5) windows that
+        #     vary smoothly with cell temperature via the real diurnal range.
+        #   - soil uses a LARGER offset (~3C). Soil has near-zero diurnal range, so its
+        #     window is effectively binary (mean inside band -> ~1, below T_min -> 0)
+        #     with no diurnal peak to lift marginal cohorts. The extra offset seats the
+        #     mean comfortably inside the band so soil fauna read a robust 1 rather than
+        #     flickering at the cold edge. Multi-stratum cohorts
+        #     (e.g. soil_ground_canopy) average these terms, so soil's larger offset
+        #     also protects the combined groups, which inherit soil's suppressed
+        #     temperature and diurnal range.
+        #
+        # Current values are anchored to an observed microclimate (approx. per-stratum
+        # means: soil 19.5, ground 21.5, canopy 24.5 C) and are toy placeholders. They
+        # hold only for that microclimate and must be replaced once the abiotic model
+        # exposes real per-stratum annual temperature statistics.
+        # ------------------------------------------------------------------------------
+        default_factory=lambda: {
+            VerticalOccupancy.CANOPY: {
+                "mean_temp": 23.0,
+                "temp_sd": 1.0,
+            },  # μ 24.5 - 1.5
+            VerticalOccupancy.GROUND: {
+                "mean_temp": 20.0,
+                "temp_sd": 1.0,
+            },  # μ 21.5 - 1.5
+            VerticalOccupancy.SOIL: {"mean_temp": 16.5, "temp_sd": 1.0},  # μ 19.5 - 3.0
+        }
+    )
+    """Placeholder per-stratum annual reference temperature terms for the ectotherm
+    activity window, keyed by vertical occupancy.
 
-    placeholder_annual_temp_sd: float = 5.0
-    """Standard deviation of monthly temperatures across the climatological year,
-    used as a toy stand-in for $\\sigma_{T_{Annual}^C}$ [°C]. Replace once abiotic
-    model exposes this."""
+    Each stratum provides two terms in degrees Celsius: ``mean_temp``, the annual mean
+    temperature the functional group is adapted to, and ``temp_sd``, the standard
+    deviation of monthly temperatures across the climatological year. They are consumed
+    by :func:`~virtual_ecosystem.models.animal.scaling_functions.activity_window` to
+    derive a group's thermal tolerance window
+    (``T_opt``, ``T_min_crit``, ``T_max_crit``),
+    against which each cohort's experienced microclimate is compared to set
+    ``sigma_f_t``. For multi-stratum groups the terms are averaged across occupied
+    strata at :class:`~virtual_ecosystem.models.animal.functional_group.FunctionalGroup`
+    construction.
+
+    These are toy placeholders anchored to an observed microclimate and should be
+    replaced once the abiotic model supplies real per-stratum annual statistics. See the
+    inline comment above for the derivation and the reasoning behind the per-stratum
+    offsets.
+    """
 
     # Madingley dispersal parameters
 

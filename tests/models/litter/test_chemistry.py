@@ -33,53 +33,33 @@ def test_calculate_new_pool_chemistries(
     """Test that function to calculate updated pool chemistries works correctly."""
 
     expected_chemistries = {
-        "lignin_above_structural": [0.49765798, 0.10073481, 0.68181057, 0.68425001],
+        "lignin_above_structural": [0.4976424, 0.10175006, 0.67935912, 0.66892934],
         "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
-        "lignin_below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
-        "above_metabolic_nitrogen": [0.04155601, 0.01679779, 0.00720536, 0.00722372],
-        "above_structural_nitrogen": [0.01340387, 0.00576308, 0.00207896, 0.00214561],
+        "lignin_below_structural": [0.49974115, 0.26255194, 0.73336051, 0.71623416],
+        "above_metabolic_nitrogen": [0.04163379, 0.01683401, 0.00720338, 0.00710423],
+        "above_structural_nitrogen": [0.01340711, 0.00576873, 0.00208167, 0.0022817],
         "woody_nitrogen": [
             0.08590272675794186,
             0.18811515700056716,
             0.15512843175215565,
             0.12406449399964693,
         ],
-        "below_metabolic_nitrogen": [
-            0.03646374156564698,
-            0.031780241542046714,
-            0.004463859135747939,
-            0.0059729429329157605,
-        ],
-        "below_structural_nitrogen": [0.01197838, 0.00567122, 0.00027473, 0.00047664],
-        "above_metabolic_phosphorus": [
-            0.005137187527623923,
-            0.0021249325400981077,
-            0.0007146426225135252,
-            0.0007456091915781818,
-        ],
-        "above_structural_phosphorus": [
-            0.0014833637342951769,
-            0.0005261425345003986,
-            0.00022508107092281037,
-            0.000201785392779848,
-        ],
+        "below_metabolic_nitrogen": [0.03646412, 0.0317839, 0.00448212, 0.00597295],
+        "below_structural_nitrogen": [0.01197869, 0.00567217, 0.0002915, 0.00047729],
+        "above_metabolic_phosphorus": [0.00513777, 0.00212727, 0.00071441, 0.00072062],
+        "above_structural_phosphorus": [0.00148339, 0.00052651, 0.00022537, 0.00023008],
         "woody_phosphorus": [
             0.00854665833297424,
             0.015605057949575844,
             0.008679346482530033,
             0.012216757912695322,
         ],
-        "below_metabolic_phosphorus": [
-            0.0012648984227293088,
-            0.0008987132838502913,
-            0.0002155560449125626,
-            0.00021591806050868297,
-        ],
+        "below_metabolic_phosphorus": [0.00126491, 0.0009009, 0.00021935, 0.00021592],
         "below_structural_phosphorus": [
-            0.0010938513065823457,
-            0.000530306030300695,
-            2.5977931602591404e-5,
-            4.566095674036676e-5,
+            1.09386195e-3,
+            5.30764789e-4,
+            2.94140868e-5,
+            4.95474953e-5,
         ],
     }
 
@@ -107,9 +87,9 @@ def test_calculate_new_lignin_proportions(
     """Test that the function to calculate the lignin updates works as expected."""
 
     expected_lignin = {
-        "lignin_above_structural": [0.49765798, 0.10073481, 0.68181057, 0.68425001],
+        "lignin_above_structural": [0.4976424, 0.10175006, 0.67935912, 0.66892934],
         "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
-        "lignin_below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
+        "lignin_below_structural": [0.49974115, 0.26255194, 0.73336051, 0.71623416],
     }
 
     actual_lignin = litter_chemistry.calculate_new_lignin_proportions(
@@ -138,7 +118,7 @@ def test_calculate_updated_pool_lignin_proportion(
         calculate_updated_pool_lignin_proportion,
     )
 
-    expected_lignin = [0.49765798, 0.10073481, 0.68181057, 0.68425001]
+    expected_lignin = [0.4976424, 0.10175006, 0.67935912, 0.66892934]
 
     actual_lignin = calculate_updated_pool_lignin_proportion(
         initial_carbon=post_consumption_pools["above_structural"]
@@ -168,50 +148,30 @@ def test_calculate_updated_nutrient_pools(
     )
 
     expected_pools = {
-        "above_metabolic_nitrogen": [0.04155601, 0.01679779, 0.00720536, 0.00722372],
-        "above_structural_nitrogen": [0.01340387, 0.00576308, 0.00207896, 0.00214561],
+        "above_metabolic_nitrogen": [0.04163379, 0.01683401, 0.00720338, 0.00710423],
+        "above_structural_nitrogen": [0.01340711, 0.00576873, 0.00208167, 0.0022817],
         "woody_nitrogen": [
             0.08590272675794186,
             0.18811515700056716,
             0.15512843175215565,
             0.12406449399964693,
         ],
-        "below_metabolic_nitrogen": [
-            0.03646374156564698,
-            0.031780241542046714,
-            0.004463859135747939,
-            0.0059729429329157605,
-        ],
-        "below_structural_nitrogen": [0.01197838, 0.00567122, 0.00027473, 0.00047664],
-        "above_metabolic_phosphorus": [
-            0.005137187527623923,
-            0.0021249325400981077,
-            0.0007146426225135252,
-            0.0007456091915781818,
-        ],
-        "above_structural_phosphorus": [
-            0.0014833637342951769,
-            0.0005261425345003986,
-            0.00022508107092281037,
-            0.000201785392779848,
-        ],
+        "below_metabolic_nitrogen": [0.03646412, 0.0317839, 0.00448212, 0.00597295],
+        "below_structural_nitrogen": [0.01197869, 0.00567217, 0.0002915, 0.00047729],
+        "above_metabolic_phosphorus": [0.00513777, 0.00212727, 0.00071441, 0.00072062],
+        "above_structural_phosphorus": [0.00148339, 0.00052651, 0.00022537, 0.00023008],
         "woody_phosphorus": [
             0.00854665833297424,
             0.015605057949575844,
             0.008679346482530033,
             0.012216757912695322,
         ],
-        "below_metabolic_phosphorus": [
-            0.0012648984227293088,
-            0.0008987132838502913,
-            0.0002155560449125626,
-            0.00021591806050868297,
-        ],
+        "below_metabolic_phosphorus": [0.00126491, 0.0009009, 0.00021935, 0.00021592],
         "below_structural_phosphorus": [
-            0.0010938513065823457,
-            0.000530306030300695,
-            2.5977931602591404e-5,
-            4.566095674036676e-5,
+            1.09386195e-3,
+            5.30764789e-4,
+            2.94140868e-5,
+            4.95474953e-5,
         ],
     }
 
