@@ -272,7 +272,7 @@ def carbon_supply_from_plants(
 
     return calculate_symbiotic_carbon_supply(
         total_plant_supply=dummy_carbon_data["plant_symbiote_carbon_supply"]
-        / fixture_core_constants.max_depth_of_microbial_activity,
+        / fixture_core_constants.microbial_simulation_depth,
         nitrogen_fixer_fraction=fixture_soil_constants.nitrogen_fixer_supply_fraction,
         ectomycorrhiza_fraction=fixture_soil_constants.ectomycorrhiza_supply_fraction,
     )

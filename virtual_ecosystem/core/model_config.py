@@ -39,10 +39,10 @@ class CoreConstants(Configuration):
 
     Example:
         >>> consts = CoreConstants()
-        >>> consts.max_depth_of_microbial_activity
+        >>> consts.microbial_simulation_depth
         0.25
-        >>> consts = CoreConstants(max_depth_of_microbial_activity=0.75)
-        >>> consts.max_depth_of_microbial_activity
+        >>> consts = CoreConstants(microbial_simulation_depth=0.75)
+        >>> consts.microbial_simulation_depth
         0.75
     """
 
@@ -76,12 +76,13 @@ class CoreConstants(Configuration):
     The von Karman's constant describes the logarithmic velocity profile of a turbulent
     fluid near a no-slip boundary."""
 
-    max_depth_of_microbial_activity: float = 0.25
-    """Maximum depth of microbial activity in the soil layers [m].
+    microbial_simulation_depth: float = 0.25
+    """Depth to which soil-microbial simulation extents [m].
 
-    The soil model needs to identify which of the configured soil layers are
-    sufficiently close to the surface to contain significant microbial activity that
-    drives nutrient processes. The default value is taken from
+    As the soil-microbial model is a topsoil model the maximum soil depth included in
+    the simulation needs to be set. This is then used to identify which of the
+    configured soil layers are sufficiently close to the surface to be included in the
+    calculations of the soil-microbial model. The default value is taken from
     :cite:t:`fatichi_mechanistic_2019`. No empirical source is provided for this value.
     """
 

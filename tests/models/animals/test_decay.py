@@ -364,7 +364,7 @@ class TestSoilPool:
                 cell_id=2,
                 data=litter_soil_data_instance,
                 cell_area=100.0,
-                max_depth_microbial_activity=fixture_core_constants.max_depth_of_microbial_activity,
+                microbial_simulation_depth=fixture_core_constants.microbial_simulation_depth,
                 c_n_p_ratios=microbial_c_n_p_ratios,
             )
 
@@ -407,7 +407,7 @@ class TestSoilPool:
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=cell_area,
-            max_depth_microbial_activity=fixture_core_constants.max_depth_of_microbial_activity,
+            microbial_simulation_depth=fixture_core_constants.microbial_simulation_depth,
             c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
