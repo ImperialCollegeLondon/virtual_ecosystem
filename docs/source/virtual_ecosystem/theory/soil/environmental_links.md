@@ -48,9 +48,11 @@ that do not exactly correspond to the simulation depth of the soil-microbial mod
 :::{note}
 
 In the Virtual Ecosystem "topsoil" currently refers to the uppermost layer of the
-hydrology model. The depth that the soil-microbial model is simulated to can be altered
-independently of this topsoil depth, meaning that it can be changed without having to
-update the entire setup of the hydrology model to match.
+hydrology model (see the [layer structure
+diagram](../../implementation/core_components_overview.md#the-vertical-layer-structure)
+for more details). The depth that the soil-microbial model is simulated to can be
+altered independently of this topsoil depth, meaning that it can be changed without
+having to update the entire setup of the hydrology model to match.
 
 :::
 
