@@ -218,6 +218,7 @@ nitpick_ignore = [
     # This broke when pandas upgraded to 3.0. We should review this once we've upgraded
     # to that major version
     ("py:class", "pandas.core.frame.DataFrame"),
+    ("py:class", "pandas.DataFrame"),
 ]
 
 
