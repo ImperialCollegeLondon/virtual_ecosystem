@@ -216,7 +216,9 @@ def calculate_total_C_mineralised(
     )
 
     # Convert total mineralisation rate into kg m^-3 day^-1 units (from kg m^-2)
-    return total_C_mineralised / (core_constants.biotic_topsoil_depth * update_interval)
+    return total_C_mineralised / (
+        core_constants.microbial_simulation_depth * update_interval
+    )
 
 
 def calculate_updated_pools(

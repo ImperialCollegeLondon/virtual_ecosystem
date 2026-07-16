@@ -192,5 +192,5 @@ def litter_losses(
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,
         update_interval=2.0,
-        biotic_topsoil_depth=fixture_core_constants.biotic_topsoil_depth,
+        microbial_simulation_depth=fixture_core_constants.microbial_simulation_depth,
     )

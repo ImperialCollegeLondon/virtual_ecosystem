@@ -181,7 +181,7 @@ def average_temperature_over_microbially_active_layers(
     # depth in each layer by the total depth of microbial activity
     layer_weights = (
         layer_structure.soil_layer_active_thickness
-        / layer_structure.biotic_topsoil_depth
+        / layer_structure.microbial_simulation_depth
     )
 
     # Find the average for each layer
@@ -227,7 +227,7 @@ def average_water_potential_over_microbially_active_layers(
     # depth in each layer by the total depth of microbial activity
     layer_weights = (
         layer_structure.soil_layer_active_thickness
-        / layer_structure.biotic_topsoil_depth
+        / layer_structure.microbial_simulation_depth
     )
 
     # Find the average for each layer

@@ -453,21 +453,23 @@ def calculate_carbon_use_efficiency(
     )
 
 
-def find_total_soil_moisture_for_biotic_topsoil(
+def find_total_soil_moisture_for_simulation_depth(
     soil_moistures: DataArray,
     layer_structure: LayerStructure,
 ) -> NDArray[np.floating]:
-    """Find total soil moisture for the biologically active topsoil.
+    """Find total soil moisture for the simulated zone.
 
-    The proportion of each soil layer that lies within the biotic topsoil is first
-    found. The soil moisture for each layer is then multiplied by this proportion and
-    summed, to find the total soil moisture in the microbially active zone.
+    The proportion of each soil layer that lies within the zone simulated in the
+    soil-microbial model is first found. The soil moisture for each layer is then
+    multiplied by this proportion and summed, to find the total soil moisture in the
+    microbially active zone.
 
     Args:
         soil_moistures: Soil moistures across all soil layers [mm]
         layer_structure: The LayerStructure instance for the simulation. From this we
            use the thickness of each layer, as well as `soil_layer_active_thickness`
-           which is how much of each layer lies within the biological topsoil
+           which is how much of each layer lies within the soil-microbial simulation
+           zone
 
     Returns:
         The total soil moisture for the biologically active topsoil [mm]

@@ -565,7 +565,7 @@ class TestAnimalModel:
                     cell_id=cid,
                     data=new_data,
                     cell_area=cell_area,
-                    biotic_topsoil_depth=fixture_core_constants.biotic_topsoil_depth,
+                    microbial_simulation_depth=fixture_core_constants.microbial_simulation_depth,
                     c_n_p_ratios=microbial_c_n_p_ratios,
                 )
                 for pool_name in pool_names

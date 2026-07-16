@@ -51,12 +51,12 @@ ve_run \
   config/soil_config.toml \
   ...
   config/animal_config.toml \
-  --config core.constants.biotic_topsoil_depth=0.5 \
+  --config core.constants.microbial_simulation_depth=0.5 \
   --config abiotic.constants.leaf_albedo=0.2
 ```
 
 The resulting model run will override any values already set in the configuration files
-and use `biotic_topsoil_depth=0.5` and `leaf_albedo=0.2`.
+and use `microbial_simulation_depth=0.5` and `leaf_albedo=0.2`.
 
 ## Using an alternative configuration file
 

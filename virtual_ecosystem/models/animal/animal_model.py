@@ -730,7 +730,7 @@ class AnimalModel(
                     cell_id=cell_id,
                     data=self.data,
                     cell_area=self.data.grid.cell_area,  # OK while area is uniform
-                    biotic_topsoil_depth=self.core_constants.biotic_topsoil_depth,
+                    microbial_simulation_depth=self.core_constants.microbial_simulation_depth,
                     c_n_p_ratios=self.microbial_c_n_p_ratios,
                 )
                 for som_type in soil_organic_matter_types
@@ -830,7 +830,7 @@ class AnimalModel(
         pom_final_stock = array(
             [
                 soil_pools[cid]["pom"].mass_current
-                / (area * self.core_constants.biotic_topsoil_depth)
+                / (area * self.core_constants.microbial_simulation_depth)
                 for cid in cell_ids
             ]
         )
@@ -852,7 +852,7 @@ class AnimalModel(
         bacteria_final_stock = array(
             [
                 soil_pools[cid]["bacteria"].mass_current
-                / (area * self.core_constants.biotic_topsoil_depth)
+                / (area * self.core_constants.microbial_simulation_depth)
                 for cid in cell_ids
             ]
         )
@@ -884,7 +884,7 @@ class AnimalModel(
         fungi_final_stock = array(
             [
                 soil_pools[cid]["fungi"].mass_current
-                / (area * self.core_constants.biotic_topsoil_depth)
+                / (area * self.core_constants.microbial_simulation_depth)
                 for cid in cell_ids
             ]
         )
