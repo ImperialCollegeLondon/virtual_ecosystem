@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/20.2.3 Chrome/102.0.5005.167 Electron/19.0.11 Safari/537.36">
   <diagram id="0" name="Page-1">
-    <mxGraphModel dx="652" dy="800" grid="1" gridSize="9" guides="1" tooltips="1" connect="0" arrows="1" fold="1" page="1" pageScale="1" pageWidth="200" pageHeight="50" background="#ffffff" math="0" shadow="0">
+    <mxGraphModel dx="788" dy="904" grid="1" gridSize="9" guides="1" tooltips="1" connect="0" arrows="1" fold="1" page="1" pageScale="1" pageWidth="200" pageHeight="50" background="#ffffff" math="0" shadow="0">
       <root>
         <UserObject label="" author="John Doe" revision="v1.0" id="0">
           <mxCell />
@@ -116,6 +116,9 @@
             <mxPoint x="420" y="18" as="targetPoint" />
           </mxGeometry>
         </mxCell>
+        <mxCell id="pkijgY1irumf5mZUwb_A-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=70;" value="FL" vertex="1">
+          <mxGeometry height="20" width="20" x="390" y="-40" as="geometry" />
+        </mxCell>
         <mxCell id="2UsGyQPTYUgp12jhMnjT-147" parent="0" value="Shading" />
         <mxCell id="2UsGyQPTYUgp12jhMnjT-90" parent="2UsGyQPTYUgp12jhMnjT-147" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=none;" value="" vertex="1">
           <mxGeometry height="20" width="120" x="60" y="-280" as="geometry" />
@@ -196,8 +199,8 @@
         <mxCell id="2UsGyQPTYUgp12jhMnjT-100" parent="2UsGyQPTYUgp12jhMnjT-103" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Surface" vertex="1">
           <mxGeometry height="30" width="60" x="90" y="-44.5" as="geometry" />
         </mxCell>
-        <mxCell id="2UsGyQPTYUgp12jhMnjT-102" parent="2UsGyQPTYUgp12jhMnjT-103" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" value="Biotic topsoil depth" vertex="1">
-          <mxGeometry height="20" width="160" x="57" y="25" as="geometry" />
+        <mxCell id="2UsGyQPTYUgp12jhMnjT-102" parent="2UsGyQPTYUgp12jhMnjT-103" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" value="Soil-microbial simulation depth" vertex="1">
+          <mxGeometry height="20" width="160" x="36" y="25" as="geometry" />
         </mxCell>
         <mxCell id="2UsGyQPTYUgp12jhMnjT-59" parent="2UsGyQPTYUgp12jhMnjT-103" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;strokeWidth=1;" value="8" vertex="1">
           <mxGeometry height="15" width="20" x="30" y="-117" as="geometry" />
