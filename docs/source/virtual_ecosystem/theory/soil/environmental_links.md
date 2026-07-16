@@ -43,16 +43,14 @@ section.
 Before we discuss the different classes of environmental response, we need to mention
 how the environment itself is determined. The temperatures and soil water potentials are
 calculated using the abiotic and hydrology models which use their own layer definitions
-that do not correspond to the depth of the biotically active topsoil.
+that do not exactly correspond to the simulation depth of the soil-microbial model.
 
 :::{note}
 
-The Virtual Ecosystem uses two different definitions of "topsoil", the uppermost layer
-of the hydrology model and the entire simulated depth of the soil model. This allows the
-depth of soil that is considered to be (microbially active) topsoil to be altered by
-users, without forcing them to update the entire setup of the hydrology model to match.
-In places in the documentation where both definitions of topsoil are pertinent, the soil
-model specific definition of topsoil is referred to as the "biotic topsoil".
+In the Virtual Ecosystem "topsoil" currently refers to the uppermost layer of the
+hydrology model. The depth that the soil-microbial model is simulated to can be altered
+independently of this topsoil depth, meaning that it can be changed without having to
+update the entire setup of the hydrology model to match.
 
 :::
 
@@ -60,13 +58,13 @@ For the above-ground litter, things are pretty straightforward as the air temper
 the layer immediately above the soil surface is just used. (As this litter is
 above-ground, soil water potential is not relevant).
 
-The below-ground litter is assumed to be spread out evenly over the topsoil, so the
-process for calculating the relevant soil temperatures is identical to that of the
-(biotic) topsoil (which we discuss below).
+The below-ground litter is assumed to be spread out evenly over the simulated depth of
+the soil-microbial model, so the process for calculating the relevant soil temperatures
+is identical to that of the soil microbes (which we discuss below).
 
-The (biotic) topsoil is simulated as a single stratum (of user configurable) depth. This
-stratum uses a homogeneous environment, e.g. a single temperature is used for its entire
-extent. The environmental variables for this stratum are calculated as follows:
+The zone the soil-microbial model is simulated for is of user configurable depth and is
+assumed to be homogeneous. This means that for each environmental variable and average
+value must be found for the entire zone. These are calculated as follows:
 
 $$
 T = \sum^N_{i=1} f_i *\frac{V_{i-1} + V_{i}}{2}
