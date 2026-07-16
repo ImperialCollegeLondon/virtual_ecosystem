@@ -1,6 +1,7 @@
 """An integration test for the VR command-line interface."""
 
 import os
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -174,7 +175,7 @@ def test_ve_run_full(capsys, config_file_list, abiotic_simple):
     argvalues=(
         pytest.param("-qqq", 0, id="silent"),
         pytest.param("-qq", 3, id="minimal"),
-        pytest.param("-q", 10, id="staged"),
+        pytest.param("-q", 12, id="staged"),
         pytest.param(None, 12, id="full"),
     ),
 )
@@ -199,11 +200,6 @@ def test_ve_run_verbosity(capsys, tmp_path, verbosity_flags, output_length):
     with open(config_file, "w") as cfg:
         cfg.write(
             """
-[core.data_output_options]
-save_initial_state = false
-save_continuous_data = false
-save_final_state = false
-save_merged_config = false
 [core.data]
 variable = []
 [testing]
@@ -226,7 +222,18 @@ variable = []
     out, err = capsys.readouterr()
 
     assert len(err.splitlines()) == 0
-    output = [v for v in out.splitlines() if v]  # drop blank lines
+
+    # std_out contains the expected number of lines: remove empty lines.
+    # For the simulation progress bar (starting e.g ' 62%|'), which is only written with
+    # FULL reporting, the number of lines can vary. So check there _are_ some when FULL
+    # but otherwise strip them out and count other lines
+    output = [v for v in out.splitlines() if v]
+    output_is_progress_bar = [re.search(r"^ *[0-9]+%\|", v) is not None for v in output]
+    output = [v for v, pbar in zip(output, output_is_progress_bar) if not pbar]
+
+    if verbosity_flags is None:
+        assert sum(output_is_progress_bar) > 1
+
     assert len(output) == output_length
 
 

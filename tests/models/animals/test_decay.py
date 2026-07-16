@@ -274,7 +274,7 @@ class TestFungalFruitPool:
         total_mass_available = cell_cnp.total
         actual_consumed_mass = min(total_mass_available, consumed_mass) * 0.8
 
-        nutrients, _ = fungal_fruit.get_eaten(consumed_mass, detritivore=detritivore)
+        nutrients, _, _ = fungal_fruit.get_eaten(consumed_mass, detritivore=detritivore)
 
         assert np.isclose(
             fungal_fruit.mass_cnp.total, total_mass_available - actual_consumed_mass
@@ -420,7 +420,7 @@ class TestSoilPool:
         total_mass_available = cell_cnp.total
         actual_consumed_mass = min(total_mass_available, consumed_mass) * 0.8
 
-        nutrients, _ = soil_pool.get_eaten(consumed_mass, detritivore=detritivore)
+        nutrients, _, _ = soil_pool.get_eaten(consumed_mass, detritivore=detritivore)
 
         assert np.isclose(
             soil_pool.mass_cnp.total, total_mass_available - actual_consumed_mass
@@ -438,3 +438,156 @@ class TestSoilPool:
                 f"{key} nutrient mismatch. Expected {expected_nutrients[key]},"
                 f" got {nutrients[key]}"
             )
+
+
+class TestHerbivoryWaste:
+    """Test the HerbivoryWaste class."""
+
+    def test_initialization(self):
+        """Test initialization of HerbivoryWaste."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.decay import HerbivoryWaste
+
+        herbivory_waste = HerbivoryWaste()
+
+        # Check that expected arguments are created
+        elements = ["C", "N", "P"]
+        element_triplets = ["above_ground_mass_cnp", "below_ground_mass_cnp"]
+        lignin_proportions = [
+            "above_ground_lignin_proportion",
+            "below_ground_lignin_proportion",
+        ]
+        assert all(
+            hasattr(herbivory_waste, attr)
+            for attr in element_triplets + lignin_proportions
+        )
+        # Check everything starts at zero
+        for proportion in lignin_proportions:
+            assert np.isclose(getattr(herbivory_waste, proportion), 0.0)
+
+        for triplet, element in zip(element_triplets, elements):
+            assert np.isclose(getattr(herbivory_waste, triplet)[element], 0.0)
+
+    @pytest.mark.parametrize(
+        argnames=[
+            "stratas",
+            "above_ground_cnp",
+            "below_ground_cnp",
+            "above_ground_lignin",
+            "below_ground_lignin",
+        ],
+        argvalues=[
+            (
+                "soil",
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                {"C": 0.25, "N": 0.04, "P": 0.01},
+                0.0,
+                0.3,
+            ),
+            (
+                "ground",
+                {"C": 0.25, "N": 0.04, "P": 0.01},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                0.3,
+                0.0,
+            ),
+            (
+                "canopy",
+                {"C": 0.25, "N": 0.04, "P": 0.01},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                0.3,
+                0.0,
+            ),
+            (
+                "soil_ground",
+                {"C": 0.125, "N": 0.02, "P": 0.005},
+                {"C": 0.125, "N": 0.02, "P": 0.005},
+                0.3,
+                0.3,
+            ),
+            (
+                "soil_canopy",
+                {"C": 0.125, "N": 0.02, "P": 0.005},
+                {"C": 0.125, "N": 0.02, "P": 0.005},
+                0.3,
+                0.3,
+            ),
+            (
+                "soil_ground_canopy",
+                {"C": 0.16666667, "N": 0.02666667, "P": 0.006666667},
+                {"C": 0.08333333, "N": 0.01333333, "P": 0.003333333},
+                0.3,
+                0.3,
+            ),
+        ],
+    )
+    def test_add_waste(
+        self,
+        stratas,
+        above_ground_cnp,
+        below_ground_cnp,
+        above_ground_lignin,
+        below_ground_lignin,
+    ):
+        """Test `add_waste` method of HerbivoryWaste adds waste correctly."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+        from virtual_ecosystem.models.animal.decay import HerbivoryWaste
+
+        input_mass_cnp = {"C": 0.25, "N": 0.04, "P": 0.01}
+        input_lignin = 0.3
+
+        waste_pool = HerbivoryWaste()
+
+        vertical_occupancy = VerticalOccupancy.parse(stratas)
+
+        waste_pool.add_waste(
+            input_mass_cnp,
+            vertical_occupancy=vertical_occupancy,
+            input_lignin=input_lignin,
+        )
+
+        for nutrient in input_mass_cnp.keys():
+            assert np.isclose(
+                waste_pool.above_ground_mass_cnp[nutrient], above_ground_cnp[nutrient]
+            )
+            assert np.isclose(
+                waste_pool.below_ground_mass_cnp[nutrient], below_ground_cnp[nutrient]
+            )
+
+        assert np.isclose(
+            waste_pool.above_ground_lignin_proportion, above_ground_lignin
+        )
+        assert np.isclose(
+            waste_pool.below_ground_lignin_proportion, below_ground_lignin
+        )
+
+    def test_update_lignin(self):
+        """Test `update_lignin` method of HerbivoryWaste updates lignin correctly."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.decay import HerbivoryWaste
+
+        waste_pool = HerbivoryWaste()
+
+        # Provide initial pools so that I'm not just testing the zero mass case
+        waste_pool.above_ground_mass_cnp = {"C": 0.25, "N": 0.04, "P": 0.01}
+        waste_pool.below_ground_mass_cnp = {"C": 0.05, "N": 0.002, "P": 0.005}
+        waste_pool.above_ground_lignin_proportion = 0.1
+        waste_pool.below_ground_lignin_proportion = 0.3
+
+        waste_pool.update_lignin(carbon_added=0.05, lignin_added=0.15, strata="above")
+        waste_pool.update_lignin(carbon_added=0.05, lignin_added=0.25, strata="below")
+
+        # Check that lignin values have been updated
+        assert np.isclose(waste_pool.above_ground_lignin_proportion, 0.108333334)
+        assert np.isclose(waste_pool.below_ground_lignin_proportion, 0.275)
+
+        # Check that zero addition case is handled
+        waste_pool.update_lignin(carbon_added=0.0, lignin_added=0.15, strata="above")
+        waste_pool.update_lignin(carbon_added=0.0, lignin_added=0.25, strata="below")
+
+        assert np.isclose(waste_pool.above_ground_lignin_proportion, 0.108333334)
+        assert np.isclose(waste_pool.below_ground_lignin_proportion, 0.275)

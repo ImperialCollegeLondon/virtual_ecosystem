@@ -763,28 +763,20 @@ class SoilModel(
             env_factors=env_factors,
         )
 
-        return {
-            "ectomycorrhizal_n_supply": where(
-                DataArray(initial_ecto_n) >= 0.0,
-                self.to_total_mass(initial_ecto_n),
-                0.0,
-            ),
-            "ectomycorrhizal_p_supply": where(
-                DataArray(initial_ecto_p) >= 0.0,
-                self.to_total_mass(initial_ecto_p),
-                0.0,
-            ),
-            "arbuscular_mycorrhizal_n_supply": where(
-                DataArray(initial_arbuscular_n) >= 0.0,
-                self.to_total_mass(initial_arbuscular_n),
-                0.0,
-            ),
-            "arbuscular_mycorrhizal_p_supply": where(
-                DataArray(initial_arbuscular_p) >= 0.0,
-                self.to_total_mass(initial_arbuscular_p),
-                0.0,
-            ),
-        }
+        # TODO - this could just write to self.data rather than returning a dict
+        var_dict = {}
+        for var_name, var in (
+            ("ectomycorrhizal_n_supply", initial_ecto_n),
+            ("ectomycorrhizal_p_supply", initial_ecto_p),
+            ("arbuscular_mycorrhizal_n_supply", initial_arbuscular_n),
+            ("arbuscular_mycorrhizal_p_supply", initial_arbuscular_p),
+        ):
+            var_dict[var_name] = DataArray(
+                where(var >= 0.0, self.to_total_mass(var), 0),
+                coords={"cell_id": self.grid.cell_id},
+            )
+
+        return var_dict
 
 
 def estimate_past_mycorrhizal_supply(

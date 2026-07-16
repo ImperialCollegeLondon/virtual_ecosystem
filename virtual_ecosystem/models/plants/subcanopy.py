@@ -32,7 +32,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst
-from xarray import DataArray, full_like
+from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import ModelTiming
 from virtual_ecosystem.core.data import Data
@@ -417,8 +417,6 @@ class Subcanopy:
             subcanopy_volume_m3 * self.data["dissolved_phosphorus"].to_numpy()
         )
 
-        # TODO need to remove uptake from soil
-
         # Assimilate the gained masses into the vegetation first to update the
         # nutrient masses that are available for allocation to seedbank
 
@@ -498,14 +496,6 @@ class Subcanopy:
                 self.data[f"{var}_cnp"].loc[:, elem.upper()] = biomass.nutrients[
                     elem
                 ].masses
-
-        # Write lignin concentrations for litter components
-        self.data["subcanopy_vegetation_litter_lignin"] = full_like(
-            self.data["cell_id"], self.model_constants.subcanopy_vegetation_lignin
-        )
-        self.data["subcanopy_seedbank_litter_lignin"] = full_like(
-            self.data["cell_id"], self.model_constants.subcanopy_seedbank_lignin
-        )
 
         # Write nutrient uptakes
         for name, values in (

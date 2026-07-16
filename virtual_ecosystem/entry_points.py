@@ -194,12 +194,12 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     validation part of the model setup and the exit before running any models.
 
     The resolved complete configuration will then be written to a single consolidated
-    config file in the output path with a default name of
-    `ve_full_model_configuration.toml`. This can be disabled by setting the
-    `core.data_output_options.save_merged_config` option to false. Note that the merged
-    configuration automatically converts all file paths within the merged configurations
-    to absolute file paths - this ties the merged configuration to the file system where
-    the run is executed.
+    config file in the output path with a default name of `compiled_configuration.toml`.
+    This can be disabled by setting the
+    `core.data_output_options.save_compiled_configuration` option to false. Note that
+    the merged configuration automatically converts all file paths within the merged
+    configurations to absolute file paths - this ties the merged configuration to the
+    file system where the run is executed.
 
 
     Args:

@@ -24,7 +24,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 name = "virtual_ecosystem"
 readme = "README.md"
-version = "0.2.0"
+version = "0.2.1"
 
 requires-python = ">=3.12"
 
@@ -36,7 +36,7 @@ dependencies = [
   "numpy  (>2.0)", # SPEC0
   "openpyxl (>3.1)",
   "pint (>0.24)",
-  "pyrealm (>=2.0.0rc5)",
+  "pyrealm (>=2.0)",
   "scipy (>=1.18.0)", # SPEC0
   "tomli-w  (>1.0)",
   "tqdm (>4.66)",
@@ -44,6 +44,7 @@ dependencies = [
   "types-tabulate (>0.9)",
   "pydantic (>=2.13.4,<3.0.0)",
   "bottleneck (>=1.6.0,<2.0.0)",
+  "zarr (>=3.2.1,<4.0.0)",
 ]
 
 [project.scripts]
@@ -80,8 +81,8 @@ jupytext = "^1.19.4"
 matplotlib = ">=3.11.0" # SPEC0
 mypy = "^2.2.0" 
 pre-commit = ">=4.6.0,<5" 
-snakeviz = ">=2.2.2,<3.0.0"
 ruff = ">=0.15.21,<0.16.0" 
+snakeviz = ">=2.2.2,<3.0.0" 
 
 [tool.poetry.group.docs.dependencies]
 autodocsumm = "^0.2.8"

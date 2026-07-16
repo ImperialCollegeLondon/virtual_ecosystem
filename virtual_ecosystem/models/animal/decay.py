@@ -22,7 +22,7 @@ class ScavengeableMixin:
         self: "ScavengeableResource",
         consumed_mass: float,
         scavenger: "Consumer",
-    ) -> tuple[dict[str, float], dict[str, float]]:
+    ) -> tuple[dict[str, float], dict[str, float], float]:
         """Remove biomass from the scavengeable pool and return stoichiometric gain.
 
         Args:
@@ -41,7 +41,7 @@ class ScavengeableMixin:
 
         available = self.scavengeable_cnp.total
         if available == 0.0:
-            return {"C": 0.0, "N": 0.0, "P": 0.0}, {}
+            return {"C": 0.0, "N": 0.0, "P": 0.0}, {}, 0.0
 
         taken_wet = min(consumed_mass, available)
 
@@ -71,7 +71,7 @@ class ScavengeableMixin:
             P=missed_wet * frac_P,
         )
 
-        return ingested_cnp, {}
+        return ingested_cnp, {}, 0.0
 
 
 @dataclass
@@ -291,7 +291,7 @@ class FungalFruitPool:
         self,
         consumed_mass: float,
         detritivore: "Consumer",
-    ) -> tuple[dict[str, float], dict[str, float]]:
+    ) -> tuple[dict[str, float], dict[str, float], float]:
         """Remove biomass when a cohort consumes fungal fruiting bodies.
 
         Args:
@@ -327,7 +327,7 @@ class FungalFruitPool:
             N=-taken["N"],
             P=-taken["P"],
         )
-        return taken, {}
+        return taken, {}, 0.0
 
     def apply_decay(self, decay_constant: float, time_period: float) -> float:
         """Apply exponential decay to the fungal fruiting bodies pool.
@@ -554,7 +554,7 @@ class SoilPool:
         self,
         consumed_mass: float,
         detritivore: "Consumer",
-    ) -> tuple[dict[str, float], dict[str, float]]:
+    ) -> tuple[dict[str, float], dict[str, float], float]:
         """Remove biomass when a cohort consumes this soil pool.
 
         In contrast to the LitterPool case, for soil pools mechanical efficiency is
@@ -593,7 +593,7 @@ class SoilPool:
             N=-taken["N"],
             P=-taken["P"],
         )
-        return taken, {}
+        return taken, {}, 0.0
 
 
 class HerbivoryWaste:
@@ -602,55 +602,62 @@ class HerbivoryWaste:
     This is used as a temporary storage location before the wastes are added to the
     litter model. As such it is not made available for animal consumption.
 
-    The litter model splits its plant matter into four classes: wood, leaves, roots, and
-    reproductive tissues (fruits and flowers). A separate instance of this class should
-    be used for each of these groups.
-
-    Args:
-        pool_name: Type of plant matter this waste pool contains.
-
-    Raises:
-        ValueError: If initialised for a plant matter type that the litter model doesn't
-            accept.
+    We assume that any wood partially consumed by herbivores will be sufficiently broken
+    down to be passed to the standard metabolic/structural litter pools, rather than the
+    dead wood pool which is intended for entire stems. The important distinction to make
+    is between herbivory waste from above the soil and within the soil, as this
+    determines whether the waste should be added to above or below ground litter pools.
     """
 
-    def __init__(self, plant_matter_type: str) -> None:
-        # Check that this isn't being initialised for a plant matter type that the
-        # litter model doesn't use
-        accepted_plant_matter_types = [
-            "leaf",
-            "root",
-            "deadwood",
-            "reproductive_tissue",
-        ]
-        if plant_matter_type not in accepted_plant_matter_types:
-            to_raise = ValueError(
-                f"{plant_matter_type} not a valid form of herbivory waste, valid forms "
-                f"are as follows: {accepted_plant_matter_types}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+    def __init__(self) -> None:
 
-        self.plant_matter_type = plant_matter_type
-        """Type of plant matter this waste pool contains."""
-
-        self.mass_cnp: dict[str, float] = {
+        self.above_ground_mass_cnp: dict[str, float] = {
             "C": 0.0,
             "N": 0.0,
             "P": 0.0,
         }
-        """The mass of each stoichiometric element found in the plant resources,
-        {"C": value, "N": value, "P": value}."""
+        """The mass of each stoichiometric element found in the (above-ground) plant
+        resources, {"C": value, "N": value, "P": value}."""
 
-        self.lignin_proportion = 0.25
-        """Proportion of the herbivory waste pool carbon that is lignin [unitless]."""
+        self.above_ground_lignin_proportion = 0.0
+        """Proportion of the (above-ground) herbivory waste pool carbon that is lignin
+        [unitless]."""
 
-    def add_waste(self, input_mass_cnp: dict[str, float]) -> None:
+        self.below_ground_mass_cnp: dict[str, float] = {
+            "C": 0.0,
+            "N": 0.0,
+            "P": 0.0,
+        }
+        """The mass of each stoichiometric element found in the (below-ground) plant
+        resources, {"C": value, "N": value, "P": value}."""
+
+        self.below_ground_lignin_proportion = 0.0
+        """Proportion of the (below-ground) herbivory waste pool carbon that is lignin
+        [unitless]."""
+
+    def add_waste(
+        self,
+        input_mass_cnp: dict[str, float],
+        vertical_occupancy: VerticalOccupancy,
+        input_lignin: float,
+    ) -> None:
         """Add waste to the pool based on the provided stoichiometric mass.
+
+        Whether waste is added to above- or below-ground herbivory waste depends on the
+        strata the resource pool is found in. If the pool lies in both above and below
+        ground strata the waste is split between above- and below-ground. This split
+        occurs evenly between strata, i.e. if the resource pool is found just on the
+        ground and in the soil the above:below split is 50:50, but if the resource pool
+        is also found in the canopy, the below ground then only receives 1/3 of the
+        total mass.
 
         Args:
             input_mass_cnp: Dictionary specifying the mass of each element in the waste
                 {"C": value, "N": value, "P": value}.
+            vertical_occupancy: The combined vertical occupancy of the consumed resource
+                pool.
+            input_lignin: The lignin proportion of the waste input
+                [kg{lignin C} kg{C}^-1]
 
         Raises:
             ValueError: If the input dictionary is missing required elements or contains
@@ -668,6 +675,93 @@ class HerbivoryWaste:
                 f"CNP values must be non-negative. Provided values: {input_mass_cnp}"
             )
 
-        # Add the masses to the current pool
-        for element, value in input_mass_cnp.items():
-            self.mass_cnp[element] += value
+        just_soil = VerticalOccupancy.SOIL
+        all_strata = (
+            VerticalOccupancy.SOIL | VerticalOccupancy.GROUND | VerticalOccupancy.CANOPY
+        )
+
+        # Check if the resource is found in the soil
+        if (vertical_occupancy & just_soil) == just_soil:
+            # Check if resource only in the soil
+            if vertical_occupancy == just_soil:
+                # Consumed pool entirely in soil so all mass + lignin goes to
+                # belowground
+                self.update_lignin(
+                    carbon_added=input_mass_cnp["C"],
+                    lignin_added=input_lignin,
+                    strata="below",
+                )
+                for element, value in input_mass_cnp.items():
+                    self.below_ground_mass_cnp[element] += value
+
+            # Check if resource found across all three strata
+            elif (vertical_occupancy & all_strata) == all_strata:
+                # Consumed pool found across all three strata, so 1/3 so go to
+                # belowground mass (and 2/3 to above)
+                self.update_lignin(
+                    carbon_added=(2 / 3) * input_mass_cnp["C"],
+                    lignin_added=input_lignin,
+                    strata="above",
+                )
+                self.update_lignin(
+                    carbon_added=(1 / 3) * input_mass_cnp["C"],
+                    lignin_added=input_lignin,
+                    strata="below",
+                )
+                for element, value in input_mass_cnp.items():
+                    self.above_ground_mass_cnp[element] += (2 / 3) * value
+                    self.below_ground_mass_cnp[element] += (1 / 3) * value
+            else:
+                # Resource pool found in one above and one below strata, so 50:50 split
+                self.update_lignin(
+                    carbon_added=0.5 * input_mass_cnp["C"],
+                    lignin_added=input_lignin,
+                    strata="above",
+                )
+                self.update_lignin(
+                    carbon_added=0.5 * input_mass_cnp["C"],
+                    lignin_added=input_lignin,
+                    strata="below",
+                )
+                for element, value in input_mass_cnp.items():
+                    self.above_ground_mass_cnp[element] += 0.5 * value
+                    self.below_ground_mass_cnp[element] += 0.5 * value
+        else:
+            # Consumed pool entirely above ground pool so all mass goes to above mass
+            self.update_lignin(
+                carbon_added=input_mass_cnp["C"],
+                lignin_added=input_lignin,
+                strata="above",
+            )
+            for element, value in input_mass_cnp.items():
+                self.above_ground_mass_cnp[element] += value
+
+    def update_lignin(
+        self, carbon_added: float, lignin_added: float, strata: str
+    ) -> None:
+        """Update lignin proportion based on carbon and lignin input.
+
+        As the lignin is stored as a proportion, we can't just add the lignin. Instead,
+        we calculate the new proportion based on the initial carbon mass and lignin
+        proportion and the carbon mass and lignin proportion of the input, and then
+        replace the stored attribute with this value.
+
+        Args:
+            carbon_added: Mass of carbon being added to the herbivore waste pool [kg{C}]
+            lignin_added: The lignin proportion of the input to the herbivore waste
+                [kg{lignin C} kg{C}^-1]
+            strata: The strata the pool belongs to (either "above" or "below)
+        """
+
+        current_lignin = getattr(self, f"{strata}_ground_lignin_proportion")
+
+        # if no carbon is added, lignin proportion remains unchanged
+        if carbon_added == 0:
+            new_lignin_proportion = current_lignin
+        else:
+            current_carbon = getattr(self, f"{strata}_ground_mass_cnp")["C"]
+            new_lignin_proportion = (
+                lignin_added * carbon_added + current_lignin * current_carbon
+            ) / (carbon_added + current_carbon)
+
+        setattr(self, f"{strata}_ground_lignin_proportion", new_lignin_proportion)

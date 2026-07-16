@@ -18,26 +18,26 @@ def test_calculate_litter_losses(
     from virtual_ecosystem.models.litter.losses import calculate_litter_losses
 
     expected_losses = {
-        "above_metabolic_carbon": [0.00921022, 0.00446856, 0.00223770, 0.00214006],
-        "above_structural_carbon": [3.364453e-4, 1.235568e-3, 2.374395e-5, 2.545752e-5],
+        "above_metabolic_carbon": [0.00921291, 0.0044742, 0.00223216, 0.00212139],
+        "above_structural_carbon": [3.364579e-4, 1.236247e-3, 2.379036e-5, 2.578927e-5],
         "woody_carbon": [0.000974, 0.00054363, 0.00319062, 0.00318409],
-        "below_metabolic_carbon": [0.01820252, 0.014805149, 0.002237224, 0.002398703],
-        "below_structural_carbon": [0.000612829, 0.000988361, 4.1361556e-6, 5.6372e-6],
-        "above_metabolic_nitrogen": [0.00126167, 0.00051363, 0.00022155, 0.00021837],
-        "above_structural_nitrogen": [8.971873e-6, 2.86011e-5, 5.18427e-7, 5.071219e-7],
+        "below_metabolic_carbon": [0.01820262, 0.01481599, 0.00224357, 0.0023987],
+        "below_structural_carbon": [6.128354e-4, 9.892553e-4, 4.322987e-6, 5.671167e-6],
+        "above_metabolic_nitrogen": [0.00126204, 0.00051428, 0.00022101, 0.00021647],
+        "above_structural_nitrogen": [8.97219e-6, 2.86169e-5, 5.19452e-7, 5.13719e-7],
         "woody_nitrogen": [1.75495e-5, 8.58815e-6, 6.74550e-5, 5.38763e-5],
-        "below_metabolic_nitrogen": [0.00170117, 0.00131019, 0.00014719, 0.00019344],
-        "below_structural_nitrogen": [1.21352e-5, 1.77763e-5, 5.65822e-8, 9.21111e-8],
-        "above_metabolic_phosphorus": [1.60737e-4, 6.50446e-5, 2.23546e-5, 2.23389e-5],
-        "above_structural_phosphorus": [9.96875e-7, 2.61109e-6, 5.71043e-8, 4.46467e-8],
+        "below_metabolic_nitrogen": [0.00170118, 0.00131115, 0.0001476, 0.00019344],
+        "below_structural_nitrogen": [1.21353e-5, 1.77924e-5, 5.91484e-8, 9.26657e-8],
+        "above_metabolic_phosphorus": [1.60784e-4, 6.51267e-5, 2.22993e-5, 2.21439e-5],
+        "above_structural_phosphorus": [9.96909e-7, 2.61252e-6, 5.72166e-8, 4.52294e-8],
         "woody_phosphorus": [1.75338e-6, 7.12210e-7, 3.76563e-6, 5.31479e-6],
-        "below_metabolic_phosphorus": [5.85855e-5, 3.59960e-5, 7.09779e-6, 5.81645e-6],
-        "below_structural_phosphorus": [1.11322e-6, 1.65944e-6, 5.35009e-9, 8.65663e-9],
-        "above_structural_lignin": [1.682226e-4, 1.235568e-4, 1.662077e-5, 1.782027e-5],
+        "below_metabolic_phosphorus": [5.858584e-5, 3.60223e-5, 7.11791e-6, 5.81644e-6],
+        "below_structural_phosphorus": [1.11324e-6, 1.66093e-6, 5.59176e-9, 8.70881e-9],
+        "above_structural_lignin": [1.682289e-4, 1.236247e-4, 1.665325e-5, 1.805249e-5],
         "woody_lignin": [0.000487, 0.000434904, 0.001116717, 0.0011144315],
-        "below_structural_lignin": [0.0003064145, 0.00024709, 3.1021167e-6, 4.2279e-6],
-        "N_mineralisation_rate": [0.006003, 0.00375757, 0.00087354, 0.00093259],
-        "P_mineralisation_rate": [4.463717e-4, 2.120466e-4, 6.656099e-5, 6.7046827e-5],
+        "below_structural_lignin": [3.064177e-4, 2.473138e-4, 3.242240e-6, 4.253376e-6],
+        "N_mineralisation_rate": [0.00600376, 0.00376086, 0.00087329, 0.00092879],
+        "P_mineralisation_rate": [4.464663e-4, 2.122694e-4, 6.649138e-5, 6.665819e-5],
     }
 
     actual_losses = calculate_litter_losses(
@@ -66,7 +66,7 @@ def test_calculate_carbon_pool_loss(
     """Test that function to calculate total carbon loss from a pool works correctly."""
     from virtual_ecosystem.models.litter.losses import calculate_carbon_pool_loss
 
-    expected_loss = [0.00921022, 0.00446856, 0.00223770, 0.00214006]
+    expected_loss = [0.00921291, 0.0044742, 0.00223216, 0.00212139]
 
     actual_loss = calculate_carbon_pool_loss(
         old_pool_size=post_consumption_pools["above_metabolic"]
@@ -90,7 +90,7 @@ def test_calculate_carbon_pool_loss(
         ),
         pytest.param(
             np.array([0.32449688, 0.15805352, 0.08320238, 0.0776660]),
-            [0.04301677, 0.01755358, 0.00752192, 0.00765043],
+            [0.04308754, 0.01763553, 0.00753933, 0.00756049],
             id="high_loss",
         ),
     ],
@@ -131,7 +131,7 @@ def test_calculate_nutrient_pool_loss(
         ),
         pytest.param(
             np.array([0.50553312, 0.25184648, 0.10319762, 0.117284]),
-            [0.25147699, 0.02575075, 0.07030674, 0.08021992],
+            [0.25147791, 0.02610905, 0.07010142, 0.07865439],
             id="high_loss",
         ),
     ],

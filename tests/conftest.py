@@ -308,11 +308,6 @@ def generate_config_strings(
         start_date = "2020-01-01"
         update_interval = "2 weeks"
         run_length = "50 years"
-        [core.data_output_options]
-        save_initial_state = true
-        save_final_state = true
-        out_initial_file_name = "model_at_start.nc"
-        out_final_file_name = "model_at_end.nc"
 
         [core.layers]
         canopy_layers = 10
@@ -470,9 +465,11 @@ def dummy_litter_data(fixture_core_components):
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "plant_reproductive_tissue_lignin": [0.01, 0.03, 0.04, 0.02],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
+        "subcanopy_vegetation_litter_lignin": [0.05, 0.43, 0.84, 0.01],
         "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
         "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
-        "herbivory_waste_leaf_lignin": [0.13, 0.08, 0.27, 0.22],
+        "herbivory_waste_above_lignin": [0.13, 0.08, 0.27, 0.22],
+        "herbivory_waste_below_lignin": [0.33, 0.089, 0.46, 0.35],
     }
 
     for var, vals in pool_values.items():
@@ -491,7 +488,13 @@ def dummy_litter_data(fixture_core_components):
 
     data["air_temperature"] = lyr_strct.from_template()
     data["air_temperature"][lyr_strct.index_filled_atmosphere] = np.array(
-        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+        [
+            30.0,
+            29.844995,
+            28.87117,
+            27.206405,
+            16.145945,
+        ]
     )[:, None]
 
     # Stoichiometric variables
@@ -616,12 +619,14 @@ def dummy_litter_data(fixture_core_components):
     )
 
     data["stem_turnover_cnp"] = DataArray(
-        data=[
-            [607.5, 10.00823, 0.70928196],
-            [801.9, 13.84974, 1.187296],
-            [510.3, 6.98085, 0.546828],
-            [267.3, 4.85118, 0.3007426],
-        ],
+        data=np.stack(
+            [
+                [607.5, 801.9, 510.3, 267.3],
+                [10.00823, 13.84974, 6.98085, 4.85118],
+                [0.70928196, 1.187296, 0.546828, 0.3007426],
+            ],
+            axis=1,
+        ),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
@@ -636,16 +641,27 @@ def dummy_litter_data(fixture_core_components):
         ),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
+    data["subcanopy_vegetation_litter_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [1.771, 5.296, 0.0392, 11.652],
+                [0.6592, 0.3446, 0.001371, 0.1192],
+                [0.005292, 0.02255, 2.843e-5, 0.02516],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     # Split the foliage turnover 80/20 between two PFTs to give the expected
     # dimensionality
-    total_foliage_turnover_cnp = np.array(
+    total_foliage_turnover_cnp = np.stack(
         [
-            [218.7, 14.58, 0.52698795],
-            [2.43, 0.09529412, 0.00742211],
-            [170.1, 3.94663573, 0.3067628],
-            [230.85, 4.021777, 0.6060646],
-        ]
+            [218.7, 2.43, 170.1, 230.85],
+            [14.58, 0.09529412, 3.94663573, 4.021777],
+            [0.52698795, 0.00742211, 0.3067628, 0.6060646],
+        ],
+        axis=1,
     )
 
     data["foliage_turnover_cnp"] = DataArray(
@@ -659,13 +675,27 @@ def dummy_litter_data(fixture_core_components):
         },
     )
 
-    data["herbivory_waste_leaf_cnp"] = DataArray(
-        data=[
-            [0.243, 0.010519, 0.00114353],
-            [17.01, 0.507761, 0.0493329],
-            [23.085, 0.999351, 0.0689516],
-            [21.87, 1.264162, 0.052059],
-        ],
+    data["herbivory_waste_above_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.243, 17.01, 23.085, 21.87],
+                [0.010519, 0.507761, 0.999351, 1.264162],
+                [0.00114353, 0.0493329, 0.0689516, 0.052059],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["herbivory_waste_below_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.172, 9.022, 17.602, 2.547],
+                [0.0059, 0.04534, 0.28681, 0.00532],
+                [0.0001417, 0.021695, 0.058766, 0.031481],
+            ],
+            axis=1,
+        ),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
@@ -738,7 +768,13 @@ def dummy_climate_data(fixture_core_components):
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
-        [32.0, 30.0, 20.0, 10.0, lyr_str.surface_layer_height]
+        [
+            32.0,
+            30.0,
+            20.0,
+            10.0,
+            lyr_str.surface_layer_height,
+        ]
     )[:, None]
 
     data["layer_heights"][lyr_str.index_all_soil] = lyr_str.soil_layer_depths[:, None]
@@ -756,12 +792,24 @@ def dummy_climate_data(fixture_core_components):
 
     data["air_temperature"] = from_template()
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.8, 28.9, 27.2, 22.0]
+        [
+            30.0,
+            29.8,
+            28.9,
+            27.2,
+            22.0,
+        ]
     )[:, None]
 
     data["diurnal_temperature_range"] = from_template()
     data["diurnal_temperature_range"][lyr_str.index_filled_atmosphere] = np.array(
-        [5, 4, 3, 2, 1]
+        [
+            5,
+            4,
+            3,
+            2,
+            1,
+        ]
     )[:, None]
 
     data["soil_temperature"] = from_template()
@@ -769,22 +817,43 @@ def dummy_climate_data(fixture_core_components):
 
     data["matric_potential"] = from_template()
     data["matric_potential"][lyr_str.index_all_soil] = np.array(
-        [[-3.0, -10.0, -250.0, -10000.0], [-3.0, -10.0, -250.0, -10000.0]]
+        [
+            [-3.0, -10.0, -250.0, -10000.0],
+            [-3.0, -10.0, -250.0, -10000.0],
+        ]
     )
 
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
-        [90.0, 91.0, 93.0, 96.0, 98.0]
+        [
+            90.0,
+            91.0,
+            93.0,
+            96.0,
+            98.0,
+        ]
     )[:, None]
 
     data["vapour_pressure"] = from_template()
     data["vapour_pressure"][lyr_str.index_filled_atmosphere] = np.array(
-        [3.82, 3.82, 3.70, 3.46, 2.59]
+        [
+            3.82,
+            3.82,
+            3.70,
+            3.46,
+            2.59,
+        ]
     )[:, None]
 
     data["vapour_pressure_deficit"] = from_template()
     data["vapour_pressure_deficit"][lyr_str.index_filled_atmosphere] = np.array(
-        [0.42, 0.37, 0.27, 0.14, 0.05]
+        [
+            0.42,
+            0.37,
+            0.27,
+            0.14,
+            0.05,
+        ]
     )[:, None]
 
     data["shortwave_absorption"] = from_template()
@@ -816,7 +885,11 @@ def dummy_climate_data(fixture_core_components):
 
     data["canopy_temperature"] = from_template()
     data["canopy_temperature"][lyr_str.index_filled_canopy] = np.array(
-        [29.8, 28.9, 27.2]
+        [
+            29.8,
+            28.9,
+            27.2,
+        ]
     )[:, None]
     data["canopy_temperature"][lyr_str.index_surface_scalar] = 22.0
 
