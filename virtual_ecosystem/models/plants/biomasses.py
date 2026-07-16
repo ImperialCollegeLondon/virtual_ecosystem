@@ -76,7 +76,7 @@ from typing import ClassVar
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.demography.core import ToDataFrameMixin
-from pyrealm.demography.tmodel import StemAllocation
+from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation
 from xarray import DataArray
 
 from virtual_ecosystem.core.logger import LOGGER
@@ -265,14 +265,15 @@ class BiomassTissueABC(ABC):
 
     @abstractmethod
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase tissue biomasses following growth allocation for the tissue.
 
-        This method should adjust the carbon biomass following the allocation model and
-        similarly increase nutrient biomasses following the ideal ratios. The method
-        must then also return the nutrient biomass increases, so that subsequent
-        nutrient balancing can account for deficits and excesses within the stem.
+        This method should adjust the carbon biomass following the growth increments
+        from the allocation model and similarly increase nutrient biomasses following
+        the ideal ratios. The method must then also return the nutrient biomass
+        increases, so that subsequent nutrient balancing can account for deficits and
+        excesses within the stem.
         """
 
     @abstractmethod
@@ -341,7 +342,7 @@ class FoliageBiomass(BiomassTissueABC):
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of foliage tissue given the allocation model.
 
@@ -349,7 +350,7 @@ class FoliageBiomass(BiomassTissueABC):
             The increases in element quantities needed to support growth at the ideal
             ratio for the tissue.
         """
-        carbon_mass = pyrealm_handling(allocation.delta_foliage_mass)
+        carbon_mass = pyrealm_handling(growth_increments.delta_foliage_mass)
 
         self.carbon_mass += carbon_mass
 
@@ -421,7 +422,7 @@ class ReproductiveBiomass(BiomassTissueABC):
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of reproductive tissue given the allocation model.
 
@@ -431,7 +432,7 @@ class ReproductiveBiomass(BiomassTissueABC):
         """
 
         carbon_increase = pyrealm_handling(
-            allocation.delta_foliage_mass
+            growth_increments.delta_foliage_mass
             * self.community.cohorts["p_foliage_for_reproductive_tissue"]
         )
         self.carbon_mass += carbon_increase
@@ -513,7 +514,7 @@ class FruitBiomass(BiomassTissueABC):
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of reproductive tissue given the allocation model.
 
@@ -525,7 +526,7 @@ class FruitBiomass(BiomassTissueABC):
         fruit_fraction = self.community.cohorts["fruit_flesh_fraction"]
 
         carbon_increase = pyrealm_handling(
-            allocation.delta_foliage_mass
+            growth_increments.delta_foliage_mass
             * self.community.cohorts["p_foliage_for_reproductive_tissue"]
             * fruit_fraction
         )
@@ -612,7 +613,7 @@ class SeedBiomass(BiomassTissueABC):
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of reproductive tissue given the allocation model.
 
@@ -623,7 +624,7 @@ class SeedBiomass(BiomassTissueABC):
 
         # Get the proportion of reproductive tissue allocated to seed
         carbon_increase = pyrealm_handling(
-            allocation.delta_foliage_mass
+            growth_increments.delta_foliage_mass
             * self.community.cohorts.p_foliage_for_reproductive_tissue
             * self.community.cohorts["fruit_flesh_fraction"]
         )
@@ -702,7 +703,7 @@ class StemBiomass(BiomassTissueABC):
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of woody tissue given the allocation model.
 
@@ -710,10 +711,11 @@ class StemBiomass(BiomassTissueABC):
             The increases in element quantities needed to support growth at the ideal
             ratio for the tissue.
         """
-        self.carbon_mass += pyrealm_handling(allocation.delta_stem_mass)
+        self.carbon_mass += pyrealm_handling(growth_increments.delta_stem_mass)
 
         nutrient_ideal_ratio_increase = {
-            ky: pyrealm_handling(allocation.delta_stem_mass) * (1 / elem.ideal_ratio)
+            ky: pyrealm_handling(growth_increments.delta_stem_mass)
+            * (1 / elem.ideal_ratio)
             for ky, elem in self.element_masses.items()
         }
 
@@ -772,7 +774,7 @@ class RootBiomass(BiomassTissueABC):
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of root tissue given the allocation model.
 
@@ -781,11 +783,7 @@ class RootBiomass(BiomassTissueABC):
             ratio for the tissue.
         """
 
-        carbon_increase = pyrealm_handling(
-            allocation.delta_foliage_mass
-            * self.community.cohorts["zeta"]
-            * self.community.cohorts["sla"]
-        )
+        carbon_increase = pyrealm_handling(growth_increments.delta_fine_root_mass)
 
         self.carbon_mass += carbon_increase
 
@@ -974,7 +972,7 @@ class Biomasses(ToDataFrameMixin):
             else:
                 self.element_surplus[elem] -= masses[elem]
 
-    def apply_growth(self, allocation: StemAllocation) -> None:
+    def apply_growth(self, growth_increments: GrowthIncrements) -> None:
         """Distribute the carbon allocated to growth and required nutrients to tissues.
 
         This method updates the actual biomasses for each tissue type based on the
@@ -986,13 +984,14 @@ class Biomasses(ToDataFrameMixin):
         reflect nutrient excesses or deficits at the whole stem level.
 
         Args:
-            allocation: The allocation object containing the growth allocation data.
+            growth_increments: A GrowthIncrements instance containing the growth
+                increment data.
         """
 
         for tissue in self.tissues:
             # Increase the tissue biomasses and record the nutrient masses required to
             # add that mass at ideal ratios.
-            needed = tissue.apply_growth(allocation)
+            needed = tissue.apply_growth(growth_increments=growth_increments)
             # Record the nutrients biomasses at ideal ratios allocated to the tissue in
             # the whole stem balance.
             self._adjust_surpluses(needed, increase=False)
