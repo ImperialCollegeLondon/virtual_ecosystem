@@ -175,17 +175,6 @@ class AbioticSimpleModel(
             bounds=self.bounds,
         )
 
-        # Initialise canopy temperature, equilibrium with surrounding air, [C]
-        air_temp = output_variables["air_temperature"].copy()
-        canopy_temperature = self.layer_structure.from_template()
-        canopy_temperature[self.layer_structure.index_filled_canopy] = air_temp[
-            self.layer_structure.index_filled_canopy
-        ]
-        canopy_temperature[self.layer_structure.index_surface_scalar] = air_temp[
-            self.layer_structure.index_surface_scalar
-        ]
-        output_variables["canopy_temperature"] = canopy_temperature
-
         # Add diurnal temperature range, [C]
         diurnal_temperature_range = self.layer_structure.from_template()
         layer_values = (

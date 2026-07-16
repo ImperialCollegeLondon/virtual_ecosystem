@@ -231,7 +231,6 @@ class AbioticModel(
         # Generate initial profiles of canopy temperature and heat fluxes from soil and
         # canopy
         initial_canopy_and_soil = initialise_canopy_and_soil_fluxes(
-            air_temperature=initial_microclimate["air_temperature"],
             layer_structure=self.layer_structure,
             initial_flux_value=self.model_constants.initial_flux_value,
         )

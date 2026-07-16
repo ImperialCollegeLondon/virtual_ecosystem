@@ -190,17 +190,11 @@ def run_simple_microclimate(
     )
 
     # Initialise canopy and understorey temperature, [C]
-    canopy_temperature = layer_structure.from_template()
-    canopy_temperature[layer_structure.index_filled_canopy] = output["air_temperature"][
-        layer_structure.index_filled_canopy
-    ]
-    canopy_temperature[layer_structure.index_surface_scalar] = output[
-        "air_temperature"
-    ][layer_structure.index_surface_scalar]
+    output["canopy_temperature"] = output["air_temperature"].copy()
 
     # Calculate net radiation, [W m-2].
     canopy_longwave_emission = energy_balance.calculate_longwave_emission(
-        temperature=canopy_temperature.to_numpy(),
+        temperature=output["canopy_temperature"].to_numpy(),
         emissivity=constants.leaf_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )

@@ -62,15 +62,14 @@ from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 
 
 def initialise_canopy_and_soil_fluxes(
-    air_temperature: DataArray,
     layer_structure: LayerStructure,
     initial_flux_value: float,
 ) -> dict[str, DataArray]:
     """Initialise canopy temperature and energy fluxes.
 
     This function initializes the following variables to run the first step of the
-    energy balance routine: canopy temperature, [C], sensible
-    and latent heat flux (canopy and soil), and ground heat flux, all in [W m-2].
+    energy balance routine: sensible and latent heat flux (canopy and soil), and ground
+    heat flux, all in [W m-2].
 
     Args:
         air_temperature: Air temperature, [C]
@@ -79,21 +78,11 @@ def initialise_canopy_and_soil_fluxes(
         initial_flux_value: Initial non-zero flux, [W m-2]
 
     Returns:
-        Dictionary with canopy temperature, [C], sensible and latent heat flux (canopy
-        and soil), [W m-2], and ground heat flux, [W m-2].
+        Dictionary with sensible and latent heat flux (canopy and soil), [W m-2],
+        and ground heat flux, [W m-2].
     """
 
     output = {}
-
-    # Initialise canopy temperature, equilibrium with surrounding air temperature, [C]
-    canopy_temperature = layer_structure.from_template()
-    canopy_temperature[layer_structure.index_filled_canopy] = air_temperature[
-        layer_structure.index_filled_canopy
-    ]
-    canopy_temperature[layer_structure.index_surface_scalar] = air_temperature[
-        layer_structure.index_surface_scalar
-    ]
-    output["canopy_temperature"] = canopy_temperature
 
     # Base flux template (non-zero minimum)
     base_flux = layer_structure.from_template()
