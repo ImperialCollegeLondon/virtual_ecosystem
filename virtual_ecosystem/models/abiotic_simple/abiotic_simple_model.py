@@ -175,16 +175,6 @@ class AbioticSimpleModel(
             bounds=self.bounds,
         )
 
-        # Add diurnal temperature range, [C]
-        diurnal_temperature_range = self.layer_structure.from_template()
-        layer_values = (
-            self.data["diurnal_temperature_range_ref"].isel(time_index=0).values
-        )
-        output_variables["diurnal_temperature_range"] = diurnal_temperature_range.where(
-            diurnal_temperature_range.isnull(),
-            other=layer_values,
-        )
-
         self.data.add_from_dict(output_dict=output_variables)
 
     @classmethod
