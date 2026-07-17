@@ -27,7 +27,11 @@ class VEFlora(Flora):
     #      as tuples throughout. See:
     #           https://github.com/ImperialCollegeLondon/pyrealm/issues/695
 
+    # TODO - docstring these
     # ruff: disable[RUF012]
+    p_foliage_for_reproductive_tissue: list[float] = [0.05]
+    resp_rt: list[float] = [0.05]
+    tau_rt: list[float] = [1.0]
     deadwood_c_n_ratio: list[float] = [60.7]
     deadwood_c_p_ratio: list[float] = [856.5]
     leaf_turnover_c_n_ratio: list[float] = [25.5]

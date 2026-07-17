@@ -41,17 +41,17 @@ def fixture_exporter_components(
         grid=fixture_core_components.grid,
     )
 
-    # This is an experiment
+    # HACK pyrealm3: This is a workaround for not having repro tissue in allometry. Not
+    #      sure what the long term solution here is.
     for cmty in communities.values():
-        cmty.stem_allometry_orig = cmty.stem_allometry
-        allom = cmty.stem_allometry.to_dataframe()
-        allom["reproductive_tissue_mass"] = 10
-        cmty.stem_allometry = allom
+        cmty.stem_allometry.reproductive_tissue_mass = np.full_like(
+            cmty.stem_allometry.dbh, 10
+        )
 
     canopies = {
         cell_id: Canopy(
             cohorts=cmty.cohorts,
-            allometry=cmty.stem_allometry_orig,
+            allometry=cmty.stem_allometry,
             canopy_area=fixture_core_components.grid.cell_area,
             fit_ppa=True,
         )
@@ -61,7 +61,7 @@ def fixture_exporter_components(
     stem_allocations = {
         cell_id: StemAllocation(
             cohorts=cmty.cohorts,
-            allometry=cmty.stem_allometry_orig,
+            allometry=cmty.stem_allometry,
             whole_crown_gpp=np.full(len(cmty.cohorts), 25.0),
         ).to_dataframe()
         for cell_id, cmty in communities.items()

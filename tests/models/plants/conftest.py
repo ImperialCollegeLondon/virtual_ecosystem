@@ -336,7 +336,7 @@ def fixture_canopy_layer_data(
 @pytest.fixture
 def fxt_plants_model(
     plants_data,
-    flora,
+    fixture_flora,
     plants_cohort_data,
     fixture_core_components,
     fixture_plants_constants,
@@ -351,7 +351,7 @@ def fxt_plants_model(
     return PlantsModel(
         data=plants_data,
         core_components=fixture_core_components,
-        flora=flora,
+        flora=fixture_flora,
         cohort_data=plants_cohort_data,
         exporter=fixture_exporter,
         model_constants=fixture_plants_constants,

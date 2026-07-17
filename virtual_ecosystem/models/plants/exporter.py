@@ -363,9 +363,7 @@ class CommunityDataExporter:
             community_data = pd.concat(
                 [
                     community.cohorts,
-                    # HACK pyrealm 3 - allometry converted to a dataframe to fruit
-                    # biomasses into Biomasses
-                    community.stem_allometry,  # to.dataframe(),
+                    community.stem_allometry.to_dataframe(),
                     allocation,
                     biomass_data,
                 ],

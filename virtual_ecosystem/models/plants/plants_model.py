@@ -348,18 +348,23 @@ class PlantsModel(
         # Respiration rates are expressed as proportions of masses per year so need to
         # be reduced proportionately to the number of updates per year
         updates_per_year = self.model_timing.updates_per_year
-        object.__setattr__(self.flora, "resp_f", self.flora.resp_f / updates_per_year)
-        object.__setattr__(self.flora, "resp_r", self.flora.resp_r / updates_per_year)
-        object.__setattr__(self.flora, "resp_s", self.flora.resp_s / updates_per_year)
-        object.__setattr__(self.flora, "resp_rt", self.flora.resp_rt / updates_per_year)
+        for resp_rate in ["resp_f", "resp_r", "resp_s", "resp_rt"]:
+            setattr(
+                self.flora,
+                resp_rate,
+                [v / updates_per_year for v in getattr(self.flora, resp_rate)],
+            )
 
         # Turnover rates are implemented as the number of years required to completely
         # turnover foliage/roots etc and are included in equations as the reciprocal of
         # the values. So rescaling them to shorter timescales requires that we
         # _increase_ the values proportionally to the reduced time between updates.
-        object.__setattr__(self.flora, "tau_f", self.flora.tau_f * updates_per_year)
-        object.__setattr__(self.flora, "tau_r", self.flora.tau_r * updates_per_year)
-        object.__setattr__(self.flora, "tau_rt", self.flora.tau_rt * updates_per_year)
+        for turnover_rate in ["tau_f", "tau_r", "tau_rt"]:
+            setattr(
+                self.flora,
+                turnover_rate,
+                [v * updates_per_year for v in getattr(self.flora, turnover_rate)],
+            )
 
         # Now build the communities with the updated rates
         self.communities = PlantCommunities(
@@ -368,6 +373,14 @@ class PlantsModel(
             grid=self.grid,
             cohort_id_generator=self.cohort_id_generator,
         )
+
+        # HACK pyrealm3: Initialise the non-pyrealm biomasses by setting additional
+        #      attributes on the community allometries.
+        for cmty in self.communities.values():
+            cmty.stem_allometry.reproductive_tissue_mass = (
+                cmty.stem_allometry.foliage_mass
+                * cmty.cohorts["p_foliage_for_reproductive_tissue"]
+            )
 
         # Define the set of tissues to be tracked for each stem.
         self.biomass_tissues = [
@@ -416,7 +429,7 @@ class PlantsModel(
         # Define xarray templates
         self.data_object_templates = {
             "cnp_pft": xr.DataArray(
-                data=np.zeros((self.grid.n_cells, self.flora.n_pfts, 3)),
+                data=np.zeros((self.grid.n_cells, len(self.flora.name), 3)),
                 coords={
                     "cell_id": self.data["cell_id"],
                     "pft": self.flora.name,
@@ -429,7 +442,7 @@ class PlantsModel(
             ),
             "cell": xr.zeros_like(self.data["elevation"]),
             "pft": xr.DataArray(
-                data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
+                data=np.zeros((self.grid.n_cells, len(self.flora.name))),
                 coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
             ),
         }
@@ -794,36 +807,30 @@ class PlantsModel(
                 # Array indices of filled layers in this cell
                 fill_idx = (slice(0, canopy.heights.size), (cell_id,))
 
-                # Insert canopy layer heights
-                # TODO - #695 At present, pyrealm returns a column array which _I think_
-                #        always has zero as the last entry. We don't want that value, so
-                #        it is being clipped out here but keep an eye on this definition
-                #        and update if pyrealm changes. In the meantime, keep this guard
-                #        check to raise if the issue arises.
-
-                if canopy.heights[-1, :].item() > 0:
-                    raise ValueError("Last canopy.height is non-zero")
-
+                # Create a column array to insert layer heights, including
+                # - the top of the canopy (maximum stem height)
+                # - the layer closure heights (if any), rotated into a column array,
+                #   omitting the final layer, which is the ground.
                 heights[fill_idx] = np.concatenate(
                     [
                         [[canopy.max_stem_height]],
-                        canopy.heights[0:-1, :],
+                        canopy.heights[0:-1, None],
                     ]
                 )
 
-                # Insert canopy fapar:
-                # TODO - #695 currently 1D, not 2D - consistency in pyrealm? keepdims?
+                # Similarly, insert canopy fapar:
                 fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
 
-                # Calculate the per stem leaf mass  as (stem leaf area * (1/sigma) * L)
-                # and then scale up to the number of individuals and sum across cohorts
-                # to give a total mass per layer within the cell.
-
+                # Calculate the per stem leaf mass:
+                # * (stem leaf area * (1/sigma) * L) * n_indviduals to give total cohort
+                #   mass per layer within the cell.
+                # * Cohort traits need to be converted from pandas.Series to row array
+                #   to broadcast across columns of stem leaf area
                 cohort_leaf_mass_per_layer = (
                     canopy.cohort_data.stem_leaf_area
-                    * (1 / community.stem_traits.sla)
-                    * community.stem_traits.lai
-                ) * community.cohorts.n_individuals
+                    * (1 / community.cohorts.sla.to_numpy())
+                    * community.cohorts.lai.to_numpy()
+                ) * community.cohorts.n_individuals.to_numpy()
 
                 mass[fill_idx] = cohort_leaf_mass_per_layer.sum(axis=1, keepdims=True)
 
