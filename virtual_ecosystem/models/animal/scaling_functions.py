@@ -693,7 +693,9 @@ def cells_within_distance(
 
     # Clamp to at least one cell side. Uses <= below, matching set_neighbours, so the
     # orthogonal neighbours at exactly sqrt(cell_area) are retained.
-    distance_m = max(distance_m, np.sqrt(grid.cell_area))
+    distance_m = max(
+        distance_m, np.sqrt(grid.cell_area) + 0.001
+    )  # 1 mm greater to avoid floating point issues
 
     reachable = np.where(grid._distances[centroid_key, :] <= distance_m)[0].tolist()
     reachable.remove(centroid_key)

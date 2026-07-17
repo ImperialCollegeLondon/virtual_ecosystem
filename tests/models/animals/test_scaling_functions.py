@@ -679,7 +679,6 @@ def test_dispersal_distance(
     assert calculated_distance == pytest.approx(expected_distance, rel=1e-6)
 
 
-@pytest.mark.parametrize("populate_matrix", [False, True], ids=["on_demand", "cached"])
 @pytest.mark.parametrize(
     "centroid_key, distance_m, expected_keys",
     [
@@ -708,9 +707,7 @@ def test_dispersal_distance(
         pytest.param(10, 10.0, [5, 11, 15], id="edge_centroid_is_clipped_not_wrapped"),
     ],
 )
-def test_cells_within_distance(
-    populate_matrix, centroid_key, distance_m, expected_keys
-):
+def test_cells_within_distance(centroid_key, distance_m, expected_keys):
     """Test the Euclidean reachability set on a 5x5 grid of 10 m cells.
 
     A diagonal neighbour lies sqrt(2) ~ 14.14 m away, so it enters the set only once
@@ -719,22 +716,38 @@ def test_cells_within_distance(
     checks that offsets such as (1, 2), at sqrt(5) ~ 22.4 m, are excluded at a 20 m
     radius even though they are only two orthogonal steps away.
 
-    Both the on-demand and cached branches of
-    :meth:`~virtual_ecosystem.core.grid.Grid.get_distances` are exercised via
-    ``populate_matrix``; they must return identical reachable sets.
+    The ``below_one_cell`` case exercises the clamp: a sub-cell travel distance is
+    raised to one cell side so the four orthogonal neighbours (whose centres sit at
+    exactly 10 m) remain reachable under the ``<=`` boundary.
     """
     from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.models.animal.scaling_functions import cells_within_distance
 
     grid = Grid(grid_type="square", cell_area=100.0, cell_nx=5, cell_ny=5)
-    if populate_matrix:
-        grid.populate_distances()
+    grid.populate_distances()
 
     reachable = cells_within_distance(grid, centroid_key, distance_m)
 
     assert sorted(reachable) == expected_keys
     assert centroid_key not in reachable
     assert len(reachable) == len(set(reachable))
+
+
+def test_cells_within_distance_requires_populated_matrix():
+    """cells_within_distance raises if the grid distance matrix is not populated.
+
+    The function reads ``grid._distances`` directly for speed and so depends on
+    ``populate_distances`` having been called at model setup; absent that, it should
+    fail with a clear message rather than a NoneType subscripting error.
+    """
+
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.scaling_functions import cells_within_distance
+
+    grid = Grid(grid_type="square", cell_area=100.0, cell_nx=5, cell_ny=5)
+
+    with pytest.raises(ValueError, match="not populated"):
+        cells_within_distance(grid, centroid_key=12, distance_m=10.0)
 
 
 @pytest.mark.parametrize(

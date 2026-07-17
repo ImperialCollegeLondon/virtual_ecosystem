@@ -31,6 +31,8 @@ def prepared_animal_model_instance(
         model_constants=constants_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
+
+    model.data.grid.populate_distances()
     return model
 
 
@@ -174,6 +176,8 @@ class TestAnimalModel:
                 configuration=animal_fixture_configuration,
                 core_components=core_components,
             )
+
+            model.data.grid.populate_distances()
 
             # Run the update step (once this does something should check output)
             model.update(time_index=0)
@@ -1197,6 +1201,8 @@ class TestAnimalModel:
         from virtual_ecosystem.models.animal.scaling_functions import (
             cells_within_distance,
         )
+
+        animal_model_instance.data.grid.populate_distances()
 
         # Empty the communities and cohorts before the test
         animal_model_instance.communities = {
