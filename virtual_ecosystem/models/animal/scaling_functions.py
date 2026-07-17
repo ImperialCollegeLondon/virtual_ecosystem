@@ -668,20 +668,17 @@ def cells_within_distance(
 ) -> list[int]:
     """Grid cells whose centroids lie within a travel distance of a centroid.
 
-    Reachability is Euclidean centroid-to-centroid, delegated to
-    :meth:`~virtual_ecosystem.core.grid.Grid.get_distances`, which matches the metric
-    used by :meth:`~virtual_ecosystem.core.grid.Grid.set_neighbours`. When the grid's
-    full distance matrix has been populated via
-    :meth:`~virtual_ecosystem.core.grid.Grid.populate_distances`, this reads the cached
-    distances; otherwise it falls back to computing the single row on demand, returning
-    identical values either way.
+    Reachability is Euclidean centroid-to-centroid, read directly from the grid's
+    pre-populated distance matrix (see
+    :meth:`~virtual_ecosystem.core.grid.Grid.populate_distances`), using the same
+    ``<=`` metric as :meth:`~virtual_ecosystem.core.grid.Grid.set_neighbours`.
 
     The distance is clamped to a minimum of one cell side so that a triggered dispersal
     always has at least the orthogonal neighbours available, even for a cohort too slow
     to clear a single cell.
 
     Args:
-        grid: The simulation grid.
+        grid: The simulation grid, with its distance matrix already populated.
         centroid_key: The grid cell key anchoring the move.
         distance_m: The distance the cohort can travel this timestep [m].
 
@@ -689,16 +686,19 @@ def cells_within_distance(
         The keys of all in-bounds cells within reach, excluding the centroid itself.
     """
 
+    if grid._distances is None:
+        raise ValueError(
+            "grid distance matrix not populated;call grid.populate_distances() at setup"
+        )
+
     # Clamp to at least one cell side. Uses <= below, matching set_neighbours, so the
     # orthogonal neighbours at exactly sqrt(cell_area) are retained.
     distance_m = max(distance_m, np.sqrt(grid.cell_area))
 
-    # get_distances returns shape (1, n_cells); the reachable cell ids are the column
-    # indices of the single row, hence [1].
-    reachable = np.where(grid.get_distances(centroid_key, None) <= distance_m)[1]
+    reachable = np.where(grid._distances[centroid_key, :] <= distance_m)[0].tolist()
+    reachable.remove(centroid_key)
 
-    # The centroid's self-distance is zero, so drop it from the destination set.
-    return reachable[reachable != centroid_key].tolist()
+    return reachable
 
 
 def territory_size(

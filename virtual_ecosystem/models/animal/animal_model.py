@@ -304,9 +304,6 @@ class AnimalModel(
 
         self.model_constants = model_constants
 
-        # initialize grid distances for use by dispersal methods
-        self.data.grid.populate_distances()
-
         # Which density scaling equations are used, "damuth" or "madingley"
         self.density_scaling_method = self.model_constants.density_scaling_method
 

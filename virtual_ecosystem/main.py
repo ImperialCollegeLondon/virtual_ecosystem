@@ -329,6 +329,8 @@ def ve_run(
 
     # Build core elements
     core_components = CoreComponents(config=core_configuration)
+    # initialize grid distances
+    core_components.grid.populate_distances()
     if progress > Progress.MINIMAL:
         print("* Built core model components")
 
