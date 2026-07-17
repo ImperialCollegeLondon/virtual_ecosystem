@@ -865,7 +865,7 @@ class Biomasses(ToDataFrameMixin):
 
     # Note: these are hard-coded and must be updated if the simulation
     # uses different biomass classes.
-    array_attrs: ClassVar[tuple[str, ...]] = (
+    _array_attrs: ClassVar[tuple[str, ...]] = (
         "biomass_foliage_carbon_mass",
         "biomass_foliage_n_actual_element_mass",
         "biomass_foliage_p_actual_element_mass",

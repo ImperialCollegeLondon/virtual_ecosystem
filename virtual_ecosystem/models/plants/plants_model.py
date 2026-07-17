@@ -1273,7 +1273,7 @@ class PlantsModel(
                     )
 
             # HANDLE ALLOCATION TO GROWTH
-            biomasses.apply_growth(allocation=stem_allocation)
+            biomasses.apply_growth(growth_increments=stem_allocation)
 
             # TODO: capture propagules in canopy seedbank.
 

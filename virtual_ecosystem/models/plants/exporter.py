@@ -88,9 +88,9 @@ class CommunityDataExporter:
                 # pyrealm 3 HACK - the object being exported is a Cohorts df instance
                 #    with columns but the imported object is the class not the instance
                 #    and that does not have columns. Need to work out how to repopulate
-                #    this list - probably
+                #    this list
                 *StemAllocation._array_attrs,
-                *Biomasses.array_attrs,
+                *Biomasses._array_attrs,
             ]
         ),
         "community_canopy_attributes": set(
@@ -344,26 +344,28 @@ class CommunityDataExporter:
             # stem allocations are defined as an empty dictionary. In this case,
             # provide an empty data frame of np.nan values for each cohort.
             if stem_allocations:
-                allocation = stem_allocations[cell_id].to_pandas()
+                allocation = stem_allocations[cell_id]  # to_dataframe()
             else:
                 allocation = pd.DataFrame(
                     {
-                        key: np.full(community.n_cohorts, np.nan)
-                        for key in StemAllocation.array_attrs
+                        key: np.full(len(community.cohorts), np.nan)
+                        for key in StemAllocation._array_attrs
                     }
                 )
 
             # Concatenate the cohort data, stem allometry and stem allocation by
             # column
             if biomasses is None:
-                biomass_data = pd.DataFrame(index=np.arange(community.n_cohorts))
+                biomass_data = pd.DataFrame(index=np.arange(len(community)))
             else:
                 biomass_data = self._export_biomass_data(biomasses[cell_id])
 
             community_data = pd.concat(
                 [
-                    community.cohorts.to_pandas(),
-                    community.stem_allometry.to_pandas(),
+                    community.cohorts,
+                    # HACK pyrealm 3 - allometry converted to a dataframe to fruit
+                    # biomasses into Biomasses
+                    community.stem_allometry,  # to.dataframe(),
                     allocation,
                     biomass_data,
                 ],
@@ -431,7 +433,7 @@ class CommunityDataExporter:
 
         community_canopy_data = []
         for cell_id, canopy in canopies.items():
-            data = canopy.community_data.to_pandas()
+            data = canopy.community_data.to_dataframe()
             data["canopy_layer_index"] = data.index
             data["heights"] = canopy.heights
             data["cell_id"] = cell_id
@@ -480,12 +482,12 @@ class CommunityDataExporter:
 
         stem_canopy_data = []
         for (cell_id, canopy), community in zip(canopies.items(), communities.values()):
-            data = canopy.cohort_data.to_pandas()
+            data = canopy.cohort_data.to_dataframe()
             data["canopy_layer_index"] = data.index
             data["cell_id"] = cell_id
-            data["cohort_id"] = np.repeat(
-                community.cohorts.cohort_id, len(canopy.heights)
-            )
+            # data["cohort_id"] = np.repeat(
+            #     community.cohorts.cohort_id, len(canopy.heights)
+            # )
 
             data["time"] = time
             data["time_index"] = time_index

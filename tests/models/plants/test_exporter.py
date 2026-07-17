@@ -12,7 +12,7 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 
 @pytest.fixture
 def fixture_exporter_components(
-    flora, plants_cohort_data, fixture_core_components, extra_pft_traits
+    fixture_flora, plants_cohort_data, fixture_core_components
 ):
     """Plant models components for testing exporter.
 
@@ -21,6 +21,7 @@ def fixture_exporter_components(
     """
 
     from pyrealm.demography.canopy import Canopy
+    from pyrealm.demography.cohorts import cohort_id_generator
     from pyrealm.demography.tmodel import StemAllocation
 
     from virtual_ecosystem.models.plants.biomasses import (
@@ -34,25 +35,41 @@ def fixture_exporter_components(
     from virtual_ecosystem.models.plants.communities import PlantCommunities
 
     communities = PlantCommunities(
-        cohort_data=plants_cohort_data, flora=flora, grid=fixture_core_components.grid
+        cohort_id_generator=cohort_id_generator(mode="str"),
+        cohort_data=plants_cohort_data,
+        flora=fixture_flora,
+        grid=fixture_core_components.grid,
     )
+
+    # This is an experiment
+    for cmty in communities.values():
+        cmty.stem_allometry_orig = cmty.stem_allometry
+        allom = cmty.stem_allometry.to_dataframe()
+        allom["reproductive_tissue_mass"] = 10
+        cmty.stem_allometry = allom
+
     canopies = {
-        cell_id: Canopy(cmty, fit_ppa=True) for cell_id, cmty in communities.items()
+        cell_id: Canopy(
+            cohorts=cmty.cohorts,
+            allometry=cmty.stem_allometry_orig,
+            canopy_area=fixture_core_components.grid.cell_area,
+            fit_ppa=True,
+        )
+        for cell_id, cmty in communities.items()
     }
 
     stem_allocations = {
         cell_id: StemAllocation(
-            stem_traits=cmty.stem_traits,
-            stem_allometry=cmty.stem_allometry,
-            whole_crown_gpp=np.full(cmty.n_cohorts, 25.0),
-        )
+            cohorts=cmty.cohorts,
+            allometry=cmty.stem_allometry_orig,
+            whole_crown_gpp=np.full(len(cmty.cohorts), 25.0),
+        ).to_dataframe()
         for cell_id, cmty in communities.items()
     }
 
     biomasses = {
         cell_id: Biomasses.default_init(
             community=cmty,
-            extra_pft_traits=extra_pft_traits,
             with_elements=["N", "P"],
             tissues=[
                 FoliageBiomass,
@@ -336,7 +353,7 @@ def test_CommunityDataExporter_dump_cohort_data(
 
     # Otherwise check it exists and has the requested attributes
     assert out_path.exists()
-    cell_n_cohorts = np.array([cmty.n_cohorts for _, cmty in communities.items()])
+    cell_n_cohorts = np.array([len(cmty.cohorts) for _, cmty in communities.items()])
     csv_row_check(path=out_path, n_rows=cell_n_cohorts.sum(), attr=attributes)
 
     if not attributes:
@@ -440,7 +457,7 @@ def test_CommunityDataExporter_dump_stem_canopy_data(
 
     # Otherwise check it exists and has the requested attributes
     assert out_path.exists()
-    cell_n_cohorts = np.array([cmty.n_cohorts for _, cmty in communities.items()])
+    cell_n_cohorts = np.array([len(cmty.cohorts) for _, cmty in communities.items()])
     cell_n_layers = np.array([len(cpy.heights) for cpy in canopies.values()])
     cell_n_stem_layers = (cell_n_cohorts * cell_n_layers).sum()
     csv_row_check(path=out_path, n_rows=cell_n_stem_layers, attr=attributes)
@@ -479,7 +496,7 @@ class TestExporterDump:
     @staticmethod
     def increment_expected_n(communities, canopies, current={}) -> dict[str, int]:
         """Increment expected numbers of rows in the three data files."""
-        cht_by_cell = np.array([c.n_cohorts for c in communities.values()])
+        cht_by_cell = np.array([len(c.cohorts) for c in communities.values()])
         lyrs_by_cell = np.array([len(cpy.heights) for cpy in canopies.values()])
 
         if current:
@@ -571,9 +588,8 @@ class TestExporterDump:
         self,
         tmp_path,
         plants_data,
-        flora,
+        fixture_flora,
         plants_cohort_data,
-        extra_pft_traits,
         fixture_core_components,
         fixture_canopy_layer_data,
         required,
@@ -598,9 +614,8 @@ class TestExporterDump:
         model = PlantsModel(
             data=plants_data,
             core_components=fixture_core_components,
-            flora=flora,
+            flora=fixture_flora,
             cohort_data=plants_cohort_data,
-            extra_pft_traits=extra_pft_traits,
             exporter=exporter,
         )
 
