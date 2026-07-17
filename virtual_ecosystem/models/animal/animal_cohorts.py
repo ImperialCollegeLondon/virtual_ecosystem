@@ -1624,48 +1624,54 @@ class AnimalCohort:
             self.mass_current + self.reproductive_mass
         ) / self.functional_group.adult_mass < mass_threshold
 
-    def migrate_juvenile_probability(self) -> float:
+    def get_dispersal_distance(self, dt_days: float) -> float:
+        """The distance this cohort can travel in one timestep [m].
+
+        Args:
+            dt_days: Length of the model timestep [days].
+
+        Returns:
+            The dispersal distance available to the cohort [m].
+        """
+
+        return sf.dispersal_distance(
+            self.mass_current,
+            self.constants.V_disp,
+            self.constants.M_disp_ref,
+            self.constants.o_disp,
+            dt_days,
+        )
+
+    def migrate_juvenile_probability(self, dt_days: float) -> float:
         """The probability that a juvenile cohort will migrate to a new grid cell.
 
         TODO: This does not hold for diagonal moves or non-square grids.
 
         Following Madingley's assumption that the probability of juvenile dispersal is
-        equal to the proportion of the cohort individuals that would arrive in the
-        neighboring cell after one full timestep's movement.
+        equal to the proportion of the cohort's individuals that would arrive in the
+        neighbouring cell after one full timestep's movement.
 
-        Assuming cohort individuals are homogeneously distributed within a grid cell and
-        that the move is non-diagonal, the probability is then equal to the ratio of
-        dispersal speed to the side-length of a grid cell.
+        Assuming individuals are homogeneously distributed within a grid cell and that
+        the move is non-diagonal, the proportion of individuals crossing into the next
+        cell is the ratio of the distance travelled to the side length of a grid cell:
 
-        A homogeneously distributed cohort with a partial presence in a grid cell will
-        have a proportion of its individuals in the new grid cell equal to the
-        proportion the new grid cell that it occupies (A_new / A_cell). This proportion
-        will be equal to the cohorts velocity (V) multiplied by the elapsed time (t)
-        multiplied by the length of one side of a grid cell (L) (V*t*L) (t is assumed
-        to be 1 here). The area of the square grid cell is the square of the length of
-        one side. The proportion of individuals in the new cell is then:
-        A_new / A_cell = (V * T * L) / (L * L) = ((L/T) * T * L) / (L * L ) =
-        dimensionless
-        [m2   / m2     = (m/d * d * m) / (m * m) = m / m = dimensionless]
+        A_new / A_cell = (d * L) / (L * L) = d / L,
+
+        where ``d`` is the dispersal distance over the timestep [m] and ``L`` is the
+        cell side length [m]. The ratio is not a true probability, as it exceeds one
+        when the cohort can clear a whole cell, and so is clamped at one.
+
+        Args:
+            dt_days: Length of the model timestep [days].
 
         Returns:
-            The probability of diffusive natal dispersal to a neighboring grid cell.
-
+            The probability of diffusive natal dispersal to a neighbouring grid cell.
         """
 
-        A_cell = self.grid.cell_area
-        grid_side = sqrt(A_cell)
-        velocity = sf.juvenile_dispersal_speed(
-            self.mass_current,
-            self.constants.V_disp,
-            self.constants.M_disp_ref,
-            self.constants.o_disp,
-        )
+        grid_side = sqrt(self.grid.cell_area)
+        distance = self.get_dispersal_distance(dt_days)
 
-        # not a true probability as can be > 1, reduced to 1.0 in return statement
-        probability_of_dispersal = velocity / grid_side
-
-        return min(1.0, probability_of_dispersal)
+        return min(1.0, distance / grid_side)
 
     def inflict_non_predation_mortality(
         self, dt: float, carcass_pools: list[CarcassPool]
