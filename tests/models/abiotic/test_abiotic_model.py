@@ -19,7 +19,6 @@ REQUIRED_INIT_VAR_CHECKS = (
 SETUP_MANIPULATIONS = (
     (INFO, "Adding data array for 'vapour_pressure_deficit_ref'"),
     (INFO, "Adding data array for 'vapour_pressure_ref'"),
-    (INFO, "Adding data array for 'diurnal_temperature_range'"),
     (INFO, "Adding data array for 'air_temperature'"),
     (INFO, "Adding data array for 'relative_humidity'"),
     (INFO, "Adding data array for 'vapour_pressure_deficit'"),
@@ -28,8 +27,9 @@ SETUP_MANIPULATIONS = (
     (INFO, "Adding data array for 'atmospheric_pressure'"),
     (INFO, "Adding data array for 'atmospheric_co2'"),
     (INFO, "Adding data array for 'soil_temperature'"),
-    (INFO, "Adding data array for 'net_radiation'"),
     (INFO, "Adding data array for 'canopy_temperature'"),
+    (INFO, "Adding data array for 'diurnal_temperature_range'"),
+    (INFO, "Adding data array for 'net_radiation'"),
     (INFO, "Adding data array for 'sensible_heat_flux'"),
     (INFO, "Adding data array for 'latent_heat_flux'"),
     (INFO, "Adding data array for 'longwave_emission'"),

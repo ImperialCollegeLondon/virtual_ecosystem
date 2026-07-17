@@ -455,21 +455,21 @@ def test_calculate_solute_removal_by_soil_water_negative_concentrations(
         ),
     ],
 )
-def test_find_total_soil_moisture_for_microbially_active_depth(
+def test_find_total_soil_moisture_for_simulation_depth(
     dummy_carbon_data, fixture_core_components, increased_depth, expected_soil_moisture
 ):
     """Test that finding the total soil moisture works as expected."""
     from virtual_ecosystem.models.soil.env_factors import (
-        find_total_soil_moisture_for_microbially_active_depth,
+        find_total_soil_moisture_for_simulation_depth,
     )
 
     if increased_depth:
         fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
             [0.5, 0.25]
         )
-        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
+        fixture_core_components.layer_structure.microbial_simulation_depth = 0.75
 
-    actual_soil_moisture = find_total_soil_moisture_for_microbially_active_depth(
+    actual_soil_moisture = find_total_soil_moisture_for_simulation_depth(
         soil_moistures=dummy_carbon_data["soil_moisture"],
         layer_structure=fixture_core_components.layer_structure,
     )
@@ -502,7 +502,7 @@ def test_find_water_outflow_rates(
         fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
             [0.5, 0.20]
         )
-        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.70
+        fixture_core_components.layer_structure.microbial_simulation_depth = 0.70
 
     actual_vertical_flow = find_water_outflow_rates(
         vertical_flow=dummy_carbon_data["vertical_flow"].to_numpy(),

@@ -600,7 +600,7 @@ class SoilModel(
 
         return {
             "production_of_fungal_fruiting_bodies": total_production
-            * self.core_constants.max_depth_of_microbial_activity
+            * self.core_constants.microbial_simulation_depth
             / self.model_timing.update_interval_quantity.to("days").magnitude
         }
 
@@ -660,7 +660,7 @@ class SoilModel(
         return {
             f"{full}_{nut}_supply": updated_soil_pools[f"new_{abbr}_{nut}_supply"]
             * self.grid.cell_area
-            * self.core_constants.max_depth_of_microbial_activity
+            * self.core_constants.microbial_simulation_depth
             for nut, (abbr, full) in var_combinations
         }
 
@@ -683,14 +683,14 @@ class SoilModel(
         if isinstance(output_rate, float):
             return np.array(
                 output_rate
-                * self.core_constants.max_depth_of_microbial_activity
+                * self.core_constants.microbial_simulation_depth
                 * self.grid.cell_area
                 * self.model_timing.update_interval_quantity.to("days").magnitude
             )
         else:
             return (
                 output_rate
-                * self.core_constants.max_depth_of_microbial_activity
+                * self.core_constants.microbial_simulation_depth
                 * self.grid.cell_area
                 * self.model_timing.update_interval_quantity.to("days").magnitude
             )
@@ -763,28 +763,20 @@ class SoilModel(
             env_factors=env_factors,
         )
 
-        return {
-            "ectomycorrhizal_n_supply": where(
-                DataArray(initial_ecto_n) >= 0.0,
-                self.to_total_mass(initial_ecto_n),
-                0.0,
-            ),
-            "ectomycorrhizal_p_supply": where(
-                DataArray(initial_ecto_p) >= 0.0,
-                self.to_total_mass(initial_ecto_p),
-                0.0,
-            ),
-            "arbuscular_mycorrhizal_n_supply": where(
-                DataArray(initial_arbuscular_n) >= 0.0,
-                self.to_total_mass(initial_arbuscular_n),
-                0.0,
-            ),
-            "arbuscular_mycorrhizal_p_supply": where(
-                DataArray(initial_arbuscular_p) >= 0.0,
-                self.to_total_mass(initial_arbuscular_p),
-                0.0,
-            ),
-        }
+        # TODO - this could just write to self.data rather than returning a dict
+        var_dict = {}
+        for var_name, var in (
+            ("ectomycorrhizal_n_supply", initial_ecto_n),
+            ("ectomycorrhizal_p_supply", initial_ecto_p),
+            ("arbuscular_mycorrhizal_n_supply", initial_arbuscular_n),
+            ("arbuscular_mycorrhizal_p_supply", initial_arbuscular_p),
+        ):
+            var_dict[var_name] = DataArray(
+                where(var >= 0.0, self.to_total_mass(var), 0),
+                coords={"cell_id": self.grid.cell_id},
+            )
+
+        return var_dict
 
 
 def estimate_past_mycorrhizal_supply(

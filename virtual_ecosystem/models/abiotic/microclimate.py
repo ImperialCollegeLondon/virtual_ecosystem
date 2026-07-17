@@ -284,7 +284,9 @@ def generate_hourly_forcing(
         latitude_deg=latitude,
         month=month,
         days=days,
-        daily_temp_amplitude=5,  # TODO #1440 abiotic_constants or input data
+        daily_temp_amplitude=data["diurnal_temperature_range_ref"]
+        .isel(time_index=time_index)
+        .to_numpy(),
     )
 
 

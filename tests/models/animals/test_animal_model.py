@@ -567,7 +567,7 @@ class TestAnimalModel:
                     cell_id=cid,
                     data=new_data,
                     cell_area=cell_area,
-                    max_depth_microbial_activity=fixture_core_constants.max_depth_of_microbial_activity,
+                    microbial_simulation_depth=fixture_core_constants.microbial_simulation_depth,
                     c_n_p_ratios=microbial_c_n_p_ratios,
                 )
                 for pool_name in pool_names

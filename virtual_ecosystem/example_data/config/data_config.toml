@@ -1,6 +1,3 @@
-[core.data_output_options]
-save_initial_state = true
-
 # Climate data
 [[core.data.variable]]
 file_path = "../data/example_climate_data.nc"
@@ -26,6 +23,9 @@ var_name = "wind_speed_ref"
 [[core.data.variable]]
 file_path = "../data/example_climate_data.nc"
 var_name = "downward_longwave_radiation"
+[[core.data.variable]]
+file_path = "../data/example_climate_data.nc"
+var_name = "diurnal_temperature_range_ref"
 
 # Elevation
 [[core.data.variable]]
