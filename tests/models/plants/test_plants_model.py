@@ -68,8 +68,7 @@ def wipe_canopy_layers(model):
 def test_PlantsModel__init__(
     plants_data,
     plants_cohort_data,
-    flora,
-    extra_pft_traits,
+    fixture_flora,
     fixture_core_components,
     fixture_canopy_layer_data,
     fixture_exporter,
@@ -82,15 +81,14 @@ def test_PlantsModel__init__(
     plants_model = PlantsModel(
         data=plants_data,
         core_components=fixture_core_components,
-        flora=flora,
+        flora=fixture_flora,
         cohort_data=plants_cohort_data,
-        extra_pft_traits=extra_pft_traits,
         exporter=fixture_exporter,
     )
 
     # Test the flora and community are as expected
     n_cells = fixture_core_components.grid.n_cells
-    assert plants_model.flora == flora
+    assert plants_model.flora == fixture_flora
     assert len(plants_model.communities) == n_cells
 
     # Check the canopy and subcanopy vegetation has been initialised and updated,
@@ -146,9 +144,8 @@ def test_PlantsModel__init__(
 )
 def test_PlantsModel__init__errors(
     plants_data,
-    flora,
+    fixture_flora,
     plants_cohort_data,
-    extra_pft_traits,
     fixture_core_components,
     tricky_plant_cohorts,
     fixture_exporter,
@@ -172,9 +169,8 @@ def test_PlantsModel__init__errors(
         _ = PlantsModel(
             data=plants_data,
             core_components=fixture_core_components,
-            flora=flora,
+            flora=fixture_flora,
             cohort_data=plants_cohort_data,
-            extra_pft_traits=extra_pft_traits,
             exporter=fixture_exporter,
         )
         return

@@ -180,7 +180,7 @@ def fixture_canopy_layer_data(
     plants_cohort_data,
     plants_data,
     fixture_plants_constants,
-    flora,
+    fixture_flora,
     fixture_core_components,
 ):
     """Shared canopy layer data.
@@ -198,29 +198,41 @@ def fixture_canopy_layer_data(
     """
 
     from pyrealm.demography.canopy import Canopy
-    from pyrealm.demography.community import Cohorts, Community
+    from pyrealm.demography.cohorts import cohort_id_generator, create_cohorts
+
+    from virtual_ecosystem.models.plants.communities import Community
 
     # Build the pyrealm community for each cell
+    cid_gen = cohort_id_generator()
+
     communities = []
     for cell_id in fixture_core_components.grid.cell_id:
         chrts = plants_cohort_data[plants_cohort_data.plant_cohorts_cell_id == cell_id]
         communities.append(
             Community(
-                flora=flora,
+                flora=fixture_flora,
                 cell_area=fixture_core_components.grid.cell_area,
                 cell_id=int(cell_id),
-                cohorts=Cohorts(
-                    dbh_values=chrts["plant_cohorts_dbh"].to_numpy(),
+                cohorts=create_cohorts(
+                    flora=fixture_flora,
+                    cid_generator=cid_gen,
+                    dbh_value=chrts["plant_cohorts_dbh"].to_numpy(),
                     n_individuals=chrts["plant_cohorts_n"].to_numpy(),
-                    pft_names=chrts["plant_cohorts_pft"].to_numpy(),
+                    pft_name=chrts["plant_cohorts_pft"].to_numpy(),
                 ),
             )
         )
 
-    # Fit the PPA solution for each cell
-    # Handle communities with no cohorts
+    # Fit the PPA solution for each cell, handling communities with no cohorts as None
     canopies = [
-        Canopy(cmnty, fit_ppa=True) if cmnty.n_cohorts else None
+        Canopy(
+            cohorts=cmnty.cohorts,
+            allometry=cmnty.stem_allometry,
+            canopy_area=cmnty.cell_area,
+            fit_ppa=True,
+        )
+        if len(cmnty.cohorts)
+        else None
         for cmnty in communities
     ]
 
@@ -257,7 +269,7 @@ def fixture_canopy_layer_data(
                 [
                     [cnpy.max_stem_height + lyr_struct.above_canopy_height_offset],
                     [cnpy.max_stem_height],
-                    cnpy.heights[:-1, 0],
+                    cnpy.heights[:-1,],
                 ]
             )
         else:
@@ -286,9 +298,9 @@ def fixture_canopy_layer_data(
         # TODO - maybe pyrealm should provide stem_leaf_mass?
         expected["layer_leaf_mass"][1][cnpy_idx, idx] = (
             cnpy.cohort_data.stem_leaf_area
-            * (1 / cmty.stem_traits.sla)
-            * cmty.stem_traits.lai
-            * cmty.cohorts.n_individuals
+            * (1 / cmty.cohorts.sla.to_numpy())
+            * cmty.cohorts.lai.to_numpy()
+            * cmty.cohorts.n_individuals.to_numpy()
         ).sum(axis=1)
 
     # Fill soil and surface layer depths
