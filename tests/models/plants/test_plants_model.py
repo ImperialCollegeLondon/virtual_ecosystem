@@ -586,7 +586,7 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
     }
     # Store previous dbh values
     prev_dbh_values = {
-        cell_id: fxt_plants_model.communities[cell_id].cohorts.dbh_values.copy()
+        cell_id: fxt_plants_model.communities[cell_id].cohorts.dbh_value.copy()
         for cell_id in fxt_plants_model.communities.keys()
     }
 
@@ -754,7 +754,8 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model, tricky_plant_coho
     mocker.patch(
         "numpy.random.binomial",
         side_effect=[
-            np.array([1] * c.n_cohorts) for _, c in fxt_plants_model.communities.items()
+            np.array([1] * len(c.cohorts))
+            for _, c in fxt_plants_model.communities.items()
         ],
     )
 
@@ -792,7 +793,7 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model, tricky_plant_coho
             # Check tissue by pft
             for idx, pft in enumerate(fxt_plants_model.flora.name):
                 cohorts_this_pft = (
-                    fxt_plants_model.communities[cell_id].cohorts.pft_names == pft
+                    fxt_plants_model.communities[cell_id].cohorts.pft_name == pft
                 )
                 pft_biomass = tissue.as_array(with_carbon=True)[
                     :, cohorts_this_pft
@@ -809,7 +810,7 @@ def test_PlantsModel_apply_recruitment(fxt_plants_model, tricky_plant_cohorts):
     """Test the apply_recruitment method of the plants model."""
 
     original_n_cohorts = [
-        len(cm.cohorts.pft_names) for cm in fxt_plants_model.communities.values()
+        len(cm.cohorts.pft_name) for cm in fxt_plants_model.communities.values()
     ]
     original_n_propagules = (
         fxt_plants_model.data["plant_pft_propagules"].to_numpy().copy()
@@ -831,7 +832,7 @@ def test_PlantsModel_apply_recruitment(fxt_plants_model, tricky_plant_cohorts):
 
     # Check there are more cohorts after the recruitment
     new_n_cohorts = [
-        len(cm.cohorts.pft_names) for cm in fxt_plants_model.communities.values()
+        len(cm.cohorts.pft_name) for cm in fxt_plants_model.communities.values()
     ]
 
     assert np.all(np.less(original_n_cohorts, new_n_cohorts))

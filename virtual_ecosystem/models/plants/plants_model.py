@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
-from pyrealm.demography.cohorts import Cohorts, cohort_id_generator
+from pyrealm.demography.cohorts import cohort_id_generator, create_cohorts
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
 
@@ -1224,8 +1224,8 @@ class PlantsModel(
             #       targets the DBH, not the rest of the allocation so these turnover
             #       etc may still be based on shrinking tree values.
 
-            new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
-            cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
+            new_dbh = cohorts.dbh_value + stem_allocation.delta_dbh.squeeze()
+            cohorts.dbh_value = np.where(new_dbh <= 0, cohorts.dbh_value, new_dbh)
 
             # HANDLE ALLOCATION TO TURNOVER:
             tissue_turnovers = biomasses.apply_turnover(allocation=stem_allocation)
@@ -1364,10 +1364,7 @@ class PlantsModel(
             )
 
             # Update community allometry with new dbh values
-            community.stem_allometry = StemAllometry(
-                stem_traits=community.stem_traits,
-                at_dbh=community.cohorts.dbh_values,
-            )
+            community.stem_allometry = StemAllometry(cohorts=community.stem_traits)
 
     def apply_mortality(self) -> None:
         """Apply mortality to plant cohorts.
@@ -1415,7 +1412,7 @@ class PlantsModel(
                 #    TODO - Some structural overlap here with allocate turnover in GPP.
                 #           Can we share code here? Need a collapse_by_pft method?
                 cohort_pft_bool_idx = [
-                    cohorts.pft_names == pft for pft in self.flora.name
+                    cohorts.pft_name == pft for pft in self.flora.name
                 ]
 
                 for by_pft_tissue in ("fruit", "foliage", "seed"):
@@ -1469,14 +1466,16 @@ class PlantsModel(
             #        start these, so using a 2mm DBH. Need a DBH given mass solver.
             n_recruiting = recruiting_pfts.sum()
             if n_recruiting:
-                cohorts = Cohorts(
+                new_cohorts = create_cohorts(
+                    flora=self.flora,
+                    cid_generator=self.cohort_id_generator,
+                    pft_name=pft_sequence[recruiting_pfts],
+                    dbh_value=np.repeat(0.002, n_recruiting),
                     n_individuals=recruitment[cell_id, recruiting_pfts],
-                    pft_names=pft_sequence[recruiting_pfts],
-                    dbh_values=np.repeat(0.002, n_recruiting),
                 )
 
                 # Add recruited cohorts
-                community.add_cohorts(new_data=cohorts)
+                community.cohorts = pandas.concat([community.cohorts, new_cohorts])
 
                 # NOTE - The step above implicitly keeps the community reference within
                 #        the Biomasses objects up to date with recruitment and hence
@@ -1492,10 +1491,16 @@ class PlantsModel(
                 #        time.
                 new_community = Community(
                     cell_id=cell_id,
-                    cohorts=cohorts,
-                    flora=self.flora,
                     cell_area=community.cell_area,
+                    flora=self.flora,
+                    cohorts=new_cohorts,
                 )
+
+                # Set the reproductive tissue mass
+                new_community.stem_allometry.reproductive_tissue_mass = np.zeros(
+                    len(new_cohorts)
+                )
+
                 new_biomasses = Biomasses.default_init(
                     community=new_community,
                     with_elements=["N", "P"],
