@@ -313,7 +313,7 @@ def fxt_plants_model_hbvry(fxt_plants_model):
                 dims=("element", "pft"),
                 coords={
                     "element": target_array.element,
-                    "pft": fxt_plants_model.biomasses[cid].community.cohorts.pft_names,
+                    "pft": fxt_plants_model.biomasses[cid].community.cohorts.pft_name,
                 },
             )
 
@@ -411,8 +411,7 @@ def test_PlantsModel_update_allometry(fxt_plants_model_hbvry, tricky_plant_cohor
         for c in fxt_plants_model_hbvry.communities.values()
     ]
     original_tau_f = [
-        deepcopy(c.stem_traits.tau_f)
-        for c in fxt_plants_model_hbvry.communities.values()
+        deepcopy(c.cohorts.tau_f) for c in fxt_plants_model_hbvry.communities.values()
     ]
 
     # Apply herbivory to perturb the traits
@@ -421,14 +420,11 @@ def test_PlantsModel_update_allometry(fxt_plants_model_hbvry, tricky_plant_cohor
     # Calculate the foliage mass with perturbed LAI to make sure update_allometry has an
     # actual issue to fix
     perturbed_Wf = [
-        StemAllometry(
-            stem_traits=c.stem_traits, at_dbh=c.cohorts.dbh_values
-        ).foliage_mass
+        StemAllometry(cohorts=c.cohorts).foliage_mass
         for c in fxt_plants_model_hbvry.communities.values()
     ]
     perturbed_tau_f = [
-        deepcopy(c.stem_traits.tau_f)
-        for c in fxt_plants_model_hbvry.communities.values()
+        deepcopy(c.cohorts.tau_f) for c in fxt_plants_model_hbvry.communities.values()
     ]
 
     # Herbivory effects on LAI should have reduced expected foliage mass by 25%
