@@ -946,7 +946,7 @@ class PlantsModel(
                 # biomass of cohorts to distribute the herbivory between cohorts.
                 herbivory_by_cohort = (
                     self.data[f"canopy_{herbivory_tissue}_cnp_consumed"].sel(
-                        cell_id=cell_id, pft=community.cohorts.pft_name
+                        cell_id=cell_id, pft=community.cohorts.pft_name.to_numpy()
                     )
                     * relative_herbivory[:, np.newaxis]
                 )

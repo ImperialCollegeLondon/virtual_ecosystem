@@ -202,7 +202,7 @@ class BiomassTissueABC(ABC):
         #        columns to the PFTs needs to be maintained some other way.
         for pft in set(self.community.cohorts.pft_name):
             # boolean index along carbon_mass array
-            in_pft = self.community.cohorts.pft_name == pft
+            in_pft = self.community.cohorts.pft_name.to_numpy() == pft
             # aggregate masses across cohorts in the PFT and assign total.
             total_pft_carbon_biomass[in_pft] = self.carbon_mass[in_pft].sum()
 
@@ -489,8 +489,10 @@ class FruitBiomass(BiomassTissueABC):
 
         # Multiplication here avoids the need to copy() the array to avoid the reference
         # back to the allometry
-        carbon_mass = pyrealm_handling(
-            community.stem_allometry.reproductive_tissue_mass * fruit_fraction
+        carbon_mass = np.array(
+            pyrealm_handling(
+                community.stem_allometry.reproductive_tissue_mass * fruit_fraction
+            )
         )
 
         for elem in with_elements:
@@ -587,9 +589,11 @@ class SeedBiomass(BiomassTissueABC):
         # Get the proportion of reproductive tissue allocated to seed
         # - Multiplication here avoids the need to copy() the array to avoid the
         #   reference back to the allometry
-        carbon_mass = pyrealm_handling(
-            community.stem_allometry.reproductive_tissue_mass
-            * (1 - community.cohorts["fruit_flesh_fraction"])
+        carbon_mass = np.array(
+            pyrealm_handling(
+                community.stem_allometry.reproductive_tissue_mass
+                * (1 - community.cohorts["fruit_flesh_fraction"])
+            )
         )
 
         for elem in with_elements:

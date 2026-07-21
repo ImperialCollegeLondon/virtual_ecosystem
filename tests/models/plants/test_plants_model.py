@@ -336,11 +336,11 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model_hbvry, tricky_plant_cohort
     # comparison to values after applying herbivory
     initial_biomasses = deepcopy(fxt_plants_model_hbvry.biomasses)
     initial_lai = {
-        ky: cm.stem_traits.lai.squeeze().copy()
+        ky: cm.cohorts.lai.squeeze().copy()
         for ky, cm in fxt_plants_model_hbvry.communities.items()
     }
     initial_tau_f = {
-        ky: cm.stem_traits.tau_f.squeeze().copy()
+        ky: cm.cohorts.tau_f.squeeze().copy()
         for ky, cm in fxt_plants_model_hbvry.communities.items()
     }
 
@@ -370,7 +370,7 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model_hbvry, tricky_plant_cohort
     # (or vice versa).
     for cid in fxt_plants_model_hbvry.grid.cell_id:
         assert_allclose(
-            fxt_plants_model_hbvry.communities[cid].stem_traits.lai.squeeze(),
+            fxt_plants_model_hbvry.communities[cid].cohorts["lai"].squeeze(),
             initial_lai[cid] * 0.75,
         )
 
@@ -381,7 +381,7 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model_hbvry, tricky_plant_cohort
         W_f = fxt_plants_model_hbvry.communities[cid].stem_allometry.foliage_mass
         assert_allclose(
             W_f / initial_tau_f[cid] + W_f / 2,
-            W_f / fxt_plants_model_hbvry.communities[cid].stem_traits.tau_f.squeeze(),
+            W_f / fxt_plants_model_hbvry.communities[cid].cohorts["tau_f"].squeeze(),
         )
 
     # Check the canopy asbsorption has been altered - here just simply checking that the
