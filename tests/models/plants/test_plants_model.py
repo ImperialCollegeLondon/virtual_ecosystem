@@ -577,7 +577,7 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
         # Check that dbh is >= previous dbh (plants should not shrink!)
         assert np.all(
             np.greater_equal(
-                fxt_plants_model.communities[cell_id].cohorts.dbh_values,
+                fxt_plants_model.communities[cell_id].cohorts.dbh_value,
                 prev_dbh_values[cell_id],
             )
         )
