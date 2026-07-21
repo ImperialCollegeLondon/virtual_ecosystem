@@ -32,6 +32,7 @@ class VEFlora(Flora):
     p_foliage_for_reproductive_tissue: list[float] = [0.05]
     resp_rt: list[float] = [0.05]
     tau_rt: list[float] = [1.0]
+    gpp_topslice: list[float] = [0.1]
     deadwood_c_n_ratio: list[float] = [60.7]
     deadwood_c_p_ratio: list[float] = [856.5]
     leaf_turnover_c_n_ratio: list[float] = [25.5]
