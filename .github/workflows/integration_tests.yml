@@ -8,14 +8,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Run the CI checks to check it all runs normally and to define the test matrix
-  ci_checks:
-    uses: ./.github/workflows/ci.yml
-    secrets: inherit
-  
-  # Then if the standard CI checks pass run the integration tests
+
+  # Run the integration tests
   integration_tests:
-    needs: ci_checks
+
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
