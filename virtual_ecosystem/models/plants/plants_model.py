@@ -359,7 +359,7 @@ class PlantsModel(
         # turnover foliage/roots etc and are included in equations as the reciprocal of
         # the values. So rescaling them to shorter timescales requires that we
         # _increase_ the values proportionally to the reduced time between updates.
-        for turnover_rate in ["tau_f", "tau_r", "tau_rt"]:
+        for turnover_rate in ["tau_f", "tau_r", "tau_rt", "tau_f_base"]:
             setattr(
                 self.flora,
                 turnover_rate,
@@ -1358,13 +1358,11 @@ class PlantsModel(
             # Reset LAI
             community.cohorts["lai"] = community.cohorts["lai_base"]
 
-            # Reset tau_f adjusting for update speed.
-            community.cohorts["tau_f"] = (
-                community.cohorts["tau_f_base"] * self.model_timing.updates_per_year
-            )
+            # Reset tau_f
+            community.cohorts["tau_f"] = community.cohorts["tau_f_base"]
 
             # Update community allometry with new dbh values
-            community.stem_allometry = StemAllometry(cohorts=community.stem_traits)
+            community.stem_allometry = StemAllometry(cohorts=community.cohorts)
 
     def apply_mortality(self) -> None:
         """Apply mortality to plant cohorts.

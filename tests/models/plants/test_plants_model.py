@@ -443,8 +443,7 @@ def test_PlantsModel_update_allometry(fxt_plants_model_hbvry, tricky_plant_cohor
     ]
 
     restored_tau_f = [
-        deepcopy(c.stem_traits.tau_f)
-        for c in fxt_plants_model_hbvry.communities.values()
+        deepcopy(c.cohorts.tau_f) for c in fxt_plants_model_hbvry.communities.values()
     ]
 
     # LAI effects on foliage mass should now have been removed
