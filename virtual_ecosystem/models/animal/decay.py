@@ -129,11 +129,13 @@ class CarcassPool(ScavengeableMixin):
             ValueError: If any input mass is negative.
         """
         if C < 0 or N < 0 or P < 0:
-            raise ValueError(
-                f"CNP values must be non-negative. Provided values: C={C}, N={N}, P={P}"
-            )
+            LOGGER.warning("Negative CNP values in add_carcass: C={C}, N={N}, P={P}")
 
-        self.scavengeable_cnp.update(C=C, N=N, P=P)
+        self.scavengeable_cnp.update(
+            C=C if C > 0 else 0,
+            N=N if N > 0 else 0,
+            P=P if P > 0 else 0,
+        )
 
     def reset(self) -> None:
         """Reset tracking of the nutrients associated with decomposed carcasses.
@@ -199,12 +201,15 @@ class ExcrementPool(ScavengeableMixin):
         Raises:
             ValueError: If any input mass is negative.
         """
-        if C < 0 or N < 0 or P < 0:
-            raise ValueError(
-                f"CNP values must be non-negative. Provided values: C={C}, N={N}, P={P}"
-            )
 
-        self.scavengeable_cnp.update(C=C, N=N, P=P)
+        if C < 0 or N < 0 or P < 0:
+            LOGGER.warning("Negative CNP values in add_excrement: C={C}, N={N}, P={P}")
+
+        self.scavengeable_cnp.update(
+            C=C if C > 0 else 0,
+            N=N if N > 0 else 0,
+            P=P if P > 0 else 0,
+        )
 
     def reset(self) -> None:
         """Reset tracking of the nutrients associated with decomposed excrement.
@@ -660,8 +665,7 @@ class HerbivoryWaste:
                 [kg{lignin C} kg{C}^-1]
 
         Raises:
-            ValueError: If the input dictionary is missing required elements or contains
-                negative values.
+            ValueError: If the input dictionary is missing required elements.
         """
         # Validate input structure and content
         required_keys = {"C", "N", "P"}
@@ -671,9 +675,8 @@ class HerbivoryWaste:
                 f"Provided keys: {input_mass_cnp.keys()}"
             )
         if any(value < 0 for value in input_mass_cnp.values()):
-            raise ValueError(
-                f"CNP values must be non-negative. Provided values: {input_mass_cnp}"
-            )
+            LOGGER.warning("Negative CNP values in add_waste: C={C}, N={N}, P={P}")
+            input_mass_cnp = {k: v if v > 0 else 0 for k, v in input_mass_cnp.items()}
 
         just_soil = VerticalOccupancy.SOIL
         all_strata = (
