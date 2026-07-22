@@ -529,15 +529,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, tricky_plant_cohorts):
 
     transpiration_by_layer_benchmark = fxt_plants_model.layer_structure.from_template()
 
-    transpiration_by_layer_benchmark[1:5] = [
-        [2.79799283e-01, 2.79797581e-01, 2.79807565e-01, 2.85515398e-01],
-        [1.17089904e-01, 1.17116145e-01, 1.14312706e-01, 7.40514285e-06],
-        [4.89879711e-02, 4.87738507e-02, np.nan, np.nan],
-        [2.01838383e-02, np.nan, np.nan, np.nan],
-    ]
-
-    # From pyrealm 2.0.1, these will be the expectations - changed water density and
-    # other defaults.
+    # Benchmark values to detect code behaviour change
     transpiration_by_layer_benchmark[1:5] = [
         [2.92047294e-01, 2.92045517e-01, 2.92055938e-01, 2.98013627e-01],
         [1.22215429e-01, 1.22242819e-01, 1.19316662e-01, 7.72929761e-06],
@@ -598,9 +590,8 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
     # Calculate a boolean mask that shows which cells are expected to be populated
     mask = fxt_plants_model.data_object_templates["cnp_pft"].copy().astype(bool)
     for cid in mask.cell_id.values:
-        for pft in mask.pft.values:
-            if pft in fxt_plants_model.communities[cid].cohorts.pft_name:
-                mask.loc[dict(cell_id=cid, pft=pft)] = True
+        for pft in set(fxt_plants_model.communities[cid].cohorts.pft_name):
+            mask.loc[dict(cell_id=cid, pft=pft)] = True
     default_out = np.ones_like(mask)
 
     for var in [
