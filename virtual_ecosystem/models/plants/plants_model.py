@@ -1238,9 +1238,9 @@ class PlantsModel(
 
             self.stem_allocations[cell_id] = stem_allocation
 
-            # Carbon costs of root exudates
+            # Per stem carbon costs of root exudates
             symbiote_allocation = (
-                unallocated_carbon * cohorts["gpp_topslice"] * cohorts.n_individuals
+                unallocated_carbon * cohorts["gpp_topslice"]
             ).to_numpy()
 
             # Calculate carbon available for growth
@@ -1342,7 +1342,9 @@ class PlantsModel(
             self.data["root_carbohydrate_exudation"][cell_id] = (
                 self.convert_to_soil_units(
                     input_mass=np.sum(
-                        symbiote_allocation * self.model_constants.root_exudates
+                        symbiote_allocation
+                        * cohorts.n_individuals
+                        * self.model_constants.root_exudates
                     )
                 )
             )
@@ -1350,7 +1352,9 @@ class PlantsModel(
             self.data["plant_symbiote_carbon_supply"][cell_id] = (
                 self.convert_to_soil_units(
                     input_mass=np.sum(
-                        symbiote_allocation * (1 - self.model_constants.root_exudates)
+                        symbiote_allocation
+                        * cohorts.n_individuals
+                        * (1 - self.model_constants.root_exudates)
                     )
                 )
             )

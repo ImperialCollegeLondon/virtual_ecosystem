@@ -599,7 +599,7 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
     mask = fxt_plants_model.data_object_templates["cnp_pft"].copy().astype(bool)
     for cid in mask.cell_id.values:
         for pft in mask.pft.values:
-            if pft in fxt_plants_model.communities[cid].cohorts.pft_names:
+            if pft in fxt_plants_model.communities[cid].cohorts.pft_name:
                 mask.loc[dict(cell_id=cid, pft=pft)] = True
     default_out = np.ones_like(mask)
 
