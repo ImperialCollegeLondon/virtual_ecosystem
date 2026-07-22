@@ -698,6 +698,10 @@ class PlantsModel(
         self.apply_mortality()
         self.apply_recruitment()
 
+        # Update the stem allometry to reflect applied changes to stem diameter from the
+        # previous time step and to add new cohorts
+        self.update_allometry()
+
         # Get the canopy top shortwave downwelling radiation for the current time slice
         self.set_canopy_top_radiation(time_index=time_index)
 
@@ -745,9 +749,6 @@ class PlantsModel(
         # trait (tau_f), modified by apply_herbivory above, to account for carbon costs
         # of folivory.
         self.allocate_gpp()
-
-        # Update the stem allometry to reflect applied changes to stem diameter
-        self.update_allometry()
 
         # Calculate the turnover of each plant biomass pool
         self.calculate_turnover()
