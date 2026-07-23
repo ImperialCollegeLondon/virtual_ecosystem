@@ -126,29 +126,15 @@ from itertools import groupby
 from pathlib import Path
 from typing import Any
 
-import dask
 import numpy as np
-from xarray import DataArray, Dataset, open_mfdataset
+from xarray import DataArray, Dataset
 
 from virtual_ecosystem.core.axes import AXIS_VALIDATORS, validate_dataarray
-from virtual_ecosystem.core.core_components import ModelTiming
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.core.readers import load_to_dataarray
-from virtual_ecosystem.core.utils import check_outfile
-
-# There are ongoing xarray issues with NetCDF not being thread safe and this causes
-# segfaults on different architectures in testing using `xarray.open_mfdataset`
-# See:
-# - https://github.com/pydata/xarray/issues/7079
-# - https://github.com/pydata/xarray/issues/3961
-#
-# Following advice on both those issues, we currently explicitly stop dask from trying
-# to use parallel file processing and use open_mfdataset(..., lock=False)
-dask.config.set(scheduler="single-threaded")
-
 
 # TODO: Model timing is currently used when writing the data to file to provide the
 #       datestamps of the time_index dimension. This should probably be passed to
@@ -391,80 +377,87 @@ class Data:
             LOGGER.critical(msg)
             raise ConfigurationError(msg)
 
-    def save_to_netcdf(
+    def save_to_zarr(
         self,
         output_file_path: Path,
-        timing: ModelTiming,
+        group: str | None = None,
         variables_to_save: list[str] | None = None,
     ) -> None:
-        """Save the contents of the data object as a NetCDF file.
+        """Save variables from the data object to a Zarr store.
 
         Either the whole contents of the data object or specific variables of interest
         can be saved using this function.
 
         Args:
             output_file_path: Path location to save the Virtual Ecosystem model state.
-            timing: The ModelTiming instance for the simulation
-            variables_to_save: List of variables to be saved. If not provided then all
-                variables are saved.
+            group: A zarr group to export the data to.
+            variables_to_save: List of variables to be saved, defaulting to all
+                variables.
         """
 
-        # Check that the folder to save to exists and that there isn't already a file
-        # saved there
-        check_outfile(output_file_path)
-
-        # If the file path is okay then write the model state out as a NetCDF. Should
-        # check if all variables should be saved or just the requested ones.
+        # Check if all variables should be saved or just the requested ones.
         if variables_to_save:
             out = self.data[variables_to_save]
         else:
             out = self.data
 
-        # Add the timestamps to the output
-        out["timestamp"] = DataArray(timing.update_datestamps, dims="time_index")
-
-        out.to_netcdf(output_file_path)
-
-    def save_timeslice_to_netcdf(
-        self,
-        output_file_path: Path,
-        variables_to_save: list[str],
-        time_index: int,
-        timestamp: np.datetime64,
-    ) -> None:
-        """Save specific variables from current state of data as a NetCDF file.
-
-        At present, this function save each time step individually. In future, this
-        function might be altered to append multiple time steps at once, as this could
-        improve performance significantly.
-
-        Args:
-            output_file_path: Path location to save NetCDF file to.
-            variables_to_save: List of variables to save in the file
-            time_index: The time index of the slice being saved
-            timestamp: The timestamp of the start of the timeslice
-
-        Raises:
-            ConfigurationError: If the file to save to can't be found
-        """
-
-        # Check that the folder to save to exists and that there isn't already a file
-        # saved there
-        check_outfile(output_file_path)
-
-        # Loop over variables adding them to the new dataset
-        time_slice = (
-            self.data[variables_to_save]
-            .expand_dims({"time_index": 1})
-            .assign_coords(time_index=[time_index])
+        out.to_zarr(
+            output_file_path, group=group, mode="a", consolidated=False, zarr_format=2
         )
 
-        # Add the timestamp
+    def save_current_state_to_zarr(
+        self,
+        output_file_path: Path,
+        time_index: int,
+        timestamp: np.datetime64,
+        variables_to_save: list[str] = [],
+        group: str | None = None,
+    ) -> None:
+        """Export requested variables in current data state to ``zarr`` format.
+
+        Args:
+            output_file_path: Path to the zarr data store.
+            time_index: The time index of the slice being saved
+            timestamp: The timestamp of the start of the timeslice
+            variables_to_save: An optional list of variables to be exported.
+            group: An optional zarr group to export the data to.
+        """
+
+        # Check if all variables should be saved or just the requested ones.
+        if variables_to_save:
+            out = self.data[variables_to_save]
+        else:
+            out = self.data
+
+        # Create a dataset with the added time dimension and timestamp
+        time_slice = out.expand_dims({"time_index": 1}).assign_coords(
+            time_index=[time_index]
+        )
         time_slice["timestamp"] = DataArray([timestamp], dims="time_index")
 
-        # Save and close new dataset
-        time_slice.to_netcdf(Path(output_file_path))
-        time_slice.close()
+        # Save the variables to the zarr store, appending along time index after the
+        # first time step. Zarr format 2 is used here because format 3 doesn't currently
+        # handle fixed length strings, such as the PFT coords.
+        #
+        # TODO - will need to do something cleverer if we aren't writing all time steps
+        #        and potentially skipping zero. Create a flag on data that records if
+        #        any data has been written by this method
+        if time_index == 0:
+            time_slice.to_zarr(
+                output_file_path,
+                group=group,
+                mode="a",
+                consolidated=False,
+                zarr_format=2,
+            )
+        else:
+            time_slice.to_zarr(
+                output_file_path,
+                group=group,
+                append_dim="time_index",
+                consolidated=False,
+                zarr_format=2,
+            )
 
     def add_from_dict(self, output_dict: dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.
@@ -483,81 +476,6 @@ class Data:
 
         for variable in output_dict:
             self[variable] = output_dict[variable]
-
-    def output_current_state(
-        self,
-        variables_to_save: list[str],
-        output_directory_path: Path,
-        time_index: int,
-        timestamp: np.datetime64,
-    ) -> Path:
-        """Method to output the current state of the data object.
-
-        This function outputs all variables stored in the data object, except for any
-        data with a "time_index" dimension defined (at present only climate input data
-        has this). This data can either be saved as a new file or appended to an
-        existing file.
-
-        Args:
-            variables_to_save: List of variables to save
-            output_directory_path: The output directory for the current state data.
-            time_index: The index representing the current time step in the data object.
-            timestamp: The timestamp of the start of the timeslice
-
-        Raises:
-            ConfigurationError: If the final output directory doesn't exist, isn't a
-               directory, or the final output file already exists (when in new file
-               mode). If the file to append to is missing (when not in new file mode).
-
-        Returns:
-            A path to the file that the current state is saved in
-        """
-
-        # Create output file path for specific time index
-        out_path = output_directory_path / f"continuous_state{time_index:05}.nc"
-
-        # Save the required variables by appending to existing file
-        self.save_timeslice_to_netcdf(
-            output_file_path=out_path,
-            variables_to_save=variables_to_save,
-            time_index=time_index,
-            timestamp=timestamp,
-        )
-
-        return out_path
-
-
-def merge_continuous_data_files(
-    merged_file_path: Path, continuous_data_files: list[Path]
-) -> None:
-    """Merge all continuous data files in a folder into a single file.
-
-    This function deletes all of the continuous output files it has been asked to merge
-    once the combined output is saved.
-
-    Args:
-        merged_file_path: The output file name for the merged continuous data.
-        continuous_data_files: Files containing previously output continuous data
-
-    Raises:
-        ConfigurationError: If output folder doesn't exist or if it output file already
-            exists
-    """
-
-    # Check that output file doesn't already exist
-    check_outfile(merged_file_path)
-
-    # Open all files as a single dataset
-    with open_mfdataset(continuous_data_files, lock=False) as all_data:
-        # Specify type of the layer roles object to allow for quicker saving by dask
-        all_data["layer_roles"] = all_data["layer_roles"].astype("S9")
-
-        # Save and close complete dataset
-        all_data.to_netcdf(merged_file_path)
-
-    # Iterate over all continuous files and delete them
-    for file_path in continuous_data_files:
-        file_path.unlink()
 
 
 class DataGenerator:

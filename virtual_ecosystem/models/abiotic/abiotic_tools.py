@@ -430,10 +430,10 @@ def generate_diurnal_cycle_from_monthly_data(
     monthly_relative_humidity: NDArray[np.floating],
     monthly_evapotranspiration: NDArray[np.floating],
     monthly_soil_evaporation: NDArray[np.floating],
+    daily_temp_amplitude: NDArray[np.floating],
     latitude_deg: float,
     month: int,
     days: int,
-    daily_temp_amplitude: float = 5.0,
 ) -> dict[str, NDArray[np.floating]]:
     """Generate synthetic hourly forcing for one day from monthly averages.
 
@@ -443,10 +443,11 @@ def generate_diurnal_cycle_from_monthly_data(
         monthly_relative_humidity: Monthly mean relative humidity [%]
         monthly_evapotranspiration: Monthly total evapotranspiration [mm/month]
         monthly_soil_evaporation: Monthly total soil evaporation [mm/month]
+        daily_temp_amplitude: typical diurnal temperature swing [C]
         latitude_deg: Latitude for daylength calculation [deg]
         month: Month number [1-12]
         days: Number of days in month
-        daily_temp_amplitude: typical diurnal temperature swing [C]
+
 
     Returns:
         dict of arrays air_temperature_hourly, shortwave_absorption_hourly,

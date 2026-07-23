@@ -45,6 +45,7 @@ class AbioticSimpleModel(
         "relative_humidity_ref",
         "shortwave_absorption",
         "wind_speed_ref",
+        "diurnal_temperature_range_ref",
     ),
     vars_updated=(
         "air_temperature",
@@ -64,6 +65,7 @@ class AbioticSimpleModel(
         "atmospheric_pressure_ref",
         "atmospheric_co2_ref",
         "wind_speed_ref",
+        "diurnal_temperature_range_ref",
         "leaf_area_index",
         "layer_heights",
         "mean_annual_temperature",
@@ -171,24 +173,6 @@ class AbioticSimpleModel(
             core_constants=self.core_constants,
             pyrealm_core_constants=pyrealm_core_constants,
             bounds=self.bounds,
-        )
-
-        # Initialise canopy temperature, equilibrium with surrounding air, [C]
-        air_temp = output_variables["air_temperature"].copy()
-        canopy_temperature = self.layer_structure.from_template()
-        canopy_temperature[self.layer_structure.index_filled_canopy] = air_temp[
-            self.layer_structure.index_filled_canopy
-        ]
-        canopy_temperature[self.layer_structure.index_surface_scalar] = air_temp[
-            self.layer_structure.index_surface_scalar
-        ]
-        output_variables["canopy_temperature"] = canopy_temperature
-
-        # Add diurnal temperature range, [C]
-        diurnal_temperature_range = output_variables["air_temperature"].copy()
-        output_variables["diurnal_temperature_range"] = diurnal_temperature_range.where(
-            diurnal_temperature_range.isnull(),
-            other=5.0,  # TODO add data when available
         )
 
         self.data.add_from_dict(output_dict=output_variables)

@@ -32,7 +32,7 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_solute_removal_by_soil_water,
     calculate_symbiotic_nitrogen_fixation_carbon_cost,
     calculate_temperature_effect_on_microbes,
-    find_total_soil_moisture_for_microbially_active_depth,
+    find_total_soil_moisture_for_simulation_depth,
     find_water_outflow_rates,
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
@@ -485,7 +485,7 @@ class SoilPools:
             ].to_numpy(),
             layer_structure=layer_structure,
         )
-        soil_moisture = find_total_soil_moisture_for_microbially_active_depth(
+        soil_moisture = find_total_soil_moisture_for_simulation_depth(
             soil_moistures=self.data["soil_moisture"], layer_structure=layer_structure
         )
         # Calculate the effective saturation of the soil (soil moistures need to be
@@ -641,7 +641,7 @@ class SoilPools:
             fixation_at_reference=self.model_constants.free_living_N_fixation_reference_rate,
             reference_temperature=self.model_constants.free_living_N_fixation_reference_temp,
             q10_nitrogen_fixation=self.model_constants.free_living_N_fixation_q10_coefficent,
-            active_depth=self.core_constants.max_depth_of_microbial_activity,
+            microbial_simulation_depth=self.core_constants.microbial_simulation_depth,
         )
 
         primary_phosphorus_breakdown = (
@@ -853,11 +853,9 @@ class SoilPools:
         """
 
         if isinstance(input_rate, float):
-            return np.array(
-                input_rate / self.core_constants.max_depth_of_microbial_activity
-            )
+            return np.array(input_rate / self.core_constants.microbial_simulation_depth)
         else:
-            return input_rate / self.core_constants.max_depth_of_microbial_activity
+            return input_rate / self.core_constants.microbial_simulation_depth
 
 
 def calculate_microbial_changes(
@@ -1998,7 +1996,7 @@ def calculate_free_living_nitrogen_fixation(
     fixation_at_reference: float,
     reference_temperature: float,
     q10_nitrogen_fixation: float,
-    active_depth: float,
+    microbial_simulation_depth: float,
 ) -> NDArray[np.floating]:
     """Calculate rate of nitrogen fixation by free living microbes.
 
@@ -2017,8 +2015,8 @@ def calculate_free_living_nitrogen_fixation(
         reference_temperature: Reference temperature [Kelvin]
         q10_nitrogen_fixation: Q10 temperature coefficient for free-living nitrogen
             fixation [unitless]
-        active_depth: The depth to which the soil is considered to be biologically
-            active [m]
+        microbial_simulation_depth: The depth soil-microbial simulation extends down to
+            [m].
 
     Returns:
         The rate at which nitrogen is fixed by free living (i.e. non-symbiotic) microbes
@@ -2031,7 +2029,7 @@ def calculate_free_living_nitrogen_fixation(
 
     # Convert the fixation rate from per area to per volume units based on the active
     # soil depth
-    fixation_at_reference_volume = fixation_at_reference / active_depth
+    fixation_at_reference_volume = fixation_at_reference / microbial_simulation_depth
 
     return fixation_at_reference_volume * q10_nitrogen_fixation ** (
         (soil_temp_in_kelvin - reference_temperature) / 10.0

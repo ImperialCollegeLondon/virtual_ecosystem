@@ -420,79 +420,6 @@ class TestAnimalCohortDataExporter:
         # Two distinct cohorts written once each.
         assert len(set(df["cohort_id"].unique())) == 2
 
-    def test_exporter_runs_inside_animal_model(
-        self,
-        tmp_path,
-        dummy_animal_data,
-        fixture_core_components,
-        functional_group_list_instance,
-        microbial_c_n_p_ratios,
-        dummy_resource_pool_exporter,
-    ):
-        """Test that the exporter runs correctly inside an AnimalModel.
-
-        Args:
-            tmp_path: Temporary directory provided by pytest.
-            dummy_animal_data: Data fixture for the animal model.
-            fixture_core_components: CoreComponents fixture.
-            functional_group_list_instance: List of animal functional groups.
-            microbial_c_n_p_ratios: Microbial stoichiometry ratios.
-            dummy_resource_pool_exporter: No-op exporter for resource pools.
-        """
-        from copy import deepcopy
-        from pathlib import Path
-
-        import pandas as pd
-
-        from virtual_ecosystem.models.animal.animal_model import AnimalModel
-        from virtual_ecosystem.models.animal.exporter import (
-            AnimalCohortDataExporter,
-        )
-        from virtual_ecosystem.models.animal.model_config import (
-            AnimalConstants,
-        )
-
-        clean_data = deepcopy(dummy_animal_data)
-
-        output_dir = Path(tmp_path)
-        exporter = AnimalCohortDataExporter(
-            output_directory=output_dir,
-            cohort_attributes=None,
-        )
-
-        assert exporter._cohort_output_mode == "w"
-        assert exporter._write_cohort_header
-
-        assert exporter._trophic_output_mode == "w"
-        assert exporter._write_trophic_header
-
-        model = AnimalModel(
-            data=clean_data,
-            core_components=fixture_core_components,
-            model_constants=AnimalConstants(density_scaling_method="madingley"),
-            functional_groups=functional_group_list_instance,
-            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
-            animal_cohort_exporter=exporter,
-            resource_pool_exporter=dummy_resource_pool_exporter,
-        )
-
-        out_path = output_dir / "animal_cohort_data.csv"
-        assert out_path.exists()
-
-        assert exporter._cohort_output_mode == "a"
-        assert exporter._write_cohort_header is False
-
-        df_initial = pd.read_csv(out_path)
-        initial_rows = len(df_initial)
-        assert initial_rows > 0
-
-        model.update(time_index=0)
-
-        df_updated = pd.read_csv(out_path)
-        updated_rows = len(df_updated)
-
-        assert updated_rows > initial_rows
-
     def test_check_and_set_paths_sets_paths_for_all_outputs(self, tmp_path):
         """Test _check_and_set_paths sets cohort and trophic paths.
 
@@ -745,6 +672,80 @@ class TestAnimalCohortDataExporter:
 
         assert exporter._trophic_output_mode == "a"
         assert exporter._write_trophic_header is False
+
+    def test_cohort_exporter_runs_inside_animal_model(
+        self,
+        tmp_path,
+        dummy_animal_data,
+        fixture_core_components,
+        functional_group_list_instance,
+        microbial_c_n_p_ratios,
+        dummy_resource_pool_exporter,
+    ):
+        """Test that the cohort exporter runs correctly inside an AnimalModel.
+
+        Args:
+            tmp_path: Temporary directory provided by pytest.
+            dummy_animal_data: Data fixture for the animal model.
+            fixture_core_components: CoreComponents fixture.
+            functional_group_list_instance: List of animal functional groups.
+            microbial_c_n_p_ratios: Microbial stoichiometry ratios.
+            dummy_resource_pool_exporter: No-op exporter for resource pools.
+        """
+        from copy import deepcopy
+        from pathlib import Path
+
+        import pandas as pd
+
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+        from virtual_ecosystem.models.animal.exporter import (
+            AnimalCohortDataExporter,
+        )
+        from virtual_ecosystem.models.animal.model_config import (
+            AnimalConstants,
+        )
+
+        clean_data = deepcopy(dummy_animal_data)
+        clean_data.grid.populate_distances()
+
+        output_dir = Path(tmp_path)
+        exporter = AnimalCohortDataExporter(
+            output_directory=output_dir,
+            cohort_attributes=None,
+        )
+
+        assert exporter._cohort_output_mode == "w"
+        assert exporter._write_cohort_header
+
+        assert exporter._trophic_output_mode == "w"
+        assert exporter._write_trophic_header
+
+        model = AnimalModel(
+            data=clean_data,
+            core_components=fixture_core_components,
+            model_constants=AnimalConstants(density_scaling_method="madingley"),
+            functional_groups=functional_group_list_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+            animal_cohort_exporter=exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
+        )
+
+        out_path = output_dir / "animal_cohort_data.csv"
+        assert out_path.exists()
+
+        assert exporter._cohort_output_mode == "a"
+        assert exporter._write_cohort_header is False
+
+        df_initial = pd.read_csv(out_path)
+        initial_rows = len(df_initial)
+        assert initial_rows > 0
+
+        model.update(time_index=0)
+
+        df_updated = pd.read_csv(out_path)
+        updated_rows = len(df_updated)
+
+        assert updated_rows > initial_rows
 
 
 class TestResourcePoolDataExporter:
@@ -1309,7 +1310,7 @@ class TestResourcePoolDataExporter:
             "resource_array",
         }
 
-    def test_exporter_runs_inside_animal_model(
+    def test_resource_pool_exporter_runs_inside_animal_model(
         self,
         tmp_path,
         dummy_animal_data,
@@ -1339,13 +1340,16 @@ class TestResourcePoolDataExporter:
             ResourcePoolExportConfig,
         )
 
+        clean_data = deepcopy(dummy_animal_data)
+        clean_data.grid.populate_distances()
+
         resource_pool_exporter = ResourcePoolDataExporter.from_config(
             output_directory=tmp_path,
             config=ResourcePoolExportConfig(enabled=True),
         )
 
         model = AnimalModel(
-            data=deepcopy(dummy_animal_data),
+            data=clean_data,
             core_components=fixture_core_components,
             model_constants=AnimalConstants(density_scaling_method="madingley"),
             functional_groups=functional_group_list_instance,
