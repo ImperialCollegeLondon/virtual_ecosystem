@@ -31,7 +31,7 @@ from virtual_ecosystem.disturbances.add_fertiliser.model_config import (
 class AddFertiliserModel(
     BaseDisturbance,
     model_name="add_fertiliser",
-    disturbed_models=("soil",),
+    disturbed_models=(),
     data_variables_disturbed=tuple(("soil_n_pool_ammonium", "soil_n_pool_nitrate")),
 ):
     """A disturbance that simulates fertilisation by adding nutrients to the soil.
