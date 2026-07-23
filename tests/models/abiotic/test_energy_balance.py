@@ -14,9 +14,7 @@ from virtual_ecosystem.models.abiotic.energy_balance import (
 )
 
 
-def test_initialise_canopy_and_soil_fluxes(
-    dummy_climate_data_varying_canopy, fixture_core_components
-):
+def test_initialise_canopy_and_soil_fluxes(fixture_core_components):
     """Test that canopy and soil fluxes initialised correctly."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -279,7 +277,7 @@ def test_energy_balance_residual_only(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
-    fixture_core_components,
+    fixture_abiotic_indices,
 ):
     """Test energy balance residual without flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -289,6 +287,7 @@ def test_energy_balance_residual_only(
     data = dummy_climate_data_varying_canopy
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
     aerodynamic_resistance_2d = np.tile(data["aerodynamic_resistance_canopy"], (14, 1))
+    idx = fixture_abiotic_indices
 
     result = calculate_energy_balance_residual(
         canopy_temperature_initial=data["canopy_temperature"].to_numpy(),
@@ -299,16 +298,17 @@ def test_energy_balance_residual_only(
         .isel(time_index=0)
         .to_numpy()
         * fixture_abiotic_constants.leaf_emissivity,
+        longwave_emission_soil=data["longwave_emission"][idx.topsoil].to_numpy(),
         specific_heat_air=data["specific_heat_air"].to_numpy(),
         density_air=data["density_air"].to_numpy(),
         aerodynamic_resistance=aerodynamic_resistance_2d,
         latent_heat_vapourisation=data["latent_heat_vapourisation"].to_numpy() * 1000,
-        surface_index=fixture_core_components.layer_structure.index_surface_scalar,
         leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
         seconds_to_hour=fixture_core_constants.seconds_to_hour,
         return_fluxes=False,
+        idx=idx,
     )
 
     assert isinstance(result, np.ndarray)
@@ -321,7 +321,7 @@ def test_energy_balance_return_fluxes(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
-    fixture_core_components,
+    fixture_abiotic_indices,
 ):
     """Test energy balance residual with flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -329,6 +329,7 @@ def test_energy_balance_return_fluxes(
     )
 
     data = dummy_climate_data_varying_canopy
+    idx = fixture_abiotic_indices
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
     aerodynamic_resistance_2d = np.tile(data["aerodynamic_resistance_canopy"], (14, 1))
 
@@ -338,16 +339,17 @@ def test_energy_balance_return_fluxes(
         evapotranspiration=evapotranspiration.to_numpy(),
         absorbed_shortwave_radiation=data["shortwave_absorption"].to_numpy(),
         absorbed_longwave_radiation=data["shortwave_absorption"].to_numpy() * 0.5,
+        longwave_emission_soil=data["longwave_emission"][idx.topsoil].to_numpy(),
         specific_heat_air=data["specific_heat_air"].to_numpy(),
         density_air=data["density_air"].to_numpy(),
         aerodynamic_resistance=aerodynamic_resistance_2d,
         latent_heat_vapourisation=data["latent_heat_vapourisation"].to_numpy() * 1000,
-        surface_index=fixture_core_components.layer_structure.index_surface_scalar,
         leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
         seconds_to_hour=fixture_core_constants.seconds_to_hour,
         return_fluxes=True,
+        idx=idx,
     )
 
     assert isinstance(result, dict)
@@ -672,30 +674,22 @@ def test_secant_nan_handling():
 def test_make_canopy_residual_changes_with_temperature(
     fixture_abiotic_constants,
     fixture_core_constants,
+    fixture_abiotic_indices,
+    fixture_state_inputs,
+    fixture_static_inputs,
 ):
     """Test that canopy residual changes with temperature."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
 
-    shape = (2, 2)
+    state = fixture_state_inputs
+    static = fixture_static_inputs
 
-    state = {
-        "air_temperature": np.ones(shape) * 290,
-        "evapotranspiration": np.ones(shape),
-        "shortwave_absorption": np.ones(shape) * 200,
-        "specific_heat_air": np.ones(shape) * 1005,
-        "density_air": np.ones(shape) * 1.2,
-        "latent_heat_vapourisation": np.ones(shape) * 2.45e6,
-    }
-
-    static = {
-        "absorbed_longwave_radiation": np.ones(shape) * 300,
-    }
-
-    aerodynamic_resistance = np.ones(shape) * 50
+    aerodynamic_resistance = np.full_like(state["air_temperature"], 50)
 
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
+    idx = fixture_abiotic_indices
 
     residual = make_canopy_residual(
         state=state,
@@ -703,11 +697,11 @@ def test_make_canopy_residual_changes_with_temperature(
         aerodynamic_resistance=aerodynamic_resistance,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
-        surface_index=0,
+        idx=idx,
     )
 
-    temperature1 = np.ones(shape) * 28
-    temperature2 = np.ones(shape) * 30
+    temperature1 = state["air_temperature"]
+    temperature2 = state["air_temperature"] + 2.0
 
     residual1 = residual(temperature1)
     residual2 = residual(temperature2)
@@ -716,31 +710,24 @@ def test_make_canopy_residual_changes_with_temperature(
 
 
 def test_make_canopy_residual_uses_state(
-    fixture_abiotic_constants, fixture_core_constants
+    fixture_abiotic_constants,
+    fixture_core_constants,
+    fixture_abiotic_indices,
+    fixture_state_inputs,
+    fixture_static_inputs,
 ):
     """Test that canopy residual reflects changes in state variables."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
 
-    shape = (2, 2)
+    state = fixture_state_inputs
+    static = fixture_static_inputs
 
-    state = {
-        "air_temperature": np.ones(shape) * 29,
-        "evapotranspiration": np.zeros(shape),
-        "shortwave_absorption": np.zeros(shape),
-        "specific_heat_air": np.ones(shape) * 1005,
-        "density_air": np.ones(shape) * 1.2,
-        "latent_heat_vapourisation": np.ones(shape) * 2.45e6,
-    }
-
-    static = {
-        "absorbed_longwave_radiation": np.zeros(shape),
-    }
-
-    aerodynamic_resistance = np.ones(shape) * 50
+    aerodynamic_resistance = np.full_like(state["air_temperature"], 50)
 
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
+    idx = fixture_abiotic_indices
 
     residual = make_canopy_residual(
         state=state,
@@ -748,67 +735,73 @@ def test_make_canopy_residual_uses_state(
         aerodynamic_resistance=aerodynamic_resistance,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
-        surface_index=0,
+        idx=idx,
     )
 
-    temperature1 = np.ones(shape) * 29
+    temperature1 = np.full_like(state["air_temperature"], 29)
 
     residual1 = residual(temperature1)
 
     # change state AFTER creating closure
     state["air_temperature"] += 10
 
-    temperature2 = np.ones(shape) * 39
+    temperature2 = np.full_like(state["air_temperature"], 39)
     residual2 = residual(temperature2)
 
     # closure should reflect updated state
     assert not np.allclose(residual1, residual2)
 
 
-def test_make_canopy_residual_with_nans(
-    fixture_abiotic_constants, fixture_core_constants
+def test_solve_canopy_temperature_with_air_coupling(
+    fixture_state_inputs,
+    fixture_static_inputs,
+    fixture_abiotic_constants,
+    fixture_abiotic_indices,
+    fixture_core_constants,
 ):
-    """Test that canopy residual handles NaNs in state variables."""
+    """Test coupled canopy-air temperature solve returns consistent outputs."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        solve_canopy_temperature_with_air_coupling,
+    )
 
-    from virtual_ecosystem.models.abiotic.energy_balance import make_canopy_residual
-
-    shape = (2, 3)
-
-    state = {
-        "air_temperature": np.ones(shape) * 290,
-        "evapotranspiration": np.ones(shape),
-        "shortwave_absorption": np.ones(shape) * 200,
-        "specific_heat_air": np.ones(shape) * 1005,
-        "density_air": np.ones(shape) * 1.2,
-        "latent_heat_vapourisation": np.ones(shape) * 2.45e6,
-    }
-
-    static = {
-        "absorbed_longwave_radiation": np.ones(shape) * 300,
-    }
-
-    aerodynamic_resistance = np.ones(shape) * 50
-
+    state = fixture_state_inputs
+    static = fixture_static_inputs
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
+    idx = fixture_abiotic_indices
 
-    residual = make_canopy_residual(
-        state=state,
-        static=static,
-        aerodynamic_resistance=aerodynamic_resistance,
-        abiotic_constants=abiotic_constants,
-        core_constants=core_constants,
-        surface_index=0,
+    canopy_temperature, air_temperature, fluxes = (
+        solve_canopy_temperature_with_air_coupling(
+            state=state,
+            static=static,
+            abiotic_constants=abiotic_constants,
+            core_constants=core_constants,
+            maxiter_air=20,
+            air_temperature_tolerance=1e-4,
+            maxiter_secant=50,
+            convergence_tolerance=1e-6,
+            small_perturbation_second_guess=0.01,
+            denominator_tolerance=1e-12,
+            idx=idx,
+        )
     )
 
-    temperature = np.array(
-        [
-            [29, 29, 29],
-            [29, np.nan, np.nan],
-        ]
+    # Shape checks
+    assert canopy_temperature.shape == state["air_temperature"].shape
+    assert air_temperature.shape == state["air_temperature"].shape
+
+    for key in (
+        "longwave_emission",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "energy_balance_residual",
+        "net_radiation",
+    ):
+        assert key in fluxes
+        assert fluxes[key].shape == state["air_temperature"].shape
+
+    # Air temperature should change if sensible heat flux is non-zero
+    assert not np.allclose(
+        air_temperature,
+        state["air_temperature"],
     )
-
-    result = residual(temperature)
-
-    assert np.isnan(result[1, 1])
-    assert np.isnan(result[1, 2])

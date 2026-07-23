@@ -310,6 +310,7 @@ def initialize_state(
         "soil_temperature": data["soil_temperature"].to_numpy(),
         "relative_humidity": data["relative_humidity"].to_numpy(),
         "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
+        "longwave_emission": data["longwave_emission"].to_numpy(),
     }
 
 
@@ -532,7 +533,7 @@ def calculate_vegetation_temperature(
         aerodynamic_resistance=aerodynamic_resistance_2d,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
-        surface_index=idx.surface,
+        idx=idx,
     )
 
     # Result contains new canopy and understorey temperature
@@ -592,16 +593,17 @@ def calculate_vegetation_fluxes(
         evapotranspiration=state["evapotranspiration"],
         absorbed_shortwave_radiation=state["shortwave_absorption"],
         absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
+        longwave_emission_soil=state["longwave_emission"][idx.topsoil],
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         specific_heat_air=state["specific_heat_air"],
         density_air=state["density_air"],
         aerodynamic_resistance=aerodynamic_resistance_2d,
         latent_heat_vapourisation=state["latent_heat_vapourisation"],
-        surface_index=idx.surface,
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=True,
+        idx=idx,
     )
 
     return fluxes  # type: ignore
@@ -902,24 +904,27 @@ def run_hour_step(
     )
     state.update(thermo)
 
-    # Update vegetation temperature
-    canopy_temperature = calculate_vegetation_temperature(
-        state=state,
-        static=static,
-        abiotic_constants=abiotic_constants,
-        core_constants=core_constants,
-        idx=idx,
+    # Update air temperature, canopy temperature, and fluxes
+    canopy_temperature, air_temperature, canopy_fluxes = (
+        energy_balance.solve_canopy_temperature_with_air_coupling(
+            state=state,
+            static=static,
+            abiotic_constants=abiotic_constants,
+            core_constants=core_constants,
+            maxiter_air=abiotic_constants.maxiter_secant_solver,
+            air_temperature_tolerance=5,
+            maxiter_secant=abiotic_constants.maxiter_secant_solver,
+            convergence_tolerance=abiotic_constants.convergence_tolerance_secant_solver,
+            small_perturbation_second_guess=(
+                abiotic_constants.small_perturbation_second_guess_secant_solver
+            ),
+            denominator_tolerance=abiotic_constants.denominator_tolerance,
+            idx=idx,
+        )
     )
-    state["canopy_temperature"] = canopy_temperature
 
-    # Calculate vegetation fluxes
-    canopy_fluxes = calculate_vegetation_fluxes(
-        state=state,
-        static=static,
-        abiotic_constants=abiotic_constants,
-        core_constants=core_constants,
-        idx=idx,
-    )
+    state["canopy_temperature"] = canopy_temperature
+    state["air_temperature"] = air_temperature
     state.update(canopy_fluxes)
 
     # Calculate soil fluxes
@@ -948,17 +953,6 @@ def run_hour_step(
         time_interval=core_constants.seconds_to_hour,
     )
     state["soil_temperature"][idx.soil] = soil_temperature
-
-    # Update air temperature
-    air_temperature = update_air_temperature(
-        state=state,
-        static=static,
-        abiotic_bounds=abiotic_bounds,
-        idx=idx,
-        denominator_tolerance=abiotic_constants.denominator_tolerance,
-        min_leaf_area_index_for_mixing=abiotic_constants.min_leaf_area_index_for_mixing,
-    )
-    state["air_temperature"] = air_temperature
 
     # Update atmospheric humidity
     air_humidity = update_atmospheric_humidity(
