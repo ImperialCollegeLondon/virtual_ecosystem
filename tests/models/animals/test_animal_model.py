@@ -2770,6 +2770,139 @@ class TestAnimalModel:
         if ecto_centred_0 and ecto_centred_1:
             assert ecto_centred_0[0].sigma_f_t > ecto_centred_1[0].sigma_f_t
 
+    def test_build_stratum_climate_returns_per_cell_arrays(
+        self, prepared_animal_model_instance
+    ):
+        """Test that _build_stratum_climate returns one value per cell per stratum."""
+        from dataclasses import fields
+
+        from virtual_ecosystem.models.animal.animal_climate import StratumClimate
+
+        model = prepared_animal_model_instance
+        n_cells = model.data.grid.n_cells
+
+        climate = model._build_stratum_climate()
+
+        assert isinstance(climate, StratumClimate)
+
+        for field in fields(StratumClimate):
+            array = getattr(climate, field.name)
+            assert array.shape == (n_cells,), (
+                f"{field.name} has shape {array.shape}, expected {(n_cells,)}."
+            )
+            assert not np.isnan(array).any(), f"{field.name} contains NaN."
+
+    def test_build_stratum_climate_reads_correct_layers(
+        self, prepared_animal_model_instance
+    ):
+        """Test that each stratum is drawn from its own data variable and layer.
+
+        Distinct values are written to each stratum so that a mis-wired layer index or
+        data variable would surface as a value appearing in the wrong field.
+        """
+        model = prepared_animal_model_instance
+        lyr = model.layer_structure
+
+        model.data["canopy_temperature"].values[lyr.index_filled_canopy, :] = 25.0
+        model.data["air_temperature"].values[lyr.index_surface_scalar, :] = 20.0
+        model.data["soil_temperature"].values[lyr.index_topsoil_scalar, :] = 15.0
+
+        diurnal = model.data["diurnal_temperature_range"].values
+        diurnal[lyr.index_filled_canopy, :] = 8.0
+        diurnal[lyr.index_surface_scalar, :] = 6.0
+        diurnal[lyr.index_topsoil_scalar, :] = 1.0
+
+        climate = model._build_stratum_climate()
+
+        assert np.allclose(climate.canopy_temperature, 25.0)
+        assert np.allclose(climate.ground_temperature, 20.0)
+        assert np.allclose(climate.soil_temperature, 15.0)
+        assert np.allclose(climate.canopy_diurnal_range, 8.0)
+        assert np.allclose(climate.ground_diurnal_range, 6.0)
+        assert np.allclose(climate.soil_diurnal_range, 1.0)
+
+    def test_build_stratum_climate_averages_filled_canopy_layers(
+        self, prepared_animal_model_instance
+    ):
+        """Test that canopy values are the mean across filled canopy layers."""
+        model = prepared_animal_model_instance
+        lyr = model.layer_structure
+
+        canopy = model.data["canopy_temperature"].values
+        filled = np.arange(canopy.shape[0])[lyr.index_filled_canopy]
+
+        if len(filled) < 2:
+            pytest.skip("fixture has fewer than two filled canopy layers")
+
+        canopy[filled, :] = 20.0
+        canopy[filled[0], :] = 30.0
+
+        expected = (30.0 + 20.0 * (len(filled) - 1)) / len(filled)
+
+        climate = model._build_stratum_climate()
+
+        assert np.allclose(climate.canopy_temperature, expected)
+
+    def test_build_stratum_climate_falls_back_when_no_canopy(
+        self, prepared_animal_model_instance
+    ):
+        """Test that an entirely absent canopy falls back to ground values.
+
+        This exercises the branch guarding against NaN propagation into the activity
+        window when no canopy layers are filled anywhere in the grid.
+        """
+        model = prepared_animal_model_instance
+        lyr = model.layer_structure
+
+        model.data["canopy_temperature"].values[lyr.index_filled_canopy, :] = np.nan
+        model.data["diurnal_temperature_range"].values[lyr.index_filled_canopy, :] = (
+            np.nan
+        )
+        model.data["air_temperature"].values[lyr.index_surface_scalar, :] = 20.0
+        model.data["diurnal_temperature_range"].values[lyr.index_surface_scalar, :] = (
+            6.0
+        )
+
+        climate = model._build_stratum_climate()
+
+        assert np.allclose(climate.canopy_temperature, climate.ground_temperature)
+        assert np.allclose(climate.canopy_diurnal_range, climate.ground_diurnal_range)
+        assert np.allclose(climate.canopy_temperature, 20.0)
+        assert np.allclose(climate.canopy_diurnal_range, 6.0)
+
+    def test_build_stratum_climate_falls_back_per_cell(
+        self, prepared_animal_model_instance
+    ):
+        """Test that cells lacking canopy fall back individually to ground values.
+
+        Only cell 0 is stripped of canopy, so the fallback must apply to that cell
+        alone and leave the remaining cells reading their own canopy values.
+        """
+        model = prepared_animal_model_instance
+        lyr = model.layer_structure
+
+        model.data["canopy_temperature"].values[lyr.index_filled_canopy, :] = 25.0
+        model.data["canopy_temperature"].values[lyr.index_filled_canopy, 0] = np.nan
+        model.data["air_temperature"].values[lyr.index_surface_scalar, :] = 20.0
+
+        climate = model._build_stratum_climate()
+
+        assert climate.canopy_temperature[0] == pytest.approx(20.0)
+        assert np.allclose(climate.canopy_temperature[1:], 25.0)
+
+    def test_build_stratum_climate_is_immutable(self, prepared_animal_model_instance):
+        """Test that the returned climate cannot be mutated by its consumers.
+
+        The same instance is shared across every cohort in a timestep, so in-place
+        modification by one consumer would silently corrupt the others.
+        """
+        from dataclasses import FrozenInstanceError
+
+        climate = prepared_animal_model_instance._build_stratum_climate()
+
+        with pytest.raises(FrozenInstanceError):
+            climate.ground_temperature = np.zeros(1)
+
 
 def test_to_per_day(prepared_animal_model_instance):
     """Test that helper function to convert to per day rates works."""

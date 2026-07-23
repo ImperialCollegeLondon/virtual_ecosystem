@@ -47,6 +47,7 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration
+from virtual_ecosystem.models.animal.animal_climate import StratumClimate
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import (
     DevelopmentType,
@@ -1947,19 +1948,48 @@ class AnimalModel(
         """Update the activity window fraction for all cohorts in all communities.
 
         Per-stratum temperatures and diurnal ranges are pre-computed once per
-        timestep as per-cell means, then
+        timestep as per-cell means by :meth:`_build_stratum_climate`, then
         :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_mean_territory_climate`
         derives the climate experienced by each cohort based on its vertical
         occupancy. Both variables are averaged across all territory cells.
-
-        Where a cell has no filled canopy layers, canopy temperature and diurnal
-        range fall back to the corresponding ground values to avoid NaN propagation.
-
 
         Note:
             Annual values are per-functional-group reference values resolved once at
             FunctionalGroup construction by averaging placeholder per-stratum terms.
         """
+
+        climate = self._build_stratum_climate()
+
+        for cohort in self.active_cohorts.values():
+            temperature, diurnal_range = cohort.get_mean_territory_climate(
+                climate.canopy_temperature,
+                climate.ground_temperature,
+                climate.soil_temperature,
+                climate.canopy_diurnal_range,
+                climate.ground_diurnal_range,
+                climate.soil_diurnal_range,
+            )
+
+            cohort.update_activity_window(
+                temperature=temperature,
+                diurnal_temp_range=diurnal_range,
+                annual_mean_temp=cohort.functional_group.reference_annual_mean_temp,
+                annual_temp_sd=cohort.functional_group.reference_annual_temp_sd,
+            )
+
+    def _build_stratum_climate(self) -> StratumClimate:
+        """Resolve the abiotic model's layered outputs into per-cell stratum climate.
+
+        Canopy values are the mean across filled canopy layers; ground and soil values
+        are taken from the surface and topsoil layers respectively. Where a cell has no
+        filled canopy layers, canopy temperature and diurnal range fall back to the
+        corresponding ground values to avoid NaN propagation.
+
+        Returns:
+            A :class:`~virtual_ecosystem.models.animal.climate.StratumClimate` holding
+            six per-cell arrays of shape ``(n_cells,)``.
+        """
+
         lyr = self.layer_structure
 
         canopy_temp = nanmean(
@@ -1991,19 +2021,11 @@ class AnimalModel(
                 isnan(canopy_diurnal), ground_diurnal, canopy_diurnal
             )
 
-        for cohort in self.active_cohorts.values():
-            temperature, diurnal_range = cohort.get_mean_territory_climate(
-                canopy_temp,
-                ground_temp,
-                soil_temp,
-                canopy_diurnal,
-                ground_diurnal,
-                soil_diurnal,
-            )
-
-            cohort.update_activity_window(
-                temperature=temperature,
-                diurnal_temp_range=diurnal_range,
-                annual_mean_temp=cohort.functional_group.reference_annual_mean_temp,
-                annual_temp_sd=cohort.functional_group.reference_annual_temp_sd,
-            )
+        return StratumClimate(
+            canopy_temperature=canopy_temp,
+            ground_temperature=ground_temp,
+            soil_temperature=soil_temp,
+            canopy_diurnal_range=canopy_diurnal,
+            ground_diurnal_range=ground_diurnal,
+            soil_diurnal_range=soil_diurnal,
+        )
