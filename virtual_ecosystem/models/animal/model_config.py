@@ -408,6 +408,37 @@ class AnimalConstants(Configuration):
     offsets.
     """
 
+    thermal_habitat_selection: bool = False
+    """Whether dispersal responds to the per-cell thermal microclimate.
+
+    When ``False``, the thermal suitability grid is never built and cohort dispersal
+    uses the uniform destination choice over the reachable set. Endothermic cohorts
+    are unaffected by this setting either way, as their activity window is 1.0 in
+    every cell.
+    """
+
+    thermal_dispersal_threshold: float = 0.25
+    """Activity window fraction below which a cohort attempts thermal escape.
+
+    A cohort whose ``sigma_f_t`` falls below this value has a probability of
+    dispersing that ramps linearly with the severity of the shortfall, mirroring the
+    treatment of starvation-driven dispersal.
+    """
+
+    thermal_selection_exponent: float = 2.0
+    """Exponent applied to cell suitability when weighting destination choice.
+
+    Higher values concentrate dispersal into the most suitable reachable cells. A
+    value of 0.0 recovers uniform selection and is useful as a sensitivity control.
+    """
+
+    thermal_suitability_floor: float = 0.01
+    """Minimum weight assigned to a reachable cell during destination selection.
+
+    Prevents a degenerate all-zero weight set when every reachable cell is thermally
+    lethal, in which case the cohort still disperses but selects blindly.
+    """
+
     # Madingley dispersal parameters
 
     M_disp_ref: float = 1.0  # M_disp_ref [Madingley] [g]
