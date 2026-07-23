@@ -100,10 +100,12 @@ def plants_data(fixture_core_components, fixture_flora):
     n_cells = fixture_core_components.grid.n_cells
 
     data["plant_pft_propagules"] = DataArray(
-        data=np.full((n_cells, len(fixture_flora.name)), fill_value=100, dtype=np.int_),
+        data=np.full(
+            (n_cells, len(fixture_flora.pft_name)), fill_value=100, dtype=np.int_
+        ),
         coords={
             "cell_id": fixture_core_components.grid.cell_id,
-            "pft": fixture_flora.name,
+            "pft": list(fixture_flora.pft_name),
         },
     )
 

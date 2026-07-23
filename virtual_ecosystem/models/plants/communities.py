@@ -128,7 +128,7 @@ class PlantCommunities(dict, Mapping[int, Community]):
             raise ValueError(msg)
 
         # Check the PFTs are known
-        bad_pfts = set(cohort_data["plant_cohorts_pft"]).difference(flora.name)
+        bad_pfts = set(cohort_data["plant_cohorts_pft"]).difference(flora.pft_name)
         if bad_pfts:
             msg = "Plant cohort data includes PFT names not in flora: " + ",".join(
                 bad_pfts

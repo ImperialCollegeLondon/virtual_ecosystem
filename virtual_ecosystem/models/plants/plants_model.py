@@ -276,7 +276,7 @@ class PlantsModel(
         """A dictionary giving the stem allocation of GPP for the community in each grid
         cell. The dictionary is only populated by the update method - before that the
         dictionary will be empty."""
-        self.growth_increments: dict[int, StemAllocation]
+        self.growth_increments: dict[int, GrowthIncrements]
         """A dictionary giving the growth increments for the community in each grid
         cell. The dictionary is only populated by the update method - before that the
         dictionary will be empty."""
@@ -424,7 +424,9 @@ class PlantsModel(
             )
 
         # Do the PFT coordinate values match the flora?
-        if not set(self.data["plant_pft_propagules"]["pft"].data) == set(flora.name):
+        if not set(self.data["plant_pft_propagules"]["pft"].data) == set(
+            flora.pft_name
+        ):
             raise InitialisationError(
                 "The 'pft' coordinates in the plant_pft_propagules data do not match "
                 "the PFT names configured in the PlantsModel flora"
@@ -433,10 +435,10 @@ class PlantsModel(
         # Define xarray templates
         self.data_object_templates = {
             "cnp_pft": xr.DataArray(
-                data=np.zeros((self.grid.n_cells, len(self.flora.name), 3)),
+                data=np.zeros((self.grid.n_cells, len(self.flora.pft_name), 3)),
                 coords={
                     "cell_id": self.data["cell_id"],
-                    "pft": self.flora.name,
+                    "pft": list(self.flora.pft_name),
                     "element": ["C", "N", "P"],
                 },
             ),
@@ -446,8 +448,11 @@ class PlantsModel(
             ),
             "cell": xr.zeros_like(self.data["elevation"]),
             "pft": xr.DataArray(
-                data=np.zeros((self.grid.n_cells, len(self.flora.name))),
-                coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
+                data=np.zeros((self.grid.n_cells, len(self.flora.pft_name))),
+                coords={
+                    "cell_id": self.data["cell_id"],
+                    "pft": list(self.flora.pft_name),
+                },
             ),
         }
 
@@ -561,11 +566,13 @@ class PlantsModel(
         ) ** (1 / self.model_timing.updates_per_year)
 
         # Run the community data exporter
+        # - the stem allocations and growth increments are empty dictionaries.
         self.exporter.dump(
             communities=self.communities,
             biomasses=self.biomasses,
             canopies=self.canopies,
             stem_allocations=self.stem_allocations,
+            growth_increments=self.growth_increments,
             time=self.model_timing.start_time,
             time_index=0,
         )
@@ -766,6 +773,7 @@ class PlantsModel(
             biomasses=self.biomasses,
             canopies=self.canopies,
             stem_allocations=self.stem_allocations,
+            growth_increments=self.growth_increments,
             time=self.model_timing.update_datestamps[time_index],
             time_index=time_index,
         )
@@ -1305,7 +1313,9 @@ class PlantsModel(
             #   index just contains False, but using the index gives a (0, 3) array of
             #   cohorts by elements - and a sum can be taken across the 0 length
             #   dimension to give a total zero.
-            cohort_pft_bool_idx = [cohorts.pft_name == pft for pft in self.flora.name]
+            cohort_pft_bool_idx = [
+                cohorts.pft_name == pft for pft in self.flora.pft_name
+            ]
 
             for by_pft_tissue in ("fruit", "seed", "foliage"):
                 # Calculate the total turnover and standing biomass in each cohort
@@ -1463,7 +1473,7 @@ class PlantsModel(
                 #    TODO - Some structural overlap here with allocate turnover in GPP.
                 #           Can we share code here? Need a collapse_by_pft method?
                 cohort_pft_bool_idx = [
-                    cohorts.pft_name == pft for pft in self.flora.name
+                    cohorts.pft_name == pft for pft in self.flora.pft_name
                 ]
 
                 for by_pft_tissue in ("fruit", "foliage", "seed"):

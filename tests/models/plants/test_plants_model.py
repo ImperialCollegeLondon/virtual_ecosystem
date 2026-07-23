@@ -759,7 +759,7 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model, tricky_plant_coho
             tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
 
             # Check tissue by pft
-            for idx, pft in enumerate(fxt_plants_model.flora.name):
+            for idx, pft in enumerate(fxt_plants_model.flora.pft_name):
                 cohorts_this_pft = (
                     fxt_plants_model.communities[cell_id].cohorts.pft_name == pft
                 )

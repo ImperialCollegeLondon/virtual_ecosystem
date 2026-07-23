@@ -22,7 +22,7 @@ def fixture_exporter_components(
 
     from pyrealm.demography.canopy import Canopy
     from pyrealm.demography.cohorts import cohort_id_generator
-    from pyrealm.demography.tmodel import StemAllocation
+    from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation
 
     from virtual_ecosystem.models.plants.biomasses import (
         Biomasses,
@@ -63,7 +63,17 @@ def fixture_exporter_components(
             cohorts=cmty.cohorts,
             allometry=cmty.stem_allometry,
             whole_crown_gpp=np.full(len(cmty.cohorts), 25.0),
-        ).to_dataframe()
+        )
+        for cell_id, cmty in communities.items()
+    }
+
+    growth_increments = {
+        cell_id: GrowthIncrements(
+            cohorts=cmty.cohorts,
+            allometry=cmty.stem_allometry,
+            stem_allocation=stem_allocations[cell_id],
+            biomass_production=np.full(len(cmty.cohorts), 10.0),
+        )
         for cell_id, cmty in communities.items()
     }
 
@@ -82,7 +92,7 @@ def fixture_exporter_components(
         for cell_id, cmty in communities.items()
     }
 
-    return communities, canopies, stem_allocations, biomasses
+    return communities, canopies, stem_allocations, growth_increments, biomasses
 
 
 @pytest.mark.parametrize(
@@ -334,12 +344,13 @@ def test_CommunityDataExporter_dump_cohort_data(
     )
 
     # First dump in write mode with no allocations: expected behaviour in setup
-    communities, canopies, _stem_allocations, biomasses = fixture_exporter_components
+    communities, canopies, _, _, biomasses = fixture_exporter_components
     exporter._dump_cohort_data(
         communities=communities,
         biomasses=biomasses,
         canopies=canopies,
         stem_allocations={},
+        growth_increments={},
         time=np.datetime64("2000-01-01"),
         time_index=0,
     )
@@ -392,7 +403,7 @@ def test_CommunityDataExporter_dump_community_canopy_data(
     )
 
     # First dump in write mode with no allocations: expected behaviour in setup
-    _, canopies, _, _ = fixture_exporter_components
+    _, canopies, _, _, _ = fixture_exporter_components
     exporter._dump_community_canopy_data(
         canopies=canopies,
         time=np.datetime64("2000-01-01"),
@@ -440,7 +451,7 @@ def test_CommunityDataExporter_dump_stem_canopy_data(
     )
 
     # Run the dump
-    communities, canopies, _, _ = fixture_exporter_components
+    communities, canopies, _, _, _ = fixture_exporter_components
     exporter._dump_stem_canopy_data(
         communities=communities,
         canopies=canopies,
@@ -552,12 +563,15 @@ class TestExporterDump:
         assert exporter._write_header
 
         # First dump in write mode with no allocations: expected behaviour in setup
-        communities, canopies, stem_allocations, biomasses = fixture_exporter_components
+        communities, canopies, stem_allocations, growth_increments, biomasses = (
+            fixture_exporter_components
+        )
         exporter.dump(
             communities=communities,
             biomasses=biomasses,
             canopies=canopies,
             stem_allocations={},
+            growth_increments={},
             time=np.datetime64("2000-01-01"),
             time_index=0,
         )
@@ -576,6 +590,7 @@ class TestExporterDump:
             biomasses=biomasses,
             canopies=canopies,
             stem_allocations=stem_allocations,
+            growth_increments=growth_increments,
             time=np.datetime64("2001-01-01"),
             time_index=0,
         )
@@ -665,14 +680,13 @@ class TestExporterDump:
         assert exporter._write_header
 
         # First dump in write mode with no allocations: expected behaviour in setup
-        communities, canopies, _stem_allocations, biomasses = (
-            fixture_exporter_components
-        )
+        communities, canopies, _, _, biomasses = fixture_exporter_components
         exporter.dump(
             communities=communities,
             biomasses=biomasses,
             canopies=canopies,
             stem_allocations={},
+            growth_increments={},
             time=np.datetime64("2000-01-01"),
             time_index=0,
         )

@@ -29,4 +29,4 @@ def test_get_flora_from_config(fixture_configuration):
     assert flora.tau_f == flora.tau_f_base
 
     # Check the fruit flesh fraction has been populated
-    assert flora.fruit_flesh_fraction == [5 / 6, 3 / 4]
+    assert flora.fruit_flesh_fraction == (5 / 6, 3 / 4)
