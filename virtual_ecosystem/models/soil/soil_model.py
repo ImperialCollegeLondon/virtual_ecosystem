@@ -302,7 +302,6 @@ class SoilModel(
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
             configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
-            config: A validated Virtual Ecosystem model configuration object.
         """
 
         # Extract the required subconfigurations from the compiled configuration.
