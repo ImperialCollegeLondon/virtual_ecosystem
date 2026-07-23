@@ -36,7 +36,6 @@ def fixture_add_fertiliser_model(fixture_fertiliser_init_data):
     from virtual_ecosystem.disturbances.add_fertiliser.add_fertiliser_model import (
         AddFertiliserModel,
     )
-    from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     # Build the config object
     cfg_strings = (
@@ -53,5 +52,5 @@ def fixture_add_fertiliser_model(fixture_fertiliser_init_data):
         data=fixture_fertiliser_init_data,
         configuration=configuration,
         core_components=core_components,
-        models={"soil": SoilModel},
+        models={},
     )
