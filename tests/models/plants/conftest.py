@@ -138,9 +138,9 @@ def plants_data(fixture_core_components, fixture_flora):
     data["ectomycorrhizal_p_supply"] = DataArray(np.array([1.32e-4] * n_cells))
     data["arbuscular_mycorrhizal_p_supply"] = DataArray(np.array([2.34e-4] * n_cells))
 
-    # TODO - This elevation data is created so that the PlantsModel.calculate_turnover
-    # function works in testing. Once that function has been replaced with something
-    # more realistic this should be deleted
+    # TODO - This elevation data is created so that the
+    # PlantsModel.populate_lignin_proportions function works in testing. Once that
+    # function has been replaced with something more realistic this should be deleted
     data["elevation"] = DataArray(
         data=np.full((n_cells), fill_value=437.5),
         coords={

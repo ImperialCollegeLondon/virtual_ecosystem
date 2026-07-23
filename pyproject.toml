@@ -24,7 +24,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 name = "virtual_ecosystem"
 readme = "README.md"
-version = "0.2.0"
+version = "0.2.1"
 
 requires-python = ">=3.12"
 
@@ -44,6 +44,7 @@ dependencies = [
   "types-tabulate (>0.9)",
   "pydantic (>=2.13.4,<3.0.0)",
   "bottleneck (>=1.6.0,<2.0.0)",
+  "zarr (>=3.2.1,<4.0.0)",
 ]
 
 [project.scripts]
@@ -62,7 +63,7 @@ types-jsonschema = "^4.26.0"
 types-tqdm = "^4.68.0.20260608"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.156.6"
+hypothesis = "^6.156.9"
 pytest = ">=9.1.1,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
@@ -77,7 +78,7 @@ isort = ">=5.12,<9.0"
 jupyterlab = "^4.6.1" 
 jupyterlab-myst = "^2.7.0" 
 jupytext = "^1.19.4" 
-matplotlib = ">=3.11.0" # SPEC0
+matplotlib = ">=3.11.1" # SPEC0
 mypy = "^2.2.0" 
 pre-commit = ">=4.6.0,<5" 
 ruff = ">=0.15.21,<0.16.0" 

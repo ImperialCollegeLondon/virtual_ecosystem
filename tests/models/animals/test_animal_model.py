@@ -31,6 +31,8 @@ def prepared_animal_model_instance(
         model_constants=constants_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
+
+    model.data.grid.populate_distances()
     return model
 
 
@@ -141,8 +143,10 @@ class TestAnimalModel:
                             "Adding data array for "
                             "'animal_arbuscular_mycorrhiza_consumption'",
                         ),
-                        (INFO, "Adding data array for 'herbivory_waste_leaf_cnp'"),
-                        (INFO, "Adding data array for 'herbivory_waste_leaf_lignin'"),
+                        (INFO, "Adding data array for 'herbivory_waste_above_cnp'"),
+                        (INFO, "Adding data array for 'herbivory_waste_above_lignin'"),
+                        (INFO, "Adding data array for 'herbivory_waste_below_cnp'"),
+                        (INFO, "Adding data array for 'herbivory_waste_below_lignin'"),
                     ]
                 ),
                 id="success",
@@ -172,6 +176,8 @@ class TestAnimalModel:
                 configuration=animal_fixture_configuration,
                 core_components=core_components,
             )
+
+            model.data.grid.populate_distances()
 
             # Run the update step (once this does something should check output)
             model.update(time_index=0)
@@ -565,7 +571,7 @@ class TestAnimalModel:
                     cell_id=cid,
                     data=new_data,
                     cell_area=cell_area,
-                    max_depth_microbial_activity=fixture_core_constants.max_depth_of_microbial_activity,
+                    microbial_simulation_depth=fixture_core_constants.microbial_simulation_depth,
                     c_n_p_ratios=microbial_c_n_p_ratios,
                 )
                 for pool_name in pool_names
@@ -607,6 +613,127 @@ class TestAnimalModel:
             assert np.allclose(actual, expected_consumption), (
                 f"Mismatch for {consumption_type}."
             )
+
+    def test_calculate_litter_additions_from_herbivory(
+        self,
+        litter_soil_data_instance,
+        fixture_core_components,
+        functional_group_list_instance,
+        constants_instance,
+        microbial_c_n_p_ratios,
+        dummy_animal_exporter,
+        dummy_resource_pool_exporter,
+    ):
+        """Test calculation of litter addition via herbivory is correct."""
+
+        import numpy as np
+        from xarray import DataArray
+
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        # Create AnimalModel instance with test data
+        model = AnimalModel(
+            data=litter_soil_data_instance,
+            core_components=fixture_core_components,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
+            functional_groups=functional_group_list_instance,
+            model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+        )
+
+        above_mass_cnp = [
+            {"C": 1.0, "N": 1.5, "P": 2.0},
+            {"C": 2.5, "N": 3.0, "P": 3.5},
+            {"C": 4.0, "N": 4.5, "P": 5.0},
+            {"C": 5.5, "N": 6.0, "P": 6.5},
+        ]
+        below_mass_cnp = [
+            {"C": 7.0, "N": 7.5, "P": 8.0},
+            {"C": 8.5, "N": 9.0, "P": 9.5},
+            {"C": 10.0, "N": 10.5, "P": 11.0},
+            {"C": 11.5, "N": 12.0, "P": 12.5},
+        ]
+        above_lignin = [0.01, 0.05, 0.1, 0.15]
+        below_lignin = [0.2, 0.25, 0.3, 0.35]
+
+        cell_ids = np.arange(litter_soil_data_instance.grid.n_cells)
+        elements = np.array(["C", "N", "P"])
+        expected_above_cnp = DataArray(
+            np.stack(
+                [
+                    [1.0, 2.5, 4.0, 5.5],
+                    [1.5, 3.0, 4.5, 6.0],
+                    [2.0, 3.5, 5.0, 6.5],
+                ],
+                axis=1,
+            ),
+            dims=("cell_id", "element"),
+            coords=dict(cell_id=cell_ids, element=elements),
+        )
+        expected_below_cnp = DataArray(
+            np.stack(
+                [
+                    [7.0, 8.5, 10.0, 11.5],
+                    [7.5, 9.0, 10.5, 12.0],
+                    [8.0, 9.5, 11.0, 12.5],
+                ],
+                axis=1,
+            ),
+            dims=("cell_id", "element"),
+            coords=dict(cell_id=cell_ids, element=elements),
+        )
+
+        # Populate the herbivory waste pools
+        for cell_id in range(model.grid.n_cells):
+            model.herbivory_waste_pools[cell_id].above_ground_mass_cnp = above_mass_cnp[
+                cell_id
+            ]
+            model.herbivory_waste_pools[cell_id].below_ground_mass_cnp = below_mass_cnp[
+                cell_id
+            ]
+            model.herbivory_waste_pools[
+                cell_id
+            ].above_ground_lignin_proportion = above_lignin[cell_id]
+            model.herbivory_waste_pools[
+                cell_id
+            ].below_ground_lignin_proportion = below_lignin[cell_id]
+
+        litter_additions = model.calculate_litter_additions_from_herbivory()
+
+        # Check that waste has been added to the pools as expected
+        assert np.allclose(
+            litter_additions["herbivory_waste_above_cnp"], expected_above_cnp
+        )
+        assert np.allclose(
+            litter_additions["herbivory_waste_below_cnp"], expected_below_cnp
+        )
+        assert np.allclose(
+            litter_additions["herbivory_waste_above_lignin"], above_lignin
+        )
+        assert np.allclose(
+            litter_additions["herbivory_waste_below_lignin"], below_lignin
+        )
+
+        # Check that all values have been reset to zero
+        for cell_id in range(model.grid.n_cells):
+            assert model.herbivory_waste_pools[cell_id].above_ground_mass_cnp == {
+                "C": 0.0,
+                "N": 0.0,
+                "P": 0.0,
+            }
+            assert model.herbivory_waste_pools[cell_id].below_ground_mass_cnp == {
+                "C": 0.0,
+                "N": 0.0,
+                "P": 0.0,
+            }
+
+        assert np.allclose(
+            model.herbivory_waste_pools[cell_id].above_ground_lignin_proportion, 0.0
+        )
+        assert np.allclose(
+            model.herbivory_waste_pools[cell_id].below_ground_lignin_proportion, 0.0
+        )
 
     def test_update_fungal_fruiting_bodies(
         self,
@@ -1035,32 +1162,12 @@ class TestAnimalModel:
     @pytest.mark.parametrize(
         "mass_ratio, age, probability_output, should_migrate",
         [
-            (0.5, 5.0, False, True),  # Starving non-juvenile, should migrate
-            (
-                1.0,
-                0.0,
-                False,
-                False,
-            ),  # Well-fed juvenile, low probability, should not migrate
-            (
-                1.0,
-                0.0,
-                1.0,
-                True,
-            ),  # Well-fed juvenile, high probability (1.0), should migrate
-            (
-                0.5,
-                0.0,
-                1.0,
-                True,
-            ),  # Starving juvenile, high probability (1.0), should migrate
-            (
-                0.5,
-                0.0,
-                0.0,
-                True,
-            ),  # Starving juvenile, low probability (0.0), should migrate
-            (1.0, 5.0, False, False),  # Well-fed non-juvenile, should not migrate
+            (0.5, 5.0, 0.0, True),
+            (1.0, 0.0, 0.0, False),
+            (1.0, 0.0, 1.0, True),
+            (0.5, 0.0, 1.0, True),
+            (0.5, 0.0, 0.0, True),
+            (1.0, 5.0, 0.0, False),
         ],
         ids=[
             "starving_non_juvenile",
@@ -1081,7 +1188,21 @@ class TestAnimalModel:
         animal_model_instance,
         herbivore_cohort_instance,
     ):
-        """Test migrate_community method in the AnimalModel class."""
+        """Test migrate_community method in the AnimalModel class.
+
+        The dispersal distance is mocked to one cell side so that the reachable set is
+        the cohort's orthogonal neighbours, and the destination is asserted to fall
+        within that set rather than merely to exist.
+        """
+        from math import sqrt
+
+        from numpy import timedelta64
+
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            cells_within_distance,
+        )
+
+        animal_model_instance.data.grid.populate_distances()
 
         # Empty the communities and cohorts before the test
         animal_model_instance.communities = {
@@ -1089,58 +1210,53 @@ class TestAnimalModel:
         }
         animal_model_instance.active_cohorts = {}
 
-        # Set up mock cohort with dynamic mass and age values
         cohort = herbivore_cohort_instance
         cohort.age = age
-        cohort.mass_cnp.C = (
-            cohort.functional_group.adult_mass
-            * mass_ratio
-            * cohort.cnp_proportions["C"]
-        )
-        cohort.mass_cnp.N = (
-            cohort.functional_group.adult_mass
-            * mass_ratio
-            * cohort.cnp_proportions["N"]
-        )
-        cohort.mass_cnp.P = (
-            cohort.functional_group.adult_mass
-            * mass_ratio
-            * cohort.cnp_proportions["P"]
-        )
+        # Pin the centroid to a valid cell of the model's data grid so the
+        # out-of-grid centroid guard in migrate_community does not fire.
+        cohort.centroid_key = animal_model_instance.data.grid.cell_id[0]
+        for element in ("C", "N", "P"):
+            setattr(
+                cohort.mass_cnp,
+                element,
+                cohort.functional_group.adult_mass
+                * mass_ratio
+                * cohort.cnp_proportions[element],
+            )
 
-        cohort_id = cohort.id
-        animal_model_instance.active_cohorts[cohort_id] = cohort
+        animal_model_instance.active_cohorts[cohort.id] = cohort
 
         # Mock `is_below_mass_threshold` to simulate starvation
-        is_starving = mass_ratio < 1.0
         mocker.patch.object(
-            cohort,
-            "is_below_mass_threshold",
-            return_value=is_starving,
+            cohort, "is_below_mass_threshold", return_value=mass_ratio < 1.0
         )
 
         # Mock the juvenile migration probability based on the test parameter
         mocker.patch.object(
-            cohort,
-            "migrate_juvenile_probability",
-            return_value=probability_output,
+            cohort, "migrate_juvenile_probability", return_value=probability_output
         )
 
-        # Mock the migrate method
+        # Pin the dispersal distance so the reachable set is deterministic
+        cell_side = sqrt(animal_model_instance.data.grid.cell_area)
+        mocker.patch.object(cohort, "get_dispersal_distance", return_value=cell_side)
+
         mock_migrate = mocker.patch.object(animal_model_instance, "migrate")
 
-        # Call the migrate_community method
-        animal_model_instance.migrate_community()
+        animal_model_instance.migrate_community(timedelta64(30, "D"))
 
-        # Check migration behavior
         if should_migrate:
-            # Assert migrate was called with correct cohort
             mock_migrate.assert_called_once_with(cohort, mocker.ANY)
+
+            expected_destinations = cells_within_distance(
+                animal_model_instance.data.grid,
+                cohort.centroid_key,
+                cell_side,
+            )
+            _, destination = mock_migrate.call_args.args
+            assert destination in expected_destinations
         else:
-            # Assert migrate was NOT called
             mock_migrate.assert_not_called()
 
-        # Assert that starvation check was applied
         cohort.is_below_mass_threshold.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -1845,7 +1961,7 @@ class TestAnimalModel:
             "communities",
             "excrement_pools",
             "carcass_pools",
-            "leaf_waste_pools",
+            "herbivory_waste_pools",
         ):
             assert hasattr(animal_model_instance, name), f"Missing {name}"
 
@@ -1869,7 +1985,7 @@ class TestAnimalModel:
             carcass_pool_map=animal_model_instance.carcass_pools,
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
-            herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
+            herbivory_waste_pools=animal_model_instance.herbivory_waste_pools,
             dt=dt,
         )
 
@@ -1896,7 +2012,7 @@ class TestAnimalModel:
             carcass_pool_map=animal_model_instance.carcass_pools,
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
-            herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
+            herbivory_waste_pools=animal_model_instance.herbivory_waste_pools,
             dt=dt,
         )
 
@@ -2616,7 +2732,7 @@ class TestAnimalModel:
         model = prepared_animal_model_instance
         lyr_str = model.layer_structure
 
-        warm = 31.0
+        warm = 23.0
         cold = 5.0
 
         for key in ("air_temperature", "canopy_temperature", "soil_temperature"):

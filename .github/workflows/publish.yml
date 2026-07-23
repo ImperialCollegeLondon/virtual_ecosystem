@@ -14,41 +14,9 @@ jobs:
   
   # Then if the standard CI checks pass run the integration tests
   integration_tests:
+    uses: ./.github/workflows/integration_tests.yml
     needs: ci_checks
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # All supported OSs, minimum and maximum python version
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: ["3.12", "3.14"]
-    
-    steps:
-    - uses: actions/checkout@v7
-
-    - uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install Poetry
-      run: |
-        pipx install poetry --python python${{ matrix.python-version }}
-        poetry --version
-
-    - name: Install dependencies for testing
-      run: poetry install  --only main --only test 
-
-    - name: Run integration tests
-      run: poetry run pytest -m "integration"
-
-    - name: Archive log for error checking on failure
-      if: failure()
-      uses: actions/upload-artifact@v7
-      with:
-        name: failed_tests_ve_run_cli_log
-        path: ${{ runner.temp }}/log_file.log
-        archive: false
-        retention-days: 1
+    secrets: inherit
 
   # Next, build the package wheel and source releases and add them to the release assets
   build-wheel:

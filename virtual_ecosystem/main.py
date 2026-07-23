@@ -3,15 +3,14 @@ simulation of the model, along with helper functions to validate and configure t
 model.
 """  # noqa: D205
 
-import os
 import sys
 from collections.abc import Sequence
 from enum import IntEnum
 from importlib.metadata import version
-from itertools import chain
 from pathlib import Path
 from typing import Any, cast
 
+import zarr
 from tqdm import tqdm
 
 from virtual_ecosystem.core.base_model import BaseDisturbance, BaseModel
@@ -24,7 +23,7 @@ from virtual_ecosystem.core.configuration import (
     DisturbanceConfigurationRoot,
 )
 from virtual_ecosystem.core.core_components import CoreComponents
-from virtual_ecosystem.core.data import Data, merge_continuous_data_files
+from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from virtual_ecosystem.core.logger import LOGGER, add_file_logger, remove_file_logger
 from virtual_ecosystem.core.model_config import (
@@ -277,7 +276,7 @@ def ve_run(
 
     if progress > Progress.SILENT:
         print(
-            "Starting Virtual Ecosystem simulation using v"
+            "* Starting Virtual Ecosystem simulation using v"
             f"{version('virtual_ecosystem')}."
         )
 
@@ -286,7 +285,7 @@ def ve_run(
         add_file_logger(logfile)
         LOGGER.info(f"Using Virtual Ecosystem v{version('virtual_ecosystem')}.")
         if progress > Progress.SILENT:
-            print(f"Logging to: {logfile}")
+            print(f"* Logging to: {logfile}")
 
     if progress > Progress.MINIMAL:
         print("* Loading configuration")
@@ -315,12 +314,23 @@ def ve_run(
         "core", CoreConfiguration
     )
 
-    # Save the merged config if requested
-    if core_configuration.data_output_options.save_merged_config:
-        outfile = (
-            Path(core_configuration.data_output_options.out_path)
-            / core_configuration.data_output_options.out_merge_file_name
+    # Set up and check data output
+    output_config = core_configuration.data_output_options
+    output_dir = Path(output_config.out_path)
+    # Create output folder if it does not exist
+    if not output_dir.exists():
+        output_dir.mkdir()
+
+    # Get the output Zarr store path
+    zarr_store_path = output_dir / output_config.output_data_file_name
+    if zarr_store_path.exists():
+        raise ValueError(
+            f"The output data file path already exists: {zarr_store_path!s}"
         )
+
+    # Save the merged config if requested
+    if output_config.save_compiled_configuration:
+        outfile = output_dir / output_config.compiled_configuration_file_name
         # Export the merged configuration
         configuration.export_toml(outfile)
 
@@ -329,6 +339,8 @@ def ve_run(
 
     # Build core elements
     core_components = CoreComponents(config=core_configuration)
+    # initialize grid distances
+    core_components.grid.populate_distances()
     if progress > Progress.MINIMAL:
         print("* Built core model components")
 
@@ -345,6 +357,20 @@ def ve_run(
     )
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
+
+    # Check the variables to save
+    if not output_config.variables_to_save:
+        # Output all variables if the config is an empty list
+        variables_to_save = tuple(runtime_variables.keys())
+    else:
+        unknown_variables = set(output_config.variables_to_save).difference(
+            runtime_variables.keys()
+        )
+        if unknown_variables:
+            raise ConfigurationError(
+                f"Unknown names in 'variables_to_save': {','.join(unknown_variables)}"
+            )
+        variables_to_save = output_config.variables_to_save
 
     # Get the model initialisation sequence and initialise
     init_sequence = {
@@ -380,38 +406,36 @@ def ve_run(
 
     # TODO - A model spin up might be needed here in future
 
-    # Data output options
-    output_config = core_configuration.data_output_options
+    # Identify which variables should be saved to the different zarr store groups:
+    # - the 'inputs' group contains variables provided to the model
+    # - the 'init' group contains variable states after model initialisation.
+    # - the 'outputs' group contains the model values at each time step
 
-    # Create output folder if it does not exist
-    os.makedirs(output_config.out_path, exist_ok=True)
+    # Identify variable groups to save
+    input_vars_to_save = [
+        k
+        for k in variables_to_save
+        if runtime_variables[k].vars_populated_by_init == ["data"]
+    ]
+    init_vars_to_save = [
+        k
+        for k in variables_to_save
+        if runtime_variables[k].vars_populated_by_init
+        and runtime_variables[k].vars_populated_by_init != ["data"]
+    ]
+    output_vars_to_save = [
+        k for k in variables_to_save if runtime_variables[k].vars_updated
+    ]
 
-    # Save the initial state of the model - all input variables with no selection using
-    # variables_to_save.
-    if output_config.save_initial_state:
-        data.save_to_netcdf(
-            output_file_path=output_config.out_path
-            / output_config.out_initial_file_name,
-            timing=core_components.model_timing,
-        )
-        if progress > Progress.MINIMAL:
-            print("* Saved model initial state")
+    # Export any input and init vars now.
+    for vars, group in ((input_vars_to_save, "inputs"), (init_vars_to_save, "init")):
+        if vars:
+            data.save_to_zarr(
+                output_file_path=zarr_store_path, group=group, variables_to_save=vars
+            )
 
-    # If no path for saving continuous data is specified, fall back on using out_path
-    # TODO - this config section is silly, but fix this later
-    if output_config.out_folder_continuous == ".":
-        continuous_output_dir: Path = output_config.out_path
-    else:
-        continuous_output_dir = Path(output_config.out_folder_continuous)
-
-    # Container to store paths to continuous data files
-
-    continuous_data_files = []
-
-    # Only variables in the data object that are updated by a model should be output
-    all_variables = (model.vars_updated for model in models_init.values())
-    # Then flatten the list to generate list of variables to output
-    variables_to_save = list(chain.from_iterable(all_variables))
+    if progress > Progress.MINIMAL:
+        print("* Initialisation data export complete.")
 
     # Take the models in their current execution sequence and change to the model update
     # sequence
@@ -466,15 +490,14 @@ def ve_run(
             LOGGER.critical(to_raise)
             raise to_raise
 
-        # Append updated data to the continuous data file
-        if output_config.save_continuous_data:
-            outfile_path = data.output_current_state(
-                variables_to_save=variables_to_save,
-                output_directory_path=continuous_output_dir,
-                time_index=time_index,
-                timestamp=core_components.model_timing.update_datestamps[time_index],
-            )
-            continuous_data_files.append(outfile_path)
+        # Append updated data to the output data store
+        data.save_current_state_to_zarr(
+            output_file_path=zarr_store_path,
+            variables_to_save=output_vars_to_save,
+            group="outputs",
+            time_index=time_index,
+            timestamp=core_components.model_timing.update_datestamps[time_index],
+        )
 
         # Handle the debug option to truncate the run
         if (core_configuration.debug.truncate_run_at_update >= 0) & (
@@ -496,28 +519,11 @@ def ve_run(
 
     pbar.close()
 
+    # Consolidate the metadata in the Zarr store
+    zarr.consolidate_metadata(zarr_store_path)
+
     if progress > Progress.MINIMAL:
         print("* Simulation completed")
-
-    # Merge all files together based on a list
-    if output_config.save_continuous_data:
-        merge_continuous_data_files(
-            merged_file_path=continuous_output_dir
-            / output_config.out_continuous_file_name,
-            continuous_data_files=continuous_data_files,
-        )
-        if progress > Progress.MINIMAL:
-            print("* Merged time series data")
-
-    # Save the final model state
-    if output_config.save_final_state:
-        data.save_to_netcdf(
-            output_file_path=output_config.out_path / output_config.out_final_file_name,
-            variables_to_save=variables_to_save,
-            timing=core_components.model_timing,
-        )
-        if progress > Progress.MINIMAL:
-            print("* Saved final model state")
 
     LOGGER.info("Virtual Ecosystem model run completed!")
 

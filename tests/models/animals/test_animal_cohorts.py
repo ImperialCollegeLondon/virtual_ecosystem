@@ -1058,6 +1058,7 @@ class TestAnimalCohort:
                     available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
                     consumed_total_mass=np.zeros(1, dtype=float),
                     vertical_occupancy=herbivore_cohort_instance.functional_group.vertical_occupancy,
+                    lignin_proportion=0.0,
                     cell_id=i,
                 )
             )
@@ -1796,11 +1797,12 @@ class TestAnimalCohort:
         mock_consume.assert_not_called()
 
     @pytest.mark.parametrize(
-        "gain, litter, expect_waste_call, expect_error, test_id",
+        "gain, litter, lignin, expect_waste_call, expect_error, test_id",
         [
             (
                 {"C": 10.0, "N": 5.0, "P": 2.0},
                 {"C": 3.0, "N": 1.0, "P": 0.5},
+                0.1,
                 2,
                 None,
                 "standard",
@@ -1808,6 +1810,7 @@ class TestAnimalCohort:
             (
                 {"C": 0.0, "N": 0.0, "P": 0.0},
                 {"C": 0.0, "N": 0.0, "P": 0.0},
+                0.0,
                 2,
                 None,
                 "no_gain",
@@ -1815,6 +1818,7 @@ class TestAnimalCohort:
             (
                 {"C": 4.0, "N": 2.0, "P": 1.0},
                 {"C": 1.0, "N": 0.5, "P": 0.25},
+                0.2,
                 0,
                 KeyError,
                 "no_waste_pool",
@@ -1822,6 +1826,7 @@ class TestAnimalCohort:
             (
                 {"C": 5.0, "N": 2.5, "P": 1.0},
                 {},
+                0.0,
                 0,
                 None,
                 "no_litter",
@@ -1835,6 +1840,7 @@ class TestAnimalCohort:
         mocker,
         gain,
         litter,
+        lignin,
         expect_waste_call,
         expect_error,
         test_id,
@@ -1854,11 +1860,11 @@ class TestAnimalCohort:
         resource1 = mocker.Mock()
         resource1.mass_current = 10.0
         resource1.cell_id = 1
-        resource1.get_eaten.return_value = (gain, litter)
+        resource1.get_eaten.return_value = (gain, litter, lignin)
         resource2 = mocker.Mock()
         resource2.mass_current = 5.0
         resource2.cell_id = 2
-        resource2.get_eaten.return_value = (gain, litter)
+        resource2.get_eaten.return_value = (gain, litter, lignin)
 
         # Waste pool, with conditional presence based on test
         if test_id == "no_waste_pool":
@@ -2335,63 +2341,41 @@ class TestAnimalCohort:
         mock_eat.assert_not_called()
 
     @pytest.mark.parametrize(
-        "mass_current, V_disp, M_disp_ref, o_disp, expected_probability",
+        "distance_in_cell_sides, expected_probability",
         [
-            pytest.param(10, 0.5, 10, 0.5, 0.5, id="normal_case"),
-            pytest.param(10, 1.5, 10, 0.5, 1.0, id="cap_at_1"),
-            pytest.param(10, 0, 10, 0.5, 0, id="zero_velocity"),
-            pytest.param(0, 0.5, 10, 0.5, 0, id="zero_mass"),
+            pytest.param(0.5, 0.5, id="half_a_cell"),
+            pytest.param(1.0, 1.0, id="exactly_one_cell"),
+            pytest.param(2.5, 1.0, id="cap_at_1"),
+            pytest.param(0.0, 0.0, id="zero_distance"),
         ],
     )
     def test_migrate_juvenile_probability(
         self,
         mocker,
-        mass_current,
-        V_disp,
-        M_disp_ref,
-        o_disp,
+        distance_in_cell_sides,
         expected_probability,
         herbivore_cohort_instance,
     ):
-        """Test the calculation of juvenile migration probability."""
+        """Test the calculation of juvenile migration probability.
+
+        The probability is the proportion of a cell side the cohort can clear in one
+        timestep, clamped at one.
+        """
         from math import sqrt
 
-        # Assign test-specific values to the cohort instance
         cohort = herbivore_cohort_instance
+        grid_side = sqrt(cohort.grid.cell_area)
 
-        # Mock `mass_current` properly as a property on the class
         mocker.patch.object(
-            type(cohort),
-            "mass_current",
-            new_callable=mocker.PropertyMock,
-            return_value=mass_current,
+            cohort,
+            "get_dispersal_distance",
+            return_value=distance_in_cell_sides * grid_side,
         )
 
-        # Mock `constants`
-        cohort.constants = mocker.MagicMock(
-            V_disp=V_disp, M_disp_ref=M_disp_ref, o_disp=o_disp
-        )
+        probability_of_dispersal = cohort.migrate_juvenile_probability(dt_days=30.0)
 
-        # Mock `juvenile_dispersal_speed`
-        mocked_velocity = V_disp * (mass_current / M_disp_ref) ** o_disp
-        mocker.patch(
-            "virtual_ecosystem.models.animal.scaling_functions.juvenile_dispersal_speed",
-            return_value=mocked_velocity,
-        )
-
-        # Calculate expected probability
-        A_cell = herbivore_cohort_instance.grid.cell_area
-        grid_side = sqrt(A_cell)
-        calculated_probability = mocked_velocity / grid_side
-        expected_probability = min(calculated_probability, 1.0)  # Cap at 1.0
-
-        # Call the method under test
-        probability_of_dispersal = cohort.migrate_juvenile_probability()
-
-        # Assertion to check if the method returns the correct probability
-        assert probability_of_dispersal == expected_probability, (
-            f"Expected {expected_probability}, but got {probability_of_dispersal}."
-        )
+        assert probability_of_dispersal == pytest.approx(expected_probability)
+        cohort.get_dispersal_distance.assert_called_once_with(30.0)
 
     @pytest.mark.parametrize(
         "is_mature, mock_dead, pop_size, expected_survivors",
@@ -2706,6 +2690,7 @@ class TestAnimalCohort:
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(1, dtype=float),
             vertical_occupancy=getattr(VerticalOccupancy, resource_vertical),
+            lignin_proportion=None,
             cell_id=0,
         )
 
@@ -2820,9 +2805,7 @@ class TestAnimalCohort:
         cohort.territory = territory
 
         # Create dummy herbivory waste pool map
-        herbivory_waste = {
-            cell_id: HerbivoryWaste("leaf") for cell_id in pool_map.keys()
-        }
+        herbivory_waste = {cell_id: HerbivoryWaste() for cell_id in pool_map.keys()}
 
         result = cohort.get_herbivory_waste_pools(herbivory_waste)
 

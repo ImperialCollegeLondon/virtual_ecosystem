@@ -81,11 +81,15 @@ class LitterModel(
         "stem_turnover_cnp",
         "root_turnover_cnp",
         "foliage_turnover_cnp",
+        "subcanopy_vegetation_litter_cnp",
         "stem_lignin",
         "senesced_leaf_lignin",
         "root_lignin",
-        "herbivory_waste_leaf_cnp",
-        "herbivory_waste_leaf_lignin",
+        "subcanopy_vegetation_litter_lignin",
+        "herbivory_waste_above_cnp",
+        "herbivory_waste_above_lignin",
+        "herbivory_waste_below_cnp",
+        "herbivory_waste_below_lignin",
         "litter_consumed_above_metabolic_cnp",
         "litter_consumed_above_structural_cnp",
         "litter_consumed_woody_cnp",
@@ -319,7 +323,7 @@ class LitterModel(
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
             ).magnitude,
-            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
+            microbial_simulation_depth=self.core_constants.microbial_simulation_depth,
         )
 
         # Calculate all the litter chemistry changes

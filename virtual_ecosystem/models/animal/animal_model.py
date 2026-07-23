@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import uuid
 from itertools import chain
-from math import ceil, sqrt
+from math import ceil
 from random import choice
 from typing import Any, cast
 
@@ -83,6 +83,7 @@ from virtual_ecosystem.models.animal.model_config import (
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     biomass_density_to_individuals,
+    cells_within_distance,
     heterotroph_normalization_factor,
     prey_group_selection,
     raw_biomass_density_kg_m2,
@@ -100,7 +101,6 @@ class AnimalModel(
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "foliage_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
         "litter_pool_above_metabolic_cnp",
@@ -113,9 +113,10 @@ class AnimalModel(
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "foliage_turnover_cnp_consumed",
         "seed_turnover_cnp_consumed",
         "fruit_turnover_cnp_consumed",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
     ),
     vars_populated_by_init=(
         "total_animal_respiration",
@@ -142,12 +143,18 @@ class AnimalModel(
         "soil_c_pool_saprotrophic_fungi",
         "soil_c_pool_arbuscular_mycorrhiza",
         "soil_c_pool_ectomycorrhiza",
+        "subcanopy_vegetation_cnp",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_cnp",
+        "subcanopy_seedbank_litter_lignin",
     ),
     vars_populated_by_first_update=(
         "decomposed_excrement_cnp",
         "decomposed_carcasses_cnp",
-        "herbivory_waste_leaf_cnp",
-        "herbivory_waste_leaf_lignin",
+        "herbivory_waste_above_cnp",
+        "herbivory_waste_above_lignin",
+        "herbivory_waste_below_cnp",
+        "herbivory_waste_below_lignin",
         "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
@@ -158,8 +165,10 @@ class AnimalModel(
     vars_updated=(
         "decomposed_excrement_cnp",
         "decomposed_carcasses_cnp",
-        "herbivory_waste_leaf_cnp",
-        "herbivory_waste_leaf_lignin",
+        "herbivory_waste_above_cnp",
+        "herbivory_waste_above_lignin",
+        "herbivory_waste_below_cnp",
+        "herbivory_waste_below_lignin",
         "total_animal_respiration",
         "litter_consumed_above_metabolic_cnp",
         "litter_consumed_above_structural_cnp",
@@ -178,7 +187,6 @@ class AnimalModel(
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "foliage_turnover_cnp_consumed",
         "seed_turnover_cnp_consumed",
         "fruit_turnover_cnp_consumed",
     ),
@@ -247,8 +255,8 @@ class AnimalModel(
         """The excrement pools in the model with associated grid cell ids."""
         self.carcass_pools: dict[int, list[CarcassPool]]
         """The carcass pools in the model with associated grid cell ids."""
-        self.leaf_waste_pools: dict[int, HerbivoryWaste]
-        """A pool for leaves removed by herbivory but not actually consumed."""
+        self.herbivory_waste_pools: dict[int, HerbivoryWaste]
+        """Pool for plant biomass removed by herbivory but not actually consumed."""
         self.microbial_c_n_p_ratios: dict[str, dict[str, float]]
         """The CNP ratios of the different microbial functional groups."""
         # TODO: make the following two modifiable
@@ -311,9 +319,6 @@ class AnimalModel(
         # Convert pint update_interval to timedelta64 once during initialization.
         self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
 
-        # Determine grid square adjacency
-        self._setup_grid_neighbours()
-
         self.functional_groups = functional_groups
 
         # Initialise the array resources for the model and then the resulting resource
@@ -353,9 +358,8 @@ class AnimalModel(
             for cell_id in self.data.grid.cell_id
         }
 
-        self.leaf_waste_pools = {
-            cell_id: HerbivoryWaste(plant_matter_type="leaf")
-            for cell_id in self.data.grid.cell_id
+        self.herbivory_waste_pools = {
+            cell_id: HerbivoryWaste() for cell_id in self.data.grid.cell_id
         }
 
         self.active_cohorts = {}
@@ -532,7 +536,7 @@ class AnimalModel(
         self.reset_trophic_records()
         self.update_activity_windows_community()
         self.forage_community(self.update_interval_timedelta)
-        self.migrate_community()
+        self.migrate_community(self.update_interval_timedelta)
         self.birth_community()
         self.metamorphose_community()
         self.migrate_external_community()
@@ -582,16 +586,6 @@ class AnimalModel(
             time=self.model_timing.update_datestamps[time_index],
             time_index=time_index,
         )
-
-    def _setup_grid_neighbours(self) -> None:
-        """Set up grid neighbours for the model.
-
-        Currently, this is redundant with the set_neighbours method of grid.
-        This will become a more complex animal specific implementation to manage
-        functional group specific adjacency.
-
-        """
-        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
 
     def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
         """Initializes the animal communities.
@@ -730,7 +724,7 @@ class AnimalModel(
                     cell_id=cell_id,
                     data=self.data,
                     cell_area=self.data.grid.cell_area,  # OK while area is uniform
-                    max_depth_microbial_activity=self.core_constants.max_depth_of_microbial_activity,
+                    microbial_simulation_depth=self.core_constants.microbial_simulation_depth,
                     c_n_p_ratios=self.microbial_c_n_p_ratios,
                 )
                 for som_type in soil_organic_matter_types
@@ -830,7 +824,7 @@ class AnimalModel(
         pom_final_stock = array(
             [
                 soil_pools[cid]["pom"].mass_current
-                / (area * self.core_constants.max_depth_of_microbial_activity)
+                / (area * self.core_constants.microbial_simulation_depth)
                 for cid in cell_ids
             ]
         )
@@ -852,7 +846,7 @@ class AnimalModel(
         bacteria_final_stock = array(
             [
                 soil_pools[cid]["bacteria"].mass_current
-                / (area * self.core_constants.max_depth_of_microbial_activity)
+                / (area * self.core_constants.microbial_simulation_depth)
                 for cid in cell_ids
             ]
         )
@@ -884,7 +878,7 @@ class AnimalModel(
         fungi_final_stock = array(
             [
                 soil_pools[cid]["fungi"].mass_current
-                / (area * self.core_constants.max_depth_of_microbial_activity)
+                / (area * self.core_constants.microbial_simulation_depth)
                 for cid in cell_ids
             ]
         )
@@ -931,22 +925,22 @@ class AnimalModel(
     def calculate_litter_additions_from_herbivory(self) -> dict[str, DataArray]:
         """Calculate additions to litter due to herbivory mechanical inefficiencies.
 
-        TODO - At present the only type of herbivory this works for is leaf herbivory,
-        that should be changed once herbivory as a whole is fleshed out.
-
         Returns:
-            A dictionary containing details of the leaf litter addition due to herbivory
-            this comprises of the masses of carbon, nitrogen and phosphorus added [kg],
-            and the proportion of input carbon that is lignin [unitless].
+            A dictionary containing details of additions to the above and below ground
+            litter due to herbivory. This comprises of the masses of carbon, nitrogen
+            and phosphorus added [kg], and the proportion of input carbon that is lignin
+            [unitless].
         """
 
         nutrients = ["C", "N", "P"]
 
-        leaf_cnp = stack(
+        above_cnp = stack(
             [
                 array(
                     [
-                        self.leaf_waste_pools[cell_id].mass_cnp[nutrient]
+                        self.herbivory_waste_pools[cell_id].above_ground_mass_cnp[
+                            nutrient
+                        ]
                         for cell_id in self.data.grid.cell_id
                     ]
                 )
@@ -955,24 +949,53 @@ class AnimalModel(
             axis=1,
         )
 
-        leaf_lignin = [
-            self.leaf_waste_pools[cell_id].lignin_proportion
+        above_lignin = [
+            self.herbivory_waste_pools[cell_id].above_ground_lignin_proportion
+            for cell_id in self.data.grid.cell_id
+        ]
+
+        below_cnp = stack(
+            [
+                array(
+                    [
+                        self.herbivory_waste_pools[cell_id].below_ground_mass_cnp[
+                            nutrient
+                        ]
+                        for cell_id in self.data.grid.cell_id
+                    ]
+                )
+                for nutrient in nutrients
+            ],
+            axis=1,
+        )
+
+        below_lignin = [
+            self.herbivory_waste_pools[cell_id].below_ground_lignin_proportion
             for cell_id in self.data.grid.cell_id
         ]
 
         # Reset all of the herbivory waste pools to zero
-        for waste in self.leaf_waste_pools.values():
-            waste.mass_cnp["C"] = 0.0
-            waste.mass_cnp["N"] = 0.0
-            waste.mass_cnp["P"] = 0.0
+        for waste in self.herbivory_waste_pools.values():
+            waste.above_ground_lignin_proportion = 0.0
+            waste.below_ground_lignin_proportion = 0.0
+            for nutrient in nutrients:
+                waste.above_ground_mass_cnp[nutrient] = 0.0
+                waste.below_ground_mass_cnp[nutrient] = 0.0
 
         return {
-            "herbivory_waste_leaf_cnp": DataArray(
-                data=leaf_cnp,
+            "herbivory_waste_above_cnp": DataArray(
+                data=above_cnp,
                 coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
-            "herbivory_waste_leaf_lignin": DataArray(
-                array(leaf_lignin), dims="cell_id"
+            "herbivory_waste_above_lignin": DataArray(
+                array(above_lignin), dims="cell_id"
+            ),
+            "herbivory_waste_below_cnp": DataArray(
+                data=below_cnp,
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
+            ),
+            "herbivory_waste_below_lignin": DataArray(
+                array(below_lignin), dims="cell_id"
             ),
         }
 
@@ -1210,35 +1233,59 @@ class AnimalModel(
         self.abandon_communities(migrant)
         self.update_community_occupancy(migrant, destination_centroid)
 
-    def migrate_community(self) -> None:
+    def migrate_community(self, dt: timedelta64) -> None:
         """This handles migrating all cohorts with a centroid in the community.
 
         This migration method initiates migration for two reasons:
         1) The cohort is starving and needs to move for a chance at resource access
         2) An initial migration event immediately after birth.
 
-        TODO: MGO - migrate distance mod for larger territories?
+        The destination is drawn uniformly from the cells the cohort can actually
+        reach within its mass-scaled dispersal distance, rather than from the
+        immediately adjacent cells alone. Cohorts too slow to clear a single cell
+        still move one cell when dispersal is triggered, as the dispersal probability
+        already scales with distance.
 
-
+        Args:
+            dt: The time passed in the timestep.
         """
+
+        if any(
+            c.centroid_key >= self.data.grid.n_cells
+            for c in self.active_cohorts.values()
+        ):
+            raise ValueError("cohort centroid outside self.data.grid — grid mismatch")
+
+        dt_days = float(dt / timedelta64(1, "D"))
+
         for cohort in self.active_cohorts.values():
             is_starving = cohort.is_below_mass_threshold(
+                # check to see if the cohort is hungry enough to migrate
                 self.model_constants.dispersal_mass_threshold
             )
             is_juvenile_and_migrate = (
+                # check for juvenile migration
                 cohort.age == 0.0
-                and random.random() <= cohort.migrate_juvenile_probability()
+                and random.random() <= cohort.migrate_juvenile_probability(dt_days)
+                # probability based on proportion of cohort that could make it to the
+                # new cell
             )
-            migrate = is_starving or is_juvenile_and_migrate
+            migrate = is_starving or is_juvenile_and_migrate  # bool
 
             if not migrate:
                 continue
 
-            # Get the list of neighbors for the current cohort's cell
-            neighbour_keys = self.data.grid.neighbours[cohort.centroid_key]
+            candidate_keys = cells_within_distance(
+                # find all the grid cells within migrating distance
+                self.data.grid,
+                cohort.centroid_key,
+                cohort.get_dispersal_distance(dt_days),
+            )
 
-            destination_key = choice(neighbour_keys)
-            self.migrate(cohort, destination_key)
+            if not candidate_keys:
+                continue
+
+            self.migrate(cohort, choice(candidate_keys))
 
     def remove_dead_cohort(self, cohort: AnimalCohort) -> None:
         """Removes an AnimalCohort from the model's cohorts and relevant communities.
@@ -1598,7 +1645,7 @@ class AnimalModel(
                 carcass_pool_map=carcass_pool_map,  # for prey remains
                 scavenge_carcass_pools=scavenge_carcass_pools,
                 scavenge_excrement_pools=scavenge_waste_pools,
-                herbivory_waste_pools=self.leaf_waste_pools,
+                herbivory_waste_pools=self.herbivory_waste_pools,
                 dt=dt,
             )
 
@@ -1908,11 +1955,10 @@ class AnimalModel(
         Where a cell has no filled canopy layers, canopy temperature and diurnal
         range fall back to the corresponding ground values to avoid NaN propagation.
 
+
         Note:
-            Annual mean temperature and annual temperature SD are currently
-            placeholder constants from
-            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
-            and should be replaced once the abiotic model exposes those fields.
+            Annual values are per-functional-group reference values resolved once at
+            FunctionalGroup construction by averaging placeholder per-stratum terms.
         """
         lyr = self.layer_structure
 
@@ -1958,6 +2004,6 @@ class AnimalModel(
             cohort.update_activity_window(
                 temperature=temperature,
                 diurnal_temp_range=diurnal_range,
-                annual_mean_temp=cohort.constants.placeholder_annual_mean_temp,
-                annual_temp_sd=cohort.constants.placeholder_annual_temp_sd,
+                annual_mean_temp=cohort.functional_group.reference_annual_mean_temp,
+                annual_temp_sd=cohort.functional_group.reference_annual_temp_sd,
             )

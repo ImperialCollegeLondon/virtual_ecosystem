@@ -47,6 +47,12 @@ var_specs = {
     "atmospheric_pressure_ref": {"mean": 101.0, "amp": 1.0, "noise": 0.5},
     "atmospheric_co2_ref": {"mean": 400.0, "amp": 0.0, "noise": 0.0, "min": 0.0},
     "wind_speed_ref": {"mean": 0.15, "amp": 0.05, "noise": 0.05, "min": 0.0},
+    "diurnal_temperature_range_ref": {
+        "mean": 5.0,
+        "amp": 2.0,
+        "noise": 0.05,
+        "min": 0.0,
+    },
     "downward_longwave_radiation": {
         "mean": 400.0,
         "amp": 20.0,
@@ -102,6 +108,9 @@ data.wind_speed_ref.attrs = dict(
 )
 data.mean_annual_temperature.attrs = dict(
     units="°C", description="Mean annual temperature"
+)
+data.diurnal_temperature_range_ref.attrs = dict(
+    units="°C", description="Mean diurnal temperature range"
 )
 
 # Save to netcdf

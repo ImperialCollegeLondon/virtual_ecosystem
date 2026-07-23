@@ -647,31 +647,107 @@ def test_H_i_j(h_pred_0, M_ref, M_i_t, b_pred, prey_mass, expected_handling_time
 
 
 @pytest.mark.parametrize(
-    "current_mass, V_disp, M_disp_ref, o_disp, expected_speed",
+    "current_mass, V_disp, M_disp_ref, o_disp, dt_days, expected_distance",
     [
-        pytest.param(1.0, 10.0, 1.0, 1.0, 10.0, id="reference_mass"),
-        pytest.param(0.5, 10.0, 1.0, 1.0, 5.0, id="half_reference_mass"),
-        pytest.param(2.0, 10.0, 1.0, 1.0, 20.0, id="double_reference_mass"),
-        pytest.param(1.0, 20.0, 1.0, 1.0, 20.0, id="double_speed"),
-        pytest.param(1.0, 10.0, 1.0, 0.5, 10.0, id="sqrt_scaling"),
-        pytest.param(
-            4.0, 10.0, 2.0, 0.5, 14.142135, id="sqrt_scaling_with_different_ref"
-        ),
-        pytest.param(0.0, 10.0, 1.0, 1.0, 0.0, id="zero_mass"),
+        pytest.param(0.001, 10.0, 1.0, 1.0, 30.0, 10_000.0, id="reference_mass"),
+        pytest.param(0.002, 10.0, 1.0, 1.0, 30.0, 20_000.0, id="double_reference_mass"),
+        pytest.param(0.0005, 10.0, 1.0, 1.0, 30.0, 5_000.0, id="half_reference_mass"),
+        pytest.param(0.001, 20.0, 1.0, 1.0, 30.0, 20_000.0, id="double_speed"),
+        pytest.param(0.004, 10.0, 1.0, 0.5, 30.0, 20_000.0, id="sqrt_scaling"),
+        pytest.param(0.001, 10.0, 1.0, 1.0, 15.0, 5_000.0, id="half_timestep"),
+        pytest.param(0.001, 10.0, 1.0, 1.0, 0.0, 0.0, id="zero_timestep"),
+        pytest.param(0.0, 10.0, 1.0, 1.0, 30.0, 0.0, id="zero_mass"),
+        pytest.param(0.001, 0.0, 1.0, 1.0, 30.0, 0.0, id="zero_speed"),
+        pytest.param(1.0, 1.0, 1.0, 1.0, 30.0, 1_000_000.0, id="kg_to_g_conversion"),
     ],
 )
-def test_juvenile_dispersal_speed(
-    current_mass, V_disp, M_disp_ref, o_disp, expected_speed
+def test_dispersal_distance(
+    current_mass, V_disp, M_disp_ref, o_disp, dt_days, expected_distance
 ):
-    """Testing the juvenile dispersal speed calculation for various scenarios."""
-    from virtual_ecosystem.models.animal.scaling_functions import (
-        juvenile_dispersal_speed,
+    """Testing the dispersal distance calculation for various scenarios.
+
+    The ``kg_to_g_conversion`` case is the guard against the historic unit bug: a 1 kg
+    animal against a 1 g reference mass has a mass ratio of 1000, not 1, and so travels
+    1000 km/month rather than 1 km/month.
+    """
+    from virtual_ecosystem.models.animal.scaling_functions import dispersal_distance
+
+    calculated_distance = dispersal_distance(
+        current_mass, V_disp, M_disp_ref, o_disp, dt_days
     )
 
-    calculated_speed = juvenile_dispersal_speed(
-        current_mass, V_disp, M_disp_ref, o_disp
-    )
-    assert calculated_speed == pytest.approx(expected_speed, rel=1e-6)
+    assert calculated_distance == pytest.approx(expected_distance, rel=1e-6)
+
+
+@pytest.mark.parametrize(
+    "centroid_key, distance_m, expected_keys",
+    [
+        pytest.param(
+            12,
+            1.0,
+            [7, 11, 13, 17],
+            id="below_one_cell_clamps_to_orthogonal_neighbours",
+        ),
+        pytest.param(
+            12, 10.0, [7, 11, 13, 17], id="exactly_one_cell_excludes_diagonals"
+        ),
+        pytest.param(
+            12,
+            14.2,
+            [6, 7, 8, 11, 13, 16, 17, 18],
+            id="beyond_root_two_includes_diagonals",
+        ),
+        pytest.param(
+            12,
+            20.0,
+            [2, 6, 7, 8, 10, 11, 13, 14, 16, 17, 18, 22],
+            id="two_cells_excludes_knight_offsets",
+        ),
+        pytest.param(0, 10.0, [1, 5], id="corner_centroid_is_clipped_not_wrapped"),
+        pytest.param(10, 10.0, [5, 11, 15], id="edge_centroid_is_clipped_not_wrapped"),
+    ],
+)
+def test_cells_within_distance(centroid_key, distance_m, expected_keys):
+    """Test the Euclidean reachability set on a 5x5 grid of 10 m cells.
+
+    A diagonal neighbour lies sqrt(2) ~ 14.14 m away, so it enters the set only once
+    the travel distance clears that, distinguishing this Euclidean disc from the
+    Manhattan diamond and the Chebyshev square. The ``two_cells`` case additionally
+    checks that offsets such as (1, 2), at sqrt(5) ~ 22.4 m, are excluded at a 20 m
+    radius even though they are only two orthogonal steps away.
+
+    The ``below_one_cell`` case exercises the clamp: a sub-cell travel distance is
+    raised to one cell side so the four orthogonal neighbours (whose centres sit at
+    exactly 10 m) remain reachable under the ``<=`` boundary.
+    """
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.scaling_functions import cells_within_distance
+
+    grid = Grid(grid_type="square", cell_area=100.0, cell_nx=5, cell_ny=5)
+    grid.populate_distances()
+
+    reachable = cells_within_distance(grid, centroid_key, distance_m)
+
+    assert sorted(reachable) == expected_keys
+    assert centroid_key not in reachable
+    assert len(reachable) == len(set(reachable))
+
+
+def test_cells_within_distance_requires_populated_matrix():
+    """cells_within_distance raises if the grid distance matrix is not populated.
+
+    The function reads ``grid._distances`` directly for speed and so depends on
+    ``populate_distances`` having been called at model setup; absent that, it should
+    fail with a clear message rather than a NoneType subscripting error.
+    """
+
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.scaling_functions import cells_within_distance
+
+    grid = Grid(grid_type="square", cell_area=100.0, cell_nx=5, cell_ny=5)
+
+    with pytest.raises(ValueError, match="not populated"):
+        cells_within_distance(grid, centroid_key=12, distance_m=10.0)
 
 
 @pytest.mark.parametrize(

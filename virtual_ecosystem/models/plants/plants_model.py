@@ -91,9 +91,14 @@ class PlantsModel(
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "foliage_turnover_cnp_consumed",
         "seed_turnover_cnp_consumed",
         "fruit_turnover_cnp_consumed",
+        "plant_reproductive_tissue_lignin",
+        "root_lignin",
+        "senesced_leaf_lignin",
+        "stem_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "subcanopy_vegetation_litter_lignin",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -141,15 +146,10 @@ class PlantsModel(
         "plant_reproductive_tissue_lignin",  # NOTE - will be deprecated in #1132
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
-        "root_lignin",
-        "senesced_leaf_lignin",
         "shortwave_absorption",
-        "stem_lignin",
         "subcanopy_seedbank_biomass",
         "subcanopy_vegetation_biomass",
         "transpiration",
-        "subcanopy_seedbank_litter_lignin",
-        "subcanopy_vegetation_litter_lignin",
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
@@ -158,15 +158,9 @@ class PlantsModel(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
-        "plant_reproductive_tissue_lignin",
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
-        "root_lignin",
-        "senesced_leaf_lignin",
-        "stem_lignin",
         "transpiration",
-        "subcanopy_seedbank_litter_lignin",
-        "subcanopy_vegetation_litter_lignin",
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
@@ -474,13 +468,11 @@ class PlantsModel(
             "seed_turnover_cnp",
             "fruit_turnover_cnp",
             "root_turnover_cnp",
-            "foliage_turnover_cnp",
             "stem_turnover_cnp",
             # Biomass consumption pools
             "canopy_foliage_cnp_consumed",
             "canopy_seed_cnp_consumed",
             "canopy_fruit_cnp_consumed",
-            "foliage_turnover_cnp_consumed",
             "seed_turnover_cnp_consumed",
             "fruit_turnover_cnp_consumed",
         ]
@@ -535,6 +527,10 @@ class PlantsModel(
             model_timing=self.model_timing,
             data_object_template=self.data_object_templates["cnp"],
         )
+
+        # The (constant) lignin proportions of each plant biomass pool are now populated
+        # (based on the plant constants)
+        self.populate_lignin_proportions()
 
         # Get the canopy top shortwave downwelling radiation for the first time slice
         self.set_canopy_top_radiation(time_index=0)
@@ -756,9 +752,6 @@ class PlantsModel(
         # trait (tau_f), modified by apply_herbivory above, to account for carbon costs
         # of folivory.
         self.allocate_gpp()
-
-        # Calculate the turnover of each plant biomass pool
-        self.calculate_turnover()
 
         # Calculate the subcanopy vegetation
         self.subcanopy.calculate_dynamics(
@@ -1570,17 +1563,16 @@ class PlantsModel(
 
                 self.biomasses[cell_id].append(new_biomasses)
 
-    def calculate_turnover(self) -> None:
-        """Calculate turnover of each plant biomass pool.
+    def populate_lignin_proportions(self) -> None:
+        """Populate lignin proportions of all the plant biomass pools.
 
-        This function calculates the lignin concentration, carbon nitrogen ratio, and
-        carbon phosphorus ratio of each turnover flow. It also returns the rate at which
-        plants supply carbon to their nitrogen fixing symbionts in the soil and the rate
-        at which they exude carbohydrates into the soil more generally.
+        This function populates the lignin concentrations of each plant biomass pool.
 
         Warning:
-            At present, this function literally just returns constant values for lignin
-            and carbon fixation.
+            At present, this function literally just populates constant values for
+            lignin, so this function is just called once during model initialise to
+            create an array of constant values, which are then used for the rest of the
+            model run.
         """
 
         # Lignin concentrations
@@ -1596,6 +1588,12 @@ class PlantsModel(
         )
         self.data["root_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_lignin
+        )
+        self.data["subcanopy_vegetation_litter_lignin"] = xr.full_like(
+            self.data["elevation"], self.model_constants.subcanopy_vegetation_lignin
+        )
+        self.data["subcanopy_seedbank_litter_lignin"] = xr.full_like(
+            self.data["elevation"], self.model_constants.subcanopy_seedbank_lignin
         )
 
     def calculate_nutrient_uptake(self) -> None:

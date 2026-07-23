@@ -448,8 +448,8 @@ def test_calculate_thermodynamics_day_and_night(
         idx=idx,
     )
 
-    assert np.all(result_night["aerodynamic_resistance_canopy"] == 50.0)
-    assert np.all(result_night["aerodynamic_resistance_soil"] == 50.0)
+    assert np.all(result_night["aerodynamic_resistance_canopy"] == 100.0)
+    assert np.all(result_night["aerodynamic_resistance_soil"] == 100.0)
 
     # Output shape checks
     assert result_day["density_air"].shape == (n_layers, n_cells)

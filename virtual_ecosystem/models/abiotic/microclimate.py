@@ -284,7 +284,9 @@ def generate_hourly_forcing(
         latitude_deg=latitude,
         month=month,
         days=days,
-        daily_temp_amplitude=5,  # TODO #1440 abiotic_constants or input data
+        daily_temp_amplitude=data["diurnal_temperature_range_ref"]
+        .isel(time_index=time_index)
+        .to_numpy(),
     )
 
 
@@ -732,11 +734,15 @@ def update_air_temperature(
     )
     air_temperature[idx.surface] = surface_air_temperature
 
+    mixing_limits = (
+        abiotic_bounds.air_temperature[0],
+        np.repeat(abiotic_bounds.air_temperature[1], len(state["ventilation_rate"])),
+    )
     air_temperature = wind.mix_and_ventilate(
         input_variable=air_temperature,
         ventilation_rate=state["ventilation_rate"],
         mixing_coefficient=static["mixing_coefficient"],
-        limits=abiotic_bounds.air_temperature[:2],
+        limits=mixing_limits,
         surface_index=idx.surface,
     )
 
@@ -808,6 +814,9 @@ def update_atmospheric_humidity(
     )
     max_specific_humidity = mixing_ratio_saturation / (1 + mixing_ratio_saturation)
 
+    # Calculate mean maximum specific humidity for each cell as upper limits
+    mean_max_specific_humidity = np.nanmax(max_specific_humidity[idx.atm], axis=0)
+
     # Vertical mixing
     specific_humidity_mixed = wind.mix_and_ventilate(
         input_variable=specific_humidity_with_added_water,
@@ -815,8 +824,8 @@ def update_atmospheric_humidity(
         ventilation_rate=state["ventilation_rate"],
         limits=(
             abiotic_constants.min_specific_humidity,
-            max_specific_humidity[0],
-        ),  # TODO layer specific?
+            mean_max_specific_humidity,
+        ),
         surface_index=idx.surface,
     )
 

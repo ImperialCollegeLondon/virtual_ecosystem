@@ -528,3 +528,63 @@ def test_none_or_float(value, expected):
     assert _none_or_float(value) is expected or _none_or_float(value) == pytest.approx(
         expected
     )
+
+
+@pytest.fixture
+def placeholder_annual_temp_terms():
+    """Per-stratum placeholder annual temperature terms with distinct values.
+
+    Distinct means and SDs per stratum let the averaging across occupied strata be
+    verified unambiguously.
+
+    Returns:
+        Placeholder annual temperature terms keyed by atomic VerticalOccupancy member.
+    """
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+
+    return {
+        VerticalOccupancy.SOIL: {"mean_temp": 21.0, "temp_sd": 1.0},
+        VerticalOccupancy.GROUND: {"mean_temp": 24.0, "temp_sd": 2.0},
+        VerticalOccupancy.CANOPY: {"mean_temp": 27.0, "temp_sd": 3.0},
+    }
+
+
+@pytest.mark.parametrize(
+    "occupancy, expected_mean, expected_sd",
+    [
+        pytest.param("soil", 21.0, 1.0, id="soil_only"),
+        pytest.param("ground", 24.0, 2.0, id="ground_only"),
+        pytest.param("canopy", 27.0, 3.0, id="canopy_only"),
+        pytest.param("soil_ground", 22.5, 1.5, id="soil_ground"),
+        pytest.param("ground_canopy", 25.5, 2.5, id="ground_canopy"),
+        pytest.param("soil_ground_canopy", 24.0, 2.0, id="all_strata"),
+    ],
+)
+def test_resolve_reference_annual_climate(
+    occupancy, expected_mean, expected_sd, placeholder_annual_temp_terms
+):
+    """Test that reference terms are the unweighted mean across occupied strata."""
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.functional_group import (
+        _resolve_reference_annual_climate,
+    )
+
+    result_mean, result_sd = _resolve_reference_annual_climate(
+        VerticalOccupancy.parse(occupancy), placeholder_annual_temp_terms
+    )
+
+    assert result_mean == pytest.approx(expected_mean)
+    assert result_sd == pytest.approx(expected_sd)
+
+
+def test_resolve_reference_annual_climate_empty_raises(placeholder_annual_temp_terms):
+    """Test that an occupancy with no atomic strata raises ValueError."""
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.functional_group import (
+        _resolve_reference_annual_climate,
+    )
+
+    with pytest.raises(ValueError):
+        _resolve_reference_annual_climate(
+            VerticalOccupancy(0), placeholder_annual_temp_terms
+        )

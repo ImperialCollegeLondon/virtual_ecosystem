@@ -455,10 +455,13 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_can
     latitude_deg = 0.0
     month = 2
     days = 30
-    daily_temp_amplitude = 5.0
+
     data = dummy_climate_data_varying_canopy
     n_layers, n_cells = data["canopy_evaporation"].shape
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    daily_temp_amplitude = (
+        data["diurnal_temperature_range_ref"].isel(time_index=1).to_numpy()
+    )
 
     # Generate diurnal cycle
     forcing = generate_diurnal_cycle_from_monthly_data(

@@ -38,6 +38,50 @@ is the the rate at which nutrients leach from the soil. As such, this process do
 fit into any of the cases mentioned already, and so it will be discussed in a separate
 section.
 
+## Finding soil and litter layer temperatures
+
+Before we discuss the different classes of environmental response, we need to mention
+how the environment itself is determined. The temperatures and soil water potentials are
+calculated using the abiotic and hydrology models which use their own layer definitions
+that do not exactly correspond to the simulation depth of the soil-microbial model.
+
+:::{note}
+
+In the Virtual Ecosystem "topsoil" currently refers to the uppermost layer of the
+hydrology model (see the [layer structure
+diagram](../../implementation/core_components_overview.md#the-vertical-layer-structure)
+for more details). The depth that the soil-microbial model is simulated to can be
+altered independently of this topsoil depth, meaning that it can be changed without
+having to update the entire setup of the hydrology model to match.
+
+:::
+
+For the above-ground litter, things are pretty straightforward as the air temperature of
+the layer immediately above the soil surface is just used. (As this litter is
+above-ground, soil water potential is not relevant).
+
+The below-ground litter is assumed to be spread out evenly over the simulated depth of
+the soil-microbial model, so the process for calculating the relevant soil temperatures
+is identical to that of the soil microbes (which we discuss below).
+
+The zone the soil-microbial model is simulated for is of user configurable depth and is
+assumed to be homogeneous. This means that for each environmental variable an average
+value must be found for the entire zone. These are calculated as follows:
+
+$$
+V = \sum^N_{i=1} f_i *\frac{V_{i-1} + V_{i}}{2}
+$$
+
+where $N$ is the number of soil layers, $f_i$ is the fraction of soil layer $i$ that
+lies within the soil-microbial simulation zone, and $V_{i}$ is the value of the
+environmental variable at the bottom of layer $i$ (equivalent to the top of layer
+$i+1$). The abiotic and hydrology models only calculate variables for the bottom of each
+layer, which means values for the top of the 1st layer ($V_0$) must be estimated. We
+assume the temperature at the top of the first soil layer ($T_0$) to be equal to the air
+temperature of the layer immediately above the soil surface. For soil water potential,
+we assume that it is constant across the first soil layer (i.e. we set $\psi_0 =
+\psi_1$).
+
 ## Changes to rates of implicitly microbially driven processes
 
 The soil model explicitly represents the soil microbes involved in decomposition.

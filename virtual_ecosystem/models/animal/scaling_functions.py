@@ -10,6 +10,7 @@ from math import asin, ceil, exp, isnan, log, pi
 import numpy as np
 from scipy.special import expit
 
+from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
@@ -627,27 +628,79 @@ def H_i_j(
     return h_pred_0 * (M_ref / M_i_t_g) ** b_pred * prey_mass_g
 
 
-def juvenile_dispersal_speed(
-    current_mass: float, V_disp: float, M_disp_ref: float, o_disp: float
+def dispersal_distance(
+    current_mass: float,
+    V_disp: float,
+    M_disp_ref: float,
+    o_disp: float,
+    dt_days: float,
 ) -> float:
-    """Dispersal speed of cohorts during diffusive natal dispersal event [km/month].
+    """Distance a cohort can travel in a single timestep [m].
 
-    Madingley
+    Madingley eq. (diffusive natal dispersal). ``V_disp`` is the dispersal speed of
+    an individual of reference body mass, expressed in the Madingley-native units of
+    km/month, and ``M_disp_ref`` is that reference mass in grams. ``current_mass`` is
+    supplied in kg and is converted to grams at the point it enters the mass ratio,
+    and the km/month speed is converted to metres over the model timestep.
 
     Args:
-        current_mass: The mass of an individual of the cohort during the current time
-            step [kg].
-        V_disp: Diffusive dispersal speed on an individual with reference body-mass.
-        M_disp_ref: A reference body-mass.
-        o_disp: The power-law exponent for the mass-dispersal speed scaling
-          relationship.
+        current_mass: Mass of an individual of the cohort in the current timestep [kg].
+        V_disp: Dispersal speed of an individual of mass ``M_disp_ref`` [km/month].
+        M_disp_ref: Reference body mass for the dispersal speed scaling [g].
+        o_disp: Power-law exponent for the mass-dispersal speed scaling relationship.
+        dt_days: Length of the model timestep [days].
 
     Returns:
-        The dispersal speed of a juvenile cohort in km/month.
-
+        The distance the cohort can travel over the timestep [m].
     """
 
-    return V_disp * (current_mass / M_disp_ref) ** o_disp
+    # mass_g -> current_mass * 1000.0  kg -> g, to match the native gram M_disp_ref
+    speed_km_month = V_disp * ((current_mass * 1000.0) / M_disp_ref) ** o_disp
+
+    # km/month -> m/timestep: 1000 m per km, Madingley month taken as 30 days.
+    return speed_km_month * 1000.0 * (dt_days / 30.0)
+
+
+def cells_within_distance(
+    grid: Grid,
+    centroid_key: int,
+    distance_m: float,
+) -> list[int]:
+    """Grid cells whose centroids lie within a travel distance of a centroid.
+
+    Reachability is Euclidean centroid-to-centroid, read directly from the grid's
+    pre-populated distance matrix (see
+    :meth:`~virtual_ecosystem.core.grid.Grid.populate_distances`), using the same
+    ``<=`` metric as :meth:`~virtual_ecosystem.core.grid.Grid.set_neighbours`.
+
+    The distance is clamped to a minimum of one cell side so that a triggered dispersal
+    always has at least the orthogonal neighbours available, even for a cohort too slow
+    to clear a single cell.
+
+    Args:
+        grid: The simulation grid, with its distance matrix already populated.
+        centroid_key: The grid cell key anchoring the move.
+        distance_m: The distance the cohort can travel this timestep [m].
+
+    Returns:
+        The keys of all in-bounds cells within reach, excluding the centroid itself.
+    """
+
+    if grid._distances is None:
+        raise ValueError(
+            "grid distance matrix not populated;call grid.populate_distances() at setup"
+        )
+
+    # Clamp to at least one cell side. Uses <= below, matching set_neighbours, so the
+    # orthogonal neighbours at exactly sqrt(cell_area) are retained.
+    distance_m = max(
+        distance_m, np.sqrt(grid.cell_area) + 0.001
+    )  # 1 mm greater to avoid floating point issues
+
+    reachable = np.where(grid._distances[centroid_key, :] <= distance_m)[0].tolist()
+    reachable.remove(centroid_key)
+
+    return reachable
 
 
 def territory_size(

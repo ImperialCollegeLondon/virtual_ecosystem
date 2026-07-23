@@ -1414,7 +1414,7 @@ def test_calculate_free_living_nitrogen_fixation(
         fixation_at_reference=fixture_soil_constants.free_living_N_fixation_reference_rate,
         reference_temperature=fixture_soil_constants.free_living_N_fixation_reference_temp,
         q10_nitrogen_fixation=fixture_soil_constants.free_living_N_fixation_q10_coefficent,
-        active_depth=fixture_core_constants.max_depth_of_microbial_activity,
+        microbial_simulation_depth=fixture_core_constants.microbial_simulation_depth,
     )
 
     assert np.allclose(actual_fixation, expected_fixation)
@@ -1455,7 +1455,7 @@ def test_calculate_fungal_fruiting_body_decay(
 
     actual_decay = calculate_fungal_fruiting_body_decay(
         decay_rate=dummy_carbon_data["decay_of_fungal_fruiting_bodies"]
-        / fixture_core_constants.max_depth_of_microbial_activity,
+        / fixture_core_constants.microbial_simulation_depth,
         fungal_fruiting_body_c_n_ratio=fixture_core_constants.fungal_fruiting_bodies_c_n_ratio,
         fungal_fruiting_body_c_p_ratio=fixture_core_constants.fungal_fruiting_bodies_c_p_ratio,
     )

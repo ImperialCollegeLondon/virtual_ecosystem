@@ -106,16 +106,17 @@ def animal_data_for_model_instance(fixture_core_components):
         )
 
     # Populate pft structured ArrayResource pools
-    plant_model_pools = [
+    plant_model_pools = ["foliage_turnover_cnp"]
+    plant_model_pools_consumed = [
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "foliage_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
     ]
-    for pool in plant_model_pools:
+    for pool in plant_model_pools + plant_model_pools_consumed:
         data[pool] = vegetation_biomass.copy()
+    for pool in plant_model_pools_consumed:
         data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
 
     litter_pools = DataArray(np.full(data.grid.n_cells, fill_value=1.5), dims="cell_id")
@@ -141,6 +142,21 @@ def animal_data_for_model_instance(fixture_core_components):
     data["litter_pool_woody_cnp"] = litter_cnp_template
     data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
     data["litter_pool_below_structural_cnp"] = litter_cnp_template
+
+    # Populate lignin contents of consumed pools
+    lignin_contents = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+    lignin_pools = [
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "senesced_leaf_lignin",
+        "lignin_above_structural",
+        "lignin_below_structural",
+        "lignin_woody",
+    ]
+    for pool in lignin_pools:
+        data[pool] = lignin_contents
 
     return data
 
@@ -430,17 +446,35 @@ def dummy_animal_data(animal_fixture_core_components):
         )
 
     # Populate pft structured ArrayResource pools
-    plant_model_pools = [
+    plant_model_pools = ["foliage_turnover_cnp"]
+    # Some variables are consumed from so need to be treated separately
+    plant_model_pools_consumed = [
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "foliage_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
     ]
-    for pool in plant_model_pools:
+    for pool in plant_model_pools_consumed + plant_model_pools:
         data[pool] = vegetation_biomass.copy()
+
+    for pool in plant_model_pools_consumed:
         data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
+
+    # Populate lignin contents of consumed pools
+    lignin_contents = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+    lignin_pools = [
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "senesced_leaf_lignin",
+        "lignin_above_structural",
+        "lignin_below_structural",
+        "lignin_woody",
+    ]
+    for pool in lignin_pools:
+        data[pool] = lignin_contents
 
     data["diurnal_temperature_range"] = from_template()
     data["diurnal_temperature_range"][lyr_str.index_surface_scalar] = 10.0
@@ -920,6 +954,7 @@ def array_plant_list_instance(animal_data_for_model_instance):
             consumed_array="subcanopy_vegetation_cnp_consumed",
             vertical_occupancy=VerticalOccupancy.GROUND,
             diet_type=DietType.FOLIAGE,
+            lignin_array="subcanopy_vegetation_litter_lignin",
         ),
         data=animal_data_for_model_instance,
     )
@@ -930,6 +965,7 @@ def array_plant_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.1,
             cell_id=0,
         ),
         CellResource(
@@ -937,6 +973,7 @@ def array_plant_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.15,
             cell_id=1,
         ),
     ]
@@ -963,6 +1000,7 @@ def array_litter_list_instance(animal_data_for_model_instance):
             consumed_array="litter_consumed_woody_cnp",
             vertical_occupancy=VerticalOccupancy.GROUND,
             diet_type=DietType.DETRITUS,
+            lignin_array="lignin_woody",
             density=True,
         ),
         data=animal_data_for_model_instance,
@@ -974,6 +1012,7 @@ def array_litter_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.3,
             cell_id=0,
         ),
         CellResource(
@@ -981,6 +1020,7 @@ def array_litter_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.5,
             cell_id=1,
         ),
     ]
@@ -1103,7 +1143,6 @@ def litter_soil_data_instance(fixture_core_components):
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "foliage_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
     ]
@@ -1115,7 +1154,6 @@ def litter_soil_data_instance(fixture_core_components):
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "foliage_turnover_cnp_consumed",
         "seed_turnover_cnp_consumed",
         "fruit_turnover_cnp_consumed",
     ]
@@ -1167,6 +1205,21 @@ def litter_soil_data_instance(fixture_core_components):
         coords=dict(cell_id=cell_ids, element=elements),
     )
 
+    # Populate lignin contents of consumed pools
+    lignin_contents = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+    lignin_pools = [
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "senesced_leaf_lignin",
+        "lignin_above_structural",
+        "lignin_below_structural",
+        "lignin_woody",
+    ]
+    for pool in lignin_pools:
+        data[pool] = lignin_contents
+
     return data
 
 
@@ -1176,13 +1229,23 @@ def herbivory_waste_pool_instance():
     from virtual_ecosystem.models.animal.decay import HerbivoryWaste
 
     # Create an instance of HerbivoryWaste with the valid plant_matter_type
-    herbivory_waste = HerbivoryWaste(plant_matter_type="leaf")
+    herbivory_waste = HerbivoryWaste()
 
     # Manually set the additional attributes
-    herbivory_waste.mass_current = 0.5  # Initial mass in kg
-    herbivory_waste.c_n_ratio = 20.0  # Carbon to Nitrogen ratio [unitless]
-    herbivory_waste.c_p_ratio = 150.0  # Carbon to Phosphorus ratio [unitless]
-    herbivory_waste.lignin_proportion = (
+    herbivory_waste.above_ground_mass_cnp = {
+        "C": 0.5,
+        "N": 0.025,
+        "P": 0.00333,
+    }  # Initial masses in kg
+    herbivory_waste.above_ground_lignin_proportion = (
+        0.25  # Proportion of lignin in the mass [unitless]
+    )
+    herbivory_waste.below_ground_mass_cnp = {
+        "C": 0.15,
+        "N": 0.005,
+        "P": 0.001,
+    }  # Initial masses in kg
+    herbivory_waste.below_ground_lignin_proportion = (
         0.25  # Proportion of lignin in the mass [unitless]
     )
 
@@ -1249,7 +1312,7 @@ def soil_fungi_instance(litter_soil_data_instance, microbial_cnp_ratios):
         cell_id=0,
         data=litter_soil_data_instance,
         cell_area=litter_soil_data_instance.grid.cell_area,
-        max_depth_microbial_activity=0.2,
+        microbial_simulation_depth=0.2,
         c_n_p_ratios=microbial_cnp_ratios,
     )
 
@@ -1265,7 +1328,7 @@ def soil_fungi_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=litter_soil_data_instance.grid.cell_area,
-            max_depth_microbial_activity=0.2,
+            microbial_simulation_depth=0.2,
             c_n_p_ratios=microbial_cnp_ratios,
         )
         for cell_id in litter_soil_data_instance.grid.cell_id
@@ -1282,7 +1345,7 @@ def pom_instance(litter_soil_data_instance, microbial_cnp_ratios):
         cell_id=0,
         data=litter_soil_data_instance,
         cell_area=litter_soil_data_instance.grid.cell_area,
-        max_depth_microbial_activity=0.2,
+        microbial_simulation_depth=0.2,
         c_n_p_ratios=microbial_cnp_ratios,
     )
 
@@ -1298,7 +1361,7 @@ def pom_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=litter_soil_data_instance.grid.cell_area,
-            max_depth_microbial_activity=0.2,
+            microbial_simulation_depth=0.2,
             c_n_p_ratios=microbial_cnp_ratios,
         )
         for cell_id in litter_soil_data_instance.grid.cell_id
@@ -1315,7 +1378,7 @@ def bacteria_instance(litter_soil_data_instance, microbial_cnp_ratios):
         cell_id=0,
         data=litter_soil_data_instance,
         cell_area=litter_soil_data_instance.grid.cell_area,
-        max_depth_microbial_activity=0.2,
+        microbial_simulation_depth=0.2,
         c_n_p_ratios=microbial_cnp_ratios,
     )
 
@@ -1331,7 +1394,7 @@ def bacteria_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=litter_soil_data_instance.grid.cell_area,
-            max_depth_microbial_activity=0.2,
+            microbial_simulation_depth=0.2,
             c_n_p_ratios=microbial_cnp_ratios,
         )
         for cell_id in litter_soil_data_instance.grid.cell_id
