@@ -200,9 +200,9 @@ class BiomassTissueABC(ABC):
         # NOTE - this relies on the community being updated by reference when
         #        recruitment happens. If this changes then the match of the number of
         #        columns to the PFTs needs to be maintained some other way.
-        for pft in set(self.community.cohorts.pft_name):
+        for pft in set(self.community.cohorts["pft_name"]):
             # boolean index along carbon_mass array
-            in_pft = self.community.cohorts.pft_name.to_numpy() == pft
+            in_pft = self.community.cohorts["pft_name"].to_numpy() == pft
             # aggregate masses across cohorts in the PFT and assign total.
             total_pft_carbon_biomass[in_pft] = self.carbon_mass[in_pft].sum()
 
@@ -229,13 +229,23 @@ class BiomassTissueABC(ABC):
     def Cx_ratio(self) -> dict[str, NDArray[np.floating]]:
         """Get the carbon to element ratio for the tissue type.
 
+        This has to handle cases where a tissue has no biomass at all or no actual
+        elemental mass, which would otherwise generate NaN ratios (C/0). It explicitly
+        sets these cases to infinity.
+
         Returns:
             The carbon to element ratio for the specified tissue.
         """
-        return {
-            ky: self.carbon_mass / elem.actual_element_mass
-            for ky, elem in self.element_masses.items()
-        }
+        ratios = {}
+
+        for ky, elem in self.element_masses.items():
+            ratios[ky] = np.where(
+                elem.actual_element_mass == 0,
+                np.inf,
+                self.carbon_mass / elem.actual_element_mass,
+            )
+
+        return ratios
 
     def as_array(
         self, deficit: bool = False, with_carbon: bool = False
@@ -433,7 +443,7 @@ class ReproductiveBiomass(BiomassTissueABC):
 
         carbon_increase = pyrealm_handling(
             growth_increments.delta_foliage_mass
-            * self.community.cohorts["p_foliage_for_reproductive_tissue"]
+            * self.community.cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
         )
         self.carbon_mass += carbon_increase
 
@@ -485,7 +495,7 @@ class FruitBiomass(BiomassTissueABC):
         element_masses: dict[str, Element] = {}
 
         # Get the proportion of reproductive tissue allocated to fruit
-        fruit_fraction = community.cohorts["fruit_flesh_fraction"]
+        fruit_fraction = community.cohorts["fruit_flesh_fraction"].to_numpy()
 
         # Multiplication here avoids the need to copy() the array to avoid the reference
         # back to the allometry
@@ -525,11 +535,11 @@ class FruitBiomass(BiomassTissueABC):
             ratio for the tissue.
         """
 
-        fruit_fraction = self.community.cohorts["fruit_flesh_fraction"]
+        fruit_fraction = self.community.cohorts["fruit_flesh_fraction"].to_numpy()
 
         carbon_increase = pyrealm_handling(
             growth_increments.delta_foliage_mass
-            * self.community.cohorts["p_foliage_for_reproductive_tissue"]
+            * self.community.cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
             * fruit_fraction
         )
         self.carbon_mass += carbon_increase
@@ -555,7 +565,7 @@ class FruitBiomass(BiomassTissueABC):
         # Get the proportion of reproductive tissue allocated to fruit
         carbon_turnover = (
             pyrealm_handling(allocation.reproductive_tissue_turnover)
-            * self.community.cohorts["fruit_flesh_fraction"]
+            * self.community.cohorts["fruit_flesh_fraction"].to_numpy()
         )
 
         # TODO: Caching locally to avoid calling the property constructor for each
@@ -592,7 +602,7 @@ class SeedBiomass(BiomassTissueABC):
         carbon_mass = np.array(
             pyrealm_handling(
                 community.stem_allometry.reproductive_tissue_mass
-                * (1 - community.cohorts["fruit_flesh_fraction"])
+                * (1 - community.cohorts["fruit_flesh_fraction"].to_numpy())
             )
         )
 
@@ -629,8 +639,8 @@ class SeedBiomass(BiomassTissueABC):
         # Get the proportion of reproductive tissue allocated to seed
         carbon_increase = pyrealm_handling(
             growth_increments.delta_foliage_mass
-            * self.community.cohorts.p_foliage_for_reproductive_tissue
-            * self.community.cohorts["fruit_flesh_fraction"]
+            * self.community.cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
+            * self.community.cohorts["fruit_flesh_fraction"].to_numpy()
         )
         self.carbon_mass += carbon_increase
 
@@ -659,7 +669,7 @@ class SeedBiomass(BiomassTissueABC):
 
         # Get the proportion of reproductive tissue allocated to seed
         carbon_turnover = pyrealm_handling(allocation.reproductive_tissue_turnover) * (
-            1 - self.community.cohorts["fruit_flesh_fraction"]
+            1 - self.community.cohorts["fruit_flesh_fraction"].to_numpy()
         )
 
         elemental_turnovers = {

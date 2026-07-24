@@ -377,7 +377,7 @@ class PlantsModel(
         for cmty in self.communities.values():
             cmty.stem_allometry.reproductive_tissue_mass = (
                 cmty.stem_allometry.foliage_mass
-                * cmty.cohorts["p_foliage_for_reproductive_tissue"]
+                * cmty.cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
             )
 
         # Define the set of tissues to be tracked for each stem.
@@ -835,9 +835,9 @@ class PlantsModel(
                 #   to broadcast across columns of stem leaf area
                 cohort_leaf_mass_per_layer = (
                     canopy.cohort_data.stem_leaf_area
-                    * (1 / community.cohorts.sla.to_numpy())
-                    * community.cohorts.lai.to_numpy()
-                ) * community.cohorts.n_individuals.to_numpy()
+                    * (1 / community.cohorts["sla"].to_numpy())
+                    * community.cohorts["lai"].to_numpy()
+                ) * community.cohorts["n_individuals"].to_numpy()
 
                 mass[fill_idx] = cohort_leaf_mass_per_layer.sum(axis=1, keepdims=True)
 
@@ -953,7 +953,7 @@ class PlantsModel(
                 # biomass of cohorts to distribute the herbivory between cohorts.
                 herbivory_by_cohort = (
                     self.data[f"canopy_{herbivory_tissue}_cnp_consumed"].sel(
-                        cell_id=cell_id, pft=community.cohorts.pft_name.to_numpy()
+                        cell_id=cell_id, pft=community.cohorts["pft_name"].to_numpy()
                     )
                     * relative_herbivory[:, np.newaxis]
                 )
@@ -1187,7 +1187,7 @@ class PlantsModel(
             self.data["transpiration"][:, cell_id] = np.where(
                 self.filled_canopy_mask[:, cell_id],
                 (
-                    community.cohorts.n_individuals.to_numpy()
+                    community.cohorts["n_individuals"].to_numpy()
                     * per_layer_transpiration_mm
                 ).sum(axis=1),
                 np.nan,
@@ -1225,13 +1225,13 @@ class PlantsModel(
             # Calculate carbon costs of fruit
             reproductive_tissue_mass = (
                 community.stem_allometry.foliage_mass
-                * cohorts["p_foliage_for_reproductive_tissue"]
+                * cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
             )
             reproductive_tissue_respiration = (
-                reproductive_tissue_mass * cohorts["resp_rt"]
+                reproductive_tissue_mass * cohorts["resp_rt"].to_numpy()
             )
             reproductive_tissue_turnover = reproductive_tissue_mass * (
-                1 / cohorts["tau_rt"]
+                1 / cohorts["tau_rt"].to_numpy()
             )
 
             # HACK pyrealm3 - again, passing in reproductive tissue mass as a extra
@@ -1242,8 +1242,8 @@ class PlantsModel(
 
             # Per stem carbon costs of root exudates
             symbiote_allocation = (
-                unallocated_carbon * cohorts["gpp_topslice"]
-            ).to_numpy()
+                unallocated_carbon * cohorts["gpp_topslice"].to_numpy()
+            )
 
             # Calculate carbon available for growth
             growth_carbon = unallocated_carbon - (
@@ -1277,8 +1277,12 @@ class PlantsModel(
             #       targets the DBH, not the rest of the allocation so these turnover
             #       etc may still be based on shrinking tree values.
 
-            new_dbh = cohorts.dbh_value + growth_increments.delta_dbh.squeeze()
-            cohorts.dbh_value = np.where(new_dbh <= 0, cohorts.dbh_value, new_dbh)
+            new_dbh = (
+                cohorts["dbh_value"].to_numpy() + growth_increments.delta_dbh.squeeze()
+            )
+            cohorts["dbh_value"] = np.where(
+                new_dbh <= 0, cohorts["dbh_value"].to_numpy(), new_dbh
+            )
 
             # HANDLE ALLOCATION TO TURNOVER:
             tissue_turnovers = biomasses.apply_turnover(allocation=stem_allocation)
@@ -1290,7 +1294,7 @@ class PlantsModel(
             for aggregated_tissue in ("stem", "foliage", "root"):
                 self.data[f"{aggregated_tissue}_turnover_cnp"][cell_id] += (
                     tissue_turnovers[aggregated_tissue]
-                    * cohorts.n_individuals.to_numpy()
+                    * cohorts["n_individuals"].to_numpy()
                 ).sum(axis=1)
 
             # Expose biomasses that are affected by herbivory and which are currently
@@ -1307,19 +1311,20 @@ class PlantsModel(
             #   cohorts by elements - and a sum can be taken across the 0 length
             #   dimension to give a total zero.
             cohort_pft_bool_idx = [
-                cohorts.pft_name == pft for pft in self.flora.pft_name
+                cohorts["pft_name"] == pft for pft in self.flora.pft_name
             ]
 
             for by_pft_tissue in ("fruit", "seed", "foliage"):
                 # Calculate the total turnover and standing biomass in each cohort
                 total_turnover_biomass = (
-                    tissue_turnovers[by_pft_tissue] * cohorts.n_individuals.to_numpy()
+                    tissue_turnovers[by_pft_tissue]
+                    * cohorts["n_individuals"].to_numpy()
                 )
                 total_standing_biomass = (
                     self.biomasses[cell_id]
                     .get_tissue(by_pft_tissue)
                     .as_array(with_carbon=True)
-                    * cohorts.n_individuals.to_numpy()
+                    * cohorts["n_individuals"].to_numpy()
                 )
 
                 for pft_idx, col_idx in enumerate(cohort_pft_bool_idx):
@@ -1347,7 +1352,7 @@ class PlantsModel(
                 self.convert_to_soil_units(
                     input_mass=np.sum(
                         symbiote_allocation
-                        * cohorts.n_individuals
+                        * cohorts["n_individuals"].to_numpy()
                         * self.model_constants.root_exudates
                     )
                 )
@@ -1357,7 +1362,7 @@ class PlantsModel(
                 self.convert_to_soil_units(
                     input_mass=np.sum(
                         symbiote_allocation
-                        * cohorts.n_individuals
+                        * cohorts["n_individuals"].to_numpy()
                         * (1 - self.model_constants.root_exudates)
                     )
                 )
@@ -1387,12 +1392,14 @@ class PlantsModel(
                 # calculating the cohort share (using cohort_fractions) and then
                 # dividing by the number of individuals per cohort. Handle case where
                 # there are no individuals in the cohort, by assigning them zero.
-                cohort_fractions = cohorts.n_individuals / sum(cohorts.n_individuals)
+                cohort_fractions = cohorts["n_individuals"].to_numpy() / sum(
+                    cohorts["n_individuals"].to_numpy()
+                )
                 symbiote_nutrients[element] = np.divide(
                     total_supply * cohort_fractions,
-                    cohorts.n_individuals,
+                    cohorts["n_individuals"].to_numpy(),
                     out=np.zeros_like(cohort_fractions),
-                    where=cohorts.n_individuals != 0,
+                    where=cohorts["n_individuals"] != 0,
                 )
 
             biomasses._adjust_surpluses(symbiote_nutrients)
@@ -1439,13 +1446,13 @@ class PlantsModel(
 
             # Calculate the number of individuals that have died in each cohort
             mortality = np.random.binomial(
-                cohorts.n_individuals,
+                cohorts["n_individuals"],
                 self.per_update_interval_stem_mortality_probability,
             )
 
             if mortality.sum() > 0:
                 # Decrease size of cohorts based on mortality
-                cohorts.n_individuals = cohorts.n_individuals - mortality
+                cohorts["n_individuals"] = cohorts["n_individuals"] - mortality
 
                 # Get the biomasses of the tissues in the dead stems
                 biomasses_of_dead_stems = self.biomasses[cell_id]
@@ -1466,7 +1473,7 @@ class PlantsModel(
                 #    TODO - Some structural overlap here with allocate turnover in GPP.
                 #           Can we share code here? Need a collapse_by_pft method?
                 cohort_pft_bool_idx = [
-                    cohorts.pft_name == pft for pft in self.flora.pft_name
+                    cohorts["pft_name"] == pft for pft in self.flora.pft_name
                 ]
 
                 for by_pft_tissue in ("fruit", "foliage", "seed"):
