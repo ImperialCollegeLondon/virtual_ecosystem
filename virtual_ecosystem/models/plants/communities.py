@@ -4,10 +4,9 @@ provides a dictionary mapping each grid cell id to the  plant community growing 
 the cell.
 
 There is a one-to-one mapping of grid cells to plant communities, with the individual
-community for a grid cell being represented as a
-:class:`pyrealm.demography.community.Community` instance. The community is then made up
-of size-structured plant cohorts using :class:`pyrealm.demography.community.Cohorts`
-instances.
+community for a grid cell being represented as a :class:`Community` instance. The
+community is then made up of size-structured plant cohorts using
+:class:`pyrealm.demography.cohorts.Cohorts` instances.
 """  # noqa: D205
 
 from collections.abc import Iterator, Mapping
@@ -27,8 +26,8 @@ from virtual_ecosystem.models.plants.functional_types import VEFlora
 class Community:
     """A representation of a community.
 
-    This replaces the now deprecated pyrealm.demography.community.Community class and is
-    a temporary placeholder as we move the plants model over to adopt pyrealm 3.
+    This replaces the now deprecated pyrealm Community class and is a temporary
+    placeholder as we move the plants model over to adopt pyrealm 3.
 
     """
 
@@ -51,8 +50,8 @@ class PlantCommunities(dict, Mapping[int, Community]):
     """Records the plant community with each grid cell across a simulation.
 
     A ``PlantCommunities`` instance provides a dictionary mapping each grid cell onto a
-    single :class:`pyrealm.demography.community.Community` instance, containing a set of
-    :class:`pyrealm.demography.community.Cohorts` instances.
+    single :class:`Community` instance, containing a set of
+    :class:`pyrealm.demography.cohorts.Cohorts` instances.
 
     A class instance must be initialised using :class:`pandas.DataFrame` instance
     containing the required cohort data. Each row in the data frame defines a cohort
