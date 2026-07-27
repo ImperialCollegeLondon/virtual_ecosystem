@@ -934,13 +934,11 @@ def solve_canopy_temperature_with_air_coupling(
         tuple of canopy temperature, air temperature, and final fluxes
     """
 
-    canopy_temperature = state["canopy_temperature"].copy()
-    air_temperature = state["air_temperature"].copy()
+    state_local = state.copy()
+    air_temperature = state_local["air_temperature"]
+    canopy_temperature = state_local["canopy_temperature"]
 
     for _ in range(maxiter_air):
-        state_local = state.copy()
-        state_local["air_temperature"] = air_temperature
-
         residual_function = make_canopy_residual(
             state=state_local,
             static=static,
@@ -962,14 +960,14 @@ def solve_canopy_temperature_with_air_coupling(
         fluxes = calculate_energy_balance_residual(
             canopy_temperature_initial=new_canopy_temperature,
             air_temperature=air_temperature,
-            evapotranspiration=state["evapotranspiration"],
-            absorbed_shortwave_radiation=state["shortwave_absorption"],
+            evapotranspiration=state_local["evapotranspiration"],
+            absorbed_shortwave_radiation=state_local["shortwave_absorption"],
             absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-            longwave_emission_soil=state["longwave_emission"][idx.topsoil],
-            specific_heat_air=state["specific_heat_air"],
-            density_air=state["density_air"],
-            aerodynamic_resistance=state["aerodynamic_resistance_canopy"],
-            latent_heat_vapourisation=state["latent_heat_vapourisation"],
+            longwave_emission_soil=state_local["longwave_emission"][idx.topsoil],
+            specific_heat_air=state_local["specific_heat_air"],
+            density_air=state_local["density_air"],
+            aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
+            latent_heat_vapourisation=state_local["latent_heat_vapourisation"],
             leaf_emissivity=abiotic_constants.leaf_emissivity,
             stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
             zero_Celsius=core_constants.zero_Celsius,
@@ -981,8 +979,8 @@ def solve_canopy_temperature_with_air_coupling(
         new_air_temperature = update_canopy_air_temperature(
             air_temperature=air_temperature,
             sensible_heat_flux=fluxes["sensible_heat_flux"],  # type: ignore
-            specific_heat_air=state["specific_heat_air"],
-            density_air=state["density_air"],
+            specific_heat_air=state_local["specific_heat_air"],
+            density_air=state_local["density_air"],
             mixing_layer_thickness=static["geometry"]["thickness"],
         )
 
@@ -995,22 +993,19 @@ def solve_canopy_temperature_with_air_coupling(
         if max(canopy_change, air_change) < air_temperature_tolerance:
             break
 
-    final_state = state.copy()
-    final_state["air_temperature"] = air_temperature
-
     final_fluxes = cast(
         dict[str, NDArray[np.floating]],
         calculate_energy_balance_residual(
             canopy_temperature_initial=canopy_temperature,
             air_temperature=air_temperature,
-            evapotranspiration=state["evapotranspiration"],
-            absorbed_shortwave_radiation=state["shortwave_absorption"],
+            evapotranspiration=state_local["evapotranspiration"],
+            absorbed_shortwave_radiation=state_local["shortwave_absorption"],
             absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-            longwave_emission_soil=state["longwave_emission"][idx.topsoil],
-            specific_heat_air=state["specific_heat_air"],
-            density_air=state["density_air"],
-            aerodynamic_resistance=state["aerodynamic_resistance_canopy"],
-            latent_heat_vapourisation=state["latent_heat_vapourisation"],
+            longwave_emission_soil=state_local["longwave_emission"][idx.topsoil],
+            specific_heat_air=state_local["specific_heat_air"],
+            density_air=state_local["density_air"],
+            aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
+            latent_heat_vapourisation=state_local["latent_heat_vapourisation"],
             leaf_emissivity=abiotic_constants.leaf_emissivity,
             stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
             zero_Celsius=core_constants.zero_Celsius,
