@@ -194,7 +194,6 @@ def run_simple_microclimate(
 
     # Initialise diurnal temperature range, [C]
     layer_values = data["diurnal_temperature_range_ref"].isel(time_index=time_index)
-    layer_values = data["diurnal_temperature_range_ref"].isel(time_index=time_index)
 
     valid_mask = (
         output["air_temperature"].notnull() | output["soil_temperature"].notnull()
