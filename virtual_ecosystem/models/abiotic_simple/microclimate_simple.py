@@ -194,9 +194,15 @@ def run_simple_microclimate(
 
     # Initialise diurnal temperature range, [C]
     layer_values = data["diurnal_temperature_range_ref"].isel(time_index=time_index)
-    output["diurnal_temperature_range"] = layer_values.broadcast_like(
-        output["air_temperature"]
-    ).where(~np.isnan(output["air_temperature"]))
+    layer_values = data["diurnal_temperature_range_ref"].isel(time_index=time_index)
+
+    valid_mask = (
+        output["air_temperature"].notnull() | output["soil_temperature"].notnull()
+    )
+
+    output["diurnal_temperature_range"] = layer_values.broadcast_like(valid_mask).where(
+        valid_mask
+    )
 
     # Calculate net radiation, [W m-2].
     canopy_longwave_emission = energy_balance.calculate_longwave_emission(
