@@ -30,11 +30,12 @@ at constant pressure, :math:`r_{a}` is the aerodynamic resistance of the surface
 or soil), :math:`g_{v}` represents the conductivity for vapour loss from the leaves as a
 function of the stomatal conductivity, :math:`PP` stands for primary productivity.
 
-A challenge in solving this equation is the dependency of latent heat and emitted
-radiation on leaf temperature. We use a secant method to iteratively solve the energy
-balance for the canopy temperature. The air temperature is updated based on the
-sensible heat flux from the canopy and soil in equilibrium, and vertical mixing of air
-between layers.
+A challenge in solving this equation is the strong nonlinear dependence of emitted
+longwave radiation and turbulent heat fluxes on leaf temperature. We therefore solve for
+canopy temperature iteratively using a secant method. Because canopy and air
+temperatures are coupled through sensible heat exchange, the surrounding air temperature
+is also updated iteratively from canopy and soil fluxes, together with vertical mixing
+between layers, until both canopy and air temperatures converge.
 
 Atmospheric humidity is also mixed vertically between atmospheric layers.
 Advection at the top of the canopy is currently not considered as we don't have
@@ -919,6 +920,8 @@ def solve_canopy_temperature_with_air_coupling(
     The canopy temperature is solved with a secant method for fixed air temperature.
     Air temperature is then updated from sensible heat flux, and the process is
     repeated until both canopy and air temperatures converge.
+
+    TODO handle non-convergence
 
     Args:
         state: Dictionary containing state variables needed for the energy balance
