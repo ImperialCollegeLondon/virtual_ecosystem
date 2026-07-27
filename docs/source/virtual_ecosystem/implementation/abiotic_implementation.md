@@ -121,6 +121,7 @@ $\ce{CO2}$ and the wind profiles.
 State variables refer to all variables that are updated hourly by the abiotic model.
 This includes vertical profiles of air temperature, relative humidity, soil temperature,
 and energy fluxes, for full list see [list of updated variables](#updated-variables).
+canopy and air temperature are solved in an iterative loop until both variables converge.
 The aggregation step at the end returns mean values of the representative day.
 :::
 
@@ -302,11 +303,19 @@ we apply a secant method, a derivative-free root-finding approach. This avoids t
 to explicitly evaluate the derivative of the energy balance (as in Newton method) while
 retaining fast convergence.
 
+However, canopy and air temperatures are coupled through the sensible heat flux, so the
+leaf temperature cannot be solved fully independently of the surrounding air
+temperature. We therefore use a two-level iterative solution. For a given estimate of
+air temperature, the secant method is used to solve for the canopy temperature that
+satisfies the energy balance. The air temperature is then updated from the resulting
+sensible heat flux. This procedure is repeated until successive estimates of both canopy
+and air temperature change by less than a prescribed tolerance.
+
 ### Air-canopy temperature coupling
 
-After updating the canopy temperature, we update the air temperature in the
-adjacent canopy layer to reflect its coupling with the leaf temperature following
-{cite:t}`bonan_climate_2019`:
+After each canopy temperature solve, the air temperature in the
+adjacent canopy layer is updated to reflect its coupling with the leaf temperature
+following {cite:t}`bonan_climate_2019`:
 
 The sensible heat flux between canopy and air is
 
@@ -324,18 +333,23 @@ Air temperature, (°C)
 $z$:
 Thickness of the air layer we are updating, (m)
 
-The surface air temperature is diagnosed from the soil and canopy bottom
+This update is part of the outer coupling iteration: canopy temperature is solved for
+fixed air temperature, air temperature is then updated from the canopy sensible heat
+flux, and the process is repeated until both variables converge.
+
+The surface air temperature is diagnosed separately from the soil and canopy-bottom
 conductances and temperatures, assuming equilibrium between the soil and canopy
 fluxes. This is necessary because the surface layer is too thin to be updated based
-on fluxes over a 1-hour timestep, and we want to avoid unrealistic surface air
-temperatures that would arise from a flux-based update.
+on fluxes over a 1-hour timestep, and a purely flux-based update would produce
+unrealistic surface air temperatures.
 
 Finally, we consider vertical mixing between all vegetation layers and heat is
 transferred to the air above the canopy.
 
 ```{note}
-Advection of heat above the canopy is currently not implemented as everything is
-removed with time interval >= 1h and horizontal transfer is not considered.
+Advection of heat above the canopy is currently not implemented. For time intervals
+$$\geq 1 \text{ h}$$, excess heat is assumed to be removed locally, and horizontal heat
+transfer is not considered.
 ```
 
 ## Soil processes
