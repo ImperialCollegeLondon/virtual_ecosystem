@@ -910,39 +910,52 @@ def solve_canopy_temperature_with_air_coupling(
     denominator_tolerance: float,
     idx: SimpleNamespace,
 ) -> tuple[
-    NDArray[np.floating], NDArray[np.floating], Any | dict[str, NDArray[np.floating]]
+    NDArray[np.floating],
+    NDArray[np.floating],
+    dict[str, NDArray[np.floating]],
 ]:
-    """Solve canopy temperature with air temperature coupling.
+    """Solve canopy temperature with iterative air temperature coupling.
+
+    The canopy temperature is solved with a secant method for fixed air temperature.
+    Air temperature is then updated from sensible heat flux, and the process is
+    repeated until both canopy and air temperatures converge.
 
     Args:
         state: Dictionary containing state variables needed for the energy balance
             residual.
         static: Dictionary containing static variables needed for the energy balance
-                residual.
+            residual.
         abiotic_constants: Constants related to abiotic processes.
         core_constants: Core constants.
-        maxiter_air: max number of iterations for air temperature update
-        air_temperature_tolerance: maximum allowed change in air temperature per
-            iteration, [C]
+        maxiter_air: Maximum number of outer iterations for air temperature coupling.
+        air_temperature_tolerance: Convergence tolerance on max absolute canopy/air
+            temperature change, [C].
         maxiter_secant: Maximum secant iterations.
-        convergence_tolerance: Convergence tolerance on max absolute update.
+        convergence_tolerance: Convergence tolerance on max absolute secant update.
         small_perturbation_second_guess: Small perturbation for second initial guess.
-        denominator_tolerance: Small value to prevent division by zero in secant update.
+        denominator_tolerance: Small value to prevent division by zero.
         idx: Namespace containing indices for different layers.
 
     Returns:
-        tuple of canopy temperature, air temperature, and final fluxes
+        Tuple of canopy temperature, air temperature, and final fluxes.
     """
 
+    # Local working state container
     state_local = state.copy()
-    air_temperature = state_local["air_temperature"]
-    canopy_temperature = state_local["canopy_temperature"]
+
+    # Solver-owned working arrays
+    air_temperature = state["air_temperature"].copy()
+    canopy_temperature = state["canopy_temperature"].copy()
 
     for _ in range(maxiter_air):
+        # Update local state seen by the canopy residual for this outer iteration
+        # state_local["air_temperature"] = air_temperature
+        # state_local["canopy_temperature"] = canopy_temperature
+
         residual_function = make_canopy_residual(
             state=state_local,
             static=static,
-            aerodynamic_resistance=state["aerodynamic_resistance_canopy"],
+            aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
             abiotic_constants=abiotic_constants,
             core_constants=core_constants,
             idx=idx,
@@ -957,23 +970,26 @@ def solve_canopy_temperature_with_air_coupling(
             denominator_tolerance=denominator_tolerance,
         )
 
-        fluxes = calculate_energy_balance_residual(
-            canopy_temperature_initial=new_canopy_temperature,
-            air_temperature=air_temperature,
-            evapotranspiration=state_local["evapotranspiration"],
-            absorbed_shortwave_radiation=state_local["shortwave_absorption"],
-            absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-            longwave_emission_soil=state_local["longwave_emission"][idx.topsoil],
-            specific_heat_air=state_local["specific_heat_air"],
-            density_air=state_local["density_air"],
-            aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
-            latent_heat_vapourisation=state_local["latent_heat_vapourisation"],
-            leaf_emissivity=abiotic_constants.leaf_emissivity,
-            stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
-            zero_Celsius=core_constants.zero_Celsius,
-            seconds_to_hour=core_constants.seconds_to_hour,
-            return_fluxes=True,
-            idx=idx,
+        fluxes = cast(
+            dict[str, NDArray[np.floating]],
+            calculate_energy_balance_residual(
+                canopy_temperature_initial=new_canopy_temperature,
+                air_temperature=air_temperature,
+                evapotranspiration=state_local["evapotranspiration"],
+                absorbed_shortwave_radiation=state_local["shortwave_absorption"],
+                absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
+                longwave_emission_soil=state_local["longwave_emission"][idx.topsoil],
+                specific_heat_air=state_local["specific_heat_air"],
+                density_air=state_local["density_air"],
+                aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
+                latent_heat_vapourisation=state_local["latent_heat_vapourisation"],
+                leaf_emissivity=abiotic_constants.leaf_emissivity,
+                stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+                zero_Celsius=core_constants.zero_Celsius,
+                seconds_to_hour=core_constants.seconds_to_hour,
+                return_fluxes=True,
+                idx=idx,
+            ),
         )
 
         new_air_temperature = update_canopy_air_temperature(
@@ -993,6 +1009,7 @@ def solve_canopy_temperature_with_air_coupling(
         if max(canopy_change, air_change) < air_temperature_tolerance:
             break
 
+    # Final flux calculation at converged temperatures
     final_fluxes = cast(
         dict[str, NDArray[np.floating]],
         calculate_energy_balance_residual(
