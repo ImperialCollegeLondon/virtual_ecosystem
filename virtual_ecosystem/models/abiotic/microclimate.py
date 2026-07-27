@@ -1021,9 +1021,14 @@ def build_output_from_record(
         # detect time dimension
         if values_arr.ndim > 1:
             if var == "diurnal_temperature_range":
-                min_value = np.nanmin(data_record["air_temperature"], axis=0)
-                max_value = np.nanmax(data_record["air_temperature"], axis=0)
+                air = data_record["air_temperature"]
+                soil = data_record["soil_temperature"]
+
+                combined = np.stack([air, soil], axis=0)
+                min_value = np.nanmin(combined, axis=(0, 1))
+                max_value = np.nanmax(combined, axis=(0, 1))
                 values_out = max_value - min_value
+
             else:
                 values_out = np.nanmean(values_arr, axis=0)
 

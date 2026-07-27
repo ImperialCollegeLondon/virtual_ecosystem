@@ -1071,11 +1071,20 @@ def test_run_microclimate(
     assert np.all(valid > 0)
     assert np.all(valid < 60)
 
+    # Soil temperature [°C]
+    soil = get_values(result["soil_temperature"])
+    valid = soil[~np.isnan(soil)]
+    assert np.all(valid > 0)
+    assert np.all(valid < 60)
+
     # Air temperature diurnal range [°C]
     air_temp = get_values(result["diurnal_temperature_range"])
-    valid = air_temp[~np.isnan(air_temp)]
-    assert np.all(valid > 0)
-    assert np.all(valid < 20)
+    valid_air = air_temp[~np.isnan(air_temp)]
+    valid_soil = soil[~np.isnan(soil)]
+    assert np.all(valid_air > 0)
+    assert np.all(valid_air < 40)
+    assert np.all(valid_soil > 0)
+    assert np.all(valid_soil < 40)
 
     # Relative humidity [%]
     rh = get_values(result["relative_humidity"])
@@ -1112,12 +1121,6 @@ def test_run_microclimate(
     valid = lv[~np.isnan(lv)]
     assert np.all(valid > 2.3e3)
     assert np.all(valid < 2.6e3)
-
-    # Soil temperature [°C]
-    soil = get_values(result["soil_temperature"])
-    valid = soil[~np.isnan(soil)]
-    assert np.all(valid > 0)
-    assert np.all(valid < 60)
 
     # Radiative longwave emission [W m-2]
     lw = get_values(result["longwave_emission"])

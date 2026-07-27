@@ -220,6 +220,19 @@ def test_setup_and_update_abiotic_simple_model(
     ]
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
+    exp_air_temp_range = lyr_strct.from_template()
+    exp_air_temp_range[lyr_strct.index_filled_atmosphere] = [
+        [5, 5, 5, 5],
+        [5, 5, 5, np.nan],
+        [5, 5, np.nan, np.nan],
+        [5, np.nan, np.nan, np.nan],
+        [5, 5, 5, 5],
+    ]
+    exp_air_temp_range[lyr_strct.index_all_soil] = 5
+    xr.testing.assert_allclose(
+        model.data["diurnal_temperature_range"], exp_air_temp_range
+    )
+
     exp_wind = lyr_strct.from_template()
     exp_wind[lyr_strct.index_filled_atmosphere] = [
         [1.0, 1.0, 1.0, 1.0],
