@@ -72,9 +72,9 @@ class VEFlora(Flora):
     #      to use) and the enforcement of equal lengths for attributes. It works for
     #      now, but it probably makes more sense to add these directly after to Cohorts
     #      after running create_cohorts. Keep this for now.
-    lai_base: None | tuple[float, ...] = None
+    lai_base: tuple[float, ...] | None = None
     r"""Reference variable holding the base LAI for the PFT."""
-    tau_f_base: None | tuple[float, ...] = None
+    tau_f_base: tuple[float, ...] | None = None
     r"""Reference variable holding the base foliage turnover rate for the PFT."""
 
     @model_validator(mode="before")
