@@ -178,37 +178,61 @@ ve_run \
 The Virtual Ecosystem defines a set of disturbance models, which can be used to make
 repeated alterations to the simulation. For example, the `add_fertiliser` disturbance
 increases the concentration of inorganic nitrogen in the relevant soil pools, in order
-to mimic the impacts of repeated fertiliser addition in agricultural landscapes.
-
-To setup a disturbance, you need to include it within a configuration file. You then
-need to provide any specific configuration settings that the disturbance requires. In
-the case of the fertiliser addition disturbance, these are the total amount of inorganic
-nitrogen added (per disturbance event) and the fraction of this addition that is nitrate
-(rather than ammonium).
-
-The final thing you need to decide is how frequently the disturbance should occur. Each
-specific disturbance model will have a default for this, but you are likely to want to
-override it for specific use cases. There are two ways of doing this. Firstly, you can
-provide a list of specific time steps to run at using the `run_at` option.
-Alternatively, the frequency with which the disturbance occurs can be set using
-`run_every`. This is also provided as a list of integers, but here the first element is
-the timestep for which the disturbance first occurs, the second element is the number of
-timesteps between disturbance events, and the third element is the timestep beyond which
-the disturbance shouldn't occur. You can choose include only two elements, in which case
-the disturbance will keep occurring until the end of the simulation. You can choose to
-include only one element, in which case the disturbance will first occur at the timestep
-given by this element and then occur for every timestep afterwards until the end of the
-simulation.
-
-With all this decided, the complete configuration for a disturbance should look
-something like this:
+to mimic the impacts of repeated fertiliser addition in agricultural landscapes. To
+setup this disturbance the following should be added to a configuration file:
 
 ```toml
 # Setup fertiliser disturbance
 [disturbance.add_fertiliser]
+inorganic_nitrogen_addition = 5e-3
+nitrate_fraction = 0.75
 # disturbance starts on the initial timestep, then happens every other time step
 # until the 12th timestep
 run_every = [0, 2, 12]
-inorganic_nitrogen_addition = 5e-3
-nitrate_fraction = 0.75
+priority = 1
+
 ```
+
+### Disturbance model constants
+
+In contrast to the science models, for disturbance models the vast majority of values
+for constants need to be provided explicitly. While the default values of science model
+constants represent consensus values from the literature (which you may well disagree
+with), the disturbance model constants set the strength and precise impacts of the
+disturbance, so are generally use case specific. In the example above, the total amount
+of inorganic nitrogen added (per disturbance event) and the fraction of this addition
+that is nitrate (rather than ammonium) both need to be specified by the user.
+
+### Disturbance timing
+
+Users also need to specify how often a disturbance will occur. There are five different
+options for this:
+
+* Use the default behaviour for the disturbance by not adding any timing details to the
+  configuration. (In the case of the `add_fertiliser` disturbance the default is to run
+  for every time step).
+* Provide the specific time steps that you want the disturbance to run for using
+  `run_at`. These are provided as a list, e.g. `run_at = [2, 3, 6]` to run on the
+  second, third and sixth timesteps.
+* Run the disturbance for every timestep after a specified initial time step using
+  `run_every = [start]`, e.g. `run_every = [2]` runs the disturbance for every timestep
+  from the second timestep onwards.
+* Run the disturbance at a set frequency after a specified initial time step using
+  `run_every = [start, step]`, e.g. `run_every = [2, 3]` first runs the disturbance at
+  the second timestep and runs the disturbance once every three timesteps from then on.
+* Run the disturbance at a set frequency after a specified initial time step until a cut
+  off point using `run_every = [start, step, stop]`, e.g. `run_every = [2, 3,
+  13]` first runs the disturbance at the second timestep and from then runs the
+  disturbance once every three timesteps up until the 13th timestep beyond which the
+  disturbance doesn't occur. N.B. a disturbance only occur on the "final" timestep if
+  would be expected to based on the step size, so in the previous example the last
+  disturbance occurs on the 11th timestep.
+
+### Disturbance priority
+
+If you are including multiple disturbances in your simulation you must specify an order
+of priority. The disturbance models will run in this order of priority and if two
+disturbance models (in a specific simulation) have the same priority the simulation will
+raise an error. If a priority is not provided for a specific disturbance then the
+default of zero is used. So, if multiple disturbances are included without specified
+priorities both will default to zero and the simulation will not be able to proceed.
