@@ -88,6 +88,8 @@ from virtual_ecosystem.models.animal.scaling_functions import (
     heterotroph_normalization_factor,
     prey_group_selection,
     raw_biomass_density_kg_m2,
+    stratum_mean_climate,
+    thermal_suitability,
 )
 
 
@@ -362,6 +364,14 @@ class AnimalModel(
         self.herbivory_waste_pools = {
             cell_id: HerbivoryWaste() for cell_id in self.data.grid.cell_id
         }
+
+        self.thermal_suitability: dict[str, NDArray] | None = None
+        """Per-functional-group, per-cell thermal suitability for the current timestep.
+
+        Keyed by functional group name, each value a ``(n_cells,)`` array in [0, 1].
+        ``None`` whenever thermal habitat selection is disabled or the climate pass has
+        not yet run, in which case dispersal falls back to uniform destination choice.
+        """
 
         self.active_cohorts = {}
         self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
@@ -1959,6 +1969,7 @@ class AnimalModel(
         """
 
         climate = self._build_stratum_climate()
+        self._update_thermal_suitability(climate)
 
         for cohort in self.active_cohorts.values():
             temperature, diurnal_range = cohort.get_mean_territory_climate(
@@ -2029,3 +2040,40 @@ class AnimalModel(
             ground_diurnal_range=ground_diurnal,
             soil_diurnal_range=soil_diurnal,
         )
+
+    def _update_thermal_suitability(self, climate: StratumClimate) -> None:
+        """Rebuild the per-functional-group thermal suitability grid.
+
+        Computes, for each functional group, the per-cell activity window it would
+        experience given the current stratum climate. The result is cached on
+        :attr:`thermal_suitability` and consumed by dispersal.
+
+        Leaves :attr:`thermal_suitability` as ``None`` when thermal habitat selection
+        is disabled, so that dispersal falls through to uniform destination choice.
+
+        Args:
+            climate: Per-cell, per-stratum climate for the current timestep, as built
+                by :meth:`_build_stratum_climate`.
+        """
+
+        if not self.model_constants.thermal_habitat_selection:
+            self.thermal_suitability = None
+            return
+
+        self.thermal_suitability = {
+            fg.name: thermal_suitability(
+                metabolic_type=fg.metabolic_type,
+                temperature=temperature,
+                diurnal_temp_range=diurnal,
+                annual_mean_temp=fg.reference_annual_mean_temp,
+                annual_temp_sd=fg.reference_annual_temp_sd,
+                t_opt=fg.t_opt,
+                t_max_crit=fg.t_max_crit,
+                t_min_crit=fg.t_min_crit,
+                constants=self.model_constants,
+            )
+            for fg in self.functional_groups
+            for temperature, diurnal in [
+                stratum_mean_climate(fg.vertical_occupancy, climate)
+            ]
+        }
