@@ -282,6 +282,7 @@ def test_initialize_state_shapes(dummy_climate_data_varying_canopy):
         "soil_temperature",
         "relative_humidity",
         "aerodynamic_resistance_soil",
+        "longwave_emission",
     ]
     assert set(state.keys()) == set(expected_keys)
 
