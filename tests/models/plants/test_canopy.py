@@ -86,7 +86,7 @@ def test_calculate_canopies(
     caplog,
     fixture_core_components,
     plants_cohort_data,
-    flora,
+    fixture_flora,
     max_canopy_layers,
     expected_exception,
     expected_log,
@@ -99,12 +99,16 @@ def test_calculate_canopies(
     validating the expected arrays of layer heights etc.
     """
     from pyrealm.demography.canopy import Canopy
+    from pyrealm.demography.cohorts import cohort_id_generator
 
     from virtual_ecosystem.models.plants.canopy import calculate_canopies
     from virtual_ecosystem.models.plants.communities import PlantCommunities
 
     communities = PlantCommunities(
-        cohort_data=plants_cohort_data, flora=flora, grid=fixture_core_components.grid
+        cohort_id_generator=cohort_id_generator(mode="str"),
+        cohort_data=plants_cohort_data,
+        flora=fixture_flora,
+        grid=fixture_core_components.grid,
     )
 
     with expected_exception:

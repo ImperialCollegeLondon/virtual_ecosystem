@@ -7,23 +7,11 @@ from xarray import DataArray
 
 
 @pytest.fixture
-def flora(fixture_configuration):
+def fixture_flora(fixture_configuration):
     """Construct a minimal Flora object."""
     from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
-    flora, _ = get_flora_from_config(config=fixture_configuration.plants)
-
-    return flora
-
-
-@pytest.fixture
-def extra_pft_traits(fixture_configuration):
-    """Construct a minimal Flora object."""
-    from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
-
-    _, extra_pft_traits = get_flora_from_config(config=fixture_configuration.plants)
-
-    return extra_pft_traits
+    return get_flora_from_config(config=fixture_configuration.plants)
 
 
 @pytest.fixture
@@ -104,7 +92,7 @@ def plants_cohort_data(tricky_plant_cohorts):
 
 
 @pytest.fixture
-def plants_data(fixture_core_components, flora):
+def plants_data(fixture_core_components, fixture_flora):
     """Construct a minimal data object for the plant model."""
     from virtual_ecosystem.core.data import Data
 
@@ -112,10 +100,12 @@ def plants_data(fixture_core_components, flora):
     n_cells = fixture_core_components.grid.n_cells
 
     data["plant_pft_propagules"] = DataArray(
-        data=np.full((n_cells, flora.n_pfts), fill_value=100, dtype=np.int_),
+        data=np.full(
+            (n_cells, len(fixture_flora.pft_name)), fill_value=100, dtype=np.int_
+        ),
         coords={
             "cell_id": fixture_core_components.grid.cell_id,
-            "pft": flora.name,
+            "pft": list(fixture_flora.pft_name),
         },
     )
 
@@ -192,7 +182,7 @@ def fixture_canopy_layer_data(
     plants_cohort_data,
     plants_data,
     fixture_plants_constants,
-    flora,
+    fixture_flora,
     fixture_core_components,
 ):
     """Shared canopy layer data.
@@ -210,29 +200,41 @@ def fixture_canopy_layer_data(
     """
 
     from pyrealm.demography.canopy import Canopy
-    from pyrealm.demography.community import Cohorts, Community
+    from pyrealm.demography.cohorts import cohort_id_generator, create_cohorts
+
+    from virtual_ecosystem.models.plants.communities import Community
 
     # Build the pyrealm community for each cell
+    cid_gen = cohort_id_generator()
+
     communities = []
     for cell_id in fixture_core_components.grid.cell_id:
         chrts = plants_cohort_data[plants_cohort_data.plant_cohorts_cell_id == cell_id]
         communities.append(
             Community(
-                flora=flora,
+                flora=fixture_flora,
                 cell_area=fixture_core_components.grid.cell_area,
                 cell_id=int(cell_id),
-                cohorts=Cohorts(
-                    dbh_values=chrts["plant_cohorts_dbh"].to_numpy(),
+                cohorts=create_cohorts(
+                    flora=fixture_flora,
+                    cid_generator=cid_gen,
+                    dbh_value=chrts["plant_cohorts_dbh"].to_numpy(),
                     n_individuals=chrts["plant_cohorts_n"].to_numpy(),
-                    pft_names=chrts["plant_cohorts_pft"].to_numpy(),
+                    pft_name=chrts["plant_cohorts_pft"].to_numpy(),
                 ),
             )
         )
 
-    # Fit the PPA solution for each cell
-    # Handle communities with no cohorts
+    # Fit the PPA solution for each cell, handling communities with no cohorts as None
     canopies = [
-        Canopy(cmnty, fit_ppa=True) if cmnty.n_cohorts else None
+        Canopy(
+            cohorts=cmnty.cohorts,
+            allometry=cmnty.stem_allometry,
+            canopy_area=cmnty.cell_area,
+            fit_ppa=True,
+        )
+        if len(cmnty.cohorts)
+        else None
         for cmnty in communities
     ]
 
@@ -269,7 +271,7 @@ def fixture_canopy_layer_data(
                 [
                     [cnpy.max_stem_height + lyr_struct.above_canopy_height_offset],
                     [cnpy.max_stem_height],
-                    cnpy.heights[:-1, 0],
+                    cnpy.heights[:-1,],
                 ]
             )
         else:
@@ -298,9 +300,9 @@ def fixture_canopy_layer_data(
         # TODO - maybe pyrealm should provide stem_leaf_mass?
         expected["layer_leaf_mass"][1][cnpy_idx, idx] = (
             cnpy.cohort_data.stem_leaf_area
-            * (1 / cmty.stem_traits.sla)
-            * cmty.stem_traits.lai
-            * cmty.cohorts.n_individuals
+            * (1 / cmty.cohorts.sla.to_numpy())
+            * cmty.cohorts.lai.to_numpy()
+            * cmty.cohorts.n_individuals.to_numpy()
         ).sum(axis=1)
 
     # Fill soil and surface layer depths
@@ -348,9 +350,8 @@ def fixture_canopy_layer_data(
 @pytest.fixture
 def fxt_plants_model(
     plants_data,
-    flora,
+    fixture_flora,
     plants_cohort_data,
-    extra_pft_traits,
     fixture_core_components,
     fixture_plants_constants,
     fixture_exporter,
@@ -364,9 +365,8 @@ def fxt_plants_model(
     return PlantsModel(
         data=plants_data,
         core_components=fixture_core_components,
-        flora=flora,
+        flora=fixture_flora,
         cohort_data=plants_cohort_data,
-        extra_pft_traits=extra_pft_traits,
         exporter=fixture_exporter,
         model_constants=fixture_plants_constants,
     )
