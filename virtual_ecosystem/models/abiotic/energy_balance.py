@@ -948,10 +948,6 @@ def solve_canopy_temperature_with_air_coupling(
     canopy_temperature = state["canopy_temperature"].copy()
 
     for _ in range(maxiter_air):
-        # Update local state seen by the canopy residual for this outer iteration
-        # state_local["air_temperature"] = air_temperature
-        # state_local["canopy_temperature"] = canopy_temperature
-
         residual_function = make_canopy_residual(
             state=state_local,
             static=static,
