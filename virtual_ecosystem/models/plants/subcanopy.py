@@ -361,7 +361,7 @@ class Subcanopy:
         )
 
         seedbank_turnover = self.seedbank_biomass.remove_mass_fraction(
-            self.model_constants.subcanopy_vegetation_turnover
+            self.model_constants.subcanopy_seedbank_turnover
             / self.model_timing.updates_per_year
         )
 
