@@ -60,10 +60,10 @@ requires-poetry = ">=2.0"
 [tool.poetry.group.types.dependencies]
 types-dataclasses = "^0.6.6"
 types-jsonschema = "^4.26.0"
-types-tqdm = "^4.68.0.20260608"
+types-tqdm = "^4.69.0.20260724"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.156.9"
+hypothesis = "^6.161.5"
 pytest = ">=9.1.1,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
@@ -75,13 +75,13 @@ codespell = "^2.4.1"
 ipykernel = "^7.3.0" 
 ipython = ">=9.15.0" # SPEC0
 isort = ">=5.12,<9.0" 
-jupyterlab = "^4.6.1" 
+jupyterlab = "^4.6.2" 
 jupyterlab-myst = "^2.7.0" 
-jupytext = "^1.19.4" 
+jupytext = "^1.19.5" 
 matplotlib = ">=3.11.1" # SPEC0
 mypy = "^2.2.0" 
-pre-commit = ">=4.6.0,<5" 
-ruff = ">=0.15.21,<0.16.0" 
+pre-commit = ">=4.6.1,<5" 
+ruff = ">=0.16.0,<0.17.0" 
 snakeviz = ">=2.2.2,<3.0.0" 
 
 [tool.poetry.group.docs.dependencies]

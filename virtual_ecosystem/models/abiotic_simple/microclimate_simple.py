@@ -193,13 +193,14 @@ def run_simple_microclimate(
     output["canopy_temperature"] = output["air_temperature"].copy()
 
     # Initialise diurnal temperature range, [C]
-    diurnal_temperature_range = layer_structure.from_template()
-    layer_values = (
-        data["diurnal_temperature_range_ref"].isel(time_index=time_index).values
+    layer_values = data["diurnal_temperature_range_ref"].isel(time_index=time_index)
+
+    valid_mask = (
+        output["air_temperature"].notnull() | output["soil_temperature"].notnull()
     )
-    output["diurnal_temperature_range"] = diurnal_temperature_range.where(
-        diurnal_temperature_range.isnull(),
-        other=layer_values,
+
+    output["diurnal_temperature_range"] = layer_values.broadcast_like(valid_mask).where(
+        valid_mask
     )
 
     # Calculate net radiation, [W m-2].

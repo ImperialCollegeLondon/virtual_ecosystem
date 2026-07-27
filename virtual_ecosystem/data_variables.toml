@@ -28,7 +28,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Diurnal air temperature range"
+description = "Diurnal air and soil temperature range"
 name = "diurnal_temperature_range"
 unit = "C"
 variable_type = "float"
