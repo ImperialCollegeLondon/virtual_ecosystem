@@ -1,124 +1,128 @@
-"""The :mod:`~virtual_ecosystem.models.plants.functional_types` submodule provides
-functionality to load plant functional type definitions from the model configuration and
-generate a :class:`~pyrealm.demography.flora.Flora` object for use in simulation.
-"""  # noqa: D205
+"""The :mod:`~virtual_ecosystem.models.plants.functional_types` submodule:
+
+* Defines an extended :class:`~pyrealm.demography.flora.Flora` class to hold additional
+  traits used in the Virtual Ecosystem and to add required computed and reference traits
+
+* Provides a simple loader function with error checking for failure modes.
+"""  # noqa: D415
 
 from __future__ import annotations
 
-from typing import ClassVar
-
 import pandas as pd
+from pydantic import computed_field, model_validator
 from pyrealm.demography.flora import Flora
 
 from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
 
 
-class ExtraTraitsPFT:
-    """A dataclass to hold additional traits for a plant functional type.
+class VEFlora(Flora):
+    """Extended plant functional trait definition.
 
-    This class is used to store traits that are not part of the standard PFT definition
-    in Pyrealm, but are used in the Virtual Ecosystem. Each instance of this class maps
-    to one PFT, keyed by the PFT name. The structure is:
-
-    {'pft_name': {'trait_name': trait_value, ...},
-     'pft_name_2': {'trait_name': trait_value, ...}, ...}
+    This class extends the basic pyrealm Flora definition to include the extra traits
+    required for the Virtual Ecosystem.
     """
 
-    array_attrs: ClassVar[tuple[str, ...]] = (
-        "deadwood_c_n_ratio",
-        "deadwood_c_p_ratio",
-        "leaf_turnover_c_n_ratio",
-        "leaf_turnover_c_p_ratio",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
-        "root_turnover_c_p_ratio",
-        "root_turnover_c_n_ratio",
-        "foliage_c_n_ratio",
-        "foliage_c_p_ratio",
-        "c_mass_fruit_flesh",
-        "c_mass_per_fruit_seed",
-        "seeds_per_fruit",
-    )
-    """Additional array attributes accepted by the ExtraTraitsPFT class."""
+    # HACK pyrealm3 - extended class has mutable defaults. Somehow this is OK in the
+    #      pyrealm definition of Flora , but not here. It might be better to have them
+    #      as tuples throughout. See:
+    #           https://github.com/ImperialCollegeLondon/pyrealm/issues/695
 
-    traits: dict[str, dict[str, float]]
+    p_foliage_for_reproductive_tissue: tuple[float, ...] = (0.05,)
+    r"""The carbon allocation to reproductive tissue as a proportion of foliage mass (kg
+    kg-1)."""
+    resp_rt: tuple[float, ...] = (0.05,)
+    r"""The annual respiration rate of reproductive tissue (:math:`r_{rt}`, kg kg-1)."""
+    tau_rt: tuple[float, ...] = (1.0,)
+    r"""The annual turnover rate of reproductive tissue (:math:`\tau_{rt}`, kg kg-1)."""
+    gpp_topslice: tuple[float, ...] = (0.1,)
+    r"""Carbon allocation to symbiotes as a proportion of NPP."""
+    deadwood_c_n_ratio: tuple[float, ...] = (60.7,)
+    r"""Carbon/Nitrogen ratio of stem tissue."""
+    deadwood_c_p_ratio: tuple[float, ...] = (856.5,)
+    r"""Carbon/Phosphorous ratio of stem tissue."""
+    leaf_turnover_c_n_ratio: tuple[float, ...] = (25.5,)
+    r"""Carbon/Nitrogen ratio of senesced leaf tissue for turnover, after nutrient
+    reabsorption."""
+    leaf_turnover_c_p_ratio: tuple[float, ...] = (415.0,)
+    r"""Carbon/Phosphorous ratio of senesced leaf tissue for turnover, after nutrient
+    reabsorption.."""
+    plant_reproductive_tissue_turnover_c_n_ratio: tuple[float, ...] = (12.5,)
+    r"""Carbon/Nitrogen ratio of reproductive tissue."""
+    plant_reproductive_tissue_turnover_c_p_ratio: tuple[float, ...] = (125.5,)
+    r"""Carbon/Phosphorous ratio of reproductive tissue."""
+    root_turnover_c_n_ratio: tuple[float, ...] = (656.7,)
+    r"""Carbon/Nitrogen ratio of fine root tissue."""
+    root_turnover_c_p_ratio: tuple[float, ...] = (45.6,)
+    r"""Carbon/Phosphorous ratio of fine root tissue."""
+    foliage_c_n_ratio: tuple[float, ...] = (15.0,)
+    r"""Carbon/Nitrogen ratio of active leaf tissue."""
+    foliage_c_p_ratio: tuple[float, ...] = (300.0,)
+    r"""Carbon/Phosphorous ratio of active leaf tissue."""
+    c_mass_fruit_flesh: tuple[float, ...] = (5.0,)
+    r"""Carbon mass of total fruit flesh in reproductive structures."""
+    c_mass_per_fruit_seed: tuple[float, ...] = (1.0,)
+    r"""Carbon mass of individual seeds in reproductive structures."""
+    seeds_per_fruit: tuple[int, ...] = (2,)
+    r"""Number of seeds in each reproductive structure."""
 
-    def __init__(self, traits: dict[str, dict[str, float]]):
-        """Initialise the ExtraTraitsPFT instance with a dictionary of traits."""
-        self.traits = traits
+    # Additional traits populated during validation - these hold the reference values
+    # for lai and tau_f, which are modified by herbivory.
 
-        # Calculate the fruit flesh fraction from the masses and seed number
-        for pft in self.traits.keys():
-            self.traits[pft]["fruit_flesh_fraction"] = self.traits[pft][
-                "c_mass_fruit_flesh"
-            ] / (
-                self.traits[pft]["c_mass_fruit_flesh"]
-                + (
-                    self.traits[pft]["c_mass_per_fruit_seed"]
-                    * self.traits[pft]["seeds_per_fruit"]
+    # HACK pyrealm 3 - This doesn't really work properly with strict mode (which we want
+    #      to use) and the enforcement of equal lengths for attributes. It works for
+    #      now, but it probably makes more sense to add these directly after to Cohorts
+    #      after running create_cohorts. Keep this for now.
+    lai_base: None | tuple[float, ...] = None
+    r"""Reference variable holding the base LAI for the PFT."""
+    tau_f_base: None | tuple[float, ...] = None
+    r"""Reference variable holding the base foliage turnover rate for the PFT."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_reference_values(cls, data, info):
+        """Populate the reference value fields from the imported data."""
+        data["lai_base"] = data.get("lai")
+        data["tau_f_base"] = data.get("tau_f")
+
+        return data
+
+    # This decorator order for computed fields is recommended by pydantic but mypy
+    # objects, so mute the warnings.
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def fruit_flesh_fraction(self) -> tuple[float, ...]:
+        """The proportion of fleshy tissue in reproductive structures, calculated
+        automatically from  fruit flesh fraction from the fruit traits.
+        """  # noqa: D205
+        # The Flora properties are lists not arrays, so calculated by iteration.
+
+        return tuple(
+            [
+                cmf / (cmf + (cms * spf))
+                for cmf, cms, spf in zip(
+                    self.c_mass_fruit_flesh,
+                    self.c_mass_per_fruit_seed,
+                    self.seeds_per_fruit,
                 )
-            )
-
-    @classmethod
-    def _from_file_data(cls, input_traits: list) -> ExtraTraitsPFT:
-        """Initialise the ExtraTraitsPFT instance.
-
-        Args:
-            input_traits: A list of dictionaries, where each dictionary represents
-                traits for a plant functional type.
-        """
-        traits = {}
-        for pft in input_traits:
-            traits[pft["name"]] = {k: v for k, v in pft.items() if k != "name"}
-
-        return cls(traits)
-
-    @classmethod
-    def from_df(cls, df) -> ExtraTraitsPFT:
-        """Load additional traits from a DataFrame.
-
-        Args:
-            df: A pandas DataFrame containing additional traits.
-
-        Returns:
-            An instance of ExtraTraitsPFT with the loaded traits.
-        """
-
-        traits = df.to_dict(orient="records")
-
-        return cls._from_file_data(traits)
+            ]
+        )
 
 
-def get_flora_from_config(config: PlantsConfiguration) -> tuple[Flora, ExtraTraitsPFT]:
+def get_flora_from_config(config: PlantsConfiguration) -> VEFlora:
     """Generate a Flora object from a Virtual Ecosystem configuration.
 
     Args:
         config: A validated PlantsConfiguration instance.
 
     Returns:
-        A tuple containing a populated :class:`pyrealm.demography.flora.Flora` instance
-        and an :class:`ExtraTraitsPFT` instance.
+        A  populated :class:`VEFlora` instance.
     """
 
     # Read the file, handling file IO and parsing errors.
     try:
-        df = pd.read_csv(config.pft_definitions_path)
+        flora = VEFlora.from_csv(config.pft_definitions_path)
     except (FileNotFoundError, pd.errors.ParserError) as excep:
         raise excep
 
-    # Split into pyrealm PFT traits and VE extra traits
-    extra_traits_columns = [*ExtraTraitsPFT.array_attrs, "name"]
-    extra_traits_data = df[extra_traits_columns]
-    pft_traits = df.drop(columns=list(ExtraTraitsPFT.array_attrs))
-    pft_data = {"pft": pft_traits.to_dict(orient="records")}
-
-    # Generate the flora object
-    flora = Flora._from_file_data(pft_data)
-
-    # To capture herbivory effects, we need to record the base PFT values for LAI and
-    # foliage turnover.
-    extra_traits_data["lai_base"] = flora.lai
-    extra_traits_data["tau_f_base"] = flora.tau_f
-    extra_traits_model = ExtraTraitsPFT.from_df(df=extra_traits_data)
-
-    return flora, extra_traits_model
+    return flora

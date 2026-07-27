@@ -11,18 +11,6 @@ kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
-language_info:
-  codemirror_mode:
-    name: ipython
-    version: 3
-  file_extension: .py
-  mimetype: text/x-python
-  name: python
-  nbconvert_exporter: python
-  pygments_lexer: ipython3
-  version: 3.11.9
-mystnb:
-  render_markdown_format: myst
 ---
 
 # Plants model configuration
@@ -46,14 +34,13 @@ Configuration for the `plants` model includes four sections:
 :tags: [remove-cell]
 
 from myst_nb import glue
-from pyrealm.demography.flora import Flora
 from virtual_ecosystem.core.docutils import dump_config_toml, model_config_to_deflist
-from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
+from virtual_ecosystem.models.plants.functional_types import VEFlora
 
-# This is clunky but ok for now.
-traits = [*Flora.array_attrs, *ExtraTraitsPFT.array_attrs]
+traits = list(VEFlora.model_fields.keys())
 
-for calc_trait in ["q_m", "z_max_prop"]:
+# Remove internally assigned values
+for calc_trait in ["lai_base", "tau_f_base"]:
     traits.remove(calc_trait)
 
 glue("pft_traits", ", ".join([f'"{t}"' for t in traits]))

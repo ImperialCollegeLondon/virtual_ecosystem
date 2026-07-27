@@ -40,8 +40,8 @@ jobs:
         pipx install poetry --python python${{ matrix.python-version }}
         poetry --version
 
-    - name: Install dependencies
-      run: poetry install
+    - name: Install dependencies for testing
+      run: poetry install  --only main --only test 
 
     - name: Run unit tests
       run: poetry run pytest --cov-report xml -m "not integration"

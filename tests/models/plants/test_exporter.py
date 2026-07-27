@@ -12,7 +12,7 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 
 @pytest.fixture
 def fixture_exporter_components(
-    flora, plants_cohort_data, fixture_core_components, extra_pft_traits
+    fixture_flora, plants_cohort_data, fixture_core_components
 ):
     """Plant models components for testing exporter.
 
@@ -21,7 +21,8 @@ def fixture_exporter_components(
     """
 
     from pyrealm.demography.canopy import Canopy
-    from pyrealm.demography.tmodel import StemAllocation
+    from pyrealm.demography.cohorts import cohort_id_generator
+    from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation
 
     from virtual_ecosystem.models.plants.biomasses import (
         Biomasses,
@@ -34,17 +35,44 @@ def fixture_exporter_components(
     from virtual_ecosystem.models.plants.communities import PlantCommunities
 
     communities = PlantCommunities(
-        cohort_data=plants_cohort_data, flora=flora, grid=fixture_core_components.grid
+        cohort_id_generator=cohort_id_generator(mode="str"),
+        cohort_data=plants_cohort_data,
+        flora=fixture_flora,
+        grid=fixture_core_components.grid,
     )
+
+    # HACK pyrealm3: This is a workaround for not having repro tissue in allometry. Not
+    #      sure what the long term solution here is.
+    for cmty in communities.values():
+        cmty.stem_allometry.reproductive_tissue_mass = np.full_like(
+            cmty.stem_allometry.dbh, 10
+        )
+
     canopies = {
-        cell_id: Canopy(cmty, fit_ppa=True) for cell_id, cmty in communities.items()
+        cell_id: Canopy(
+            cohorts=cmty.cohorts,
+            allometry=cmty.stem_allometry,
+            canopy_area=fixture_core_components.grid.cell_area,
+            fit_ppa=True,
+        )
+        for cell_id, cmty in communities.items()
     }
 
     stem_allocations = {
         cell_id: StemAllocation(
-            stem_traits=cmty.stem_traits,
-            stem_allometry=cmty.stem_allometry,
-            whole_crown_gpp=np.full(cmty.n_cohorts, 25.0),
+            cohorts=cmty.cohorts,
+            allometry=cmty.stem_allometry,
+            whole_crown_gpp=np.full(len(cmty.cohorts), 25.0),
+        )
+        for cell_id, cmty in communities.items()
+    }
+
+    growth_increments = {
+        cell_id: GrowthIncrements(
+            cohorts=cmty.cohorts,
+            allometry=cmty.stem_allometry,
+            stem_allocation=stem_allocations[cell_id],
+            biomass_production=np.full(len(cmty.cohorts), 10.0),
         )
         for cell_id, cmty in communities.items()
     }
@@ -52,7 +80,6 @@ def fixture_exporter_components(
     biomasses = {
         cell_id: Biomasses.default_init(
             community=cmty,
-            extra_pft_traits=extra_pft_traits,
             with_elements=["N", "P"],
             tissues=[
                 FoliageBiomass,
@@ -65,7 +92,7 @@ def fixture_exporter_components(
         for cell_id, cmty in communities.items()
     }
 
-    return communities, canopies, stem_allocations, biomasses
+    return communities, canopies, stem_allocations, growth_increments, biomasses
 
 
 @pytest.mark.parametrize(
@@ -317,12 +344,13 @@ def test_CommunityDataExporter_dump_cohort_data(
     )
 
     # First dump in write mode with no allocations: expected behaviour in setup
-    communities, canopies, _stem_allocations, biomasses = fixture_exporter_components
+    communities, canopies, _, _, biomasses = fixture_exporter_components
     exporter._dump_cohort_data(
         communities=communities,
         biomasses=biomasses,
         canopies=canopies,
         stem_allocations={},
+        growth_increments={},
         time=np.datetime64("2000-01-01"),
         time_index=0,
     )
@@ -336,7 +364,7 @@ def test_CommunityDataExporter_dump_cohort_data(
 
     # Otherwise check it exists and has the requested attributes
     assert out_path.exists()
-    cell_n_cohorts = np.array([cmty.n_cohorts for _, cmty in communities.items()])
+    cell_n_cohorts = np.array([len(cmty.cohorts) for _, cmty in communities.items()])
     csv_row_check(path=out_path, n_rows=cell_n_cohorts.sum(), attr=attributes)
 
     if not attributes:
@@ -375,7 +403,7 @@ def test_CommunityDataExporter_dump_community_canopy_data(
     )
 
     # First dump in write mode with no allocations: expected behaviour in setup
-    _, canopies, _, _ = fixture_exporter_components
+    _, canopies, _, _, _ = fixture_exporter_components
     exporter._dump_community_canopy_data(
         canopies=canopies,
         time=np.datetime64("2000-01-01"),
@@ -423,7 +451,7 @@ def test_CommunityDataExporter_dump_stem_canopy_data(
     )
 
     # Run the dump
-    communities, canopies, _, _ = fixture_exporter_components
+    communities, canopies, _, _, _ = fixture_exporter_components
     exporter._dump_stem_canopy_data(
         communities=communities,
         canopies=canopies,
@@ -440,7 +468,7 @@ def test_CommunityDataExporter_dump_stem_canopy_data(
 
     # Otherwise check it exists and has the requested attributes
     assert out_path.exists()
-    cell_n_cohorts = np.array([cmty.n_cohorts for _, cmty in communities.items()])
+    cell_n_cohorts = np.array([len(cmty.cohorts) for _, cmty in communities.items()])
     cell_n_layers = np.array([len(cpy.heights) for cpy in canopies.values()])
     cell_n_stem_layers = (cell_n_cohorts * cell_n_layers).sum()
     csv_row_check(path=out_path, n_rows=cell_n_stem_layers, attr=attributes)
@@ -479,7 +507,7 @@ class TestExporterDump:
     @staticmethod
     def increment_expected_n(communities, canopies, current={}) -> dict[str, int]:
         """Increment expected numbers of rows in the three data files."""
-        cht_by_cell = np.array([c.n_cohorts for c in communities.values()])
+        cht_by_cell = np.array([len(c.cohorts) for c in communities.values()])
         lyrs_by_cell = np.array([len(cpy.heights) for cpy in canopies.values()])
 
         if current:
@@ -535,12 +563,15 @@ class TestExporterDump:
         assert exporter._write_header
 
         # First dump in write mode with no allocations: expected behaviour in setup
-        communities, canopies, stem_allocations, biomasses = fixture_exporter_components
+        communities, canopies, stem_allocations, growth_increments, biomasses = (
+            fixture_exporter_components
+        )
         exporter.dump(
             communities=communities,
             biomasses=biomasses,
             canopies=canopies,
             stem_allocations={},
+            growth_increments={},
             time=np.datetime64("2000-01-01"),
             time_index=0,
         )
@@ -559,6 +590,7 @@ class TestExporterDump:
             biomasses=biomasses,
             canopies=canopies,
             stem_allocations=stem_allocations,
+            growth_increments=growth_increments,
             time=np.datetime64("2001-01-01"),
             time_index=0,
         )
@@ -571,9 +603,8 @@ class TestExporterDump:
         self,
         tmp_path,
         plants_data,
-        flora,
+        fixture_flora,
         plants_cohort_data,
-        extra_pft_traits,
         fixture_core_components,
         fixture_canopy_layer_data,
         required,
@@ -598,9 +629,8 @@ class TestExporterDump:
         model = PlantsModel(
             data=plants_data,
             core_components=fixture_core_components,
-            flora=flora,
+            flora=fixture_flora,
             cohort_data=plants_cohort_data,
-            extra_pft_traits=extra_pft_traits,
             exporter=exporter,
         )
 
@@ -650,14 +680,13 @@ class TestExporterDump:
         assert exporter._write_header
 
         # First dump in write mode with no allocations: expected behaviour in setup
-        communities, canopies, _stem_allocations, biomasses = (
-            fixture_exporter_components
-        )
+        communities, canopies, _, _, biomasses = fixture_exporter_components
         exporter.dump(
             communities=communities,
             biomasses=biomasses,
             canopies=canopies,
             stem_allocations={},
+            growth_increments={},
             time=np.datetime64("2000-01-01"),
             time_index=0,
         )

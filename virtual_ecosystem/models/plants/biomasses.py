@@ -75,13 +75,12 @@ from typing import ClassVar
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.demography.community import Community
-from pyrealm.demography.core import CohortMethods, PandasExporter
-from pyrealm.demography.tmodel import StemAllocation
+from pyrealm.demography.core import ToDataFrameMixin
+from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation
 from xarray import DataArray
 
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
+from virtual_ecosystem.models.plants.communities import Community
 
 
 @dataclass
@@ -120,9 +119,6 @@ class BiomassTissueABC(ABC):
     """A tissue name for derived classes."""
     community: Community
     """The community object that the tissue is associated with."""
-    extra_pft_traits: ExtraTraitsPFT
-    # TODO: consider where best to store shared attributes like community - probably at
-    #       the Biomasses level and synchronise across tissues.
 
     carbon_mass: NDArray[np.floating]
     """An 1D array of tissue carbon mass for each stem in cohorts in the community."""
@@ -135,7 +131,6 @@ class BiomassTissueABC(ABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of Tissue based on the PFT traits."""
@@ -164,11 +159,7 @@ class BiomassTissueABC(ABC):
         }
 
     def add_elemental_masses(self, masses: dict[str, NDArray[np.floating]]) -> None:
-        """Return the current element masses for the tissue.
-
-        Returns:
-            The element deficit for the specified tissue.
-        """
+        """Add elemental masses to the tissues."""
 
         try:
             for ky, elem in self.element_masses.items():
@@ -209,9 +200,9 @@ class BiomassTissueABC(ABC):
         # NOTE - this relies on the community being updated by reference when
         #        recruitment happens. If this changes then the match of the number of
         #        columns to the PFTs needs to be maintained some other way.
-        for pft in set(self.community.cohorts.pft_names):
+        for pft in set(self.community.cohorts["pft_name"]):
             # boolean index along carbon_mass array
-            in_pft = self.community.cohorts.pft_names == pft
+            in_pft = self.community.cohorts["pft_name"].to_numpy() == pft
             # aggregate masses across cohorts in the PFT and assign total.
             total_pft_carbon_biomass[in_pft] = self.carbon_mass[in_pft].sum()
 
@@ -238,13 +229,23 @@ class BiomassTissueABC(ABC):
     def Cx_ratio(self) -> dict[str, NDArray[np.floating]]:
         """Get the carbon to element ratio for the tissue type.
 
+        This has to handle cases where a tissue has no biomass at all or no actual
+        elemental mass, which would otherwise generate NaN ratios (C/0). It explicitly
+        sets these cases to infinity.
+
         Returns:
             The carbon to element ratio for the specified tissue.
         """
-        return {
-            ky: self.carbon_mass / elem.actual_element_mass
-            for ky, elem in self.element_masses.items()
-        }
+        ratios = {}
+
+        for ky, elem in self.element_masses.items():
+            ratios[ky] = np.where(
+                elem.actual_element_mass == 0,
+                np.inf,
+                self.carbon_mass / elem.actual_element_mass,
+            )
+
+        return ratios
 
     def as_array(
         self, deficit: bool = False, with_carbon: bool = False
@@ -274,14 +275,15 @@ class BiomassTissueABC(ABC):
 
     @abstractmethod
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase tissue biomasses following growth allocation for the tissue.
 
-        This method should adjust the carbon biomass following the allocation model and
-        similarly increase nutrient biomasses following the ideal ratios. The method
-        must then also return the nutrient biomass increases, so that subsequent
-        nutrient balancing can account for deficits and excesses within the stem.
+        This method should adjust the carbon biomass following the growth increments
+        from the allocation model and similarly increase nutrient biomasses following
+        the ideal ratios. The method must then also return the nutrient biomass
+        increases, so that subsequent nutrient balancing can account for deficits and
+        excesses within the stem.
         """
 
     @abstractmethod
@@ -318,11 +320,9 @@ class FoliageBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of FoliageBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
@@ -330,20 +330,13 @@ class FoliageBiomass(BiomassTissueABC):
         # object!
         carbon_mass = pyrealm_handling(community.stem_allometry.foliage_mass.copy())
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][f"foliage_c_{elem.lower()}_ratio"]
-                    for name in pft_names
-                ]
-            )
-            turnover_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][
-                        f"leaf_turnover_c_{elem.lower()}_ratio"
-                    ]
-                    for name in pft_names
-                ]
-            )
+            ideal_ratio = community.cohorts[
+                f"foliage_c_{elem.lower()}_ratio"
+            ].to_numpy()
+
+            turnover_ratio = community.cohorts[
+                f"leaf_turnover_c_{elem.lower()}_ratio"
+            ].to_numpy()
 
             element_masses[elem] = Element(
                 name=elem,
@@ -354,13 +347,12 @@ class FoliageBiomass(BiomassTissueABC):
 
         return cls(
             carbon_mass=carbon_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of foliage tissue given the allocation model.
 
@@ -368,7 +360,7 @@ class FoliageBiomass(BiomassTissueABC):
             The increases in element quantities needed to support growth at the ideal
             ratio for the tissue.
         """
-        carbon_mass = pyrealm_handling(allocation.delta_foliage_mass)
+        carbon_mass = pyrealm_handling(growth_increments.delta_foliage_mass)
 
         self.carbon_mass += carbon_mass
 
@@ -408,11 +400,9 @@ class ReproductiveBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of FoliageBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
@@ -422,15 +412,10 @@ class ReproductiveBiomass(BiomassTissueABC):
         )
 
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][
-                        f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
-                    ]
-                    for name in pft_names
-                ]
-            )
             # Turnover ratio is identical to ideal ratio
+            ideal_ratio = community.cohorts[
+                f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
+            ]
             turnover_ratio = ideal_ratio
 
             element_masses[elem] = Element(
@@ -442,13 +427,12 @@ class ReproductiveBiomass(BiomassTissueABC):
 
         return cls(
             carbon_mass=carbon_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of reproductive tissue given the allocation model.
 
@@ -458,8 +442,8 @@ class ReproductiveBiomass(BiomassTissueABC):
         """
 
         carbon_increase = pyrealm_handling(
-            allocation.delta_foliage_mass
-            * self.community.stem_traits.p_foliage_for_reproductive_tissue
+            growth_increments.delta_foliage_mass
+            * self.community.cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
         )
         self.carbon_mass += carbon_increase
 
@@ -504,34 +488,27 @@ class FruitBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of FoliageBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
         # Get the proportion of reproductive tissue allocated to fruit
-        fruit_fraction = [
-            extra_pft_traits.traits[name]["fruit_flesh_fraction"] for name in pft_names
-        ]
+        fruit_fraction = community.cohorts["fruit_flesh_fraction"].to_numpy()
 
         # Multiplication here avoids the need to copy() the array to avoid the reference
         # back to the allometry
-        carbon_mass = pyrealm_handling(
-            community.stem_allometry.reproductive_tissue_mass * fruit_fraction
+        carbon_mass = np.array(
+            pyrealm_handling(
+                community.stem_allometry.reproductive_tissue_mass * fruit_fraction
+            )
         )
 
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][
-                        f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
-                    ]
-                    for name in pft_names
-                ]
-            )
+            ideal_ratio = community.cohorts[
+                f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
+            ]
             # Turnover ratio is identical to ideal ratio
             turnover_ratio = ideal_ratio
 
@@ -544,13 +521,12 @@ class FruitBiomass(BiomassTissueABC):
 
         return cls(
             carbon_mass=carbon_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of reproductive tissue given the allocation model.
 
@@ -559,14 +535,11 @@ class FruitBiomass(BiomassTissueABC):
             ratio for the tissue.
         """
 
-        fruit_fraction = [
-            self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
-            for name in self.community.cohorts.pft_names
-        ]
+        fruit_fraction = self.community.cohorts["fruit_flesh_fraction"].to_numpy()
 
         carbon_increase = pyrealm_handling(
-            allocation.delta_foliage_mass
-            * self.community.stem_traits.p_foliage_for_reproductive_tissue
+            growth_increments.delta_foliage_mass
+            * self.community.cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
             * fruit_fraction
         )
         self.carbon_mass += carbon_increase
@@ -589,20 +562,15 @@ class FruitBiomass(BiomassTissueABC):
             The element quantity lost to turnover for reproductive tissue.
         """
 
+        # Get the proportion of reproductive tissue allocated to fruit
+        carbon_turnover = (
+            pyrealm_handling(allocation.reproductive_tissue_turnover)
+            * self.community.cohorts["fruit_flesh_fraction"].to_numpy()
+        )
+
         # TODO: Caching locally to avoid calling the property constructor for each
         # element  - maybe this should a cached property?
-
         cx_ratios = self.Cx_ratio
-
-        # Get the proportion of reproductive tissue allocated to fruit
-        fruit_fraction = [
-            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
-            for name in self.community.cohorts.pft_names
-        ]
-
-        carbon_turnover = (
-            pyrealm_handling(allocation.reproductive_tissue_turnover) * fruit_fraction
-        )
 
         elemental_turnovers = {
             ky: (carbon_turnover * (1 / cx_ratios[ky]))
@@ -622,37 +590,27 @@ class SeedBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of FoliageBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
         # Get the proportion of reproductive tissue allocated to seed
-        seed_fraction = [
-            1 - extra_pft_traits.traits[name]["fruit_flesh_fraction"]
-            for name in pft_names
-        ]
-
-        # Multiplication here avoids the need to copy() the array to avoid the reference
-        # back to the allometry
-        carbon_mass = (
-            pyrealm_handling(community.stem_allometry.reproductive_tissue_mass)
-            * seed_fraction
+        # - Multiplication here avoids the need to copy() the array to avoid the
+        #   reference back to the allometry
+        carbon_mass = np.array(
+            pyrealm_handling(
+                community.stem_allometry.reproductive_tissue_mass
+                * (1 - community.cohorts["fruit_flesh_fraction"].to_numpy())
+            )
         )
 
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][
-                        f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
-                    ]
-                    for name in pft_names
-                ]
-            )
             # Turnover ratio is identical to ideal ratio
+            ideal_ratio = community.cohorts[
+                f"plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio"
+            ]
             turnover_ratio = ideal_ratio
 
             element_masses[elem] = Element(
@@ -664,13 +622,12 @@ class SeedBiomass(BiomassTissueABC):
 
         return cls(
             carbon_mass=carbon_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of reproductive tissue given the allocation model.
 
@@ -680,15 +637,10 @@ class SeedBiomass(BiomassTissueABC):
         """
 
         # Get the proportion of reproductive tissue allocated to seed
-        seed_fraction = [
-            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
-            for name in self.community.cohorts.pft_names
-        ]
-
         carbon_increase = pyrealm_handling(
-            allocation.delta_foliage_mass
-            * self.community.stem_traits.p_foliage_for_reproductive_tissue
-            * seed_fraction
+            growth_increments.delta_foliage_mass
+            * self.community.cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
+            * self.community.cohorts["fruit_flesh_fraction"].to_numpy()
         )
         self.carbon_mass += carbon_increase
 
@@ -716,13 +668,8 @@ class SeedBiomass(BiomassTissueABC):
         cx_ratios = self.Cx_ratio
 
         # Get the proportion of reproductive tissue allocated to seed
-        seed_fraction = [
-            1 - self.extra_pft_traits.traits[name]["fruit_flesh_fraction"]
-            for name in self.community.cohorts.pft_names
-        ]
-
-        carbon_turnover = (
-            pyrealm_handling(allocation.reproductive_tissue_turnover) * seed_fraction
+        carbon_turnover = pyrealm_handling(allocation.reproductive_tissue_turnover) * (
+            1 - self.community.cohorts["fruit_flesh_fraction"].to_numpy()
         )
 
         elemental_turnovers = {
@@ -743,11 +690,9 @@ class StemBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of WoodBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
@@ -755,12 +700,7 @@ class StemBiomass(BiomassTissueABC):
         carbon_mass = pyrealm_handling(community.stem_allometry.stem_mass.copy())
 
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][f"deadwood_c_{elem.lower()}_ratio"]
-                    for name in pft_names
-                ]
-            )
+            ideal_ratio = community.cohorts[f"deadwood_c_{elem.lower()}_ratio"]
             turnover_ratio = np.zeros_like(ideal_ratio)
 
             element_masses[elem] = Element(
@@ -772,13 +712,12 @@ class StemBiomass(BiomassTissueABC):
 
         return cls(
             carbon_mass=carbon_mass,
-            extra_pft_traits=extra_pft_traits,
             community=community,
             element_masses=element_masses,
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of woody tissue given the allocation model.
 
@@ -786,10 +725,11 @@ class StemBiomass(BiomassTissueABC):
             The increases in element quantities needed to support growth at the ideal
             ratio for the tissue.
         """
-        self.carbon_mass += pyrealm_handling(allocation.delta_stem_mass)
+        self.carbon_mass += pyrealm_handling(growth_increments.delta_stem_mass)
 
         nutrient_ideal_ratio_increase = {
-            ky: pyrealm_handling(allocation.delta_stem_mass) * (1 / elem.ideal_ratio)
+            ky: pyrealm_handling(growth_increments.delta_stem_mass)
+            * (1 / elem.ideal_ratio)
             for ky, elem in self.element_masses.items()
         }
 
@@ -823,51 +763,32 @@ class RootBiomass(BiomassTissueABC):
     def from_pft_default_ratios(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
     ):
         """Create a default instance of FoliageBiomass based on the PFT traits."""
-        pft_names = community.cohorts.pft_names
 
         element_masses: dict[str, Element] = {}
 
-        # until pyrealm 2.0.1
-        fine_root_mass = pyrealm_handling(
-            community.stem_allometry.foliage_mass
-            * community.stem_traits.zeta
-            * community.stem_traits.sla
-        )
-
         for elem in with_elements:
-            ideal_ratio = np.array(
-                [
-                    extra_pft_traits.traits[name][
-                        f"root_turnover_c_{elem.lower()}_ratio"
-                    ]
-                    for name in pft_names
-                ]
-            )
+            ideal_ratio = community.cohorts[f"root_turnover_c_{elem.lower()}_ratio"]
             turnover_ratio = np.ones_like(ideal_ratio)
 
             element_masses[elem] = Element(
                 name=elem,
                 ideal_ratio=ideal_ratio,
-                actual_element_mass=fine_root_mass / ideal_ratio,
-                # actual_element_mass=community.stem_allometry.fine_root_mass
-                # / ideal_ratio,
+                actual_element_mass=community.stem_allometry.fine_root_mass
+                / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
 
         return cls(
-            # carbon_mass=community.stem_allometry.fine_root_mass,
-            carbon_mass=fine_root_mass,
-            extra_pft_traits=extra_pft_traits,
+            carbon_mass=community.stem_allometry.fine_root_mass,
             community=community,
             element_masses=element_masses,
         )
 
     def apply_growth(
-        self, allocation: StemAllocation
+        self, growth_increments: GrowthIncrements
     ) -> dict[str, NDArray[np.floating]]:
         """Increase the biomasses of root tissue given the allocation model.
 
@@ -876,11 +797,7 @@ class RootBiomass(BiomassTissueABC):
             ratio for the tissue.
         """
 
-        carbon_increase = pyrealm_handling(
-            allocation.delta_foliage_mass
-            * self.community.stem_traits.zeta
-            * self.community.stem_traits.sla
-        )
+        carbon_increase = pyrealm_handling(growth_increments.delta_fine_root_mass)
 
         self.carbon_mass += carbon_increase
 
@@ -938,7 +855,7 @@ def pyrealm_handling(arr: NDArray):
 
 
 @dataclass
-class Biomasses(CohortMethods, PandasExporter):
+class Biomasses(ToDataFrameMixin):
     """A class holding biomasses for a set of plant cohorts and tissues.
 
     This class holds the current ratios across tissue type for a community object, which
@@ -955,8 +872,6 @@ class Biomasses(CohortMethods, PandasExporter):
     """The community object that the stoichiometry is associated with."""
     element_surpluses: dict[str, NDArray[np.floating]] = field(init=False)
     """The surplus of the element per cohort."""
-    extra_pft_traits: ExtraTraitsPFT
-    """Additional traits specific to the plant functional types."""
     tissue_names: list[str] = field(init=False)
     """A list giving the name of each tissue."""
     elements: tuple[str, ...] = field(init=False)
@@ -964,7 +879,7 @@ class Biomasses(CohortMethods, PandasExporter):
 
     # Note: these are hard-coded and must be updated if the simulation
     # uses different biomass classes.
-    array_attrs: ClassVar[tuple[str, ...]] = (
+    _array_attrs: ClassVar[tuple[str, ...]] = (
         "biomass_foliage_carbon_mass",
         "biomass_foliage_n_actual_element_mass",
         "biomass_foliage_p_actual_element_mass",
@@ -1004,14 +919,13 @@ class Biomasses(CohortMethods, PandasExporter):
         # the constructor. Is there ever a case we'd use the __init__ though?
 
         self.element_surplus = {
-            elem: np.zeros(self.community.n_cohorts) for elem in self.elements
+            elem: np.zeros(len(self.community.cohorts)) for elem in self.elements
         }
 
     @classmethod
     def default_init(
         cls,
         community: Community,
-        extra_pft_traits: ExtraTraitsPFT,
         with_elements: list[str],
         tissues: list[type[BiomassTissueABC]],
     ):
@@ -1032,7 +946,6 @@ class Biomasses(CohortMethods, PandasExporter):
         default_tissues: list[BiomassTissueABC] = [
             tissue.from_pft_default_ratios(
                 community=community,
-                extra_pft_traits=extra_pft_traits,
                 with_elements=with_elements,
             )
             for tissue in tissues
@@ -1041,7 +954,6 @@ class Biomasses(CohortMethods, PandasExporter):
         return cls(
             tissues=default_tissues,
             community=community,
-            extra_pft_traits=extra_pft_traits,
         )
 
     @property
@@ -1074,7 +986,7 @@ class Biomasses(CohortMethods, PandasExporter):
             else:
                 self.element_surplus[elem] -= masses[elem]
 
-    def apply_growth(self, allocation: StemAllocation) -> None:
+    def apply_growth(self, growth_increments: GrowthIncrements) -> None:
         """Distribute the carbon allocated to growth and required nutrients to tissues.
 
         This method updates the actual biomasses for each tissue type based on the
@@ -1086,13 +998,14 @@ class Biomasses(CohortMethods, PandasExporter):
         reflect nutrient excesses or deficits at the whole stem level.
 
         Args:
-            allocation: The allocation object containing the growth allocation data.
+            growth_increments: A GrowthIncrements instance containing the growth
+                increment data.
         """
 
         for tissue in self.tissues:
             # Increase the tissue biomasses and record the nutrient masses required to
             # add that mass at ideal ratios.
-            needed = tissue.apply_growth(allocation)
+            needed = tissue.apply_growth(growth_increments=growth_increments)
             # Record the nutrients biomasses at ideal ratios allocated to the tissue in
             # the whole stem balance.
             self._adjust_surpluses(needed, increase=False)

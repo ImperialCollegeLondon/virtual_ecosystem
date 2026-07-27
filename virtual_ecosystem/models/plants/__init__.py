@@ -18,10 +18,10 @@ The other submodules include:
 * The :mod:`~virtual_ecosystem.models.plants.communities` submodule provides the
   :class:`~virtual_ecosystem.models.plants.communities.PlantCommunities` class which
   maps each grid cell on to a representation of the plant community within that cell.
-  Each grid cell has a single :class:`pyrealm.demography.community.Community` object
-  that contains includes a :class:`pyrealm.demography.community.Cohorts` instance
-  describing the size-structured cohorts of different plant functional types within the
-  grid cell.
+  Each grid cell has a single
+  :class:`~virtual_ecosystem.models.plants.communities.Community` object that contains
+  includes a :class:`pyrealm.demography.cohorts.Cohorts` instance describing the
+  size-structured cohorts of different plant functional types within the grid cell.
 
 * The :mod:`~virtual_ecosystem.models.plants.canopy` submodule provides code to
   calculate the complete canopy structure across all cohorts for the plant community

@@ -8,7 +8,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calc_specific_heat, calc_vp_sat
+from pyrealm.core.hygro import calculate_specific_heat, calculate_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -427,7 +427,7 @@ def calculate_thermodynamics(
     )
 
     # Specific heat capacity of air, [J kg-1 K-1]
-    specific_heat_air = calc_specific_heat(
+    specific_heat_air = calculate_specific_heat(
         tc=state["air_temperature"],
     )
 
@@ -779,8 +779,8 @@ def update_atmospheric_humidity(
     """
 
     # Saturated vapour pressure of air, [kPa]
-    saturated_vapour_pressure_air = calc_vp_sat(
-        ta=state["air_temperature"],
+    saturated_vapour_pressure_air = calculate_vp_sat(
+        tc=state["air_temperature"],
         core_const=pyrealm_core_constants,
     )
 
