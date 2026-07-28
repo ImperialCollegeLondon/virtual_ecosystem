@@ -208,9 +208,9 @@ that is nitrate (rather than ammonium) both need to be specified by the user.
 Users also need to specify how often a disturbance will occur. There are five different
 options for this:
 
-* Use the default behaviour for the disturbance by not adding any timing details to the
-  configuration. (In the case of the `add_fertiliser` disturbance the default is to run
-  for every time step).
+* Use the default behaviour, if any, for the disturbance by not adding any timing
+  details to the configuration. (In the case of the `add_fertiliser` disturbance the
+  default is to run for every time step).
 * Provide the specific time steps that you want the disturbance to run for using
   `run_at`. These are provided as a list, e.g. `run_at = [2, 3, 6]` to run on the
   second, third and sixth timesteps.
@@ -224,9 +224,14 @@ options for this:
   off point using `run_every = [start, step, stop]`, e.g. `run_every = [2, 3,
   13]` first runs the disturbance at the second timestep and from then runs the
   disturbance once every three timesteps up until the 13th timestep beyond which the
-  disturbance doesn't occur. N.B. a disturbance only occur on the "final" timestep if
-  would be expected to based on the step size, so in the previous example the last
-  disturbance occurs on the 11th timestep.
+  disturbance doesn't occur. A disturbance event is not guaranteed to occur at the
+  `stop` timestep, *unless* it would have already been expected to based on the
+  frequency chosen. So, in the example above the last disturbance occurs on the 11th
+  timestep.
+
+Mind that if the disturbance does not implement a default timing, you will need to
+explicitly set it in the configuration file using one of the options indicated above.
+Failing to do so will result in an error being raised.
 
 ### Disturbance priority
 
