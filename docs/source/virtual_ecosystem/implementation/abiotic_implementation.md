@@ -121,7 +121,8 @@ $\ce{CO2}$ and the wind profiles.
 State variables refer to all variables that are updated hourly by the abiotic model.
 This includes vertical profiles of air temperature, relative humidity, soil temperature,
 and energy fluxes, for full list see [list of updated variables](#updated-variables).
-canopy and air temperature are solved in an iterative loop until both variables converge.
+canopy and air temperature are solved in an iterative loop until both variables
+converge. If no convergence is reached, the last best guess is returned.
 The aggregation step at the end returns mean values of the representative day.
 :::
 
