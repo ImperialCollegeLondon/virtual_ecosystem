@@ -6,25 +6,32 @@ Virtual Ecosystem model reproduces observed ecosystem properties.
 **Tier 1 — Primary targets (10 headline benchmarks)**
     Ecosystem-level quantities that should match observations from reference
     sites or published compilations.  These are the primary pass/fail criteria
-    used when benchmarking a simulation.
+    used when benchmarking a simulation.  Some primary targets are also
+    *emergent* (i.e. they are aggregated or derived from multiple model
+    output variables rather than appearing as a single directly written
+    variable) — these are identified by :attr:`ValidationTarget.is_emergent`
+    being ``True``.
 
 **Tier 2 — Secondary emergent targets**
     Derived or emergent properties that can be computed post-hoc from the
     model output files.  They focus on energy fluxes, plant assimilation,
     animal consumption and assimilation flows, and Madingley-style
     life-history allometrics (Harfoot et al. 2014,
-    doi:10.1371/journal.pbio.1001841).
+    doi:10.1371/journal.pbio.1001841).  All secondary targets are emergent.
 
 Using the module
 ----------------
 The target definitions are available through :data:`PRIMARY_TARGETS`,
-:data:`SECONDARY_TARGETS`, and the combined :data:`ALL_TARGETS` list.
+:data:`SECONDARY_TARGETS`, :data:`EMERGENT_TARGETS` (all targets with
+``is_emergent=True``, spanning both tiers), and the combined
+:data:`ALL_TARGETS` list.
+
 Each entry is a :class:`ValidationTarget` instance that records what
 ecological property the target represents, whether it is primary or
-secondary, which output files and variables are used, and the supporting
-reference.
+secondary, whether it is emergent, which output files and variables are
+used, and the supporting reference.
 
-Helper functions are provided to derive secondary metrics directly from
+Helper functions are provided to derive emergent metrics directly from
 the CSV files produced by the animal and plant exporters.
 """  # noqa: D205
 
@@ -69,6 +76,13 @@ class ValidationTarget:
         name: Human-readable name for the target.
         tier: Whether this is a :attr:`TargetTier.PRIMARY` or
             :attr:`TargetTier.SECONDARY` target.
+        is_emergent: ``True`` when the quantity is derived or aggregated
+            from multiple model output variables rather than being written
+            as a single variable by the model.  All :attr:`TargetTier.SECONDARY`
+            targets are emergent.  Some :attr:`TargetTier.PRIMARY` targets
+            are *also* emergent — they remain headline benchmarks but require
+            post-processing to compute (e.g. totalling soil carbon pools or
+            aggregating cohort-level animal biomass).
         ecological_property: Brief statement of the ecological quantity
             being assessed.
         description: Longer explanation of the target, including how it is
@@ -91,6 +105,7 @@ class ValidationTarget:
     target_id: str
     name: str
     tier: TargetTier
+    is_emergent: bool
     ecological_property: str
     description: str
     output_variables: list[str] = field(default_factory=list)
@@ -108,6 +123,7 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
         target_id="P01",
         name="Gross Primary Productivity",
         tier=TargetTier.PRIMARY,
+        is_emergent=True,
         ecological_property="Rate of photosynthetic carbon fixation by the plant canopy",
         description=(
             "Gross Primary Productivity (GPP) is the total rate at which the plant "
@@ -116,7 +132,9 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
             "per-stem GPP is computed by the P Model and summed to give cell-level GPP "
             "(``per_stem_gpp`` in kg C stem⁻¹ update⁻¹, accessible via the plant "
             "exporter).  Spatial and temporal averages should be compared against "
-            "eddy-covariance or satellite-derived GPP products for the target biome."
+            "eddy-covariance or satellite-derived GPP products for the target biome.  "
+            "This target is emergent because it is aggregated from per-stem, per-layer "
+            "photosynthesis estimates computed by the P Model."
         ),
         output_variables=["plant_net_co2_assimilation"],
         output_files=["Data object (xarray)", "plants_cohort_data.csv"],
@@ -127,13 +145,16 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
         target_id="P02",
         name="Evapotranspiration",
         tier=TargetTier.PRIMARY,
+        is_emergent=True,
         ecological_property="Total water vapour loss from vegetation and soil to atmosphere",
         description=(
             "Evapotranspiration (ET) is the combined flux of water from the soil, "
             "canopy interception, and plant transpiration.  It is computed as the sum "
             "of ``transpiration``, ``soil_evaporation``, and ``canopy_evaporation`` "
-            "across the spatial grid.  Comparisons should target long-term site-level "
-            "ET observations or water-balance estimates."
+            "across the spatial grid using :func:`compute_evapotranspiration`.  "
+            "Comparisons should target long-term site-level ET observations or "
+            "water-balance estimates.  This target is emergent because it must be "
+            "aggregated from three separate flux variables."
         ),
         output_variables=["transpiration", "soil_evaporation", "canopy_evaporation"],
         output_files=["Data object (xarray)"],
@@ -144,14 +165,17 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
         target_id="P03",
         name="Above-ground vegetation biomass",
         tier=TargetTier.PRIMARY,
+        is_emergent=True,
         ecological_property="Carbon stored in stems and foliage above the soil surface",
         description=(
             "Above-ground biomass (AGB) captures the carbon in plant stems and leaves "
             "across all plant functional types.  It is derived from the plant exporter "
             "CSV by summing ``biomass_foliage_carbon_mass`` and "
-            "``biomass_stem_carbon_mass`` for all cohorts within a cell.  Reference "
-            "values for tropical and temperate forests are widely available from "
-            "inventory surveys and remote-sensing products."
+            "``biomass_stem_carbon_mass`` for all cohorts within a cell using "
+            ":func:`compute_above_ground_biomass`.  Reference values for tropical and "
+            "temperate forests are widely available from inventory surveys and "
+            "remote-sensing products.  This target is emergent because it requires "
+            "aggregation across cohorts from the plant exporter CSV."
         ),
         output_variables=["biomass_foliage_carbon_mass", "biomass_stem_carbon_mass"],
         output_files=["plants_cohort_data.csv"],
@@ -162,12 +186,15 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
         target_id="P04",
         name="Below-ground vegetation biomass",
         tier=TargetTier.PRIMARY,
+        is_emergent=False,
         ecological_property="Carbon stored in plant fine roots below the soil surface",
         description=(
             "Below-ground biomass (BGB) is the fine-root carbon mass summed across all "
             "plant cohorts in a cell.  It is read from the plant exporter CSV column "
             "``biomass_root_carbon_mass``.  The ratio of BGB to AGB provides an "
-            "additional diagnostic (see secondary target E04)."
+            "additional diagnostic (see secondary target E04).  Unlike the other "
+            "biomass targets, root mass is tracked as a single tissue per cohort so "
+            "this target does not require cross-pool aggregation."
         ),
         output_variables=["biomass_root_carbon_mass"],
         output_files=["plants_cohort_data.csv"],
@@ -178,6 +205,7 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
         target_id="P05",
         name="Total soil organic carbon",
         tier=TargetTier.PRIMARY,
+        is_emergent=True,
         ecological_property="Organic carbon stored across all soil carbon pools",
         description=(
             "Total soil organic carbon (SOC) is the sum of the carbon components of "
@@ -186,7 +214,8 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
             "matter (``soil_cnp_pool_maom``), particulate organic matter "
             "(``soil_cnp_pool_pom``), and necromass (``soil_cnp_pool_necromass``). "
             "Each variable stores the full CNP array so the carbon component must be "
-            "selected via the ``element`` coordinate before summing."
+            "selected via the ``element`` coordinate before summing.  This target is "
+            "emergent because it aggregates four separate soil carbon pools."
         ),
         output_variables=[
             "soil_cnp_pool_lmwc",
@@ -202,6 +231,7 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
         target_id="P06",
         name="Total litter carbon",
         tier=TargetTier.PRIMARY,
+        is_emergent=True,
         ecological_property="Carbon stored in all above- and below-ground litter pools",
         description=(
             "Total litter carbon is the sum of the carbon components of the five "
@@ -211,7 +241,8 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
             "(``litter_pool_woody_cnp``), below-ground metabolic "
             "(``litter_pool_below_metabolic_cnp``), and below-ground structural "
             "(``litter_pool_below_structural_cnp``).  Reference values are available "
-            "from forest inventory and litter-trap studies."
+            "from forest inventory and litter-trap studies.  This target is emergent "
+            "because it aggregates five separate litter pools."
         ),
         output_variables=[
             "litter_pool_above_metabolic_cnp",
@@ -228,13 +259,15 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
         target_id="P07",
         name="Soil respiration",
         tier=TargetTier.PRIMARY,
+        is_emergent=False,
         ecological_property="CO2 efflux from soil microbial decomposition",
         description=(
             "Soil respiration is the CO2 produced by microbial decomposition of "
-            "organic matter in the soil.  It is stored in the ``soil_respiration`` "
-            "variable in the data object.  Site-level comparisons should use "
-            "automated chamber or gradient measurements averaged over the same time "
-            "period as the model output."
+            "organic matter in the soil.  It is stored directly in the "
+            "``soil_respiration`` variable in the data object and requires no further "
+            "aggregation.  Site-level comparisons should use automated chamber or "
+            "gradient measurements averaged over the same time period as the model "
+            "output."
         ),
         output_variables=["soil_respiration"],
         output_files=["Data object (xarray)"],
@@ -245,12 +278,14 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
         target_id="P08",
         name="Net radiation",
         tier=TargetTier.PRIMARY,
+        is_emergent=False,
         ecological_property="Radiative energy balance at the land surface",
         description=(
             "Net radiation (Rn) is the difference between incoming and outgoing "
             "short- and long-wave radiation at the top of the canopy.  It is stored "
-            "directly in the ``net_radiation`` variable.  Comparisons should target "
-            "radiation measurements from flux tower sites within the same biome."
+            "directly in the ``net_radiation`` variable and requires no further "
+            "aggregation.  Comparisons should target radiation measurements from flux "
+            "tower sites within the same biome."
         ),
         output_variables=["net_radiation"],
         output_files=["Data object (xarray)"],
@@ -261,14 +296,17 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
         target_id="P09",
         name="Animal biomass density",
         tier=TargetTier.PRIMARY,
+        is_emergent=True,
         ecological_property="Total heterotroph carbon mass per unit area",
         description=(
             "Animal biomass density is the aggregate carbon mass of all animal cohorts "
             "per grid cell area.  It is computed from ``animal_cohort_data.csv`` by "
             "multiplying ``mass_carbon`` by ``individuals`` for each cohort and summing "
-            "within each cell and time step.  Reference values can be drawn from "
-            "Madingley model outputs (Harfoot et al. 2014) or empirical compilations of "
-            "heterotroph biomass density for the target biome."
+            "within each time step using :func:`compute_animal_biomass_density`.  "
+            "Reference values can be drawn from Madingley model outputs "
+            "(Harfoot et al. 2014) or empirical compilations of heterotroph biomass "
+            "density for the target biome.  This target is emergent because it must be "
+            "aggregated from cohort-level data."
         ),
         output_variables=["mass_carbon", "individuals"],
         output_files=["animal_cohort_data.csv"],
@@ -279,13 +317,16 @@ PRIMARY_TARGETS: list[ValidationTarget] = [
         target_id="P10",
         name="Total heterotrophic respiration",
         tier=TargetTier.PRIMARY,
+        is_emergent=True,
         ecological_property="Combined CO2 efflux from soil microbes and animals",
         description=(
             "Total heterotrophic respiration is the sum of ``soil_respiration`` and "
             "``total_animal_respiration`` averaged over the simulation domain.  It "
             "provides a check on the total carbon cycling rate through the heterotroph "
             "compartment and should be compared against eddy-covariance partitioned "
-            "ecosystem respiration measurements."
+            "ecosystem respiration measurements.  This target is emergent because it "
+            "aggregates two separate respiration variables from different model "
+            "components."
         ),
         output_variables=["soil_respiration", "total_animal_respiration"],
         output_files=["Data object (xarray)"],
@@ -305,6 +346,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="E01",
         name="Latent heat flux",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property="Energy flux associated with evapotranspiration",
         description=(
             "The latent heat flux (LE) profile is stored in ``latent_heat_flux`` "
@@ -322,6 +364,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="E02",
         name="Sensible heat flux",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property="Convective energy flux from land surface to atmosphere",
         description=(
             "The sensible heat flux (H) profile is stored in ``sensible_heat_flux`` "
@@ -338,6 +381,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="E03",
         name="Bowen ratio",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property=(
             "Partitioning of net radiation between sensible and latent heat"
         ),
@@ -357,6 +401,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="E04",
         name="Root-to-shoot ratio",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property="Allocation of carbon between above- and below-ground plant tissues",
         description=(
             "The root-to-shoot ratio (RSR = BGB / AGB) is an emergent allometric "
@@ -380,6 +425,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="A01",
         name="Total animal assimilation rate",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property="Carbon consumed and assimilated across all animal cohorts",
         description=(
             "The total animal assimilation rate is the sum of the carbon column (``C``) "
@@ -397,6 +443,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="A02",
         name="Herbivore assimilation rate",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property="Carbon consumed from plant or litter resources by herbivores",
         description=(
             "The herbivore assimilation rate is computed from "
@@ -416,6 +463,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="A03",
         name="Predator assimilation rate",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property="Carbon consumed from prey cohorts by predators",
         description=(
             "The predator assimilation rate is computed from "
@@ -433,6 +481,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="A04",
         name="Trophic efficiency",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property="Fraction of consumed carbon passed to the next trophic level",
         description=(
             "Trophic efficiency is the ratio of predator assimilation (target A03) to "
@@ -450,6 +499,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="M01",
         name="Body mass vs time to maturity",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property=(
             "Allometric relationship between adult body mass and development time"
         ),
@@ -471,6 +521,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="M02",
         name="Body mass vs maturity rate",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property=(
             "Allometric relationship between adult body mass and rate of attaining maturity"
         ),
@@ -491,6 +542,7 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
         target_id="M03",
         name="Body mass vs abundance (Damuth's Law)",
         tier=TargetTier.SECONDARY,
+        is_emergent=True,
         ecological_property=(
             "Negative allometric scaling of population density with body mass"
         ),
@@ -511,11 +563,42 @@ SECONDARY_TARGETS: list[ValidationTarget] = [
 
 
 # ---------------------------------------------------------------------------
-# Combined list
+# Combined lists
 # ---------------------------------------------------------------------------
 
 ALL_TARGETS: list[ValidationTarget] = PRIMARY_TARGETS + SECONDARY_TARGETS
-"""All validation targets, primary followed by secondary."""
+"""All validation targets, primary (10) followed by secondary."""
+
+EMERGENT_TARGETS: list[ValidationTarget] = [t for t in ALL_TARGETS if t.is_emergent]
+"""All targets that require post-processing to compute (``is_emergent=True``).
+
+This spans both tiers: the seven primary targets that are aggregated from
+multiple model output variables (P01–P03, P05, P06, P09, P10) and all
+secondary targets (E01–E04, A01–A04, M01–M03).
+"""
+
+
+def get_emergent_targets(
+    *,
+    tier: TargetTier | None = None,
+) -> list[ValidationTarget]:
+    """Return all emergent validation targets, optionally filtered by tier.
+
+    Args:
+        tier: If provided, restrict results to targets in the given
+            :class:`TargetTier`.  Pass ``TargetTier.PRIMARY`` to retrieve
+            only the primary targets that are also emergent, or
+            ``TargetTier.SECONDARY`` to retrieve only secondary targets.
+            Defaults to ``None`` (return all emergent targets).
+
+    Returns:
+        List of :class:`ValidationTarget` instances with ``is_emergent=True``,
+        filtered by *tier* if provided.
+    """
+    targets = EMERGENT_TARGETS
+    if tier is not None:
+        targets = [t for t in targets if t.tier == tier]
+    return targets
 
 
 # ---------------------------------------------------------------------------
