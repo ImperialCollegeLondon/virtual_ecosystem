@@ -1,11 +1,14 @@
 """Test module for abiotic.energy_balance.py."""
 
+import logging
+
 import numpy as np
 import pytest
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calculate_vp_sat
 from scipy.optimize import brentq
 
+from tests.conftest import log_check
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_aboveground_layer_thickness,
 )
@@ -669,6 +672,57 @@ def test_secant_nan_handling():
 
     # NaNs preserved
     assert np.all(np.isnan(result[~mask]))
+
+
+SECANT_NONCONVERGENCE_LOG = (
+    (
+        logging.INFO,
+        "Secant solver did not fully converge within 2 iterations. "
+        "2 unconverged layer(s), 3 unconverged cell(s), "
+        "and 5 unconverged (layer, cell_id) pair(s).",
+    ),
+    (
+        logging.INFO,
+        "Unconverged cell IDs: [0, 1, 2]",
+    ),
+    (
+        logging.INFO,
+        "Unconverged (layer, cell_id) pairs: [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1)]",
+    ),
+)
+
+
+def test_secant_solver_logs_unconverged_pairs(caplog):
+    """Test secant solver no convergence."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        secant_solve_cells_layers,
+    )
+
+    initial_guess = np.array(
+        [
+            [1.0, 1.0, 1.0],
+            [1.0, 1.0, np.nan],
+        ]
+    )
+
+    def residual_function(temperature):
+        return np.ones_like(temperature)
+
+    with caplog.at_level(logging.INFO):
+        secant_solve_cells_layers(
+            residual_function=residual_function,
+            initial_guess=initial_guess,
+            maxiter_secant=2,
+            convergence_tolerance=1e-12,
+            small_perturbation_second_guess=1e-3,
+            denominator_tolerance=1e-12,
+        )
+
+    log_check(
+        caplog,
+        expected_log=SECANT_NONCONVERGENCE_LOG,
+    )
 
 
 def test_make_canopy_residual_changes_with_temperature(
