@@ -8,7 +8,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.19.4
+      jupytext_version: 1.19.5
 ---
 
 # Debugging the Virtual Ecosystem
