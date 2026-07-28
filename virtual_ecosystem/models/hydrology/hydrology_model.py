@@ -488,7 +488,7 @@ class HydrologyModel(
             )
 
         # Set seed for random rainfall generator
-        seed: None | int = kwargs.pop("seed", None)
+        seed: int | None = kwargs.pop("seed", None)
 
         # Select variables at relevant heights for current time step
         hydro_input = hydrology_tools.setup_hydrology_input_current_timestep(
