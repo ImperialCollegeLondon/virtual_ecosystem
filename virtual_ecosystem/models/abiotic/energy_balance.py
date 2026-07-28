@@ -956,7 +956,8 @@ def solve_canopy_temperature_with_air_coupling(
     Air temperature is then updated from sensible heat flux, and the process is
     repeated until both canopy and air temperatures converge.
 
-    TODO handle non-convergence
+    If the solver does not converge within max iterations, the last best guess is
+    returned and solver diagnostics are added to the log file.
 
     Args:
         state: Dictionary containing state variables needed for the energy balance
