@@ -1,6 +1,6 @@
 """Test module for abiotic.energy_balance.py."""
 
-import logging
+from logging import INFO
 
 import numpy as np
 import pytest
@@ -676,17 +676,17 @@ def test_secant_nan_handling():
 
 SECANT_NONCONVERGENCE_LOG = (
     (
-        logging.INFO,
+        INFO,
         "Secant solver did not fully converge within 2 iterations. "
         "2 unconverged layer(s), 3 unconverged cell(s), "
         "and 5 unconverged (layer, cell_id) pair(s).",
     ),
     (
-        logging.INFO,
+        INFO,
         "Unconverged cell IDs: [0, 1, 2]",
     ),
     (
-        logging.INFO,
+        INFO,
         "Unconverged (layer, cell_id) pairs: [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1)]",
     ),
 )
@@ -699,25 +699,24 @@ def test_secant_solver_logs_unconverged_pairs(caplog):
         secant_solve_cells_layers,
     )
 
+    # Initial guess of canopy temperature, assuming not all layers are filled
     initial_guess = np.array(
-        [
-            [1.0, 1.0, 1.0],
-            [1.0, 1.0, np.nan],
-        ]
+        [[25.0, 25.0, 25.0], [21.0, 21.0, np.nan], [np.nan, np.nan, np.nan]]
     )
 
+    # Generate simple residual function that is solved using the secant methods
+    # In the abiotic model, this is the residual of the energy balance
     def residual_function(temperature):
         return np.ones_like(temperature)
 
-    with caplog.at_level(logging.INFO):
-        secant_solve_cells_layers(
-            residual_function=residual_function,
-            initial_guess=initial_guess,
-            maxiter_secant=2,
-            convergence_tolerance=1e-12,
-            small_perturbation_second_guess=1e-3,
-            denominator_tolerance=1e-12,
-        )
+    secant_solve_cells_layers(
+        residual_function=residual_function,
+        initial_guess=initial_guess,
+        maxiter_secant=2,
+        convergence_tolerance=1e-12,
+        small_perturbation_second_guess=1e-3,
+        denominator_tolerance=1e-12,
+    )
 
     log_check(
         caplog,
