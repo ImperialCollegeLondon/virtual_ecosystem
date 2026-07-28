@@ -17,7 +17,7 @@ from tests.conftest import log_check
             id="default_config",
         ),
         pytest.param(
-            "[disturbance.add_fertiliser]\nrun_at=0",
+            "[disturbance.add_fertiliser]\nrun_at=[0,1]\n",
             0.5,
             id="run_at_config",
         ),
