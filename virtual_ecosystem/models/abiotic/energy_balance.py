@@ -985,6 +985,7 @@ def solve_canopy_temperature_with_air_coupling(
     # Solver-owned working arrays
     air_temperature = state["air_temperature"].copy()
     canopy_temperature = state["canopy_temperature"].copy()
+    air_temperature_above = state["air_temperature"][idx.above].copy()
 
     for _ in range(maxiter_air):
         residual_function = make_canopy_residual(
@@ -1035,11 +1036,25 @@ def solve_canopy_temperature_with_air_coupling(
             mixing_layer_thickness=static["geometry"]["thickness"],
         )
 
+        # The surface layer is too thin for stable integration, therefore a simpler
+        # conductivity-based approach is used
+        new_surface_temperature = update_surface_air_temperature(
+            canopy_air_temperature=new_canopy_temperature,
+            state=state_local,
+            idx=idx,
+            denominator_tolerance=denominator_tolerance,
+        )
+
         canopy_change = np.nanmax(np.abs(new_canopy_temperature - canopy_temperature))
         air_change = np.nanmax(np.abs(new_air_temperature - air_temperature))
 
         canopy_temperature = new_canopy_temperature
         air_temperature = new_air_temperature
+        air_temperature[idx.surface] = new_surface_temperature
+
+        # The air temperature above the canopy is returned as nan, needs to be filled
+        # with reference value again
+        air_temperature[idx.above] = air_temperature_above
 
         if max(canopy_change, air_change) < air_temperature_tolerance:
             break

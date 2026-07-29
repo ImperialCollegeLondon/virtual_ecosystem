@@ -858,3 +858,9 @@ def test_solve_canopy_temperature_with_air_coupling(
         air_temperature,
         state["air_temperature"],
     )
+
+    # Check reference value is replaced
+    assert np.isfinite(air_temperature[idx.above]).all()
+
+    # Check surface value is in realistic range
+    assert np.all(air_temperature[idx.surface] > 20.0)
