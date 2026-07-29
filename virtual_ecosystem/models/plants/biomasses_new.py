@@ -1,70 +1,24 @@
-"""The :mod:`~virtual_ecosystem.models.plants.biomasses` module contains the class
-for managing plant cohort carbon biomass along with the biomasses of all elements being
-tracked stochiometrically within a simulation. The class contains representations of the
-carbon mass and element masses within individual tissues and provides methods to balance
-stoichiometric nutrients across tissues.
-
-The theoretical tissue masses for individuals in a cohort are derived from the T Model
-predictions for the stem and the elemental masses are currently populated using the
-ideal ratio of those elements for each tissue. Growth is modelled using allocation of
-NPP from the T Model. However, the actual realised masses of different tissues can
+"""The :mod:`~virtual_ecosystem.models.plants.biomasses_new` module contains structures
+to track the realised stoichiometric biomasses of stems in the simulation. The
+theoretical tissue masses for individuals in a cohort are derived from the T Model
+predictions for the stem and growth and turnover are modelled using the GPP allocation
+model from the T Model. However, the actual realised masses of different tissues can
 differ from the theory due to herbivory and fruit production, so this class is used to
-track the actual carbon masses realised by individuals through the simulation.
+track the actual elemental masses realised by individuals through the simulation.
 
-The module define a base class for tissues and then currently four tissue types.
+* The :class:`BiomassTissueABC` abstract base class and subclasses implementing
+  biomasses for modelled plant tissues. The tissue biomass classes track the actual
+  masses of carbon and elemental nutrients for stems in each cohort and provide methods
+  to track changes elemental masses during tissue turnover, growth and herbivory.
 
-FoliageBiomass:
-    # Has different ratios in turnover mass
+* The :class:`Biomasses` class provides a wrapper around a set of tissues for cohorts,
+  providing methods to initialise all tissues and handle turnover and growth across
+  tissues. It also tracks the overall nutrient status of tissues and provides methods to
+  balance nutrient requirements across tissues and track nutrient deficits and
+  surpluses.
 
-    biomass: foliage_mass
-    turnover_biomass: foliage_turnover
-    growth_biomass: delta_foliage_mass
-
-    ideal_ratio: foliage_c_{elem.lower()}_ratio
-    turnover_ratio: leaf_turnover_c_{elem.lower()}_ratio
-
-    TODO - check to make sure turnover foliage doesn't get relatively _enriched_ if the
-           plant is severely nutrient depleted.
-
-ReproductiveBiomass:
-    # Same ratios; has turnover
-
-    biomass: reproductive_tissue_mass
-    turnover_biomass: reproductive_tissue_turnover
-    growth_biomass: foliage_tissue * p_foliage_for_reproductive_tissue
-
-    ideal_ratio: not defined - identical to turnover ratio
-    turnover_ratio: plant_reproductive_tissue_turnover_c_{elem.lower()}_ratio
-
-RootBiomass:
-    # Same ratios; has turnover
-
-    biomass: fine_root_mass
-    turnover_biomass: fine_root_turnover
-    growth_biomass: delta_foliage_mass * zeta * sla
-
-    ideal_ratio: not defined - identical to turnover ratio
-    turnover_ratio: root_turnover_c_{elem.lower()}_ratio
-
-StemBiomass
-    # No turnover at present, so same ratios doesn't really make sense, but if there was
-      turnover it probably would be at these ratios.
-
-    biomass: stem_mass
-    turnover_biomass: not defined, no stem turnover
-    growth_biomass: delta_stem_mass
-
-    ideal_ratio: deadwood_c_{elem.lower()}_ratio
-    turnover_ratio: not defined (because there is no turnover)
-
-
-TODO - factor out mass accessor functions (get_biomass etc) as in the lists above and
-       then make those limited functions the abstract methods so that all the logic can
-       be shared in base class methods.
-
-TODO - make this all run on 2D CNP arrays (remove Element?) Have single arrays giving
-       biomasses and ideal and turnover ratios.
-
+Both classes provide ``append`` methods to add new cohorts into the biomass
+representation.
 """  # noqa: D205
 
 from __future__ import annotations
@@ -108,7 +62,8 @@ class BiomassTissueABC(ABC):
       and a row for each cohort. Carbon masses are always in the first column, followed
       by the nutrient elements given in the the ``elements`` class attribute. The
       initial biomasses are set using the allometric carbon mass of the tissue and the
-      ideal ratios, unless the ``initial_masses`` argument is provided.
+      ideal ratios for the tissue, unless these are overridden by providing an array of
+      ``initial_masses``.
 
     * The ideal and turnover ratios are also held as numpy arrays, with the same shape
       as the biomasses and are expressed as C/x ratios. The first column of these arrays
@@ -150,8 +105,8 @@ class BiomassTissueABC(ABC):
     """The form of the tissue ideal ratio attributes defined in the flora and available 
     from Cohorts objects."""
     turnover_ratio_attrs: ClassVar[str]
-    """The form of the tissue turnover ratio attributes defined in the flora and available 
-    from Cohorts objects."""
+    """The form of the tissue turnover ratio attributes defined in the flora and
+    available from Cohorts objects."""
 
     elements: ClassVar[tuple[str, ...]] = ("N", "P")
     """A tuple giving the nutrient elements included in the biomasses."""
@@ -171,8 +126,8 @@ class BiomassTissueABC(ABC):
         """An 2D array of tissue elemental masses stems in cohorts."""
 
         self.turnover_ratios: NDArray[np.floating]
-        """Elemental ratios for tissue turnover. These may be identical to ideal ratios if
-        the tissue does have nutrient resorption on senesced tissue."""
+        """Elemental ratios for tissue turnover. These may be identical to ideal ratios 
+        if the tissue does have nutrient resorption on turnover tissue."""
 
         self.ideal_ratios: NDArray[np.floating]
         """Ideal elemental ratios for the tissue."""
@@ -278,6 +233,7 @@ class BiomassTissueABC(ABC):
 
         for attr in ("elemental_masses", "ideal_ratios", "turnover_ratios"):
             # Append the elemental masses and ratios from the incoming instance
+            # onto the existing instance.
             setattr(
                 self, attr, np.concatenate([getattr(self, attr), getattr(other, attr)])
             )
@@ -314,56 +270,57 @@ class BiomassTissueABC(ABC):
 
         return nutrient_ideal_ratio_increase
 
-    # def get_relative_carbon_biomass_by_pft(self) -> NDArray[np.floating]:
-    #     """Get the proportional carbon biomass of each cohort within PFTs for a tissue.
 
-    #     This is used to distribute herbivory - which happens at the PFT level - back
-    #     down to individual cohorts, assuming that herbivory is distributed between
-    #     cohorts of the same PFT in proportion to the available biomass.
+# def get_relative_carbon_biomass_by_pft(self) -> NDArray[np.floating]:
+#     """Get the proportional carbon biomass of each cohort within PFTs for a tissue.
 
-    #     Args:
-    #         tissue_type: The type of tissue to retrieve (e.g., 'foliage', 'wood').
+#     This is used to distribute herbivory - which happens at the PFT level - back
+#     down to individual cohorts, assuming that herbivory is distributed between
+#     cohorts of the same PFT in proportion to the available biomass.
 
-    #     Returns:
-    #         An one-dimensional array with length equal to the number of cohorts giving
-    #         the proportional carbon biomass of that cohort within the PFT.
+#     Args:
+#         tissue_type: The type of tissue to retrieve (e.g., 'foliage', 'wood').
 
-    #     """
+#     Returns:
+#         An one-dimensional array with length equal to the number of cohorts giving
+#         the proportional carbon biomass of that cohort within the PFT.
 
-    #     total_pft_carbon_biomass = np.zeros_like(self.carbon_mass)
+#     """
 
-    #     # Use boolean indexing to collate the total PFT biomass for each cohort
-    #     # NOTE - this relies on the community being updated by reference when
-    #     #        recruitment happens. If this changes then the match of the number of
-    #     #        columns to the PFTs needs to be maintained some other way.
-    #     for pft in set(self.community.cohorts["pft_name"]):
-    #         # boolean index along carbon_mass array
-    #         in_pft = self.community.cohorts["pft_name"].to_numpy() == pft
-    #         # aggregate masses across cohorts in the PFT and assign total.
-    #         total_pft_carbon_biomass[in_pft] = self.carbon_mass[in_pft].sum()
+#     total_pft_carbon_biomass = np.zeros_like(self.carbon_mass)
 
-    #     return self.carbon_mass / total_pft_carbon_biomass
+#     # Use boolean indexing to collate the total PFT biomass for each cohort
+#     # NOTE - this relies on the community being updated by reference when
+#     #        recruitment happens. If this changes then the match of the number of
+#     #        columns to the PFTs needs to be maintained some other way.
+#     for pft in set(self.community.cohorts["pft_name"]):
+#         # boolean index along carbon_mass array
+#         in_pft = self.community.cohorts["pft_name"].to_numpy() == pft
+#         # aggregate masses across cohorts in the PFT and assign total.
+#         total_pft_carbon_biomass[in_pft] = self.carbon_mass[in_pft].sum()
 
-    # def apply_herbivory(self, herbivory_array: DataArray):
-    #     """Remove biomass from a tissue to account for herbiivory.
+#     return self.carbon_mass / total_pft_carbon_biomass
 
-    #     The input is expected to be a DataArray with a pft dimension matching the number
-    #     of cohorts and then an element dimension containing C and then each element.
+# def apply_herbivory(self, herbivory_array: DataArray):
+#     """Remove biomass from a tissue to account for herbiivory.
 
-    #     NOTE - if this class moves to an all array representation of biomasses, then it
-    #            we should be able just to subtract the incoming array from the current
-    #            element masses. Note that np.array - xr.DataArray returns an xr.DataArray
-    #            so need to reduce to numpy.
-    #     """
-    #     self.carbon_mass -= herbivory_array.sel(element="C").to_numpy()
-    #     for elem_name, elem in self.element_masses.items():
-    #         elem.actual_element_mass -= herbivory_array.sel(
-    #             element=elem_name
-    #         ).to_numpy()
+#     The input is expected to be a DataArray with a pft dimension matching the number
+#     of cohorts and then an element dimension containing C and then each element.
+
+#     NOTE - if this class moves to an all array representation of biomasses, then it
+#            we should be able just to subtract the incoming array from the current
+#            element masses. Note that np.array - xr.DataArray returns an xr.DataArray
+#            so need to reduce to numpy.
+#     """
+#     self.carbon_mass -= herbivory_array.sel(element="C").to_numpy()
+#     for elem_name, elem in self.element_masses.items():
+#         elem.actual_element_mass -= herbivory_array.sel(
+#             element=elem_name
+#         ).to_numpy()
 
 
 class FoliageBiomass(BiomassTissueABC):
-    """Foliage stoichiometry biomasses for plant cohorts."""
+    """Foliage tissue stoichiometry biomasses for plant cohorts."""
 
     tissue_name = "foliage"
     mass_attr = "foliage_mass"
@@ -385,7 +342,7 @@ class FruitBiomass(BiomassTissueABC):
 
 
 class SeedBiomass(BiomassTissueABC):
-    """Holds fruit tissue stoichiometry data for a set of plant cohorts."""
+    """Seed tissue stoichiometry biomasses for plant cohorts."""
 
     tissue_name = "seed"
     mass_attr = "seed_mass"
@@ -396,7 +353,7 @@ class SeedBiomass(BiomassTissueABC):
 
 
 class StemBiomass(BiomassTissueABC):
-    """A class to hold stem stoichiometry data for a set of plant cohorts."""
+    """Stem tissue stoichiometry biomasses for plant cohorts."""
 
     tissue_name = "stem"
     mass_attr = "stem_mass"
@@ -407,7 +364,7 @@ class StemBiomass(BiomassTissueABC):
 
 
 class RootBiomass(BiomassTissueABC):
-    """A class to hold root stoichiometry data for a set of plant cohorts."""
+    """Fine root tissue stoichiometry biomasses for plant cohorts."""
 
     tissue_name = "root"
     mass_attr = "fine_root_mass"
@@ -417,304 +374,314 @@ class RootBiomass(BiomassTissueABC):
     turnover_ratio_attrs = "root_turnover_c_ELEM_ratio"
 
 
-# @dataclass
-# class Biomasses(ToDataFrameMixin):
-#     """A class holding biomasses for a set of plant cohorts and tissues.
+class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
+    """A class holding biomasses for a set of plant cohorts and tissues.
 
-#     This class holds the current ratios across tissue type for a community object, which
-#     in essence is a series of cohorts. It acts in parallel with StemAllometry, a class
-#     attribute of Community.
+    This class holds the current ratios across tissue type for a community object, which
+    in essence is a series of cohorts. It acts in parallel with StemAllometry, a class
+    attribute of Community.
 
-#     The class is designed to be element-agnostic, so it can be used for any element as
-#     required.
-#     """
+    The class is designed to be element-agnostic, so it can be used for any element as
+    required.
+    """
 
-#     tissues: list[BiomassTissueABC]
-#     """Tissues for the associated cohorts."""
-#     community: Community
-#     """The community object that the stoichiometry is associated with."""
-#     element_surpluses: dict[str, NDArray[np.floating]] = field(init=False)
-#     """The surplus of the element per cohort."""
-#     tissue_names: list[str] = field(init=False)
-#     """A list giving the name of each tissue."""
-#     elements: tuple[str, ...] = field(init=False)
-#     """A list of the elements recorded in each tissue."""
+    # NOTE: these are hard-coded and must be updated if the simulation
+    #       uses different biomass classes.
+    # TODO: Might also be redundant if the ToDataFramMixin approach isn't going to be
+    #       used, which it might well not be - can just concat the tissue arrays into a
+    #       data frame.
+    _array_attrs: ClassVar[tuple[str, ...]] = (
+        "biomass_foliage_carbon_mass",
+        "biomass_foliage_n_actual_element_mass",
+        "biomass_foliage_p_actual_element_mass",
+        "biomass_fruit_carbon_mass",
+        "biomass_fruit_n_actual_element_mass",
+        "biomass_fruit_p_actual_element_mass",
+        "biomass_seed_carbon_mass",
+        "biomass_seed_n_actual_element_mass",
+        "biomass_seed_p_actual_element_mass",
+        "biomass_stem_carbon_mass",
+        "biomass_stem_n_actual_element_mass",
+        "biomass_stem_p_actual_element_mass",
+        "biomass_root_carbon_mass",
+        "biomass_root_n_actual_element_mass",
+        "biomass_root_p_actual_element_mass",
+    )
+    """Array attribute names for all biomass tissue and element data."""
 
-#     # Note: these are hard-coded and must be updated if the simulation
-#     # uses different biomass classes.
-#     _array_attrs: ClassVar[tuple[str, ...]] = (
-#         "biomass_foliage_carbon_mass",
-#         "biomass_foliage_n_actual_element_mass",
-#         "biomass_foliage_p_actual_element_mass",
-#         "biomass_fruit_carbon_mass",
-#         "biomass_fruit_n_actual_element_mass",
-#         "biomass_fruit_p_actual_element_mass",
-#         "biomass_seed_carbon_mass",
-#         "biomass_seed_n_actual_element_mass",
-#         "biomass_seed_p_actual_element_mass",
-#         "biomass_stem_carbon_mass",
-#         "biomass_stem_n_actual_element_mass",
-#         "biomass_stem_p_actual_element_mass",
-#         "biomass_root_carbon_mass",
-#         "biomass_root_n_actual_element_mass",
-#         "biomass_root_p_actual_element_mass",
-#     )
-#     """Array attribute names for all biomass tissue and element data."""
+    def __init__(
+        self,
+        tissues: list[BiomassTissueABC],
+        # community,
+        element_surpluses: NDArray[np.floating] | None = None,
+    ) -> None:
 
-#     def __post_init__(self) -> None:
-#         """Initialize the element surplus for each cohort."""
+        # TODO - do we actually need this constructor as opposed to just using the
+        #        from_cohorts method as __init__?
 
-#         # Check the elements being used
-#         elements = {tuple(tissue.element_masses.keys()) for tissue in self.tissues}
+        self.tissues: list[BiomassTissueABC] = tissues
+        """Tissues for the associated cohorts."""
+        # community: Community
+        # """The community object that the stoichiometry is associated with."""
+        self.element_surpluses: NDArray[np.floating]
+        """The surplus of the element per cohort."""
+        self.tissue_names: list[str]
+        """A list giving the name of each tissue."""
+        self.elements: tuple[str, ...]
+        """A list of the elements recorded in each tissue."""
 
-#         if len(elements) > 1:
-#             raise ValueError(
-#                 f"Tissues passed to StemBiomasses have different elements: {elements}"
-#             )
+        # Check the elemental mass shapes are consistent
+        element_shape_set = {t.elemental_masses.shape for t in self.tissues}
 
-#         # Store lists of tissue types and element names, used for indexing tissues.
-#         self.tissue_names = [t.tissue_name for t in self.tissues]
-#         self.elements = elements.pop()
+        if len(element_shape_set) > 1:
+            raise ValueError(
+                f"Tissues passed to StemBiomasses have different elemental "
+                f"mass array shapes: {element_shape_set}"
+            )
+        element_shapes = element_shape_set.pop()
 
-#         # Populate the whole individual elemental surpluses
-#         # TODO - should this populate from the tissues themselves. When this is from
-#         # default_init then these _will_ be zeros, but that isn't true of direct use of
-#         # the constructor. Is there ever a case we'd use the __init__ though?
+        # Check the elements being used
+        elements = {t.elements for t in self.tissues}
 
-#         self.element_surplus = {
-#             elem: np.zeros(len(self.community.cohorts)) for elem in self.elements
-#         }
+        if len(elements) > 1:
+            raise ValueError(
+                f"Tissues passed to StemBiomasses have different elements: {elements}"
+            )
 
-#     @classmethod
-#     def default_init(
-#         cls,
-#         community: Community,
-#         with_elements: list[str],
-#         tissues: list[type[BiomassTissueABC]],
-#     ):
-#         """Create an instance of StemStoichiometry from the PFT stoichiometry ratios.
+        # Store lists of tissue types and element names, used for indexing tissues.
+        self.tissue_names = [t.tissue_name for t in self.tissues]
+        self.elements = elements.pop()
 
-#         Args:
-#             community: The community object that the stoichiometry is associated with.
-#             extra_pft_traits: Additional traits specific to the plant functional type.
-#             with_elements: The name of the elements to be used in the biomass
-#                 representation.
-#             tissues: A list of tissue models to be used.
+        # Populate the whole individual elemental surpluses
+        if element_surpluses is not None:
+            if element_surpluses.shape != element_shapes:
+                raise ValueError(
+                    "Provided element surpluses have a different shape to the tissue "
+                    "biomass arrays."
+                )
+            self.element_surpluses = element_surpluses
+        else:
+            self.element_surplus = np.zeros(element_shapes)
 
-#         Returns:
-#             An instance of StemBiomasses with default tissues for the community.
-#         """
+    @classmethod
+    def from_cohorts(
+        cls,
+        cohorts: Cohorts,
+        allometry: StemAllometry,
+        tissues: list[type[BiomassTissueABC]],
+    ):
+        """Create a Biomasses instance from cohort data using the ideal element ratios.
 
-#         # Generate the default tissues
-#         default_tissues: list[BiomassTissueABC] = [
-#             tissue.from_pft_default_ratios(
-#                 community=community,
-#                 with_elements=with_elements,
-#             )
-#             for tissue in tissues
-#         ]
+        Args:
+            cohorts: A data frame of cohorts providing trait data.
+            allometry: The allometry of the cohorts.
+            tissues: A list of tissue models to be used.
 
-#         return cls(
-#             tissues=default_tissues,
-#             community=community,
-#         )
+        Returns:
+            An instance of Biomasses with default element ratios for the cohorts.
+        """
 
-#     @property
-#     def total_element_masses(self) -> dict[str, NDArray[np.floating]]:
-#         """Calculate the total element mass for each cohort.
+        # Generate the default tissues
+        default_tissues: list[BiomassTissueABC] = [
+            tissue(
+                cohorts=cohorts,
+                allometry=allometry,
+            )
+            for tissue in tissues
+        ]
 
-#         Returns:
-#             The total element mass for each cohort.
-#         """
-#         masses = [t.get_elemental_masses for t in self.tissues]
-#         return {ky: np.add.reduce([m[ky] for m in masses]) for ky in self.elements}
+        return cls(tissues=default_tissues)
 
-#     @property
-#     def tissue_deficit(self) -> dict[str, NDArray[np.floating]]:
-#         """Calculate the total element deficits for each cohort.
+    @property
+    def total_element_masses(self) -> NDArray[np.floating]:
+        """Calculate the total element mass for each cohort.
 
-#         Returns:
-#             The element deficit for all cohorts.
-#         """
-#         deficits = [t.deficit for t in self.tissues]
-#         return {ky: np.add.reduce([d[ky] for d in deficits]) for ky in self.elements}
+        Returns:
+            The total element mass across tissues for each cohort.
+        """
+        return np.add.reduce([t.elemental_masses for t in self.tissues])
 
-#     def _adjust_surpluses(
-#         self, masses: dict[str, NDArray[np.floating]], increase: bool = True
-#     ) -> None:
-#         """Adjust the element surpluses in the biomass object."""
-#         for elem in self.elements:
-#             if increase:
-#                 self.element_surplus[elem] += masses[elem]
-#             else:
-#                 self.element_surplus[elem] -= masses[elem]
+    @property
+    def tissue_deficit(self) -> NDArray[np.floating]:
+        """Calculate the total element deficits for each cohort.
 
-#     def apply_growth(self, growth_increments: GrowthIncrements) -> None:
-#         """Distribute the carbon allocated to growth and required nutrients to tissues.
+        Returns:
+            The element deficit for all cohorts.
+        """
 
-#         This method updates the actual biomasses for each tissue type based on the
-#         carbon allocation and elements needed for growth at ideal ratios, given that
-#         carbon biomass.
+        return np.add.reduce([t.deficits for t in self.tissues])
 
-#         The nutrient allocation is debited from the whole stem nutrient balance and
-#         subsequent nutrient balancing is responsible for adjusting tissue values to
-#         reflect nutrient excesses or deficits at the whole stem level.
+    def _adjust_surpluses(
+        self, masses=NDArray[np.floating], increase: bool = True
+    ) -> None:
+        """Adjust the element surpluses in the biomass object."""
+        if increase:
+            self.element_surpluses += masses
+        else:
+            self.element_surpluses -= masses
 
-#         Args:
-#             growth_increments: A GrowthIncrements instance containing the growth
-#                 increment data.
-#         """
+    def apply_growth(self, growth_increments: GrowthIncrements) -> None:
+        """Distribute the carbon allocated to growth and required nutrients to tissues.
 
-#         for tissue in self.tissues:
-#             # Increase the tissue biomasses and record the nutrient masses required to
-#             # add that mass at ideal ratios.
-#             needed = tissue.apply_growth(growth_increments=growth_increments)
-#             # Record the nutrients biomasses at ideal ratios allocated to the tissue in
-#             # the whole stem balance.
-#             self._adjust_surpluses(needed, increase=False)
+        This method updates the actual biomasses for each tissue type based on the
+        carbon allocation and elements needed for growth at ideal ratios, given that
+        carbon biomass.
 
-#     def apply_turnover(
-#         self, allocation: StemAllocation
-#     ) -> dict[str, NDArray[np.floating]]:
-#         """Apply the effects of turnover on whole stem nutrient balances.
+        The nutrient allocation is debited from the whole stem nutrient balance and
+        subsequent nutrient balancing is responsible for adjusting tissue values to
+        reflect nutrient excesses or deficits at the whole stem level.
 
-#         This method takes a stem allocation object and returns an array per tissue of
-#         the carbon and nutrient biomasses of turnover from each pool.
+        Args:
+            growth_increments: A GrowthIncrements instance containing the growth
+                increment data.
+        """
 
-#         The calls to the individual `BiomassTissueABC.get_turnover` methods do not alter
-#         the biomasses in the tissue pools:
+        for tissue in self.tissues:
+            # Increase the tissue biomasses and record the nutrient masses required to
+            # add that mass at ideal ratios.
+            needed = tissue.apply_growth(growth_increments=growth_increments)
+            # Record the nutrients biomasses at ideal ratios allocated to the tissue in
+            # the whole stem balance, after zeroing carbon which is allocated from NPP.
+            needed[:, 0] = 0
+            self._adjust_surpluses(needed, increase=False)
 
-#         * The carbon biomass turnover explicitly models the maintenance of tissue carbon
-#           biomass by replacement - an equal carbon biomass is lost to the environment
+    def apply_turnover(
+        self, allocation: StemAllocation
+    ) -> dict[str, NDArray[np.floating]]:
+        """Apply the effects of turnover on whole stem nutrient balances.
 
-#         * Nutrient biomasses are lost to turnover according to the turnover ratios. If
-#           the tissues are at their ideal ratio, then the elemental masses will not
-#           change. However, if the nutrient inputs within a timestep are not sufficient
-#           to maintain the current ratios of replacement tissue, then the tissue
-#           elemental masses should decrease. This is handled by recording the lost
-#           elemental masses in the stem-wide element surplus pools and balancing the
-#           accumulated deficits and gains to those pools at the end of the allocation
-#           process.
+        This method takes a stem allocation object and returns an array per tissue of
+        the carbon and nutrient biomasses of turnover from each pool.
 
-#         TODO: This needs to account for herbivory - proportional to herbivory loss?
+        The calls to the individual `BiomassTissueABC.get_turnover` methods do not alter
+        the biomasses in the tissue pools:
 
-#         Returns:
-#             A dictionary by tissue of turnover biomass arrays
-#         """
+        * The carbon biomass turnover explicitly models the maintenance of tissue carbon
+          biomass by replacement - an equal carbon biomass is lost to the environment
 
-#         # Get turnover by tissue
-#         turnover_by_tissue = {
-#             tissue.tissue_name: np.stack(list(tissue.get_turnover(allocation).values()))
-#             for tissue in self.tissues
-#         }
+        * Nutrient biomasses are lost to turnover according to the turnover ratios. If
+          the tissues are at their ideal ratio, then the elemental masses will not
+          change. However, if the nutrient inputs within a timestep are not sufficient
+          to maintain the current ratios of replacement tissue, then the tissue
+          elemental masses should decrease. This is handled by recording the lost
+          elemental masses in the stem-wide element surplus pools and balancing the
+          accumulated deficits and gains to those pools at the end of the allocation
+          process.
 
-#         # TODO - this next bit is clunky but moving the whole system over to arrays not
-#         #        dicts internally will probably fix it.
+        TODO: This needs to account for herbivory - proportional to herbivory loss?
 
-#         # Accumulate the tissue specific turnovers into a single whole stem turnover
-#         total_turnover = np.add.reduce(list(turnover_by_tissue.values()))
+        Returns:
+            A dictionary by tissue of turnover biomass arrays
+        """
 
-#         # This total is a CNP by cohorts array and needs to be split back to per element
-#         # dictionary of arrays.
-#         total_turnover_by_element = dict(zip(["C", *self.elements], total_turnover))
-#         self._adjust_surpluses(total_turnover_by_element, increase=False)
+        # Get turnover by tissue
+        turnover_by_tissue = {
+            t.tissue_name: t.get_turnover(allocation) for t in self.tissues
+        }
 
-#         return turnover_by_tissue
+        # Accumulate the tissue specific turnovers into a single whole stem turnover
+        total_turnover = np.add.reduce(list(turnover_by_tissue.values()))
 
-#     def balance_elements(self) -> None:
-#         """Redistribute elemental mass across tissues and element pool.
+        # Remove carbon from losses - replaced by turnover allocation - and update
+        # surpluses
+        total_turnover[:, 0] = 0
+        self._adjust_surpluses(total_turnover, increase=False)
 
-#         This method calculates the elemental deficits and surpluses in each tissue and
-#         the central pool and then redistributes elemental masses to distribute whole
-#         stem deficits and surpluses down to the tissue level.
+        return turnover_by_tissue
 
-#         Typically the central biomass pools will be empty at the end of this process
-#         unless elemental surpluses exceed the masses needed to bring all of tissues up
-#         to their ideal ratio.
-#         """
+    def balance_elements(self) -> None:
+        """Redistribute elemental mass across tissues and element pool.
 
-#         # Get 3D arrays of elements/cohorts/tissue for actual element masses and
-#         # per tissue element deficits
-#         tissue_element_masses = np.stack([t.as_array() for t in self.tissues])
-#         tissue_element_deficits = np.stack([
-#             t.as_array(deficit=True) for t in self.tissues
-#         ])
+        This method calculates the elemental deficits and surpluses in each tissue and
+        the central pool and then redistributes elemental masses to distribute whole
+        stem deficits and surpluses down to the tissue level.
 
-#         # Get a 2D array of elements/cohort from the individual-level element pool
-#         stem_pools = np.stack(list(self.element_surplus.values()))
+        Typically the central biomass pools will be empty at the end of this process
+        unless elemental surpluses exceed the masses needed to bring all of tissues up
+        to their ideal ratio.
+        """
 
-#         # Calculate the redistribution of pool deficits (negative values) to tissues
-#         # weighted by the relative elemental mass for each tissue.
-#         pool_deficits_to_tissues = stem_pools * (
-#             tissue_element_masses / tissue_element_masses.sum(axis=0)
-#         )
+        # Get 3D arrays of elements/cohorts/tissue for actual element masses and
+        # per tissue element deficits
+        tissue_element_masses = np.stack([t.as_array() for t in self.tissues])
+        tissue_element_deficits = np.stack([
+            t.as_array(deficit=True) for t in self.tissues
+        ])
 
-#         # Calculate the redistribution of pool surpluses (positive values) to tissues
-#         # weighted by their relative deficits within the whole stem. This is problematic
-#         # when the whole stem deficit is zero (can be -inf, nan or inf depending on the
-#         # numerator), so explicitly handle zero stem deficits in a way that doesn't
-#         # raise warnings and sets the relative deficit to zero.
+        # Get a 2D array of elements/cohort from the individual-level element pool
+        stem_pools = np.stack(list(self.element_surplus.values()))
 
-#         stem_deficits = tissue_element_deficits.sum(axis=0)
-#         tissue_relative_deficits = np.divide(
-#             tissue_element_deficits,
-#             stem_deficits,
-#             out=np.zeros_like(tissue_element_deficits),
-#             where=stem_deficits != 0,
-#         )
+        # Calculate the redistribution of pool deficits (negative values) to tissues
+        # weighted by the relative elemental mass for each tissue.
+        pool_deficits_to_tissues = stem_pools * (
+            tissue_element_masses / tissue_element_masses.sum(axis=0)
+        )
 
-#         pool_surpluses_to_tissues = stem_pools * tissue_relative_deficits
+        # Calculate the redistribution of pool surpluses (positive values) to tissues
+        # weighted by their relative deficits within the whole stem. This is problematic
+        # when the whole stem deficit is zero (can be -inf, nan or inf depending on the
+        # numerator), so explicitly handle zero stem deficits in a way that doesn't
+        # raise warnings and sets the relative deficit to zero.
 
-#         # Constrain element changes
-#         # - don't fill tissue deficits beyond the ideal ratio.
-#         pool_surpluses_to_tissues = np.minimum(
-#             tissue_element_deficits, pool_surpluses_to_tissues
-#         )
+        stem_deficits = tissue_element_deficits.sum(axis=0)
+        tissue_relative_deficits = np.divide(
+            tissue_element_deficits,
+            stem_deficits,
+            out=np.zeros_like(tissue_element_deficits),
+            where=stem_deficits != 0,
+        )
 
-#         # - don't drain tissues below zero.
-#         pool_deficits_to_tissues = np.maximum(
-#             -tissue_element_masses, pool_deficits_to_tissues
-#         )
+        pool_surpluses_to_tissues = stem_pools * tissue_relative_deficits
 
-#         # Combine the two redistribution paths to give deficits and surpluses
-#         pool_to_tissue = np.where(
-#             stem_pools < 0, pool_deficits_to_tissues, pool_surpluses_to_tissues
-#         )
+        # Constrain element changes
+        # - don't fill tissue deficits beyond the ideal ratio.
+        pool_surpluses_to_tissues = np.minimum(
+            tissue_element_deficits, pool_surpluses_to_tissues
+        )
 
-#         # Allocate resulting masses back to tissues
-#         for tissue, to_tissue in zip(self.tissues, pool_to_tissue):
-#             tissue.add_elemental_masses({
-#                 ky: mass for ky, mass in zip(self.elements, to_tissue)
-#             })
+        # - don't drain tissues below zero.
+        pool_deficits_to_tissues = np.maximum(
+            -tissue_element_masses, pool_deficits_to_tissues
+        )
 
-#         # Remove masses allocated to tissues from pool.
-#         for elem, from_pool in zip(self.elements, pool_to_tissue.sum(axis=0)):
-#             self.element_surplus[elem] -= from_pool
+        # Combine the two redistribution paths to give deficits and surpluses
+        pool_to_tissue = np.where(
+            stem_pools < 0, pool_deficits_to_tissues, pool_surpluses_to_tissues
+        )
 
-#     def get_tissue(self, tissue_type: str) -> BiomassTissueABC:
-#         """Get the tissue model for a specific tissue type.
+        # Allocate resulting masses back to tissues
+        for tissue, to_tissue in zip(self.tissues, pool_to_tissue):
+            tissue.add_elemental_masses({
+                ky: mass for ky, mass in zip(self.elements, to_tissue)
+            })
 
-#         Args:
-#             tissue_type: The type of tissue to retrieve (e.g., 'foliage', 'wood').
+        # Remove masses allocated to tissues from pool.
+        for elem, from_pool in zip(self.elements, pool_to_tissue.sum(axis=0)):
+            self.element_surplus[elem] -= from_pool
 
-#         Returns:
-#             The tissue model corresponding to the specified tissue type.
-#         """
+    def get_tissue(self, tissue_type: str) -> BiomassTissueABC:
+        """Get the tissue model for a specific tissue type.
 
-#         try:
-#             return self.tissues[self.tissue_names.index(tissue_type)]
-#         except ValueError:
-#             raise ValueError(f"Tissue type '{tissue_type}' not found.")
+        Args:
+            tissue_type: The type of tissue to retrieve (e.g., 'foliage', 'wood').
 
-#     def append(self, other: Biomasses):
-#         """Append data from another Biomasses instance representing new cohorts."""
+        Returns:
+            The tissue model corresponding to the specified tissue type.
+        """
 
-#         # TODO check tissues and elements?
+        try:
+            return self.tissues[self.tissue_names.index(tissue_type)]
+        except ValueError:
+            raise ValueError(f"Tissue type '{tissue_type}' not found.")
 
-#         for tissue_name in self.tissue_names:
-#             self.get_tissue(tissue_name).append(other.get_tissue(tissue_name))
+    def append(self, other: Biomasses):
+        """Append data from another Biomasses instance representing new cohorts."""
 
-#         for elem in self.elements:
-#             self.element_surplus[elem] = np.append(
-#                 self.element_surplus[elem], other.element_surplus[elem]
-#             )
+        # TODO check tissues and elements?
+
+        for tissue_name in self.tissue_names:
+            self.get_tissue(tissue_name).append(other.get_tissue(tissue_name))
+
+        self.element_surpluses = np.append(
+            self.element_surpluses, other.element_surpluses
+        )
