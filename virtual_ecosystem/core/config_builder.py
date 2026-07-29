@@ -29,7 +29,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from pydantic import ValidationError, create_model
+from pydantic import Field, ValidationError, create_model
 
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.exceptions import ConfigurationError
@@ -562,7 +562,7 @@ def build_configuration_model(
         combined_disturbance_model = create_model(
             "CompiledConfiguration",
             __base__=CompiledConfiguration,
-            **{fname: (cname, cname()) for fname, cname in subdisturbance_models},
+            **{fname: (cname, Field(cname)) for fname, cname in subdisturbance_models},
         )  # type: ignore[call-overload]
         # Populate the _model_classes class variable with the required dictionary of VE
         # BaseDisturbance models by requested model name.
@@ -575,7 +575,7 @@ def build_configuration_model(
     combined_model = create_model(
         "CompiledConfiguration",
         __base__=CompiledConfiguration,
-        **{fname: (cname, cname()) for fname, cname in submodels},
+        **{fname: (cname, Field(cname)) for fname, cname in submodels},
     )  # type: ignore[call-overload]
 
     # Populate the _model_classes class variable with the required dictionary of VE
