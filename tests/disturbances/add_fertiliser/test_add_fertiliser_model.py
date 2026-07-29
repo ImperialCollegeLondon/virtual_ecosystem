@@ -12,17 +12,17 @@ from tests.conftest import log_check
     "cfg_string,nitrate_fraction",
     [
         pytest.param(
-            "[disturbance.add_fertiliser]\n",
+            "[core]\n[disturbance.add_fertiliser]\n",
             0.5,
             id="default_config",
         ),
         pytest.param(
-            "[disturbance.add_fertiliser]\nrun_at=[0,1]\n",
+            "[core]\n[disturbance.add_fertiliser]\nrun_at=[0,1]\n",
             0.5,
             id="run_at_config",
         ),
         pytest.param(
-            "[disturbance.add_fertiliser.constants]\nnitrate_fraction=0.75",
+            "[core]\n[disturbance.add_fertiliser.constants]\nnitrate_fraction=0.75",
             0.75,
             id="modified_config_correct",
         ),
