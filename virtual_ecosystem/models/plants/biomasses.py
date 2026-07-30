@@ -229,9 +229,8 @@ class BiomassTissueABC(ABC):
     def Cx_ratio(self) -> dict[str, NDArray[np.floating]]:
         """Get the carbon to element ratio for the tissue type.
 
-        This has to handle cases where a tissue has no biomass at all or no actual
-        elemental mass, which would otherwise generate NaN ratios (C/0). It explicitly
-        sets these cases to infinity.
+        If there is no elemental mass (and possible also no carbon mass) for any
+        cohorts in the tissue then the function return ``np.inf`` for those values.
 
         Returns:
             The carbon to element ratio for the specified tissue.
@@ -239,10 +238,12 @@ class BiomassTissueABC(ABC):
         ratios = {}
 
         for ky, elem in self.element_masses.items():
-            ratios[ky] = np.where(
-                elem.actual_element_mass == 0,
-                np.inf,
-                self.carbon_mass / elem.actual_element_mass,
+            # Use np.divide and where here to avoid triggering warnings on zero divides
+            ratios[ky] = np.divide(
+                self.carbon_mass,
+                elem.actual_element_mass,
+                where=elem.actual_element_mass > 0,
+                out=np.full_like(self.carbon_mass, np.inf),
             )
 
         return ratios
