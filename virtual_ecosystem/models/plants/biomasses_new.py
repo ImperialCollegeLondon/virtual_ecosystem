@@ -603,17 +603,15 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
 
         # Get 3D arrays of elements/cohorts/tissue for actual element masses and
         # per tissue element deficits
-        tissue_element_masses = np.stack([t.as_array() for t in self.tissues])
-        tissue_element_deficits = np.stack([
-            t.as_array(deficit=True) for t in self.tissues
-        ])
+        tissue_element_masses = np.stack([t.elemental_masses for t in self.tissues])
+        tissue_element_deficits = np.stack([t.deficits for t in self.tissues])
 
         # Get a 2D array of elements/cohort from the individual-level element pool
-        stem_pools = np.stack(list(self.element_surplus.values()))
+        # stem_pools = np.stack(list(self.element_surplus.values()))
 
         # Calculate the redistribution of pool deficits (negative values) to tissues
         # weighted by the relative elemental mass for each tissue.
-        pool_deficits_to_tissues = stem_pools * (
+        pool_deficits_to_tissues = self.element_surpluses * (
             tissue_element_masses / tissue_element_masses.sum(axis=0)
         )
 
@@ -631,7 +629,7 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
             where=stem_deficits != 0,
         )
 
-        pool_surpluses_to_tissues = stem_pools * tissue_relative_deficits
+        pool_surpluses_to_tissues = self.element_surpluses * tissue_relative_deficits
 
         # Constrain element changes
         # - don't fill tissue deficits beyond the ideal ratio.
@@ -646,18 +644,17 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
 
         # Combine the two redistribution paths to give deficits and surpluses
         pool_to_tissue = np.where(
-            stem_pools < 0, pool_deficits_to_tissues, pool_surpluses_to_tissues
+            self.element_surpluses < 0,
+            pool_deficits_to_tissues,
+            pool_surpluses_to_tissues,
         )
 
         # Allocate resulting masses back to tissues
         for tissue, to_tissue in zip(self.tissues, pool_to_tissue):
-            tissue.add_elemental_masses({
-                ky: mass for ky, mass in zip(self.elements, to_tissue)
-            })
+            tissue.add_elemental_masses(to_tissue)
 
         # Remove masses allocated to tissues from pool.
-        for elem, from_pool in zip(self.elements, pool_to_tissue.sum(axis=0)):
-            self.element_surplus[elem] -= from_pool
+        self.element_surpluses -= pool_to_tissue.sum(axis=0)
 
     def get_tissue(self, tissue_type: str) -> BiomassTissueABC:
         """Get the tissue model for a specific tissue type.

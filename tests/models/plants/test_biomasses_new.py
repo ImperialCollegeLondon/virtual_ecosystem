@@ -788,7 +788,7 @@ def fixture_balance_elements_test_cases(which):
 
 @pytest.mark.parametrize("which", (0, 1, 2, 3, 4, 5, 6, 7, [0, 1, 2, 3, 4, 5, 6, 7]))
 def test_balance_elements(
-    fixture_community, fixture_balance_elements_test_cases, which
+    fixture_biomass_components, fixture_balance_elements_test_cases, which
 ):
     """Test the balancing of elements across tissues.
 
@@ -799,9 +799,8 @@ def test_balance_elements(
     test that the method handles a mixture of scenarios across cohorts.
     """
 
-    from virtual_ecosystem.models.plants.biomasses import (
+    from virtual_ecosystem.models.plants.biomasses_new import (
         Biomasses,
-        Element,
         FoliageBiomass,
         StemBiomass,
     )
@@ -816,73 +815,71 @@ def test_balance_elements(
         expected_pool,
     ) = fixture_balance_elements_test_cases
 
+    cohorts, allometry, _, _ = fixture_biomass_components
+
     n_cases = 1 if isinstance(which, int) else len(which)
 
-    # Turnover not relevant to this test
-    turnover_ratios = np.repeat(np.nan, n_cases)
+    cohorts = pd.DataFrame(
+        dict(
+            deadwood_c_n_ratio=np.tile(BALANCE_WOOD_CN, n_cases),
+            deadwood_c_p_ratio=np.tile(BALANCE_WOOD_CP, n_cases),
+            foliage_c_n_ratio=np.tile(BALANCE_FOLIAGE_CN, n_cases),
+            foliage_c_p_ratio=np.tile(BALANCE_FOLIAGE_CP, n_cases),
+            leaf_turnover_c_n_ratio=np.repeat(np.nan, n_cases * len(BALANCE_WOOD_C)),
+            leaf_turnover_c_p_ratio=np.repeat(np.nan, n_cases * len(BALANCE_WOOD_C)),
+        )
+    )
+
+    allometry = SimpleNamespace(
+        stem_mass=np.tile(BALANCE_WOOD_C, n_cases),
+        foliage_mass=np.tile(BALANCE_FOLIAGE_C, n_cases),
+    )
 
     foliage = FoliageBiomass(
-        community=fixture_community,
-        # Note that this only has two cohorts
-        # - not sure BiomassTissue will retain community as an argument.
-        carbon_mass=np.tile(BALANCE_FOLIAGE_C, n_cases),
-        element_masses={
-            "N": Element(
-                name="n",
-                ideal_ratio=np.tile(BALANCE_FOLIAGE_CN, n_cases),
-                actual_element_mass=initial_foliage[0],
-                turnover_ratio=turnover_ratios,
-            ),
-            "P": Element(
-                name="p",
-                ideal_ratio=np.tile(BALANCE_FOLIAGE_CP, n_cases),
-                actual_element_mass=initial_foliage[1],
-                turnover_ratio=turnover_ratios,
-            ),
-        },
+        cohorts=cohorts,
+        allometry=allometry,
+        initial_masses=np.concatenate(
+            [
+                allometry.foliage_mass[None, :],
+                initial_foliage,
+            ]
+        ).T,
     )
 
     wood = StemBiomass(
-        community=fixture_community,
-        carbon_mass=np.tile(BALANCE_WOOD_C, n_cases),
-        element_masses={
-            "N": Element(
-                name="n",
-                ideal_ratio=np.tile(BALANCE_WOOD_CN, n_cases),
-                actual_element_mass=initial_wood[0],
-                turnover_ratio=turnover_ratios,
-            ),
-            "P": Element(
-                name="p",
-                ideal_ratio=np.tile(BALANCE_WOOD_CP, n_cases),
-                actual_element_mass=initial_wood[1],
-                turnover_ratio=turnover_ratios,
-            ),
-        },
+        cohorts=cohorts,
+        allometry=allometry,
+        initial_masses=np.concatenate(
+            [
+                allometry.stem_mass[None, :],
+                initial_wood,
+            ]
+        ).T,
     )
 
     biomasses = Biomasses(
         tissues=[foliage, wood],
-        community=fixture_community,
+        element_surpluses=np.concatenate(
+            [
+                np.zeros_like(allometry.stem_mass)[None, :],
+                initial_pool,
+            ]
+        ).T,
     )
-
-    # Set the element pools to balance
-    biomasses.element_surplus = {
-        ky: initial_pool[idx] for idx, ky in enumerate(biomasses.elements)
-    }
 
     # Run the method.
     biomasses.balance_elements()
 
-    # Check the expectations.
-    foliage = biomasses.get_tissue("foliage").as_array()
-    assert_allclose(foliage, expected_foliage)
+    # Check the non carbon elements are as expected
+    assert_allclose(
+        biomasses.get_tissue("foliage").elemental_masses[:, 1:], expected_foliage.T
+    )
 
-    wood = biomasses.get_tissue("stem").as_array()
-    assert_allclose(wood, expected_wood)
+    assert_allclose(
+        biomasses.get_tissue("stem").elemental_masses[:, 1:], expected_wood.T
+    )
 
-    pool = np.stack(list(biomasses.element_surplus.values()))
-    assert_allclose(pool, expected_pool)
+    assert_allclose(biomasses.element_surpluses[:, 1:], expected_pool.T)
 
 
 def test_add_elemental_masses_clips_negative_value(fixture_community, caplog):
