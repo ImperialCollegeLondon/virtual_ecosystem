@@ -55,8 +55,8 @@ class BiomassTissueABC(ABC):
     """Stoichiometry tissue biomasses for a set of plant cohorts.
 
     This base class holds the current elemental masses for a specific plant tissue (e.g.
-    foliage, stem, fine roots) for a cohort, along with the ideal and turnover ratios
-    for the tissue type.
+    foliage, stem, fine roots) for a set of cohorts, along with the tissue-specicic
+    ideal and turnover nutrient C/N ratios for each cohort.
 
     * The elemental biomasses are held as a numpy array with a column for each element
       and a row for each cohort. Carbon masses are always in the first column, followed
@@ -69,23 +69,30 @@ class BiomassTissueABC(ABC):
       as the biomasses and are expressed as C/x ratios. The first column of these arrays
       is therefore C/C and is always equal to one.
 
-    The class provides methods to add and remove biomasses through herbivory, growth and
-    turnover and to add new cohorts to the biomass representation.
+    The class provides methods to add and remove biomasses through turnover, growth and
+    herboivory and to add new cohorts to the biomass representation. It also has
+    properties to access current realised C/x ratios and nutrient deficits.
 
     Subclasses of this abstract base class provide implementations for specific tissues
-    and are defined by setting class attributes that give the names of tissue specific
-    mass and ratio attributes from model objects:
+    and are defined simply by setting class attributes that give the names of tissue
+    specific mass and ratio attributes from model objects:
 
-    * tissue_name
-    * mass_attr
-    * turnover_mass_attr
-    * growth_mass_attr
-    * ideal_ratio_attrs
-    * turnover_ratio_attrs
+    * ``tissue_name``: a tissue label
+    * ``mass_attr``: the tissue mass attribute name in StemAllometry objects.
+    * ``turnover_mass_attr``: the tissue turnover mass attribute name in StemAllocation
+      objects.
+    * ``growth_mass_attr``: The tissue growth mass attribute name in GrowthIncrements
+      objects.
+    * ``ideal_ratio_attrs``: A string that can be used to match the tissue ideal ratio
+      attributes defined in the flora and included in Cohorts objects
+    * ``turnover_ratio_attrs``: As above but matching tissue turnover ratio attributes.
+      These will typically point to the same attribute as the ideal ratio - the tissue
+      does not resorb nutrients during turnover - but can identify different ratios
+      where resorption does occur.
 
-    The last two attributes need to extract CN ratios from plant functional trait
-    definitions. They should be defined using the format "tissue_stem_c_ELEM_ratio",
-    where ELEM can be be replaced to extract specific element ratios.
+    The last two attributes must be defined using the format ``stem_c_ELEM_ratio``,
+    where ELEM can be be replaced with the lower case element letter to match the
+    specific elemental ratio traits (e.g. ``stem_c_n_ratio``, ``stem_c_p_ratio``)
 
     Args:
         cohorts: A dataframe of cohort data.
@@ -96,17 +103,17 @@ class BiomassTissueABC(ABC):
     tissue_name: ClassVar[str]
     """A tissue name for derived classes."""
     mass_attr: ClassVar[str]
-    """The tissue mass attribute name in StemAllometry objects."""
+    """The tissue mass attribute name in StemAllometry objects"""
     turnover_mass_attr: ClassVar[str]
     """The tissue turnover mass attribute name in StemAllocation objects"""
     growth_mass_attr: ClassVar[str]
-    """The tissue growth mass attribute name in GrowthIncrements objects."""
+    """The tissue growth mass attribute name in GrowthIncrements objects"""
     ideal_ratio_attrs: ClassVar[str]
     """The form of the tissue ideal ratio attributes defined in the flora and available 
-    from Cohorts objects."""
+    from Cohorts objects"""
     turnover_ratio_attrs: ClassVar[str]
     """The form of the tissue turnover ratio attributes defined in the flora and
-    available from Cohorts objects."""
+    available from Cohorts objects"""
 
     elements: ClassVar[tuple[str, ...]] = ("N", "P")
     """A tuple giving the nutrient elements included in the biomasses."""
@@ -412,7 +419,6 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
     def __init__(
         self,
         tissues: list[BiomassTissueABC],
-        # community,
         element_surpluses: NDArray[np.floating] | None = None,
     ) -> None:
 
@@ -421,8 +427,6 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
 
         self.tissues: list[BiomassTissueABC] = tissues
         """Tissues for the associated cohorts."""
-        # community: Community
-        # """The community object that the stoichiometry is associated with."""
         self.element_surpluses: NDArray[np.floating]
         """The surplus of the element per cohort."""
         self.tissue_names: list[str]
@@ -461,7 +465,7 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
                 )
             self.element_surpluses = element_surpluses
         else:
-            self.element_surplus = np.zeros(element_shapes)
+            self.element_surpluses = np.zeros(element_shapes)
 
     @classmethod
     def from_cohorts(
@@ -679,6 +683,9 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
         for tissue_name in self.tissue_names:
             self.get_tissue(tissue_name).append(other.get_tissue(tissue_name))
 
-        self.element_surpluses = np.append(
-            self.element_surpluses, other.element_surpluses
+        self.element_surpluses = np.concatenate(
+            [
+                self.element_surpluses,
+                other.element_surpluses,
+            ]
         )
