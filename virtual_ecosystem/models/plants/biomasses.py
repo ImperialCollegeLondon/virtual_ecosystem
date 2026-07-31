@@ -710,7 +710,6 @@ class StemBiomass(BiomassTissueABC):
                 actual_element_mass=carbon_mass / ideal_ratio,
                 turnover_ratio=turnover_ratio,
             )
-            pass
 
         return cls(
             carbon_mass=carbon_mass,
