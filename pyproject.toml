@@ -60,10 +60,10 @@ requires-poetry = ">=2.0"
 [tool.poetry.group.types.dependencies]
 types-dataclasses = "^0.6.6"
 types-jsonschema = "^4.26.0"
-types-tqdm = "^4.69.0.20260724"
+types-tqdm = "^4.69.0.20260728"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.161.5"
+hypothesis = "^6.163.0"
 pytest = ">=9.1.1,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
