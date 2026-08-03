@@ -30,6 +30,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pyrealm.demography.cohorts import Cohorts
 from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllometry
+from xarray import DataArray
 
 from virtual_ecosystem.core.logger import LOGGER
 
@@ -277,53 +278,45 @@ class BiomassTissueABC(ABC):
 
         return nutrient_ideal_ratio_increase
 
+    def get_relative_carbon_biomass_by_pft(
+        self, cohorts: Cohorts
+    ) -> NDArray[np.floating]:
+        """Get the proportional carbon biomass of each cohort within PFTs for a tissue.
 
-# def get_relative_carbon_biomass_by_pft(self) -> NDArray[np.floating]:
-#     """Get the proportional carbon biomass of each cohort within PFTs for a tissue.
+        This is used to distribute herbivory - which happens at the PFT level - back
+        down to individual cohorts, assuming that herbivory is distributed between
+        cohorts of the same PFT in proportion to the available biomass.
 
-#     This is used to distribute herbivory - which happens at the PFT level - back
-#     down to individual cohorts, assuming that herbivory is distributed between
-#     cohorts of the same PFT in proportion to the available biomass.
+        TODO: This will need to nest by cell id if we drop communities, since herbivory
+              is applied at the cell level.
 
-#     Args:
-#         tissue_type: The type of tissue to retrieve (e.g., 'foliage', 'wood').
+        Args:
+            cohorts: The cohort data for the biomasses.
 
-#     Returns:
-#         An one-dimensional array with length equal to the number of cohorts giving
-#         the proportional carbon biomass of that cohort within the PFT.
+        Returns:
+            An one-dimensional array with length equal to the number of cohorts giving
+            the proportional carbon biomass of that cohort within the PFT.
+        """
 
-#     """
+        carbon_mass = self.elemental_masses[:, 0]
+        total_pft_carbon_biomass = np.zeros_like(carbon_mass)
 
-#     total_pft_carbon_biomass = np.zeros_like(self.carbon_mass)
+        # Use boolean indexing to collate the total PFT biomass for each cohort
+        for pft in set(cohorts["pft_name"]):
+            # boolean index along carbon_mass array
+            in_pft = cohorts["pft_name"].to_numpy() == pft
+            # aggregate carbon masses across cohorts in the PFT and assign total.
+            total_pft_carbon_biomass[in_pft] = carbon_mass[in_pft].sum()
 
-#     # Use boolean indexing to collate the total PFT biomass for each cohort
-#     # NOTE - this relies on the community being updated by reference when
-#     #        recruitment happens. If this changes then the match of the number of
-#     #        columns to the PFTs needs to be maintained some other way.
-#     for pft in set(self.community.cohorts["pft_name"]):
-#         # boolean index along carbon_mass array
-#         in_pft = self.community.cohorts["pft_name"].to_numpy() == pft
-#         # aggregate masses across cohorts in the PFT and assign total.
-#         total_pft_carbon_biomass[in_pft] = self.carbon_mass[in_pft].sum()
+        return carbon_mass / total_pft_carbon_biomass
 
-#     return self.carbon_mass / total_pft_carbon_biomass
+    def apply_herbivory(self, herbivory_array: DataArray):
+        """Remove biomass from a tissue to account for herbiivory.
 
-# def apply_herbivory(self, herbivory_array: DataArray):
-#     """Remove biomass from a tissue to account for herbiivory.
-
-#     The input is expected to be a DataArray with a pft dimension matching the number
-#     of cohorts and then an element dimension containing C and then each element.
-
-#     NOTE - if this class moves to an all array representation of biomasses, then it
-#            we should be able just to subtract the incoming array from the current
-#            element masses. Note that np.array - xr.DataArray returns an xr.DataArray
-#            so need to reduce to numpy.
-#     """
-#     self.carbon_mass -= herbivory_array.sel(element="C").to_numpy()
-#     for elem_name, elem in self.element_masses.items():
-#         elem.actual_element_mass -= herbivory_array.sel(
-#             element=elem_name
-#         ).to_numpy()
+        The input is expected to be a DataArray with a pft dimension matching the number
+        of cohorts and then an element dimension containing C and then each element.
+        """
+        self.elemental_masses -= herbivory_array.to_numpy()
 
 
 class FoliageBiomass(BiomassTissueABC):

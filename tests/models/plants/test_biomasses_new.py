@@ -22,7 +22,7 @@ def fixture_biomass_components():
             zeta=[0.1, 0.1],
             sla=[2.0, 2.0],
             p_foliage_for_reproductive_tissue=[0.5, 0.5],
-            pft_names=["shrub", "broadleaf"],
+            pft_name=["shrub", "broadleaf"],
             foliage_c_n_ratio=[5.0, 6.0],  # Why do these start differently!
             leaf_turnover_c_n_ratio=[10.0, 12.0],
             foliage_c_p_ratio=[5.0, 6.0],
@@ -196,6 +196,12 @@ def test_BiomassTissue__init__and_methods(
 
     # Biomasses are now larger
     assert_allclose(tissue.elemental_masses, pre_turnover_masses + expected_growth)
+
+    # Proportional carbon biomass, easy since only one of each PFT so 100% of carbon
+    # biomass per PFT
+    prop_carbon = tissue.get_relative_carbon_biomass_by_pft(cohorts=cohorts)
+
+    assert_allclose(prop_carbon, np.ones(2))
 
 
 @pytest.mark.parametrize(

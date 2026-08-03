@@ -26,7 +26,7 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration, PyrealmConfig
-from virtual_ecosystem.models.plants.biomasses import (
+from virtual_ecosystem.models.plants.biomasses_new import (
     Biomasses,
     BiomassTissueABC,
     FoliageBiomass,
@@ -34,6 +34,7 @@ from virtual_ecosystem.models.plants.biomasses import (
     RootBiomass,
     SeedBiomass,
     StemBiomass,
+    partition_reproductive_tissue_mass,
 )
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
@@ -375,27 +376,31 @@ class PlantsModel(
         # HACK pyrealm3: Initialise the non-pyrealm biomasses by setting additional
         #      attributes on the community allometries.
         for cmty in self.communities.values():
-            cmty.stem_allometry.reproductive_tissue_mass = (
-                cmty.stem_allometry.foliage_mass
-                * cmty.cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
+            # Partition reproductive tissue allocation into fruit and seed masses
+            cmty.stem_allometry.fruit_mass, cmty.stem_allometry.seed_mass = (
+                partition_reproductive_tissue_mass(
+                    cohorts=cmty.cohorts,
+                    mass=cmty.stem_allometry.foliage_mass
+                    * cmty.cohorts["p_foliage_for_reproductive_tissue"].to_numpy(),
+                )
             )
 
         # Define the set of tissues to be tracked for each stem.
         self.biomass_tissues = [
             FoliageBiomass,  # foliage mass
-            FruitBiomass,  # plant fruit tissue
-            SeedBiomass,  # plant seed tissue
             StemBiomass,  # stem mass
-            RootBiomass,  # not a pyrealm allometry attribute
+            RootBiomass,  # fine root mass
+            FruitBiomass,  # fruit tissue mass
+            SeedBiomass,  # seed tissue mass
         ]
 
         # Record the per stem biomasses of stochiometric tissues for each cohort.
         # The initial values for N and P are based on the ideal stoichiometric ratios
         # defined in the plant traits.
         self.biomasses = {
-            cell_id: Biomasses.default_init(
-                community=community,
-                with_elements=["N", "P"],
+            cell_id: Biomasses.from_cohorts(
+                cohorts=community.cohorts,
+                allometry=community.allometry,
                 tissues=self.biomass_tissues,
             )
             for cell_id, community in self.communities.items()
@@ -946,7 +951,9 @@ class PlantsModel(
                 # Get the tissue
                 tissue = biomasses.get_tissue(herbivory_tissue)
                 # Get the relative carbon biomass of each cohort within its PFT
-                relative_herbivory = tissue.get_relative_carbon_biomass_by_pft()
+                relative_herbivory = tissue.get_relative_carbon_biomass_by_pft(
+                    cohorts=community.cohorts
+                )
 
                 # Extract the herbivory for this cell, broadcasts the total PFT
                 # herbivory out to each cohort and then scale by the relative per PFT
@@ -1236,7 +1243,11 @@ class PlantsModel(
 
             # HACK pyrealm3 - again, passing in reproductive tissue mass as a extra
             #      attribute on the increment object
-            stem_allocation.reproductive_tissue_turnover = reproductive_tissue_turnover
+            stem_allocation.fruit_turnover, stem_allocation.seed_turnover = (
+                partition_reproductive_tissue_mass(
+                    cohorts=cohorts, mass=reproductive_tissue_turnover
+                )
+            )
 
             self.stem_allocations[cell_id] = stem_allocation
 
@@ -1321,9 +1332,7 @@ class PlantsModel(
                     * cohorts["n_individuals"].to_numpy()
                 )
                 total_standing_biomass = (
-                    self.biomasses[cell_id]
-                    .get_tissue(by_pft_tissue)
-                    .as_array(with_carbon=True)
+                    self.biomasses[cell_id].get_tissue(by_pft_tissue).elemental_masses
                     * cohorts["n_individuals"].to_numpy()
                 )
 
@@ -1463,9 +1472,9 @@ class PlantsModel(
                 #    total aggregated elemental contributions:
                 for aggregated_tissue in ("stem", "root"):
                     self.data[f"{aggregated_tissue}_turnover_cnp"][cell_id] += (
-                        biomasses_of_dead_stems.get_tissue(aggregated_tissue).as_array(
-                            with_carbon=True
-                        )
+                        biomasses_of_dead_stems.get_tissue(
+                            aggregated_tissue
+                        ).elemental_masses
                         * mortality
                     ).sum(axis=1)
 
@@ -1479,9 +1488,9 @@ class PlantsModel(
                 for by_pft_tissue in ("fruit", "foliage", "seed"):
                     # Calculate the total turnover and standing biomass in each cohort
                     total_turnover_biomass = (
-                        biomasses_of_dead_stems.get_tissue(by_pft_tissue).as_array(
-                            with_carbon=True
-                        )
+                        biomasses_of_dead_stems.get_tissue(
+                            by_pft_tissue
+                        ).elemental_masses
                         * mortality
                     )
 
@@ -1562,9 +1571,9 @@ class PlantsModel(
                     len(new_cohorts)
                 )
 
-                new_biomasses = Biomasses.default_init(
-                    community=new_community,
-                    with_elements=["N", "P"],
+                new_biomasses = Biomasses.from_cohorts(
+                    cohorts=community.cohorts,
+                    allometry=community.allometry,
                     tissues=self.biomass_tissues,
                 )
 
