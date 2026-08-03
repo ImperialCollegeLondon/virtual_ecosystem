@@ -176,7 +176,7 @@ class AbioticConstants(AbioticSharedConstants):
     convergence_tolerance_secant_solver: float = 1e-2
     """Convergence tolerance for secant solver, in max absolute update."""
 
-    small_perturbation_second_guess_secant_solver: float = 1e-6
+    small_perturbation_second_guess_secant_solver: float = 0.5
     """Small perturbation for second initial guess in secant solver."""
 
     denominator_tolerance: float = 1e-12
@@ -188,7 +188,7 @@ class AbioticConstants(AbioticSharedConstants):
     understorey_ventilation_rate: float = 0.1
     """Understorey ventilation rate, comes into place when there is no canopy, [s-1]."""
 
-    extinction_coefficient_longwave: float = 0.5
+    extinction_coefficient_longwave: float = 0.1
     """Extinction coefficient for longwave radiation, dimensionless."""
 
     minimum_mixing_depth: float = 1.5

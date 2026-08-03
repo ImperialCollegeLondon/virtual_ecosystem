@@ -25,6 +25,7 @@ def prepare_static_inputs(
     time_index: int,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
 ) -> dict[str, Any]:
     """Prepare static inputs for microclimate model.
 
@@ -41,6 +42,7 @@ def prepare_static_inputs(
         time_index: Time index
         layer_structure: Layer structure object
         abiotic_constants: Set of constants for abiotic model
+        core_constants: Set of constants that are shared across all models
 
     Returns:
         Dictionary with prepared static inputs for microclimate model
@@ -92,9 +94,13 @@ def prepare_static_inputs(
     absorbed_longwave_radiation = energy_balance.calculate_absorbed_longwave_radiation(
         downward_longwave=downward_longwave,
         leaf_area_index=data["leaf_area_index"].to_numpy(),
+        soil_temperature=data["soil_temperature"].to_numpy(),
+        canopy_temperature=data["canopy_temperature"].to_numpy(),
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         soil_emissivity=abiotic_constants.soil_emissivity,
         extinction_coefficient_lw=abiotic_constants.extinction_coefficient_longwave,
+        stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+        zero_Celsius=core_constants.zero_Celsius,
         surface_index=idx.surface,
         topsoil_index=idx.topsoil,
     )
@@ -551,7 +557,7 @@ def calculate_vegetation_temperature(
         ),
         denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
-    vegetation_temperature[~mask] = np.nan
+    # vegetation_temperature[~mask] = np.nan  # TODO is this duplication?
 
     return vegetation_temperature
 
@@ -669,8 +675,6 @@ def calculate_soil_fluxes(
         - out["latent_heat_flux_soil"]
         - out["sensible_heat_flux_soil"]
         + static["absorbed_longwave_radiation"][idx.topsoil]
-        + 0.5 * np.nansum(state["longwave_emission"][idx.canopy], axis=0)
-        + 0.5 * state["longwave_emission"][idx.surface]
     )
 
     # Net radiation, [W m-2]
@@ -678,8 +682,6 @@ def calculate_soil_fluxes(
         state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
         + static["absorbed_longwave_radiation"][idx.topsoil]
-        + 0.5 * np.nansum(state["longwave_emission"][idx.canopy], axis=0)
-        + 0.5 * state["longwave_emission"][idx.surface]
     )
 
     return out
@@ -690,7 +692,6 @@ def update_air_temperature(
     static: dict[str, Any],
     abiotic_bounds: AbioticSimpleBounds,
     idx: SimpleNamespace,
-    denominator_tolerance: float,
     min_leaf_area_index_for_mixing: float,
 ) -> NDArray[np.floating]:
     """Update air temperature profiles based on calculated fluxes and turbulent mixing.
@@ -709,39 +710,29 @@ def update_air_temperature(
     """
     # Update canopy air temperatures, [C]
     canopy_air_temperature = energy_balance.update_canopy_air_temperature(
-        air_temperature=state["air_temperature"][idx.canopy],
-        sensible_heat_flux=state["sensible_heat_flux"][idx.canopy],
-        specific_heat_air=state["specific_heat_air"][idx.canopy],
-        density_air=state["density_air"][idx.canopy],
-        mixing_layer_thickness=static["geometry"]["thickness"][idx.canopy],
-    )
-
-    # Update surface layer air temperature, [C]
-    surface_air_temperature = energy_balance.update_surface_air_temperature(
-        canopy_air_temperature=state["air_temperature"][idx.canopy],
-        state=state,
-        idx=idx,
-        denominator_tolerance=denominator_tolerance,
+        air_temperature=state["air_temperature"],
+        sensible_heat_flux=state["sensible_heat_flux"],
+        specific_heat_air=state["specific_heat_air"],
+        density_air=state["density_air"],
+        mixing_layer_thickness=static["geometry"]["thickness"],
     )
 
     # Update all air temperatures, [C]
     # We assume here that if the canopy is very thin, it is in
     # equilibrium with the air. This is to prevent unrealistic air temperatures when
     # there is very little canopy.
-    air_temperature = np.copy(state["air_temperature"])
-    air_temperature[idx.canopy] = np.where(
+    canopy_air_temperature[idx.canopy] = np.where(
         static["leaf_area_index"][idx.canopy] > min_leaf_area_index_for_mixing,
-        canopy_air_temperature,
+        canopy_air_temperature[idx.canopy],
         state["air_temperature"][idx.canopy],
     )
-    air_temperature[idx.surface] = surface_air_temperature
 
     mixing_limits = (
         abiotic_bounds.air_temperature[0],
         np.repeat(abiotic_bounds.air_temperature[1], len(state["ventilation_rate"])),
     )
     air_temperature = wind.mix_and_ventilate(
-        input_variable=air_temperature,
+        input_variable=canopy_air_temperature,
         ventilation_rate=state["ventilation_rate"],
         mixing_coefficient=static["mixing_coefficient"],
         limits=mixing_limits,
@@ -936,8 +927,9 @@ def run_hour_step(
         time_interval=time_interval,
         idx=idx,
     )
+    # TODO check signs
     state["sensible_heat_flux"][idx.topsoil] = soil_fluxes["sensible_heat_flux_soil"]
-    state["latent_heat_flux"][idx.topsoil] = soil_fluxes["latent_heat_flux_soil"]
+    state["latent_heat_flux"][idx.topsoil] = -soil_fluxes["latent_heat_flux_soil"]
     state["longwave_emission"][idx.topsoil] = soil_fluxes["longwave_emission_soil"]
     state["net_radiation"][idx.topsoil] = soil_fluxes["net_radiation_soil"]
     state["ground_heat_flux"] = soil_fluxes["ground_heat_flux"]
@@ -1111,6 +1103,7 @@ def run_microclimate(
         time_index=time_index,
         layer_structure=layer_structure,
         abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
     )
 
     # Calculate wind profiles for microclimate model
