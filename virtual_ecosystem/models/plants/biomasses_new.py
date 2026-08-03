@@ -391,21 +391,21 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
     #       used, which it might well not be - can just concat the tissue arrays into a
     #       data frame.
     _array_attrs: ClassVar[tuple[str, ...]] = (
-        "biomass_foliage_carbon_mass",
-        "biomass_foliage_n_actual_element_mass",
-        "biomass_foliage_p_actual_element_mass",
-        "biomass_fruit_carbon_mass",
-        "biomass_fruit_n_actual_element_mass",
-        "biomass_fruit_p_actual_element_mass",
-        "biomass_seed_carbon_mass",
-        "biomass_seed_n_actual_element_mass",
-        "biomass_seed_p_actual_element_mass",
-        "biomass_stem_carbon_mass",
-        "biomass_stem_n_actual_element_mass",
-        "biomass_stem_p_actual_element_mass",
-        "biomass_root_carbon_mass",
-        "biomass_root_n_actual_element_mass",
-        "biomass_root_p_actual_element_mass",
+        "foliage_c_biomass",
+        "foliage_n_biomass",
+        "foliage_p_biomass",
+        "fruit_c_biomass",
+        "fruit_n_biomass",
+        "fruit_p_biomass",
+        "seed_c_biomass",
+        "seed_n_biomass",
+        "seed_p_biomass",
+        "stem_c_biomass",
+        "stem_n_biomass",
+        "stem_p_biomass",
+        "root_c_biomass",
+        "root_n_biomass",
+        "root_p_biomass",
     )
     """Array attribute names for all biomass tissue and element data."""
 

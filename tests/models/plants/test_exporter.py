@@ -24,7 +24,7 @@ def fixture_exporter_components(
     from pyrealm.demography.cohorts import cohort_id_generator
     from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation
 
-    from virtual_ecosystem.models.plants.biomasses import (
+    from virtual_ecosystem.models.plants.biomasses_new import (
         Biomasses,
         FoliageBiomass,
         FruitBiomass,
@@ -41,12 +41,11 @@ def fixture_exporter_components(
         grid=fixture_core_components.grid,
     )
 
-    # HACK pyrealm3: This is a workaround for not having repro tissue in allometry. Not
-    #      sure what the long term solution here is.
+    # HACK pyrealm3: Adding additional allometry values onto stem allometry. Could be
+    #      formalised in subclass
     for cmty in communities.values():
-        cmty.stem_allometry.reproductive_tissue_mass = np.full_like(
-            cmty.stem_allometry.dbh, 10
-        )
+        cmty.stem_allometry.fruit_mass = np.full_like(cmty.stem_allometry.dbh, 10)
+        cmty.stem_allometry.seed_mass = np.full_like(cmty.stem_allometry.dbh, 10)
 
     canopies = {
         cell_id: Canopy(
@@ -78,9 +77,9 @@ def fixture_exporter_components(
     }
 
     biomasses = {
-        cell_id: Biomasses.default_init(
-            community=cmty,
-            with_elements=["N", "P"],
+        cell_id: Biomasses.from_cohorts(
+            cohorts=cmty.cohorts,
+            allometry=cmty.stem_allometry,
             tissues=[
                 FoliageBiomass,
                 FruitBiomass,
@@ -369,8 +368,8 @@ def test_CommunityDataExporter_dump_cohort_data(
 
     if not attributes:
         content = pd.read_csv(out_path)
-        assert "biomass_stem_carbon_mass" in content.columns
-        assert "biomass_foliage_n_actual_element_mass" in content.columns
+        assert "stem_c_biomass" in content.columns
+        assert "foliage_n_biomass" in content.columns
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])

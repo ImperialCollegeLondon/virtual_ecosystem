@@ -21,7 +21,7 @@ from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllo
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.plants.biomasses import Biomasses
+from virtual_ecosystem.models.plants.biomasses_new import Biomasses
 from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
@@ -416,15 +416,13 @@ class CommunityDataExporter:
 
         columns: dict[str, np.ndarray] = {}
 
-        for tissue in biomass.tissues:
-            tissue_name = tissue.tissue_name.lower()
-            columns[f"biomass_{tissue_name}_carbon_mass"] = tissue.carbon_mass
+        elements = [e.lower() for e in ["C", *biomass.elements]]
 
-            for elem_name, element in tissue.element_masses.items():
-                elem = elem_name.lower()
-                columns[f"biomass_{tissue_name}_{elem}_actual_element_mass"] = (
-                    element.actual_element_mass
-                )
+        for tissue in biomass.tissues:
+            column_names = [f"{tissue.tissue_name}_{elem}_biomass" for elem in elements]
+            columns.update(
+                dict(zip(column_names, tissue.elemental_masses.transpose().tolist()))
+            )
 
         return pd.DataFrame(columns)
 
