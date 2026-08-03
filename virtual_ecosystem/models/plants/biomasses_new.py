@@ -610,9 +610,6 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
         tissue_element_masses = np.stack([t.elemental_masses for t in self.tissues])
         tissue_element_deficits = np.stack([t.deficits for t in self.tissues])
 
-        # Get a 2D array of elements/cohort from the individual-level element pool
-        # stem_pools = np.stack(list(self.element_surplus.values()))
-
         # Calculate the redistribution of pool deficits (negative values) to tissues
         # weighted by the relative elemental mass for each tissue.
         #
