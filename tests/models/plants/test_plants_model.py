@@ -300,9 +300,7 @@ def fxt_plants_model_hbvry(fxt_plants_model):
         for tissue in ("fruit", "seed", "foliage"):
             # Get the biomass and divide in half
             consumed_biomass = (
-                fxt_plants_model.biomasses[cid]
-                .get_tissue(tissue)
-                .as_array(with_carbon=True)
+                fxt_plants_model.biomasses[cid].get_tissue(tissue).elemental_masses
             ) / 2
 
             # Construct an xarray with dimensions to make it easier to group cohort data
@@ -310,10 +308,10 @@ def fxt_plants_model_hbvry(fxt_plants_model):
             target_array = fxt_plants_model.data[f"canopy_{tissue}_cnp_consumed"]
             consumed_biomass_by_pft = xarray.DataArray(
                 consumed_biomass,
-                dims=("element", "pft"),
+                dims=("pft", "element"),
                 coords={
+                    "pft": fxt_plants_model.communities[cid].cohorts["pft_name"],
                     "element": target_array.element,
-                    "pft": fxt_plants_model.biomasses[cid].community.cohorts.pft_name,
                 },
             )
 
@@ -358,11 +356,10 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model_hbvry, tricky_plant_cohort
     for cid in fxt_plants_model_hbvry.grid.cell_id:
         for tissue in ("fruit", "seed", "foliage"):
             assert_allclose(
-                initial_biomasses[cid].get_tissue(tissue).as_array(with_carbon=True)
-                / 2,
+                initial_biomasses[cid].get_tissue(tissue).elemental_masses / 2,
                 fxt_plants_model_hbvry.biomasses[cid]
                 .get_tissue(tissue)
-                .as_array(with_carbon=True),
+                .elemental_masses,
             )
 
     # Check that the LAI has been reduced to 75%: 50% of foliage lost in total is an
@@ -758,7 +755,7 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model, tricky_plant_coho
             tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
             assert_allclose(
                 fxt_plants_model.data[f"{var}_turnover_cnp"][cell_id],
-                tissue.as_array(with_carbon=True).sum(axis=1),
+                tissue.elemental_masses.sum(axis=0),
             )
 
         # More complex for fruit and seed - need to calculate per PFT values so need to
@@ -771,9 +768,7 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model, tricky_plant_coho
                 cohorts_this_pft = (
                     fxt_plants_model.communities[cell_id].cohorts.pft_name == pft
                 )
-                pft_biomass = tissue.as_array(with_carbon=True)[
-                    :, cohorts_this_pft
-                ].sum(axis=1)
+                pft_biomass = tissue.elemental_masses[cohorts_this_pft, :].sum(axis=0)
 
                 assert_allclose(
                     fxt_plants_model.data[f"{var}_turnover_cnp"][cell_id, idx, :],

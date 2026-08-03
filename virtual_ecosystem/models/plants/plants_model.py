@@ -400,7 +400,7 @@ class PlantsModel(
         self.biomasses = {
             cell_id: Biomasses.from_cohorts(
                 cohorts=community.cohorts,
-                allometry=community.allometry,
+                allometry=community.stem_allometry,
                 tissues=self.biomass_tissues,
             )
             for cell_id, community in self.communities.items()
@@ -1475,8 +1475,8 @@ class PlantsModel(
                         biomasses_of_dead_stems.get_tissue(
                             aggregated_tissue
                         ).elemental_masses
-                        * mortality
-                    ).sum(axis=1)
+                        * mortality[:, None]
+                    ).sum(axis=0)
 
                 # 2. Fruit and seed biomasses are stored by PFT so need pooling by PFT.
                 #    TODO - Some structural overlap here with allocate turnover in GPP.
@@ -1491,14 +1491,14 @@ class PlantsModel(
                         biomasses_of_dead_stems.get_tissue(
                             by_pft_tissue
                         ).elemental_masses
-                        * mortality
+                        * mortality[:, None]
                     )
 
                     for pft_idx, col_idx in enumerate(cohort_pft_bool_idx):
                         # Extract the cohorts for this PFT and sum across them and
                         # insert into xxx_turnover_cnp arrays
                         self.data[f"{by_pft_tissue}_turnover_cnp"][cell_id][pft_idx] = (
-                            total_turnover_biomass[:, col_idx].sum(axis=1)
+                            total_turnover_biomass[col_idx, :].sum(axis=0)
                         )
 
     def apply_recruitment(self) -> None:
@@ -1566,14 +1566,13 @@ class PlantsModel(
                     cohorts=new_cohorts,
                 )
 
-                # Set the reproductive tissue mass
-                new_community.stem_allometry.reproductive_tissue_mass = np.zeros(
-                    len(new_cohorts)
-                )
+                # Set the reproductive tissue masses
+                new_community.stem_allometry.fruit_mass = np.zeros(len(new_cohorts))
+                new_community.stem_allometry.seed_mass = np.zeros(len(new_cohorts))
 
                 new_biomasses = Biomasses.from_cohorts(
-                    cohorts=community.cohorts,
-                    allometry=community.allometry,
+                    cohorts=new_community.cohorts,
+                    allometry=new_community.stem_allometry,
                     tissues=self.biomass_tissues,
                 )
 
@@ -1664,10 +1663,14 @@ class PlantsModel(
 
             # Add per-stem uptake to the biomass surplus pools
             self.biomasses[cell_id]._adjust_surpluses(
-                {
-                    "N": ammonium_uptake + nitrate_uptake,
-                    "P": phosphorous_uptake,
-                }
+                np.stack(
+                    [
+                        np.zeros_like(phosphorous_uptake),  # No carbon
+                        ammonium_uptake + nitrate_uptake,
+                        phosphorous_uptake,
+                    ],
+                    axis=1,
+                )
             )
 
     def convert_to_litter_units(self, input_mass: xr.DataArray) -> xr.DataArray:
