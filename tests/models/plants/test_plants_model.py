@@ -707,11 +707,11 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model, tricky_plant_co
 
     # Check the values in the stoichiometry surplus
     assert np.allclose(
-        fxt_plants_model.biomasses[0].element_surplus["N"],
+        fxt_plants_model.biomasses[0].element_surpluses[:, 1],
         expected_ammonium[0].item() + expected_nitrate[0].item(),
     )
     assert np.allclose(
-        fxt_plants_model.biomasses[0].element_surplus["P"],
+        fxt_plants_model.biomasses[0].element_surpluses[:, 2],
         expected_phosphorus[0].item(),
     )
 

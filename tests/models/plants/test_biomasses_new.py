@@ -324,70 +324,57 @@ def test_total_element_mass_and_deficit(fixture_biomasses):
 
 
 def test_apply_growth_updates_element_masses_and_surplus(
-    fixture_community,
+    fixture_biomass_components,
     fixture_biomasses,
-    fixture_stem_allocation,
-    fixture_growth_increments,
 ):
     """Test that accounting for growth updates element masses and surplus correctly."""
 
-    before = [t.as_array() for t in fixture_biomasses.tissues]
+    _, _, _, growth_increments = fixture_biomass_components
 
-    fixture_biomasses.apply_growth(growth_increments=fixture_growth_increments)
-    after = [t.as_array() for t in fixture_biomasses.tissues]
+    before = [t.elemental_masses for t in fixture_biomasses.tissues]
+    fixture_biomasses.apply_growth(growth_increments=growth_increments)
+    after = [t.elemental_masses for t in fixture_biomasses.tissues]
 
     # Each tissue should increase by element_needed_for_growth and the total surplus
     # should decrease accordingly
-    expected_surplus = np.zeros(
-        (
-            len(fixture_community.cohorts),
-            len(fixture_biomasses.elements),
-        )
-    )
+    expected_surplus = np.zeros_like(fixture_biomasses.element_surpluses)
 
     for b, a, t in zip(before, after, fixture_biomasses.tissues):
         # Test tissue increase
-        needed = t.apply_growth(growth_increments=fixture_growth_increments)
-        needed_array = np.stack(list(needed.values()))
-        expected = b + needed_array
+        needed = t.apply_growth(growth_increments=growth_increments)
+        expected = b + needed
         assert_allclose(a, expected)
 
         # Accumulate decrease in surplus
-        expected_surplus -= needed_array
+        expected_surplus -= needed
 
-    # Test accumulated surplus decrease
-    assert_allclose(
-        np.stack(list(fixture_biomasses.element_surplus.values())), expected_surplus
-    )
+    # Test accumulated surplus decrease after zeroing carbon
+    expected_surplus[:, 0] = 0
+    assert_allclose(fixture_biomasses.element_surpluses, expected_surplus)
 
 
-def test_apply_turnover(fixture_community, fixture_biomasses, fixture_stem_allocation):
+def test_apply_turnover(fixture_biomass_components, fixture_biomasses):
     """Test apply_turnover function in Biomasses."""
 
-    # Check surplus is zero going in
-    expected_surplus = {
-        el: np.zeros(len(fixture_community.cohorts))
-        for el in fixture_biomasses.elements
-    }
+    _, _, allocation, _ = fixture_biomass_components
 
-    for el in fixture_biomasses.elements:
-        assert_allclose(fixture_biomasses.element_surplus[el], expected_surplus[el])
+    # Check surplus is zero going in
+    expected_surpluses = np.zeros_like(fixture_biomasses.element_surpluses)
+    assert_allclose(fixture_biomasses.element_surpluses, expected_surpluses)
 
     # Apply the turnover
-    turnover = fixture_biomasses.apply_turnover(fixture_stem_allocation)
+    turnover = fixture_biomasses.apply_turnover(allocation)
 
     # Calculate expectations from tissues
     for t in fixture_biomasses.tissues:
-        tissue_turnover = t.get_turnover(fixture_stem_allocation)
-        for idx, el in enumerate(fixture_biomasses.elements):
-            expected_surplus[el] -= tissue_turnover[el]
-            # Check the return values match up (not currently checking C here in
-            # row zero)
-            assert_allclose(tissue_turnover[el], turnover[t.tissue_name][idx + 1])
+        tissue_turnover = t.get_turnover(allocation)
+        expected_surpluses -= tissue_turnover
+        # Check the return values match up
+        assert_allclose(tissue_turnover, turnover[t.tissue_name])
 
-    # Check surplus matches
-    for el in fixture_biomasses.elements:
-        assert_allclose(fixture_biomasses.element_surplus[el], expected_surplus[el])
+    # Check surplus matches after zeroing carbon
+    expected_surpluses[:, 0] = 0
+    assert_allclose(fixture_biomasses.element_surpluses, expected_surpluses)
 
 
 BALANCE_FOLIAGE_C = np.array([100.0, 200.0, 300.0, 400.0])
@@ -767,36 +754,35 @@ def test_balance_elements(
     assert_allclose(biomasses.element_surpluses[:, 1:], expected_pool.T)
 
 
-def test_add_elemental_masses_clips_negative_value(fixture_community, caplog):
+def test_add_elemental_masses_clips_negative_value(fixture_biomass_components, caplog):
     """Tiny floating-point negatives are clipped to zero after updates."""
 
-    from virtual_ecosystem.models.plants.biomasses import Element, FoliageBiomass
+    from virtual_ecosystem.models.plants.biomasses_new import FoliageBiomass
+
+    cohorts, allometry, _, _ = fixture_biomass_components
+
+    initial_masses = np.stack(
+        [
+            allometry.foliage_mass.copy(),
+            np.array([1.0e-18, 20.0]),
+            np.array([5.0, 20.0]),
+        ],
+        axis=1,
+    )
 
     tissue = FoliageBiomass(
-        community=fixture_community,
-        carbon_mass=fixture_community.stem_allometry.foliage_mass.copy(),
-        element_masses={
-            "N": Element(
-                name="n",
-                ideal_ratio=np.array([5.0, 6.0]),
-                actual_element_mass=np.array([1.0e-18, 20.0]),
-                turnover_ratio=np.array([10.0, 12.0]),
-            ),
-            "P": Element(
-                name="p",
-                ideal_ratio=np.array([5.0, 6.0]),
-                actual_element_mass=np.array([5.0, 20.0]),
-                turnover_ratio=np.array([10.0, 12.0]),
-            ),
-        },
+        cohorts=cohorts,
+        allometry=allometry,
+        initial_masses=initial_masses,
     )
 
     tissue.add_elemental_masses(
-        {
-            "N": np.array([-1.1e-18, 0.0]),
-            "P": np.array([0.0, 0.0]),
-        }
+        np.stack([np.zeros(2), np.array([-1.1e-18, 0.0]), np.array([0.0, 0.0])], axis=1)
     )
 
-    assert_allclose(tissue.element_masses["N"].actual_element_mass, [0.0, 20.0])
-    assert "Clipping negative updated N biomass" in caplog.text
+    # The initial masses should be the same, except that the N mass in the first cohort
+    # has been driven down to but _not below_ zero.
+    initial_masses[0, 1] = 0
+
+    assert_allclose(tissue.elemental_masses, initial_masses)
+    assert "Clipping negative updated biomasses" in caplog.text
