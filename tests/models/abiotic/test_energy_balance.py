@@ -1,11 +1,14 @@
 """Test module for abiotic.energy_balance.py."""
 
+from logging import INFO
+
 import numpy as np
 import pytest
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calculate_vp_sat
 from scipy.optimize import brentq
 
+from tests.conftest import log_check
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_aboveground_layer_thickness,
 )
@@ -671,6 +674,56 @@ def test_secant_nan_handling():
     assert np.all(np.isnan(result[~mask]))
 
 
+SECANT_NONCONVERGENCE_LOG = (
+    (
+        INFO,
+        "Secant solver did not fully converge within 2 iterations. "
+        "2 unconverged layer(s), 3 unconverged cell(s), "
+        "and 5 unconverged (layer, cell_id) pair(s).",
+    ),
+    (
+        INFO,
+        "Unconverged cell IDs: [0, 1, 2]",
+    ),
+    (
+        INFO,
+        "Unconverged (layer, cell_id) pairs: [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1)]",
+    ),
+)
+
+
+def test_secant_solver_logs_unconverged_pairs(caplog):
+    """Test secant solver no convergence."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        secant_solve_cells_layers,
+    )
+
+    # Initial guess of canopy temperature, assuming not all layers are filled
+    initial_guess = np.array(
+        [[25.0, 25.0, 25.0], [21.0, 21.0, np.nan], [np.nan, np.nan, np.nan]]
+    )
+
+    # Generate simple residual function that is solved using the secant methods
+    # In the abiotic model, this is the residual of the energy balance
+    def residual_function(temperature):
+        return np.ones_like(temperature)
+
+    secant_solve_cells_layers(
+        residual_function=residual_function,
+        initial_guess=initial_guess,
+        maxiter_secant=2,
+        convergence_tolerance=1e-12,
+        small_perturbation_second_guess=1e-3,
+        denominator_tolerance=1e-12,
+    )
+
+    log_check(
+        caplog,
+        expected_log=SECANT_NONCONVERGENCE_LOG,
+    )
+
+
 def test_make_canopy_residual_changes_with_temperature(
     fixture_abiotic_constants,
     fixture_core_constants,
@@ -805,3 +858,9 @@ def test_solve_canopy_temperature_with_air_coupling(
         air_temperature,
         state["air_temperature"],
     )
+
+    # Check reference value is replaced
+    assert np.isfinite(air_temperature[idx.above]).all()
+
+    # Check surface value is in realistic range
+    assert np.all(air_temperature[idx.surface] > 20.0)

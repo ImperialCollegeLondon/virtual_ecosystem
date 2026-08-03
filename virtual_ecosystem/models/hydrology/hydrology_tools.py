@@ -109,7 +109,7 @@ def setup_hydrology_input_current_timestep(
     data: Data,
     time_index: int,
     days: int,
-    seed: None | int,
+    seed: int | None,
     layer_structure: LayerStructure,
     soil_layer_thickness_mm: NDArray[np.floating],
     soil_moisture_saturation: float | NDArray[np.floating],

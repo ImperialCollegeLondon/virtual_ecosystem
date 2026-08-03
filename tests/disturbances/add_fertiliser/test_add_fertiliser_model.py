@@ -17,7 +17,7 @@ from tests.conftest import log_check
             id="default_config",
         ),
         pytest.param(
-            "[disturbance.add_fertiliser]\nrun_at=0",
+            "[disturbance.add_fertiliser]\nrun_at=[0,1]\n",
             0.5,
             id="run_at_config",
         ),
@@ -44,7 +44,6 @@ def test_generate_add_fertiliser_disturbance(
     from virtual_ecosystem.disturbances.add_fertiliser.add_fertiliser_model import (
         AddFertiliserModel,
     )
-    from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     config_data = ConfigurationLoader(cfg_strings=cfg_string)
     configuration = generate_configuration(config_data.data)
@@ -57,7 +56,7 @@ def test_generate_add_fertiliser_disturbance(
         data=fixture_fertiliser_init_data,
         configuration=configuration,
         core_components=core_components,
-        models={"soil": SoilModel},
+        models={},
     )
     assert disturbance.constants.nitrate_fraction == nitrate_fraction
 

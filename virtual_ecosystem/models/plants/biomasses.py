@@ -229,9 +229,8 @@ class BiomassTissueABC(ABC):
     def Cx_ratio(self) -> dict[str, NDArray[np.floating]]:
         """Get the carbon to element ratio for the tissue type.
 
-        This has to handle cases where a tissue has no biomass at all or no actual
-        elemental mass, which would otherwise generate NaN ratios (C/0). It explicitly
-        sets these cases to infinity.
+        If there is no elemental mass (and possible also no carbon mass) for any
+        cohorts in the tissue then the function return ``np.inf`` for those values.
 
         Returns:
             The carbon to element ratio for the specified tissue.
@@ -239,10 +238,12 @@ class BiomassTissueABC(ABC):
         ratios = {}
 
         for ky, elem in self.element_masses.items():
-            ratios[ky] = np.where(
-                elem.actual_element_mass == 0,
-                np.inf,
-                self.carbon_mass / elem.actual_element_mass,
+            # Use np.divide and where here to avoid triggering warnings on zero divides
+            ratios[ky] = np.divide(
+                self.carbon_mass,
+                elem.actual_element_mass,
+                where=elem.actual_element_mass > 0,
+                out=np.full_like(self.carbon_mass, np.inf),
             )
 
         return ratios
@@ -1082,8 +1083,18 @@ class Biomasses(ToDataFrameMixin):
 
         # Calculate the redistribution of pool deficits (negative values) to tissues
         # weighted by the relative elemental mass for each tissue.
-        pool_deficits_to_tissues = stem_pools * (
-            tissue_element_masses / tissue_element_masses.sum(axis=0)
+        #
+        # This needs to guard against the pathological case where there is _none_ of the
+        # element in any of the tissues for a cohort (which leads to divide by zero and
+        # hence np.nan/np.inf). Values in this case are forced as zero - they can't have
+        # more of that element removed since they have none.
+
+        tissue_total_element_masses = tissue_element_masses.sum(axis=0)
+        pool_deficits_to_tissues = stem_pools * np.divide(
+            tissue_element_masses,
+            tissue_total_element_masses,
+            out=np.zeros_like(tissue_element_masses),
+            where=tissue_total_element_masses > 0,
         )
 
         # Calculate the redistribution of pool surpluses (positive values) to tissues
