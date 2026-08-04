@@ -284,8 +284,10 @@ class FungalFruitPool:
                 f"({self.mass_cnp})."
             )
 
-    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
-    """Vertical position of fungal fruiting pool."""
+    vertical_occupancy: VerticalOccupancy = (
+        VerticalOccupancy.SOIL | VerticalOccupancy.GROUND
+    )
+    """Vertical position of fungal fruiting pool (either ground or in the soil)."""
 
     @property
     def mass_current(self) -> float:
