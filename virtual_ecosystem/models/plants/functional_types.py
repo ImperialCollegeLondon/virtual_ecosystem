@@ -111,7 +111,7 @@ def get_flora_from_config(config: PlantsConfiguration) -> Flora:
         config: A validated PlantsConfiguration instance.
 
     Returns:
-        A  populated :class:`VEFlora` instance.
+        A  populated :class:`pyrealm.demography.flora.Flora` instance.
     """
 
     # Read the file, handling file IO and parsing errors.
