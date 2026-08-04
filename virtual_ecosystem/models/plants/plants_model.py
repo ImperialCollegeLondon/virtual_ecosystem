@@ -1392,14 +1392,14 @@ class PlantsModel(
                 # calculating the cohort share (using cohort_fractions) and then
                 # dividing by the number of individuals per cohort. Handle case where
                 # there are no individuals in the cohort, by assigning them zero.
-                cohort_fractions = cohorts["n_individuals"].to_numpy() / sum(
-                    cohorts["n_individuals"].to_numpy()
-                )
+                n_individuals = cohorts["n_individuals"].to_numpy()
+                cohort_fractions = n_individuals / sum(n_individuals)
+
                 symbiote_nutrients[element] = np.divide(
                     total_supply * cohort_fractions,
-                    cohorts["n_individuals"].to_numpy(),
+                    n_individuals,
                     out=np.zeros_like(cohort_fractions),
-                    where=cohorts["n_individuals"] != 0,
+                    where=n_individuals > 0,
                 )
 
             biomasses._adjust_surpluses(symbiote_nutrients)
