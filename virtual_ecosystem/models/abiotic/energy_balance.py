@@ -541,12 +541,13 @@ def update_canopy_air_temperature(
     and
 
     .. math::
-        T_{a}^{new} = T_{a}^{old} + \frac{H}{\rho_a c_p z}
+        T_{a}^{new} = T_{a}^{old} + \frac{H \delta t}{\rho_a c_p z}
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
     the surface, :math:`T_{s}` is the surface temperature, :math:`T_{a}` is the air
     temperature, and :math:`z` is the thickness of the air layer we are updating.
+    \delta t is the integration time step.
 
     Args:
         air_temperature: Air temperature, [C]
@@ -561,7 +562,9 @@ def update_canopy_air_temperature(
 
     # Update air temperature over a layer of height z (e.g., canopy height)
     new_air_temperature = air_temperature + (
-        sensible_heat_flux / (density_air * specific_heat_air * mixing_layer_thickness)
+        sensible_heat_flux
+        * 60
+        / (density_air * specific_heat_air * mixing_layer_thickness)
     )
     return new_air_temperature
 

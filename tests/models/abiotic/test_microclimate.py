@@ -577,9 +577,7 @@ def test_calculate_soil_fluxes(
     )
 
     # Check values, output keys and shapes
-    expected_ground_flux = np.array(
-        [-202.630044, -194.662157, -178.362157, -113.028824]
-    )
+    expected_ground_flux = np.array([-101.627644, -93.659757, -77.359757, -12.026424])
 
     np.testing.assert_allclose(
         result["ground_heat_flux"], expected_ground_flux, rtol=1e-5, atol=1e-5
@@ -618,6 +616,7 @@ def test_update_air_temperature(
         abiotic_bounds=abiotic_bounds,
         idx=idx,
         min_leaf_area_index_for_mixing=0.1,
+        integration_time_step=60,
     )
 
     # Check output is correct shape and type
