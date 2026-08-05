@@ -13,9 +13,6 @@ from xarray import DataArray
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools
-from virtual_ecosystem.models.abiotic.abiotic_tools import (
-    compute_weights_from_absorbed_radiation,
-)
 
 # Class uses DEBUG
 LOGGER.setLevel(DEBUG)
@@ -749,8 +746,8 @@ def dummy_climate_data(fixture_core_components):
 
     # Spatially constant and not vertically structured
     spatially_constant = {
-        "sensible_heat_flux_soil": 20.0,  # W m-2
-        "latent_heat_flux_soil": 40.0,  # W m-2
+        "sensible_heat_flux_soil": -20.0,  # W m-2
+        "latent_heat_flux_soil": -40.0,  # W m-2
         "zero_plane_displacement": 20.0,  # m
         "mean_mixing_length": 1.3,  # m
         "aerodynamic_resistance_soil": 50.0,  # s m-1
@@ -864,10 +861,10 @@ def dummy_climate_data(fixture_core_components):
     data["longwave_emission"][lyr_str.index_flux_layers] = 450.0
 
     data["sensible_heat_flux"] = from_template()
-    data["sensible_heat_flux"][lyr_str.index_flux_layers] = 20.0
+    data["sensible_heat_flux"][lyr_str.index_flux_layers] = -20.0
 
     data["latent_heat_flux"] = from_template()
-    data["latent_heat_flux"][lyr_str.index_flux_layers] = 40.0
+    data["latent_heat_flux"][lyr_str.index_flux_layers] = -40.0
 
     data["net_radiation"] = from_template()
     data["net_radiation"][lyr_str.index_flux_layers] = 20.0
@@ -935,6 +932,7 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     lyr_str = fixture_core_components.layer_structure
     index_filled_canopy = lyr_str.index_filled_canopy
     index_filled_atmosphere = lyr_str.index_filled_atmosphere
+    index_surface_scalar = lyr_str.index_surface_scalar
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
@@ -987,10 +985,12 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     dummy_climate_data["longwave_emission"][index_filled_canopy] = [
-        [450.0, 450.0, 450.0, np.nan],
-        [450.0, 450.0, np.nan, np.nan],
-        [450.0, np.nan, np.nan, np.nan],
+        [400.0, 400.0, 400.0, np.nan],
+        [350.0, 350.0, np.nan, np.nan],
+        [300.0, np.nan, np.nan, np.nan],
     ]
+    dummy_climate_data["longwave_emission"][index_surface_scalar] = 400.0
+
     dummy_climate_data["vapour_pressure"][index_filled_atmosphere] = [
         [3.82, 3.82, 3.82, 3.82],
         [3.82, 3.82, 3.82, np.nan],
@@ -1006,15 +1006,15 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [0.05, 0.05, 0.05, 0.05],
     ]
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
-        [25.0, 25.0, 25.0, np.nan],
-        [20.0, 20.0, np.nan, np.nan],
-        [15.0, np.nan, np.nan, np.nan],
+        [-25.0, -25.0, -25.0, np.nan],
+        [-20.0, -20.0, np.nan, np.nan],
+        [-15.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["latent_heat_flux"][index_filled_canopy] = [
-        [45.0, 45.0, 45.0, np.nan],
-        [40.0, 40.0, np.nan, np.nan],
-        [30.0, np.nan, np.nan, np.nan],
+        [-45.0, -5.0, -45.0, np.nan],
+        [-40.0, -40.0, np.nan, np.nan],
+        [-30.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["net_radiation"][lyr_str.index_filled_canopy] = [
@@ -1129,13 +1129,15 @@ def fixture_static_inputs(
     )
 
     # Absorbed longwave radiation by canopy, [W m-2]
-    weights = compute_weights_from_absorbed_radiation(
-        radiation=data["shortwave_absorption"].to_numpy(),
-    )
-    absorbed_longwave_radiation = (
-        data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
-        * weights
-        * abiotic_constants.leaf_emissivity  # TODO needs to be soil too
+    absorbed_longwave_rad = fixture_core_components.layer_structure.from_template()
+    absorbed_longwave_rad[indices.flux] = np.array(
+        [
+            [200, 200, 200, np.nan],
+            [80, 80, np.nan, np.nan],
+            [50, np.nan, np.nan, np.nan],
+            [20, 20, 20, 20],
+            [80, 80, 80, 80],
+        ]
     )
     cell_area = data.grid.cell_area
 
@@ -1162,7 +1164,7 @@ def fixture_static_inputs(
         "atmospheric_pressure": atmospheric_pressure_true,
         "atmospheric_co2": atmospheric_co2_true,
         "geometry": atmospheric_layer_geometry,
-        "absorbed_longwave_radiation": absorbed_longwave_radiation,
+        "absorbed_longwave_radiation": absorbed_longwave_rad.to_numpy(),
         "cell_area": cell_area,
         "mixing_coefficient": mixing_coefficient.to_numpy(),
         "zero_plane_displacement": zero_plane_displacement,
@@ -1199,10 +1201,10 @@ def fixture_state_inputs(
         "latent_heat_vapourisation": data["latent_heat_vapourisation"].to_numpy(),
         "soil_temperature": data["soil_temperature"].to_numpy(),
         "soil_evaporation": data["soil_evaporation"].to_numpy(),
-        "sensible_heat_flux": np.ones((n_layers, n_cells)) * 5.0,
-        "sensible_heat_flux_soil": np.ones(n_cells) * 2.0,
-        "latent_heat_flux": np.ones((n_layers, n_cells)) * 5.0,
-        "latent_heat_flux_soil": np.ones(n_cells) * 2.0,
+        "sensible_heat_flux": np.ones((n_layers, n_cells)) * -5.0,
+        "sensible_heat_flux_soil": np.ones(n_cells) * -2.0,
+        "latent_heat_flux": np.ones((n_layers, n_cells)) * -5.0,
+        "latent_heat_flux_soil": np.ones(n_cells) * -2.0,
         "ground_heat_flux": np.ones(n_cells) * 2.0,
         "ventilation_rate": np.repeat(0.05, n_cells),
         "longwave_emission": data["longwave_emission"].to_numpy(),
