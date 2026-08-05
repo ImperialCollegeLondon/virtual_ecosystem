@@ -223,7 +223,7 @@ class PlantsModel(
             PFT name.
         model_constants: Set of constants for the plants model.
         pyrealm_config: Configuration options to the pyrealm package.
-        soil_moisture_residual: A residual soil moisture constant
+        hydrology_constants: Constants from the hydrology model.
         static: Boolean flag indicating if the model should run in static mode.
     """
 
@@ -236,7 +236,7 @@ class PlantsModel(
         cohort_data: pandas.DataFrame,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
-        soil_moisture_residual: float = HydrologyConstants().soil_moisture_residual,
+        hydrology_constants: HydrologyConstants = HydrologyConstants(),
         static: bool = False,
     ):
         """Plants init function.
@@ -308,8 +308,8 @@ class PlantsModel(
         """The downwelling radiation at the canopy top for the current time step."""
         self.subcanopy: Subcanopy
         """Representation of the subcanopy vegetation."""
-        self.soil_moisture_residual: float
-        """The residual soil moisture constant used by the Hydrology model."""
+        self.hydrology_constants: HydrologyConstants
+        """Constants used by the Hydrology model."""
         self.data_object_templates: dict[str, xr.DataArray]
         """DataArray templates for the data object."""
 
@@ -328,7 +328,7 @@ class PlantsModel(
                 cohort_data=cohort_data,
                 model_constants=model_constants,
                 pyrealm_config=pyrealm_config,
-                soil_moisture_residual=soil_moisture_residual,
+                hydrology_constants=hydrology_constants,
             )
 
     def _setup(
@@ -337,7 +337,7 @@ class PlantsModel(
         cohort_data: pandas.DataFrame,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
-        soil_moisture_residual: float = HydrologyConstants().soil_moisture_residual,
+        hydrology_constants: HydrologyConstants = HydrologyConstants(),
     ) -> None:
         """Setup implementation for the Plants Model.
 
@@ -347,7 +347,7 @@ class PlantsModel(
         # Set the instance attributes from the __init__ arguments
         self.flora = flora
         self.model_constants = model_constants
-        self.soil_moisture_residual = soil_moisture_residual
+        self.hydrology_constants = hydrology_constants
 
         # Adjust flora rates to timestep
         # TODO: This is kinda hacky because the Flora instances is a frozen dataclass,
@@ -645,7 +645,7 @@ class PlantsModel(
                 model_constants=model_configuration.constants,
                 exporter=exporter,
                 pyrealm_config=core_configuration.pyrealm,
-                soil_moisture_residual=hydrology_configuration.constants.soil_moisture_residual,
+                hydrology_constants=hydrology_configuration.constants,
             )
         except Exception as excep:
             LOGGER.critical(
