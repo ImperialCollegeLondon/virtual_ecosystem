@@ -26,6 +26,10 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration, PyrealmConfig
+from virtual_ecosystem.models.hydrology.model_config import (
+    HydrologyConfiguration,
+    HydrologyConstants,
+)
 from virtual_ecosystem.models.plants.biomasses import (
     Biomasses,
     BiomassTissueABC,
@@ -116,6 +120,7 @@ class PlantsModel(
         "arbuscular_mycorrhizal_p_supply",
         "ectomycorrhizal_n_supply",
         "ectomycorrhizal_p_supply",
+        "soil_moisture",
     ),
     vars_updated=(
         "stem_turnover_cnp",  # i.e. deadwood
@@ -218,6 +223,7 @@ class PlantsModel(
             PFT name.
         model_constants: Set of constants for the plants model.
         pyrealm_config: Configuration options to the pyrealm package.
+        soil_moisture_residual: A residual soil moisture constant
         static: Boolean flag indicating if the model should run in static mode.
     """
 
@@ -230,6 +236,7 @@ class PlantsModel(
         cohort_data: pandas.DataFrame,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
+        soil_moisture_residual: float = HydrologyConstants().soil_moisture_residual,
         static: bool = False,
     ):
         """Plants init function.
@@ -294,12 +301,15 @@ class PlantsModel(
         """PModel constants used by pyrealm."""
         self.pyrealm_core_consts: CoreConst
         """Core constants used by pyrealm."""
+
         self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
         self.canopy_top_radiation: NDArray[np.floating]
         """The downwelling radiation at the canopy top for the current time step."""
         self.subcanopy: Subcanopy
         """Representation of the subcanopy vegetation."""
+        self.soil_moisture_residual: float
+        """The residual soil moisture constant used by the Hydrology model."""
         self.data_object_templates: dict[str, xr.DataArray]
         """DataArray templates for the data object."""
 
@@ -318,6 +328,7 @@ class PlantsModel(
                 cohort_data=cohort_data,
                 model_constants=model_constants,
                 pyrealm_config=pyrealm_config,
+                soil_moisture_residual=soil_moisture_residual,
             )
 
     def _setup(
@@ -326,6 +337,7 @@ class PlantsModel(
         cohort_data: pandas.DataFrame,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
+        soil_moisture_residual: float = HydrologyConstants().soil_moisture_residual,
     ) -> None:
         """Setup implementation for the Plants Model.
 
@@ -335,6 +347,7 @@ class PlantsModel(
         # Set the instance attributes from the __init__ arguments
         self.flora = flora
         self.model_constants = model_constants
+        self.soil_moisture_residual = soil_moisture_residual
 
         # Adjust flora rates to timestep
         # TODO: This is kinda hacky because the Flora instances is a frozen dataclass,
@@ -598,6 +611,9 @@ class PlantsModel(
         core_configuration: CoreConfiguration = configuration.get_subconfiguration(
             "core", CoreConfiguration
         )
+        hydrology_configuration: HydrologyConfiguration = (
+            configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
+        )
 
         # Generate the flora
         flora = get_flora_from_config(config=model_configuration)
@@ -629,6 +645,7 @@ class PlantsModel(
                 model_constants=model_configuration.constants,
                 exporter=exporter,
                 pyrealm_config=core_configuration.pyrealm,
+                soil_moisture_residual=hydrology_configuration.constants.soil_moisture_residual,
             )
         except Exception as excep:
             LOGGER.critical(
