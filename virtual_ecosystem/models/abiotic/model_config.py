@@ -170,7 +170,10 @@ class AbioticConstants(AbioticSharedConstants):
     full spectrum sunlight, of which about 4.57 * 46% = 2.04 µmol m-2 s-1 is PPFD.
     """
 
-    maxiter_secant_solver: int = 100
+    maxiter_air_secant_solver: int = 1000
+    """Maximum number of iterations to solve for air temperature."""
+
+    maxiter_secant_solver: int = 10
     """Maximum number of secant iterations to solve for canopy temperature."""
 
     convergence_tolerance_secant_solver: float = 1e-2
