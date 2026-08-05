@@ -557,7 +557,6 @@ def calculate_vegetation_temperature(
         ),
         denominator_tolerance=abiotic_constants.denominator_tolerance,
     )
-    # vegetation_temperature[~mask] = np.nan  # TODO is this duplication?
 
     return vegetation_temperature
 
@@ -599,7 +598,6 @@ def calculate_vegetation_fluxes(
         evapotranspiration=state["evapotranspiration"],
         absorbed_shortwave_radiation=state["shortwave_absorption"],
         absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-        longwave_emission_soil=state["longwave_emission"][idx.topsoil],
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         specific_heat_air=state["specific_heat_air"],
         density_air=state["density_air"],
@@ -609,7 +607,6 @@ def calculate_vegetation_fluxes(
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=True,
-        idx=idx,
     )
 
     return fluxes  # type: ignore
@@ -693,6 +690,7 @@ def update_air_temperature(
     abiotic_bounds: AbioticSimpleBounds,
     idx: SimpleNamespace,
     min_leaf_area_index_for_mixing: float,
+    integration_time_step: float,
 ) -> NDArray[np.floating]:
     """Update air temperature profiles based on calculated fluxes and turbulent mixing.
 
@@ -704,6 +702,7 @@ def update_air_temperature(
         denominator_tolerance: Small value to prevent division by zero in calculations
         min_leaf_area_index_for_mixing: Minimum leaf area index required for turbulent
             mixing to occur.
+        integration_time_step: Time step for sensible heat flux integration, [s]
 
     Returns:
         Updated air temperature profiles for microclimate model
@@ -715,6 +714,7 @@ def update_air_temperature(
         specific_heat_air=state["specific_heat_air"],
         density_air=state["density_air"],
         mixing_layer_thickness=static["geometry"]["thickness"],
+        integration_time_step=integration_time_step,
     )
 
     # Update all air temperatures, [C]
@@ -902,7 +902,7 @@ def run_hour_step(
             static=static,
             abiotic_constants=abiotic_constants,
             core_constants=core_constants,
-            maxiter_air=abiotic_constants.maxiter_secant_solver,
+            maxiter_air=abiotic_constants.maxiter_air_secant_solver,
             air_temperature_tolerance=5,
             maxiter_secant=abiotic_constants.maxiter_secant_solver,
             convergence_tolerance=abiotic_constants.convergence_tolerance_secant_solver,
@@ -927,7 +927,7 @@ def run_hour_step(
         time_interval=time_interval,
         idx=idx,
     )
-    # TODO check signs
+
     state["sensible_heat_flux"][idx.topsoil] = soil_fluxes["sensible_heat_flux_soil"]
     state["latent_heat_flux"][idx.topsoil] = -soil_fluxes["latent_heat_flux_soil"]
     state["longwave_emission"][idx.topsoil] = soil_fluxes["longwave_emission_soil"]
