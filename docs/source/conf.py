@@ -164,6 +164,7 @@ nitpick_ignore = [
     ("py:class", "PModelConst"),
     ("py:class", "CoreConst"),
     ("py:class", "StemAllocation"),
+    ("py:class", "GrowthIncrements"),
     ("py:class", "StemStoichiometry"),
     ("py:class", "pydantic.types.PathType"),
     # Something about the pydantic annotated pattern generates a ton of peculiar
@@ -192,6 +193,7 @@ nitpick_ignore = [
     ("py:class", "_PydanticGeneralMetadata"),
     # Sphinx seems to insist that pydantic model types are classes, when they can be
     # global Literals
+    ("py:class", "ConfigDict"),
     ("py:class", "SUBSTRATES"),
     ("py:class", "REQUIRED_MICROBIAL_GROUPS"),
     ("py:class", "HIGHER_TAXONOMIC_GROUPS"),
@@ -225,7 +227,7 @@ intersphinx_mapping = {
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
-    "pyrealm": ("https://pyrealm.readthedocs.io/en/stable/", None),
+    "pyrealm": ("https://pyrealm.readthedocs.io/en/latest/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
     "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }

@@ -110,11 +110,16 @@ def calculate_canopies(
     for cell_id, community in communities.items():
         # Represent canopy of empty communities as None, otherwise calculate the Canopy
         # object for the community
-        if community.n_cohorts == 0:
+        if len(community.cohorts) == 0:
             canopy = None
         else:
             # Calculate the PPA canopy model for the community in the cell
-            canopy = Canopy(community, fit_ppa=True)
+            canopy = Canopy(
+                cohorts=community.cohorts,
+                allometry=community.stem_allometry,
+                canopy_area=community.cell_area,
+                fit_ppa=True,
+            )
 
             # Fail if canopy representation has more layers than the configuration.
             n_canopy_layers = canopy.heights.size

@@ -5,6 +5,7 @@ the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
 import numpy as np
@@ -14,9 +15,8 @@ from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
-from pyrealm.demography.community import Cohorts, Community
-from pyrealm.demography.flora import Flora
-from pyrealm.demography.tmodel import StemAllocation, StemAllometry
+from pyrealm.demography.cohorts import cohort_id_generator, create_cohorts
+from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -39,10 +39,10 @@ from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
     initialise_canopy_layers,
 )
-from virtual_ecosystem.models.plants.communities import PlantCommunities
+from virtual_ecosystem.models.plants.communities import Community, PlantCommunities
 from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 from virtual_ecosystem.models.plants.functional_types import (
-    ExtraTraitsPFT,
+    VEFlora,
     get_flora_from_config,
 )
 from virtual_ecosystem.models.plants.model_config import (
@@ -226,9 +226,8 @@ class PlantsModel(
         data: Data,
         core_components: CoreComponents,
         exporter: CommunityDataExporter,
-        flora: Flora,
+        flora: VEFlora,
         cohort_data: pandas.DataFrame,
-        extra_pft_traits: ExtraTraitsPFT,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
         static: bool = False,
@@ -243,12 +242,12 @@ class PlantsModel(
         super().__init__(data, core_components, static)
 
         # Define and populate model specific attributes
-        self.flora: Flora
+        self.flora: VEFlora
         """A flora containing the plant functional types used in the plants model."""
         self.initial_cohort_data: pandas.DataFrame
         """A dataframe providing the initial cohort data."""
-        self.extra_pft_traits: ExtraTraitsPFT
-        """The extra traits for each plant functional type, keyed by PFT name."""
+        self.cohort_id_generator: Iterator
+        """Set of constants for the plants model"""
         self.model_constant: PlantsConstants
         """Set of constants for the plants model"""
         self.communities: PlantCommunities
@@ -269,6 +268,10 @@ class PlantsModel(
         """A dictionary giving the canopy structure of each grid cell."""
         self.stem_allocations: dict[int, StemAllocation]
         """A dictionary giving the stem allocation of GPP for the community in each grid
+        cell. The dictionary is only populated by the update method - before that the
+        dictionary will be empty."""
+        self.growth_increments: dict[int, GrowthIncrements]
+        """A dictionary giving the growth increments for the community in each grid
         cell. The dictionary is only populated by the update method - before that the
         dictionary will be empty."""
         self.below_canopy_light_fraction: NDArray[np.floating]
@@ -305,21 +308,22 @@ class PlantsModel(
         """A CommunityDataExporter instance providing configuration and methods for
         export of community data."""
 
+        self.cohort_id_generator = cohort_id_generator(mode="str")
+        # Initialise the cohort generator.
+
         # Run the setup if the model is not in deep static mode
         if self._run_setup:
             self._setup(
                 flora=flora,
                 cohort_data=cohort_data,
-                extra_pft_traits=extra_pft_traits,
                 model_constants=model_constants,
                 pyrealm_config=pyrealm_config,
             )
 
     def _setup(
         self,
-        flora: Flora,
+        flora: VEFlora,
         cohort_data: pandas.DataFrame,
-        extra_pft_traits: ExtraTraitsPFT,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
     ) -> None:
@@ -330,7 +334,6 @@ class PlantsModel(
 
         # Set the instance attributes from the __init__ arguments
         self.flora = flora
-        self.extra_pft_traits = extra_pft_traits
         self.model_constants = model_constants
 
         # Adjust flora rates to timestep
@@ -343,27 +346,39 @@ class PlantsModel(
         # Respiration rates are expressed as proportions of masses per year so need to
         # be reduced proportionately to the number of updates per year
         updates_per_year = self.model_timing.updates_per_year
-        object.__setattr__(self.flora, "resp_f", self.flora.resp_f / updates_per_year)
-        object.__setattr__(self.flora, "resp_r", self.flora.resp_r / updates_per_year)
-        object.__setattr__(self.flora, "resp_s", self.flora.resp_s / updates_per_year)
-        object.__setattr__(self.flora, "resp_rt", self.flora.resp_rt / updates_per_year)
+        for resp_rate in ["resp_f", "resp_r", "resp_s", "resp_rt"]:
+            setattr(
+                self.flora,
+                resp_rate,
+                [v / updates_per_year for v in getattr(self.flora, resp_rate)],
+            )
 
         # Turnover rates are implemented as the number of years required to completely
         # turnover foliage/roots etc and are included in equations as the reciprocal of
         # the values. So rescaling them to shorter timescales requires that we
         # _increase_ the values proportionally to the reduced time between updates.
-        object.__setattr__(self.flora, "tau_f", self.flora.tau_f * updates_per_year)
-        object.__setattr__(self.flora, "tau_r", self.flora.tau_r * updates_per_year)
-        object.__setattr__(self.flora, "tau_rt", self.flora.tau_rt * updates_per_year)
-
-        # Need to store tau_f_base in the extra traits to use to reset after herbivory
-        # effects have been estimated.
-        self.extra_pft_traits.traits["tau_f_base"] = self.flora.tau_f
+        for turnover_rate in ["tau_f", "tau_r", "tau_rt", "tau_f_base"]:
+            setattr(
+                self.flora,
+                turnover_rate,
+                [v * updates_per_year for v in getattr(self.flora, turnover_rate)],
+            )
 
         # Now build the communities with the updated rates
         self.communities = PlantCommunities(
-            cohort_data=cohort_data, flora=self.flora, grid=self.grid
+            cohort_data=cohort_data,
+            flora=self.flora,
+            grid=self.grid,
+            cohort_id_generator=self.cohort_id_generator,
         )
+
+        # HACK pyrealm3: Initialise the non-pyrealm biomasses by setting additional
+        #      attributes on the community allometries.
+        for cmty in self.communities.values():
+            cmty.stem_allometry.reproductive_tissue_mass = (
+                cmty.stem_allometry.foliage_mass
+                * cmty.cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
+            )
 
         # Define the set of tissues to be tracked for each stem.
         self.biomass_tissues = [
@@ -380,7 +395,6 @@ class PlantsModel(
         self.biomasses = {
             cell_id: Biomasses.default_init(
                 community=community,
-                extra_pft_traits=extra_pft_traits,
                 with_elements=["N", "P"],
                 tissues=self.biomass_tissues,
             )
@@ -404,7 +418,9 @@ class PlantsModel(
             )
 
         # Do the PFT coordinate values match the flora?
-        if not set(self.data["plant_pft_propagules"]["pft"].data) == set(flora.name):
+        if not set(self.data["plant_pft_propagules"]["pft"].data) == set(
+            flora.pft_name
+        ):
             raise InitialisationError(
                 "The 'pft' coordinates in the plant_pft_propagules data do not match "
                 "the PFT names configured in the PlantsModel flora"
@@ -413,10 +429,10 @@ class PlantsModel(
         # Define xarray templates
         self.data_object_templates = {
             "cnp_pft": xr.DataArray(
-                data=np.zeros((self.grid.n_cells, self.flora.n_pfts, 3)),
+                data=np.zeros((self.grid.n_cells, len(self.flora.pft_name), 3)),
                 coords={
                     "cell_id": self.data["cell_id"],
-                    "pft": self.flora.name,
+                    "pft": list(self.flora.pft_name),
                     "element": ["C", "N", "P"],
                 },
             ),
@@ -426,8 +442,11 @@ class PlantsModel(
             ),
             "cell": xr.zeros_like(self.data["elevation"]),
             "pft": xr.DataArray(
-                data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
-                coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
+                data=np.zeros((self.grid.n_cells, len(self.flora.pft_name))),
+                coords={
+                    "cell_id": self.data["cell_id"],
+                    "pft": list(self.flora.pft_name),
+                },
             ),
         }
 
@@ -489,6 +508,7 @@ class PlantsModel(
         # Set the stem allocations to be an empty dictionary - this attribute is
         # populated by the update method but not at setup.
         self.stem_allocations = {}
+        self.growth_increments = {}
 
         # Set pyrealm configuration
         self.pyrealm_pmodel_consts = pyrealm_config.pmodel
@@ -542,11 +562,13 @@ class PlantsModel(
         ) ** (1 / self.model_timing.updates_per_year)
 
         # Run the community data exporter
+        # - the stem allocations and growth increments are empty dictionaries.
         self.exporter.dump(
             communities=self.communities,
             biomasses=self.biomasses,
             canopies=self.canopies,
             stem_allocations=self.stem_allocations,
+            growth_increments=self.growth_increments,
             time=self.model_timing.start_time,
             time_index=0,
         )
@@ -578,7 +600,7 @@ class PlantsModel(
         )
 
         # Generate the flora
-        flora, extra_traits = get_flora_from_config(config=model_configuration)
+        flora = get_flora_from_config(config=model_configuration)
 
         # Load the initial cohort data - use of FILEPATH_PLACEHOLDER guarantees that
         # this path has been set and exists.
@@ -604,7 +626,6 @@ class PlantsModel(
                 static=model_configuration.static,
                 flora=flora,
                 cohort_data=cohort_data,
-                extra_pft_traits=extra_traits,
                 model_constants=model_configuration.constants,
                 exporter=exporter,
                 pyrealm_config=core_configuration.pyrealm,
@@ -680,6 +701,10 @@ class PlantsModel(
         self.apply_mortality()
         self.apply_recruitment()
 
+        # Update the stem allometry to reflect applied changes to stem diameter from the
+        # previous time step and to add new cohorts
+        self.update_allometry()
+
         # Get the canopy top shortwave downwelling radiation for the current time slice
         self.set_canopy_top_radiation(time_index=time_index)
 
@@ -728,9 +753,6 @@ class PlantsModel(
         # of folivory.
         self.allocate_gpp()
 
-        # Update the stem allometry to reflect applied changes to stem diameter
-        self.update_allometry()
-
         # Calculate the subcanopy vegetation
         self.subcanopy.calculate_dynamics(
             lue=self.pmodel.lue[self.layer_structure.index_surface_scalar, :],
@@ -744,6 +766,7 @@ class PlantsModel(
             biomasses=self.biomasses,
             canopies=self.canopies,
             stem_allocations=self.stem_allocations,
+            growth_increments=self.growth_increments,
             time=self.model_timing.update_datestamps[time_index],
             time_index=time_index,
         )
@@ -791,33 +814,30 @@ class PlantsModel(
                 # Array indices of filled layers in this cell
                 fill_idx = (slice(0, canopy.heights.size), (cell_id,))
 
-                # Insert canopy layer heights
-                # TODO - #695 At present, pyrealm returns a column array which _I think_
-                #        always has zero as the last entry. We don't want that value, so
-                #        it is being clipped out here but keep an eye on this definition
-                #        and update if pyrealm changes. In the meantime, keep this guard
-                #        check to raise if the issue arises.
-
-                if canopy.heights[-1, :].item() > 0:
-                    raise ValueError("Last canopy.height is non-zero")
-
+                # Create a column array to insert layer heights, including
+                # - the top of the canopy (maximum stem height)
+                # - the layer closure heights (if any), rotated into a column array,
+                #   omitting the final layer, which is the ground.
                 heights[fill_idx] = np.concatenate(
-                    [[[canopy.max_stem_height]], canopy.heights[0:-1, :]]
+                    [
+                        [[canopy.max_stem_height]],
+                        canopy.heights[0:-1, None],
+                    ]
                 )
 
-                # Insert canopy fapar:
-                # TODO - #695 currently 1D, not 2D - consistency in pyrealm? keepdims?
+                # Similarly, insert canopy fapar:
                 fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
 
-                # Calculate the per stem leaf mass  as (stem leaf area * (1/sigma) * L)
-                # and then scale up to the number of individuals and sum across cohorts
-                # to give a total mass per layer within the cell.
-
+                # Calculate the per stem leaf mass:
+                # * (stem leaf area * (1/sigma) * L) * n_indviduals to give total cohort
+                #   mass per layer within the cell.
+                # * Cohort traits need to be converted from pandas.Series to row array
+                #   to broadcast across columns of stem leaf area
                 cohort_leaf_mass_per_layer = (
                     canopy.cohort_data.stem_leaf_area
-                    * (1 / community.stem_traits.sla)
-                    * community.stem_traits.lai
-                ) * community.cohorts.n_individuals
+                    * (1 / community.cohorts["sla"].to_numpy())
+                    * community.cohorts["lai"].to_numpy()
+                ) * community.cohorts["n_individuals"].to_numpy()
 
                 mass[fill_idx] = cohort_leaf_mass_per_layer.sum(axis=1, keepdims=True)
 
@@ -933,7 +953,7 @@ class PlantsModel(
                 # biomass of cohorts to distribute the herbivory between cohorts.
                 herbivory_by_cohort = (
                     self.data[f"canopy_{herbivory_tissue}_cnp_consumed"].sel(
-                        cell_id=cell_id, pft=community.cohorts.pft_names
+                        cell_id=cell_id, pft=community.cohorts["pft_name"].to_numpy()
                     )
                     * relative_herbivory[:, np.newaxis]
                 )
@@ -957,17 +977,17 @@ class PlantsModel(
 
             # Note here that LAI is calculated reset to the PFT standard before the
             # stem allocation is next calculated
-            community.stem_traits.lai = (
-                (average_foliage_mass * community.stem_traits.sla)
+            community.cohorts["lai"] = (
+                (average_foliage_mass * community.cohorts["sla"])
                 / community.stem_allometry.crown_area
             ).squeeze()
 
             # 3. Increase leaf turnover to account for herbivory replacement costs
             #    within T model
-            community.stem_traits.tau_f = (
-                (community.stem_allometry.foliage_mass * community.stem_traits.tau_f)
+            community.cohorts["tau_f"] = (
+                (community.stem_allometry.foliage_mass * community.cohorts["tau_f"])
                 / (
-                    foliage_carbon_loss * community.stem_traits.tau_f
+                    foliage_carbon_loss * community.cohorts["tau_f"]
                     + community.stem_allometry.foliage_mass
                 )
             ).squeeze()
@@ -1166,9 +1186,10 @@ class PlantsModel(
             # non-estimable GPP with np.nan: those stay as zero.
             self.data["transpiration"][:, cell_id] = np.where(
                 self.filled_canopy_mask[:, cell_id],
-                (community.cohorts.n_individuals * per_layer_transpiration_mm).sum(
-                    axis=1
-                ),
+                (
+                    community.cohorts["n_individuals"].to_numpy()
+                    * per_layer_transpiration_mm
+                ).sum(axis=1),
                 np.nan,
             )
 
@@ -1189,12 +1210,57 @@ class PlantsModel(
             # Calculate the allocation of GPP in kgC m2 per stem, since the T Model is
             # calibrated using per kg values.
             stem_allocation = StemAllocation(
-                stem_traits=community.stem_traits,
-                stem_allometry=community.stem_allometry,
+                cohorts=community.cohorts,
+                allometry=community.stem_allometry,
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
 
+            # Calculate carbon available for growth increment and other uses.
+            unallocated_carbon = stem_allocation.npp - (
+                stem_allocation.branch_turnover
+                + stem_allocation.fine_root_turnover
+                + stem_allocation.foliage_turnover
+            )
+
+            # Calculate carbon costs of fruit
+            reproductive_tissue_mass = (
+                community.stem_allometry.foliage_mass
+                * cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
+            )
+            reproductive_tissue_respiration = (
+                reproductive_tissue_mass * cohorts["resp_rt"].to_numpy()
+            )
+            reproductive_tissue_turnover = reproductive_tissue_mass * (
+                1 / cohorts["tau_rt"].to_numpy()
+            )
+
+            # HACK pyrealm3 - again, passing in reproductive tissue mass as a extra
+            #      attribute on the increment object
+            stem_allocation.reproductive_tissue_turnover = reproductive_tissue_turnover
+
             self.stem_allocations[cell_id] = stem_allocation
+
+            # Per stem carbon costs of root exudates
+            symbiote_allocation = (
+                unallocated_carbon * cohorts["gpp_topslice"].to_numpy()
+            )
+
+            # Calculate carbon available for growth
+            growth_carbon = unallocated_carbon - (
+                reproductive_tissue_turnover
+                + reproductive_tissue_respiration
+                + symbiote_allocation
+            )
+
+            # Calculate growth increments
+            growth_increments = GrowthIncrements(
+                cohorts=cohorts,
+                allometry=community.stem_allometry,
+                stem_allocation=stem_allocation,
+                biomass_production=growth_carbon,
+            )
+
+            self.growth_increments[cell_id] = growth_increments
 
             # GROW THE PLANTS by increasing the stem dbh
             #
@@ -1211,8 +1277,12 @@ class PlantsModel(
             #       targets the DBH, not the rest of the allocation so these turnover
             #       etc may still be based on shrinking tree values.
 
-            new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
-            cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
+            new_dbh = (
+                cohorts["dbh_value"].to_numpy() + growth_increments.delta_dbh.squeeze()
+            )
+            cohorts["dbh_value"] = np.where(
+                new_dbh <= 0, cohorts["dbh_value"].to_numpy(), new_dbh
+            )
 
             # HANDLE ALLOCATION TO TURNOVER:
             tissue_turnovers = biomasses.apply_turnover(allocation=stem_allocation)
@@ -1223,7 +1293,8 @@ class PlantsModel(
             # * sum across cohorts
             for aggregated_tissue in ("stem", "foliage", "root"):
                 self.data[f"{aggregated_tissue}_turnover_cnp"][cell_id] += (
-                    tissue_turnovers[aggregated_tissue] * cohorts.n_individuals
+                    tissue_turnovers[aggregated_tissue]
+                    * cohorts["n_individuals"].to_numpy()
                 ).sum(axis=1)
 
             # Expose biomasses that are affected by herbivory and which are currently
@@ -1239,18 +1310,21 @@ class PlantsModel(
             #   index just contains False, but using the index gives a (0, 3) array of
             #   cohorts by elements - and a sum can be taken across the 0 length
             #   dimension to give a total zero.
-            cohort_pft_bool_idx = [cohorts.pft_names == pft for pft in self.flora.name]
+            cohort_pft_bool_idx = [
+                cohorts["pft_name"] == pft for pft in self.flora.pft_name
+            ]
 
             for by_pft_tissue in ("fruit", "seed", "foliage"):
                 # Calculate the total turnover and standing biomass in each cohort
                 total_turnover_biomass = (
-                    tissue_turnovers[by_pft_tissue] * cohorts.n_individuals
+                    tissue_turnovers[by_pft_tissue]
+                    * cohorts["n_individuals"].to_numpy()
                 )
                 total_standing_biomass = (
                     self.biomasses[cell_id]
                     .get_tissue(by_pft_tissue)
                     .as_array(with_carbon=True)
-                    * cohorts.n_individuals
+                    * cohorts["n_individuals"].to_numpy()
                 )
 
                 for pft_idx, col_idx in enumerate(cohort_pft_bool_idx):
@@ -1267,19 +1341,19 @@ class PlantsModel(
                     )
 
             # HANDLE ALLOCATION TO GROWTH
-            biomasses.apply_growth(allocation=stem_allocation)
+            biomasses.apply_growth(growth_increments=growth_increments)
 
             # TODO: capture propagules in canopy seedbank.
 
             # ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
-            # Allocate the topsliced GPP to root exudates with remainder as active
+            # Allocate the symbiote carbon allocation to root exudates and active
             # nutrient pathways
             self.data["root_carbohydrate_exudation"][cell_id] = (
                 self.convert_to_soil_units(
                     input_mass=np.sum(
-                        stem_allocation.gpp_topslice
+                        symbiote_allocation
+                        * cohorts["n_individuals"].to_numpy()
                         * self.model_constants.root_exudates
-                        * cohorts.n_individuals
                     )
                 )
             )
@@ -1287,9 +1361,9 @@ class PlantsModel(
             self.data["plant_symbiote_carbon_supply"][cell_id] = (
                 self.convert_to_soil_units(
                     input_mass=np.sum(
-                        stem_allocation.gpp_topslice
+                        symbiote_allocation
+                        * cohorts["n_individuals"].to_numpy()
                         * (1 - self.model_constants.root_exudates)
-                        * cohorts.n_individuals
                     )
                 )
             )
@@ -1318,12 +1392,14 @@ class PlantsModel(
                 # calculating the cohort share (using cohort_fractions) and then
                 # dividing by the number of individuals per cohort. Handle case where
                 # there are no individuals in the cohort, by assigning them zero.
-                cohort_fractions = cohorts.n_individuals / sum(cohorts.n_individuals)
+                cohort_fractions = cohorts["n_individuals"].to_numpy() / sum(
+                    cohorts["n_individuals"].to_numpy()
+                )
                 symbiote_nutrients[element] = np.divide(
                     total_supply * cohort_fractions,
-                    cohorts.n_individuals,
+                    cohorts["n_individuals"].to_numpy(),
                     out=np.zeros_like(cohort_fractions),
-                    where=cohorts.n_individuals != 0,
+                    where=cohorts["n_individuals"] != 0,
                 )
 
             biomasses._adjust_surpluses(symbiote_nutrients)
@@ -1343,29 +1419,13 @@ class PlantsModel(
 
         for community in self.communities.values():
             # Reset LAI
-            community.stem_traits.lai = np.array(
-                [
-                    self.extra_pft_traits.traits[pft]["lai_base"]
-                    for pft in community.cohorts.pft_names
-                ]
-            )
+            community.cohorts["lai"] = community.cohorts["lai_base"]
 
-            # Reset tau_f adjusting for update speed.
-            community.stem_traits.tau_f = (
-                np.array(
-                    [
-                        self.extra_pft_traits.traits[pft]["tau_f_base"]
-                        for pft in community.cohorts.pft_names
-                    ]
-                )
-                * self.model_timing.updates_per_year
-            )
+            # Reset tau_f
+            community.cohorts["tau_f"] = community.cohorts["tau_f_base"]
 
             # Update community allometry with new dbh values
-            community.stem_allometry = StemAllometry(
-                stem_traits=community.stem_traits,
-                at_dbh=community.cohorts.dbh_values,
-            )
+            community.stem_allometry = StemAllometry(cohorts=community.cohorts)
 
     def apply_mortality(self) -> None:
         """Apply mortality to plant cohorts.
@@ -1386,13 +1446,13 @@ class PlantsModel(
 
             # Calculate the number of individuals that have died in each cohort
             mortality = np.random.binomial(
-                cohorts.n_individuals,
+                cohorts["n_individuals"],
                 self.per_update_interval_stem_mortality_probability,
             )
 
             if mortality.sum() > 0:
                 # Decrease size of cohorts based on mortality
-                cohorts.n_individuals = cohorts.n_individuals - mortality
+                cohorts["n_individuals"] = cohorts["n_individuals"] - mortality
 
                 # Get the biomasses of the tissues in the dead stems
                 biomasses_of_dead_stems = self.biomasses[cell_id]
@@ -1413,7 +1473,7 @@ class PlantsModel(
                 #    TODO - Some structural overlap here with allocate turnover in GPP.
                 #           Can we share code here? Need a collapse_by_pft method?
                 cohort_pft_bool_idx = [
-                    cohorts.pft_names == pft for pft in self.flora.name
+                    cohorts["pft_name"] == pft for pft in self.flora.pft_name
                 ]
 
                 for by_pft_tissue in ("fruit", "foliage", "seed"):
@@ -1467,14 +1527,16 @@ class PlantsModel(
             #        start these, so using a 2mm DBH. Need a DBH given mass solver.
             n_recruiting = recruiting_pfts.sum()
             if n_recruiting:
-                cohorts = Cohorts(
+                new_cohorts = create_cohorts(
+                    flora=self.flora,
+                    cid_generator=self.cohort_id_generator,
+                    pft_name=pft_sequence[recruiting_pfts],
+                    dbh_value=np.repeat(0.002, n_recruiting),
                     n_individuals=recruitment[cell_id, recruiting_pfts],
-                    pft_names=pft_sequence[recruiting_pfts],
-                    dbh_values=np.repeat(0.002, n_recruiting),
                 )
 
                 # Add recruited cohorts
-                community.add_cohorts(new_data=cohorts)
+                community.cohorts = pandas.concat([community.cohorts, new_cohorts])
 
                 # NOTE - The step above implicitly keeps the community reference within
                 #        the Biomasses objects up to date with recruitment and hence
@@ -1490,13 +1552,18 @@ class PlantsModel(
                 #        time.
                 new_community = Community(
                     cell_id=cell_id,
-                    cohorts=cohorts,
-                    flora=self.flora,
                     cell_area=community.cell_area,
+                    flora=self.flora,
+                    cohorts=new_cohorts,
                 )
+
+                # Set the reproductive tissue mass
+                new_community.stem_allometry.reproductive_tissue_mass = np.zeros(
+                    len(new_cohorts)
+                )
+
                 new_biomasses = Biomasses.default_init(
                     community=new_community,
-                    extra_pft_traits=self.extra_pft_traits,
                     with_elements=["N", "P"],
                     tissues=self.biomass_tissues,
                 )
@@ -1588,7 +1655,10 @@ class PlantsModel(
 
             # Add per-stem uptake to the biomass surplus pools
             self.biomasses[cell_id]._adjust_surpluses(
-                {"N": ammonium_uptake + nitrate_uptake, "P": phosphorous_uptake}
+                {
+                    "N": ammonium_uptake + nitrate_uptake,
+                    "P": phosphorous_uptake,
+                }
             )
 
     def convert_to_litter_units(self, input_mass: xr.DataArray) -> xr.DataArray:

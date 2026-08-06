@@ -17,7 +17,7 @@ TODO change temperatures to Kelvin
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calc_vp_sat
+from pyrealm.core.hygro import calculate_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -369,8 +369,8 @@ def calculate_vapour_pressure_deficit(
     """
 
     output = {}
-    saturation_vapour_pressure_numpy = calc_vp_sat(
-        ta=temperature.to_numpy(),
+    saturation_vapour_pressure_numpy = calculate_vp_sat(
+        tc=temperature.to_numpy(),
         core_const=pyrealm_core_constants,
     )
     saturation_vapour_pressure = saturation_vapour_pressure_numpy
@@ -411,7 +411,10 @@ def interpolate_soil_temperature(
     surface_layer = layer_heights[layer_structure.index_surface].to_numpy()
     soil_depths = layer_heights[layer_structure.index_all_soil].to_numpy()
     interpolation_heights = np.concatenate(
-        [surface_layer, -1 * soil_depths + surface_layer]
+        [
+            surface_layer,
+            -1 * soil_depths + surface_layer,
+        ]
     )
 
     # Calculate per cell slope and intercept for logarithmic soil temperature profile

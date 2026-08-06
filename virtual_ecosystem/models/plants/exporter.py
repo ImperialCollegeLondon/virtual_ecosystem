@@ -17,8 +17,7 @@ from typing import ClassVar
 import numpy as np
 import pandas as pd
 from pyrealm.demography.canopy import Canopy, CohortCanopyData, CommunityCanopyData
-from pyrealm.demography.community import Cohorts
-from pyrealm.demography.tmodel import StemAllocation, StemAllometry
+from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllometry
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
@@ -84,10 +83,14 @@ class CommunityDataExporter:
             [
                 "cell_id",
                 "time",
-                *StemAllometry.array_attrs,
-                *Cohorts.array_attrs,
-                *StemAllocation.array_attrs,
-                *Biomasses.array_attrs,
+                *StemAllometry._array_attrs,
+                # *list(Cohorts.columns),
+                # pyrealm 3 HACK - the object being exported is a Cohorts df instance
+                #    with columns but the imported object is the class not the instance
+                #    and that does not have columns. Need to work out how to repopulate
+                #    this list
+                *StemAllocation._array_attrs,
+                *Biomasses._array_attrs,
             ]
         ),
         "community_canopy_attributes": set(
@@ -96,7 +99,7 @@ class CommunityDataExporter:
                 "heights",
                 "cell_id",
                 "time",
-                *CommunityCanopyData.array_attrs,
+                *CommunityCanopyData._array_attrs,
             ]
         ),
         "stem_canopy_attributes": set(
@@ -105,7 +108,7 @@ class CommunityDataExporter:
                 "cohort_id",
                 "cell_id",
                 "time",
-                *CohortCanopyData.array_attrs,
+                *CohortCanopyData._array_attrs,
             ]
         ),
     }
@@ -261,9 +264,10 @@ class CommunityDataExporter:
     def dump(
         self,
         communities: PlantCommunities,
-        biomasses: dict[int, Biomasses] | None,
+        biomasses: dict[int, Biomasses],
         canopies: dict[int, Canopy],
         stem_allocations: dict[int, StemAllocation],
+        growth_increments: dict[int, GrowthIncrements],
         time: np.datetime64,
         time_index: int,
     ) -> None:
@@ -277,6 +281,7 @@ class CommunityDataExporter:
             biomasses: A dictionary of biomass data keyed by cell id.
             canopies: A dictionary of Canopy instances, keyed by cell id.
             stem_allocations: A dictionary of StemAllocations, also keyed by cell id
+            growth_increments: A dictionary of GrowthIncrements, also keyed by cell id
             time: A datetime to be used as a timestamp in the output files.
             time_index: The index of the datatime within the model updates.
         """
@@ -290,6 +295,7 @@ class CommunityDataExporter:
             biomasses=biomasses,
             canopies=canopies,
             stem_allocations=stem_allocations,
+            growth_increments=growth_increments,
             time=time,
             time_index=time_index,
         )
@@ -312,9 +318,10 @@ class CommunityDataExporter:
     def _dump_cohort_data(
         self,
         communities: PlantCommunities,
-        biomasses: dict[int, Biomasses] | None,
+        biomasses: dict[int, Biomasses],
         canopies: dict[int, Canopy],
         stem_allocations: dict[int, StemAllocation],
+        growth_increments: dict[int, GrowthIncrements],
         time: np.datetime64,
         time_index: int,
     ) -> None:
@@ -325,6 +332,7 @@ class CommunityDataExporter:
             biomasses: A dictionary of biomass data keyed by cell id.
             canopies: A dictionary of Canopy instances, keyed by cell id.
             stem_allocations: A dictionary of StemAllocations, also keyed by cell id
+            growth_increments: A dictionary of GrowthIncrements, also keyed by cell id
             time: A datetime to be used as a timestamp in the output files
             time_index: The index of the datatime within the model updates.
         """
@@ -337,32 +345,43 @@ class CommunityDataExporter:
         cohort_data = []
 
         for cell_id, community in communities.items():
-            # The stem allocations are only defined after update so at setup, the
-            # stem allocations are defined as an empty dictionary. In this case,
-            # provide an empty data frame of np.nan values for each cohort.
+            # The stem allocations and growth increments are only populated during model
+            # update so at setup are empty dictionaries. During the setup export, these
+            # values are exported as dataframes of np.nan
             if stem_allocations:
-                allocation = stem_allocations[cell_id].to_pandas()
+                allocation = stem_allocations[cell_id].to_dataframe()
             else:
+                # Empty dataframe of NaN values
                 allocation = pd.DataFrame(
-                    {
-                        key: np.full(community.n_cohorts, np.nan)
-                        for key in StemAllocation.array_attrs
-                    }
+                    columns=StemAllocation._array_attrs,
+                    index=np.arange(len(community.cohorts)),
+                )
+
+            if growth_increments:
+                increments = growth_increments[cell_id].to_dataframe()
+            else:
+                # Empty dataframe of NaN values
+                increments = pd.DataFrame(
+                    columns=GrowthIncrements._array_attrs,
+                    index=np.arange(len(community.cohorts)),
                 )
 
             # Concatenate the cohort data, stem allometry and stem allocation by
             # column
-            if biomasses is None:
-                biomass_data = pd.DataFrame(index=np.arange(community.n_cohorts))
-            else:
-                biomass_data = self._export_biomass_data(biomasses[cell_id])
+            # if biomasses is None:
+            #    biomass_data = pd.DataFrame(index=np.arange(len(community)))
+            # else:
+            biomass_data = self._export_biomass_data(biomasses[cell_id])
 
+            # Need to reset indices to concatenate columns.
+            # TODO: repeated columns in here.
             community_data = pd.concat(
                 [
-                    community.cohorts.to_pandas(),
-                    community.stem_allometry.to_pandas(),
-                    allocation,
-                    biomass_data,
+                    community.cohorts.reset_index(drop=True),
+                    community.stem_allometry.to_dataframe().reset_index(drop=True),
+                    allocation.reset_index(drop=True),
+                    increments.reset_index(drop=True),
+                    biomass_data.reset_index(drop=True),
                 ],
                 axis=1,
             )
@@ -428,7 +447,7 @@ class CommunityDataExporter:
 
         community_canopy_data = []
         for cell_id, canopy in canopies.items():
-            data = canopy.community_data.to_pandas()
+            data = canopy.community_data.to_dataframe()
             data["canopy_layer_index"] = data.index
             data["heights"] = canopy.heights
             data["cell_id"] = cell_id
@@ -477,12 +496,12 @@ class CommunityDataExporter:
 
         stem_canopy_data = []
         for (cell_id, canopy), community in zip(canopies.items(), communities.values()):
-            data = canopy.cohort_data.to_pandas()
+            data = canopy.cohort_data.to_dataframe()
             data["canopy_layer_index"] = data.index
             data["cell_id"] = cell_id
-            data["cohort_id"] = np.repeat(
-                community.cohorts.cohort_id, len(canopy.heights)
-            )
+            # data["cohort_id"] = np.repeat(
+            #     community.cohorts.cohort_id, len(canopy.heights)
+            # )
 
             data["time"] = time
             data["time_index"] = time_index

@@ -30,11 +30,12 @@ at constant pressure, :math:`r_{a}` is the aerodynamic resistance of the surface
 or soil), :math:`g_{v}` represents the conductivity for vapour loss from the leaves as a
 function of the stomatal conductivity, :math:`PP` stands for primary productivity.
 
-A challenge in solving this equation is the dependency of latent heat and emitted
-radiation on leaf temperature. We use a secant method to iteratively solve the energy
-balance for the canopy temperature. The air temperature is updated based on the
-sensible heat flux from the canopy and soil in equilibrium, and vertical mixing of air
-between layers.
+A challenge in solving this equation is the strong nonlinear dependence of emitted
+longwave radiation and turbulent heat fluxes on leaf temperature. We therefore solve for
+canopy temperature iteratively using a secant method. Because canopy and air
+temperatures are coupled through sensible heat exchange, the surrounding air temperature
+is also updated iteratively from canopy and soil fluxes, together with vertical mixing
+between layers, until both canopy and air temperatures converge.
 
 Atmospheric humidity is also mixed vertically between atmospheric layers.
 Advection at the top of the canopy is currently not considered as we don't have
@@ -45,13 +46,14 @@ unrealistic.
 
 from collections.abc import Callable
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_weights_from_absorbed_radiation,
@@ -330,16 +332,17 @@ def calculate_energy_balance_residual(
     evapotranspiration: NDArray[np.floating],
     absorbed_shortwave_radiation: NDArray[np.floating],
     absorbed_longwave_radiation: NDArray[np.floating],
+    longwave_emission_soil: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
-    surface_index: int,
     leaf_emissivity: float,
     stefan_boltzmann_constant: float,
     zero_Celsius: float,
     seconds_to_hour: float,
     return_fluxes: bool,
+    idx: SimpleNamespace,
 ) -> NDArray[np.floating] | dict[str, NDArray[np.floating]]:
     r"""Calculate energy balance residual for canopy.
 
@@ -362,11 +365,11 @@ def calculate_energy_balance_residual(
             layers, [W m-2]
         absorbed_longwave_radiation: Absorbed longwave radiation for all canopy layers,
             [W m-2]
+        longwave_emission_soil: Longwave emission from topsoil, [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
-        surface_index: Row index of surface layer
         leaf_emissivity: Leaf emissivity, dimensionless
         stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
         zero_Celsius: Factor to convert between Celsius and Kelvin
@@ -374,6 +377,7 @@ def calculate_energy_balance_residual(
         return_fluxes: Flag to indicate if all components of the energy balance should
             be returned. This is false for the newton approach to solve for canopy
             temperature, but true to create the outputs in a second call afterwards.
+        idx: Namespace containing indices for different layers.
 
     Returns:
         full energy balance or energy balance residual, [W m-2]
@@ -419,7 +423,8 @@ def calculate_energy_balance_residual(
         - latent_heat_flux_canopy
     )
     # Add longwave_emission from surface to net radiation and energy balance residual
-    energy_balance_residual[1] += 0.5 * longwave_emission_canopy[surface_index]
+    net_radiation[idx.surface] += 0.5 * longwave_emission_soil
+    energy_balance_residual[idx.surface] += 0.5 * longwave_emission_soil
 
     if return_fluxes:
         energy_balance = {
@@ -790,11 +795,14 @@ def secant_solve_cells_layers(
     small_perturbation_second_guess: float,
     denominator_tolerance: float,
 ) -> NDArray[np.floating]:
-    """Vectorised secant solver for independent (cell, layer) root problems.
+    """Vectorised secant solver for independent (layers, cell_id) root problems.
+
+    The function returns solver diagnostics to the log file if the solution does not
+    converge.
 
     Args:
         residual_function: Function f(T) returning residual with same shape as T.
-        initial_guess: Initial guess canopy temperature, shape (n_cells, n_layers).
+        initial_guess: Initial guess canopy temperature with dims ('layers', 'cell_id').
         maxiter_secant: Maximum secant iterations.
         convergence_tolerance: Convergence tolerance on max absolute update.
         small_perturbation_second_guess: Small perturbation for second initial guess.
@@ -805,10 +813,12 @@ def secant_solve_cells_layers(
     """
 
     previous_temperature = initial_guess.copy()
-    current_temperature = initial_guess + small_perturbation_second_guess
+    current_temperature = previous_temperature + small_perturbation_second_guess
 
     previous_residual = residual_function(previous_temperature)
     current_residual = residual_function(current_temperature)
+
+    update = np.full_like(current_temperature, np.inf, dtype=float)
 
     for _ in range(maxiter_secant):
         denom = current_residual - previous_residual
@@ -829,7 +839,8 @@ def secant_solve_cells_layers(
 
         next_residual = residual_function(next_temperature)
 
-        max_update = np.nanmax(np.abs(next_temperature - current_temperature))
+        update = np.abs(next_temperature - current_temperature)
+        max_update = np.nanmax(update)
 
         if max_update < convergence_tolerance:
             return next_temperature
@@ -838,10 +849,38 @@ def secant_solve_cells_layers(
             current_temperature,
             next_temperature,
         )
-        previous_residual, current_residual = (
-            current_residual,
-            next_residual,
+        previous_residual, current_residual = current_residual, next_residual
+
+    # Extract cells where solver did not fully converge with max iterations
+    valid_mask = ~np.isnan(initial_guess)
+
+    unconverged_mask = valid_mask & (
+        (np.isfinite(update) & (update >= convergence_tolerance))
+        | (
+            np.isfinite(current_residual)
+            & (np.abs(current_residual) >= convergence_tolerance)
         )
+    )
+
+    unconverged_layer_ids = np.where(np.any(unconverged_mask, axis=1))[0]
+    unconverged_cell_ids = np.where(np.any(unconverged_mask, axis=0))[0]
+    failed_layer_idx, failed_cell_idx = np.where(unconverged_mask)
+    failed_pairs = [
+        (int(layer_idx), int(cell_idx))
+        for layer_idx, cell_idx in zip(failed_layer_idx, failed_cell_idx)
+    ]
+
+    LOGGER.info(
+        "Secant solver did not fully converge within %d iterations. "
+        "%d unconverged layer(s), %d unconverged cell(s), "
+        "and %d unconverged (layer, cell_id) pair(s).",
+        maxiter_secant,
+        unconverged_layer_ids.size,
+        unconverged_cell_ids.size,
+        len(failed_pairs),
+    )
+    LOGGER.info("Unconverged cell IDs: %s", unconverged_cell_ids.tolist())
+    LOGGER.info("Unconverged (layer, cell_id) pairs: %s", failed_pairs)
 
     return current_temperature
 
@@ -852,7 +891,7 @@ def make_canopy_residual(
     aerodynamic_resistance: NDArray[np.floating],
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
-    surface_index: int,
+    idx: SimpleNamespace,
 ) -> Callable[[NDArray[np.floating]], NDArray[np.floating]]:
     """Creates a residual function for canopy temperature to be used in root finding.
 
@@ -864,7 +903,7 @@ def make_canopy_residual(
         aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
         abiotic_constants: Constants related to abiotic processes.
         core_constants: Core constants.
-        surface_index: Row index of surface layer.
+        idx: Namespace containing indices for different layers.
 
     Returns:
         A function that takes canopy_temperature as input and returns the energy balance
@@ -878,16 +917,169 @@ def make_canopy_residual(
             evapotranspiration=state["evapotranspiration"],
             absorbed_shortwave_radiation=state["shortwave_absorption"],
             absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
+            longwave_emission_soil=state["longwave_emission"][idx.topsoil],
             specific_heat_air=state["specific_heat_air"],
             density_air=state["density_air"],
             aerodynamic_resistance=aerodynamic_resistance,
             latent_heat_vapourisation=state["latent_heat_vapourisation"],
-            surface_index=surface_index,
             leaf_emissivity=abiotic_constants.leaf_emissivity,
             stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
             zero_Celsius=core_constants.zero_Celsius,
             seconds_to_hour=core_constants.seconds_to_hour,
             return_fluxes=False,
+            idx=idx,
         )
 
     return residual
+
+
+def solve_canopy_temperature_with_air_coupling(
+    state: dict[str, Any],
+    static: dict[str, Any],
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
+    maxiter_air: int,
+    air_temperature_tolerance: float,
+    maxiter_secant: int,
+    convergence_tolerance: float,
+    small_perturbation_second_guess: float,
+    denominator_tolerance: float,
+    idx: SimpleNamespace,
+) -> tuple[
+    NDArray[np.floating],
+    NDArray[np.floating],
+    dict[str, NDArray[np.floating]],
+]:
+    """Solve canopy temperature with iterative air temperature coupling.
+
+    The canopy temperature is solved with a secant method for fixed air temperature.
+    Air temperature is then updated from sensible heat flux, and the process is
+    repeated until both canopy and air temperatures converge.
+
+    If the solver does not converge within max iterations, the last best guess is
+    returned and solver diagnostics are added to the log file.
+
+    Args:
+        state: Dictionary containing state variables needed for the energy balance
+            residual.
+        static: Dictionary containing static variables needed for the energy balance
+            residual.
+        abiotic_constants: Constants related to abiotic processes.
+        core_constants: Core constants.
+        maxiter_air: Maximum number of outer iterations for air temperature coupling.
+        air_temperature_tolerance: Convergence tolerance on max absolute canopy/air
+            temperature change, [C].
+        maxiter_secant: Maximum secant iterations.
+        convergence_tolerance: Convergence tolerance on max absolute secant update.
+        small_perturbation_second_guess: Small perturbation for second initial guess.
+        denominator_tolerance: Small value to prevent division by zero.
+        idx: Namespace containing indices for different layers.
+
+    Returns:
+        Tuple of canopy temperature, air temperature, and final fluxes.
+    """
+
+    # Local working state container
+    state_local = state.copy()
+
+    # Solver-owned working arrays
+    air_temperature = state["air_temperature"].copy()
+    canopy_temperature = state["canopy_temperature"].copy()
+    air_temperature_above = state["air_temperature"][idx.above].copy()
+
+    for _ in range(maxiter_air):
+        residual_function = make_canopy_residual(
+            state=state_local,
+            static=static,
+            aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
+            abiotic_constants=abiotic_constants,
+            core_constants=core_constants,
+            idx=idx,
+        )
+
+        new_canopy_temperature = secant_solve_cells_layers(
+            residual_function=residual_function,
+            initial_guess=canopy_temperature,
+            maxiter_secant=maxiter_secant,
+            convergence_tolerance=convergence_tolerance,
+            small_perturbation_second_guess=small_perturbation_second_guess,
+            denominator_tolerance=denominator_tolerance,
+        )
+
+        fluxes = cast(
+            dict[str, NDArray[np.floating]],
+            calculate_energy_balance_residual(
+                canopy_temperature_initial=new_canopy_temperature,
+                air_temperature=air_temperature,
+                evapotranspiration=state_local["evapotranspiration"],
+                absorbed_shortwave_radiation=state_local["shortwave_absorption"],
+                absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
+                longwave_emission_soil=state_local["longwave_emission"][idx.topsoil],
+                specific_heat_air=state_local["specific_heat_air"],
+                density_air=state_local["density_air"],
+                aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
+                latent_heat_vapourisation=state_local["latent_heat_vapourisation"],
+                leaf_emissivity=abiotic_constants.leaf_emissivity,
+                stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+                zero_Celsius=core_constants.zero_Celsius,
+                seconds_to_hour=core_constants.seconds_to_hour,
+                return_fluxes=True,
+                idx=idx,
+            ),
+        )
+
+        new_air_temperature = update_canopy_air_temperature(
+            air_temperature=air_temperature,
+            sensible_heat_flux=fluxes["sensible_heat_flux"],  # type: ignore
+            specific_heat_air=state_local["specific_heat_air"],
+            density_air=state_local["density_air"],
+            mixing_layer_thickness=static["geometry"]["thickness"],
+        )
+
+        # The surface layer is too thin for stable integration, therefore a simpler
+        # conductivity-based approach is used
+        new_surface_temperature = update_surface_air_temperature(
+            canopy_air_temperature=new_canopy_temperature,
+            state=state_local,
+            idx=idx,
+            denominator_tolerance=denominator_tolerance,
+        )
+
+        canopy_change = np.nanmax(np.abs(new_canopy_temperature - canopy_temperature))
+        air_change = np.nanmax(np.abs(new_air_temperature - air_temperature))
+
+        canopy_temperature = new_canopy_temperature
+        air_temperature = new_air_temperature
+        air_temperature[idx.surface] = new_surface_temperature
+
+        # The air temperature above the canopy is returned as nan, needs to be filled
+        # with reference value again
+        air_temperature[idx.above] = air_temperature_above
+
+        if max(canopy_change, air_change) < air_temperature_tolerance:
+            break
+
+    # Final flux calculation at converged temperatures
+    final_fluxes = cast(
+        dict[str, NDArray[np.floating]],
+        calculate_energy_balance_residual(
+            canopy_temperature_initial=canopy_temperature,
+            air_temperature=air_temperature,
+            evapotranspiration=state_local["evapotranspiration"],
+            absorbed_shortwave_radiation=state_local["shortwave_absorption"],
+            absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
+            longwave_emission_soil=state_local["longwave_emission"][idx.topsoil],
+            specific_heat_air=state_local["specific_heat_air"],
+            density_air=state_local["density_air"],
+            aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
+            latent_heat_vapourisation=state_local["latent_heat_vapourisation"],
+            leaf_emissivity=abiotic_constants.leaf_emissivity,
+            stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+            zero_Celsius=core_constants.zero_Celsius,
+            seconds_to_hour=core_constants.seconds_to_hour,
+            return_fluxes=True,
+            idx=idx,
+        ),
+    )
+
+    return canopy_temperature, air_temperature, final_fluxes
