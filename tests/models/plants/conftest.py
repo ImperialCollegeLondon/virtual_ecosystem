@@ -155,12 +155,15 @@ def plants_data(fixture_core_components, fixture_flora):
         fixture_core_components.grid.n_cells,
     )
 
-    # Setup the layers
+    # Setup the layers - note that these values are written to all layers and in reality
+    # should only fill _some_ of the layers, but that doesn't matter for the context of
+    # the tests.
     forcing_vars = (
         ("air_temperature", 20),
         ("vapour_pressure_deficit", 1000),
         ("atmospheric_pressure", 101325),
         ("atmospheric_co2", 400),
+        ("soil_moisture", 300),
     )
 
     for var, value in forcing_vars:

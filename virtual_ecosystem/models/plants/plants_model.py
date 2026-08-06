@@ -1228,8 +1228,9 @@ class PlantsModel(
 
         for cell_id, cmty in self.communities.items():
             total_canopy_demand[cell_id] = (
-                self.per_stem_transpiration[cell_id] * cmty.cohorts["n_individuals"]
-            )
+                self.per_stem_transpiration[cell_id]
+                * cmty.cohorts["n_individuals"].to_numpy()
+            ).sum()
 
         # Calculate per cell limitation factor as available water over total daily
         # demand, capping at 1. Note that that this uses an explicit integer number of
@@ -1243,7 +1244,13 @@ class PlantsModel(
 
         soil_water_limitation_factor = np.minimum(
             1,
-            (self.data["soil_moisture"] - self.soil_water_residual)
+            (
+                self.data["soil_moisture"]
+                .sel(layers=self.layer_structure.index_subsoil)
+                .sum(dim="layers")
+                .to_numpy()
+                - self.soil_water_residual
+            )
             / total_daily_demand,
         )
 
@@ -1253,9 +1260,11 @@ class PlantsModel(
         self.subcanopy.subcanopy_gpp *= soil_water_limitation_factor
 
         # - Reduce canopy transpiration and productivity
-        for cell_id, cmty in self.communities:
-            self.per_stem_transpiration[cell_id] *= soil_water_limitation_factor
-            self.per_stem_gpp[cell_id] *= soil_water_limitation_factor
+        for cell_id, cmty in self.communities.items():
+            self.per_stem_transpiration[cell_id] *= soil_water_limitation_factor[
+                cell_id
+            ]
+            self.per_stem_gpp[cell_id] *= soil_water_limitation_factor[cell_id]
 
         # - Reduce resulting transpiration demands in data
         self.data["transpiration"] *= soil_water_limitation_factor
