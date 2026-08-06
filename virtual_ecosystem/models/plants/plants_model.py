@@ -312,6 +312,11 @@ class PlantsModel(
         """Constants used by the Hydrology model."""
         self.soil_water_residual: float
         """Residual soil water limit for transpiration."""
+        self.total_daily_water_demand: NDArray[np.floating]
+        """The total daily water demand from transpiration when not water limited."""
+        self.water_limitation_factor: NDArray[np.floating]
+        """The limitation factor to GPP and transpiration when water demand cannot be
+        met from soil moisture."""
         self.data_object_templates: dict[str, xr.DataArray]
         """DataArray templates for the data object."""
 
@@ -776,6 +781,7 @@ class PlantsModel(
         self.subcanopy.estimate_gpp(pmodel=self.pmodel, swd=self.canopy_top_radiation)
 
         # Apply water limitation
+        self.calculate_daily_water_demand()
         self.apply_water_limitation()
 
         # Calculate uptake from each inorganic soil nutrient pool
@@ -1214,14 +1220,11 @@ class PlantsModel(
                 np.nan,
             )
 
-    def apply_water_limitation(self):
-        """Apply water limitation to canopy and subcanopy growth.
+    def calculate_daily_water_demand(self) -> None:
+        """Calculates the water demand from transpiration.
 
-        This method compares the total water demand in cells to the plant accessible
-        soil moisture. If the total water demand exceeds the available water, it
-        calculates a soil moisture limitation factor as the simple ratio of
-        available water over total demand. This factor is then applied to per stem
-        GPP and transpiration estimates and to subcanopy GPP and transpiration.
+        The method calculates the total daily water demand in mm from transpiration in
+        both the canopy and subcanopy.
         """
 
         total_canopy_demand = np.zeros(self.grid.n_cells)
@@ -1234,15 +1237,25 @@ class PlantsModel(
 
         # Calculate per cell limitation factor as available water over total daily
         # demand, capping at 1. Note that that this uses an explicit integer number of
-        # days to match the definittion of the `days` parameter scaling
-        total_daily_demand = (
+        # days to match the definition of the `days` parameter scaling
+        self.total_daily_water_demand = (
             total_canopy_demand + self.subcanopy.subcanopy_transpiration
         ) / np.floor(
             self.model_timing.update_interval_seconds
             / self.core_constants.seconds_to_day
         )
 
-        soil_water_limitation_factor = np.minimum(
+    def apply_water_limitation(self) -> None:
+        """Apply water limitation to canopy and subcanopy growth.
+
+        This method compares the total water demand in cells to the plant accessible
+        soil moisture. If the total water demand exceeds the available water, it
+        calculates a soil moisture limitation factor as the simple ratio of
+        available water over total demand. This factor is then applied to per stem
+        GPP and transpiration estimates and to subcanopy GPP and transpiration.
+        """
+
+        water_limitation_factor = np.minimum(
             1,
             (
                 self.data["soil_moisture"]
@@ -1251,23 +1264,24 @@ class PlantsModel(
                 .to_numpy()
                 - self.soil_water_residual
             )
-            / total_daily_demand,
+            / self.total_daily_water_demand,
         )
 
         # Apply limitation
         # - Reduce subcanopy transpiration and productivity
-        self.subcanopy.subcanopy_transpiration *= soil_water_limitation_factor
-        self.subcanopy.subcanopy_gpp *= soil_water_limitation_factor
+        self.subcanopy.subcanopy_transpiration *= water_limitation_factor
+        self.subcanopy.subcanopy_gpp *= water_limitation_factor
 
         # - Reduce canopy transpiration and productivity
-        for cell_id, cmty in self.communities.items():
-            self.per_stem_transpiration[cell_id] *= soil_water_limitation_factor[
-                cell_id
-            ]
-            self.per_stem_gpp[cell_id] *= soil_water_limitation_factor[cell_id]
+        for cell_id in self.communities.keys():
+            self.per_stem_transpiration[cell_id] *= water_limitation_factor[cell_id]
+            self.per_stem_gpp[cell_id] *= water_limitation_factor[cell_id]
 
         # - Reduce resulting transpiration demands in data
-        self.data["transpiration"] *= soil_water_limitation_factor
+        self.data["transpiration"] *= water_limitation_factor
+
+        # Store attribute
+        self.water_limitation_factor = water_limitation_factor
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.

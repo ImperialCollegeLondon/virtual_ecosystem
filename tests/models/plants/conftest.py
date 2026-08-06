@@ -168,7 +168,7 @@ def plants_data(fixture_core_components, fixture_flora):
 
     for var, value in forcing_vars:
         data[var] = DataArray(
-            data=np.full(layer_shape, fill_value=value),
+            data=np.full(layer_shape, fill_value=value, dtype=np.float64),
             dims=("layers", "cell_id"),
             coords={
                 "layers": np.arange(len(layer_roles)),

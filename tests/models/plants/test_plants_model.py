@@ -543,6 +543,80 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, tricky_plant_cohorts):
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_apply_water_limitation(fxt_plants_model, tricky_plant_cohorts):
+    """Test the estimate_gpp method."""
+
+    # Set the canopy and absorbed irradiance
+    fxt_plants_model.set_canopy_top_radiation(time_index=0)
+    fxt_plants_model.update_canopy_layers()
+    fxt_plants_model.subcanopy.set_light_capture(
+        below_canopy_light_fraction=fxt_plants_model.below_canopy_light_fraction
+    )
+    fxt_plants_model.set_shortwave_absorption()
+
+    # Calculate GPP
+    fxt_plants_model.reset_update_vars()
+    fxt_plants_model.calculate_light_use_efficiency()
+    fxt_plants_model.estimate_gpp(time_index=0)
+    fxt_plants_model.subcanopy.estimate_gpp(
+        pmodel=fxt_plants_model.pmodel, swd=fxt_plants_model.canopy_top_radiation
+    )
+
+    # Calculate water demand
+    fxt_plants_model.calculate_daily_water_demand()
+
+    # Save comparison values
+    original_stem_gpp = deepcopy(fxt_plants_model.per_stem_gpp)
+    original_stem_transpiration = deepcopy(fxt_plants_model.per_stem_transpiration)
+    original_subcanopy_gpp = fxt_plants_model.subcanopy.subcanopy_gpp.copy()
+    original_subcanopy_transpiration = (
+        fxt_plants_model.subcanopy.subcanopy_transpiration.copy()
+    )
+    original_transpiration = fxt_plants_model.data["transpiration"].copy()
+
+    # Modify available water to induce a range of penalties
+    severity = np.array([2, 1, 0.5, 0.25])
+    fxt_plants_model.data["soil_moisture"][:,] = (
+        fxt_plants_model.soil_water_residual
+        + fxt_plants_model.total_daily_water_demand * severity
+    )
+
+    # Apply water limitation
+    fxt_plants_model.apply_water_limitation()
+
+    # Check the expected water limitation factor
+    assert_allclose(
+        fxt_plants_model.water_limitation_factor, np.array([1, 1, 0.5, 0.25])
+    )
+
+    # Check the penalties are all applied
+    assert_allclose(
+        fxt_plants_model.subcanopy.subcanopy_gpp,
+        original_subcanopy_gpp * fxt_plants_model.water_limitation_factor,
+    )
+    assert_allclose(
+        fxt_plants_model.subcanopy.subcanopy_transpiration,
+        original_subcanopy_transpiration * fxt_plants_model.water_limitation_factor,
+    )
+    assert_allclose(
+        fxt_plants_model.data["transpiration"],
+        original_transpiration * fxt_plants_model.water_limitation_factor,
+    )
+
+    for cell_id in original_stem_gpp.keys():
+        assert_allclose(
+            fxt_plants_model.per_stem_gpp[cell_id],
+            original_stem_gpp[cell_id]
+            * fxt_plants_model.water_limitation_factor[cell_id],
+        )
+        assert_allclose(
+            fxt_plants_model.per_stem_transpiration[cell_id],
+            original_stem_transpiration[cell_id]
+            * fxt_plants_model.water_limitation_factor[cell_id],
+        )
+
+
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
     """Test the allocate_gpp method."""
 
