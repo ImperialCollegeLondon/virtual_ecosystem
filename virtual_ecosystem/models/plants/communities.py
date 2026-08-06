@@ -15,11 +15,11 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 from pyrealm.demography.cohorts import Cohorts, create_cohorts
+from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllometry
 
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.plants.functional_types import VEFlora
 
 
 @dataclass
@@ -37,7 +37,7 @@ class Community:
 
     cell_id: int
     cell_area: float
-    flora: VEFlora
+    flora: Flora
     cohorts: Cohorts
     stem_allometry: StemAllometry = field(init=False)
 
@@ -82,7 +82,7 @@ class PlantCommunities(dict, Mapping[int, Community]):
     def __init__(
         self,
         cohort_data: pd.DataFrame,
-        flora: VEFlora,
+        flora: Flora,
         grid: Grid,
         cohort_id_generator: Iterator,
     ):
