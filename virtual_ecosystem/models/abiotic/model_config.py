@@ -170,7 +170,7 @@ class AbioticConstants(AbioticSharedConstants):
     full spectrum sunlight, of which about 4.57 * 46% = 2.04 µmol m-2 s-1 is PPFD.
     """
 
-    maxiter_air_secant_solver: int = 1000
+    maxiter_air_secant_solver: int = 20
     """Maximum number of iterations to solve for air temperature."""
 
     maxiter_secant_solver: int = 10
@@ -204,6 +204,9 @@ class AbioticConstants(AbioticSharedConstants):
 
     min_leaf_area_index_for_mixing: float = 0.5
     """Minimum leaf area index required for turbulent mixing to occur, [m m-1]."""
+
+    integration_time_interval: float = 300.0
+    """Initial integration time interval for air temperature update, [s]."""
 
 
 class AbioticConfiguration(ModelConfigurationRoot):

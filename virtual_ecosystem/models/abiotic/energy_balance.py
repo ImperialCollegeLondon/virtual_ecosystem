@@ -1070,9 +1070,12 @@ def solve_canopy_temperature_with_air_coupling(
     canopy_temperature = state["canopy_temperature"].copy()
     air_temperature_above = state["air_temperature"][idx.above].copy()
 
-    for _ in range(maxiter_air):
+    for i in range(maxiter_air):
         state_local["air_temperature"] = air_temperature
         state_local["canopy_temperature"] = canopy_temperature
+        integration_time_step = abiotic_constants.integration_time_interval / (
+            i + 1
+        )  # Reduce time step for stability in early iterations
 
         residual_function = make_canopy_residual(
             state=state_local,
@@ -1118,7 +1121,7 @@ def solve_canopy_temperature_with_air_coupling(
             specific_heat_air=state_local["specific_heat_air"],
             density_air=state_local["density_air"],
             mixing_layer_thickness=static["geometry"]["thickness"],
-            integration_time_step=core_constants.seconds_to_minute,
+            integration_time_step=integration_time_step,
         )
 
         canopy_change = np.nanmax(np.abs(new_canopy_temperature - canopy_temperature))
