@@ -8,82 +8,17 @@ import pytest
 
 
 def test_calculate_all_pool_updates(
-    dummy_carbon_data,
-    fixture_core_components,
-    functional_groups,
-    enzyme_classes,
-    fixture_soil_constants,
-    fixture_core_constants,
-    fixture_hydrology_constants,
+    fixture_core_components, fixture_hydrology_constants, soil_pools_fixture
 ):
     """Test that the two pool update functions work correctly."""
-    from virtual_ecosystem.models.soil.pools import SoilPools
-    from virtual_ecosystem.models.soil.soil_model import SoilModel, make_slices
-
-    # List of variables that are added to the data object
-    refreshed_variables = [
-        "new_fungal_fruiting_body_production",
-        "new_amf_n_supply",
-        "new_amf_p_supply",
-        "new_emf_n_supply",
-        "new_emf_p_supply",
-    ]
-    elements = {"C": "carbon", "N": "nitrogen", "P": "phosphorus"}
-
-    # Find and store order of pools (this requires loads of steps because it needs to
-    # work with the integrator)
-    y0 = np.concatenate(
-        (
-            np.concatenate(
-                [
-                    dummy_carbon_data[name].sel(element=element).to_numpy()
-                    for element in elements.keys()
-                    for name in SoilModel.vars_updated
-                    if name.startswith("soil_cnp_")
-                ]
-            ),
-            np.concatenate(
-                [
-                    dummy_carbon_data[name].to_numpy()
-                    for name in map(str, dummy_carbon_data.data.keys())
-                    if name in SoilModel.vars_updated
-                    if not name.startswith("soil_cnp_")
-                ]
-            ),
-            np.zeros(len(refreshed_variables) * dummy_carbon_data.grid.n_cells),
-        )
-    )
-    delta_pools_ordered = {
-        **{
-            f"{name}_{element}": np.array([])
-            for element in elements.values()
-            for name in SoilModel.vars_updated
-            if name.startswith("soil_cnp_")
-        },
-        **{
-            name: np.array([])
-            for name in map(str, dummy_carbon_data.data.keys())
-            if name in SoilModel.vars_updated
-            if not name.startswith("soil_cnp_")
-        },
-        **{name: np.array([]) for name in refreshed_variables},
-    }
-
-    slices = make_slices(dummy_carbon_data.grid.n_cells, len(delta_pools_ordered))
-    pools = {
-        str(pool): y0[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
-    }
-    soil_pools = SoilPools(
-        data=dummy_carbon_data,
-        pools=pools,
-        model_constants=fixture_soil_constants,
-        functional_groups=functional_groups,
-        enzyme_classes=enzyme_classes,
-        core_constants=fixture_core_constants,
-    )
 
     change_in_pools = {
-        "soil_cnp_pool_lmwc_carbon": [0.14736524, 0.76933205, 0.26335729, 0.07947176],
+        "soil_cnp_pool_lmwc_carbon": [
+            0.14870579528,
+            0.76746795708,
+            0.26211082941,
+            0.06982513851,
+        ],
         "soil_cnp_pool_maom_carbon": [
             3.7894322e-2,
             4.8705495e-3,
@@ -97,22 +32,22 @@ def test_calculate_all_pool_updates(
             -0.00681822124,
         ],
         "soil_c_pool_saprotrophic_fungi": [
-            -0.00705438,
-            -0.06240607,
-            -0.01697042,
-            -0.02978217,
+            -7.05523264e-3,
+            -6.25154586e-2,
+            -1.69860782e-2,
+            -2.97821673e-2,
         ],
         "soil_c_pool_arbuscular_mycorrhiza": [
-            -0.00507858,
-            -0.01059603,
-            -0.02956509,
-            -0.05564099,
+            -5.07680437e-3,
+            -1.05423533e-2,
+            -2.94358128e-2,
+            -5.55096609e-2,
         ],
         "soil_c_pool_ectomycorrhiza": [
-            -0.00437839,
-            -0.00959643,
-            -0.03157447,
-            -0.02414548,
+            -4.37734328e-3,
+            -9.55704432e-3,
+            -3.14594275e-2,
+            -2.41007280e-02,
         ],
         "soil_cnp_pool_pom_carbon": [
             -0.007886552416,
@@ -129,18 +64,23 @@ def test_calculate_all_pool_updates(
         "soil_enzyme_pom_bacteria": [-5.44018e-4, -2.2835e-4, -1.19517e-3, -7.21028e-5],
         "soil_enzyme_maom_bacteria": [-8.54122e-4, -2.79326e-4, -5.9611e-4, -1.0930e-4],
         "soil_enzyme_pom_fungi": [
-            -6.25152703e-04,
-            -1.08972871e-04,
-            -1.17734954e-04,
-            -8.70898203e-05,
+            -6.25136000e-4,
+            -1.08732063e-4,
+            -1.15512400e-4,
+            -8.61947588e-5,
         ],
         "soil_enzyme_maom_fungi": [
-            -2.07528703e-04,
-            -1.34796871e-04,
-            -5.40629537e-05,
-            -3.31618203e-05,
+            -2.07512000e-4,
+            -1.34556063e-4,
+            -5.18403999e-5,
+            -3.22667588e-5,
         ],
-        "soil_cnp_pool_lmwc_nitrogen": [0.00169496, 0.0057789, 0.00535622, 0.00547371],
+        "soil_cnp_pool_lmwc_nitrogen": [
+            0.0016886837,
+            0.0056764689,
+            0.0061375575,
+            0.0048149145,
+        ],
         "soil_cnp_pool_pom_nitrogen": [
             -8.93527e-5,
             5.102785e-5,
@@ -159,13 +99,23 @@ def test_calculate_all_pool_updates(
             1.343197e-2,
             7.72882e-3,
         ],
-        "soil_n_pool_ammonium": [0.00014578, 0.00824912, -0.00018991, -0.00027484],
-        "soil_n_pool_nitrate": [-0.00562716, -0.00584054, -0.00202432, -0.00157849],
+        "soil_n_pool_ammonium": [
+            1.45780297e-4,
+            8.23956439e-3,
+            -1.89909067e-4,
+            -2.71537385e-4,
+        ],
+        "soil_n_pool_nitrate": [
+            -5.62710718e-3,
+            -5.84164570e-3,
+            -2.02432331e-3,
+            -1.57775072e-3,
+        ],
         "soil_cnp_pool_lmwc_phosphorus": [
-            0.00022614,
-            0.00016408,
-            0.00021213,
-            0.00038847,
+            0.00024375109,
+            0.00013527753,
+            0.00020238357,
+            0.00026049544,
         ],
         "soil_cnp_pool_pom_phosphorus": [
             6.804384e-6,
@@ -183,40 +133,52 @@ def test_calculate_all_pool_updates(
         "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
         "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
         "soil_p_pool_labile": [
-            -1.76159741e-05,
-            -4.55931235e-04,
-            -9.74662048e-05,
-            -2.97638960e-05,
+            -1.76159741e-5,
+            -4.55931235e-4,
+            -9.76110314e-5,
+            -2.98923683e-5,
         ],
-        "new_fungal_fruiting_body_production": [
-            7.40554437e-06,
-            4.38693546e-04,
-            4.01525064e-04,
-            3.42784354e-04,
+        "cnp_fungal_fruiting_body_production_carbon": [
+            7.60259952e-6,
+            4.37061529e-4,
+            4.24391470e-4,
+            3.60392817e-4,
+        ],
+        "cnp_fungal_fruiting_body_production_nitrogen": [
+            6.12904e-7,
+            4.87802e-5,
+            2.83040e-5,
+            2.11042e-5,
+        ],
+        "cnp_fungal_fruiting_body_production_phosphorus": [
+            9.5663e-8,
+            7.7964e-6,
+            4.3381e-6,
+            3.1868e-6,
         ],
         "new_amf_n_supply": [
-            5.32864078e-7,
-            1.612922608e-5,
-            2.91326774e-5,
-            3.94602692e-5,
+            5.23832484e-7,
+            1.58558494e-5,
+            2.91326775e-5,
+            3.87914510e-5,
         ],
         "new_amf_p_supply": [
-            7.85748726e-8,
-            2.3783774e-6,
-            4.2958355e-6,
-            5.81871764e-6,
+            7.85748725e-8,
+            2.37837741e-6,
+            4.36990162e-6,
+            5.81871765e-6,
         ],
         "new_emf_n_supply": [
-            3.81957958e-7,
-            1.435769562e-5,
-            3.1213583e-5,
-            1.63135162e-5,
+            3.75905320e-7,
+            1.41301787e-5,
+            3.12135830e-5,
+            1.60550066e-5,
         ],
         "new_emf_p_supply": [
-            5.6815677e-8,
-            2.13568584e-6,
-            4.64297396e-6,
-            2.42661124e-6,
+            5.68156771e-8,
+            2.13568583e-6,
+            4.71773278e-6,
+            2.42661123e-06,
         ],
     }
 
@@ -225,7 +187,7 @@ def test_calculate_all_pool_updates(
     for pool in change_in_pools.keys():
         pool_order[pool] = np.array([])
 
-    delta_pools = soil_pools.calculate_all_pool_updates(
+    delta_pools = soil_pools_fixture.calculate_all_pool_updates(
         delta_pools_ordered=pool_order,
         layer_structure=fixture_core_components.layer_structure,
         soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
@@ -241,85 +203,13 @@ def test_calculate_all_pool_updates(
         assert np.allclose(delta_pools[i * 4 : (i + 1) * 4], change_in_pools[pool])
 
 
-def test_to_per_volume(
-    dummy_carbon_data,
-    functional_groups,
-    enzyme_classes,
-    fixture_core_constants,
-    fixture_soil_constants,
-):
+def test_to_per_volume(soil_pools_fixture):
     """Test that the SoilPools.to_per_volume method converts correctly."""
 
-    from virtual_ecosystem.models.soil.pools import SoilPools
-    from virtual_ecosystem.models.soil.soil_model import SoilModel, make_slices
-
-    # List of variables that are added to the data object
-    refreshed_variables = [
-        "new_fungal_fruiting_body_production",
-        "new_amf_n_supply",
-        "new_amf_p_supply",
-        "new_emf_n_supply",
-        "new_emf_p_supply",
-    ]
-
-    elements = {"C": "carbon", "N": "nitrogen", "P": "phosphorus"}
-
-    # Find and store order of pools (this requires loads of steps because it needs to
-    # work with the integrator)
-    y0 = np.concatenate(
-        (
-            np.concatenate(
-                [
-                    dummy_carbon_data[name].sel(element=element).to_numpy()
-                    for element in elements.keys()
-                    for name in SoilModel.vars_updated
-                    if name.startswith("soil_cnp_")
-                ]
-            ),
-            np.concatenate(
-                [
-                    dummy_carbon_data[name].to_numpy()
-                    for name in map(str, dummy_carbon_data.data.keys())
-                    if name in SoilModel.vars_updated
-                    if not name.startswith("soil_cnp_")
-                ]
-            ),
-            np.zeros(len(refreshed_variables) * dummy_carbon_data.grid.n_cells),
-        )
-    )
-    delta_pools_ordered = {
-        **{
-            f"{name}_{element}": np.array([])
-            for element in elements.values()
-            for name in SoilModel.vars_updated
-            if name.startswith("soil_cnp_")
-        },
-        **{
-            name: np.array([])
-            for name in map(str, dummy_carbon_data.data.keys())
-            if name in SoilModel.vars_updated
-            if not name.startswith("soil_cnp_")
-        },
-        **{name: np.array([]) for name in refreshed_variables},
-    }
-
-    slices = make_slices(dummy_carbon_data.grid.n_cells, len(delta_pools_ordered))
-    pools = {
-        str(pool): y0[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
-    }
-    soil_pools = SoilPools(
-        data=dummy_carbon_data,
-        pools=pools,
-        model_constants=fixture_soil_constants,
-        core_constants=fixture_core_constants,
-        functional_groups=functional_groups,
-        enzyme_classes=enzyme_classes,
-    )
-
     # Test that it works for both floats and numpy arrays
-    assert np.isclose(soil_pools.to_per_volume(10.0), 40.0)
+    assert np.isclose(soil_pools_fixture.to_per_volume(10.0), 40.0)
     assert np.allclose(
-        soil_pools.to_per_volume(np.array([10.0, 25.0, 99.0, 34.7])),
+        soil_pools_fixture.to_per_volume(np.array([10.0, 25.0, 99.0, 34.7])),
         [40.0, 100.0, 396.0, 138.8],
     )
 
@@ -338,31 +228,26 @@ def test_calculate_microbial_changes(
     from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
 
     expected_mic_changes = {
-        "lmwc_uptake": [-0.02770459, -0.68866421, -0.00816083, -0.00575508],
-        "don_uptake": [1.58188233e-5, 8.69076672e-4, 1.55166065e-4, 1.64569944e-4],
-        "ammonium_change": [
-            -4.50191489e-7,
-            -2.03522762e-4,
-            4.03488641e-4,
-            1.03543669e-4,
-        ],
-        "nitrate_change": [3.33878216e-6, -2.55552294e-5, 6.02358611e-5, 3.41448933e-5],
-        "dop_uptake": [1.57632392e-6, 4.47842646e-5, 5.18728252e-5, 2.18040323e-5],
-        "labile_p_change": [3.14421266e-6, 6.55595034e-5, 8.24084207e-5, 2.40326567e-5],
+        "lmwc_uptake": [-0.0276999, -0.68870243, -0.00758562, -0.00537763],
+        "don_uptake": [1.57648458e-5, 8.51236475e-4, 1.55166065e-4, 1.64569944e-4],
+        "ammonium_change": [-4.5189013e-7, -1.9396717e-4, 4.0348864e-4, 1.0024313e-4],
+        "nitrate_change": [3.28271643e-6, -2.44451670e-5, 6.02358611e-5, 3.34017404e-5],
+        "dop_uptake": [1.57632392e-6, 4.47842646e-5, 5.26169499e-5, 2.18040323e-5],
+        "labile_p_change": [3.14421266e-6, 6.55595034e-5, 8.25532473e-5, 2.41611289e-5],
         "bacteria_change": [-0.04249051, -0.01715269, -0.08741038, -0.00636922],
         "saprotrophic_fungi_change": [
-            -0.00650838,
-            -0.06225707,
-            -0.01683542,
+            -0.00650923,
+            -0.06236646,
+            -0.01685108,
             -0.02892717,
         ],
         "arbuscular_mycorrhiza_change": [
-            -0.00473558,
-            -0.01016703,
-            -0.02896509,
-            -0.05541099,
+            -0.0047338,
+            -0.01011335,
+            -0.02883581,
+            -0.05527966,
         ],
-        "ectomycorrhiza_change": [-0.00342639, -0.00921243, -0.03119747, -0.02320248],
+        "ectomycorrhiza_change": [-0.00342534, -0.00917304, -0.03108243, -0.02315773],
         "pom_enzyme_bacteria_change": [
             -5.44018325e-04,
             -2.28350229e-04,
@@ -376,49 +261,61 @@ def test_calculate_microbial_changes(
             -0.00010931,
         ],
         "pom_enzyme_fungi_change": [
-            -6.25152703e-4,
-            -1.08972871e-4,
-            -1.17734954e-4,
-            -8.70898203e-5,
+            -6.25136e-4,
+            -1.087321e-4,
+            -1.155124e-4,
+            -8.619476e-5,
         ],
         "maom_enzyme_fungi_change": [
-            -2.07528703e-04,
-            -1.34796871e-04,
-            -5.40629537e-05,
-            -3.31618203e-05,
+            -2.07512e-4,
+            -1.345561e-4,
+            -5.18404e-5,
+            -3.226676e-5,
         ],
         "necromass_generation": [0.05952289, 0.10428336, 0.1716835, 0.11770379],
         "necromass_n_flow": [0.01004001, 0.01465402, 0.02363142, 0.01030819],
         "necromass_p_flow": [0.00299907, 0.00292777, 0.00662163, 0.00182373],
-        "fruiting_body_production": [
-            7.40554437e-6,
-            4.38693546e-4,
-            4.01525064e-4,
-            3.42784354e-4,
+        "fruiting_body_production_carbon": [
+            7.60259952e-6,
+            4.37061529e-4,
+            4.24391470e-4,
+            3.60392817e-4,
+        ],
+        "fruiting_body_production_nitrogen": [
+            6.12904e-7,
+            4.87802e-5,
+            2.83040e-5,
+            2.11042e-5,
+        ],
+        "fruiting_body_production_phosphorus": [
+            9.5663e-8,
+            7.7964e-6,
+            4.3381e-6,
+            3.1868e-6,
         ],
         "arbuscular_mycorrhiza_n_supply": [
-            5.32864078e-7,
-            1.612922608e-5,
-            2.91326774e-5,
-            3.94602692e-5,
+            5.23832484e-7,
+            1.58558494e-5,
+            2.91326775e-5,
+            3.87914510e-5,
         ],
         "arbuscular_mycorrhiza_p_supply": [
-            7.85748726e-8,
-            2.3783774e-6,
-            4.2958355e-6,
-            5.81871764e-6,
+            7.85748725e-8,
+            2.37837741e-6,
+            4.36990162e-6,
+            5.81871765e-6,
         ],
         "ectomycorrhiza_n_supply": [
-            3.81957958e-7,
-            1.435769562e-5,
-            3.1213583e-5,
-            1.63135162e-5,
+            3.75905320e-7,
+            1.41301787e-5,
+            3.12135830e-5,
+            1.60550066e-5,
         ],
         "ectomycorrhiza_p_supply": [
-            5.6815677e-8,
-            2.13568584e-6,
-            4.64297396e-6,
-            2.42661124e-6,
+            5.68156771e-8,
+            2.13568583e-6,
+            4.71773278e-6,
+            2.42661123e-6,
         ],
     }
 
@@ -597,17 +494,12 @@ def test_calculate_enzyme_changes(soil_pool_data, enzyme_production, enzyme_clas
             -0.00010931,
         ],
         "net_change_pom_fungi": [
-            -6.25152703e-4,
-            -1.08972871e-4,
-            -1.17734954e-4,
-            -8.70898203e-5,
+            -6.25136e-4,
+            -1.08732063e-4,
+            -1.155124e-4,
+            -8.61947588e-5,
         ],
-        "net_change_maom_fungi": [
-            -2.07528703e-4,
-            -1.34796871e-4,
-            -5.40629537e-5,
-            -3.31618203e-5,
-        ],
+        "net_change_maom_fungi": [-2.07512e-4, -1.345561e-4, -5.18404e-5, -3.226676e-5],
         "denaturation_maom_bacteria": [0.0008544, 0.0002808, 0.00060216, 0.00010944],
         "denaturation_pom_bacteria": [
             5.442960e-4,
@@ -662,8 +554,8 @@ def test_calculate_enzyme_production(functional_groups, growth_rates):
     expected_production = {
         "bacteria_pom": [2.77675102e-7, 1.47377060e-6, 6.05047838e-6, 1.33284114e-7],
         "bacteria_maom": [2.77675102e-7, 1.47377060e-6, 6.05047838e-6, 1.33284114e-7],
-        "fungi_pom": [5.27296700e-7, 2.90271293e-5, 3.73050463e-5, 1.87501797e-5],
-        "fungi_maom": [5.27296700e-7, 2.90271293e-5, 3.73050463e-5, 1.87501797e-5],
+        "fungi_pom": [5.43999525e-7, 2.92679369e-5, 3.95276001e-5, 1.96452412e-5],
+        "fungi_maom": [5.43999525e-7, 2.92679369e-5, 3.95276001e-5, 1.96452412e-5],
     }
 
     actual_production = calculate_enzyme_production(
@@ -680,13 +572,17 @@ def test_calculate_fruiting_body_production(functional_groups, growth_rates):
     """Test that the calculation of total fruiting body production works as expected."""
     from virtual_ecosystem.models.soil.pools import calculate_fruiting_body_production
 
-    expected_production = [7.40554437e-6, 4.38693546e-4, 4.01525064e-4, 3.42784354e-4]
+    expected_production_carbon = [7.6026e-6, 4.37062e-4, 4.24391e-4, 3.60393e-4]
+    expected_production_nitrogen = [6.12904e-7, 4.87802e-5, 2.83040e-5, 2.11042e-5]
+    expected_production_phosphorus = [9.5663e-8, 7.7964e-6, 4.3381e-6, 3.1868e-6]
 
     actual_production = calculate_fruiting_body_production(
         microbial_groups=functional_groups, growth_rates=growth_rates
     )
 
-    assert np.allclose(expected_production, actual_production)
+    assert np.allclose(expected_production_carbon, actual_production["carbon"])
+    assert np.allclose(expected_production_nitrogen, actual_production["nitrogen"])
+    assert np.allclose(expected_production_phosphorus, actual_production["phosphorus"])
 
 
 def test_calculate_maintenance_biomass_synthesis(
@@ -1438,29 +1334,3 @@ def test_calculate_net_formation_of_secondary_P(
     )
 
     assert np.allclose(actual_formation, expected_formation)
-
-
-def test_calculate_fungal_fruiting_body_decay(
-    dummy_carbon_data, fixture_core_constants
-):
-    """Test that calculation of inputs due to fungal fruiting body decay is correct."""
-
-    from virtual_ecosystem.models.soil.pools import calculate_fungal_fruiting_body_decay
-
-    expected_decay = {
-        "carbon": [0.00089996, 0.00232672, 0.0012874, 0.0103484],
-        "nitrogen": [8.9996e-5, 0.000232672, 0.00012874, 0.00103484],
-        "phosphorus": [1.1999467e-5, 3.1022933e-5, 1.7165333e-5, 0.0001379787],
-    }
-
-    actual_decay = calculate_fungal_fruiting_body_decay(
-        decay_rate=dummy_carbon_data["decay_of_fungal_fruiting_bodies"]
-        / fixture_core_constants.microbial_simulation_depth,
-        fungal_fruiting_body_c_n_ratio=fixture_core_constants.fungal_fruiting_bodies_c_n_ratio,
-        fungal_fruiting_body_c_p_ratio=fixture_core_constants.fungal_fruiting_bodies_c_p_ratio,
-    )
-
-    assert expected_decay.keys() == actual_decay.keys()
-
-    for element in expected_decay.keys():
-        assert np.allclose(expected_decay[element], actual_decay[element])

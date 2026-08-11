@@ -2078,15 +2078,13 @@ class TestAnimalCohort:
         assert result == {"C": 10, "N": 11, "P": 12}
 
     @pytest.mark.parametrize(
-        "cohort_instance, diet_string, plant_list, animal_list, fungal_fruit_list,"
-        "soil_fungi_list, pom_list, bacteria_list, expected_nutrient_gain,"
-        "delta_mass_mock",
+        "cohort_instance, diet_string, plant_list, animal_list, soil_fungi_list,"
+        "pom_list, bacteria_list, expected_nutrient_gain, delta_mass_mock",
         [
             (
                 "herbivore_cohort_instance",
                 "foliage_fruit",
                 "array_plant_list_instance",
-                [],
                 [],
                 [],
                 [],
@@ -2102,24 +2100,11 @@ class TestAnimalCohort:
                 [],
                 [],
                 [],
-                [],
                 {"C": 120.0, "N": 60.0, "P": 20.0},
                 "delta_mass_predation",
             ),
-            (
-                "fungivore_cohort_instance",
-                "mushrooms",
-                [],
-                [],
-                "fungal_fruit_list_instance",
-                [],
-                [],
-                [],
-                {"C": 25.0, "N": 5.0, "P": 2.5},
-                "delta_mass_fruiting_fungivory",
-            ),
         ],
-        ids=["herbivore", "carnivore", "fungivore"],
+        ids=["herbivore", "carnivore"],
     )
     def test_forage_cohort(
         self,
@@ -2129,7 +2114,6 @@ class TestAnimalCohort:
         diet_string,
         plant_list,
         animal_list,
-        fungal_fruit_list,
         soil_fungi_list,
         pom_list,
         bacteria_list,
@@ -2137,7 +2121,6 @@ class TestAnimalCohort:
         delta_mass_mock,
         array_plant_list_instance,
         animal_list_instance,
-        fungal_fruit_list_instance,
         excrement_pool_instance,
         carcass_pools_by_cell_instance,
         herbivory_waste_pool_instance,
@@ -2155,8 +2138,6 @@ class TestAnimalCohort:
             plant_list = request.getfixturevalue(plant_list)
         if isinstance(animal_list, str):
             animal_list = request.getfixturevalue(animal_list)
-        if isinstance(fungal_fruit_list, str):
-            fungal_fruit_list = request.getfixturevalue(fungal_fruit_list)
 
         # Herbivory waste pools: keyed by cell_id for plant-like resources.
         herbivory_waste_pools = {
@@ -2174,7 +2155,6 @@ class TestAnimalCohort:
         cohort.forage_cohort(
             array_resource_list=plant_list,
             animal_list=animal_list,
-            fungal_fruit_list=fungal_fruit_list,
             soil_fungi_list=soil_fungi_list,
             pom_list=pom_list,
             bacteria_list=bacteria_list,
@@ -2202,10 +2182,6 @@ class TestAnimalCohort:
         elif diet_string == "vertebrates_invertebrates_carcasses":
             assert kwargs["animal_list"] == animal_list_instance
             assert kwargs["carcass_pools"] == carcass_pools_by_cell_instance
-            assert kwargs["adjusted_dt"] > 0
-
-        elif diet_string == "mushrooms":
-            assert kwargs["fungal_fruit_list"] == fungal_fruit_list_instance
             assert kwargs["adjusted_dt"] > 0
 
         else:
@@ -2247,7 +2223,6 @@ class TestAnimalCohort:
         cohort.forage_cohort(
             array_resource_list=array_litter_list_instance,
             animal_list=[],
-            fungal_fruit_list=[],
             soil_fungi_list=soil_fungi_list_instance,
             pom_list=pom_list_instance,
             bacteria_list=bacteria_list_instance,
@@ -2292,7 +2267,6 @@ class TestAnimalCohort:
         cohort.forage_cohort(
             array_resource_list=[],
             animal_list=[],
-            fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
@@ -2325,7 +2299,6 @@ class TestAnimalCohort:
         cohort.forage_cohort(
             array_resource_list=[],
             animal_list=[],
-            fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
@@ -2869,75 +2842,6 @@ class TestAnimalCohort:
 
         result = cohort.get_carcass_pools(carcass_pools)
 
-        assert len(result) == expected
-
-    @pytest.mark.parametrize(
-        "territory, cell_fruit_map, expected",
-        [
-            # Single valid fruiting pool
-            ([1], {1: "valid"}, 1),
-            # Valid and invalid in separate cells
-            ([1, 2], {1: "valid", 2: "invalid"}, 1),
-            # All invalid
-            ([1, 2], {1: "invalid", 2: "invalid"}, 0),
-            # Multiple valid across cells
-            ([1, 2], {1: "valid", 2: "valid"}, 2),
-            # Territory includes a cell with no pool
-            ([1, 2], {1: "valid"}, 1),
-        ],
-    )
-    def test_get_fungal_fruit_pools(
-        self,
-        territory,
-        cell_fruit_map,
-        expected,
-        functional_group_list_instance,
-        constants_instance,
-    ):
-        """Test get_fungal_fruit_pools with singleton-per-cell mapping."""
-
-        from types import SimpleNamespace
-
-        from virtual_ecosystem.core.grid import Grid
-        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animal.functional_group import (
-            get_functional_group_by_name,
-        )
-
-        # Setup grid and functional group
-        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
-        herbivore_group = get_functional_group_by_name(
-            functional_group_list_instance, "herbivorous_mammal"
-        )
-
-        # Create dummy cohort with defined territory
-        cohort = AnimalCohort(
-            functional_group=herbivore_group,
-            mass=10.0,
-            age=20.0,
-            individuals=10,
-            centroid_key=0,
-            grid=grid,
-            constants=constants_instance,
-        )
-        cohort.territory = territory
-
-        # Build singleton-per-cell dict of "fungal fruiting pools".
-        # We use simple objects to avoid needing real Data; only identity matters.
-        fungal_fruiting_bodies = {}  # dict[int, object]
-        all_fruits = []  # list[tuple[object, bool]]
-
-        for cell_id, label in cell_fruit_map.items():
-            fruit = SimpleNamespace(cell_id=cell_id)
-            fungal_fruiting_bodies[cell_id] = fruit
-            all_fruits.append((fruit, label == "valid"))
-
-        # Filter: keep only objects flagged "valid" above.
-        cohort.can_forage_on = lambda resource: any(
-            resource is res and is_valid for res, is_valid in all_fruits
-        )
-
-        result = cohort.get_fungal_fruit_pools(fungal_fruiting_bodies)
         assert len(result) == expected
 
     @pytest.mark.parametrize(

@@ -138,8 +138,6 @@ class MicrobialGroupConstants:
                 c_p_ratio=group_config.c_p_ratio,
                 enzyme_production=group_config.enzyme_production,
                 reproductive_allocation=group_config.reproductive_allocation,
-                c_n_ratio_fruiting_bodies=core_constants.fungal_fruiting_bodies_c_n_ratio,
-                c_p_ratio_fruiting_bodies=core_constants.fungal_fruiting_bodies_c_p_ratio,
                 enzyme_classes=enzyme_classes,
             ),
         )
@@ -160,8 +158,6 @@ def calculate_new_biomass_average_nutrient_ratios(
     c_p_ratio: float,
     enzyme_production: dict[str, float],
     reproductive_allocation: float,
-    c_n_ratio_fruiting_bodies: float,
-    c_p_ratio_fruiting_bodies: float,
     enzyme_classes: dict[str, SoilEnzymeClass],
 ) -> dict[str, float]:
     """Calculate average carbon nutrient ratios of the newly synthesised biomass.
@@ -186,8 +182,6 @@ def calculate_new_biomass_average_nutrient_ratios(
             cellular synthesis)
         reproductive_allocation: Allocation of new biomass synthesis to reproductive
             structures (relative to cellular synthesis).
-        c_n_ratio_fruiting_bodies: Carbon to nitrogen ratio of fungal fruiting bodies.
-        c_p_ratio_fruiting_bodies: Carbon to phosphorus ratio of fungal fruiting bodies.
         enzyme_classes: Details of the enzyme classes used by the soil model.
     """
 
@@ -205,17 +199,9 @@ def calculate_new_biomass_average_nutrient_ratios(
 
     return {
         "nitrogen": total_carbon_gain
-        / (
-            (1 / c_n_ratio)
-            + enzyme_c_n_inverse
-            + (reproductive_allocation / c_n_ratio_fruiting_bodies)
-        ),
+        / (((1 + reproductive_allocation) / c_n_ratio) + enzyme_c_n_inverse),
         "phosphorus": total_carbon_gain
-        / (
-            (1 / c_p_ratio)
-            + enzyme_c_p_inverse
-            + (reproductive_allocation / c_p_ratio_fruiting_bodies)
-        ),
+        / (((1 + reproductive_allocation) / c_p_ratio) + enzyme_c_p_inverse),
     }
 
 
