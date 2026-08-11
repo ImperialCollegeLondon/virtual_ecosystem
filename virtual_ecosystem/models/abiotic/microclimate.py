@@ -2,6 +2,7 @@
 balance in the Virtual Ecosystem.
 """  # noqa: D205
 
+import warnings
 from types import SimpleNamespace
 from typing import Any
 
@@ -1019,12 +1020,18 @@ def build_output_from_record(
                 soil = data_record["soil_temperature"]
 
                 combined = np.stack([air, soil], axis=0)
-                min_value = np.nanmin(combined, axis=(0, 1))
-                max_value = np.nanmax(combined, axis=(0, 1))
+
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", "All-NaN slice encountered")
+                    min_value = np.nanmin(combined, axis=(0, 1))
+                    max_value = np.nanmax(combined, axis=(0, 1))
+
                 values_out = max_value - min_value
 
             else:
-                values_out = np.nanmean(values_arr, axis=0)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", "Mean of empty slice")
+                    values_out = np.nanmean(values_arr, axis=0)
 
         # assign dims
         if values_out.ndim == 1:
