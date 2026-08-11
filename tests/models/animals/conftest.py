@@ -60,11 +60,6 @@ def animal_data_for_model_instance(fixture_core_components):
         data=leaf_mass, dims=["layers", "cell_id"]
     )
 
-    # Populate the fungal fruiting bodies
-    data["fungal_fruiting_bodies"] = xarray.DataArray(
-        np.full(grid.n_cells, 0.1), dims=["cell_id"]
-    )
-
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
     air_temperature_values = np.full(
         (1, grid.n_cells), 25.0
@@ -142,6 +137,9 @@ def animal_data_for_model_instance(fixture_core_components):
     data["litter_pool_woody_cnp"] = litter_cnp_template
     data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
     data["litter_pool_below_structural_cnp"] = litter_cnp_template
+
+    # Populate the fungal fruiting bodies
+    data["fungal_fruiting_bodies_cnp"] = litter_cnp_template
 
     # Populate lignin contents of consumed pools
     lignin_contents = DataArray(
@@ -383,12 +381,6 @@ def dummy_animal_data(animal_fixture_core_components):
     data["soil_c_pool_arbuscular_mycorrhiza"] = soil_pools
     data["soil_c_pool_ectomycorrhiza"] = soil_pools
 
-    # Also need to add a pool to track the amount of fungal fruiting bodies
-    data["fungal_fruiting_bodies"] = litter_pools
-    data["production_of_fungal_fruiting_bodies"] = DataArray(
-        np.zeros(data.grid.n_cells), dims="cell_id"
-    )
-
     # Array resource pools
     pfts = np.array(["pioneer", "canopy", "emergent"])
     cell_ids = np.arange(data.grid.n_cells)
@@ -425,6 +417,9 @@ def dummy_animal_data(animal_fixture_core_components):
     data["litter_pool_woody_cnp"] = litter_cnp_template
     data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
     data["litter_pool_below_structural_cnp"] = litter_cnp_template
+
+    # Also need to add a pool to track the amount of fungal fruiting bodies
+    data["fungal_fruiting_bodies_cnp"] = litter_cnp_template
 
     # Populate plant biomass pools
     vegetation_biomass = DataArray(
@@ -602,7 +597,6 @@ def dummy_resource_pool_exporter():
             self,
             carcass_pools,
             excrement_pools,
-            fungal_fruiting_pools,
             soil_pools,
             resource_pools,
             time,
@@ -613,7 +607,6 @@ def dummy_resource_pool_exporter():
             Args:
                 carcass_pools: Carcass pools keyed by cell id.
                 excrement_pools: Excrement pools keyed by cell id.
-                fungal_fruiting_pools: Fungal fruiting body pools keyed by cell id.
                 soil_pools: Soil pools keyed by cell id and pool-type string.
                 resource_pools: Flat list of ResourcePool instances.
                 time: Export timestamp.
@@ -1094,8 +1087,6 @@ def litter_soil_data_instance(fixture_core_components):
         "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
         "soil_c_pool_arbuscular_mycorrhiza": [0.65, 1.47, 3.92, 9.04],
         "soil_c_pool_ectomycorrhiza": [0.47, 1.32, 4.2, 3.77],
-        "fungal_fruiting_bodies": [0.1, 0.2, 0.3, 0.4],
-        "production_of_fungal_fruiting_bodies": [0.05, 0.04, 0.025, 0.0125],
     }
 
     for var_name, var_values in data_values.items():
@@ -1112,6 +1103,18 @@ def litter_soil_data_instance(fixture_core_components):
                 [0.1, 1.0, 0.7, 0.35],
                 [0.00714285, 0.00071425, 0.00285714, 0.01428571],
                 [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
+            ],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
+    data["fungal_fruiting_bodies_cnp"] = DataArray(
+        np.stack(
+            [
+                [0.1, 0.2, 0.3, 0.4],
+                [0.02, 0.04, 0.06, 0.08],
+                [0.004, 0.008, 0.012, 0.016],
             ],
             axis=1,
         ),
@@ -1266,23 +1269,6 @@ def mushroom_instance(litter_soil_data_instance):
         c_n_ratio=25.0,
         c_p_ratio=100.0,
     )
-
-
-@pytest.fixture
-def fungal_fruit_list_instance(litter_soil_data_instance):
-    """Fixture for multiple FungalFruitPool objects across grid cells."""
-    from virtual_ecosystem.models.animal.decay import FungalFruitPool
-
-    return [
-        FungalFruitPool(
-            cell_id=cell_id,
-            data=litter_soil_data_instance,
-            cell_area=100.0,
-            c_n_ratio=25.0,
-            c_p_ratio=100.0,
-        )
-        for cell_id in litter_soil_data_instance.grid.cell_id
-    ]
 
 
 @pytest.fixture

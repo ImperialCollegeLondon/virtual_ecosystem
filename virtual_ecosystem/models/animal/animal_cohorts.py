@@ -22,7 +22,6 @@ from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
-    FungalFruitPool,
     HerbivoryWaste,
     SoilPool,
     find_decay_consumed_split,
@@ -1311,7 +1310,7 @@ class AnimalCohort:
 
     def delta_mass_fruiting_fungivory(
         self,
-        fungal_fruit_list: list[Resource],
+        fungal_fruit_list: list[CellResource],
         adjusted_dt: timedelta64,
         herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> dict[str, float]:
@@ -1397,7 +1396,6 @@ class AnimalCohort:
         self,
         array_resource_list: list[CellResource],
         animal_list: list[AnimalCohort],
-        fungal_fruit_list: list[Resource],
         soil_fungi_list: list[Resource],
         pom_list: list[Resource],
         bacteria_list: list[Resource],
@@ -1422,7 +1420,6 @@ class AnimalCohort:
                 resources interface, at present this consists of the living plants and
                 dead plant detritus (litter).
             animal_list: Live prey cohorts available for predation.
-            fungal_fruit_list: Live fungal fruiting bodies available for consumption.
             soil_fungi_list: Soil fungi pools (not fruiting bodies).
             pom_list: Soil particulate organic matter pools (POM).
             bacteria_list: Soil bacteria pools.
@@ -1468,6 +1465,11 @@ class AnimalCohort:
             resource
             for resource in array_resource_list
             if resource.resource.diet_type == DietType.DETRITUS
+        ]
+        fungal_fruit_list = [
+            resource
+            for resource in array_resource_list
+            if resource.resource.diet_type == DietType.MUSHROOMS
         ]
 
         # Compute foraging time proportionally across diet types
@@ -1918,24 +1920,6 @@ class AnimalCohort:
             A list of CarcassPool objects in the cohort's territory.
         """
         return self._get_resources_in_territory(carcass_pools)
-
-    def get_fungal_fruit_pools(
-        self, fungal_fruiting_bodies: dict[int, FungalFruitPool]
-    ) -> list[Resource]:
-        """Return fungal fruiting-body pools within the cohort's territory.
-
-        Args:
-            fungal_fruiting_bodies: The fungal fruiting pools the model.
-
-        Returns:
-            A list of fungal fruiting-body Resource objects available in
-            the cohort's territory.
-        """
-
-        fungal_fruits = self._get_resources_in_territory(
-            fungal_fruiting_bodies, self.can_forage_on
-        )
-        return cast(list[Resource], fungal_fruits)
 
     def get_soil_fungi_pools(
         self, soil_pools: dict[int, dict[str, SoilPool]]

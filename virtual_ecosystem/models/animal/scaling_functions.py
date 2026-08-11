@@ -288,7 +288,7 @@ def prey_group_selection(
     if diet_type & DietType.DETRITUS:
         result["litter"] = (0.0, 0.0)
     if diet_type & DietType.MUSHROOMS:
-        # mushroom pool
+        # mushroom/truffle pool
         result["fungal_fruiting_bodies"] = (0.0, 0.0)
     if diet_type & DietType.FUNGI:
         # Soil fungi pool
