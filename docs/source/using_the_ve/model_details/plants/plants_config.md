@@ -35,9 +35,9 @@ Configuration for the `plants` model includes four sections:
 
 from myst_nb import glue
 from virtual_ecosystem.core.docutils import dump_config_toml, model_config_to_deflist
-from virtual_ecosystem.models.plants.functional_types import VEFlora
+from virtual_ecosystem.models.plants.functional_types import VEFloraValidator
 
-traits = list(VEFlora.model_fields.keys())
+traits = list(VEFloraValidator.model_fields.keys())
 
 # Remove internally assigned values
 for calc_trait in ["lai_base", "tau_f_base"]:
