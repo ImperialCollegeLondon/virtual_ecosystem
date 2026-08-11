@@ -148,7 +148,7 @@ def test_calculate_total_C_mineralised(
         calculate_total_C_mineralised,
     )
 
-    expected_mineralisation = [0.02666704, 0.02020936, 0.0075679, 0.00760406]
+    expected_mineralisation = [0.02666707, 0.0202096, 0.0075679, 0.00760535]
 
     actual_mineralisation = calculate_total_C_mineralised(
         litter_losses=litter_losses,
@@ -165,8 +165,8 @@ def test_calculate_updated_pools(decay_rates, post_consumption_pools, litter_inp
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
 
     expected_pools = {
-        "above_metabolic": [0.31292595, 0.14770697, 0.07847683, 0.0711434],
-        "above_structural": [0.50477332, 0.24963641, 0.10312206, 0.11934793],
+        "above_metabolic": [0.31292847, 0.1477193, 0.07847686, 0.0712382],
+        "above_structural": [0.50477412, 0.24966296, 0.10312207, 0.11937046],
         "woody": [4.774026, 11.89845637, 7.35980938, 7.32981591],
         "below_metabolic": [0.39768853, 0.36369883, 0.06830231, 0.07781341],
         "below_structural": [0.61051725, 0.32260976, 0.02192288, 0.03499666],
@@ -189,7 +189,7 @@ def test_calculate_final_pool_size(post_consumption_pools, litter_inputs, decay_
     """Test that the function to find pool size after input and decay works."""
     from virtual_ecosystem.models.litter.carbon import calculate_final_pool_size
 
-    expected_pool_size = [0.31292595, 0.14770697, 0.07847683, 0.0711434]
+    expected_pool_size = [0.31292847, 0.1477193, 0.07847686, 0.0712382]
 
     actual_pool_size = calculate_final_pool_size(
         input_rate=litter_inputs.above_metabolic,

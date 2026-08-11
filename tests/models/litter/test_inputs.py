@@ -20,7 +20,8 @@ def test_determine_all_plant_to_litter_flows(
     expected_inputs = {
         "leaf_meta_split": [0.81240302, 0.64019755, 0.42407771, 0.00894268],
         "root_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
-        "subcanopy_meta_split": [0.82815, 0.57, 0.0, 0.827026],
+        "subcanopy_veg_meta_split": [0.82815, 0.57, 0.0, 0.827026],
+        "subcanopy_seed_meta_split": [0.76, 0.32, 0.76081, 0.81028],
         "herbivore_waste_above_meta_split": [
             0.7638626,
             0.7697267,
@@ -29,14 +30,15 @@ def test_determine_all_plant_to_litter_flows(
         ],
         "herbivore_waste_below_meta_split": [0.211658, 0.488244, 0.181836, 0.0],
         "woody": [0.0375, 0.0495, 0.0315, 0.0165],
-        "above_metabolic": [0.01106943, 0.00109058, 0.00535450, 0.00163240],
-        "above_structural": [0.002554888, 0.000436330, 0.006572925, 0.014686861],
+        "above_metabolic": [0.01107071, 0.00109685, 0.00535451, 0.00168052],
+        "above_structural": [0.00255529, 0.00044964, 0.00657293, 0.01469813],
         "below_metabolic": [0.00794558, 0.00425741, 0.00027294, 0.00510606],
         "below_structural": [0.005565040, 0.006799504, 0.000963604, 0.007501166],
         "leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
-        "subcanopy_lignin": [0.05, 0.43, 0.84, 0.01],
+        "subcanopy_veg_lignin": [0.05, 0.43, 0.84, 0.01],
+        "subcanopy_seed_lignin": [0.24, 0.68, 0.10, 0.014],
         "herbivore_waste_above_lignin": [0.13, 0.08, 0.27, 0.22],
         "herbivore_waste_below_lignin": [0.33, 0.089, 0.46, 0.35],
     }
@@ -74,12 +76,23 @@ def test_determine_all_plant_to_litter_flows(
         ),
         coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
     )
-    expected_inputs["subcanopy_mass"] = DataArray(
+    expected_inputs["subcanopy_veg_mass"] = DataArray(
         data=np.stack(
             [
                 [0.000109321, 0.000326914, 2.419753e-6, 0.000719259],
                 [4.0691358e-5, 2.1271605e-5, 8.4629630e-8, 7.3580247e-6],
                 [3.2666667e-7, 1.3919753e-6, 1.7549383e-9, 1.5530864e-6],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_inputs["subcanopy_seed_mass"] = DataArray(
+        data=np.stack(
+            [
+                [1.679012e-6, 1.956790e-5, 2.086420e-8, 5.938272e-5],
+                [3.666667e-6, 9.567901e-7, 1.456790e-9, 6.543210e-7],
+                [2.771605e-8, 1.043210e-7, 3.820988e-11, 5.728395e-8],
             ],
             axis=1,
         ),
@@ -151,7 +164,8 @@ def test_combine_input_sources(dummy_litter_data):
         "leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
-        "subcanopy_lignin": [0.05, 0.43, 0.84, 0.01],
+        "subcanopy_veg_lignin": [0.05, 0.43, 0.84, 0.01],
+        "subcanopy_seed_lignin": [0.24, 0.68, 0.10, 0.014],
         "herbivore_waste_above_lignin": [0.13, 0.08, 0.27, 0.22],
         "herbivore_waste_below_lignin": [0.33, 0.089, 0.46, 0.35],
     }
@@ -189,12 +203,23 @@ def test_combine_input_sources(dummy_litter_data):
         ),
         coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
     )
-    expected_combined["subcanopy_mass"] = DataArray(
+    expected_combined["subcanopy_veg_mass"] = DataArray(
         data=np.stack(
             [
                 [0.000109321, 0.000326914, 2.419753e-6, 0.000719259],
                 [4.0691358e-5, 2.1271605e-5, 8.4629630e-8, 7.3580247e-6],
                 [3.2666667e-7, 1.3919753e-6, 1.7549383e-9, 1.5530864e-6],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_combined["subcanopy_seed_mass"] = DataArray(
+        data=np.stack(
+            [
+                [1.679012e-6, 1.956790e-5, 2.086420e-8, 5.938272e-5],
+                [3.666667e-6, 9.567901e-7, 1.456790e-9, 6.543210e-7],
+                [2.771605e-8, 1.043210e-7, 3.820988e-11, 5.728395e-8],
             ],
             axis=1,
         ),
@@ -242,7 +267,8 @@ def test_calculate_metabolic_proportions_of_input(
     expected_proportions = {
         "leaf_meta_split": [0.81240302, 0.64019755, 0.42407771, 0.00894268],
         "root_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
-        "subcanopy_meta_split": [0.82815, 0.57, 0.0, 0.827026],
+        "subcanopy_veg_meta_split": [0.82815, 0.57, 0.0, 0.827026],
+        "subcanopy_seed_meta_split": [0.76, 0.32, 0.76081, 0.81028],
         "herbivore_waste_above_meta_split": [
             0.7638626,
             0.7697267,
@@ -270,8 +296,8 @@ def test_partion_plant_inputs_between_pools(metabolic_splits, total_litter_input
 
     expected_inputs = {
         "woody": [0.0375, 0.0495, 0.0315, 0.0165],
-        "above_metabolic": [0.01106943, 0.00109058, 0.00535450, 0.00163240],
-        "above_structural": [0.002554888, 0.000436330, 0.006572925, 0.014686861],
+        "above_metabolic": [0.01107071, 0.00109685, 0.00535451, 0.00168052],
+        "above_structural": [0.00255529, 0.00044964, 0.00657293, 0.01469813],
         "below_metabolic": [0.00794558, 0.00425741, 0.00027294, 0.00510606],
         "below_structural": [0.005565040, 0.006799504, 0.000963604, 0.007501166],
     }
@@ -357,7 +383,7 @@ def test_calculate_input_chemistries(fixture_litter_constants, litter_inputs):
 
     expected_chemistries = {
         "woody_lignin": [0.233, 0.545, 0.612, 0.378],
-        "above_structural_lignin": [0.26710212, 0.60062982, 0.53808352, 0.57375723],
+        "above_structural_lignin": [0.26721770, 0.61244846, 0.53808343, 0.57337401],
         "below_structural_lignin": [0.48580135, 0.54777011, 0.56071798, 0.67123270],
         "woody_nitrogen": [0.00061779, 0.00085492, 0.00043092, 0.00029946],
         "below_metabolic_nitrogen": [
@@ -373,16 +399,16 @@ def test_calculate_input_chemistries(fixture_litter_constants, litter_inputs):
             7.52953501e-5,
         ],
         "above_metabolic_nitrogen": [
-            0.00089995134,
-            5.33447125e-5,
-            0.00024685572,
-            8.89360896e-5,
+            0.000903400185,
+            5.401614415e-5,
+            0.000246857091,
+            8.956114055e-5,
         ],
         "above_structural_nitrogen": [
-            4.1389337e-5,
-            5.1525155e-6,
-            5.8536743e-5,
-            0.0002447146,
+            4.16071588e-5,
+            5.43787395e-6,
+            5.85368292e-5,
+            0.00024474387,
         ],
         "woody_phosphorus": [4.3782837e-5, 7.3289902e-5, 3.3754822e-5, 1.8564356e-5],
         "below_metabolic_phosphorus": [
@@ -398,16 +424,16 @@ def test_calculate_input_chemistries(fixture_litter_constants, litter_inputs):
             9.421814238e-6,
         ],
         "above_metabolic_phosphorus": [
-            3.14742219e-5,
-            4.49467401e-6,
-            1.87049233e-5,
-            6.03601548e-6,
+            3.150029145e-5,
+            4.567881729e-6,
+            1.870495925e-5,
+            6.090736920e-6,
         ],
         "above_structural_phosphorus": [
-            1.45315301e-6,
-            4.00697185e-7,
-            4.48908362e-6,
-            3.61419899e-5,
+            1.454799508e-6,
+            4.318104657e-7,
+            4.489085880e-6,
+            3.614455241e-5,
         ],
     }
 
@@ -434,7 +460,7 @@ def test_calculate_litter_input_lignin_concentrations(litter_inputs):
     )
 
     expected_woody = [0.233, 0.545, 0.612, 0.378]
-    expected_concs_above_struct = [0.26710212, 0.60062982, 0.53808352, 0.57375723]
+    expected_concs_above_struct = [0.26721770, 0.61244846, 0.53808343, 0.57337401]
     expected_concs_below_struct = [0.48580135, 0.54777011, 0.56071798, 0.67123270]
 
     actual_concs = calculate_litter_input_lignin_concentrations(
@@ -473,16 +499,16 @@ def test_calculate_litter_input_nutrient_masses(
             7.52953501e-5,
         ],
         "above_metabolic_nitrogen": [
-            0.00089995134,
-            5.33447125e-5,
-            0.00024685572,
-            8.89360896e-5,
+            0.000903400185,
+            5.401614415e-5,
+            0.000246857091,
+            8.956114055e-5,
         ],
         "above_structural_nitrogen": [
-            4.1389337e-5,
-            5.1525155e-6,
-            5.8536743e-5,
-            0.0002447146,
+            4.16071588e-5,
+            5.43787395e-6,
+            5.85368292e-5,
+            0.00024474387,
         ],
     }
 
