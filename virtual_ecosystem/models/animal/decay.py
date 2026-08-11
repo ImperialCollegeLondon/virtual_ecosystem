@@ -6,7 +6,6 @@ in the animal module. This also includes plant litter which is mainly tracked in
 """  # noqa: D205
 
 from dataclasses import dataclass, field
-from math import exp
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
@@ -237,127 +236,6 @@ def find_decay_consumed_split(
     """
 
     return microbial_decay_rate / (animal_scavenging_rate + microbial_decay_rate)
-
-
-class FungalFruitPool:
-    """A class to track the mass of fungal fruiting bodies in each grid cell.
-
-    TODO - A proper explanation as I add stuff
-    """
-
-    def __init__(
-        self,
-        cell_id: int,
-        data: "Data",
-        cell_area: float,
-        c_n_ratio: float,
-        c_p_ratio: float,
-    ) -> None:
-        self.cell_id = cell_id
-        self.cell_area = cell_area
-
-        carbon_stock = (
-            data["fungal_fruiting_bodies"].sel(cell_id=cell_id).item()
-        )  # kg C m⁻²
-
-        self.c_n_ratio = c_n_ratio
-        self.c_p_ratio = c_p_ratio
-
-        if min(self.c_n_ratio, self.c_p_ratio) <= 0:
-            raise ValueError(
-                f"Fungal fruiting bodies: non-positive C:N or C:P ratio in cell "
-                f"{cell_id}."
-            )
-
-        # Convert to absolute mass (kg) and build stoichiometry
-        carbon_mass = carbon_stock * cell_area
-        self.mass_cnp = CNP(
-            C=carbon_mass,
-            N=carbon_mass / self.c_n_ratio,
-            P=carbon_mass / self.c_p_ratio,
-        )
-
-        # Sanity-check
-        if self.mass_cnp.total < 0:
-            raise ValueError(
-                f"Fungal fruiting bodies: negative mass detected in cell {cell_id} "
-                f"({self.mass_cnp})."
-            )
-
-    vertical_occupancy: VerticalOccupancy = (
-        VerticalOccupancy.SOIL | VerticalOccupancy.GROUND
-    )
-    """Vertical position of fungal fruiting pool (either ground or in the soil)."""
-
-    @property
-    def mass_current(self) -> float:
-        """Return current carbon mass in the pool [kg]."""
-        return self.mass_cnp.C
-
-    def get_eaten(
-        self,
-        consumed_mass: float,
-        detritivore: "Consumer",
-    ) -> tuple[dict[str, float], dict[str, float], float]:
-        """Remove biomass when a cohort consumes fungal fruiting bodies.
-
-        Args:
-            consumed_mass: Target wet-mass to consume **after** mechanical efficiency is
-              applied (kg).  Any attempt to over-consume is automatically capped.
-            detritivore: The cohort that is feeding used only to obtain mechanical
-              efficiency.
-
-        Returns:
-            Dictionary of element masses actually assimilated, keys ``C``,
-            ``N``, ``P`` (kg).
-        """
-        if consumed_mass < 0:
-            raise ValueError("consumed_mass must be non-negative")
-
-        total_available = self.mass_cnp.total
-        mech_eff = detritivore.functional_group.mechanical_efficiency
-        actual = min(consumed_mass, total_available) * mech_eff
-
-        frac_C = self.mass_cnp.C / total_available
-        frac_N = self.mass_cnp.N / total_available
-        frac_P = self.mass_cnp.P / total_available
-
-        taken = {
-            "C": actual * frac_C,
-            "N": actual * frac_N,
-            "P": actual * frac_P,
-        }
-
-        # in-place update
-        self.mass_cnp.update(
-            C=-taken["C"],
-            N=-taken["N"],
-            P=-taken["P"],
-        )
-        return taken, {}, 0.0
-
-    def apply_decay(self, decay_constant: float, time_period: float) -> float:
-        """Apply exponential decay to the fungal fruiting bodies pool.
-
-        Args:
-            decay_constant: The rate constant for fungal fruiting body decay [day^-1].
-            time_period: The time period over which decay occurs [day].
-
-        Returns:
-            The total amount of fungal fruiting bodies that decayed in this specific
-            grid cell (in carbon terms) [kg]
-        """
-
-        # Calculate total decay in carbon terms
-        total_decay = (1 - exp(-decay_constant * time_period)) * self.mass_cnp.C
-        # And then update the pool masses based on this and the fixed stoichiometry
-        self.mass_cnp.update(
-            C=-total_decay,
-            N=-total_decay / self.c_n_ratio,
-            P=-total_decay / self.c_p_ratio,
-        )
-
-        return total_decay
 
 
 class SoilPool:

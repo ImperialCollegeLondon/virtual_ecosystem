@@ -297,6 +297,13 @@ ARRAY_RESOURCES = [
         lignin_array="lignin_below_structural",
         density=True,
     ),
+    ArrayResourceDefinition(
+        pool_array="fungal_fruiting_bodies_cnp",
+        consumed_array="fungal_fruiting_bodies_consumed_cnp",
+        vertical_occupancy=VerticalOccupancy.SOIL | VerticalOccupancy.GROUND,
+        diet_type=DietType.MUSHROOMS,
+        density=True,
+    ),
 ]
 """Definition of the set of ArrayResources available to the AnimalModel."""
 
