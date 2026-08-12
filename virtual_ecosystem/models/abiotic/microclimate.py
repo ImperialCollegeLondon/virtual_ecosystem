@@ -60,7 +60,9 @@ def prepare_static_inputs(
     leaf_area_index = data["leaf_area_index"].copy().to_numpy()
 
     # Evapotranspiration from plant and hydrology model, [mm per time interval]
-    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+    # evapotransp = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+    # TODO needs to fix understorey canopy evaporation
+    evapotranspiration = data["transpiration"].to_numpy()
 
     # Atmospheric pressure profile set to reference value, [kPa]
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
