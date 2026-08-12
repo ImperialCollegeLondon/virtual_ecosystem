@@ -952,13 +952,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Proportion of carbon in reproductive tissue turnover that is lignin carbon"
-name = "plant_reproductive_tissue_lignin"
-unit = "unitless"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Proportion of carbon in root turnover that is lignin carbon"
 name = "root_lignin"
 unit = "unitless"

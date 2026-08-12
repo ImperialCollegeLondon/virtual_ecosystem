@@ -734,10 +734,6 @@ def test_PlantsModel_populate_lignin_proportions(fxt_plants_model):
     assert np.allclose(
         fxt_plants_model.data["senesced_leaf_lignin"], consts.senesced_leaf_lignin
     )
-    assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_lignin"],
-        consts.plant_reproductive_tissue_lignin,
-    )
     assert np.allclose(fxt_plants_model.data["root_lignin"], consts.root_lignin)
     assert np.allclose(
         fxt_plants_model.data["subcanopy_vegetation_litter_lignin"],
