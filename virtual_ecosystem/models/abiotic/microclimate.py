@@ -599,7 +599,6 @@ def calculate_vegetation_fluxes(
         evapotranspiration=state["evapotranspiration"],
         absorbed_shortwave_radiation=state["shortwave_absorption"],
         absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-        longwave_emission_soil=state["longwave_emission"][idx.topsoil],
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         specific_heat_air=state["specific_heat_air"],
         density_air=state["density_air"],
@@ -609,7 +608,6 @@ def calculate_vegetation_fluxes(
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=True,
-        idx=idx,
     )
 
     return fluxes  # type: ignore
@@ -653,20 +651,22 @@ def calculate_soil_fluxes(
     )
 
     #  Sensible heat flux from topsoil, [W m-2]
-    out["sensible_heat_flux_soil"] = energy_balance.calculate_sensible_heat_flux(
+    sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
         density_air=state["density_air"][idx.surface],
         specific_heat_air=state["specific_heat_air"][idx.surface],
         air_temperature=state["air_temperature"][idx.surface],
         surface_temperature=state["soil_temperature"][idx.topsoil],
         aerodynamic_resistance=state["aerodynamic_resistance_soil"],
     )
+    out["sensible_heat_flux_soil"] = -sensible_heat_flux_soil
 
     # Latent heat flux topsoil, [W m-2]
-    out["latent_heat_flux_soil"] = energy_balance.calculate_latent_heat_flux(
+    latent_heat_flux_soil = energy_balance.calculate_latent_heat_flux(
         evapotranspiration=state["soil_evaporation"],
         latent_heat_vapourisation=state["latent_heat_vapourisation"][idx.surface],
         time_interval=time_interval,
     )
+    out["latent_heat_flux_soil"] = -latent_heat_flux_soil
 
     # Ground heat flux, [W m-2]
     out["ground_heat_flux"] = (
@@ -675,8 +675,6 @@ def calculate_soil_fluxes(
         - out["latent_heat_flux_soil"]
         - out["sensible_heat_flux_soil"]
         + static["absorbed_longwave_radiation"][idx.topsoil]
-        + 0.5 * np.nansum(state["longwave_emission"][idx.canopy], axis=0)
-        + 0.5 * state["longwave_emission"][idx.surface]
     )
 
     # Net radiation, [W m-2]
@@ -684,8 +682,6 @@ def calculate_soil_fluxes(
         state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
         + static["absorbed_longwave_radiation"][idx.topsoil]
-        + 0.5 * np.nansum(state["longwave_emission"][idx.canopy], axis=0)
-        + 0.5 * state["longwave_emission"][idx.surface]
     )
 
     return out

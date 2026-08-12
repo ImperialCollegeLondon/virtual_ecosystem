@@ -492,7 +492,6 @@ def calculate_energy_balance_residual(
     evapotranspiration: NDArray[np.floating],
     absorbed_shortwave_radiation: NDArray[np.floating],
     absorbed_longwave_radiation: NDArray[np.floating],
-    longwave_emission_soil: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
@@ -502,7 +501,6 @@ def calculate_energy_balance_residual(
     zero_Celsius: float,
     seconds_to_hour: float,
     return_fluxes: bool,
-    idx: SimpleNamespace,
 ) -> NDArray[np.floating] | dict[str, NDArray[np.floating]]:
     r"""Calculate energy balance residual for canopy.
 
@@ -525,7 +523,6 @@ def calculate_energy_balance_residual(
             layers, [W m-2]
         absorbed_longwave_radiation: Absorbed longwave radiation for all canopy layers,
             [W m-2]
-        longwave_emission_soil: Longwave emission from topsoil, [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
@@ -537,7 +534,6 @@ def calculate_energy_balance_residual(
         return_fluxes: Flag to indicate if all components of the energy balance should
             be returned. This is false for the newton approach to solve for canopy
             temperature, but true to create the outputs in a second call afterwards.
-        idx: Namespace containing indices for different layers.
 
     Returns:
         full energy balance or energy balance residual, [W m-2]
@@ -582,15 +578,12 @@ def calculate_energy_balance_residual(
         - sensible_heat_flux_canopy
         - latent_heat_flux_canopy
     )
-    # Add longwave_emission from surface to net radiation and energy balance residual
-    net_radiation[idx.surface] += 0.5 * longwave_emission_soil
-    energy_balance_residual[idx.surface] += 0.5 * longwave_emission_soil
 
     if return_fluxes:
         energy_balance = {
             "longwave_emission": longwave_emission_canopy,
-            "sensible_heat_flux": sensible_heat_flux_canopy,
-            "latent_heat_flux": latent_heat_flux_canopy,
+            "sensible_heat_flux": -sensible_heat_flux_canopy,
+            "latent_heat_flux": -latent_heat_flux_canopy,
             "energy_balance_residual": energy_balance_residual,
             "net_radiation": net_radiation,
         }
@@ -1077,7 +1070,6 @@ def make_canopy_residual(
             evapotranspiration=state["evapotranspiration"],
             absorbed_shortwave_radiation=state["shortwave_absorption"],
             absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-            longwave_emission_soil=state["longwave_emission"][idx.topsoil],
             specific_heat_air=state["specific_heat_air"],
             density_air=state["density_air"],
             aerodynamic_resistance=aerodynamic_resistance,
@@ -1087,7 +1079,6 @@ def make_canopy_residual(
             zero_Celsius=core_constants.zero_Celsius,
             seconds_to_hour=core_constants.seconds_to_hour,
             return_fluxes=False,
-            idx=idx,
         )
 
     return residual
@@ -1174,7 +1165,6 @@ def solve_canopy_temperature_with_air_coupling(
                 evapotranspiration=state_local["evapotranspiration"],
                 absorbed_shortwave_radiation=state_local["shortwave_absorption"],
                 absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-                longwave_emission_soil=state_local["longwave_emission"][idx.topsoil],
                 specific_heat_air=state_local["specific_heat_air"],
                 density_air=state_local["density_air"],
                 aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
@@ -1184,7 +1174,6 @@ def solve_canopy_temperature_with_air_coupling(
                 zero_Celsius=core_constants.zero_Celsius,
                 seconds_to_hour=core_constants.seconds_to_hour,
                 return_fluxes=True,
-                idx=idx,
             ),
         )
 
@@ -1196,21 +1185,11 @@ def solve_canopy_temperature_with_air_coupling(
             mixing_layer_thickness=static["geometry"]["thickness"],
         )
 
-        # The surface layer is too thin for stable integration, therefore a simpler
-        # conductivity-based approach is used
-        new_surface_temperature = update_surface_air_temperature(
-            canopy_air_temperature=new_canopy_temperature,
-            state=state_local,
-            idx=idx,
-            denominator_tolerance=denominator_tolerance,
-        )
-
         canopy_change = np.nanmax(np.abs(new_canopy_temperature - canopy_temperature))
         air_change = np.nanmax(np.abs(new_air_temperature - air_temperature))
 
         canopy_temperature = new_canopy_temperature
         air_temperature = new_air_temperature
-        air_temperature[idx.surface] = new_surface_temperature
 
         # The air temperature above the canopy is returned as nan, needs to be filled
         # with reference value again
@@ -1228,7 +1207,6 @@ def solve_canopy_temperature_with_air_coupling(
             evapotranspiration=state_local["evapotranspiration"],
             absorbed_shortwave_radiation=state_local["shortwave_absorption"],
             absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-            longwave_emission_soil=state_local["longwave_emission"][idx.topsoil],
             specific_heat_air=state_local["specific_heat_air"],
             density_air=state_local["density_air"],
             aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
@@ -1238,7 +1216,6 @@ def solve_canopy_temperature_with_air_coupling(
             zero_Celsius=core_constants.zero_Celsius,
             seconds_to_hour=core_constants.seconds_to_hour,
             return_fluxes=True,
-            idx=idx,
         ),
     )
 
