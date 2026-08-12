@@ -857,6 +857,9 @@ def dummy_climate_data(fixture_core_components):
     data["shortwave_absorption"] = from_template()
     data["shortwave_absorption"][lyr_str.index_flux_layers] = 180.0
 
+    data["absorbed_longwave_radiation"] = from_template()
+    data["absorbed_longwave_radiation"][lyr_str.index_flux_layers] = 180.0
+
     data["longwave_emission"] = from_template()
     data["longwave_emission"][lyr_str.index_flux_layers] = 450.0
 
@@ -933,6 +936,7 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     index_filled_canopy = lyr_str.index_filled_canopy
     index_filled_atmosphere = lyr_str.index_filled_atmosphere
     index_surface_scalar = lyr_str.index_surface_scalar
+    index_fluxes = lyr_str.index_flux_layers
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
@@ -982,6 +986,14 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [180.0, 180.0, 180.0, np.nan],
         [160.0, 160.0, np.nan, np.nan],
         [120.0, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["absorbed_longwave_radiation"][index_fluxes] = [
+        [180.0, 180.0, 180.0, np.nan],
+        [160.0, 160.0, np.nan, np.nan],
+        [120.0, np.nan, np.nan, np.nan],
+        [30, 30, 30, 30],
+        [80, 80, 80, 80],
     ]
 
     dummy_climate_data["longwave_emission"][index_filled_canopy] = [
@@ -1128,17 +1140,6 @@ def fixture_static_inputs(
         minimum_mixing_depth=abiotic_constants.minimum_mixing_depth,
     )
 
-    # Absorbed longwave radiation by canopy, [W m-2]
-    absorbed_longwave_rad = fixture_core_components.layer_structure.from_template()
-    absorbed_longwave_rad[indices.flux] = np.array(
-        [
-            [200, 200, 200, np.nan],
-            [80, 80, np.nan, np.nan],
-            [50, np.nan, np.nan, np.nan],
-            [20, 20, 20, 20],
-            [80, 80, 80, 80],
-        ]
-    )
     cell_area = data.grid.cell_area
 
     mixing_coefficient = fixture_core_components.layer_structure.from_template()
@@ -1155,6 +1156,7 @@ def fixture_static_inputs(
     ventilation_rate = np.ones(data.grid.n_cells) * 2.0
     roughness_length = np.ones(data.grid.n_cells) * 1.0
     wind_speed = data["wind_speed"].to_numpy()
+    absorbed_longwave_rad = data["absorbed_longwave_radiation"].to_numpy()
 
     return {
         "canopy_height": canopy_height,
@@ -1164,7 +1166,7 @@ def fixture_static_inputs(
         "atmospheric_pressure": atmospheric_pressure_true,
         "atmospheric_co2": atmospheric_co2_true,
         "geometry": atmospheric_layer_geometry,
-        "absorbed_longwave_radiation": absorbed_longwave_rad.to_numpy(),
+        "absorbed_longwave_radiation": absorbed_longwave_rad,
         "cell_area": cell_area,
         "mixing_coefficient": mixing_coefficient.to_numpy(),
         "zero_plane_displacement": zero_plane_displacement,

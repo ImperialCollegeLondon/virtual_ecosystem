@@ -38,6 +38,7 @@ def test_initialise_canopy_and_soil_fluxes(fixture_core_components):
         "latent_heat_flux",
         "ground_heat_flux",
         "longwave_emission",
+        "absorbed_longwave_radiation",
     ]:
         assert var in result
 
