@@ -992,12 +992,6 @@ name = "plant_reproductive_tissue_turnover"
 unit = "kg C"
 variable_type = "float"
 
-[[variable]]
-axis = ["spatial"]
-description = "Biomasses of plant reproductive tissue turnover"
-name = "plant_reproductive_tissue_turnover_cnp"
-unit = "kg C"
-variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
@@ -1259,31 +1253,10 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"] # ["spatial", "pft"]
-description = "Number of fruits of each PFT in the canopy"
-name = "canopy_fruit_n"
-unit = "count"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"] # ["spatial", "pft"]
-description = "Number of seeds per fruit in each PFT"
-name = "canopy_seeds_per_fruit"
-unit = "count"
-variable_type = "float"
-
-[[variable]]
 axis = ["spatial"]
 description = "C, N, and P mass of each seed PFT"
 name = "canopy_seed_cnp"
 unit = "kg"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"] # ["spatial", "pft"]
-description = "Number of fallen fruits per PFT"
-name = "fallen_fruit_n"
-unit = "count"
 variable_type = "float"
 
 [[variable]]
@@ -1298,13 +1271,6 @@ axis = ["spatial"]
 description = "C, N, and P mass of fallen fruit for each PFT"
 name = "fallen_fruit_cnp"
 unit = "kg"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"] # ["spatial", "pft"]
-description = "Number of seeds per fruit per PFT"
-name = "fallen_seeds_per_fruit"
-unit = "count"
 variable_type = "float"
 
 [[variable]]
