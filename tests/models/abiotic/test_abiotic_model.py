@@ -33,6 +33,7 @@ SETUP_MANIPULATIONS = (
     (INFO, "Adding data array for 'sensible_heat_flux'"),
     (INFO, "Adding data array for 'latent_heat_flux'"),
     (INFO, "Adding data array for 'longwave_emission'"),
+    (INFO, "Adding data array for 'absorbed_longwave_radiation'"),
     (INFO, "Adding data array for 'ground_heat_flux'"),
 )
 

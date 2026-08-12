@@ -70,8 +70,8 @@ def initialise_canopy_and_soil_fluxes(
     """Initialise canopy temperature and energy fluxes.
 
     This function initializes the following variables to run the first step of the
-    energy balance routine: sensible and latent heat flux (canopy and soil), and ground
-    heat flux, all in [W m-2].
+    energy balance routine: sensible and latent heat flux (canopy and soil), ground
+    heat flux, and absorbed longwave radiation, all in [W m-2].
 
     Args:
         air_temperature: Air temperature, [C]
@@ -81,7 +81,7 @@ def initialise_canopy_and_soil_fluxes(
 
     Returns:
         Dictionary with sensible and latent heat flux (canopy and soil), [W m-2],
-        and ground heat flux, [W m-2].
+        ground heat flux, and absorbed longwave radiation [W m-2].
     """
 
     output = {}
@@ -95,6 +95,7 @@ def initialise_canopy_and_soil_fluxes(
         "sensible_heat_flux",
         "latent_heat_flux",
         "longwave_emission",
+        "absorbed_longwave_radiation",
     ):
         output[name] = base_flux.copy()
 

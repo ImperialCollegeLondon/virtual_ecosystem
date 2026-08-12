@@ -13,9 +13,6 @@ from xarray import DataArray
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools
-from virtual_ecosystem.models.abiotic.abiotic_tools import (
-    compute_weights_from_absorbed_radiation,
-)
 
 # Class uses DEBUG
 LOGGER.setLevel(DEBUG)
@@ -860,6 +857,9 @@ def dummy_climate_data(fixture_core_components):
     data["shortwave_absorption"] = from_template()
     data["shortwave_absorption"][lyr_str.index_flux_layers] = 180.0
 
+    data["absorbed_longwave_radiation"] = from_template()
+    data["absorbed_longwave_radiation"][lyr_str.index_flux_layers] = 180.0
+
     data["longwave_emission"] = from_template()
     data["longwave_emission"][lyr_str.index_flux_layers] = 450.0
 
@@ -935,6 +935,7 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     lyr_str = fixture_core_components.layer_structure
     index_filled_canopy = lyr_str.index_filled_canopy
     index_filled_atmosphere = lyr_str.index_filled_atmosphere
+    index_fluxes = lyr_str.index_flux_layers
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
@@ -984,6 +985,14 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [180.0, 180.0, 180.0, np.nan],
         [160.0, 160.0, np.nan, np.nan],
         [120.0, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["absorbed_longwave_radiation"][index_fluxes] = [
+        [180.0, 180.0, 180.0, np.nan],
+        [160.0, 160.0, np.nan, np.nan],
+        [120.0, np.nan, np.nan, np.nan],
+        [30, 30, 30, 30],
+        [80, 80, 80, 80],
     ]
 
     dummy_climate_data["longwave_emission"][index_filled_canopy] = [
@@ -1128,15 +1137,6 @@ def fixture_static_inputs(
         minimum_mixing_depth=abiotic_constants.minimum_mixing_depth,
     )
 
-    # Absorbed longwave radiation by canopy, [W m-2]
-    weights = compute_weights_from_absorbed_radiation(
-        radiation=data["shortwave_absorption"].to_numpy(),
-    )
-    absorbed_longwave_radiation = (
-        data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
-        * weights
-        * abiotic_constants.leaf_emissivity  # TODO needs to be soil too
-    )
     cell_area = data.grid.cell_area
 
     mixing_coefficient = fixture_core_components.layer_structure.from_template()
@@ -1153,6 +1153,7 @@ def fixture_static_inputs(
     ventilation_rate = np.ones(data.grid.n_cells) * 2.0
     roughness_length = np.ones(data.grid.n_cells) * 1.0
     wind_speed = data["wind_speed"].to_numpy()
+    absorbed_longwave_radiation = data["absorbed_longwave_radiation"].to_numpy()
 
     return {
         "canopy_height": canopy_height,
