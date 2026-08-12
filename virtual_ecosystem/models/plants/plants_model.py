@@ -798,6 +798,9 @@ class PlantsModel(
         # of folivory.
         self.allocate_gpp()
 
+        # Update the fallen fruits and seeds pools
+        self.update_fallen_pools()
+
         # Calculate the subcanopy vegetation dynamics
         self.subcanopy.calculate_dynamics()
 
@@ -1764,6 +1767,21 @@ class PlantsModel(
                     axis=1,
                 )
             )
+
+    def update_fallen_pools(self) -> None:
+        """Update the fallen seeds and fruit pools.
+
+        This method calculates the new values for the pools based on the turnover of the
+        input biomass (from the canopy plants) and the consumption of the pools by
+        animals.
+        """
+
+        self.data["fallen_seeds_cnp"] += (
+            self.data["seed_turnover_cnp"] - self.data["fallen_seeds_cnp_consumed"]
+        )
+        self.data["fallen_fruit_cnp"] += (
+            self.data["fruit_turnover_cnp"] - self.data["fallen_fruit_cnp_consumed"]
+        )
 
     def convert_to_litter_units(self, input_mass: xr.DataArray) -> xr.DataArray:
         """Helper function to convert plant quantities into litter model units.
