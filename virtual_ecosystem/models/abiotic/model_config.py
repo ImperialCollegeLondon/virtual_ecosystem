@@ -142,7 +142,7 @@ class AbioticConstants(AbioticSharedConstants):
     aerodynamic_resistance_canopy_night: float = 100.0
     """Aerodynamic resistance of the canopy at night, [s m-1]."""
 
-    aerodynamic_resistance_soil_night: float = 100.0
+    aerodynamic_resistance_soil_night: float = 500.0
     """Aerodynamic resistance of the soil at night, [s m-1]."""
 
     aerodynamic_resistance_canopy_day: float = 20.0
@@ -191,7 +191,7 @@ class AbioticConstants(AbioticSharedConstants):
     understorey_ventilation_rate: float = 0.1
     """Understorey ventilation rate, comes into place when there is no canopy, [s-1]."""
 
-    extinction_coefficient_longwave: float = 0.1
+    extinction_coefficient_longwave: float = 0.5
     """Extinction coefficient for longwave radiation, dimensionless."""
 
     minimum_mixing_depth: float = 1.5
@@ -205,7 +205,7 @@ class AbioticConstants(AbioticSharedConstants):
     min_leaf_area_index_for_mixing: float = 0.5
     """Minimum leaf area index required for turbulent mixing to occur, [m m-1]."""
 
-    integration_time_interval: float = 300.0
+    integration_time_interval: float = 200.0
     """Initial integration time interval for air temperature update, [s]."""
 
 

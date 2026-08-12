@@ -163,6 +163,45 @@ def calculate_sensible_heat_flux(
     )
 
 
+def normalised_source_fractions(
+    lai_above: NDArray[np.float64],
+    lai_below: NDArray[np.float64],
+    extinction_coefficient_lw: float,
+) -> tuple[
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+]:
+    """Calculate normalised source fractions for longwave radiation.
+
+    Args:
+        lai_above: Cumulative leaf area index above the layer, [m m-1]
+        lai_below: Cumulative leaf area index below the layer, [m m-1]
+        extinction_coefficient_lw: Longwave extinction coefficient, dimensionless
+
+    Returns:
+        Tuple of normalised source fractions for sky, soil, vegetation, dimensionless
+    """
+    f_sky = np.exp(-extinction_coefficient_lw * lai_above)
+    f_soil = np.exp(-extinction_coefficient_lw * lai_below)
+
+    f_sky = np.clip(f_sky, 0.0, 1.0)
+    f_soil = np.clip(f_soil, 0.0, 1.0)
+    f_veg = np.clip(1.0 - f_sky - f_soil, 0.0, 1.0)
+
+    total = f_sky + f_soil + f_veg
+    f_sky = np.divide(f_sky, total, out=np.zeros_like(f_sky), where=total > 0)
+    f_soil = np.divide(
+        f_soil,
+        total,
+        out=np.zeros_like(f_soil),
+        where=total > 0,
+    )
+    f_veg = np.divide(f_veg, total, out=np.zeros_like(f_veg), where=total > 0)
+
+    return f_sky, f_soil, f_veg
+
+
 def calculate_absorbed_longwave_radiation(
     downward_longwave: NDArray[np.floating],
     leaf_area_index: NDArray[np.floating],
@@ -173,34 +212,28 @@ def calculate_absorbed_longwave_radiation(
     stefan_boltzmann_constant: float,
     zero_Celsius: float,
     extinction_coefficient_lw: float,
-    surface_index: int,
-    topsoil_index: int,
+    idx: SimpleNamespace,
 ) -> NDArray[np.floating]:
-    """Calculate absorbed longwave radiation using simple diffuse view-factor approach.
+    """Calculate absorbed longwave radiation with separate canopy and surface handling.
 
-    Longwave absorption is estimated for each canopy, surface, and topsoil layer by
-    combining contributions from the sky, soil, and surrounding vegetation. For canopy
-    layers, absorbed longwave is approximated as:
+    Longwave absorption is estimated for canopy, surface, and topsoil layers by
+    combining contributions from sky, soil, and surrounding vegetation using a
+    simple diffuse view-factor approximation.
 
-        LW_abs = leaf_emissivity * (
-            f_sky * LW_sky
-            + f_soil * LW_soil
-            + f_veg * LW_veg
-        )
+    The surface layer is treated as vegetated if it contains leaf area index and
+    is therefore included in cumulative vegetation area used for longwave
+    attenuation. However, it is excluded from the bulk background vegetation
+    emission term so that ``lw_veg`` represents emission from the overlying canopy
+    rather than the special near-ground surface layer.
 
-    where the view factors `f_sky`, `f_soil`, and `f_veg` are derived from cumulative
-    leaf area index (LAI). `f_sky` decreases with LAI above the layer, `f_soil`
-    decreases with LAI below the layer, and `f_veg` is the remaining fraction.
+    For each vegetated layer, absorbed longwave is approximated as
 
-    The surface layer is treated similarly, with stronger soil influence, while the
-    topsoil layer absorbs longwave from the atmosphere and canopy above using a simple
-    bulk approximation.
+    ``leaf_emissivity * (f_sky * lw_sky + f_soil * lw_soil + f_veg * lw_veg)``
 
-    This formulation is intended to provide a more realistic and less top-heavy
-    distribution of absorbed longwave radiation than a purely top-down Beer-Lambert
-    attenuation scheme.
-
-    TODO better naming, check surface role
+    where the source fractions are derived from cumulative vegetated leaf area
+    above and below the target layer. The topsoil layer absorbs longwave from the
+    sky and canopy above using a bulk transmissivity through the full vegetated
+    column.
 
     Args:
         downward_longwave: Atmospheric downward longwave at canopy top [W m-2]
@@ -210,38 +243,43 @@ def calculate_absorbed_longwave_radiation(
         leaf_emissivity: Leaf emissivity, dimensionless
         soil_emissivity: Soil emissivity, dimensionless
         stefan_boltzmann_constant: Stefan-Boltzmann constant, [W m-2 K-4]
-        zero_Celsius: Conversion from C to K
-        extinction_coefficient_lw: Longwave attenuation coefficient, unitless
-        surface_index: Row index of surface layer
-        topsoil_index: Row index of topsoil layer
+        zero_Celsius: Conversion from Celsius to Kelvin
+        extinction_coefficient_lw: Longwave attenuation coefficient,
+            dimensionless.
+        idx: Namespace containing layer indices
 
     Returns:
-        Absorbed longwave radiation [W m-2], shape (layers, cells)
+        Absorbed longwave radiation, [W m-2]
     """
     n_layers, n_cells = leaf_area_index.shape
-    absorbed = np.zeros((n_layers, n_cells), dtype=float)
+    absorbed = np.zeros_like(leaf_area_index, dtype=float)
 
     lai = np.nan_to_num(leaf_area_index, nan=0.0)
 
-    # Identify canopy layers only
-    canopy_mask = np.ones(n_layers, dtype=bool)
-    canopy_mask[topsoil_index] = False
+    # Create masks for canopy and vegetation layers
+    canopy_layer_mask = np.zeros(n_layers, dtype=bool)
+    canopy_layer_mask[np.atleast_1d(idx.canopy)] = True
 
-    lai_canopy = np.where(canopy_mask[:, None], lai, 0.0)
+    vegetation_mask = ~np.isnan(leaf_area_index)
+    vegetation_mask[idx.topsoil, :] = False
+    lai_vegetation = np.where(vegetation_mask, lai, 0.0)
 
-    # Longwave sources
+    canopy_background_mask = np.zeros_like(leaf_area_index, dtype=bool)
+    canopy_background_mask[canopy_layer_mask, :] = ~np.isnan(
+        leaf_area_index[canopy_layer_mask, :]
+    )
+
+    # Calculate longwave emission from sky, soil, and canopy vegetation
     lw_sky = downward_longwave.astype(float)
 
     lw_soil = calculate_longwave_emission(
-        temperature=soil_temperature[topsoil_index] + zero_Celsius,
+        temperature=soil_temperature[idx.topsoil] + zero_Celsius,
         emissivity=soil_emissivity,
         stefan_boltzmann=stefan_boltzmann_constant,
     )
 
-    # Simple bulk canopy-emitted longwave as surrounding vegetation source
-    canopy_temp_kelvin = canopy_temperature + zero_Celsius
     lw_canopy_emit = calculate_longwave_emission(
-        temperature=canopy_temp_kelvin,
+        temperature=canopy_temperature + zero_Celsius,
         emissivity=leaf_emissivity,
         stefan_boltzmann=stefan_boltzmann_constant,
     )
@@ -249,7 +287,8 @@ def calculate_absorbed_longwave_radiation(
     # Mean canopy longwave seen as background vegetation source
     with np.errstate(invalid="ignore"):
         lw_veg = np.nanmean(
-            np.where(canopy_mask[:, None], lw_canopy_emit, np.nan), axis=0
+            np.where(canopy_background_mask, lw_canopy_emit, np.nan),
+            axis=0,
         )
 
     # If there is no canopy in a cell, fall back to sky longwave
@@ -262,63 +301,50 @@ def calculate_absorbed_longwave_radiation(
     running = np.zeros(n_cells, dtype=float)
     for i in range(n_layers):
         cumulative_above[i] = running
-        running = running + lai_canopy[i]
+        running = running + lai_vegetation[i]
 
     running = np.zeros(n_cells, dtype=float)
     for i in range(n_layers - 1, -1, -1):
         cumulative_below[i] = running
-        running = running + lai_canopy[i]
+        running = running + lai_vegetation[i]
+
+    total_vegetation_lai = np.sum(lai_vegetation, axis=0)
 
     for i in range(n_layers):
-        if i == topsoil_index:
+        if i == idx.topsoil:
             # Soil sees some sky through the canopy and some canopy radiation
-            total_canopy_lai = np.sum(lai_canopy, axis=0)
-            f_sky = np.exp(-extinction_coefficient_lw * total_canopy_lai)
+
+            f_sky = np.exp(-extinction_coefficient_lw * total_vegetation_lai)
             f_veg = 1.0 - f_sky
             absorbed[i] = soil_emissivity * (f_sky * lw_sky + f_veg * lw_veg)
+            continue
 
-        elif i == surface_index:
+        if i == idx.surface:
             # Surface layer between canopy and soil: use both sky and soil influence
-            f_sky = np.exp(-extinction_coefficient_lw * cumulative_above[i])
-            f_soil = np.exp(-extinction_coefficient_lw * cumulative_below[i])
 
-            # Keep fractions bounded and leave remainder to surrounding vegetation
-            f_sky = np.clip(f_sky, 0.0, 1.0)
-            f_soil = np.clip(f_soil, 0.0, 1.0)
-            f_veg = np.clip(1.0 - f_sky - f_soil, 0.0, 1.0)
-
-            total = f_sky + f_soil + f_veg
-            f_sky = np.divide(f_sky, total, out=np.zeros_like(f_sky), where=total > 0)
-            f_soil = np.divide(
-                f_soil, total, out=np.zeros_like(f_soil), where=total > 0
+            has_surface_vegetation = lai[i] > 0
+            f_sky, f_soil, f_veg = normalised_source_fractions(
+                lai_above=cumulative_above[i],
+                lai_below=cumulative_below[i],
+                extinction_coefficient_lw=extinction_coefficient_lw,
             )
-            f_veg = np.divide(f_veg, total, out=np.zeros_like(f_veg), where=total > 0)
-
-            absorbed[i] = leaf_emissivity * (
+            surface_absorbed = leaf_emissivity * (
                 f_sky * lw_sky + f_soil * lw_soil + f_veg * lw_veg
             )
+            absorbed[i] = np.where(has_surface_vegetation, surface_absorbed, 0.0)
+            continue
 
-        elif canopy_mask[i]:
+        if canopy_layer_mask[i]:
             # Canopy layer sees sky from above, soil from below, vegetation around it
-            f_sky = np.exp(-extinction_coefficient_lw * cumulative_above[i])
-            f_soil = np.exp(-extinction_coefficient_lw * cumulative_below[i])
-
-            f_sky = np.clip(f_sky, 0.0, 1.0)
-            f_soil = np.clip(f_soil, 0.0, 1.0)
-            f_veg = np.clip(1.0 - f_sky - f_soil, 0.0, 1.0)
-
-            total = f_sky + f_soil + f_veg
-            f_sky = np.divide(f_sky, total, out=np.zeros_like(f_sky), where=total > 0)
-            f_soil = np.divide(
-                f_soil, total, out=np.zeros_like(f_soil), where=total > 0
+            f_sky, f_soil, f_veg = normalised_source_fractions(
+                lai_above=cumulative_above[i],
+                lai_below=cumulative_below[i],
+                extinction_coefficient_lw=extinction_coefficient_lw,
             )
-            f_veg = np.divide(f_veg, total, out=np.zeros_like(f_veg), where=total > 0)
-
-            absorbed[i] = np.where(
-                lai[i] > 0,
-                leaf_emissivity * (f_sky * lw_sky + f_soil * lw_soil + f_veg * lw_veg),
-                0.0,
+            canopy_absorbed = leaf_emissivity * (
+                f_sky * lw_sky + f_soil * lw_soil + f_veg * lw_veg
             )
+            absorbed[i] = np.where(lai[i] > 0, canopy_absorbed, 0.0)
 
     return absorbed
 

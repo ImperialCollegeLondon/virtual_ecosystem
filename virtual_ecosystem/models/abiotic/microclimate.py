@@ -102,8 +102,7 @@ def prepare_static_inputs(
         extinction_coefficient_lw=abiotic_constants.extinction_coefficient_longwave,
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
-        surface_index=idx.surface,
-        topsoil_index=idx.topsoil,
+        idx=idx,
     )
 
     # Cell area, [m2]

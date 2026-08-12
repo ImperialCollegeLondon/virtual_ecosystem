@@ -83,6 +83,99 @@ def test_calculate_longwave_emission(
     assert np.all(result[valid] < 500.0)
 
 
+def test_normalised_source_fractions_properties_and_expected_values() -> None:
+    """Test that normalised source fractions have expected properties and values."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        normalised_source_fractions,
+    )
+
+    test_cases = [
+        (
+            np.array([0.0, 1.0], dtype=float),
+            np.array([1.0, 0.0], dtype=float),
+            0.5,
+        ),
+        (
+            np.array([0.0, 0.5, 1.0], dtype=float),
+            np.array([1.0, 0.5, 0.0], dtype=float),
+            0.5,
+        ),
+        (
+            np.array([2.0, 3.0], dtype=float),
+            np.array([0.0, 1.0], dtype=float),
+            0.8,
+        ),
+        (
+            np.array([0.0, 0.0], dtype=float),
+            np.array([0.0, 0.0], dtype=float),
+            1.0,
+        ),
+        (
+            np.array([0.0, 1.0, 2.0], dtype=float),
+            np.array([2.0, 1.0, 0.0], dtype=float),
+            0.0,
+        ),
+        (
+            np.array([5.0], dtype=float),
+            np.array([5.0], dtype=float),
+            1.0,
+        ),
+        (
+            np.array([0.0, 1.0, 10.0], dtype=float),
+            np.array([10.0, 1.0, 0.0], dtype=float),
+            1.5,
+        ),
+    ]
+
+    for lai_above, lai_below, extinction_coefficient_lw in test_cases:
+        f_sky, f_soil, f_veg = normalised_source_fractions(
+            lai_above=lai_above,
+            lai_below=lai_below,
+            extinction_coefficient_lw=extinction_coefficient_lw,
+        )
+
+        assert f_sky.shape == lai_above.shape
+        assert f_soil.shape == lai_below.shape
+        assert f_veg.shape == lai_above.shape
+
+        assert np.all((0.0 <= f_sky) & (f_sky <= 1.0))
+        assert np.all((0.0 <= f_soil) & (f_soil <= 1.0))
+        assert np.all((0.0 <= f_veg) & (f_veg <= 1.0))
+
+        np.testing.assert_allclose(f_sky + f_soil + f_veg, 1.0)
+
+        raw_sky = np.exp(-extinction_coefficient_lw * lai_above)
+        raw_soil = np.exp(-extinction_coefficient_lw * lai_below)
+        raw_veg = np.clip(1.0 - raw_sky - raw_soil, 0.0, 1.0)
+        total = raw_sky + raw_soil + raw_veg
+
+        np.testing.assert_allclose(f_sky, raw_sky / total)
+        np.testing.assert_allclose(f_soil, raw_soil / total)
+        np.testing.assert_allclose(f_veg, raw_veg / total)
+
+    zero_ext_lai_above = np.array([0.0, 1.0, 2.0], dtype=float)
+    zero_ext_lai_below = np.array([2.0, 1.0, 0.0], dtype=float)
+    f_sky, f_soil, f_veg = normalised_source_fractions(
+        lai_above=zero_ext_lai_above,
+        lai_below=zero_ext_lai_below,
+        extinction_coefficient_lw=0.0,
+    )
+    np.testing.assert_allclose(f_sky, 0.5)
+    np.testing.assert_allclose(f_soil, 0.5)
+    np.testing.assert_allclose(f_veg, 0.0)
+
+    high_lai_f_sky, high_lai_f_soil, high_lai_f_veg = normalised_source_fractions(
+        lai_above=np.array([5.0], dtype=float),
+        lai_below=np.array([5.0], dtype=float),
+        extinction_coefficient_lw=1.0,
+    )
+    assert high_lai_f_veg[0] > 0.0
+    np.testing.assert_allclose(
+        high_lai_f_sky[0] + high_lai_f_soil[0] + high_lai_f_veg[0],
+        1.0,
+    )
+
+
 def test_calculate_absorbed_longwave_radiation(
     fixture_core_components,
     dummy_climate_data_varying_canopy,
@@ -116,8 +209,7 @@ def test_calculate_absorbed_longwave_radiation(
         stefan_boltzmann_constant=stefan_boltzmann,
         zero_Celsius=zero_celsius,
         extinction_coefficient_lw=extinction_coefficient_lw,
-        surface_index=idx.surface,
-        topsoil_index=idx.topsoil,
+        idx=idx,
     )
 
     # Shape
