@@ -1351,15 +1351,15 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "C, N, and P of seed turnover consumed by animals"
-name = "seed_turnover_cnp_consumed"
+description = "C, N, and P of fallen seeds consumed by animals"
+name = "fallen_seeds_cnp_consumed"
 unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "C, N, and P of fruit turnover consumed by animals"
-name = "fruit_turnover_cnp_consumed"
+description = "C, N, and P of fallen fruit consumed by animals"
+name = "fallen_fruit_cnp_consumed"
 unit = "kg"
 variable_type = "float"
 
