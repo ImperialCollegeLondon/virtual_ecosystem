@@ -106,8 +106,8 @@ def animal_data_for_model_instance(fixture_core_components):
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "seed_turnover_cnp",
-        "fruit_turnover_cnp",
+        "fallen_seeds_cnp",
+        "fallen_fruit_cnp",
     ]
     for pool in plant_model_pools + plant_model_pools_consumed:
         data[pool] = vegetation_biomass.copy()
@@ -447,8 +447,8 @@ def dummy_animal_data(animal_fixture_core_components):
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "seed_turnover_cnp",
-        "fruit_turnover_cnp",
+        "fallen_seeds_cnp",
+        "fallen_fruit_cnp",
     ]
     for pool in plant_model_pools_consumed + plant_model_pools:
         data[pool] = vegetation_biomass.copy()
@@ -1146,8 +1146,8 @@ def litter_soil_data_instance(fixture_core_components):
         "canopy_foliage_cnp",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "seed_turnover_cnp",
-        "fruit_turnover_cnp",
+        "fallen_seeds_cnp",
+        "fallen_fruit_cnp",
     ]
     for pool in plant_model_pools:
         data[pool] = vegetation_biomass.copy()
@@ -1157,8 +1157,8 @@ def litter_soil_data_instance(fixture_core_components):
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "seed_turnover_cnp_consumed",
-        "fruit_turnover_cnp_consumed",
+        "fallen_seeds_cnp_consumed",
+        "fallen_fruit_cnp_consumed",
     ]
     for pool in plant_model_consumption_pools:
         data[pool] = xarray.zeros_like(vegetation_biomass)
