@@ -91,7 +91,6 @@ class PlantsModel(
         "canopy_fruit_cnp_consumed",
         "fallen_seeds_cnp_consumed",
         "fallen_fruit_cnp_consumed",
-        "plant_reproductive_tissue_lignin",
         "root_lignin",
         "senesced_leaf_lignin",
         "stem_lignin",
@@ -141,7 +140,6 @@ class PlantsModel(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
-        "plant_reproductive_tissue_lignin",  # NOTE - will be deprecated in #1132
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "shortwave_absorption",
@@ -1586,10 +1584,6 @@ class PlantsModel(
         )
         self.data["senesced_leaf_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.senesced_leaf_lignin
-        )
-        self.data["plant_reproductive_tissue_lignin"] = xr.full_like(
-            self.data["elevation"],
-            self.model_constants.plant_reproductive_tissue_lignin,
         )
         self.data["root_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_lignin
