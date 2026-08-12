@@ -675,6 +675,37 @@ def test_PlantsModel_populate_lignin_proportions(fxt_plants_model):
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_update_fallen_pools(fxt_plants_model, tricky_plant_cohorts):
+    """Test the update_fallen_pools method of the plants model."""
+
+    # Update model so that pools are populated (otherwise everything is zero)
+    fxt_plants_model.update(time_index=0)
+
+    # Compute expected values
+    expected_fallen_seeds_cnp = (
+        fxt_plants_model.data["fallen_seeds_cnp"]
+        + fxt_plants_model.data["seed_turnover_cnp"]
+        - fxt_plants_model.data["fallen_seeds_cnp_consumed"]
+    )
+    expected_fallen_fruit_cnp = (
+        fxt_plants_model.data["fallen_fruit_cnp"]
+        + fxt_plants_model.data["fruit_turnover_cnp"]
+        - fxt_plants_model.data["fallen_fruit_cnp_consumed"]
+    )
+
+    # Then update the fallen fruit and seed pools
+    fxt_plants_model.update_fallen_pools()
+
+    # Check the uptake values in the data variable
+    assert np.allclose(
+        fxt_plants_model.data["fallen_seeds_cnp"], expected_fallen_seeds_cnp
+    )
+    assert np.allclose(
+        fxt_plants_model.data["fallen_fruit_cnp"], expected_fallen_fruit_cnp
+    )
+
+
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model, tricky_plant_cohorts):
     """Test the calculate_nutrient_uptake method of the plants model."""
 
