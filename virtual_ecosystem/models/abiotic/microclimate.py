@@ -26,6 +26,7 @@ def prepare_static_inputs(
     time_index: int,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
 ) -> dict[str, Any]:
     """Prepare static inputs for microclimate model.
 
@@ -42,6 +43,7 @@ def prepare_static_inputs(
         time_index: Time index
         layer_structure: Layer structure object
         abiotic_constants: Set of constants for abiotic model
+        core_constants: Set of constants shared across all models
 
     Returns:
         Dictionary with prepared static inputs for microclimate model
@@ -93,11 +95,14 @@ def prepare_static_inputs(
     absorbed_longwave_radiation = energy_balance.calculate_absorbed_longwave_radiation(
         downward_longwave=downward_longwave,
         leaf_area_index=data["leaf_area_index"].to_numpy(),
+        canopy_temperature=data["canopy_temperature"].to_numpy(),
+        soil_temperature=data["soil_temperature"].to_numpy(),
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         soil_emissivity=abiotic_constants.soil_emissivity,
+        stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+        zero_Celsius=core_constants.zero_Celsius,
         extinction_coefficient_lw=abiotic_constants.extinction_coefficient_longwave,
-        surface_index=idx.surface,
-        topsoil_index=idx.topsoil,
+        idx=idx,
     )
 
     # Cell area, [m2]
@@ -1118,6 +1123,7 @@ def run_microclimate(
         time_index=time_index,
         layer_structure=layer_structure,
         abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
     )
 
     # Calculate wind profiles for microclimate model
