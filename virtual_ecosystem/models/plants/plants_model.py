@@ -89,8 +89,8 @@ class PlantsModel(
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "seed_turnover_cnp_consumed",
-        "fruit_turnover_cnp_consumed",
+        "fallen_seeds_cnp_consumed",
+        "fallen_fruit_cnp_consumed",
         "plant_reproductive_tissue_lignin",
         "root_lignin",
         "senesced_leaf_lignin",
@@ -471,8 +471,8 @@ class PlantsModel(
             "canopy_foliage_cnp_consumed",
             "canopy_seed_cnp_consumed",
             "canopy_fruit_cnp_consumed",
-            "seed_turnover_cnp_consumed",
-            "fruit_turnover_cnp_consumed",
+            "fallen_seeds_cnp_consumed",
+            "fallen_fruit_cnp_consumed",
         ]
         for var_name in vars_to_initialize:
             self.data[var_name] = self.data_object_templates["cnp_pft"].copy()
