@@ -675,7 +675,9 @@ def test_PlantsModel_populate_lignin_proportions(fxt_plants_model):
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
-def test_PlantsModel_update_fallen_pools(fxt_plants_model, tricky_plant_cohorts):
+def test_PlantsModel_update_fallen_pools(
+    fxt_plants_model, fixture_plants_constants, plants_data, fixture_core_components
+):
     """Test the update_fallen_pools method of the plants model."""
 
     # Update model so that pools are populated (otherwise everything is zero)
@@ -687,11 +689,18 @@ def test_PlantsModel_update_fallen_pools(fxt_plants_model, tricky_plant_cohorts)
         + fxt_plants_model.data["seed_turnover_cnp"]
         - fxt_plants_model.data["fallen_seeds_cnp_consumed"]
     )
-    expected_fallen_fruit_cnp = (
-        fxt_plants_model.data["fallen_fruit_cnp"]
-        + fxt_plants_model.data["fruit_turnover_cnp"]
-        - fxt_plants_model.data["fallen_fruit_cnp_consumed"]
+
+    decay_fraction = fxt_plants_model.calculate_fallen_fruit_decay_fraction(
+        decay_rate=fixture_plants_constants.fallen_fruit_decay_rate,
+        surface_temperature=plants_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ],
     )
+
+    expected_fallen_fruit_cnp = (1 - decay_fraction) * (
+        fxt_plants_model.data["fallen_fruit_cnp"]
+        - fxt_plants_model.data["fallen_fruit_cnp_consumed"]
+    ) + fxt_plants_model.data["fruit_turnover_cnp"]
 
     # Then update the fallen fruit and seed pools
     fxt_plants_model.update_fallen_pools()
@@ -842,24 +851,26 @@ def test_PlantsModel_apply_recruitment(fxt_plants_model, tricky_plant_cohorts):
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
-def test_convert_to_litter_units(fxt_plants_model, tricky_plant_cohorts):
-    """Tests the helper function that converts to litter model units."""
+def test_PlantsModel_calculate_fallen_fruit_decay_fraction(
+    fxt_plants_model, plants_data, fixture_plants_constants, fixture_core_components
+):
+    """Test that the calculation of the fallen fruit decay fraction works correctly."""
 
-    input_mass = np.array([1e5, 3.4e2, 123.7, 0.007])
-    expected_input_density = [12.345679, 0.0419753, 0.0152716, 8.64198e-7]
+    expected_decay_fraction = [0.87754, 0.87754, 0.87754, 0.87754]
 
-    actual_input_density = fxt_plants_model.convert_to_litter_units(
-        input_mass=input_mass
+    actual_decay_fraction = fxt_plants_model.calculate_fallen_fruit_decay_fraction(
+        decay_rate=fixture_plants_constants.fallen_fruit_decay_rate,
+        surface_temperature=plants_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ],
     )
 
-    assert np.allclose(expected_input_density, actual_input_density)
+    assert np.allclose(actual_decay_fraction, expected_decay_fraction)
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 def test_convert_to_soil_units(fxt_plants_model, tricky_plant_cohorts):
     """Tests the helper function that converts to soil model units."""
-
-    print(fxt_plants_model.model_timing.update_interval_quantity)
 
     input_mass = np.array([1e6, 3.4e3, 1237.0, 0.07])
     expected_input_density = [0.008818342, 2.998236e-5, 1.090829e-5, 6.17284e-10]
