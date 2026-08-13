@@ -746,13 +746,13 @@ def dummy_climate_data(fixture_core_components):
 
     # Spatially constant and not vertically structured
     spatially_constant = {
-        "sensible_heat_flux_soil": 20.0,  # W m-2
-        "latent_heat_flux_soil": 40.0,  # W m-2
+        "sensible_heat_flux_soil": -20.0,  # W m-2
+        "latent_heat_flux_soil": -40.0,  # W m-2
         "zero_plane_displacement": 20.0,  # m
         "mean_mixing_length": 1.3,  # m
         "aerodynamic_resistance_soil": 50.0,  # s m-1
         "aerodynamic_resistance_canopy": 30.0,  # s m-1
-        "ground_heat_flux": 20.0,
+        "ground_heat_flux": -20.0,
         "conductive_flux_understorey": 50.0,
         "ventilation_rate": 0.1,
     }
@@ -858,16 +858,16 @@ def dummy_climate_data(fixture_core_components):
     data["shortwave_absorption"][lyr_str.index_flux_layers] = 180.0
 
     data["absorbed_longwave_radiation"] = from_template()
-    data["absorbed_longwave_radiation"][lyr_str.index_flux_layers] = 180.0
+    data["absorbed_longwave_radiation"][lyr_str.index_flux_layers] = 380.0
 
     data["longwave_emission"] = from_template()
     data["longwave_emission"][lyr_str.index_flux_layers] = 450.0
 
     data["sensible_heat_flux"] = from_template()
-    data["sensible_heat_flux"][lyr_str.index_flux_layers] = 20.0
+    data["sensible_heat_flux"][lyr_str.index_flux_layers] = -20.0
 
     data["latent_heat_flux"] = from_template()
-    data["latent_heat_flux"][lyr_str.index_flux_layers] = 40.0
+    data["latent_heat_flux"][lyr_str.index_flux_layers] = -40.0
 
     data["net_radiation"] = from_template()
     data["net_radiation"][lyr_str.index_flux_layers] = 20.0
@@ -988,11 +988,11 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     dummy_climate_data["absorbed_longwave_radiation"][index_fluxes] = [
-        [180.0, 180.0, 180.0, np.nan],
-        [160.0, 160.0, np.nan, np.nan],
+        [380.0, 380.0, 380.0, np.nan],
+        [260.0, 260.0, np.nan, np.nan],
         [120.0, np.nan, np.nan, np.nan],
-        [30, 30, 30, 30],
-        [80, 80, 80, 80],
+        [130, 130, 130, 130],
+        [180, 180, 180, 180],
     ]
 
     dummy_climate_data["longwave_emission"][index_filled_canopy] = [
@@ -1015,15 +1015,15 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [0.05, 0.05, 0.05, 0.05],
     ]
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
-        [25.0, 25.0, 25.0, np.nan],
-        [20.0, 20.0, np.nan, np.nan],
-        [15.0, np.nan, np.nan, np.nan],
+        [-25.0, -25.0, -25.0, np.nan],
+        [-20.0, -20.0, np.nan, np.nan],
+        [-15.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["latent_heat_flux"][index_filled_canopy] = [
-        [45.0, 45.0, 45.0, np.nan],
-        [40.0, 40.0, np.nan, np.nan],
-        [30.0, np.nan, np.nan, np.nan],
+        [-45.0, -45.0, -45.0, np.nan],
+        [-40.0, -40.0, np.nan, np.nan],
+        [-30.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["net_radiation"][lyr_str.index_filled_canopy] = [

@@ -672,8 +672,8 @@ def calculate_soil_fluxes(
     out["ground_heat_flux"] = (
         state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
-        - out["latent_heat_flux_soil"]
-        - out["sensible_heat_flux_soil"]
+        + out["latent_heat_flux_soil"]
+        + out["sensible_heat_flux_soil"]
         + static["absorbed_longwave_radiation"][idx.topsoil]
     )
 
@@ -938,8 +938,8 @@ def run_hour_step(
         time_interval=time_interval,
         idx=idx,
     )
-    state["sensible_heat_flux"][idx.topsoil] = soil_fluxes["sensible_heat_flux_soil"]
-    state["latent_heat_flux"][idx.topsoil] = soil_fluxes["latent_heat_flux_soil"]
+    state["sensible_heat_flux"][idx.topsoil] = -soil_fluxes["sensible_heat_flux_soil"]
+    state["latent_heat_flux"][idx.topsoil] = -soil_fluxes["latent_heat_flux_soil"]
     state["longwave_emission"][idx.topsoil] = soil_fluxes["longwave_emission_soil"]
     state["net_radiation"][idx.topsoil] = soil_fluxes["net_radiation_soil"]
     state["ground_heat_flux"] = soil_fluxes["ground_heat_flux"]

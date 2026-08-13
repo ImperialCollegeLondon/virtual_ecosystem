@@ -453,7 +453,7 @@ def test_calculate_thermodynamics_day_and_night(
     )
 
     assert np.all(result_night["aerodynamic_resistance_canopy"] == 100.0)
-    assert np.all(result_night["aerodynamic_resistance_soil"] == 100.0)
+    assert np.all(result_night["aerodynamic_resistance_soil"] == 500.0)
 
     # Output shape checks
     assert result_day["density_air"].shape == (n_layers, n_cells)
@@ -577,9 +577,7 @@ def test_calculate_soil_fluxes(
     )
 
     # Check values, output keys and shapes
-    expected_ground_flux = np.array(
-        [-167.978824, -161.195491, -147.628824, -147.628824]
-    )
+    expected_ground_flux = np.array([-7.676424, -14.459757, -28.026424, -28.026424])
 
     np.testing.assert_allclose(
         result["ground_heat_flux"], expected_ground_flux, rtol=1e-5, atol=1e-5
@@ -843,7 +841,7 @@ def test_run_hour_step_orchestration(
     # Fluxes (W/m²), rough ranges
     finite_and_within(state["longwave_emission"], 0, 5000, "longwave_emission")
     finite_and_within(state["sensible_heat_flux"], -1000, 1000, "sensible_heat_flux")
-    finite_and_within(state["latent_heat_flux"], 0, 500, "latent_heat_flux")
+    finite_and_within(state["latent_heat_flux"], -500, 500, "latent_heat_flux")
     finite_and_within(state["ground_heat_flux"], -1000, 1000, "ground_heat_flux")
 
     # Mixing coefficient sanity

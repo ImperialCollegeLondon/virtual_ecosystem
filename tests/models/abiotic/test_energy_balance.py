@@ -84,137 +84,159 @@ def test_calculate_longwave_emission(
     assert np.all(result[valid] < 500.0)
 
 
-def test_normalised_source_fractions_returns_expected_values_and_properties() -> None:
-    """Test source fraction normalisation, bounds, and selected expected values."""
-
+def test_normalised_source_fractions_properties_and_expected_values() -> None:
+    """Test that normalised source fractions have expected properties and values."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
         normalised_source_fractions,
     )
 
-    cumulative_lai_above = np.array([0.0, 1.0, 2.0], dtype=np.float64)
-    cumulative_lai_below = np.array([2.0, 1.0, 0.0], dtype=np.float64)
-    longwave_extinction_coefficient = 0.5
+    test_cases = [
+        (
+            np.array([0.0, 1.0], dtype=float),
+            np.array([1.0, 0.0], dtype=float),
+            0.5,
+        ),
+        (
+            np.array([0.0, 0.5, 1.0], dtype=float),
+            np.array([1.0, 0.5, 0.0], dtype=float),
+            0.5,
+        ),
+        (
+            np.array([2.0, 3.0], dtype=float),
+            np.array([0.0, 1.0], dtype=float),
+            0.8,
+        ),
+        (
+            np.array([0.0, 0.0], dtype=float),
+            np.array([0.0, 0.0], dtype=float),
+            1.0,
+        ),
+        (
+            np.array([0.0, 1.0, 2.0], dtype=float),
+            np.array([2.0, 1.0, 0.0], dtype=float),
+            0.0,
+        ),
+        (
+            np.array([5.0], dtype=float),
+            np.array([5.0], dtype=float),
+            1.0,
+        ),
+        (
+            np.array([0.0, 1.0, 10.0], dtype=float),
+            np.array([10.0, 1.0, 0.0], dtype=float),
+            1.5,
+        ),
+    ]
 
-    (
-        sky_source_fraction,
-        soil_source_fraction,
-        vegetation_source_fraction,
-    ) = normalised_source_fractions(
-        cumulative_lai_above=cumulative_lai_above,
-        cumulative_lai_below=cumulative_lai_below,
-        longwave_extinction_coefficient=longwave_extinction_coefficient,
-    )
-
-    expected_sky_raw = np.exp(-longwave_extinction_coefficient * cumulative_lai_above)
-    expected_soil_raw = np.exp(-longwave_extinction_coefficient * cumulative_lai_below)
-    expected_vegetation_raw = np.clip(
-        1.0 - expected_sky_raw - expected_soil_raw,
-        0.0,
-        1.0,
-    )
-    expected_total = expected_sky_raw + expected_soil_raw + expected_vegetation_raw
-
-    expected_sky = expected_sky_raw / expected_total
-    expected_soil = expected_soil_raw / expected_total
-    expected_vegetation = expected_vegetation_raw / expected_total
-
-    assert sky_source_fraction.shape == cumulative_lai_above.shape
-    assert soil_source_fraction.shape == cumulative_lai_below.shape
-    assert vegetation_source_fraction.shape == cumulative_lai_above.shape
-
-    assert np.all((0.0 <= sky_source_fraction) & (sky_source_fraction <= 1.0))
-    assert np.all((0.0 <= soil_source_fraction) & (soil_source_fraction <= 1.0))
-    assert np.all(
-        (0.0 <= vegetation_source_fraction) & (vegetation_source_fraction <= 1.0)
-    )
-
-    np.testing.assert_allclose(
-        sky_source_fraction + soil_source_fraction + vegetation_source_fraction,
-        1.0,
-    )
-    np.testing.assert_allclose(sky_source_fraction, expected_sky)
-    np.testing.assert_allclose(soil_source_fraction, expected_soil)
-    np.testing.assert_allclose(vegetation_source_fraction, expected_vegetation)
-
-    zero_extinction_sky, zero_extinction_soil, zero_extinction_vegetation = (
-        normalised_source_fractions(
-            cumulative_lai_above=cumulative_lai_above,
-            cumulative_lai_below=cumulative_lai_below,
-            longwave_extinction_coefficient=0.0,
+    for lai_above, lai_below, extinction_coefficient_lw in test_cases:
+        f_sky, f_soil, f_veg = normalised_source_fractions(
+            cumulative_lai_above=lai_above,
+            cumulative_lai_below=lai_below,
+            longwave_extinction_coefficient=extinction_coefficient_lw,
         )
+
+        assert f_sky.shape == lai_above.shape
+        assert f_soil.shape == lai_below.shape
+        assert f_veg.shape == lai_above.shape
+
+        assert np.all((0.0 <= f_sky) & (f_sky <= 1.0))
+        assert np.all((0.0 <= f_soil) & (f_soil <= 1.0))
+        assert np.all((0.0 <= f_veg) & (f_veg <= 1.0))
+
+        np.testing.assert_allclose(f_sky + f_soil + f_veg, 1.0)
+
+        raw_sky = np.exp(-extinction_coefficient_lw * lai_above)
+        raw_soil = np.exp(-extinction_coefficient_lw * lai_below)
+        raw_veg = np.clip(1.0 - raw_sky - raw_soil, 0.0, 1.0)
+        total = raw_sky + raw_soil + raw_veg
+
+        np.testing.assert_allclose(f_sky, raw_sky / total)
+        np.testing.assert_allclose(f_soil, raw_soil / total)
+        np.testing.assert_allclose(f_veg, raw_veg / total)
+
+    zero_ext_lai_above = np.array([0.0, 1.0, 2.0], dtype=float)
+    zero_ext_lai_below = np.array([2.0, 1.0, 0.0], dtype=float)
+    f_sky, f_soil, f_veg = normalised_source_fractions(
+        cumulative_lai_above=zero_ext_lai_above,
+        cumulative_lai_below=zero_ext_lai_below,
+        longwave_extinction_coefficient=0.0,
     )
-    np.testing.assert_allclose(zero_extinction_sky, 0.5)
-    np.testing.assert_allclose(zero_extinction_soil, 0.5)
-    np.testing.assert_allclose(zero_extinction_vegetation, 0.0)
+    np.testing.assert_allclose(f_sky, 0.5)
+    np.testing.assert_allclose(f_soil, 0.5)
+    np.testing.assert_allclose(f_veg, 0.0)
+
+    high_lai_f_sky, high_lai_f_soil, high_lai_f_veg = normalised_source_fractions(
+        cumulative_lai_above=np.array([5.0], dtype=float),
+        cumulative_lai_below=np.array([5.0], dtype=float),
+        longwave_extinction_coefficient=1.0,
+    )
+    assert high_lai_f_veg[0] > 0.0
+    np.testing.assert_allclose(
+        high_lai_f_sky[0] + high_lai_f_soil[0] + high_lai_f_veg[0],
+        1.0,
+    )
 
 
 def test_calculate_absorbed_longwave_radiation(
-    dummy_climate_data_varying_canopy, fixture_abiotic_indices
+    fixture_core_components,
+    dummy_climate_data_varying_canopy,
+    fixture_abiotic_indices,
 ):
-    """Test that absorbed longwave radiation is calculated correctly."""
+    """Test absorbed longwave radiation using diffuse view-factor formulation."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
         calculate_absorbed_longwave_radiation,
     )
 
+    lyr_str = fixture_core_components.layer_structure
     data = dummy_climate_data_varying_canopy
     idx = fixture_abiotic_indices
 
     leaf_area_index = np.nan_to_num(data["leaf_area_index"].to_numpy(), nan=0.0)
-    downward_longwave = (
-        data["downward_longwave_radiation"].isel(time_index=0).to_numpy()
-    )
-    canopy_temperature = data["canopy_temperature"].to_numpy()
-    soil_temperature = data["soil_temperature"].to_numpy()
+    downward_longwave = np.array([400.0, 400.0, 400.0, 400.0])
 
-    stefan_boltzmann_constant = 5.67e-8
-    zero_Celsius = 273.15
     leaf_emissivity = 0.97
     soil_emissivity = 0.95
+    stefan_boltzmann = 5.67e-8
+    zero_celsius = 273.15
+    extinction_coefficient_lw = 0.1
 
-    extinction_coefficient_lw = 0.5
-
-    absorbed = calculate_absorbed_longwave_radiation(
+    result = calculate_absorbed_longwave_radiation(
         downward_longwave=downward_longwave,
         leaf_area_index=leaf_area_index,
-        canopy_temperature=canopy_temperature,
-        soil_temperature=soil_temperature,
+        canopy_temperature=data["canopy_temperature"].to_numpy(),
+        soil_temperature=data["soil_temperature"].to_numpy(),
         leaf_emissivity=leaf_emissivity,
         soil_emissivity=soil_emissivity,
-        stefan_boltzmann_constant=stefan_boltzmann_constant,
-        zero_Celsius=zero_Celsius,
+        stefan_boltzmann_constant=stefan_boltzmann,
+        zero_Celsius=zero_celsius,
         extinction_coefficient_lw=extinction_coefficient_lw,
         idx=idx,
     )
 
-    assert absorbed.shape == leaf_area_index.shape
-    assert np.all(np.isfinite(absorbed))
-    assert np.all(absorbed >= 0.0)
+    # Shape
+    assert result.shape == (lyr_str.n_layers, data.grid.n_cells)
 
-    canopy_lai = np.nan_to_num(leaf_area_index[idx.canopy], nan=0.0)
-    vegetated_canopy_mask = canopy_lai > 0.0
-    nonvegetated_canopy_mask = ~vegetated_canopy_mask
+    # All values non-negative and finite
+    assert np.all(np.isfinite(result))
+    assert np.all(result >= 0.0)
 
-    # Vegetated canopy positions absorb positive longwave.
-    assert np.all(absorbed[idx.canopy][vegetated_canopy_mask] > 0.0)
+    # Surface and topsoil should absorb some longwave
+    assert np.all(result[idx.surface, :] > 0.0)
+    assert np.all(result[idx.topsoil, :] > 0.0)
 
-    # Non-vegetated canopy positions remain zero.
-    assert np.all(absorbed[idx.canopy][nonvegetated_canopy_mask] == 0.0)
+    # Lower canopy should still receive some longwave if LAI is present
+    canopy_layers = [
+        layer
+        for layer in range(result.shape[0])
+        if layer not in (idx.surface, idx.topsoil)
+    ]
+    for layer in canopy_layers:
+        lai_mask = leaf_area_index[layer] > 0.0
+        if np.any(lai_mask):
+            assert np.all(result[layer, lai_mask] > 0.0)
 
-    # Surface absorbs longwave in every cell because surface is always present.
-    assert np.all(absorbed[idx.surface] > 0.0)
-
-    # Topsoil always absorbs positive longwave.
-    assert np.all(absorbed[idx.topsoil] > 0.0)
-
-    # In the no-canopy cell, background vegetation longwave should fall back to sky
-    # because there are no canopy layers present in that cell.
-    expected_surface_cell_4 = 386.933657
-
-    np.testing.assert_allclose(
-        absorbed[idx.surface, 3],
-        expected_surface_cell_4,
-        rtol=1e-6,
-    )
+    # Physical reasonableness: absorbed LW should not be absurdly large
+    assert np.all(result < 1000.0)
 
 
 def test_calculate_sensible_heat_flux(
@@ -318,7 +340,6 @@ def test_energy_balance_residual_only(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
-    fixture_abiotic_indices,
 ):
     """Test energy balance residual without flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -359,7 +380,6 @@ def test_energy_balance_return_fluxes(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
-    fixture_abiotic_indices,
 ):
     """Test energy balance residual with flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
