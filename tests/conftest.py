@@ -13,9 +13,6 @@ from xarray import DataArray
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools
-from virtual_ecosystem.models.abiotic.abiotic_tools import (
-    compute_weights_from_absorbed_radiation,
-)
 
 # Class uses DEBUG
 LOGGER.setLevel(DEBUG)
@@ -822,7 +819,7 @@ def dummy_climate_data(fixture_core_components):
 
     flux_profiles = {
         "shortwave_absorption": [150.0, 10.0, 7.0, 3.0, 10.0],
-        "absorbed_longwave_radiation": [180, 180, 180, 180, 180],
+        "absorbed_longwave_radiation": [380, 380, 380, 380, 380],
         "longwave_emission": [458.0, 453.0, 443.0, 413.0, 402.0],
         "sensible_heat_flux": [-12.0, -10.0, -8.0, -5.0, -3.0],
         "latent_heat_flux": [-8.0, -6.0, -5.0, -4.0, -2.0],
@@ -892,6 +889,7 @@ def dummy_climate_data(fixture_core_components):
 
     for var in (
         "shortwave_absorption",
+        "absorbed_longwave_radiation",
         "longwave_emission",
         "sensible_heat_flux",
         "latent_heat_flux",
@@ -974,7 +972,7 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
 
     flux_profiles = {
         "shortwave_absorption": [150.0, 10.0, 7.0, 3.0, 10.0],
-        "absorbed_longwave_radiation": [180, 180, 180, 180, 180],
+        "absorbed_longwave_radiation": [380, 260, 120, 130, 180],
         "longwave_emission": [458.0, 453.0, 443.0, 413.0, 402.0],
         "sensible_heat_flux": [-12.0, -10.0, -8.0, -5.0, -3.0],
         "latent_heat_flux": [-8.0, -6.0, -5.0, -4.0, -2.0],
@@ -1132,14 +1130,7 @@ def fixture_static_inputs(
         minimum_mixing_depth=abiotic_constants.minimum_mixing_depth,
     )
 
-    weights = compute_weights_from_absorbed_radiation(
-        radiation=data["shortwave_absorption"].to_numpy(),
-    )
-    absorbed_longwave_radiation = (
-        data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
-        * weights
-        * abiotic_constants.leaf_emissivity
-    )
+    absorbed_longwave_radiation = data["absorbed_longwave_radiation"].to_numpy()
 
     return {
         "canopy_height": canopy_height,
@@ -1180,6 +1171,7 @@ def fixture_state_inputs(
         "canopy_temperature": data["canopy_temperature"].to_numpy(),
         "evapotranspiration": evapotranspiration,
         "shortwave_absorption": data["shortwave_absorption"].to_numpy(),
+        "absorbed_longwave_radiation": data["absorbed_longwave_radiation"].to_numpy(),
         "specific_heat_air": data["specific_heat_air"].to_numpy(),
         "density_air": data["density_air"].to_numpy(),
         "aerodynamic_resistance_canopy": data[

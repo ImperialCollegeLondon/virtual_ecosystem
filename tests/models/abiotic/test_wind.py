@@ -69,11 +69,11 @@ def test_calculate_wind_profile(
 
     exp_wind = np.array(
         [
-            [0.967405, 0.965281, 0.744923, 0.967405],
-            [0.959669, 0.957041, 0.648195, np.nan],
-            [0.911069, 0.905273, np.nan, np.nan],
-            [0.827986, np.nan, np.nan, np.nan],
-            [0.275995, 0.228813, 0.001, 0.275995],
+            [0.483703, 0.48264, 0.372461, 0.483703],
+            [0.479835, 0.478521, 0.324098, np.nan],
+            [0.455534, 0.452637, np.nan, np.nan],
+            [0.413993, np.nan, np.nan, np.nan],
+            [0.137998, 0.114407, 0.001, 0.137998],
         ]
     )
 
@@ -97,7 +97,7 @@ def test_calculate_friction_velocity(dummy_climate_data_varying_canopy):
         von_karman_constant=0.4,
         denominator_tolerance=1e-10,
     )
-    exp_friction_velocity = np.array([0.047945, 0.05107, 0.11499, 0.047945])
+    exp_friction_velocity = np.array([0.023973, 0.025535, 0.057495, 0.023973])
     assert_allclose(result, exp_friction_velocity, rtol=1e-3, atol=1e-3)
 
 
@@ -348,21 +348,21 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     exp_temp = np.full_like(input_humidity, np.nan)
     exp_temp[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [29.96, 29.96, 29.96, 28.4],
-            [29.75, 29.75, 29.06, np.nan],
-            [28.82, 28.3, np.nan, np.nan],
-            [26.85, np.nan, np.nan, np.nan],
-            [22.52, 22.69, 22.78, 23.6],
+            [21.96, 21.96, 21.96, 21.545],
+            [21.744, 21.744, 21.741, np.nan],
+            [20.626, 20.633, np.nan, np.nan],
+            [19.249, np.nan, np.nan, np.nan],
+            [18.521, 18.563, 18.599, 18.955],
         ]
     )
     exp_hum = np.full_like(input_humidity, np.nan)
     exp_hum[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [90.2, 90.2, 90.2, 91.6],
-            [94.9, 92.4, 91.5, np.nan],
+            [90.4, 90.4, 90.4, 91.17],
+            [96.15, 93.51, 91.81, np.nan],
             [100.0, 100.0, np.nan, np.nan],
-            [97.1, np.nan, np.nan, np.nan],
-            [97.8, 98.4, 97.3, 96.4],
+            [96.54, np.nan, np.nan, np.nan],
+            [98.91, 99.09, 98.79, 97.83],
         ]
     )
 

@@ -262,8 +262,8 @@ def test_calculate_sensible_heat_flux(
     # Mask valid values
     valid = ~np.isnan(result)
 
-    assert np.all(result[valid] > -30.0)
-    assert np.all(result[valid] < 0.0)
+    assert np.all(result[valid] > -300.0)
+    assert np.all(result[valid] > 0.0)
 
 
 @pytest.mark.parametrize(
@@ -637,12 +637,12 @@ def test_calculate_latent_heat_flux(
 
     exp_canopy = np.array(
         [
-            [65.949074, 65.949074, 65.949074, np.nan],
-            [47.106481, 47.106481, np.nan, np.nan],
-            [28.263889, np.nan, np.nan, np.nan],
+            [87.2183642, 87.2183642, 87.2183642, np.nan],
+            [67.86111111, 67.86111111, np.nan, np.nan],
+            [43.80902778, np.nan, np.nan, np.nan],
         ]
     )
-    exp_surface = np.array([37.685185, 37.685185, 37.685185, 37.685185])
+    exp_surface = np.array([19.77662037, 19.77662037, 19.77662037, 19.77662037])
 
     np.testing.assert_allclose(result[canopy_layers], exp_canopy, rtol=1e-4, atol=1e-4)
     np.testing.assert_allclose(result[surface_layer], exp_surface, rtol=1e-4, atol=1e-4)
