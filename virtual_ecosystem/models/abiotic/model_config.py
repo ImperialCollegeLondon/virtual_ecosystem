@@ -169,6 +169,8 @@ class AbioticConstants(AbioticSharedConstants):
     density (PPFD)[µmol m-2 s-1]. 1 W m-2 of sunlight is roughly 4.57 µmol m-2 s-1 of
     full spectrum sunlight, of which about 4.57 * 46% = 2.04 µmol m-2 s-1 is PPFD.
     """
+    maxiter_air_secant_solver: int = 20
+    """Maximum number of iterations to solve for air temperature."""
 
     maxiter_secant_solver: int = 8
     """Maximum number of secant iterations to solve for canopy temperature."""
@@ -176,7 +178,7 @@ class AbioticConstants(AbioticSharedConstants):
     convergence_tolerance_secant_solver: float = 1e-2
     """Convergence tolerance for secant solver, in max absolute update."""
 
-    small_perturbation_second_guess_secant_solver: float = 1e-6
+    small_perturbation_second_guess_secant_solver: float = 0.5
     """Small perturbation for second initial guess in secant solver."""
 
     denominator_tolerance: float = 1e-12
@@ -201,6 +203,9 @@ class AbioticConstants(AbioticSharedConstants):
 
     min_leaf_area_index_for_mixing: float = 0.5
     """Minimum leaf area index required for turbulent mixing to occur, [m m-1]."""
+
+    integration_time_interval: float = 300.0
+    """Initial integration time interval for air temperature update, [s]."""
 
 
 class AbioticConfiguration(ModelConfigurationRoot):
