@@ -77,6 +77,7 @@ class AbioticModel(
         "longwave_emission",
         "diurnal_temperature_range",
         "condensation",
+        "absorbed_longwave_radiation",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -116,6 +117,7 @@ class AbioticModel(
         "longwave_emission",
         "vapour_pressure",
         "diurnal_temperature_range",
+        "absorbed_longwave_radiation",
     ),
     vars_populated_by_first_update=(),
 ):

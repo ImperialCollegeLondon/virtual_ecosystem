@@ -26,6 +26,7 @@ def prepare_static_inputs(
     time_index: int,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
 ) -> dict[str, Any]:
     """Prepare static inputs for microclimate model.
 
@@ -42,6 +43,7 @@ def prepare_static_inputs(
         time_index: Time index
         layer_structure: Layer structure object
         abiotic_constants: Set of constants for abiotic model
+        core_constants: Set of constants shared across all models
 
     Returns:
         Dictionary with prepared static inputs for microclimate model
@@ -93,11 +95,14 @@ def prepare_static_inputs(
     absorbed_longwave_radiation = energy_balance.calculate_absorbed_longwave_radiation(
         downward_longwave=downward_longwave,
         leaf_area_index=data["leaf_area_index"].to_numpy(),
+        canopy_temperature=data["canopy_temperature"].to_numpy(),
+        soil_temperature=data["soil_temperature"].to_numpy(),
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         soil_emissivity=abiotic_constants.soil_emissivity,
+        stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+        zero_Celsius=core_constants.zero_Celsius,
         extinction_coefficient_lw=abiotic_constants.extinction_coefficient_longwave,
-        surface_index=idx.surface,
-        topsoil_index=idx.topsoil,
+        idx=idx,
     )
 
     # Cell area, [m2]
@@ -594,7 +599,6 @@ def calculate_vegetation_fluxes(
         evapotranspiration=state["evapotranspiration"],
         absorbed_shortwave_radiation=state["shortwave_absorption"],
         absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-        longwave_emission_soil=state["longwave_emission"][idx.topsoil],
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         specific_heat_air=state["specific_heat_air"],
         density_air=state["density_air"],
@@ -604,7 +608,6 @@ def calculate_vegetation_fluxes(
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=True,
-        idx=idx,
     )
 
     return fluxes  # type: ignore
@@ -648,30 +651,30 @@ def calculate_soil_fluxes(
     )
 
     #  Sensible heat flux from topsoil, [W m-2]
-    out["sensible_heat_flux_soil"] = energy_balance.calculate_sensible_heat_flux(
+    sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
         density_air=state["density_air"][idx.surface],
         specific_heat_air=state["specific_heat_air"][idx.surface],
         air_temperature=state["air_temperature"][idx.surface],
         surface_temperature=state["soil_temperature"][idx.topsoil],
         aerodynamic_resistance=state["aerodynamic_resistance_soil"],
     )
+    out["sensible_heat_flux_soil"] = -sensible_heat_flux_soil
 
     # Latent heat flux topsoil, [W m-2]
-    out["latent_heat_flux_soil"] = energy_balance.calculate_latent_heat_flux(
+    latent_heat_flux_soil = energy_balance.calculate_latent_heat_flux(
         evapotranspiration=state["soil_evaporation"],
         latent_heat_vapourisation=state["latent_heat_vapourisation"][idx.surface],
         time_interval=time_interval,
     )
+    out["latent_heat_flux_soil"] = -latent_heat_flux_soil
 
     # Ground heat flux, [W m-2]
     out["ground_heat_flux"] = (
         state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
-        - out["latent_heat_flux_soil"]
-        - out["sensible_heat_flux_soil"]
+        + out["latent_heat_flux_soil"]
+        + out["sensible_heat_flux_soil"]
         + static["absorbed_longwave_radiation"][idx.topsoil]
-        + 0.5 * np.nansum(state["longwave_emission"][idx.canopy], axis=0)
-        + 0.5 * state["longwave_emission"][idx.surface]
     )
 
     # Net radiation, [W m-2]
@@ -679,8 +682,6 @@ def calculate_soil_fluxes(
         state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
         + static["absorbed_longwave_radiation"][idx.topsoil]
-        + 0.5 * np.nansum(state["longwave_emission"][idx.canopy], axis=0)
-        + 0.5 * state["longwave_emission"][idx.surface]
     )
 
     return out
@@ -937,8 +938,8 @@ def run_hour_step(
         time_interval=time_interval,
         idx=idx,
     )
-    state["sensible_heat_flux"][idx.topsoil] = soil_fluxes["sensible_heat_flux_soil"]
-    state["latent_heat_flux"][idx.topsoil] = soil_fluxes["latent_heat_flux_soil"]
+    state["sensible_heat_flux"][idx.topsoil] = -soil_fluxes["sensible_heat_flux_soil"]
+    state["latent_heat_flux"][idx.topsoil] = -soil_fluxes["latent_heat_flux_soil"]
     state["longwave_emission"][idx.topsoil] = soil_fluxes["longwave_emission_soil"]
     state["net_radiation"][idx.topsoil] = soil_fluxes["net_radiation_soil"]
     state["ground_heat_flux"] = soil_fluxes["ground_heat_flux"]
@@ -1118,6 +1119,7 @@ def run_microclimate(
         time_index=time_index,
         layer_structure=layer_structure,
         abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
     )
 
     # Calculate wind profiles for microclimate model

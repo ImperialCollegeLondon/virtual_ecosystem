@@ -287,6 +287,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Absorbed longwave radiation in all flux layers"
+name = "absorbed_longwave_radiation"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Matric potential"
 name = "matric_potential"
 unit = "kPa"

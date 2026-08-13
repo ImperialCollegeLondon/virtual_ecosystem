@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calculate_vp_sat
-from scipy.optimize import brentq
 
 from tests.conftest import log_check
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
@@ -39,6 +38,7 @@ def test_initialise_canopy_and_soil_fluxes(fixture_core_components):
         "latent_heat_flux",
         "ground_heat_flux",
         "longwave_emission",
+        "absorbed_longwave_radiation",
     ]:
         assert var in result
 
@@ -84,10 +84,105 @@ def test_calculate_longwave_emission(
     assert np.all(result[valid] < 500.0)
 
 
+def test_normalised_source_fractions_properties_and_expected_values() -> None:
+    """Test that normalised source fractions have expected properties and values."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        normalised_source_fractions,
+    )
+
+    test_cases = [
+        (
+            np.array([0.0, 1.0], dtype=float),
+            np.array([1.0, 0.0], dtype=float),
+            0.5,
+        ),
+        (
+            np.array([0.0, 0.5, 1.0], dtype=float),
+            np.array([1.0, 0.5, 0.0], dtype=float),
+            0.5,
+        ),
+        (
+            np.array([2.0, 3.0], dtype=float),
+            np.array([0.0, 1.0], dtype=float),
+            0.8,
+        ),
+        (
+            np.array([0.0, 0.0], dtype=float),
+            np.array([0.0, 0.0], dtype=float),
+            1.0,
+        ),
+        (
+            np.array([0.0, 1.0, 2.0], dtype=float),
+            np.array([2.0, 1.0, 0.0], dtype=float),
+            0.0,
+        ),
+        (
+            np.array([5.0], dtype=float),
+            np.array([5.0], dtype=float),
+            1.0,
+        ),
+        (
+            np.array([0.0, 1.0, 10.0], dtype=float),
+            np.array([10.0, 1.0, 0.0], dtype=float),
+            1.5,
+        ),
+    ]
+
+    for lai_above, lai_below, extinction_coefficient_lw in test_cases:
+        f_sky, f_soil, f_veg = normalised_source_fractions(
+            cumulative_lai_above=lai_above,
+            cumulative_lai_below=lai_below,
+            longwave_extinction_coefficient=extinction_coefficient_lw,
+        )
+
+        assert f_sky.shape == lai_above.shape
+        assert f_soil.shape == lai_below.shape
+        assert f_veg.shape == lai_above.shape
+
+        assert np.all((0.0 <= f_sky) & (f_sky <= 1.0))
+        assert np.all((0.0 <= f_soil) & (f_soil <= 1.0))
+        assert np.all((0.0 <= f_veg) & (f_veg <= 1.0))
+
+        np.testing.assert_allclose(f_sky + f_soil + f_veg, 1.0)
+
+        raw_sky = np.exp(-extinction_coefficient_lw * lai_above)
+        raw_soil = np.exp(-extinction_coefficient_lw * lai_below)
+        raw_veg = np.clip(1.0 - raw_sky - raw_soil, 0.0, 1.0)
+        total = raw_sky + raw_soil + raw_veg
+
+        np.testing.assert_allclose(f_sky, raw_sky / total)
+        np.testing.assert_allclose(f_soil, raw_soil / total)
+        np.testing.assert_allclose(f_veg, raw_veg / total)
+
+    zero_ext_lai_above = np.array([0.0, 1.0, 2.0], dtype=float)
+    zero_ext_lai_below = np.array([2.0, 1.0, 0.0], dtype=float)
+    f_sky, f_soil, f_veg = normalised_source_fractions(
+        cumulative_lai_above=zero_ext_lai_above,
+        cumulative_lai_below=zero_ext_lai_below,
+        longwave_extinction_coefficient=0.0,
+    )
+    np.testing.assert_allclose(f_sky, 0.5)
+    np.testing.assert_allclose(f_soil, 0.5)
+    np.testing.assert_allclose(f_veg, 0.0)
+
+    high_lai_f_sky, high_lai_f_soil, high_lai_f_veg = normalised_source_fractions(
+        cumulative_lai_above=np.array([5.0], dtype=float),
+        cumulative_lai_below=np.array([5.0], dtype=float),
+        longwave_extinction_coefficient=1.0,
+    )
+    assert high_lai_f_veg[0] > 0.0
+    np.testing.assert_allclose(
+        high_lai_f_sky[0] + high_lai_f_soil[0] + high_lai_f_veg[0],
+        1.0,
+    )
+
+
 def test_calculate_absorbed_longwave_radiation(
-    fixture_core_components, dummy_climate_data_varying_canopy, fixture_abiotic_indices
+    fixture_core_components,
+    dummy_climate_data_varying_canopy,
+    fixture_abiotic_indices,
 ):
-    """Test that absorbed longwave radiation is calculated correctly."""
+    """Test absorbed longwave radiation using diffuse view-factor formulation."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
         calculate_absorbed_longwave_radiation,
     )
@@ -103,80 +198,45 @@ def test_calculate_absorbed_longwave_radiation(
     soil_emissivity = 0.95
     stefan_boltzmann = 5.67e-8
     zero_celsius = 273.15
-    extinction_coefficient_lw = 0.5
+    extinction_coefficient_lw = 0.1
 
     result = calculate_absorbed_longwave_radiation(
         downward_longwave=downward_longwave,
         leaf_area_index=leaf_area_index,
+        canopy_temperature=data["canopy_temperature"].to_numpy(),
+        soil_temperature=data["soil_temperature"].to_numpy(),
         leaf_emissivity=leaf_emissivity,
         soil_emissivity=soil_emissivity,
+        stefan_boltzmann_constant=stefan_boltzmann,
+        zero_Celsius=zero_celsius,
         extinction_coefficient_lw=extinction_coefficient_lw,
-        surface_index=idx.surface,
-        topsoil_index=idx.topsoil,
+        idx=idx,
     )
-
-    surface_row = result[idx.surface, :]
 
     # Shape
     assert result.shape == (lyr_str.n_layers, data.grid.n_cells)
 
-    # All values non-negative
+    # All values non-negative and finite
+    assert np.all(np.isfinite(result))
     assert np.all(result >= 0.0)
 
-    # Empty canopy slot rows 4-10 are zero
-    assert np.all(result[4:11, :] == 0.0)
+    # Surface and topsoil should absorb some longwave
+    assert np.all(result[idx.surface, :] > 0.0)
+    assert np.all(result[idx.topsoil, :] > 0.0)
 
-    # NaN LAI cells within canopy rows are zero
-    assert result[1, 3] == 0.0
-    assert result[2, 2] == 0.0
-    assert result[2, 3] == 0.0
-    assert result[3, 1] == 0.0
-    assert result[3, 2] == 0.0
-    assert result[3, 3] == 0.0
+    # Lower canopy should still receive some longwave if LAI is present
+    canopy_layers = [
+        layer
+        for layer in range(result.shape[0])
+        if layer not in (idx.surface, idx.topsoil)
+    ]
+    for layer in canopy_layers:
+        lai_mask = leaf_area_index[layer] > 0.0
+        if np.any(lai_mask):
+            assert np.all(result[layer, lai_mask] > 0.0)
 
-    # Surface layer positive for all cells
-    assert np.all(surface_row > 0.0)
-
-    # Exact surface values
-    lai_cum = np.array([3.0, 2.0, 1.0, 0.0])
-    transmittance = np.exp(-extinction_coefficient_lw * lai_cum)
-    expected_surface = leaf_emissivity * (downward_longwave * transmittance)
-
-    assert np.allclose(surface_row, expected_surface, rtol=1e-5)
-
-    # Energy conservation
-    total_per_cell = np.nansum(result, axis=0)
-    upper_bound = downward_longwave
-
-    assert np.all(total_per_cell <= upper_bound + 1e-6)
-
-    # Physical reasonableness: implied T_leaf within plausible bounds
-    air_temperature = 22.0
-    rho_cp = 1.2 * 1005.0
-    r_a = 50.0
-
-    for cell in range(data.grid.n_cells):
-        lw_abs = surface_row[cell]
-
-        def residual(leaf_temperature_celsius):
-            leaf_temperature_kelvin = leaf_temperature_celsius + zero_celsius
-            lw_emit = leaf_emissivity * stefan_boltzmann * leaf_temperature_kelvin**4
-            sh = (rho_cp / r_a) * (leaf_temperature_celsius - air_temperature)
-            return lw_abs - lw_emit - sh
-
-        # Find equilibrium T_leaf — search over a wide but physical range
-        leaf_temperature_eq = brentq(residual, -40.0, 80.0)
-
-        assert -10.0 <= leaf_temperature_eq <= 60.0
-
-    # Energy conservation: total absorbed <= downward
-
-    total_per_cell = np.nansum(result, axis=0)
-
-    # Maximum possible absorption: all downward at emissivity=1
-    upper_bound = downward_longwave
-
-    assert np.all(total_per_cell <= upper_bound + 1e-6)
+    # Physical reasonableness: absorbed LW should not be absurdly large
+    assert np.all(result < 1000.0)
 
 
 def test_calculate_sensible_heat_flux(
@@ -280,7 +340,6 @@ def test_energy_balance_residual_only(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
-    fixture_abiotic_indices,
 ):
     """Test energy balance residual without flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -290,7 +349,6 @@ def test_energy_balance_residual_only(
     data = dummy_climate_data_varying_canopy
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
     aerodynamic_resistance_2d = np.tile(data["aerodynamic_resistance_canopy"], (14, 1))
-    idx = fixture_abiotic_indices
 
     result = calculate_energy_balance_residual(
         canopy_temperature_initial=data["canopy_temperature"].to_numpy(),
@@ -301,7 +359,6 @@ def test_energy_balance_residual_only(
         .isel(time_index=0)
         .to_numpy()
         * fixture_abiotic_constants.leaf_emissivity,
-        longwave_emission_soil=data["longwave_emission"][idx.topsoil].to_numpy(),
         specific_heat_air=data["specific_heat_air"].to_numpy(),
         density_air=data["density_air"].to_numpy(),
         aerodynamic_resistance=aerodynamic_resistance_2d,
@@ -311,7 +368,6 @@ def test_energy_balance_residual_only(
         zero_Celsius=fixture_core_constants.zero_Celsius,
         seconds_to_hour=fixture_core_constants.seconds_to_hour,
         return_fluxes=False,
-        idx=idx,
     )
 
     assert isinstance(result, np.ndarray)
@@ -324,7 +380,6 @@ def test_energy_balance_return_fluxes(
     dummy_climate_data_varying_canopy,
     fixture_abiotic_constants,
     fixture_core_constants,
-    fixture_abiotic_indices,
 ):
     """Test energy balance residual with flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -332,7 +387,6 @@ def test_energy_balance_return_fluxes(
     )
 
     data = dummy_climate_data_varying_canopy
-    idx = fixture_abiotic_indices
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
     aerodynamic_resistance_2d = np.tile(data["aerodynamic_resistance_canopy"], (14, 1))
 
@@ -342,7 +396,6 @@ def test_energy_balance_return_fluxes(
         evapotranspiration=evapotranspiration.to_numpy(),
         absorbed_shortwave_radiation=data["shortwave_absorption"].to_numpy(),
         absorbed_longwave_radiation=data["shortwave_absorption"].to_numpy() * 0.5,
-        longwave_emission_soil=data["longwave_emission"][idx.topsoil].to_numpy(),
         specific_heat_air=data["specific_heat_air"].to_numpy(),
         density_air=data["density_air"].to_numpy(),
         aerodynamic_resistance=aerodynamic_resistance_2d,
@@ -352,7 +405,6 @@ def test_energy_balance_return_fluxes(
         zero_Celsius=fixture_core_constants.zero_Celsius,
         seconds_to_hour=fixture_core_constants.seconds_to_hour,
         return_fluxes=True,
-        idx=idx,
     )
 
     assert isinstance(result, dict)
