@@ -147,6 +147,7 @@ class PlantsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
+        "fallen_fruit_decay_cnp",
     ),
     vars_populated_by_first_update=(
         "plant_ammonium_uptake",
@@ -158,6 +159,7 @@ class PlantsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
+        "fallen_fruit_decay_cnp",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -244,7 +246,7 @@ class PlantsModel(
         """A dataframe providing the initial cohort data."""
         self.cohort_id_generator: Iterator
         """Set of constants for the plants model"""
-        self.model_constant: PlantsConstants
+        self.model_constants: PlantsConstants
         """Set of constants for the plants model"""
         self.communities: PlantCommunities
         """An instance of PlantCommunities providing dictionary access keyed by cell id
@@ -1762,30 +1764,71 @@ class PlantsModel(
         This method calculates the new values for the pools based on the turnover of the
         input biomass (from the canopy plants) and the consumption of the pools by
         animals.
+
+        Seeds are assumed not to decay if left unconsumed by animals. Fruit, however, do
+        decay if left uneaten. This decay is applied to the fruit left after animal
+        consumption has occurred, and the size of the depends on both the length of
+        simulation time step and the average (soil surface) temperature across the
+        previous timestep. The carbon, nitrogen and phosphorus from the decayed fruit is
+        then added directly into the soil (bypassing the litter model).
         """
 
+        # Seeds do not decay, so if they aren't eaten by animals they accumulate
         self.data["fallen_seeds_cnp"] += (
             self.data["seed_turnover_cnp"] - self.data["fallen_seeds_cnp_consumed"]
         )
-        self.data["fallen_fruit_cnp"] += (
-            self.data["fruit_turnover_cnp"] - self.data["fallen_fruit_cnp_consumed"]
+
+        # Find the amount of fruit left after animal consumption
+        post_consumption_fruit = (
+            self.data["fallen_fruit_cnp"] - self.data["fallen_fruit_cnp_consumed"]
         )
 
-    def convert_to_litter_units(self, input_mass: xr.DataArray) -> xr.DataArray:
-        """Helper function to convert plant quantities into litter model units.
+        # Estimate the fraction of this remaining fruit that decays
+        fraction_decayed = self.calculate_fallen_fruit_decay_fraction(
+            decay_rate=self.model_constants.fallen_fruit_decay_rate,
+            surface_temperature=self.data["air_temperature"][
+                self.layer_structure.index_surface_scalar
+            ],
+        )
+        fruit_decay = fraction_decayed * post_consumption_fruit
 
-        The plant model records the plant biomass in units of mass (kg) per grid square,
-        whereas the litter model expects litter inputs as kg per m^2.
+        # Find the pool size for the next time stop by adding new biomass and
+        # subtracting decay
+        self.data["fallen_fruit_cnp"] = (
+            post_consumption_fruit + self.data["fruit_turnover_cnp"] - fruit_decay
+        )
+
+        # Update data object with total (summed across PFTs) decay into the soil model
+        self.data["fallen_fruit_decay_cnp"] = fruit_decay.sum(dim="pft")
+
+    def calculate_fallen_fruit_decay_fraction(
+        self, decay_rate: float, surface_temperature: xr.DataArray
+    ) -> xr.DataArray:
+        """Calculate fraction of fallen fruit that decays in a given timestep.
+
+        The fraction of fruit (flesh) that has decayed is effected by two things: the
+        length of the simulation time step, and the average (soil surface) temperature
+        for this time step. We combine these into a single measure, degree days, which
+        uses 0 Celsius as a basis, i.e. if temperatures are zero or below no decay will
+        occur.
 
         Args:
-            input_mass: The mass (of carbon) being passed from the plant model to the
-                litter model [kg/g]
+            decay_rate: Rate at which fruit decays [Celsius^-1 day^-1]
+            surface_temperature: Temperature of the forest floor [Celsius]
 
         Returns:
-            The input mass converted to the density units that the litter model uses [kg
-            m^-2]
+            The fraction of the fallen fruit that has decayed into the soil.
         """
-        return input_mass / self.grid.cell_area
+
+        # Calculate the degree days (subzero temperatures are treated as zero)
+        degree_days = np.where(
+            surface_temperature >= 0.0,
+            surface_temperature
+            * (self.model_timing.update_interval_quantity.to("days").magnitude),
+            0.0,
+        )
+
+        return xr.DataArray(1 - np.exp(-decay_rate * degree_days), dims="cell_id")
 
     def convert_to_soil_units(
         self, input_mass: NDArray[np.floating]
