@@ -13,6 +13,9 @@ from xarray import DataArray
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
+    compute_weights_from_absorbed_radiation,
+)
 
 # Class uses DEBUG
 LOGGER.setLevel(DEBUG)
@@ -701,7 +704,19 @@ def dummy_litter_data(fixture_core_components):
 
 @pytest.fixture
 def dummy_climate_data(fixture_core_components):
-    """Creates a dummy climate data object for use in tests."""
+    """Create a consistent dummy climate dataset for tests.
+
+    Assumptions:
+    - 4 grid cells
+    - 1 above-canopy layer
+    - 3 canopy layers
+    - 1 vegetated surface layer
+    - 2 soil layers
+
+    All vertically structured variables share the same layer ordering and are
+    populated through grouped update loops so values remain consistent across
+    variables and easier to maintain.
+    """
 
     from virtual_ecosystem.core.data import Data
 
@@ -712,357 +727,339 @@ def dummy_climate_data(fixture_core_components):
     lyr_str = fixture_core_components.layer_structure
     from_template = lyr_str.from_template
 
-    # Reference data with a time series
-    ref_values = {
-        "air_temperature_ref": 30.0,  # °C
-        "wind_speed_ref": 1.0,  # m s-1
-        "relative_humidity_ref": 90.0,  # %
-        "vapour_pressure_deficit_ref": 0.14,  # kPa
-        "vapour_pressure_ref": 3.7,  # kPa (consistent with 30C, 90% RH)
-        "atmospheric_pressure_ref": 96.0,  # kPa
-        "atmospheric_co2_ref": 400.0,  # ppm
-        "precipitation": 200.0,  # mm month-1
-        "downward_shortwave_radiation": 220.0,  # W m-2 (24h monthly mean)
-        "downward_longwave_radiation": 400.0,  # W m-2 (24h monthly mean)
-        "mean_annual_temperature": 20.0,  # C
-        "diurnal_temperature_range_ref": 5.0,  # C
+    n_cells = fixture_core_components.grid.n_cells
+    time_steps = 3
+
+    # Helper functions to fill profiles
+    def repeat_profile(profile: list[float] | NDArray[np.floating]) -> np.ndarray:
+        """Repeat a 1D vertical profile across all cells."""
+        return np.repeat(np.asarray(profile, dtype=float)[:, None], n_cells, axis=1)
+
+    def set_from_template(
+        var: str,
+        values: list[float] | NDArray[np.floating],
+        layer_index,
+    ) -> None:
+        """Create a layer-structured variable and assign repeated values."""
+        data[var] = from_template()
+        data[var][layer_index] = repeat_profile(values)
+
+    def set_from_template_with_surface(
+        var: str,
+        canopy_values: list[float] | NDArray[np.floating],
+        surface_value: float,
+    ) -> None:
+        """Create a canopy variable and assign canopy plus surface values."""
+        data[var] = from_template()
+        data[var][lyr_str.index_filled_canopy] = repeat_profile(canopy_values)
+        data[var][lyr_str.index_surface_scalar] = float(surface_value)
+
+    # Time-varying reference meteorology
+    reference_fields = {
+        "air_temperature_ref": 23.0,
+        "wind_speed_ref": 0.5,
+        "relative_humidity_ref": 90.0,
+        "vapour_pressure_deficit_ref": 0.14,
+        "vapour_pressure_ref": 2.2,
+        "atmospheric_pressure_ref": 96.0,
+        "atmospheric_co2_ref": 400.0,
+        "precipitation": 300.0,
+        "downward_shortwave_radiation": 220.0,
+        "downward_longwave_radiation": 400.0,
+        "mean_annual_temperature": 22.0,
+        "diurnal_temperature_range_ref": 6.0,
     }
 
-    for var, value in ref_values.items():
+    for var, value in reference_fields.items():
         data[var] = DataArray(
-            np.full((4, 3), value),
+            np.full((n_cells, time_steps), value, dtype=float),
             dims=["cell_id", "time_index"],
         )
 
     # Spatially varying but not vertically structured
-    spatially_variable = {
-        "shortwave_radiation_surface": [120, 80, 30, 10],  # W m-2
-        "friction_velocity": [0.35, 0.25, 0.15, 0.15],  # m s-1
-        "soil_evaporation": [30.0, 40.0, 60.0, 60.0],  # mm month-1
-        "elevation": [200, 100, 10, 10],  # m
+    cell_variable_fields = {
+        "friction_velocity": [0.35, 0.25, 0.15, 0.15],
+        "soil_evaporation": [5.0, 10.0, 12.0, 12.0],
+        "elevation": [200.0, 100.0, 10.0, 10.0],
     }
-    for var, vals in spatially_variable.items():
-        data[var] = DataArray(vals, dims=["cell_id"])
+    for var, values in cell_variable_fields.items():
+        data[var] = DataArray(np.asarray(values, dtype=float), dims=["cell_id"])
 
     # Spatially constant and not vertically structured
-    spatially_constant = {
-        "sensible_heat_flux_soil": -20.0,  # W m-2
-        "latent_heat_flux_soil": -40.0,  # W m-2
-        "zero_plane_displacement": 20.0,  # m
-        "mean_mixing_length": 1.3,  # m
-        "aerodynamic_resistance_soil": 50.0,  # s m-1
-        "aerodynamic_resistance_canopy": 30.0,  # s m-1
-        "ground_heat_flux": -20.0,
-        "conductive_flux_understorey": 50.0,
+    cell_constant_fields = {
+        "sensible_heat_flux_soil": -5.0,
+        "latent_heat_flux_soil": -5.0,
+        "zero_plane_displacement": 20.0,
+        "mean_mixing_length": 1.3,
+        "aerodynamic_resistance_soil": 50.0,
+        "aerodynamic_resistance_canopy": 400.0,
+        "ground_heat_flux": -5.0,
         "ventilation_rate": 0.1,
     }
-    for var, val in spatially_constant.items():
-        data[var] = DataArray(np.repeat(val, 4), dims=["cell_id"])
+    for var, value in cell_constant_fields.items():
+        data[var] = DataArray(np.full(n_cells, value, dtype=float), dims=["cell_id"])
 
-    # Structural variables - assign values to vertical layer indices across grid id
-    data["leaf_area_index"] = from_template()
-    data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
-    data["leaf_area_index"][lyr_str.index_surface_scalar] = 1.0
+    # Canonical profiles
+    # Layer ordering:
+    # - atmosphere-facing / flux layers: above, canopy_1, canopy_2, canopy_3, surface
+    # - canopy-only layers: canopy_1, canopy_2, canopy_3
+    # - soil layers: topsoil, subsoil
+    atmosphere_profiles = {
+        "layer_heights": [32.0, 30.0, 20.0, 10.0, 0.1],
+        "wind_speed": [0.50, 0.25, 0.12, 0.06, 0.02],
+        "mixing_coefficient": [0.15, 0.10, 0.08, 0.05, 0.03],
+        "atmospheric_pressure": [96.0, 96.0, 96.1, 96.1, 96.2],
+        "air_temperature": [22.0, 21.8, 20.6, 19.2, 18.5],
+        "diurnal_temperature_range": [5.0, 4.0, 3.0, 2.0, 1.0],
+        "relative_humidity": [90.0, 92.0, 94.0, 96.0, 99.0],
+        "vapour_pressure": [2.20, 2.15, 2.05, 1.95, 1.85],
+        "vapour_pressure_deficit": [0.60, 0.30, 0.18, 0.08, 0.01],
+        "molar_density_air": [38.0, 38.2, 38.5, 38.7, 39.0],
+        "density_air": [1.18, 1.19, 1.20, 1.22, 1.24],
+        "specific_heat_air": [1006.0, 1006.0, 1006.0, 1006.0, 1006.0],
+        "latent_heat_vapourisation": [2445.0, 2444.0, 2443.0, 2442.0, 2441.0],
+    }
 
-    data["layer_heights"] = from_template()
-    data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
-        [
-            32.0,
-            30.0,
-            20.0,
-            10.0,
-            lyr_str.surface_layer_height,
-        ]
-    )[:, None]
+    flux_profiles = {
+        "shortwave_absorption": [150.0, 10.0, 7.0, 3.0, 10.0],
+        "absorbed_longwave_radiation": [180, 180, 180, 180, 180],
+        "longwave_emission": [458.0, 453.0, 443.0, 413.0, 402.0],
+        "sensible_heat_flux": [-12.0, -10.0, -8.0, -5.0, -3.0],
+        "latent_heat_flux": [-8.0, -6.0, -5.0, -4.0, -2.0],
+        "net_radiation": [35.0, 18.0, 10.0, 5.0, 2.0],
+    }
 
-    data["layer_heights"][lyr_str.index_all_soil] = lyr_str.soil_layer_depths[:, None]
+    canopy_profiles = {
+        "leaf_area_index": {
+            "canopy": [4.4, 1.2, 0.5],
+            "surface": 0.07,
+        },
+        "canopy_temperature": {
+            "canopy": [29.8, 28.9, 27.2],
+            "surface": 22.0,
+        },
+        "canopy_evaporation": {
+            "canopy": [2.5, 2.0, 1.5],
+            "surface": 1.0,
+        },
+        "stomatal_conductance": {
+            "canopy": [15.0, 12.0, 9.0],
+            "surface": 6.0,
+        },
+        "condensation": {
+            "canopy": [0.5, 0.8, 1.0],
+            "surface": 1.2,
+        },
+        "transpiration": {
+            "canopy": [90.0, 70.0, 45.0],
+            "surface": 20.0,
+        },
+    }
 
-    # Microclimate and energy balance
-    # - Vertically structured
-    data["wind_speed"] = from_template()
-    data["wind_speed"][lyr_str.index_filled_atmosphere] = 0.1
+    soil_profiles = {
+        "soil_temperature": [22.0, 20.0],
+        "matric_potential": [-20.0, -100.0],
+        "soil_moisture": [5.0, 500.0],
+    }
 
-    data["mixing_coefficient"] = from_template()
-    data["mixing_coefficient"][lyr_str.index_filled_atmosphere] = 0.1
-
-    data["atmospheric_pressure"] = from_template()
-    data["atmospheric_pressure"][lyr_str.index_filled_atmosphere] = 96.0
-
-    data["air_temperature"] = from_template()
-    data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [
-            30.0,
-            29.8,
-            28.9,
-            27.2,
-            22.0,
-        ]
-    )[:, None]
-
-    data["diurnal_temperature_range"] = from_template()
-    data["diurnal_temperature_range"][lyr_str.index_filled_atmosphere] = np.array(
-        [
-            5,
-            4,
-            3,
-            2,
-            1,
-        ]
-    )[:, None]
-
-    data["soil_temperature"] = from_template()
-    data["soil_temperature"][lyr_str.index_all_soil] = 20.0
-
-    data["matric_potential"] = from_template()
-    data["matric_potential"][lyr_str.index_all_soil] = np.array(
-        [
-            [-3.0, -10.0, -250.0, -10000.0],
-            [-3.0, -10.0, -250.0, -10000.0],
-        ]
+    # Structural variables
+    set_from_template(
+        "layer_heights",
+        atmosphere_profiles["layer_heights"],
+        lyr_str.index_filled_atmosphere,
+    )
+    data["layer_heights"][lyr_str.index_all_soil] = repeat_profile(
+        np.asarray(lyr_str.soil_layer_depths, dtype=float)
     )
 
-    data["relative_humidity"] = from_template()
-    data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
-        [
-            90.0,
-            91.0,
-            93.0,
-            96.0,
-            98.0,
-        ]
-    )[:, None]
+    for var in (
+        "wind_speed",
+        "mixing_coefficient",
+        "atmospheric_pressure",
+        "air_temperature",
+        "diurnal_temperature_range",
+        "relative_humidity",
+        "vapour_pressure",
+        "vapour_pressure_deficit",
+        "molar_density_air",
+        "density_air",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
+    ):
+        set_from_template(
+            var, atmosphere_profiles[var], lyr_str.index_filled_atmosphere
+        )
 
-    data["vapour_pressure"] = from_template()
-    data["vapour_pressure"][lyr_str.index_filled_atmosphere] = np.array(
-        [
-            3.82,
-            3.82,
-            3.70,
-            3.46,
-            2.59,
-        ]
-    )[:, None]
+    for var in (
+        "shortwave_absorption",
+        "longwave_emission",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "net_radiation",
+    ):
+        set_from_template(var, flux_profiles[var], lyr_str.index_flux_layers)
 
-    data["vapour_pressure_deficit"] = from_template()
-    data["vapour_pressure_deficit"][lyr_str.index_filled_atmosphere] = np.array(
-        [
-            0.42,
-            0.37,
-            0.27,
-            0.14,
-            0.05,
-        ]
-    )[:, None]
+    for var, values in canopy_profiles.items():
+        set_from_template_with_surface(
+            var,
+            canopy_values=values["canopy"],
+            surface_value=values["surface"],
+        )
 
-    data["shortwave_absorption"] = from_template()
-    data["shortwave_absorption"][lyr_str.index_flux_layers] = 180.0
-
-    data["absorbed_longwave_radiation"] = from_template()
-    data["absorbed_longwave_radiation"][lyr_str.index_flux_layers] = 380.0
-
-    data["longwave_emission"] = from_template()
-    data["longwave_emission"][lyr_str.index_flux_layers] = 450.0
-
-    data["sensible_heat_flux"] = from_template()
-    data["sensible_heat_flux"][lyr_str.index_flux_layers] = -20.0
-
-    data["latent_heat_flux"] = from_template()
-    data["latent_heat_flux"][lyr_str.index_flux_layers] = -40.0
-
-    data["net_radiation"] = from_template()
-    data["net_radiation"][lyr_str.index_flux_layers] = 20.0
-
-    data["molar_density_air"] = from_template()
-    data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0
-
-    data["density_air"] = from_template()
-    data["density_air"][lyr_str.index_filled_atmosphere] = 1.255
-
-    data["specific_heat_air"] = from_template()
-    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 1006.0
-
-    data["latent_heat_vapourisation"] = from_template()
-    data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2442.0
-
-    data["canopy_temperature"] = from_template()
-    data["canopy_temperature"][lyr_str.index_filled_canopy] = np.array(
-        [
-            29.8,
-            28.9,
-            27.2,
-        ]
-    )[:, None]
-    data["canopy_temperature"][lyr_str.index_surface_scalar] = 22.0
-
-    data["canopy_evaporation"] = from_template()
-    data["canopy_evaporation"][lyr_str.index_filled_canopy] = 40.0
-    data["canopy_evaporation"][lyr_str.index_surface_scalar] = 40.0
-
-    data["stomatal_conductance"] = from_template()
-    data["stomatal_conductance"][lyr_str.index_filled_canopy] = 12.0
-    data["stomatal_conductance"][lyr_str.index_surface_scalar] = 12.0
-
-    data["condensation"] = from_template()
-    data["condensation"][lyr_str.index_filled_canopy] = 1.0
-    data["condensation"][lyr_str.index_surface_scalar] = 1.0
+    for var, values in soil_profiles.items():
+        set_from_template(var, values, lyr_str.index_all_soil)
 
     # Hydrology
-    data["transpiration"] = from_template()
-    data["transpiration"][lyr_str.index_filled_canopy] = 80.0
-    data["transpiration"][lyr_str.index_surface_scalar] = 80.0
-
-    data["soil_moisture"] = from_template()
-    data["soil_moisture"][lyr_str.index_all_soil] = np.array([5.0, 500.0])[:, None]
-
     data["groundwater_storage"] = DataArray(
-        np.full((2, 4), 450.0),
+        np.full((2, n_cells), 450.0, dtype=float),
         dims=("groundwater_layers", "cell_id"),
     )
 
     return data
 
 
-# dummy climate data with different number of canopy layers
 @pytest.fixture
 def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_data):
-    """Creates a dummy climate data object for use in tests.
+    """Create dummy climate data with varying canopy occupancy by cell.
 
-    This fixture modifies the parent dummy_climate_data to introduce variation in the
-    number of canopy layers within the different cells, including one grid cell without
-    vegetation.
+    The four cells have:
+    - cell 0: 3 canopy layers + vegetated surface layer
+    - cell 1: 2 canopy layers + vegetated surface layer
+    - cell 2: 1 canopy layer + vegetated surface layer
+    - cell 3: no canopy + vegetated surface layer
+
+    All affected profile variables are updated consistently using shared masks and
+    grouped loops.
     """
 
     lyr_str = fixture_core_components.layer_structure
-    index_filled_canopy = lyr_str.index_filled_canopy
-    index_filled_atmosphere = lyr_str.index_filled_atmosphere
-    index_fluxes = lyr_str.index_flux_layers
+    canopy_idx = lyr_str.index_filled_canopy
+    atmosphere_idx = lyr_str.index_filled_atmosphere
+    flux_idx = lyr_str.index_flux_layers
+    surface_idx = lyr_str.index_surface_scalar
+
+    canopy_present = np.array(
+        [
+            [True, True, True, False],
+            [True, True, False, False],
+            [True, False, False, False],
+        ],
+        dtype=bool,
+    )
+    surface_present = np.array([True, True, True, True], dtype=bool)
+
+    filled_atmosphere_present = np.vstack(
+        [
+            np.ones((1, canopy_present.shape[1]), dtype=bool),
+            canopy_present,
+            surface_present[None, :],
+        ]
+    )
+
+    atmosphere_profiles = {
+        "layer_heights": [32.0, 30.0, 20.0, 10.0, lyr_str.surface_layer_height],
+        "wind_speed": [0.50, 0.25, 0.12, 0.06, 0.02],
+        "mixing_coefficient": [0.15, 0.10, 0.08, 0.05, 0.03],
+        "atmospheric_pressure": [96.0, 96.0, 96.1, 96.1, 96.2],
+        "air_temperature": [22.0, 21.8, 20.6, 19.2, 18.5],
+        "diurnal_temperature_range": [5.0, 4.0, 3.0, 2.0, 1.0],
+        "relative_humidity": [90.0, 92.0, 94.0, 96.0, 99.0],
+        "vapour_pressure": [2.20, 2.15, 2.05, 1.95, 1.85],
+        "vapour_pressure_deficit": [0.60, 0.30, 0.18, 0.08, 0.01],
+        "molar_density_air": [38.0, 38.2, 38.5, 38.7, 39.0],
+        "density_air": [1.18, 1.19, 1.20, 1.22, 1.24],
+        "specific_heat_air": [1006.0, 1006.0, 1006.0, 1006.0, 1006.0],
+        "latent_heat_vapourisation": [2445.0, 2444.0, 2443.0, 2442.0, 2441.0],
+    }
+
+    flux_profiles = {
+        "shortwave_absorption": [150.0, 10.0, 7.0, 3.0, 10.0],
+        "absorbed_longwave_radiation": [180, 180, 180, 180, 180],
+        "longwave_emission": [458.0, 453.0, 443.0, 413.0, 402.0],
+        "sensible_heat_flux": [-12.0, -10.0, -8.0, -5.0, -3.0],
+        "latent_heat_flux": [-8.0, -6.0, -5.0, -4.0, -2.0],
+        "net_radiation": [35.0, 18.0, 10.0, 5.0, 2.0],
+    }
+
+    canopy_profiles = {
+        "leaf_area_index": {
+            "canopy": [4.4, 1.2, 0.5],
+            "surface": 0.07,
+        },
+        "canopy_temperature": {
+            "canopy": [29.8, 28.9, 27.2],
+            "surface": 22.0,
+        },
+        "canopy_evaporation": {
+            "canopy": [2.5, 2.0, 1.5],
+            "surface": 1.0,
+        },
+        "stomatal_conductance": {
+            "canopy": [15.0, 12.0, 9.0],
+            "surface": 6.0,
+        },
+        "condensation": {
+            "canopy": [0.5, 0.8, 1.0],
+            "surface": 1.2,
+        },
+        "transpiration": {
+            "canopy": [90.0, 70.0, 45.0],
+            "surface": 20.0,
+        },
+    }
+
+    def masked_profile(
+        values: list[float] | NDArray[np.floating], mask: np.ndarray
+    ) -> np.ndarray:
+        profile = np.asarray(values, dtype=float)[:, None]
+        return np.where(mask, profile, np.nan)
 
     # Structural variables
-    dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
-        [1.0, 1.0, 1.0, np.nan],
-        [1.0, 1.0, np.nan, np.nan],
-        [1.0, np.nan, np.nan, np.nan],
-    ]
+    dummy_climate_data["layer_heights"][atmosphere_idx] = masked_profile(
+        atmosphere_profiles["layer_heights"],
+        filled_atmosphere_present,
+    )
 
-    dummy_climate_data["layer_heights"][index_filled_canopy] = [
-        [30.0, 30.0, 30.0, np.nan],
-        [20.0, 20.0, np.nan, np.nan],
-        [10.0, np.nan, np.nan, np.nan],
-    ]
+    # Atmosphere-facing variables
+    for var in (
+        "wind_speed",
+        "mixing_coefficient",
+        "atmospheric_pressure",
+        "air_temperature",
+        "diurnal_temperature_range",
+        "relative_humidity",
+        "vapour_pressure",
+        "vapour_pressure_deficit",
+        "molar_density_air",
+        "density_air",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
+    ):
+        dummy_climate_data[var][atmosphere_idx] = masked_profile(
+            atmosphere_profiles[var],
+            filled_atmosphere_present,
+        )
 
-    # Microclimate and energy balance
-    dummy_climate_data["wind_speed"][index_filled_canopy] = [
-        [0.3, 0.3, 0.3, np.nan],
-        [0.25, 0.25, np.nan, np.nan],
-        [0.1, np.nan, np.nan, np.nan],
-    ]
+    # Flux variables
+    for var in (
+        "shortwave_absorption",
+        "absorbed_longwave_radiation",
+        "longwave_emission",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "net_radiation",
+    ):
+        dummy_climate_data[var][flux_idx] = masked_profile(
+            flux_profiles[var],
+            filled_atmosphere_present,
+        )
 
-    dummy_climate_data["mixing_coefficient"][index_filled_canopy] = [
-        [0.1, 0.1, 0.1, np.nan],
-        [0.1, 0.1, np.nan, np.nan],
-        [0.1, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["air_temperature"][index_filled_canopy] = [
-        [29.8, 29.8, 29.8, np.nan],
-        [28.9, 28.9, np.nan, np.nan],
-        [27.2, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["diurnal_temperature_range"][index_filled_canopy] = [
-        [4, 4, 4, np.nan],
-        [3, 3, np.nan, np.nan],
-        [2, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["relative_humidity"][index_filled_canopy] = [
-        [91.0, 91.0, 91.0, np.nan],
-        [93.0, 93.0, np.nan, np.nan],
-        [96.0, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["shortwave_absorption"][index_filled_canopy] = [
-        [180.0, 180.0, 180.0, np.nan],
-        [160.0, 160.0, np.nan, np.nan],
-        [120.0, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["absorbed_longwave_radiation"][index_fluxes] = [
-        [380.0, 380.0, 380.0, np.nan],
-        [260.0, 260.0, np.nan, np.nan],
-        [120.0, np.nan, np.nan, np.nan],
-        [130, 130, 130, 130],
-        [180, 180, 180, 180],
-    ]
-
-    dummy_climate_data["longwave_emission"][index_filled_canopy] = [
-        [450.0, 450.0, 450.0, np.nan],
-        [450.0, 450.0, np.nan, np.nan],
-        [450.0, np.nan, np.nan, np.nan],
-    ]
-    dummy_climate_data["vapour_pressure"][index_filled_atmosphere] = [
-        [3.82, 3.82, 3.82, 3.82],
-        [3.82, 3.82, 3.82, np.nan],
-        [3.7, 3.7, np.nan, np.nan],
-        [3.46, np.nan, np.nan, np.nan],
-        [2.59, 2.59, 2.59, 2.59],
-    ]
-    dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
-        [0.42, 0.42, 0.42, 0.42],
-        [0.37, 0.37, 0.37, np.nan],
-        [0.27, 0.27, np.nan, np.nan],
-        [0.14, np.nan, np.nan, np.nan],
-        [0.05, 0.05, 0.05, 0.05],
-    ]
-    dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
-        [-25.0, -25.0, -25.0, np.nan],
-        [-20.0, -20.0, np.nan, np.nan],
-        [-15.0, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["latent_heat_flux"][index_filled_canopy] = [
-        [-45.0, -45.0, -45.0, np.nan],
-        [-40.0, -40.0, np.nan, np.nan],
-        [-30.0, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["net_radiation"][lyr_str.index_filled_canopy] = [
-        [70.0, 70.0, 70.0, np.nan],
-        [60.0, 60.0, np.nan, np.nan],
-        [45.0, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["canopy_temperature"][index_filled_canopy] = [
-        [29.8, 29.8, 29.8, np.nan],
-        [28.9, 28.9, np.nan, np.nan],
-        [27.2, np.nan, np.nan, np.nan],
-    ]
-
-    dummy_climate_data["canopy_evaporation"][index_filled_canopy] = [
-        [40.0, 40.0, 40.0, np.nan],
-        [30.0, 30.0, np.nan, np.nan],
-        [20.0, np.nan, np.nan, np.nan],
-    ]
-    dummy_climate_data["canopy_evaporation"][lyr_str.index_surface_scalar] = 20.0
-
-    dummy_climate_data["stomatal_conductance"][index_filled_canopy] = [
-        [15.0, 15.0, 15.0, np.nan],
-        [15.0, 15.0, np.nan, np.nan],
-        [15.0, np.nan, np.nan, np.nan],
-    ]
-    dummy_climate_data["condensation"][index_filled_canopy] = [
-        [1.0, 1.0, 1.0, np.nan],
-        [1.0, 1.0, np.nan, np.nan],
-        [1.0, np.nan, np.nan, np.nan],
-    ]
-
-    # Hydrology
-    dummy_climate_data["transpiration"][index_filled_canopy] = [
-        [30.0, 30.0, 30.0, np.nan],
-        [20.0, 20.0, np.nan, np.nan],
-        [10.0, np.nan, np.nan, np.nan],
-    ]
-    dummy_climate_data["transpiration"][lyr_str.index_surface_scalar] = 20.0
+    # Canopy-only + surface variables
+    for var, values in canopy_profiles.items():
+        dummy_climate_data[var][canopy_idx] = masked_profile(
+            values["canopy"], canopy_present
+        )
+        dummy_climate_data[var][surface_idx] = float(values["surface"])
 
     return dummy_climate_data
 
@@ -1096,40 +1093,38 @@ def fixture_static_inputs(
     fixture_core_components,
     fixture_abiotic_constants,
 ) -> dict[str, NDArray[np.floating]]:
-    """Prepare static inputs for microclimate model."""
+    """Prepare static inputs for the microclimate model."""
 
     data = dummy_climate_data_varying_canopy
     indices = fixture_abiotic_indices
     layer_structure = fixture_core_components.layer_structure
     abiotic_constants = fixture_abiotic_constants
     time_index = 0
-    days = 30
+    hours = 30 * 24
 
     canopy_height = np.nan_to_num(data["layer_heights"][1].to_numpy())
-
+    leaf_area_index = data["leaf_area_index"].to_numpy()
     leaf_area_index_sum = np.nan_to_num(
-        np.nansum(data["leaf_area_index"][indices.canopy].to_numpy(), axis=0)
+        np.nansum(leaf_area_index[indices.canopy], axis=0)
     )
 
-    leaf_area_index = data["leaf_area_index"].copy().to_numpy()
-
-    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    evapotranspiration = (
+        data["canopy_evaporation"].to_numpy() + data["transpiration"].to_numpy()
+    ) / hours
 
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
         mask_variable=data["air_temperature"],
         variable_name=data["atmospheric_pressure_ref"],
         time_index=time_index,
-    )
-    atmospheric_pressure_true = atmospheric_pressure.to_numpy()
+    ).to_numpy()
 
     atmospheric_co2 = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
         mask_variable=data["air_temperature"],
         variable_name=data["atmospheric_co2_ref"],
         time_index=time_index,
-    )
-    atmospheric_co2_true = atmospheric_co2.to_numpy()
+    ).to_numpy()
 
     atmospheric_layer_geometry = abiotic_tools.calculate_atmospheric_layer_geometry(
         data=data,
@@ -1137,39 +1132,30 @@ def fixture_static_inputs(
         minimum_mixing_depth=abiotic_constants.minimum_mixing_depth,
     )
 
-    cell_area = data.grid.cell_area
-
-    mixing_coefficient = fixture_core_components.layer_structure.from_template()
-    mixing_coefficient[indices.atm] = np.array(
-        [
-            [0.1, 0.1, 0.1, 0.1],
-            [0.1, 0.1, 0.1, np.nan],
-            [0.1, 0.1, np.nan, np.nan],
-            [0.1, np.nan, np.nan, np.nan],
-            [0.1, 0.1, 0.1, 0.1],
-        ]
+    weights = compute_weights_from_absorbed_radiation(
+        radiation=data["shortwave_absorption"].to_numpy(),
     )
-    zero_plane_displacement = np.ones(data.grid.n_cells) * 2.0
-    ventilation_rate = np.ones(data.grid.n_cells) * 2.0
-    roughness_length = np.ones(data.grid.n_cells) * 1.0
-    wind_speed = data["wind_speed"].to_numpy()
-    absorbed_longwave_radiation = data["absorbed_longwave_radiation"].to_numpy()
+    absorbed_longwave_radiation = (
+        data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
+        * weights
+        * abiotic_constants.leaf_emissivity
+    )
 
     return {
         "canopy_height": canopy_height,
         "leaf_area_index": leaf_area_index,
         "lai_sum": leaf_area_index_sum,
-        "evapotranspiration": evapotranspiration.to_numpy() / days,
-        "atmospheric_pressure": atmospheric_pressure_true,
-        "atmospheric_co2": atmospheric_co2_true,
+        "evapotranspiration": evapotranspiration,
+        "atmospheric_pressure": atmospheric_pressure,
+        "atmospheric_co2": atmospheric_co2,
         "geometry": atmospheric_layer_geometry,
         "absorbed_longwave_radiation": absorbed_longwave_radiation,
-        "cell_area": cell_area,
-        "mixing_coefficient": mixing_coefficient.to_numpy(),
-        "zero_plane_displacement": zero_plane_displacement,
-        "wind_speed": wind_speed,
-        "ventilation_rate": ventilation_rate,
-        "roughness_length": roughness_length,
+        "cell_area": data.grid.cell_area,
+        "mixing_coefficient": data["mixing_coefficient"].to_numpy(),
+        "zero_plane_displacement": data["zero_plane_displacement"].to_numpy(),
+        "wind_speed": data["wind_speed"].to_numpy(),
+        "ventilation_rate": data["ventilation_rate"].to_numpy(),
+        "roughness_length": np.ones(data.grid.n_cells, dtype=float),
     }
 
 
@@ -1177,12 +1163,14 @@ def fixture_static_inputs(
 def fixture_state_inputs(
     dummy_climate_data_varying_canopy,
 ) -> dict[str, NDArray[np.floating]]:
-    """Prepare static inputs for microclimate model."""
+    """Prepare state inputs for the microclimate model."""
 
     data = dummy_climate_data_varying_canopy
-    n_layers, n_cells = data["air_temperature"].shape
-    days = 30
-    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    hours = 30 * 24
+
+    evapotranspiration = (
+        data["canopy_evaporation"].to_numpy() + data["transpiration"].to_numpy()
+    ) / hours
 
     return {
         "air_temperature": data["air_temperature"].to_numpy(),
@@ -1190,21 +1178,27 @@ def fixture_state_inputs(
         "atmospheric_pressure": data["atmospheric_pressure"].to_numpy(),
         "aerodynamic_resistance_soil": data["aerodynamic_resistance_soil"].to_numpy(),
         "canopy_temperature": data["canopy_temperature"].to_numpy(),
-        "evapotranspiration": evapotranspiration.to_numpy() / days,
+        "evapotranspiration": evapotranspiration,
         "shortwave_absorption": data["shortwave_absorption"].to_numpy(),
         "specific_heat_air": data["specific_heat_air"].to_numpy(),
         "density_air": data["density_air"].to_numpy(),
-        "aerodynamic_resistance_canopy": (
-            data["aerodynamic_resistance_canopy"].to_numpy()
-        ),
+        "aerodynamic_resistance_canopy": data[
+            "aerodynamic_resistance_canopy"
+        ].to_numpy(),
         "latent_heat_vapourisation": data["latent_heat_vapourisation"].to_numpy(),
         "soil_temperature": data["soil_temperature"].to_numpy(),
-        "soil_evaporation": data["soil_evaporation"].to_numpy(),
-        "sensible_heat_flux": np.ones((n_layers, n_cells)) * -5.0,
-        "sensible_heat_flux_soil": np.ones(n_cells) * -2.0,
-        "latent_heat_flux": np.ones((n_layers, n_cells)) * -5.0,
-        "latent_heat_flux_soil": np.ones(n_cells) * -2.0,
-        "ground_heat_flux": np.ones(n_cells) * -2.0,
-        "ventilation_rate": np.repeat(0.05, n_cells),
+        "soil_evaporation": data["soil_evaporation"].to_numpy() / hours,
+        "sensible_heat_flux": np.nan_to_num(
+            data["sensible_heat_flux"].to_numpy(),
+            nan=0.0,
+        ),
+        "sensible_heat_flux_soil": data["sensible_heat_flux_soil"].to_numpy(),
+        "latent_heat_flux": np.nan_to_num(
+            data["latent_heat_flux"].to_numpy(),
+            nan=0.0,
+        ),
+        "latent_heat_flux_soil": data["latent_heat_flux_soil"].to_numpy(),
+        "ground_heat_flux": data["ground_heat_flux"].to_numpy(),
+        "ventilation_rate": data["ventilation_rate"].to_numpy(),
         "longwave_emission": data["longwave_emission"].to_numpy(),
     }
