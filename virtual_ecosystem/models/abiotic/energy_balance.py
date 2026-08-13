@@ -576,13 +576,13 @@ def calculate_energy_balance_residual(
         + absorbed_longwave_radiation
         - longwave_emission_canopy
         - sensible_heat_flux_canopy
-        - latent_heat_flux_canopy
+        + latent_heat_flux_canopy
     )
 
     if return_fluxes:
         energy_balance = {
             "longwave_emission": longwave_emission_canopy,
-            "sensible_heat_flux": -sensible_heat_flux_canopy,
+            "sensible_heat_flux": sensible_heat_flux_canopy,
             "latent_heat_flux": -latent_heat_flux_canopy,
             "energy_balance_residual": energy_balance_residual,
             "net_radiation": net_radiation,
@@ -598,6 +598,7 @@ def update_canopy_air_temperature(
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
     mixing_layer_thickness: NDArray[np.floating],
+    integration_time_step: float,
 ) -> NDArray[np.floating]:
     r"""Update air temperature surrounding canopy in steady state.
 
@@ -610,12 +611,13 @@ def update_canopy_air_temperature(
     and
 
     .. math::
-        T_{a}^{new} = T_{a}^{old} + \frac{H}{\rho_a c_p z}
+        T_{a}^{new} = T_{a}^{old} + \frac{H \delta t}{\rho_a c_p z}
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
     the surface, :math:`T_{s}` is the surface temperature, :math:`T_{a}` is the air
     temperature, and :math:`z` is the thickness of the air layer we are updating.
+    \delta t is the integration time step.
 
     Args:
         air_temperature: Air temperature, [C]
@@ -623,6 +625,7 @@ def update_canopy_air_temperature(
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         mixing_layer_thickness: thickness of the air layer we are updating, [m]
+        integration_time_step: Time step for integration, [s]
 
     Returns:
         updated air temperatures, [C]
@@ -630,7 +633,9 @@ def update_canopy_air_temperature(
 
     # Update air temperature over a layer of height z (e.g., canopy height)
     new_air_temperature = air_temperature + (
-        sensible_heat_flux / (density_air * specific_heat_air * mixing_layer_thickness)
+        sensible_heat_flux
+        * integration_time_step
+        / (density_air * specific_heat_air * mixing_layer_thickness)
     )
     return new_air_temperature
 
@@ -1044,7 +1049,6 @@ def make_canopy_residual(
     aerodynamic_resistance: NDArray[np.floating],
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
-    idx: SimpleNamespace,
 ) -> Callable[[NDArray[np.floating]], NDArray[np.floating]]:
     """Creates a residual function for canopy temperature to be used in root finding.
 
@@ -1056,7 +1060,6 @@ def make_canopy_residual(
         aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
         abiotic_constants: Constants related to abiotic processes.
         core_constants: Core constants.
-        idx: Namespace containing indices for different layers.
 
     Returns:
         A function that takes canopy_temperature as input and returns the energy balance
@@ -1138,14 +1141,18 @@ def solve_canopy_temperature_with_air_coupling(
     canopy_temperature = state["canopy_temperature"].copy()
     air_temperature_above = state["air_temperature"][idx.above].copy()
 
-    for _ in range(maxiter_air):
+    for i in range(maxiter_air):
+        state_local["air_temperature"] = air_temperature
+        state_local["canopy_temperature"] = canopy_temperature
+        integration_time_step = abiotic_constants.integration_time_interval / (
+            i + 1
+        )  # Reduce time step for stability in early iterations
         residual_function = make_canopy_residual(
             state=state_local,
             static=static,
             aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
             abiotic_constants=abiotic_constants,
             core_constants=core_constants,
-            idx=idx,
         )
 
         new_canopy_temperature = secant_solve_cells_layers(
@@ -1183,6 +1190,7 @@ def solve_canopy_temperature_with_air_coupling(
             specific_heat_air=state_local["specific_heat_air"],
             density_air=state_local["density_air"],
             mixing_layer_thickness=static["geometry"]["thickness"],
+            integration_time_step=integration_time_step,
         )
 
         canopy_change = np.nanmax(np.abs(new_canopy_temperature - canopy_temperature))
