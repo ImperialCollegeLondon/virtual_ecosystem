@@ -187,7 +187,7 @@ class AbioticConstants(AbioticSharedConstants):
     min_specific_humidity: float = 0.001
     """Minimum value for specific humidity to avoid dividion by zero, [kg kg-1]."""
 
-    understorey_ventilation_rate: float = 0.1
+    understorey_ventilation_rate: float = 0.001
     """Understorey ventilation rate, comes into place when there is no canopy, [s-1]."""
 
     extinction_coefficient_longwave: float = 0.5
