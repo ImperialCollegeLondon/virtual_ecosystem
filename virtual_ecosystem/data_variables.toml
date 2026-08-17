@@ -1312,7 +1312,7 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Rate of decay (C, N, and P) of fallen fruit into the soil"
 name = "fallen_fruit_decay_cnp"
-unit = "kg"
+unit = "kg m^-2 day^-1"
 variable_type = "float"
 
 ## Everything below here added 2026-01-26 by David to meet new requirements for 
