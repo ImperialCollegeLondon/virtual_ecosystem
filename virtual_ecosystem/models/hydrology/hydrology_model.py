@@ -530,7 +530,7 @@ class HydrologyModel(
             daily_lists["interception"].append(interception)
 
             # Calculate canopy evaporation, [mm day-1]
-            canopy_evaporation = above_ground.calculate_canopy_evaporation(
+            canopy_water_update = above_ground.calculate_canopy_evaporation(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 interception=interception,
                 net_radiation=self.data["net_radiation"].to_numpy(),
@@ -557,15 +557,28 @@ class HydrologyModel(
                     self.model_constants.extinction_coefficient_global_radiation
                 ),
             )
-            daily_lists["canopy_evaporation"].append(canopy_evaporation)
 
-            # Precipitation that reaches the surface per day, [mm]
-            precipitation_surface = hydro_input["current_precipitation"][
-                :, day
-            ] - np.minimum(
-                np.nansum(canopy_evaporation, axis=0),
-                hydro_input["current_precipitation"][:, day],
-                +hydro_input["condensation"],
+            daily_lists["canopy_evaporation"].append(
+                canopy_water_update["canopy_evaporation"]
+            )
+
+            # Precipitation, condensation,  and not-evaporated intercept that reaches
+            # the surface per day, [mm]
+            incoming_water = (
+                hydro_input["current_precipitation"][:, day]
+                + hydro_input["condensation"]
+            )
+
+            canopy_evaporation = np.nansum(
+                canopy_water_update["canopy_evaporation"], axis=0
+            )
+            remaining_interception = np.nansum(
+                canopy_water_update["remaining_interception"], axis=0
+            )
+
+            precipitation_surface = incoming_water - np.minimum(
+                canopy_evaporation + remaining_interception,
+                incoming_water,
             )
 
             hydrology_tools.check_precipitation_surface(

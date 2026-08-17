@@ -47,7 +47,7 @@ def test_calculate_canopy_evaporation():
 
     interception = np.array([[5.0, 10.0, np.nan], [2.0, np.nan, np.nan]])
 
-    output = calculate_canopy_evaporation(
+    result = calculate_canopy_evaporation(
         leaf_area_index=np.array([[1.0, 2.0, np.nan], [1.0, np.nan, np.nan]]),
         interception=interception,
         net_radiation=np.array([[100, 200, np.nan], [80, np.nan, np.nan]]),
@@ -69,10 +69,21 @@ def test_calculate_canopy_evaporation():
     # Check value constraints
     mask = ~np.isnan(interception)
 
-    assert np.all(output[mask] >= 0)
-    assert np.all(np.isfinite(output[mask]))
-    assert np.all(output[mask] <= interception[mask])
-    assert output.shape == (2, 3)
+    canopy_evaporation = result["canopy_evaporation"]
+    canopy_intercept = result["remaining_interception"]
+    assert np.all(canopy_evaporation[mask] >= 0)
+    assert np.all(np.isfinite(canopy_evaporation[mask]))
+    assert np.all(canopy_evaporation[mask] <= interception[mask])
+    assert canopy_evaporation.shape == (2, 3)
+
+    assert np.all(canopy_intercept[mask] >= 0)
+    assert np.all(np.isfinite(canopy_intercept[mask]))
+    assert np.all(canopy_intercept[mask] <= interception[mask])
+    assert canopy_intercept.shape == (2, 3)
+
+    total_interception = np.nansum(interception, axis=0)
+    remaining_total = np.nansum(result["remaining_interception"], axis=0)
+    assert np.all(remaining_total <= total_interception + 1e-12)
 
 
 @pytest.mark.parametrize(
