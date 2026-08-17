@@ -301,12 +301,12 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
 def test_calculate_interception(
     fixture_hydrology_constants,
     fixture_core_components,
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
 ):
     """Test interception."""
     from virtual_ecosystem.models.hydrology.above_ground import calculate_interception
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     lyr_str = fixture_core_components.layer_structure
 
     result = calculate_interception(
@@ -318,12 +318,12 @@ def test_calculate_interception(
 
     exp_canopy = np.array(
         [
-            [1.424985, 1.424985, 1.424985, np.nan],
-            [1.424879, 1.424879, np.nan, np.nan],
-            [1.424767, np.nan, np.nan, np.nan],
+            [3.01488, 2.284231, 1.286161, np.nan],
+            [1.524287, 1.319998, np.nan, np.nan],
+            [1.178785, np.nan, np.nan, np.nan],
         ]
     )
-    exp_understorey = np.array([1.424651, 1.424767, 1.424879, 1.424985])
+    exp_understorey = np.array([0.001, 0.001, 0.001, 0.001])
     np.testing.assert_allclose(
         result[lyr_str.index_filled_canopy], exp_canopy, rtol=1e-4, atol=1e-4
     )

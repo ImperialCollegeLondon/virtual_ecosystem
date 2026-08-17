@@ -6,7 +6,7 @@ from xarray import DataArray
 
 
 def test_initialise_atmosphere_for_hydrology(
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     fixture_core_components,
     fixture_hydrology_constants,
     fixture_abiotic_constants,
@@ -18,7 +18,7 @@ def test_initialise_atmosphere_for_hydrology(
         initialise_atmosphere_for_hydrology,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     layer_structure = fixture_core_components.layer_structure
     output = initialise_atmosphere_for_hydrology(
         data=data,
@@ -62,7 +62,7 @@ def test_initialise_atmosphere_for_hydrology(
 
 
 def test_setup_hydrology_input_current_timestep(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data, fixture_core_components
 ):
     """Test that correct values are selected for current time step."""
 
@@ -70,7 +70,7 @@ def test_setup_hydrology_input_current_timestep(
         setup_hydrology_input_current_timestep,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     lyr_strct = fixture_core_components.layer_structure
     result = setup_hydrology_input_current_timestep(
         data=data,

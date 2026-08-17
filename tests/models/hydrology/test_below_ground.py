@@ -122,10 +122,10 @@ def test_update_groundwater_storage(dummy_climate_data, fixture_hydrology_consta
     )
 
     exp_groundwat = np.array(
-        [[451.3, 455.3, 457.3, 457.3], [451.7, 451.7, 451.7, 451.7]]
+        [[451.3, 385.3, 307.3, 227.3], [551.7, 471.7, 391.7, 301.7]]
     )
-    exp_upper_flow = np.array([22.565, 22.765, 22.865, 22.865])
-    exp_lower_flow = np.array([22.585, 22.585, 22.585, 22.585])
+    exp_upper_flow = np.array([22.565, 19.265, 15.365, 11.365])
+    exp_lower_flow = np.array([27.585, 23.585, 19.585, 15.085])
     np.testing.assert_allclose(result["groundwater_storage"], exp_groundwat, rtol=1e-05)
     np.testing.assert_allclose(result["subsurface_flow"], exp_upper_flow, rtol=1e-05)
     np.testing.assert_allclose(result["baseflow"], exp_lower_flow, rtol=1e-5)

@@ -61,7 +61,8 @@ def prepare_static_inputs(
 
     # Evapotranspiration from plant and hydrology model, [mm per time interval]
     # TODO canopy evaporation in surface layer is exploding
-    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+    # evapotranspira = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+    evapotranspiration = data["transpiration"].to_numpy()
 
     # Atmospheric pressure profile set to reference value, [kPa]
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
@@ -496,7 +497,9 @@ def calculate_thermodynamics(
         "latent_heat_vapourisation": latent_heat_vapourisation_j,
         "aerodynamic_resistance_canopy": aerodynamic_resistance_canopy,
         "aerodynamic_resistance_soil": aerodynamic_resistance_soil,
-        "ventilation_rate": ventilation_rate,
+        "ventilation_rate": np.nan_to_num(
+            ventilation_rate, nan=abiotic_constants.understorey_ventilation_rate
+        ),
     }
 
 
@@ -672,8 +675,8 @@ def calculate_soil_fluxes(
     out["ground_heat_flux"] = (
         state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
-        + out["latent_heat_flux_soil"]
-        - out["sensible_heat_flux_soil"]
+        - latent_heat_flux_soil
+        - sensible_heat_flux_soil
         + static["absorbed_longwave_radiation"][idx.topsoil]
     )
 
@@ -685,63 +688,6 @@ def calculate_soil_fluxes(
     )
 
     return out
-
-
-def update_air_temperature(
-    state: dict[str, Any],
-    static: dict[str, Any],
-    abiotic_bounds: AbioticSimpleBounds,
-    idx: SimpleNamespace,
-    min_leaf_area_index_for_mixing: float,
-    integration_time_step: float,
-) -> NDArray[np.floating]:
-    """Update air temperature profiles based on calculated fluxes and turbulent mixing.
-
-    Args:
-        state: Current state variables for microclimate model
-        static: Prepared static inputs for microclimate model
-        abiotic_bounds: Bounds for air temperature to ensure physical realism
-        idx: Indices for different layer types
-        min_leaf_area_index_for_mixing: Minimum leaf area index required for turbulent
-            mixing to occur.
-        integration_time_step: Time step for sensible heat flux integration, [s]
-
-    Returns:
-        Updated air temperature profiles for microclimate model
-    """
-    # Update canopy air temperatures, [C]
-    canopy_air_temperature = energy_balance.update_canopy_air_temperature(
-        air_temperature=state["air_temperature"],
-        sensible_heat_flux=state["sensible_heat_flux"],
-        specific_heat_air=state["specific_heat_air"],
-        density_air=state["density_air"],
-        mixing_layer_thickness=static["geometry"]["thickness"],
-        integration_time_step=integration_time_step,
-    )
-
-    # Update all air temperatures, [C]
-    # We assume here that if the canopy is very thin, it is in
-    # equilibrium with the air. This is to prevent unrealistic air temperatures when
-    # there is very little canopy.
-    canopy_air_temperature[idx.canopy] = np.where(
-        static["leaf_area_index"][idx.canopy] > min_leaf_area_index_for_mixing,
-        canopy_air_temperature[idx.canopy],
-        state["air_temperature"][idx.canopy],
-    )
-
-    mixing_limits = (
-        abiotic_bounds.air_temperature[0],
-        np.repeat(abiotic_bounds.air_temperature[1], len(state["ventilation_rate"])),
-    )
-    air_temperature = wind.mix_and_ventilate(
-        input_variable=canopy_air_temperature,
-        ventilation_rate=state["ventilation_rate"],
-        mixing_coefficient=static["mixing_coefficient"],
-        limits=mixing_limits,
-        surface_index=idx.surface,
-    )
-
-    return air_temperature
 
 
 def update_atmospheric_humidity(
@@ -929,7 +875,7 @@ def run_hour_step(
         time_interval=time_interval,
         idx=idx,
     )
-    state["sensible_heat_flux"][idx.topsoil] = -soil_fluxes["sensible_heat_flux_soil"]
+    state["sensible_heat_flux"][idx.topsoil] = soil_fluxes["sensible_heat_flux_soil"]
     state["latent_heat_flux"][idx.topsoil] = soil_fluxes["latent_heat_flux_soil"]
     state["longwave_emission"][idx.topsoil] = soil_fluxes["longwave_emission_soil"]
     state["net_radiation"][idx.topsoil] = soil_fluxes["net_radiation_soil"]

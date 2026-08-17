@@ -39,15 +39,15 @@ SETUP_MANIPULATIONS = (
 
 
 @pytest.fixture
-def fixture_abiotic_init_data(dummy_climate_data_varying_canopy):
+def fixture_abiotic_init_data(dummy_climate_data):
     """Returns a reduced dataset suitable for initialising an Abiotic Model."""
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
     # Reduce to data to initialise model
-    init_data = Data(grid=dummy_climate_data_varying_canopy.grid)
+    init_data = Data(grid=dummy_climate_data.grid)
     for var in AbioticModel.vars_required_for_init:
-        init_data[var] = dummy_climate_data_varying_canopy[var]
+        init_data[var] = dummy_climate_data[var]
 
     return init_data
 
@@ -213,7 +213,7 @@ def test_generate_abiotic_model(
 
 def test_setup_and_update_abiotic_model(
     fixture_abiotic_init_data,
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     fixture_core_components,
 ):
     """Test that setup() and update() returns expected output in data object."""
@@ -237,7 +237,14 @@ def test_setup_and_update_abiotic_model(
     xr.testing.assert_allclose(
         model.data["vapour_pressure_deficit_ref"],
         DataArray(
-            np.full((4, 3), 0.423372),
+            np.array(
+                [
+                    [0.280251, 0.280251, 0.280251],
+                    [0.535786, 0.535786, 0.535786],
+                    [0.884816, 0.884816, 0.884816],
+                    [1.341337, 1.341337, 1.341337],
+                ]
+            ),
             dims=["cell_id", "time_index"],
             coords={
                 "cell_id": [0, 1, 2, 3],
@@ -248,7 +255,7 @@ def test_setup_and_update_abiotic_model(
     # Test that soil temperature was created correctly
     expected_soil_temp = lyr_strct.from_template()
     expected_soil_temp[lyr_strct.index_all_soil] = np.array(
-        [[21.48431, 21.832134, 22.179959, 22.527783], [20.0, 20.0, 20.0, 20.0]]
+        [[20.131051, 21.591324, 23.142502, 24.505557], [22.0, 22.5, 23.0, 24.0]]
     )
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp)
 
@@ -256,11 +263,11 @@ def test_setup_and_update_abiotic_model(
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
         [
-            [30, 30, 30, 30],
-            [29.870794, 29.913863, 29.956931, np.nan],
-            [29.035646, 29.357097, np.nan, np.nan],
-            [27.769159, np.nan, np.nan, np.nan],
-            [25.871986, 27.247991, 28.623995, 30.0],
+            [23.0, 24.0, 25.0, 26.0],
+            [22.737281, 23.786638, 24.87785, np.nan],
+            [21.039147, 22.270679, np.nan, np.nan],
+            [18.463956, np.nan, np.nan, np.nan],
+            [14.606371, 18.905246, 23.563744, 26.0],
         ]
     )
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
@@ -275,7 +282,7 @@ def test_setup_and_update_abiotic_model(
 
     # Add update data to the model data
     for var in model.vars_required_for_update:
-        model.data[var] = dummy_climate_data_varying_canopy[var]
+        model.data[var] = dummy_climate_data[var]
 
     model.update(time_index=0)
 
@@ -284,12 +291,12 @@ def test_setup_and_update_abiotic_model(
 
     # To test with varying canopy layers, need to mask
     canopy_mask = ~np.isnan(
-        dummy_climate_data_varying_canopy["canopy_temperature"].isel(
+        dummy_climate_data["canopy_temperature"].isel(
             layers=lyr_strct.index_filled_canopy
         )
     )
     atm_mask = ~np.isnan(
-        dummy_climate_data_varying_canopy["air_temperature"].isel(
+        dummy_climate_data["air_temperature"].isel(
             layers=lyr_strct.index_filled_atmosphere
         )
     )
@@ -329,7 +336,7 @@ def test_setup_and_update_abiotic_model(
 
 def test_update_warns_for_fractional_days(
     fixture_abiotic_init_data,
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     fixture_core_components,
 ):
     """Test warning raised if days are not a whole number of days."""
@@ -345,7 +352,7 @@ def test_update_warns_for_fractional_days(
     model.model_timing.update_interval_seconds = 90000  # fractional day
 
     for var in model.vars_required_for_update:
-        model.data[var] = dummy_climate_data_varying_canopy[var]
+        model.data[var] = dummy_climate_data[var]
 
     with patch(
         "virtual_ecosystem.models.abiotic.abiotic_model.LOGGER.warning"

@@ -576,13 +576,13 @@ def calculate_energy_balance_residual(
         + absorbed_longwave_radiation
         - longwave_emission_canopy
         - sensible_heat_flux_canopy
-        + latent_heat_flux_canopy
+        - latent_heat_flux_canopy
     )
 
     if return_fluxes:
         energy_balance = {
             "longwave_emission": longwave_emission_canopy,
-            "sensible_heat_flux": sensible_heat_flux_canopy,
+            "sensible_heat_flux": -sensible_heat_flux_canopy,
             "latent_heat_flux": -latent_heat_flux_canopy,
             "energy_balance_residual": energy_balance_residual,
             "net_radiation": net_radiation,
@@ -1186,7 +1186,7 @@ def solve_canopy_temperature_with_air_coupling(
 
         new_air_temperature = update_canopy_air_temperature(
             air_temperature=air_temperature,
-            sensible_heat_flux=fluxes["sensible_heat_flux"],  # type: ignore
+            sensible_heat_flux=-fluxes["sensible_heat_flux"],  # type: ignore
             specific_heat_air=state_local["specific_heat_air"],
             density_air=state_local["density_air"],
             mixing_layer_thickness=static["geometry"]["thickness"],
