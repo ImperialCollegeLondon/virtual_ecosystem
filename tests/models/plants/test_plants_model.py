@@ -702,6 +702,20 @@ def test_PlantsModel_update_fallen_pools(
         - fxt_plants_model.data["fallen_fruit_cnp_consumed"]
     ) + fxt_plants_model.data["fruit_turnover_cnp"]
 
+    expected_decay_cnp = (
+        decay_fraction
+        * (
+            fxt_plants_model.data["fallen_fruit_cnp"]
+            - fxt_plants_model.data["fallen_fruit_cnp_consumed"]
+        )
+        / (
+            fixture_core_components.grid.cell_area
+            * fixture_core_components.model_timing.update_interval_quantity.to(
+                "days"
+            ).magnitude
+        )
+    ).sum(dim="pft")
+
     # Then update the fallen fruit and seed pools
     fxt_plants_model.update_fallen_pools()
 
@@ -711,6 +725,9 @@ def test_PlantsModel_update_fallen_pools(
     )
     assert np.allclose(
         fxt_plants_model.data["fallen_fruit_cnp"], expected_fallen_fruit_cnp
+    )
+    assert np.allclose(
+        fxt_plants_model.data["fallen_fruit_decay_cnp"], expected_decay_cnp
     )
 
 
