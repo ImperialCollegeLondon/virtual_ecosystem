@@ -1799,7 +1799,11 @@ class PlantsModel(
         )
 
         # Update data object with total (summed across PFTs) decay into the soil model
-        self.data["fallen_fruit_decay_cnp"] = fruit_decay.sum(dim="pft")
+        # (expressed as a rate per area)
+        self.data["fallen_fruit_decay_cnp"] = fruit_decay.sum(dim="pft") / (
+            self.grid.cell_area
+            * self.model_timing.update_interval_quantity.to("days").magnitude
+        )
 
     def calculate_fallen_fruit_decay_fraction(
         self, decay_rate: float, surface_temperature: xr.DataArray
