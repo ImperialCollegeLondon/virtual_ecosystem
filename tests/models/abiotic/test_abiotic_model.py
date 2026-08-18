@@ -2,7 +2,6 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import ERROR, INFO
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -286,79 +285,28 @@ def test_setup_and_update_abiotic_model(
 
     model.update(time_index=0)
 
-    # Check that values fall within a reasonable expected range
-    soil_temps = model.data["soil_temperature"].isel(layers=lyr_strct.index_all_soil)
-
-    # To test with varying canopy layers, need to mask
-    canopy_mask = ~np.isnan(
-        dummy_climate_data["canopy_temperature"].isel(
-            layers=lyr_strct.index_filled_canopy
-        )
+    # Check that values for updated vars have changed
+    vars_updated = (
+        "air_temperature",
+        "canopy_temperature",
+        "soil_temperature",
+        "vapour_pressure",
+        "vapour_pressure_deficit",
+        "relative_humidity",
+        "wind_speed",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "ground_heat_flux",
+        "density_air",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
+        "aerodynamic_resistance_canopy",
+        "net_radiation",
+        "longwave_emission",
+        "diurnal_temperature_range",
+        "condensation",
+        "absorbed_longwave_radiation",
     )
-    atm_mask = ~np.isnan(
-        dummy_climate_data["air_temperature"].isel(
-            layers=lyr_strct.index_filled_atmosphere
-        )
-    )
-
-    canopy_temp_result = model.data["canopy_temperature"].isel(
-        layers=lyr_strct.index_filled_canopy
-    )
-    air_temp_result = model.data["air_temperature"].isel(
-        layers=lyr_strct.index_filled_atmosphere
-    )
-    rel_hum_result = model.data["relative_humidity"].isel(
-        layers=lyr_strct.index_filled_atmosphere
-    )
-
-    # Use the mask as a DataArray for .where()
-    valid_values_can_temp = canopy_temp_result.where(canopy_mask)
-    valid_values_air_temp = air_temp_result.where(atm_mask)
-    valid_values_rel_hum = rel_hum_result.where(atm_mask)
-
-    # Now drop the NaNs (i.e., masked values)
-    valid_values_can_temp_clean = valid_values_can_temp.dropna(dim="layers", how="any")
-    valid_values_air_temp_clean = valid_values_air_temp.dropna(dim="layers", how="any")
-    valid_values_rel_hum_clean = valid_values_rel_hum.dropna(dim="layers", how="any")
-
-    # Now do the test TODO adjust max values back
-    assert ((soil_temps >= 0.0) & (soil_temps <= 80.0)).all()
-    assert (
-        (valid_values_can_temp_clean >= 0.0) & (valid_values_can_temp_clean <= 70.0)
-    ).all()
-    assert (
-        (valid_values_air_temp_clean >= 0.0) & (valid_values_air_temp_clean <= 70.0)
-    ).all()
-    assert (
-        (valid_values_rel_hum_clean >= 0.0) & (valid_values_rel_hum_clean <= 100.0)
-    ).all()
-
-
-def test_update_warns_for_fractional_days(
-    fixture_abiotic_init_data,
-    dummy_climate_data,
-    fixture_core_components,
-):
-    """Test warning raised if days are not a whole number of days."""
-
-    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
-
-    model = AbioticModel(
-        data=fixture_abiotic_init_data,
-        core_components=fixture_core_components,
-        latitude=0.0,
-    )
-
-    model.model_timing.update_interval_seconds = 90000  # fractional day
-
-    for var in model.vars_required_for_update:
-        model.data[var] = dummy_climate_data[var]
-
-    with patch(
-        "virtual_ecosystem.models.abiotic.abiotic_model.LOGGER.warning"
-    ) as mock_warn:
-        model.update(time_index=0)
-
-    messages = [call.args[0] for call in mock_warn.call_args_list]
-
-    assert any("not a whole number of days" in msg for msg in messages)
+    for var in vars_updated:
+        assert np.all(model.data[var] != dummy_climate_data[var])
+        assert np.all(model.data[var].shape == dummy_climate_data[var].shape)

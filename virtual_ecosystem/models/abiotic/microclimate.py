@@ -60,9 +60,12 @@ def prepare_static_inputs(
     leaf_area_index = data["leaf_area_index"].copy().to_numpy()
 
     # Evapotranspiration from plant and hydrology model, [mm per time interval]
-    # TODO canopy evaporation in surface layer is exploding
-    # evapotranspira = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
-    evapotranspiration = data["transpiration"].to_numpy()
+    # TODO #1782 LAI and thus canopy evaporation in surface layer is exploding
+    # As an intermediate fix, set canopy evaporation to average value when LAI >5m m-1
+    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+    evapotranspiration[idx.surface] = np.where(
+        leaf_area_index[idx.surface] > 5.0, 1.0, evapotranspiration[idx.surface]
+    )
 
     # Atmospheric pressure profile set to reference value, [kPa]
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
