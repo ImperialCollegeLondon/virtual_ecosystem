@@ -882,10 +882,10 @@ def dummy_climate_data(fixture_core_components):
     # ------------------------------------------------------------------
     atmosphere_profiles = {
         "layer_heights": [
-            [32.0, 30.0, 20.0, 10.0, lyr_str.surface_layer_height],
-            [24.0, 22.0, 12.0, 6.0, lyr_str.surface_layer_height],
-            [12.0, 10.0, 6.0, 4.0, lyr_str.surface_layer_height],
-            [3.0, 2.0, 1.0, 0.5, lyr_str.surface_layer_height],
+            [32.0, 30.0, 20.0, 10.0, 0.1],
+            [24.0, 22.0, 12.0, 6.0, 0.1],
+            [12.0, 10.0, 6.0, 4.0, 0.1],
+            [3.0, 2.0, 1.0, 0.5, 0.1],
         ],
         "wind_speed": [
             [0.50, 0.25, 0.12, 0.06, 0.02],

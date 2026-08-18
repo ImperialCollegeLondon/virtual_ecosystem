@@ -124,11 +124,11 @@ def test_setup_hydrology_input_current_timestep(
     # on axis 1, so need to extract from the second axis
     np.testing.assert_allclose(
         result["surface_pressure"],
-        data["atmospheric_pressure_ref"][:, 0].to_numpy(),
+        data["atmospheric_pressure"][surface_idx],
     )
     np.testing.assert_allclose(
         result["current_soil_moisture"],
-        DataArray(np.tile([[5], [500]], fixture_core_components.grid.n_cells)),
+        data["soil_moisture"][lyr_strct.index_all_soil],
     )
 
 
