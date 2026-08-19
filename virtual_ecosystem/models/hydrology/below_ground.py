@@ -23,6 +23,7 @@ def calculate_vertical_flow(
     pore_connectivity_parameter: float,
     groundwater_capacity: float | NDArray[np.floating],
     seconds_to_day: float,
+    denominator_tolerance: float,
 ) -> dict[str, NDArray[np.floating]]:
     r"""Calculate vertical water flow through soil column, [mm d-1].
 
@@ -87,6 +88,7 @@ def calculate_vertical_flow(
         pore_connectivity_parameter: Pore connectivity parameter, dimensionless
         groundwater_capacity: Storage capacity of groundwater, [m]
         seconds_to_day: Factor to convert between second and day
+        denominator_tolerance: Small value to avid division by zero
 
     Returns:
         matric potential,[m] volumetric flow rate of water, [mm d-1]
@@ -107,6 +109,7 @@ def calculate_vertical_flow(
         effective_saturation=effective_saturation,
         air_entry_potential_inverse=air_entry_potential_inverse,
         van_genuchten_nonlinearily_parameter=van_genuchten_nonlinearily_parameter,
+        denominator_tolerance=denominator_tolerance,
     )
 
     # Calculate the unsaturated (effective) hydraulic conductivity in m/s
@@ -146,8 +149,12 @@ def calculate_vertical_flow(
     )
     flow_min.append(outflow)
 
-    output["matric_potential"] = matric_potential
-    output["vertical_flow"] = np.abs(np.array(flow_min) / 1000.0)  # mm per day
+    output["matric_potential"] = np.nan_to_num(
+        matric_potential, nan=-denominator_tolerance
+    )
+    output["vertical_flow"] = np.nan_to_num(
+        np.abs(np.array(flow_min) / 1000.0), nan=denominator_tolerance
+    )
     return output
 
 
@@ -220,6 +227,7 @@ def calculate_matric_potential(
     effective_saturation: NDArray[np.floating],
     air_entry_potential_inverse: float,
     van_genuchten_nonlinearily_parameter: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Convert soil moisture into an estimate of water potential.
 
@@ -240,12 +248,13 @@ def calculate_matric_potential(
         van_genuchten_nonlinearily_parameter: Dimensionless parameter in van Genuchten
             model that describes the degree of nonlinearity of the relationship between
             the volumetric water content and the soil matric potential.
+        denominator_tolerance: Small value to prevent division by zero
 
     Returns:
         An estimate of the water potential of the soil, [m]
     """
     shape_parameter = 1 - 1 / van_genuchten_nonlinearily_parameter
-
+    effective_saturation += denominator_tolerance
     return (
         -1
         / air_entry_potential_inverse

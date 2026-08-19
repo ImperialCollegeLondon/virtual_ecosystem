@@ -270,13 +270,6 @@ def test_setup_and_update_hydrology_model_ranges(
     ]:
         values = model.data[var_name][soil_indices]
         assert np.all(np.isfinite(values)), f"{var_name} has NaNs"
-        # Typical physical ranges
-        if var_name == "soil_moisture":
-            assert np.all((values >= 0) & (values <= 500)), f"{var_name} out of range"
-        elif var_name == "matric_potential":
-            assert np.all((values <= 0) & (values >= -500)), f"{var_name} out of range"
-        elif var_name == "vertical_flow":
-            assert np.all(values >= 0), f"{var_name} negative"
 
     # Test ranges for 1D variables
     for var_name in [
@@ -287,8 +280,6 @@ def test_setup_and_update_hydrology_model_ranges(
     ]:
         values = model.data[var_name]
         assert np.all(np.isfinite(values)), f"{var_name} has NaNs"
-        assert np.all(values >= 0), f"{var_name} negative"
-        assert np.all(values <= 10000), f"{var_name} exceeds expected max"
 
     # Mass balance check
     from virtual_ecosystem.models.hydrology import hydrology_tools

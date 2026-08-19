@@ -1090,10 +1090,10 @@ def dummy_climate_data(fixture_core_components):
             [-90.0, -320.0],
         ],
         "soil_moisture": [
-            [180.0, 500.0],
-            [140.0, 420.0],
-            [100.0, 320.0],
-            [60.0, 220.0],
+            [5.0, 500.0],
+            [4.0, 420.0],
+            [3.0, 320.0],
+            [2.0, 420.0],
         ],
     }
     for var, profiles in soil_profiles.items():
@@ -1104,7 +1104,7 @@ def dummy_climate_data(fixture_core_components):
         np.array(
             [
                 [450.0, 380.0, 300.0, 220.0],
-                [550.0, 470.0, 390.0, 300.0],
+                [500.0, 470.0, 390.0, 300.0],
             ],
             dtype=float,
         ),

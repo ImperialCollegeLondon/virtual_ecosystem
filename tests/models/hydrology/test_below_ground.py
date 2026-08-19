@@ -43,18 +43,19 @@ def test_calculate_vertical_flow(
         pore_connectivity_parameter=0.5,
         groundwater_capacity=gw_cap,
         seconds_to_day=86400,
+        denominator_tolerance=0.001,
     )
 
     exp_matric_pot = np.array(
         [
-            [-229.12878, -133.33333, 0.0],
-            [-229.12878, -133.33333, 0.0],
+            [-228.448392, -132.986526, -0.001],
+            [-228.448392, -132.986526, -0.001],
         ]
     )
     exp_flow = np.array(
         [
-            [0.000381, 0.002677, 0.0864],
-            [0.000381, 0.002677, 0.0864],
+            [0.000385, 0.002699, 0.00025],
+            [0.000385, 0.002699, 0.0009],
         ]
     )
     np.testing.assert_allclose(result["matric_potential"], exp_matric_pot, rtol=0.001)
@@ -91,13 +92,14 @@ def test_calculate_matric_potential(fixture_hydrology_constants):
     )
 
     constants = fixture_hydrology_constants
-    expected_potentials = np.repeat(-68.197326, 3)
+    expected_potentials = np.repeat(-67.927471, 3)
     actual_potentials = calculate_matric_potential(
         effective_saturation=np.repeat(0.5, 3),
         air_entry_potential_inverse=constants.air_entry_potential_inverse,
         van_genuchten_nonlinearily_parameter=(
             constants.van_genuchten_nonlinearily_parameter
         ),
+        denominator_tolerance=0.001,
     )
 
     np.testing.assert_allclose(actual_potentials, expected_potentials, rtol=0.001)
@@ -122,10 +124,10 @@ def test_update_groundwater_storage(dummy_climate_data, fixture_hydrology_consta
     )
 
     exp_groundwat = np.array(
-        [[451.3, 385.3, 307.3, 227.3], [551.7, 471.7, 391.7, 301.7]]
+        [[451.3, 385.3, 307.3, 227.3], [501.7, 471.7, 391.7, 301.7]]
     )
     exp_upper_flow = np.array([22.565, 19.265, 15.365, 11.365])
-    exp_lower_flow = np.array([27.585, 23.585, 19.585, 15.085])
+    exp_lower_flow = np.array([25.085, 23.585, 19.585, 15.085])
     np.testing.assert_allclose(result["groundwater_storage"], exp_groundwat, rtol=1e-05)
     np.testing.assert_allclose(result["subsurface_flow"], exp_upper_flow, rtol=1e-05)
     np.testing.assert_allclose(result["baseflow"], exp_lower_flow, rtol=1e-5)
