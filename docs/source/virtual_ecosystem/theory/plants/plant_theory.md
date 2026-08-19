@@ -25,7 +25,7 @@ language_info:
 
 # Plants
 
-:::{figure} ../../\_static/images/Plant_Model_Flow.png
+:::{figure} ../../../\_static/images/Plant_Model_Flow.png
 :name: fig_plant_model_flow
 :alt: Plant Model workflow
 :width: 650px
