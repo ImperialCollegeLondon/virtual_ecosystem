@@ -29,8 +29,8 @@ In the Virtual Ecosystem animal cohorts can have a wide variety of diets. These 
 are constrained by habitat strata, i.e. animals that live solely in the canopy cannot
 access ground based resources, and due to the dietary preferences of animals. The point
 of this page is to set out what the possible dietary preferences. There are three
-broad-brush diets: carnivory, herbivory and detritivory. Each of these is further broken
-down into the specific pools that animals can consume from.
+broad-brush diets: carnivory, herbivory and "brown-web" consumption. Each of these is
+further broken down into the specific pools that animals can consume from.
 
 ## Carnivory
 
@@ -44,9 +44,9 @@ available for plant consumption can be seen in {numref}`plant_biomass_flows`.
 
 :::{figure} ../../../_static/images/plant_model_biomass_flows.svg
 :name: plant_biomass_flows
-:alt: An image showing how plant biomass flows both to animals and to litter/soil
+:alt: An image showing how plant biomass flows both to animals and to litter/soil.
 :scale: 100 %
-:align: center
+:align: left
 
 A visualisation of the biomass pools produced by the plants models and their possible
 destinations. Links indicated by dashed lines represent links that are planned but not
@@ -67,13 +67,40 @@ herbivory primarily contributes to increased animal cohort, a part of it is also
 to the litter as "herbivory waste", which subsequently gets passed to the litter.
 :::
 
-## Detritivory
+## "Brown-web" consumption
 
-TODO - POPULATE THIS SECTION, EXPLAINING THAT BROWN WEB IS MAYBE A BETTER CATCH ALL TERM
+The "brown-web" is the portion of the total food web that originates from dead organic
+matter rather than from living plant matter (the "green-web"). The Virtual Ecosystem
+includes a large range of different "brown-web" resources that animals can consume,
+these are summarised in {numref}`brown_web_flows`.
 
-TODO - ADD BROWN WEB IMAGE IN HERE AND EXPLAIN
+:::{figure} ../../../_static/images/brown_web_consumption.svg
+:name: brown_web_flows
+:alt: An image showing the various "brown-web" pools than animals can consume from.
+:scale: 100 %
+:align: left
 
-TODO - REWRITE THIS TO FIT THE NEW STYLE
-Both animal carcasses and excrement are important resources for animals to scavenge
-from, as such the [decay of carcasses and excrement](./carcasses_and_excrement.md) is
-tracked as part of the animal model.
+A visualisation of the "brown-web" resources available for animal consumption.
+
+Partially decayed plant biomass is stored in [litter
+pools](../soil/litter_theory.md#litter-pools), all of which are available to animal
+consumption. There are five pools in total. The woody litter pool stores deadwood, and
+the remaining plant biomass is divided between the four other pools. Of these four other
+pools, two of them are above-ground pools (and so contain plant biomass that originated
+above-ground) and two of there are below-ground pools. These pairs consist of a
+metabolic pool (for nutrient-rich rapidly-decaying biomass) and a structural pool (for
+biomass that decays slowly due to being nutrient poor and/or having a high lignin
+content).
+
+When animals die they add biomass to the carcass pool and when the excrete waste it is
+added to the excrement pool. These pools are available for scavenging, with their
+[decay](./carcasses_and_excrement.md) being tracked by the animal model.
+
+Fungal fruiting bodies are produced by soil fungi and can be consumed by animal cohorts.
+From the soil proper, animals can consume three things. They can consume soil bacterial
+biomass directly. They can consume soil fungal biomass directly, which is separate from
+fungal fruiting body consumption as it represents consumption of soil mycelium. Finally,
+animals can consume {term}`POM`, which is the soil pool representing large fragments of
+organic matter within the soil.
+
+:::
