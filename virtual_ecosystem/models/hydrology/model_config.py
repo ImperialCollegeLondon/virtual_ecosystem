@@ -165,6 +165,9 @@ class HydrologyConstants(Configuration):
     m_to_kpa: float = 9.804
     """Factor to convert matric potential from m to kPa."""
 
+    denominator_tolerance: float = 1e-12
+    """Small value to prevent division by zero."""
+
 
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration class for the hydrology model."""

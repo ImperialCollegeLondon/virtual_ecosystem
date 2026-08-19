@@ -286,6 +286,7 @@ class HydrologyModel(
             effective_saturation=effective_saturation,
             air_entry_potential_inverse=self.model_constants.air_entry_potential_inverse,
             van_genuchten_nonlinearily_parameter=self.model_constants.van_genuchten_nonlinearily_parameter,
+            denominator_tolerance=self.model_constants.denominator_tolerance,
         )
         self.data["matric_potential"] = self.layer_structure.from_template()
         self.data["matric_potential"][self.layer_structure.index_all_soil] = DataArray(
@@ -702,6 +703,7 @@ class HydrologyModel(
                 ),
                 groundwater_capacity=self.model_constants.groundwater_capacity / 1000.0,
                 seconds_to_day=self.core_constants.seconds_to_day,
+                denominator_tolerance=self.model_constants.denominator_tolerance,
             )
             daily_lists["matric_potential"].append(
                 vertical_flow["matric_potential"] * self.model_constants.m_to_kpa

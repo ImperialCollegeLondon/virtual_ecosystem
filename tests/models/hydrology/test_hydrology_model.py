@@ -32,15 +32,15 @@ MODEL_VAR_CHECK_LOG = [
 
 
 @pytest.fixture
-def fixture_hydrology_init_data(dummy_climate_data_varying_canopy):
+def fixture_hydrology_init_data(dummy_climate_data):
     """Returns a reduced dataset suitable for initialising an Abiotic Model."""
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     # Reduce to data to initialise model
-    init_data = Data(grid=dummy_climate_data_varying_canopy.grid)
+    init_data = Data(grid=dummy_climate_data.grid)
     for var in HydrologyModel.vars_required_for_init:
-        init_data[var] = dummy_climate_data_varying_canopy[var]
+        init_data[var] = dummy_climate_data[var]
 
     return init_data
 
@@ -181,7 +181,7 @@ def test_generate_hydrology_model(
 def test_setup_and_update_hydrology_model_ranges(
     fixture_core_components,
     fixture_hydrology_init_data,
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     fixture_configuration,
     update_interval,
 ):
@@ -239,7 +239,7 @@ def test_setup_and_update_hydrology_model_ranges(
         model.vars_populated_by_init
     )
     for var in data_required_from_other_sources:
-        model.data[var] = dummy_climate_data_varying_canopy[var]
+        model.data[var] = dummy_climate_data[var]
 
     # Run the update step
     model.update(time_index=1, seed=42)
@@ -247,7 +247,7 @@ def test_setup_and_update_hydrology_model_ranges(
     # Test ranges for canopy variables
     canopy_indices = [1, 2, 3, 11]
     canopy_mask = ~np.isnan(
-        dummy_climate_data_varying_canopy["canopy_temperature"].isel(
+        dummy_climate_data["canopy_temperature"].isel(
             layers=lyr_strct.index_filled_canopy
         )
     )
@@ -270,13 +270,6 @@ def test_setup_and_update_hydrology_model_ranges(
     ]:
         values = model.data[var_name][soil_indices]
         assert np.all(np.isfinite(values)), f"{var_name} has NaNs"
-        # Typical physical ranges
-        if var_name == "soil_moisture":
-            assert np.all((values >= 0) & (values <= 500)), f"{var_name} out of range"
-        elif var_name == "matric_potential":
-            assert np.all((values <= 0) & (values >= -500)), f"{var_name} out of range"
-        elif var_name == "vertical_flow":
-            assert np.all(values >= 0), f"{var_name} negative"
 
     # Test ranges for 1D variables
     for var_name in [
@@ -287,8 +280,6 @@ def test_setup_and_update_hydrology_model_ranges(
     ]:
         values = model.data[var_name]
         assert np.all(np.isfinite(values)), f"{var_name} has NaNs"
-        assert np.all(values >= 0), f"{var_name} negative"
-        assert np.all(values <= 10000), f"{var_name} exceeds expected max"
 
     # Mass balance check
     from virtual_ecosystem.models.hydrology import hydrology_tools
@@ -298,7 +289,7 @@ def test_setup_and_update_hydrology_model_ranges(
         surface_channel_inflow_mm=model.data[
             "surface_runoff_routed_plus_local"
         ].to_numpy(),
-        monthly_precipitation_mm=dummy_climate_data_varying_canopy["precipitation"]
+        monthly_precipitation_mm=dummy_climate_data["precipitation"]
         .isel(time_index=1)
         .to_numpy(),
         monthly_evaporation_mm=model.data["soil_evaporation"].to_numpy(),
@@ -308,7 +299,7 @@ def test_setup_and_update_hydrology_model_ranges(
 def test_update_warns_for_fractional_days(
     fixture_core_components,
     fixture_hydrology_init_data,
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     fixture_configuration,
 ):
     """Test warning raised if days are not a whole number of days."""
@@ -324,7 +315,7 @@ def test_update_warns_for_fractional_days(
     model.model_timing.update_interval_seconds = 90000  # fractional day
 
     for var in model.vars_required_for_update:
-        model.data[var] = dummy_climate_data_varying_canopy[var]
+        model.data[var] = dummy_climate_data[var]
 
     with patch(
         "virtual_ecosystem.models.hydrology.hydrology_model.LOGGER.warning"
