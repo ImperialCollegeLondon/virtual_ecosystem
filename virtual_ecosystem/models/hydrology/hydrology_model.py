@@ -79,6 +79,7 @@ class HydrologyModel(
         "matric_potential",
         "groundwater_storage",
         "subsurface_flow",
+        "subsurface_stormflow",
         "baseflow",
         "bypass_flow",
         "aerodynamic_resistance_soil",
@@ -121,6 +122,7 @@ class HydrologyModel(
         "soil_evaporation",
         "vertical_flow",
         "subsurface_flow",
+        "subsurface_stormflow",
         "baseflow",
         "surface_runoff_routed_plus_local",
         "subsurface_runoff_routed_plus_local",
@@ -395,6 +397,7 @@ class HydrologyModel(
         * vertical_flow, [mm d-1]
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
+        * subsurface_stormflow, [mm]
         * baseflow, [mm]
         * surface_runoff_routed_plus_local, [mm]
         * subsurface_runoff_routed_plus_local, [mm]
@@ -710,12 +713,24 @@ class HydrologyModel(
             )
             daily_lists["vertical_flow"].append(vertical_flow["vertical_flow"])
 
+            # Calculate subsurface stormflow, [mm]
+            effective_saturation = vertical_flow["effective_saturation"]
+            subsurface_stormflow = below_ground.calculate_subsurface_stormflow(
+                effective_saturation=effective_saturation[1],
+                root_soil_moisture=soil_moisture_evap_mm[1],
+                transpiration=hydro_input["current_transpiration"],
+                stormflow_coefficient=self.model_constants.stormflow_coefficient,
+                saturation_exponent=self.model_constants.saturation_exponent,
+            )
+            daily_lists["subsurface_stormflow"].append(subsurface_stormflow)
+
             # Update soil moisture by +/- vertical flow to each layer and remove root
             # water uptake by plants (transpiration), [mm]
             soil_moisture_updated = below_ground.update_soil_moisture(
                 soil_moisture=soil_moisture_evap_mm,  # mm
                 vertical_flow=vertical_flow["vertical_flow"],  # mm day-1
                 transpiration=hydro_input["current_transpiration"],  # mm
+                subsurface_stormflow=subsurface_stormflow,  # mm
                 soil_moisture_saturation=(  # mm
                     self.model_constants.soil_moisture_saturation
                     * self.soil_layer_thickness_mm
@@ -804,6 +819,7 @@ class HydrologyModel(
             "surface_runoff",
             "soil_evaporation",
             "subsurface_flow",
+            "subsurface_stormflow",
             "baseflow",
             "bypass_flow",
             "surface_runoff_routed_plus_local",

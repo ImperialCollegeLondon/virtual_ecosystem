@@ -164,6 +164,7 @@ def update_soil_moisture(
     soil_moisture: NDArray[np.floating],
     vertical_flow: NDArray[np.floating],
     transpiration: NDArray[np.floating],
+    subsurface_stormflow: NDArray[np.floating],
     soil_moisture_saturation: NDArray[np.floating],
     soil_moisture_residual: NDArray[np.floating],
 ) -> NDArray[np.floating]:
@@ -178,6 +179,7 @@ def update_soil_moisture(
         soil_moisture: Soil moisture after infiltration and surface evaporation, [mm]
         vertical_flow: Vertical flow between all layers, [mm]
         transpiration: Canopy transpiration, [mm]
+        subsurface_stormflow: Subsurface storm flow, [mm]
         soil_moisture_saturation: Soil moisture saturation for each layer, [mm]
         soil_moisture_residual: Residual soil moisture for each layer, [mm]
 
@@ -195,7 +197,11 @@ def update_soil_moisture(
     # Add topsoil vertical flow to layer below and remove that layers flow as well as
     # canopy transpiration = root water uptake, and ensure it is within capacity
     root_soil_moisture = np.clip(
-        soil_moisture[1] + vertical_flow[0] - vertical_flow[1] - transpiration,
+        soil_moisture[1]
+        + vertical_flow[0]
+        - vertical_flow[1]
+        - transpiration
+        - subsurface_stormflow,
         soil_moisture_residual[1],
         soil_moisture_saturation[1],
     )

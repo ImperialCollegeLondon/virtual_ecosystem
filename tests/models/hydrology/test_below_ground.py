@@ -76,13 +76,14 @@ def test_update_soil_moisture(fixture_hydrology_constants):
 
     layer_thickness = np.array([[100, 100, 100], [900, 900, 900], [900, 900, 900]])
     exp_result = np.array(
-        [[20.0, 51.0, 47.0], [290.0, 459.0, 459.0], [300.0, 459.0, 459.0]]
+        [[20.0, 51.0, 47.0], [289.0, 459.0, 459.0], [300.0, 459.0, 459.0]]
     )
 
     result = update_soil_moisture(
         soil_moisture=np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]]),
         vertical_flow=np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]]),
         transpiration=np.array([10, 2, 3]),
+        subsurface_stormflow=np.array([1, 1, 1]),
         soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation
         * layer_thickness,
         soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual
