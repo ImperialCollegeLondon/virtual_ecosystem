@@ -776,13 +776,16 @@ class HydrologyModel(
             )
 
             # Subsurface runoff routed to each cell + local subsurface runoff
-            subsurface_flow = np.array(
-                below_ground_flow["subsurface_flow"] + below_ground_flow["baseflow"]
+            subsurface_runoff = (
+                below_ground_flow["subsurface_flow"]
+                + below_ground_flow["baseflow"]
+                + subsurface_stormflow
             )
+
             subsurface_runoff_routed_plus_local = above_ground.route_horizontal_flow(
                 drainage_map=self.drainage_map,
-                surface_runoff=np.zeros_like(subsurface_flow),  # only subsurface here
-                subsurface_runoff=subsurface_flow,
+                surface_runoff=np.zeros_like(subsurface_runoff),  # only subsurface here
+                subsurface_runoff=subsurface_runoff,
             )
             daily_lists["subsurface_runoff_routed_plus_local"].append(
                 subsurface_runoff_routed_plus_local
