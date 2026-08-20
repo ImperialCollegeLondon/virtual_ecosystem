@@ -382,3 +382,45 @@ def update_groundwater_storage(
     output["groundwater_storage"] = np.vstack((upper_zone, lower_zone))
 
     return output
+
+
+def calculate_subsurface_stormflow(
+    effective_saturation: NDArray[np.floating],
+    root_soil_moisture: NDArray[np.floating],
+    transpiration: NDArray[np.floating],
+    stormflow_coefficient: float,
+    saturation_exponent: float,
+) -> NDArray[np.floating]:
+    """Calculate lateral subsurface stormflow (Q2).
+
+    The lateral subsurface flow implementation is based on after
+    :cite:t:`ye_regionalization_2014`:
+
+    Q2 = k_Q2 * Se**beta_Q2 * max(root_soil_moisture - transpiration, 0)
+
+    where Q2 is the lateral subsurface stormflow (mm timestep-1), k_Q2 is the empirical
+    lateral flow coefficient, Se is the effective saturation of the middle soil layer
+    (-), beta_Q2 is a non-linearity exponent, S2 is the middle soil water storage (mm),
+    T is the transpiration extracted from the middle soil layer during the current
+    timestep (mm).
+
+    Args:
+        effective_saturation: Effective saturation of root soil layer, [-]
+        root_soil_moisture: Root-zone soil moisture, [mm]
+        transpiration: Transpiration, equivalent to root water uptake, [mm]
+        stormflow_coefficient: Stormflow coefficient, [-]
+        saturation_exponent: Saturation exponent, [-]
+
+    Returns:
+        Subsurface stormflow, [mm]
+    """
+
+    available_water = np.maximum(root_soil_moisture - transpiration, 0.0)
+
+    subsurface_stormflow = (
+        stormflow_coefficient
+        * effective_saturation**saturation_exponent
+        * available_water
+    )
+
+    return np.maximum(subsurface_stormflow, 0.0)

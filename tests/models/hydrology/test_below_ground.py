@@ -162,3 +162,56 @@ def test_upper_flow_clamped_to_zero(fixture_hydrology_constants):
     assert np.all(result["subsurface_flow"] >= 0)
     assert np.all(result["baseflow"] >= 0)
     assert np.all(result["groundwater_storage"][0] >= 0)
+
+
+@pytest.mark.parametrize(
+    "effective_saturation,root_soil_moisture,transpiration,coeff,exponent,expected",
+    [
+        (
+            np.array([0.5]),
+            np.array([100.0]),
+            np.array([20.0]),
+            0.1,
+            2.0,
+            np.array([2.0]),
+        ),
+        (
+            np.array([0.0]),
+            np.array([100.0]),
+            np.array([20.0]),
+            0.1,
+            2.0,
+            np.array([0.0]),
+        ),
+        (
+            np.array([0.8]),
+            np.array([10.0]),
+            np.array([20.0]),
+            0.1,
+            2.0,
+            np.array([0.0]),
+        ),
+    ],
+)
+def test_calculate_subsurface_stormflow_parametrized(
+    effective_saturation,
+    root_soil_moisture,
+    transpiration,
+    coeff,
+    exponent,
+    expected,
+):
+    """Test subsurface stormflow."""
+    from virtual_ecosystem.models.hydrology.below_ground import (
+        calculate_subsurface_stormflow,
+    )
+
+    result = calculate_subsurface_stormflow(
+        effective_saturation=effective_saturation,
+        root_soil_moisture=root_soil_moisture,
+        transpiration=transpiration,
+        stormflow_coefficient=coeff,
+        saturation_exponent=exponent,
+    )
+
+    np.testing.assert_allclose(result, expected)
