@@ -5,34 +5,38 @@ import pytest
 from numpy.testing import assert_allclose
 
 
-def test_calculate_zero_plane_displacement(dummy_climate_data_varying_canopy):
+def test_calculate_zero_plane_displacement(dummy_climate_data):
     """Test if calculated correctly and set to zero without vegetation."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         calculate_zero_plane_displacement,
     )
 
+    data = dummy_climate_data
+
     result = calculate_zero_plane_displacement(
-        canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([0.0, np.nan, 7.0, 0.0]),
+        canopy_height=data["layer_heights"][1].to_numpy(),
+        leaf_area_index=data["leaf_area_index"][1].to_numpy(),
         zero_plane_scaling_parameter=7.5,
         denominator_tolerance=1e-10,
     )
 
-    assert_allclose(result, np.array([0.0, 0.0, 25.86256, 0.0]))
+    assert_allclose(result, data["zero_plane_displacement"].to_numpy())
 
 
-def test_calculate_roughness_length_momentum(dummy_climate_data_varying_canopy):
+def test_calculate_roughness_length_momentum(dummy_climate_data):
     """Test roughness length governing momentum transfer."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         calculate_roughness_length_momentum,
     )
 
+    data = dummy_climate_data
+
     result = calculate_roughness_length_momentum(
-        canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([np.nan, 0.0, 7, 0.0]),
-        zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 0.0]),
+        canopy_height=data["layer_heights"][1].to_numpy(),
+        leaf_area_index=data["leaf_area_index"][1].to_numpy(),
+        zero_plane_displacement=data["zero_plane_displacement"].to_numpy(),
         substrate_surface_roughness_length=0.003,
         roughness_element_drag_coefficient=0.3,
         roughness_sublayer_depth_parameter=0.193,
@@ -43,61 +47,59 @@ def test_calculate_roughness_length_momentum(dummy_climate_data_varying_canopy):
     )
 
     assert_allclose(
-        result, np.array([0.01, 0.01, 0.524479, 0.01]), rtol=1e-3, atol=1e-3
+        result, data["roughness_length_momentum"].to_numpy(), rtol=1e-3, atol=1e-3
     )
 
 
-def test_calculate_wind_profile(
-    dummy_climate_data_varying_canopy, fixture_core_components
-):
+def test_calculate_wind_profile(dummy_climate_data, fixture_core_components):
     """Test calculate wind profile."""
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 
     lyr_str = fixture_core_components.layer_structure
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
 
     result = calculate_wind_profile(
         reference_wind_speed=data["wind_speed_ref"].isel(time_index=0).to_numpy(),
         reference_height=data["layer_heights"][0].to_numpy() + 10.0,
         wind_heights=data["layer_heights"][lyr_str.index_filled_atmosphere].to_numpy(),
-        roughness_length=np.array([0.01, 0.01666, 0.524479, 0.01]),
-        zero_plane_displacement=np.array([0, 0, 25, 0]),
+        roughness_length=data["roughness_length_momentum"].to_numpy(),
+        zero_plane_displacement=data["zero_plane_displacement"].to_numpy(),
         min_wind_speed=0.001,
         denominator_tolerance=1e-10,
     )
 
     exp_wind = np.array(
         [
-            [0.967405, 0.965281, 0.744923, 0.967405],
-            [0.959669, 0.957041, 0.648195, np.nan],
-            [0.911069, 0.905273, np.nan, np.nan],
-            [0.827986, np.nan, np.nan, np.nan],
-            [0.275995, 0.228813, 0.001, 0.275995],
+            [0.34011, 0.53909, 0.78857, 1.4318],
+            [0.28038, 0.43823, 0.61038, np.nan],
+            [0.001, 0.001, np.nan, np.nan],
+            [0.001, np.nan, np.nan, np.nan],
+            [0.001, 0.001, 0.001, 0.5780],
         ]
     )
 
     assert_allclose(result, exp_wind, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_friction_velocity(dummy_climate_data_varying_canopy):
+def test_calculate_friction_velocity(dummy_climate_data):
     """Test calculating friction velocity."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         calculate_friction_velocity,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
 
     result = calculate_friction_velocity(
         reference_wind_speed=data["wind_speed_ref"].isel(time_index=0).to_numpy(),
         reference_height=data["layer_heights"][0].to_numpy() + 10.0,
-        roughness_length=np.array([0.01, 0.01666, 0.524479, 0.01]),
-        zero_plane_displacement=np.array([0, 0, 25, 0]),
+        roughness_length=data["roughness_length_momentum"].to_numpy(),
+        zero_plane_displacement=data["zero_plane_displacement"].to_numpy(),
         von_karman_constant=0.4,
         denominator_tolerance=1e-10,
     )
-    exp_friction_velocity = np.array([0.047945, 0.05107, 0.11499, 0.047945])
+    exp_friction_velocity = np.array([0.07348, 0.114846, 0.159962, 0.100417])
     assert_allclose(result, exp_friction_velocity, rtol=1e-3, atol=1e-3)
 
 
@@ -266,11 +268,11 @@ class TestClampVariableWithinLimits:
         assert result[0] > 1.0
 
 
-def test_next_valid_above(dummy_climate_data_varying_canopy):
+def test_next_valid_above(dummy_climate_data):
     """Test next valid above."""
     from virtual_ecosystem.models.abiotic.wind import next_valid_above
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     arr = data["air_temperature"].to_numpy()
 
     result = next_valid_above(arr)
@@ -297,11 +299,11 @@ def test_next_valid_above(dummy_climate_data_varying_canopy):
     assert np.array_equal(result, expected)
 
 
-def test_next_valid_below(dummy_climate_data_varying_canopy):
+def test_next_valid_below(dummy_climate_data):
     """Test next valid below."""
     from virtual_ecosystem.models.abiotic.wind import next_valid_below
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     arr = data["air_temperature"].to_numpy()
 
     result = next_valid_below(arr)
@@ -328,14 +330,14 @@ def test_next_valid_below(dummy_climate_data_varying_canopy):
     assert np.array_equal(result, expected)
 
 
-def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_components):
+def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
     """Test mixing and ventilation within bounds."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         mix_and_ventilate,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     lyrstr = fixture_core_components.layer_structure
 
     mixing_coefficient = data["mixing_coefficient"].to_numpy()
@@ -348,21 +350,21 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     exp_temp = np.full_like(input_humidity, np.nan)
     exp_temp[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [29.96, 29.96, 29.96, 28.4],
-            [29.75, 29.75, 29.06, np.nan],
-            [28.82, 28.3, np.nan, np.nan],
-            [26.85, np.nan, np.nan, np.nan],
-            [22.52, 22.69, 22.78, 23.6],
+            [21.964, 22.868, 23.748, 24.92],
+            [21.74, 22.424, 23.197, np.nan],
+            [20.626, 21.22, np.nan, np.nan],
+            [19.249, np.nan, np.nan, np.nan],
+            [18.521, 19.088, 20.155, 23.08],
         ]
     )
     exp_hum = np.full_like(input_humidity, np.nan)
     exp_hum[lyrstr.index_filled_atmosphere] = np.array(
         [
-            [90.2, 90.2, 90.2, 91.6],
-            [94.9, 92.4, 91.5, np.nan],
+            [90.36, 82.66, 73.12, 67.56],
+            [96.19, 86.1, 75.78, np.nan],
             [100.0, 100.0, np.nan, np.nan],
-            [97.1, np.nan, np.nan, np.nan],
-            [97.8, 98.4, 97.3, 96.4],
+            [96.54, np.nan, np.nan, np.nan],
+            [98.91, 96.24, 93.1, 80.44],
         ]
     )
 
@@ -412,9 +414,7 @@ def test_advect_from_toplayer():
     assert_allclose(result, expected_specific_humidity)
 
 
-def test_calculate_aerodynamic_resistance(
-    dummy_climate_data_varying_canopy, fixture_core_components
-):
+def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_components):
     """Test calculate aerodynamic resistance."""
 
     from virtual_ecosystem.models.abiotic.wind import (
@@ -422,23 +422,23 @@ def test_calculate_aerodynamic_resistance(
     )
 
     lyr_str = fixture_core_components.layer_structure
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
 
     exp_ra = np.array(
         [
-            [132.547453, 66.273726, 98.940998, np.nan],
-            [110.234517, 55.117259, np.nan, np.nan],
-            [76.849677, np.nan, np.nan, np.nan],
+            [58.24231, 32.3568, 18.2007, np.nan],
+            [100.0, 100.0, np.nan, np.nan],
+            [100.0, np.nan, np.nan, np.nan],
         ]
     )
 
     result = calculate_aerodynamic_resistance(
         wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
-        roughness_length=np.repeat(0.3, 4),
-        zero_plane_displacement=np.array([0.0, 0.0, 25.0, 0.0]),
-        wind_speed=np.array([1.0, 2.0, 0.5, 0.01]),
+        roughness_length=data["roughness_length_momentum"].to_numpy(),
+        zero_plane_displacement=data["zero_plane_displacement"].to_numpy(),
+        wind_speed=data["wind_speed"][lyr_str.index_filled_canopy].to_numpy(),
         von_karman_constant=0.4,
-        fallback_resistance=1000.0,
+        fallback_resistance=100.0,
         denominator_tolerance=1e-10,
     )
     assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
