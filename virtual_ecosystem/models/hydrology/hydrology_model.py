@@ -444,7 +444,9 @@ class HydrologyModel(
 
         Soil moisture is updated by iteratively updating the soil moisture of individual
         layers under consideration of the vertical flow in and out of each layer, see
-        :func:`~virtual_ecosystem.models.hydrology.below_ground.update_soil_moisture`
+        :func:`~virtual_ecosystem.models.hydrology.below_ground.update_soil_moisture`.
+        After that, transpiration (=root water uptake) and subsurface stormflow are
+        removed from the second soil layer.
 
         Groundwater storage and flows are modelled using two parallel linear
         reservoirs, see
@@ -725,7 +727,7 @@ class HydrologyModel(
             daily_lists["subsurface_stormflow"].append(subsurface_stormflow)
 
             # Update soil moisture by +/- vertical flow to each layer and remove root
-            # water uptake by plants (transpiration), [mm]
+            # water uptake by plants (transpiration) and subsurface stormflow, [mm]
             soil_moisture_updated = below_ground.update_soil_moisture(
                 soil_moisture=soil_moisture_evap_mm,  # mm
                 vertical_flow=vertical_flow["vertical_flow"],  # mm day-1
@@ -742,7 +744,7 @@ class HydrologyModel(
             )
             daily_lists["soil_moisture"].append(soil_moisture_updated)
 
-            # calculate below ground horizontal flow and update ground water
+            # Calculate below ground horizontal flow and update ground water
             below_ground_flow = below_ground.update_groundwater_storage(
                 groundwater_storage=hydro_input["groundwater_storage"],
                 vertical_flow_to_groundwater=vertical_flow["vertical_flow"][-1],
@@ -797,7 +799,7 @@ class HydrologyModel(
             )
             daily_lists["total_runoff"].append(total_runoff)
 
-            # Convert total runoff [mm] to river discharge rate [m³/s]
+            # Convert total runoff [mm] to river discharge rate [m3 s-1]
             river_discharge_rate = above_ground.convert_mm_flow_to_m3_per_second(
                 river_discharge_mm=total_runoff,
                 area=self.grid.cell_area,

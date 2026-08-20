@@ -172,8 +172,8 @@ def update_soil_moisture(
 
     This function calculates soil moisture for each layer by removing the vertical flow
     of the current layer and adding it to the layer below. The implementation is based
-    on :cite:t:`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration is
-    removed from the second soil layer.
+    on :cite:t:`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration
+    and the subsurface stormflow are removed from the second soil layer.
 
     Args:
         soil_moisture: Soil moisture after infiltration and surface evaporation, [mm]
@@ -399,18 +399,19 @@ def calculate_subsurface_stormflow(
     stormflow_coefficient: float,
     saturation_exponent: float,
 ) -> NDArray[np.floating]:
-    """Calculate lateral subsurface stormflow (Q2).
+    r"""Calculate lateral subsurface stormflow (Q2).
 
     The lateral subsurface flow implementation is based on after
     :cite:t:`ye_regionalization_2014`:
 
-    Q2 = k_Q2 * Se**beta_Q2 * max(root_soil_moisture - transpiration, 0)
+    .. math ::
+        Q2 = k_{Q2} * S_{e}**beta_{Q2} * max(root_soil_moisture - transpiration, 0)
 
-    where Q2 is the lateral subsurface stormflow (mm timestep-1), k_Q2 is the empirical
-    lateral flow coefficient, Se is the effective saturation of the middle soil layer
-    (-), beta_Q2 is a non-linearity exponent, S2 is the middle soil water storage (mm),
-    T is the transpiration extracted from the middle soil layer during the current
-    timestep (mm).
+    where :math:`Q2` is the lateral subsurface stormflow (mm timestep-1), :math:`k_Q2`
+    is the empirical lateral flow coefficient, :math:`S_{e}` is the effective saturation
+    of the middle soil layer (-), :math:`beta_{Q2}` is a non-linearity exponent,
+    :math:`S2` is the middle soil water storage (mm), :math:`T` is the transpiration
+    extracted from the middle soil layer during the current timestep (mm).
 
     Args:
         effective_saturation: Effective saturation of root soil layer, [-]
