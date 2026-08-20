@@ -58,8 +58,15 @@ def test_calculate_vertical_flow(
             [0.000385, 0.002699, 0.0009],
         ]
     )
+    exp_efsat = np.array(
+        [
+            [0.401, 0.601, 1.0],
+            [0.401, 0.601, 1.0],
+        ]
+    )
     np.testing.assert_allclose(result["matric_potential"], exp_matric_pot, rtol=0.001)
     np.testing.assert_allclose(result["vertical_flow"], exp_flow, rtol=0.001)
+    np.testing.assert_allclose(result["effective_saturation"], exp_efsat, rtol=0.001)
 
 
 def test_update_soil_moisture(fixture_hydrology_constants):

@@ -91,7 +91,8 @@ def calculate_vertical_flow(
         denominator_tolerance: Small value to avid division by zero
 
     Returns:
-        matric potential,[m] volumetric flow rate of water, [mm d-1]
+        matric potential,[m] volumetric flow rate of water, [mm d-1], effective
+        saturation, [rel. vol.]
     """
 
     output = {}
@@ -103,6 +104,7 @@ def calculate_vertical_flow(
         soil_moisture_saturation=soil_moisture_saturation,
         soil_moisture_residual=soil_moisture_residual,
     )
+    output["effective_saturation"] = effective_saturation
 
     # Calculate matric potential for each grid point and depth
     matric_potential = calculate_matric_potential(
