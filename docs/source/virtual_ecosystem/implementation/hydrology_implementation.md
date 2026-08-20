@@ -455,7 +455,7 @@ removed from the second soil layer.
 
 ```{note}
 We do currently NOT include any horizontal flows from the soil layers towards the stream
-(Q2 and Q3 in {numref}`bucket_model`).
+($Q3$ in {numref}`bucket_model`).
 ```
 
 ### Belowground runoff and groundwater storage
@@ -470,7 +470,7 @@ and (vertical) subsurface flow through macro-pores in the soil. The lower zone
 represents the slow groundwater component that generates the base flow.
 
 The runoff from the upper zone to the channel, $Q_{uz}$, (mm),
-(Q4 in {numref}`bucket_model`) equals:
+($Q4$ in {numref}`bucket_model`) equals:
 
 $$Q_{uz} = \frac{1}{T_{uz}} \cdot UZ \cdot \Delta t$$
 
@@ -494,7 +494,7 @@ $$D_{uz,lz} = min(GW_{perc} \cdot \Delta t, UZ)$$
 
 where $GW_{perc}$, [mm day-1], is the maximum percolation rate from the upper to
 the lower groundwater zone. The runoff from the lower zone to the channel $Q_{lz}$,
-(mm), (Q5 in {numref}`bucket_model`) is then computed by:
+(mm), ($Q5$ in {numref}`bucket_model`) is then computed by:
 
 $$Q_{lz} = \frac{1}{T_{lz}} \cdot LZ \cdot \Delta t$$
 
