@@ -58,8 +58,15 @@ def test_calculate_vertical_flow(
             [0.000385, 0.002699, 0.0009],
         ]
     )
+    exp_efsat = np.array(
+        [
+            [0.401, 0.601, 1.0],
+            [0.401, 0.601, 1.0],
+        ]
+    )
     np.testing.assert_allclose(result["matric_potential"], exp_matric_pot, rtol=0.001)
     np.testing.assert_allclose(result["vertical_flow"], exp_flow, rtol=0.001)
+    np.testing.assert_allclose(result["effective_saturation"], exp_efsat, rtol=0.001)
 
 
 def test_update_soil_moisture(fixture_hydrology_constants):
@@ -69,13 +76,14 @@ def test_update_soil_moisture(fixture_hydrology_constants):
 
     layer_thickness = np.array([[100, 100, 100], [900, 900, 900], [900, 900, 900]])
     exp_result = np.array(
-        [[20.0, 51.0, 47.0], [290.0, 459.0, 459.0], [300.0, 459.0, 459.0]]
+        [[20.0, 51.0, 47.0], [289.0, 459.0, 459.0], [300.0, 459.0, 459.0]]
     )
 
     result = update_soil_moisture(
         soil_moisture=np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]]),
         vertical_flow=np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]]),
         transpiration=np.array([10, 2, 3]),
+        subsurface_stormflow=np.array([1, 1, 1]),
         soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation
         * layer_thickness,
         soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual
@@ -162,3 +170,56 @@ def test_upper_flow_clamped_to_zero(fixture_hydrology_constants):
     assert np.all(result["subsurface_flow"] >= 0)
     assert np.all(result["baseflow"] >= 0)
     assert np.all(result["groundwater_storage"][0] >= 0)
+
+
+@pytest.mark.parametrize(
+    "effective_saturation,root_soil_moisture,transpiration,coeff,exponent,expected",
+    [
+        (
+            np.array([0.5]),
+            np.array([100.0]),
+            np.array([20.0]),
+            0.1,
+            2.0,
+            np.array([2.0]),
+        ),
+        (
+            np.array([0.0]),
+            np.array([100.0]),
+            np.array([20.0]),
+            0.1,
+            2.0,
+            np.array([0.0]),
+        ),
+        (
+            np.array([0.8]),
+            np.array([10.0]),
+            np.array([20.0]),
+            0.1,
+            2.0,
+            np.array([0.0]),
+        ),
+    ],
+)
+def test_calculate_subsurface_stormflow_parametrized(
+    effective_saturation,
+    root_soil_moisture,
+    transpiration,
+    coeff,
+    exponent,
+    expected,
+):
+    """Test subsurface stormflow."""
+    from virtual_ecosystem.models.hydrology.below_ground import (
+        calculate_subsurface_stormflow,
+    )
+
+    result = calculate_subsurface_stormflow(
+        effective_saturation=effective_saturation,
+        root_soil_moisture=root_soil_moisture,
+        transpiration=transpiration,
+        stormflow_coefficient=coeff,
+        saturation_exponent=exponent,
+    )
+
+    np.testing.assert_allclose(result, expected)

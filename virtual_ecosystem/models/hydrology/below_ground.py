@@ -91,7 +91,8 @@ def calculate_vertical_flow(
         denominator_tolerance: Small value to avid division by zero
 
     Returns:
-        matric potential,[m] volumetric flow rate of water, [mm d-1]
+        matric potential,[m] volumetric flow rate of water, [mm d-1], effective
+        saturation, [rel. vol.]
     """
 
     output = {}
@@ -103,6 +104,7 @@ def calculate_vertical_flow(
         soil_moisture_saturation=soil_moisture_saturation,
         soil_moisture_residual=soil_moisture_residual,
     )
+    output["effective_saturation"] = effective_saturation
 
     # Calculate matric potential for each grid point and depth
     matric_potential = calculate_matric_potential(
@@ -162,6 +164,7 @@ def update_soil_moisture(
     soil_moisture: NDArray[np.floating],
     vertical_flow: NDArray[np.floating],
     transpiration: NDArray[np.floating],
+    subsurface_stormflow: NDArray[np.floating],
     soil_moisture_saturation: NDArray[np.floating],
     soil_moisture_residual: NDArray[np.floating],
 ) -> NDArray[np.floating]:
@@ -169,13 +172,14 @@ def update_soil_moisture(
 
     This function calculates soil moisture for each layer by removing the vertical flow
     of the current layer and adding it to the layer below. The implementation is based
-    on :cite:t:`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration is
-    removed from the second soil layer.
+    on :cite:t:`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration
+    and the subsurface stormflow are removed from the second soil layer.
 
     Args:
         soil_moisture: Soil moisture after infiltration and surface evaporation, [mm]
         vertical_flow: Vertical flow between all layers, [mm]
         transpiration: Canopy transpiration, [mm]
+        subsurface_stormflow: Subsurface storm flow, [mm]
         soil_moisture_saturation: Soil moisture saturation for each layer, [mm]
         soil_moisture_residual: Residual soil moisture for each layer, [mm]
 
@@ -193,7 +197,11 @@ def update_soil_moisture(
     # Add topsoil vertical flow to layer below and remove that layers flow as well as
     # canopy transpiration = root water uptake, and ensure it is within capacity
     root_soil_moisture = np.clip(
-        soil_moisture[1] + vertical_flow[0] - vertical_flow[1] - transpiration,
+        soil_moisture[1]
+        + vertical_flow[0]
+        - vertical_flow[1]
+        - transpiration
+        - subsurface_stormflow,
         soil_moisture_residual[1],
         soil_moisture_saturation[1],
     )
@@ -382,3 +390,46 @@ def update_groundwater_storage(
     output["groundwater_storage"] = np.vstack((upper_zone, lower_zone))
 
     return output
+
+
+def calculate_subsurface_stormflow(
+    effective_saturation: NDArray[np.floating],
+    root_soil_moisture: NDArray[np.floating],
+    transpiration: NDArray[np.floating],
+    stormflow_coefficient: float,
+    saturation_exponent: float,
+) -> NDArray[np.floating]:
+    r"""Calculate lateral subsurface stormflow (Q2).
+
+    The lateral subsurface flow implementation is based on after
+    :cite:t:`ye_regionalization_2014`:
+
+    .. math ::
+        Q2 = k_{Q2} * S_{e}**beta_{Q2} * max(root_soil_moisture - transpiration, 0)
+
+    where :math:`Q2` is the lateral subsurface stormflow (mm timestep-1), :math:`k_Q2`
+    is the empirical lateral flow coefficient, :math:`S_{e}` is the effective saturation
+    of the middle soil layer (-), :math:`beta_{Q2}` is a non-linearity exponent,
+    :math:`S2` is the middle soil water storage (mm), :math:`T` is the transpiration
+    extracted from the middle soil layer during the current timestep (mm).
+
+    Args:
+        effective_saturation: Effective saturation of root soil layer, [-]
+        root_soil_moisture: Root-zone soil moisture, [mm]
+        transpiration: Transpiration, equivalent to root water uptake, [mm]
+        stormflow_coefficient: Stormflow coefficient, [-]
+        saturation_exponent: Saturation exponent, [-]
+
+    Returns:
+        Subsurface stormflow, [mm]
+    """
+
+    available_water = np.maximum(root_soil_moisture - transpiration, 0.0)
+
+    subsurface_stormflow = (
+        stormflow_coefficient
+        * effective_saturation**saturation_exponent
+        * available_water
+    )
+
+    return np.maximum(subsurface_stormflow, 0.0)

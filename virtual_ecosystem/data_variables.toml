@@ -483,6 +483,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Subsurface stormflow contributing to river discharge in each grid cell"
+name = "subsurface_stormflow"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Soil evaporation"
 name = "soil_evaporation"
 unit = "mm"
