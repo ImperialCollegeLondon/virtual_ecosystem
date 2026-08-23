@@ -63,7 +63,7 @@ types-jsonschema = "^4.26.0"
 types-tqdm = "^4.70.0.20260805"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.165.5"
+hypothesis = "^6.165.10"
 pytest = ">=9.1.1,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
@@ -79,9 +79,9 @@ jupyterlab = "^4.6.3"
 jupyterlab-myst = "^2.7.0" 
 jupytext = "^1.19.5" 
 matplotlib = ">=3.11.1" # SPEC0
-mypy = "^2.2.0" 
+mypy = "^2.3.1" 
 pre-commit = ">=4.6.2,<5" 
-ruff = ">=0.16.2,<0.17.0" 
+ruff = ">=0.16.3,<0.17.0" 
 snakeviz = ">=2.2.2,<3.0.0" 
 
 [tool.poetry.group.docs.dependencies]
