@@ -188,10 +188,15 @@ def calculate_wind_profiles(
     )
 
     #   Wind speed, [m s-1]
+    # The reference wind speed is positive or negative depending on the wind direction.
+    # Since we do not take direction into account, and to ensure correct computation of
+    # wind profiles, the wind speed should be always positive going into the equations.
     wind_reference_height = (
         static["canopy_height"] + abiotic_constants.wind_reference_height
     )
-    reference_wind_speed = data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+    reference_wind_speed = np.abs(
+        data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+    )
 
     wind_speed = layer_structure.from_template()
     wind_speed[layer_structure.index_filled_atmosphere] = wind.calculate_wind_profile(
