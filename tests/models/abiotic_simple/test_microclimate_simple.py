@@ -26,7 +26,7 @@ def test_varying_canopy_log_interpolation(
     layer_structure = fixture_core_components.layer_structure
     data = dummy_climate_data
 
-    reference_data = data["wind_speed_ref"].isel(time_index=0).to_numpy()
+    reference_data = np.abs(data["wind_speed_ref"].isel(time_index=0)).to_numpy()
     layer_heights = data["layer_heights"].to_numpy()
     leaf_area_index_sum = np.nansum(data["leaf_area_index"], axis=0)
 
