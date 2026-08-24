@@ -579,11 +579,15 @@ class PlantsModel(
             1 - model_constants.per_propagule_annual_recruitment_probability
         ) ** (1 / self.model_timing.updates_per_year)
 
-        # Calculate the residual soil water limit in mm(currently a global value) as the
-        # product of the total depth of subsoil layers in mm and the hydrology soil
-        # moisture residual constant.
+        # Calculate the residual soil water limit in mm (currently a global value) as
+        # the product of the depth of the first subsoil layer in mm and the hydrology
+        # soil moisture residual constant.
+        #
+        # NOTE: The current bucket hydrology model expects all uptake to be from the
+        # second soil layer (first below surface soil) but this could change in future
+        # to include deeper layers (see #1771)
         self.soil_water_residual = (
-            self.layer_structure.soil_layer_thickness[1:].sum()
+            self.layer_structure.soil_layer_thickness[1]
             * 1000
             * self.hydrology_constants.soil_moisture_residual
         ).item()
@@ -1253,12 +1257,17 @@ class PlantsModel(
         GPP and transpiration estimates and to subcanopy GPP and transpiration.
         """
 
+        # NOTE: The current bucket hydrology model expects all uptake to be from the
+        # first subsoil layer (below surface soil) but this could change in future
+        # to include deeper layers (see #1771)
+
         water_limitation_factor = np.minimum(
             1,
             (
                 self.data["soil_moisture"]
-                .sel(layers=self.layer_structure.index_subsoil)
-                .sum(dim="layers")
+                .sel(
+                    layers=np.argmax(self.layer_structure.index_subsoil)
+                )  # 1st subsoil layer
                 .to_numpy()
                 - self.soil_water_residual
             )
