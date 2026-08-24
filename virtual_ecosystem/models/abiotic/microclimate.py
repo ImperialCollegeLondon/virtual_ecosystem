@@ -866,6 +866,8 @@ def run_hour_step(
                 abiotic_constants.small_perturbation_second_guess_secant_solver
             ),
             denominator_tolerance=abiotic_constants.denominator_tolerance,
+            min_temperature_change=abiotic_constants.min_temperature_change,
+            max_temperature_change=abiotic_constants.max_temperature_change,
             idx=idx,
         )
     )

@@ -449,6 +449,9 @@ def update_soil_temperature(
 
     Returns:
         Updated soil temperatures, [C]
+
+    Raises:
+        ValueError if soil temperature is nan or -inf
     """
 
     n_layers = len(soil_temperature)
@@ -482,6 +485,12 @@ def update_soil_temperature(
         * soil_thermal_diffusivity
         * (soil_temperature[-2, :] - soil_temperature[-1, :])
     )
+
+    if not np.all(np.isfinite(soil_temperature)):
+        raise ValueError(
+            "Soil temperature is not finite, consider reducing the initial "
+            "integration time step for air temperature in secant method."
+        )
 
     return soil_temperature
 
@@ -1098,6 +1107,8 @@ def solve_canopy_temperature_with_air_coupling(
     convergence_tolerance: float,
     small_perturbation_second_guess: float,
     denominator_tolerance: float,
+    min_temperature_change: float,
+    max_temperature_change: float,
     idx: SimpleNamespace,
 ) -> tuple[
     NDArray[np.floating],
@@ -1109,6 +1120,9 @@ def solve_canopy_temperature_with_air_coupling(
     The canopy temperature is solved with a secant method for fixed air temperature.
     Air temperature is then updated from sensible heat flux, and the process is
     repeated until both canopy and air temperatures converge.
+
+    The solver uses a flexible integration time step to prevent instability in the
+    very thin surface layer.
 
     If the solver does not converge within max iterations, the last best guess is
     returned and solver diagnostics are added to the log file.
@@ -1127,6 +1141,10 @@ def solve_canopy_temperature_with_air_coupling(
         convergence_tolerance: Convergence tolerance on max absolute secant update.
         small_perturbation_second_guess: Small perturbation for second initial guess.
         denominator_tolerance: Small value to prevent division by zero.
+        min_temperature_change: Minimum temperature change for flexible integration time
+            step, [C]
+        max_temperature_change: Maximum temperature change for flexible integration time
+            step, [C]
         idx: Namespace containing indices for different layers.
 
     Returns:
@@ -1141,12 +1159,13 @@ def solve_canopy_temperature_with_air_coupling(
     canopy_temperature = state["canopy_temperature"].copy()
     air_temperature_above = state["air_temperature"][idx.above].copy()
 
-    for i in range(maxiter_air):
+    # Set initial conservative integration time step
+    integration_time_step = abiotic_constants.integration_time_interval
+
+    for _ in range(maxiter_air):
         state_local["air_temperature"] = air_temperature
         state_local["canopy_temperature"] = canopy_temperature
-        integration_time_step = abiotic_constants.integration_time_interval / (
-            i + 1
-        )  # Reduce time step for stability in early iterations
+
         residual_function = make_canopy_residual(
             state=state_local,
             static=static,
@@ -1196,12 +1215,31 @@ def solve_canopy_temperature_with_air_coupling(
         canopy_change = np.nanmax(np.abs(new_canopy_temperature - canopy_temperature))
         air_change = np.nanmax(np.abs(new_air_temperature - air_temperature))
 
+        # Safety net: if update is too large, reduce timestep and retry
+        if (
+            canopy_change > max_temperature_change
+            or air_change > max_temperature_change
+        ):
+            integration_time_step *= 0.5
+            continue
+
+        # Accept update
         canopy_temperature = new_canopy_temperature
         air_temperature = new_air_temperature
 
         # The air temperature above the canopy is returned as nan, needs to be filled
         # with reference value again
         air_temperature[idx.above] = air_temperature_above
+
+        # If solution is settling, cautiously increase timestep again
+        if (
+            canopy_change < min_temperature_change
+            and air_change < min_temperature_change
+        ):
+            integration_time_step = min(
+                integration_time_step * 1.2,
+                abiotic_constants.integration_time_interval,
+            )
 
         if max(canopy_change, air_change) < air_temperature_tolerance:
             break
