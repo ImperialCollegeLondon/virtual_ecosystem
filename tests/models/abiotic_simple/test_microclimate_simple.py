@@ -3,7 +3,6 @@
 import numpy as np
 import pytest
 import xarray as xr
-from xarray import DataArray
 
 
 @pytest.mark.parametrize(
@@ -16,7 +15,7 @@ from xarray import DataArray
     ],
 )
 def test_varying_canopy_log_interpolation(
-    dummy_climate_data_varying_canopy, fixture_core_components, measurement_height
+    dummy_climate_data, fixture_core_components, measurement_height
 ):
     """Test log interpolation for wind speed at different measurement heights."""
 
@@ -25,9 +24,9 @@ def test_varying_canopy_log_interpolation(
     )
 
     layer_structure = fixture_core_components.layer_structure
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
 
-    reference_data = data["wind_speed_ref"].isel(time_index=0).to_numpy()
+    reference_data = np.abs(data["wind_speed_ref"].isel(time_index=0).to_numpy())
     layer_heights = data["layer_heights"].to_numpy()
     leaf_area_index_sum = np.nansum(data["leaf_area_index"], axis=0)
 
@@ -68,7 +67,7 @@ def test_varying_canopy_log_interpolation(
 )
 def test_exp_interpolation(
     fixture_core_components,
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     measurement_height,
 ):
     """Test exponential temperature interpolation at different measurement heights."""
@@ -78,7 +77,7 @@ def test_exp_interpolation(
     )
 
     layer_structure = fixture_core_components.layer_structure
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
 
     reference_data = data["air_temperature_ref"].isel(time_index=0).to_numpy()
     layer_heights = data["layer_heights"].to_numpy()
@@ -111,7 +110,7 @@ def test_exp_interpolation(
 
 
 def test_varying_canopy_calculate_vapour_pressure_deficit(
-    fixture_core_components, dummy_climate_data_varying_canopy, fixture_pyrealm_config
+    fixture_core_components, dummy_climate_data, fixture_pyrealm_config
 ):
     """Test calculation of VPD with different number of canopy layers."""
 
@@ -121,7 +120,7 @@ def test_varying_canopy_calculate_vapour_pressure_deficit(
 
     lyr_strct = fixture_core_components.layer_structure
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     result = calculate_vapour_pressure_deficit(
         temperature=data["air_temperature"],
         relative_humidity=data["relative_humidity"],
@@ -129,17 +128,17 @@ def test_varying_canopy_calculate_vapour_pressure_deficit(
     )
     exp_output = lyr_strct.from_template()
     exp_output[lyr_strct.index_filled_atmosphere] = [
-        [0.423372, 0.423372, 0.423372, 0.423372],
-        [0.376681, 0.376681, 0.376681, np.nan],
-        [0.278148, 0.278148, np.nan, np.nan],
-        [0.143955, np.nan, np.nan, np.nan],
-        [0.052748, 0.052748, 0.052748, 0.052748],
+        [0.263742, 0.504452, 0.833445, 1.341337],
+        [0.208435, 0.40536, 0.676682, np.nan],
+        [0.145237, 0.301385, np.nan, np.nan],
+        [0.088784, np.nan, np.nan, np.nan],
+        [0.021247, 0.087685, 0.139956, 0.31649],
     ]
     xr.testing.assert_allclose(result["vapour_pressure_deficit"], exp_output)
 
 
 def test_run_microclimate_varying_canopy(
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     fixture_core_components,
     fixture_core_constants,
     fixture_abiotic_simple_configuration,
@@ -151,7 +150,7 @@ def test_run_microclimate_varying_canopy(
         run_simple_microclimate,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     lyr_strct = fixture_core_components.layer_structure
 
     result = run_simple_microclimate(
@@ -166,48 +165,48 @@ def test_run_microclimate_varying_canopy(
 
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = [
-        [30.0, 30.0, 30.0, 30.0],
-        [29.870794, 29.913863, 29.956931, np.nan],
-        [29.035646, 29.357097, np.nan, np.nan],
-        [27.769159, np.nan, np.nan, np.nan],
-        [25.871986, 27.247991, 28.623995, 30.0],
+        [23.0, 24.0, 25.0, 26.0],
+        [22.737281, 23.786638, 24.87785, np.nan],
+        [21.039147, 22.270679, np.nan, np.nan],
+        [18.463956, np.nan, np.nan, np.nan],
+        [14.606371, 18.905246, 23.563744, 26.0],
     ]
     xr.testing.assert_allclose(result["air_temperature"], exp_air_temp)
 
     exp_soil_temp = lyr_strct.from_template()
     exp_soil_temp[lyr_strct.index_all_soil] = [
-        [21.48431, 21.832134, 22.179959, 22.527783],
-        [20.0, 20.0, 20.0, 20.0],
+        [20.131051, 21.591324, 23.142502, 24.505557],
+        [22.0, 22.5, 23.0, 24.0],
     ]
     xr.testing.assert_allclose(result["soil_temperature"], exp_soil_temp)
 
     exp_wind = lyr_strct.from_template()
     exp_wind[lyr_strct.index_filled_atmosphere] = [
-        [1.0, 1.0, 1.0, 1.0],
-        [0.993673, 0.995782, 0.997891, np.nan],
-        [0.953925, 0.969284, np.nan, np.nan],
-        [0.885976, np.nan, np.nan, np.nan],
-        [0.434528, 0.623019, 0.811509, 1.0],
+        [0.5, 0.8, 1.2, 1.8],
+        [0.4871356, 0.7887022, 1.192109, np.nan],
+        [0.4063148, 0.71, np.nan, np.nan],
+        [0.2681506, np.nan, np.nan, np.nan],
+        [0.001, 0.08837985, 0.9927933, 1.8],
     ]
     xr.testing.assert_allclose(result["wind_speed"], exp_wind)
 
     exp_pressure = lyr_strct.from_template()
     exp_pressure[lyr_strct.index_filled_atmosphere] = [
-        [96, 96, 96, 96],
-        [96, 96, 96, np.nan],
-        [96, 96, np.nan, np.nan],
+        [96.0, 95.8, 95.5, 95.2],
+        [96.0, 95.8, 95.5, np.nan],
+        [96.0, 95.8, np.nan, np.nan],
         [96, np.nan, np.nan, np.nan],
-        [96, 96, 96, 96],
+        [96.0, 95.8, 95.5, 95.2],
     ]
     xr.testing.assert_allclose(result["atmospheric_pressure"], exp_pressure)
 
     exp_co2 = lyr_strct.from_template()
     exp_co2[lyr_strct.index_filled_atmosphere] = [
-        [400, 400, 400, 400],
-        [400, 400, 400, np.nan],
-        [400, 400, np.nan, np.nan],
+        [400, 401, 402, 403],
+        [400, 401, 402, np.nan],
+        [400, 401, np.nan, np.nan],
         [400, np.nan, np.nan, np.nan],
-        [400, 400, 400, 400],
+        [400, 401, 402, 403],
     ]
     xr.testing.assert_allclose(result["atmospheric_co2"], exp_co2)
 
@@ -222,10 +221,9 @@ def test_interpolate_soil_temperature(dummy_climate_data, fixture_core_component
     lyr_strct = fixture_core_components.layer_structure
     data = dummy_climate_data
 
-    surface_temperature = DataArray([22.0, 22.0, 22.0, 22.0], dims="cell_id")
     result = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
-        surface_temperature=surface_temperature,
+        surface_temperature=data["air_temperature"][11],
         mean_annual_temperature=data["mean_annual_temperature"].isel(time_index=0),
         layer_structure=lyr_strct,
         upper_bound=50.0,
@@ -233,6 +231,8 @@ def test_interpolate_soil_temperature(dummy_climate_data, fixture_core_component
     )
 
     exp_output = lyr_strct.from_template()
-    exp_output[lyr_strct.index_all_soil] = np.array([20.505557, 20.0])[:, None]
+    exp_output[lyr_strct.index_all_soil] = np.array(
+        [[21.115276, 21.615276, 22.241665, 23.494443], [22.0, 22.5, 23.0, 24.0]]
+    )
 
     xr.testing.assert_allclose(result, exp_output)

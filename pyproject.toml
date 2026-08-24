@@ -36,7 +36,7 @@ dependencies = [
   "numpy  (>2.0)", # SPEC0
   "openpyxl (>3.1)",
   "pint (>0.24)",
-  "pyrealm (>=3.0.0.rc.1)",
+  "pyrealm (>=3.0.0.rc.3)",
   "scipy (>=1.18.0)", # SPEC0
   "tomli-w  (>1.0)",
   "tqdm (>4.66)",
@@ -44,7 +44,7 @@ dependencies = [
   "types-tabulate (>0.9)",
   "pydantic (>=2.13.4,<3.0.0)",
   "bottleneck (>=1.6.0,<2.0.0)",
-  "zarr (>=3.2.1,<4.0.0)",
+  "zarr (>=3.3.0,<4.0.0)",
 ]
 
 [project.scripts]
@@ -60,10 +60,10 @@ requires-poetry = ">=2.0"
 [tool.poetry.group.types.dependencies]
 types-dataclasses = "^0.6.6"
 types-jsonschema = "^4.26.0"
-types-tqdm = "^4.69.0.20260728"
+types-tqdm = "^4.70.0.20260805"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.163.0"
+hypothesis = "^6.165.10"
 pytest = ">=9.1.1,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
@@ -73,15 +73,15 @@ pytest-xdist = {extras = ["psutil"], version = "^3.8.0"}
 [tool.poetry.group.devenv.dependencies]
 codespell = "^2.4.1" 
 ipykernel = "^7.3.0" 
-ipython = ">=9.15.0" # SPEC0
+ipython = ">=9.16.1" # SPEC0
 isort = ">=5.12,<9.0" 
-jupyterlab = "^4.6.2" 
+jupyterlab = "^4.6.3" 
 jupyterlab-myst = "^2.7.0" 
 jupytext = "^1.19.5" 
 matplotlib = ">=3.11.1" # SPEC0
-mypy = "^2.2.0" 
-pre-commit = ">=4.6.1,<5" 
-ruff = ">=0.16.0,<0.17.0" 
+mypy = "^2.3.1" 
+pre-commit = ">=4.6.2,<5" 
+ruff = ">=0.16.3,<0.17.0" 
 snakeviz = ">=2.2.2,<3.0.0" 
 
 [tool.poetry.group.docs.dependencies]

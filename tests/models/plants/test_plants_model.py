@@ -88,7 +88,7 @@ def test_PlantsModel__init__(
 
     # Test the flora and community are as expected
     n_cells = fixture_core_components.grid.n_cells
-    assert plants_model.flora == fixture_flora
+    assert plants_model.flora.equals(fixture_flora)
     assert len(plants_model.communities) == n_cells
 
     # Check the canopy and subcanopy vegetation has been initialised and updated,

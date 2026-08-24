@@ -311,7 +311,7 @@ class BiomassTissueABC(ABC):
         return carbon_mass / total_pft_carbon_biomass
 
     def apply_herbivory(self, herbivory_array: DataArray):
-        """Remove biomass from a tissue to account for herbiivory.
+        """Remove biomass from a tissue to account for herbivory.
 
         The input is expected to be a DataArray with a pft dimension matching the number
         of cohorts and then an element dimension containing C and then each element.
@@ -564,8 +564,6 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
           elemental masses in the stem-wide element surplus pools and balancing the
           accumulated deficits and gains to those pools at the end of the allocation
           process.
-
-        TODO: This needs to account for herbivory - proportional to herbivory loss?
 
         Returns:
             A dictionary by tissue of turnover biomass arrays

@@ -16,6 +16,7 @@ from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
 from pyrealm.demography.cohorts import cohort_id_generator, create_cohorts
+from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
 
@@ -42,10 +43,7 @@ from virtual_ecosystem.models.plants.canopy import (
 )
 from virtual_ecosystem.models.plants.communities import Community, PlantCommunities
 from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
-from virtual_ecosystem.models.plants.functional_types import (
-    VEFlora,
-    get_flora_from_config,
-)
+from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 from virtual_ecosystem.models.plants.model_config import (
     PlantsConfiguration,
     PlantsConstants,
@@ -227,7 +225,7 @@ class PlantsModel(
         data: Data,
         core_components: CoreComponents,
         exporter: CommunityDataExporter,
-        flora: VEFlora,
+        flora: Flora,
         cohort_data: pandas.DataFrame,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
@@ -243,7 +241,7 @@ class PlantsModel(
         super().__init__(data, core_components, static)
 
         # Define and populate model specific attributes
-        self.flora: VEFlora
+        self.flora: Flora
         """A flora containing the plant functional types used in the plants model."""
         self.initial_cohort_data: pandas.DataFrame
         """A dataframe providing the initial cohort data."""
@@ -323,7 +321,7 @@ class PlantsModel(
 
     def _setup(
         self,
-        flora: VEFlora,
+        flora: Flora,
         cohort_data: pandas.DataFrame,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
