@@ -32,6 +32,8 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst
+from pyrealm.core.water import convert_water_moles_to_mm
+from pyrealm.pmodel import PModel
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import ModelTiming
@@ -248,11 +250,17 @@ class Subcanopy:
     ) -> None:
         # Init attributes
         self.data: Data = data
+        """The Data instance for a simulation."""
         self.pyrealm_core_constants: CoreConst = pyrealm_core_constants
+        """The pyrealm core constants set used."""
         self.model_constants: PlantsConstants = model_constants
+        """The plants model constants set used."""
         self.model_timing: ModelTiming = model_timing
+        """The model timing instance of the simulation."""
         self.layer_index: int = layer_index
+        """The layer index of the subcanopy."""
         self.data_object_template: DataArray = data_object_template
+        """A template for arrays with vertical layers and cell id."""
 
         # TODO: Currently initialising from constants using ideal ratios but should load
         #       nutrient masses from init data. See:
@@ -265,6 +273,7 @@ class Subcanopy:
             tissue_name="subcanopy_vegetation",
             constants=self.model_constants,
         )
+        """The vegetative biomass of the subcanopy."""
 
         self.seedbank_biomass: SubcanopyBiomass = SubcanopyBiomass.from_constants(
             masses=data["subcanopy_seedbank_biomass"].to_numpy(),
@@ -272,6 +281,7 @@ class Subcanopy:
             tissue_name="subcanopy_seedbank",
             constants=self.model_constants,
         )
+        """Reproductive biomass in the subcanopy."""
 
         # Write the initial values to data. This currently:
         #
@@ -309,15 +319,64 @@ class Subcanopy:
 
         # Type other attributes not populated at __init__
         self.lai: NDArray[np.floating]
+        """The leaf area index of the subcanopy."""
         self.light_transmission: NDArray[np.floating]
+        """The light transmission of the subcanopy."""
         self.fapar: NDArray[np.floating]
+        """The FAPAR of the subcanopy."""
+        self.subcanopy_transpiration: NDArray[np.floating]
+        """Total transpiration of the subcanopy for a model step."""
+        self.subcanopy_gpp: NDArray[np.floating]
+        """Total GPP of the subcanopy for a model step."""
 
-    def calculate_dynamics(
+    def estimate_gpp(
         self,
-        lue: NDArray[np.floating],
-        iwue: NDArray[np.floating],
+        pmodel: PModel,
         swd: NDArray[np.floating],
     ) -> None:
+        r"""Estimate the GPP and transpiration of the subcanopy.
+
+        This method estimates the GPP and transpiration for the subcanopy using the
+        current P Model conditions in the subcanopy layer. The GPP and transpiration may
+        then be penalised by water limitation before calculating the subcanopy dynamics.
+        """
+
+        # Calculate the gross primary productivity since the last update.
+        #    LUE                 1 layer          [gC mol-1]
+        #    * canopy top SWD    1 layer          [µmol m-2 s-1]
+        #    * subcanopy fapar   1 layer          [-]
+        #    * DST to PPFD       scalar           [-]
+        #    * time elapsed      scalar           [s]
+        # Units:
+        #    gC mol-1 * µmol m-2 s-1  * (-) * (-) * s = µg C m-2
+        #
+        # This calculation handles non-estimable LUE from the P Model by setting np.nan
+        # values to zero.
+        self.subcanopy_gpp = (
+            np.nan_to_num(pmodel.lue[self.layer_index, :])
+            * swd
+            * self.fapar
+            * self.model_constants.dsr_to_ppfd
+            * self.model_timing.update_interval_seconds
+        )
+
+        # Calculate the transpiration associated with the GPP in moles
+        subcanopy_transpiration_micromolar = (
+            self.subcanopy_gpp / (self.pyrealm_core_constants.k_c_molmass * 1e6)
+        ) * pmodel.iwue[self.layer_index, :]
+
+        # Convert to mm using the local subcanopy environment
+        self.subcanopy_transpiration = convert_water_moles_to_mm(
+            water_moles=subcanopy_transpiration_micromolar * 1e-6,
+            tc=pmodel.env.tc[self.layer_index, :],
+            patm=pmodel.env.patm[self.layer_index, :],
+            core_const=self.pyrealm_core_constants,
+        )
+
+        # Write transpiration data
+        self.data["transpiration"][self.layer_index] = self.subcanopy_transpiration
+
+    def calculate_dynamics(self) -> None:
         r"""Estimate the dynamics of subcanopy vegetation.
 
         This method models the biomass dynamics with the subcanopy vegetation and
@@ -327,14 +386,13 @@ class Subcanopy:
            into litter pools. The stoichiometric ratios of turnover biomass are
            identical to the pool biomasses.
 
-        2. The predicted light use and intrinsic water use efficiencies (LUE and iWUE)
-           in the surface layer are taken from the P Model and used to estimate gross
-           primary productivity (GPP) and transpiration. GPP is reduced by respiration
-           and yield to give net primary productivity NPP, which is added as new carbon
-           biomass to the subcanopy vegetation. The soil dissolved nitrate, ammonium and
-           phosphorous concentrations are then used to calculate the nutrient uptake
-           associated with the transpiration volume and these are added to the subcanopy
-           vegetation pool.
+        2. The estimated gross primary productivity (GPP) and transpiration (see
+           :meth:`estimate_gpp`) are used to estimate growth and nutrient uptake. GPP is
+           reduced by respiration and yield to give net primary productivity NPP, which
+           is added as new carbon biomass to the subcanopy vegetation. The soil
+           dissolved nitrate, ammonium and phosphorous concentrations are then used to
+           calculate the nutrient uptake associated with the transpiration volume and
+           these are added to the subcanopy vegetation pool.
 
         3. A fraction of the subcanopy vegetation biomass is then removed to represent
            reproductive output to the seedbank pool. The stochiometric ratio of the
@@ -365,40 +423,17 @@ class Subcanopy:
             / self.model_timing.updates_per_year
         )
 
-        # Calculate the gross primary productivity since the last update.
-        #    LUE                 1 layer          [gC mol-1]
-        #    * canopy top SWD    1 layer          [µmol m-2 s-1]
-        #    * subcanopy fapar   1 layer          [-]
-        #    * DST to PPFD       scalar           [-]
-        #    * time elapsed      scalar           [s]
-        # Units:
-        #    gC mol-1 * µmol m-2 s-1  * (-) * (-) * s = µg C m-2
-        #
-        # This calculation handles non-estimable LUE from the P Model by setting np.nan
-        # values to zero.
-        subcanopy_gpp = (
-            np.nan_to_num(lue)
-            * swd
-            * self.fapar
-            * self.model_constants.dsr_to_ppfd
-            * self.model_timing.update_interval_seconds
-        )
-
         # Calculate NPP, converting µg C m-2 to  kg C m-2
         # TODO - what is the fate of the (1- self.model_constants.subcanopy_yield). The
         #        assumption here is that it is lost to the atmosphere, but that is
         #        basically the same as respiration?
         subcanopy_npp = (
             self.model_constants.subcanopy_yield
-            * (subcanopy_gpp * 1e-9)
+            * (self.subcanopy_gpp * 1e-9)
             * (1 - self.model_constants.subcanopy_respiration_fraction)
         )
 
         # Transpiration and nutrient acquisition
-        # - Calculate the transpiration associated with the GPP in moles
-        self.subcanopy_transpiration = (
-            subcanopy_gpp / (self.pyrealm_core_constants.k_c_molmass * 1e6)
-        ) * iwue
 
         # Calculate the volume of water from µmol to m3 to convert soil water nutrient
         # concentrations in kg m3 into uptake nutrient mass.  Water has 1e6 g / 18.015 g
@@ -504,9 +539,6 @@ class Subcanopy:
             ("subcanopy_phosphorus_uptake", phosphorus_uptake_kg),
         ):
             self.data[name] = DataArray(values, coords=coords)
-
-        # Write transpiration
-        self.data["transpiration"][self.layer_index] = subcanopy_volume_m3 / 1000
 
     def set_light_capture(self, below_canopy_light_fraction: NDArray) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.
