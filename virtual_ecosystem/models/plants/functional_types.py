@@ -10,22 +10,17 @@ from __future__ import annotations
 
 import pandas as pd
 from pydantic import computed_field, model_validator
-from pyrealm.demography.flora import Flora
+from pyrealm.demography.flora import Flora, FloraValidator, load_flora_from_csv
 
 from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
 
 
-class VEFlora(Flora):
+class VEFloraValidator(FloraValidator):
     """Extended plant functional trait definition.
 
     This class extends the basic pyrealm Flora definition to include the extra traits
     required for the Virtual Ecosystem.
     """
-
-    # HACK pyrealm3 - extended class has mutable defaults. Somehow this is OK in the
-    #      pyrealm definition of Flora , but not here. It might be better to have them
-    #      as tuples throughout. See:
-    #           https://github.com/ImperialCollegeLondon/pyrealm/issues/695
 
     p_foliage_for_reproductive_tissue: tuple[float, ...] = (0.05,)
     r"""The carbon allocation to reproductive tissue as a proportion of foliage mass (kg
@@ -109,19 +104,21 @@ class VEFlora(Flora):
         )
 
 
-def get_flora_from_config(config: PlantsConfiguration) -> VEFlora:
+def get_flora_from_config(config: PlantsConfiguration) -> Flora:
     """Generate a Flora object from a Virtual Ecosystem configuration.
 
     Args:
         config: A validated PlantsConfiguration instance.
 
     Returns:
-        A  populated :class:`VEFlora` instance.
+        A  populated :class:`pyrealm.demography.flora.Flora` instance.
     """
 
     # Read the file, handling file IO and parsing errors.
     try:
-        flora = VEFlora.from_csv(config.pft_definitions_path)
+        flora = load_flora_from_csv(
+            path=config.pft_definitions_path, strict=True, validator=VEFloraValidator
+        )
     except (FileNotFoundError, pd.errors.ParserError) as excep:
         raise excep
 
