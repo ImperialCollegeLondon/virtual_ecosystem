@@ -478,32 +478,6 @@ def test_update_canopy_air_temperature(dummy_climate_data):
     assert np.all(result[valid] < 45.0)
 
 
-def test_update_surface_air_temperature(
-    dummy_climate_data, fixture_state_inputs, fixture_abiotic_indices
-):
-    """Test update surface air temperature."""
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        update_surface_air_temperature,
-    )
-
-    data = dummy_climate_data
-    state = fixture_state_inputs
-    idx = fixture_abiotic_indices
-
-    result = update_surface_air_temperature(
-        canopy_air_temperature=data["canopy_temperature"][idx.canopy].to_numpy(),
-        state=state,
-        idx=idx,
-        denominator_tolerance=1e-10,
-    )
-
-    # Mask valid values
-    valid = ~np.isnan(result)
-
-    assert np.all(result[valid] > 10.0)
-    assert np.all(result[valid] < 45.0)
-
-
 def test_update_specific_humidity(dummy_climate_data, fixture_core_components):
     """Test update specific humidity."""
 

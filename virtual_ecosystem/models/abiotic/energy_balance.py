@@ -57,7 +57,6 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_weights_from_absorbed_radiation,
-    find_last_valid_row,
     set_unintended_nan_to_zero,
 )
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
@@ -648,62 +647,6 @@ def update_canopy_air_temperature(
         / (density_air * specific_heat_air * mixing_layer_thickness)
     )
     return new_air_temperature
-
-
-def update_surface_air_temperature(
-    canopy_air_temperature: NDArray[np.floating],
-    state: dict[str, NDArray[np.floating]],
-    idx: SimpleNamespace,
-    denominator_tolerance: float,
-):
-    """Update surface air temperature in equilibrium with soil and canopy fluxes.
-
-    The surface air temperature is diagnosed from the soil and canopy bottom
-    conductances and temperatures, assuming equilibrium between the soil and canopy
-    fluxes. This is necessary because the surface layer is too thin to be updated based
-    on fluxes over a 1-hour timestep, and we want to avoid unrealistic surface air
-    temperatures that would arise from a flux-based update.
-
-    For cells with fewer canopy layers, the bottom canopy temperature is the last
-    finite value in the canopy temperature array. For cells with no canopy, the
-    above-canopy reference temperature is used instead.
-
-    Args:
-        canopy_air_temperature: Canopy air temperature, [C]
-        state: Dictionary of state variables
-        idx: Layer structure index
-        denominator_tolerance: Small value to prevent division by zero
-
-    Returns:
-        Updated surface air temperature, [C]
-    """
-
-    # Last finite canopy temperature per cell — bottom-most occupied canopy layer
-    # Returns NaN for cells with no canopy
-    canopy_bottom_temperature = find_last_valid_row(canopy_air_temperature)
-
-    # For cells with no canopy, fall back to above-canopy reference (row 0)
-    has_canopy = np.isfinite(canopy_bottom_temperature)
-    canopy_bottom_temperature = np.where(
-        has_canopy,
-        canopy_bottom_temperature,
-        state["air_temperature"][0],  # above-canopy reference
-    )
-
-    # Conductance-weighted average of soil and canopy bottom temperatures
-    g_soil = 1.0 / np.maximum(
-        state["aerodynamic_resistance_soil"], denominator_tolerance
-    )
-    g_canopy = 1.0 / np.maximum(
-        state["aerodynamic_resistance_canopy"], denominator_tolerance
-    )
-
-    surface_air_temperature = (
-        g_soil * state["soil_temperature"][idx.topsoil]
-        + g_canopy * canopy_bottom_temperature
-    ) / (g_soil + g_canopy)
-
-    return surface_air_temperature
 
 
 def update_specific_humidity(
