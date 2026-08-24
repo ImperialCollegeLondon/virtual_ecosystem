@@ -137,6 +137,9 @@ def run_simple_microclimate(
         ).rename(var)
 
     # Interpolate wind profiles
+    # The reference wind speed is positive or negative depending on the wind direction.
+    # Since we do not take direction into account, and to ensure correct computation of
+    # wind profiles, the wind speed should be always positive going into the equations.
     lower_wind, upper_wind, gradient_wind = getattr(bounds, "wind_speed")
     reference_wind_speed = np.abs(
         data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
