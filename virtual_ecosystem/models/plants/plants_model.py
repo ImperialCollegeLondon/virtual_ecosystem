@@ -27,7 +27,7 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration, PyrealmConfig
-from virtual_ecosystem.models.plants.biomasses_new import (
+from virtual_ecosystem.models.plants.biomasses import (
     Biomasses,
     BiomassTissueABC,
     FoliageBiomass,

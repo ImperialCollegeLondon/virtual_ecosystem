@@ -24,7 +24,7 @@ def fixture_exporter_components(
     from pyrealm.demography.cohorts import cohort_id_generator
     from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation
 
-    from virtual_ecosystem.models.plants.biomasses_new import (
+    from virtual_ecosystem.models.plants.biomasses import (
         Biomasses,
         FoliageBiomass,
         FruitBiomass,

@@ -59,10 +59,10 @@ This page documents submodules of the `plants` module used to support the centra
     :members:
 ```
 
-## The plants {mod}`~virtual_ecosystem.models.plants.biomasses_new` module
+## The plants {mod}`~virtual_ecosystem.models.plants.biomasses` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.plants.biomasses_new
+.. automodule:: virtual_ecosystem.models.plants.biomasses
     :autosummary:
     :members:
 ```

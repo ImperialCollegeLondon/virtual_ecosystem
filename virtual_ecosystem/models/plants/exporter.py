@@ -21,7 +21,7 @@ from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllo
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.plants.biomasses_new import Biomasses
+from virtual_ecosystem.models.plants.biomasses import Biomasses
 from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
