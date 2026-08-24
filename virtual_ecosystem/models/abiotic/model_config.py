@@ -204,7 +204,7 @@ class AbioticConstants(AbioticSharedConstants):
     min_leaf_area_index_for_mixing: float = 0.5
     """Minimum leaf area index required for turbulent mixing to occur, [m m-1]."""
 
-    integration_time_interval: float = 200.0
+    integration_time_interval: float = 300.0
     """Initial integration time interval for air temperature update, [s]."""
 
     min_temperature_change: float = 2.0
@@ -212,6 +212,9 @@ class AbioticConstants(AbioticSharedConstants):
 
     max_temperature_change: float = 10.0
     """Maximum temperature change for flexible integration time step, [C]"""
+
+    integration_time_modifier: float = 0.2
+    """Integration time modifier for adaptable time integration of air temperature."""
 
 
 class AbioticConfiguration(ModelConfigurationRoot):

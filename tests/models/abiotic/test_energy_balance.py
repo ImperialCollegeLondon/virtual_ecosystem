@@ -887,6 +887,7 @@ def test_solve_canopy_temperature_with_air_coupling(
             denominator_tolerance=1e-12,
             min_temperature_change=2.0,
             max_temperature_change=10.0,
+            integration_time_modifier=2.0,
             idx=idx,
         )
     )

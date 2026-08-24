@@ -488,8 +488,9 @@ def update_soil_temperature(
 
     if not np.all(np.isfinite(soil_temperature)):
         raise ValueError(
-            "Soil temperature is not finite, consider reducing the initial "
-            "integration time step for air temperature in secant method."
+            "Soil temperature is not finite, consider reducing the initial ",
+            "integration time step or the integration time modifier for air ",
+            "temperature in secant method.",
         )
 
     return soil_temperature
@@ -1109,6 +1110,7 @@ def solve_canopy_temperature_with_air_coupling(
     denominator_tolerance: float,
     min_temperature_change: float,
     max_temperature_change: float,
+    integration_time_modifier: float,
     idx: SimpleNamespace,
 ) -> tuple[
     NDArray[np.floating],
@@ -1145,6 +1147,7 @@ def solve_canopy_temperature_with_air_coupling(
             step, [C]
         max_temperature_change: Maximum temperature change for flexible integration time
             step, [C]
+        integration_time_modifier: Factor to adjust integration time interval
         idx: Namespace containing indices for different layers.
 
     Returns:
@@ -1220,7 +1223,7 @@ def solve_canopy_temperature_with_air_coupling(
             canopy_change > max_temperature_change
             or air_change > max_temperature_change
         ):
-            integration_time_step *= 0.5
+            integration_time_step *= 1 - integration_time_modifier
             continue
 
         # Accept update
@@ -1237,7 +1240,7 @@ def solve_canopy_temperature_with_air_coupling(
             and air_change < min_temperature_change
         ):
             integration_time_step = min(
-                integration_time_step * 1.2,
+                integration_time_step * (1 + integration_time_modifier),
                 abiotic_constants.integration_time_interval,
             )
 
