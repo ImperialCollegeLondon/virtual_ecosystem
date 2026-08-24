@@ -451,7 +451,7 @@ def update_soil_temperature(
         Updated soil temperatures, [C]
 
     Raises:
-        ValueError if soil temperature is nan or -inf
+        ValueError: if soil temperature is nan or -inf
     """
 
     n_layers = len(soil_temperature)
