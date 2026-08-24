@@ -27,6 +27,10 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration, PyrealmConfig
+from virtual_ecosystem.models.hydrology.model_config import (
+    HydrologyConfiguration,
+    HydrologyConstants,
+)
 from virtual_ecosystem.models.plants.biomasses import (
     Biomasses,
     BiomassTissueABC,
@@ -114,6 +118,7 @@ class PlantsModel(
         "arbuscular_mycorrhizal_p_supply",
         "ectomycorrhizal_n_supply",
         "ectomycorrhizal_p_supply",
+        "soil_moisture",
     ),
     vars_updated=(
         "stem_turnover_cnp",  # i.e. deadwood
@@ -216,6 +221,7 @@ class PlantsModel(
             PFT name.
         model_constants: Set of constants for the plants model.
         pyrealm_config: Configuration options to the pyrealm package.
+        hydrology_constants: Constants from the hydrology model.
         static: Boolean flag indicating if the model should run in static mode.
     """
 
@@ -228,6 +234,7 @@ class PlantsModel(
         cohort_data: pandas.DataFrame,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
+        hydrology_constants: HydrologyConstants = HydrologyConstants(),
         static: bool = False,
     ):
         """Plants init function.
@@ -292,12 +299,22 @@ class PlantsModel(
         """PModel constants used by pyrealm."""
         self.pyrealm_core_consts: CoreConst
         """Core constants used by pyrealm."""
+
         self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
         self.canopy_top_radiation: NDArray[np.floating]
         """The downwelling radiation at the canopy top for the current time step."""
         self.subcanopy: Subcanopy
         """Representation of the subcanopy vegetation."""
+        self.hydrology_constants: HydrologyConstants
+        """Constants used by the Hydrology model."""
+        self.soil_water_residual: float
+        """Residual soil water limit for transpiration."""
+        self.total_daily_water_demand: NDArray[np.floating]
+        """The total daily water demand from transpiration when not water limited."""
+        self.water_limitation_factor: NDArray[np.floating]
+        """The limitation factor to GPP and transpiration when water demand cannot be
+        met from soil moisture."""
         self.data_object_templates: dict[str, xr.DataArray]
         """DataArray templates for the data object."""
 
@@ -316,6 +333,7 @@ class PlantsModel(
                 cohort_data=cohort_data,
                 model_constants=model_constants,
                 pyrealm_config=pyrealm_config,
+                hydrology_constants=hydrology_constants,
             )
 
     def _setup(
@@ -324,6 +342,7 @@ class PlantsModel(
         cohort_data: pandas.DataFrame,
         model_constants: PlantsConstants = PlantsConstants(),
         pyrealm_config: PyrealmConfig = PyrealmConfig(),
+        hydrology_constants: HydrologyConstants = HydrologyConstants(),
     ) -> None:
         """Setup implementation for the Plants Model.
 
@@ -333,6 +352,7 @@ class PlantsModel(
         # Set the instance attributes from the __init__ arguments
         self.flora = flora
         self.model_constants = model_constants
+        self.hydrology_constants = hydrology_constants
 
         # Adjust flora rates to timestep
         # TODO: This is kinda hacky because the Flora instances is a frozen dataclass,
@@ -559,6 +579,19 @@ class PlantsModel(
             1 - model_constants.per_propagule_annual_recruitment_probability
         ) ** (1 / self.model_timing.updates_per_year)
 
+        # Calculate the residual soil water limit in mm (currently a global value) as
+        # the product of the depth of the first subsoil layer in mm and the hydrology
+        # soil moisture residual constant.
+        #
+        # NOTE: The current bucket hydrology model expects all uptake to be from the
+        # second soil layer (first below surface soil) but this could change in future
+        # to include deeper layers (see #1771)
+        self.soil_water_residual = (
+            self.layer_structure.soil_layer_thickness[1]
+            * 1000
+            * self.hydrology_constants.soil_moisture_residual
+        ).item()
+
         # Run the community data exporter
         # - the stem allocations and growth increments are empty dictionaries.
         self.exporter.dump(
@@ -596,6 +629,9 @@ class PlantsModel(
         core_configuration: CoreConfiguration = configuration.get_subconfiguration(
             "core", CoreConfiguration
         )
+        hydrology_configuration: HydrologyConfiguration = (
+            configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
+        )
 
         # Generate the flora
         flora = get_flora_from_config(config=model_configuration)
@@ -627,6 +663,7 @@ class PlantsModel(
                 model_constants=model_configuration.constants,
                 exporter=exporter,
                 pyrealm_config=core_configuration.pyrealm,
+                hydrology_constants=hydrology_configuration.constants,
             )
         except Exception as excep:
             LOGGER.critical(
@@ -742,6 +779,13 @@ class PlantsModel(
         # a single aggregate estimate of GPP and resulting transpiration per stem
         self.estimate_gpp(time_index=time_index)
 
+        # Similarly estimate GPP and transpiration for the subcanopy
+        self.subcanopy.estimate_gpp(pmodel=self.pmodel, swd=self.canopy_top_radiation)
+
+        # Apply water limitation
+        self.calculate_daily_water_demand()
+        self.apply_water_limitation()
+
         # Calculate uptake from each inorganic soil nutrient pool
         self.calculate_nutrient_uptake()
 
@@ -751,12 +795,8 @@ class PlantsModel(
         # of folivory.
         self.allocate_gpp()
 
-        # Calculate the subcanopy vegetation
-        self.subcanopy.calculate_dynamics(
-            lue=self.pmodel.lue[self.layer_structure.index_surface_scalar, :],
-            iwue=self.pmodel.iwue[self.layer_structure.index_surface_scalar, :],
-            swd=self.canopy_top_radiation,
-        )
+        # Calculate the subcanopy vegetation dynamics
+        self.subcanopy.calculate_dynamics()
 
         # Run the community data exporter
         self.exporter.dump(
@@ -1160,21 +1200,12 @@ class PlantsModel(
             # Convert to mm
             per_layer_transpiration_mm = convert_water_moles_to_mm(
                 water_moles=per_layer_transpiration_micromolar * 1e-6,
-                tc=np.repeat(
-                    self.pmodel.env.tc[:, [cell_id]],
-                    canopy.n_cohorts,
-                    axis=1,
-                ),
-                patm=np.repeat(
-                    self.pmodel.env.patm[:, [cell_id]],
-                    canopy.n_cohorts,
-                    axis=1,
-                ),
+                tc=self.pmodel.env.tc[:, [cell_id]],
+                patm=self.pmodel.env.patm[:, [cell_id]],
                 core_const=self.pyrealm_core_consts,
             )
 
-            # Calculate and store total stem transpiration in mm per stem and total
-            # grid cell transpiration in mm m-2 since last update
+            # Calculate and store total stem transpiration in mm per stem
             self.per_stem_transpiration[cell_id] = np.nansum(
                 per_layer_transpiration_mm, axis=0
             )
@@ -1190,6 +1221,74 @@ class PlantsModel(
                 ).sum(axis=1),
                 np.nan,
             )
+
+    def calculate_daily_water_demand(self) -> None:
+        """Calculates the water demand from transpiration.
+
+        The method calculates the total daily water demand in mm from transpiration in
+        both the canopy and subcanopy.
+        """
+
+        total_canopy_demand = np.zeros(self.grid.n_cells)
+
+        for cell_id, cmty in self.communities.items():
+            total_canopy_demand[cell_id] = (
+                self.per_stem_transpiration[cell_id]
+                * cmty.cohorts["n_individuals"].to_numpy()
+            ).sum()
+
+        # Calculate per cell limitation factor as available water over total daily
+        # demand, capping at 1. Note that that this uses an explicit integer number of
+        # days to match the definition of the `days` parameter scaling
+        self.total_daily_water_demand = (
+            total_canopy_demand + self.subcanopy.subcanopy_transpiration
+        ) / np.floor(
+            self.model_timing.update_interval_seconds
+            / self.core_constants.seconds_to_day
+        )
+
+    def apply_water_limitation(self) -> None:
+        """Apply water limitation to canopy and subcanopy growth.
+
+        This method compares the total water demand in cells to the plant accessible
+        soil moisture. If the total water demand exceeds the available water, it
+        calculates a soil moisture limitation factor as the simple ratio of
+        available water over total demand. This factor is then applied to per stem
+        GPP and transpiration estimates and to subcanopy GPP and transpiration.
+        """
+
+        # NOTE: The current bucket hydrology model expects all uptake to be from the
+        # first subsoil layer (below surface soil) but this could change in future
+        # to include deeper layers (see #1771)
+
+        water_limitation_factor = np.minimum(
+            1,
+            (
+                self.data["soil_moisture"]
+                .sel(
+                    layers=np.argmax(self.layer_structure.index_subsoil)
+                )  # 1st subsoil layer
+                .to_numpy()
+                - self.soil_water_residual
+            )
+            / self.total_daily_water_demand,
+        )
+
+        # Apply limitation
+        # - Reduce subcanopy transpiration and productivity
+        self.subcanopy.subcanopy_transpiration *= water_limitation_factor
+        self.subcanopy.subcanopy_gpp *= water_limitation_factor
+
+        # - Reduce canopy transpiration and productivity
+        for cell_id in self.communities.keys():
+            self.per_stem_transpiration[cell_id] *= water_limitation_factor[cell_id]
+            self.per_stem_gpp[cell_id] *= water_limitation_factor[cell_id]
+
+        # - Reduce resulting transpiration demands in data
+        self.data["transpiration"] *= water_limitation_factor
+
+        # Store attribute
+        self.water_limitation_factor = water_limitation_factor
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
