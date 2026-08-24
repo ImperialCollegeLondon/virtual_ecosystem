@@ -841,7 +841,7 @@ def dummy_climate_data(fixture_core_components):
     # ------------------------------------------------------------------
     reference_fields = {
         "air_temperature_ref": [23.0, 24.0, 25.0, 26.0],
-        "wind_speed_ref": [0.5, 0.8, 1.2, 1.8],
+        "wind_speed_ref": [-0.5, 0.8, 1.2, 1.8],
         "relative_humidity_ref": [90.0, 82.0, 72.0, 60.0],
         "vapour_pressure_deficit_ref": [0.14, 0.30, 0.65, 1.10],
         "vapour_pressure_ref": [2.2, 2.1, 1.9, 1.6],
