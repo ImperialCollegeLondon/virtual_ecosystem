@@ -265,7 +265,7 @@ def test_calculate_sensible_heat_flux(dummy_climate_data, fixture_core_component
 
 
 @pytest.mark.parametrize(
-    "g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp",
+    "g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp, raises",
     [
         # Test case for 2 soil layers and constant (float) soil parameters
         (
@@ -275,14 +275,28 @@ def test_calculate_sensible_heat_flux(dummy_climate_data, fixture_core_component
             1.2,
             1300.0,
             800.0,
-            3600.0,  # time_interval (1 hour)
+            3600.0,
             2,
             np.array(
                 [
                     [15.692308, 16.865385, 14.623077, 13.761538],
                     [14.702959, 15.774852, 13.674201, 12.731716],
-                ],
+                ]
             ),
+            None,
+        ),
+        # Test case for nan in soil temperature
+        (
+            np.array([20.0, 25.0, 18.0, 22.0]),
+            np.array([[np.nan, 16.0, 14.0, 13.0], [14.0, 15.0, 13.0, 12.0]]),
+            np.array([[0.1, 0.1, 0.1, 0.1], [0.1, 0.1, 0.1, 0.1]]),
+            1.2,
+            1300.0,
+            800.0,
+            3600.0,
+            2,
+            None,
+            ValueError,
         ),
         # Test case for 5 soil layers and arrays of soil parameters
         (
@@ -294,13 +308,13 @@ def test_calculate_sensible_heat_flux(dummy_climate_data, fixture_core_component
                     [14.2, 15.2, 13.2, 12.2],
                     [14.1, 15.1, 13.1, 12.1],
                     [14.0, 15.0, 13.0, 12.0],
-                ],
+                ]
             ),
             np.array([[0.1], [0.2], [0.2], [0.3], [0.2]]) * np.ones((1, 4)),
             np.repeat(1.2, 4),
             np.repeat(1300.0, 4),
             np.repeat(800.0, 4),
-            3600.0,  # time_interval (1 hour)
+            3600.0,
             5,
             np.array(
                 [
@@ -309,29 +323,43 @@ def test_calculate_sensible_heat_flux(dummy_climate_data, fixture_core_component
                     [14.222926, 15.222926, 13.222926, 12.222926],
                     [14.1, 15.1, 13.1, 12.1],
                     [14.010385, 15.010385, 13.010385, 12.010385],
-                ],
+                ]
             ),
+            None,
         ),
     ],
 )
-def test_update_soil_temperature(g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp):
+def test_update_soil_temperature(
+    g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp, raises
+):
     """Test update soil temperature."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import update_soil_temperature
 
-    updated_temperature = update_soil_temperature(
-        ground_heat_flux=g,
-        soil_temperature=soil_temp,
-        soil_layer_thickness=dz,
-        soil_thermal_conductivity=k,
-        soil_bulk_density=rho,
-        specific_heat_capacity_soil=cp,
-        time_interval=dt,
-    )
+    if raises is not None:
+        with pytest.raises(raises):
+            update_soil_temperature(
+                ground_heat_flux=g,
+                soil_temperature=soil_temp,
+                soil_layer_thickness=dz,
+                soil_thermal_conductivity=k,
+                soil_bulk_density=rho,
+                specific_heat_capacity_soil=cp,
+                time_interval=dt,
+            )
+    else:
+        updated_temperature = update_soil_temperature(
+            ground_heat_flux=g,
+            soil_temperature=soil_temp,
+            soil_layer_thickness=dz,
+            soil_thermal_conductivity=k,
+            soil_bulk_density=rho,
+            specific_heat_capacity_soil=cp,
+            time_interval=dt,
+        )
 
-    # Check that the number of layers matches the expected layers
-    assert updated_temperature.shape[0] == exp_n
-    np.testing.assert_allclose(updated_temperature, exp_temp, rtol=1e-4, atol=1e-4)
+        assert updated_temperature.shape[0] == exp_n
+        np.testing.assert_allclose(updated_temperature, exp_temp, rtol=1e-4, atol=1e-4)
 
 
 def test_energy_balance_residual_only(
@@ -831,6 +859,9 @@ def test_solve_canopy_temperature_with_air_coupling(
             convergence_tolerance=1e-6,
             small_perturbation_second_guess=0.5,
             denominator_tolerance=1e-12,
+            min_temperature_change=2.0,
+            max_temperature_change=10.0,
+            integration_time_modifier=2.0,
             idx=idx,
         )
     )

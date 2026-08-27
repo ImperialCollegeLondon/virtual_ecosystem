@@ -101,8 +101,7 @@ def test_ve_run(capsys, config_file_list):
 @pytest.mark.parametrize(
     argnames="abiotic_simple",
     argvalues=(
-        # TODO: re-enable abiotic when it is working in integration test. Fixes #1634
-        # pytest.param(False, id="abiotic"),
+        pytest.param(False, id="abiotic"),
         pytest.param(True, id="abiotic_simple"),
     ),
 )
