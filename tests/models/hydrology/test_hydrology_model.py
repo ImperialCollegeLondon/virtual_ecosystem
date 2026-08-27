@@ -226,6 +226,7 @@ def test_setup_and_update_hydrology_model_ranges(
     exp_groundwater = DataArray(
         np.full((2, fixture_core_components.grid.n_cells), 450.0),
         dims=("groundwater_layers", "cell_id"),
+        coords={"groundwater_layers": [14, 15], "cell_id": [0, 1, 2, 3]},
     )
     np.testing.assert_allclose(
         model.data["groundwater_storage"],

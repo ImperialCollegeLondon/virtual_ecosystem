@@ -303,9 +303,17 @@ class HydrologyModel(
             self.initial_groundwater_saturation
             * self.model_constants.groundwater_capacity
         )
+        groundwater_layer_indices = [
+            int(self.layer_structure.n_layers),
+            int(self.layer_structure.n_layers) + 1,
+        ]
         self.data["groundwater_storage"] = DataArray(
             np.full((2, self.grid.n_cells), initial_groundwater_storage),
             dims=("groundwater_layers", "cell_id"),
+            coords={
+                "groundwater_layers": groundwater_layer_indices,
+                "cell_id": self.grid.cell_id,
+            },
             name="groundwater_storage",
         )
 
@@ -866,6 +874,7 @@ class HydrologyModel(
         soil_hydrology["groundwater_storage"] = DataArray(
             daily_lists["groundwater_storage"][day],
             dims=self.data["groundwater_storage"].dims,
+            coords=self.data["groundwater_storage"].coords,
         )
 
         # Update data object
