@@ -204,6 +204,15 @@ class AbioticConstants(AbioticSharedConstants):
     integration_time_interval: float = 300.0
     """Initial integration time interval for air temperature update, [s]."""
 
+    min_temperature_change: float = 2.0
+    """Minimum temperature change for flexible integration time step, [C]"""
+
+    max_temperature_change: float = 10.0
+    """Maximum temperature change for flexible integration time step, [C]"""
+
+    integration_time_modifier: float = 0.2
+    """Integration time modifier for adaptable time integration of air temperature."""
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""
