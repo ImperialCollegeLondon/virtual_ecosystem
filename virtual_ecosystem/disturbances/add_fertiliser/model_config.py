@@ -29,8 +29,5 @@ class AddFertiliserConstants(Configuration):
 class AddFertiliserConfiguration(DisturbanceConfigurationRoot):
     """Configuration class for the fertiliser addition disturbance."""
 
-    run_every: tuple[int, ...] = (0,)
-    """How frequently disturbance should run (defaults to running every time step)."""
-
     constants: AddFertiliserConstants = AddFertiliserConstants()
     """Constants values for the fertiliser addition disturbance."""
