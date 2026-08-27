@@ -39,6 +39,7 @@ from virtual_ecosystem.models.plants.biomasses import (
     RootBiomass,
     SeedBiomass,
     StemBiomass,
+    partition_reproductive_tissue_mass,
 )
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
@@ -393,27 +394,31 @@ class PlantsModel(
         # HACK pyrealm3: Initialise the non-pyrealm biomasses by setting additional
         #      attributes on the community allometries.
         for cmty in self.communities.values():
-            cmty.stem_allometry.reproductive_tissue_mass = (
-                cmty.stem_allometry.foliage_mass
-                * cmty.cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
+            # Partition reproductive tissue allocation into fruit and seed masses
+            cmty.stem_allometry.fruit_mass, cmty.stem_allometry.seed_mass = (
+                partition_reproductive_tissue_mass(
+                    cohorts=cmty.cohorts,
+                    mass=cmty.stem_allometry.foliage_mass
+                    * cmty.cohorts["p_foliage_for_reproductive_tissue"].to_numpy(),
+                )
             )
 
         # Define the set of tissues to be tracked for each stem.
         self.biomass_tissues = [
             FoliageBiomass,  # foliage mass
-            FruitBiomass,  # plant fruit tissue
-            SeedBiomass,  # plant seed tissue
             StemBiomass,  # stem mass
-            RootBiomass,  # not a pyrealm allometry attribute
+            RootBiomass,  # fine root mass
+            FruitBiomass,  # fruit tissue mass
+            SeedBiomass,  # seed tissue mass
         ]
 
         # Record the per stem biomasses of stochiometric tissues for each cohort.
         # The initial values for N and P are based on the ideal stoichiometric ratios
         # defined in the plant traits.
         self.biomasses = {
-            cell_id: Biomasses.default_init(
-                community=community,
-                with_elements=["N", "P"],
+            cell_id: Biomasses.from_cohorts(
+                cohorts=community.cohorts,
+                allometry=community.stem_allometry,
                 tissues=self.biomass_tissues,
             )
             for cell_id, community in self.communities.items()
@@ -984,7 +989,9 @@ class PlantsModel(
                 # Get the tissue
                 tissue = biomasses.get_tissue(herbivory_tissue)
                 # Get the relative carbon biomass of each cohort within its PFT
-                relative_herbivory = tissue.get_relative_carbon_biomass_by_pft()
+                relative_herbivory = tissue.get_relative_carbon_biomass_by_pft(
+                    cohorts=community.cohorts
+                )
 
                 # Extract the herbivory for this cell, broadcasts the total PFT
                 # herbivory out to each cohort and then scale by the relative per PFT
@@ -1333,7 +1340,11 @@ class PlantsModel(
 
             # HACK pyrealm3 - again, passing in reproductive tissue mass as a extra
             #      attribute on the increment object
-            stem_allocation.reproductive_tissue_turnover = reproductive_tissue_turnover
+            stem_allocation.fruit_turnover, stem_allocation.seed_turnover = (
+                partition_reproductive_tissue_mass(
+                    cohorts=cohorts, mass=reproductive_tissue_turnover
+                )
+            )
 
             self.stem_allocations[cell_id] = stem_allocation
 
@@ -1358,6 +1369,15 @@ class PlantsModel(
             )
 
             self.growth_increments[cell_id] = growth_increments
+
+            # Assign change in fruit production with growth increment. Currently not
+            # allocating new fruit production with growth, placeholder for when we do.
+            growth_increments.delta_fruit_mass = np.zeros_like(
+                growth_increments.delta_foliage_mass
+            )
+            growth_increments.delta_seed_mass = np.zeros_like(
+                growth_increments.delta_foliage_mass
+            )
 
             # GROW THE PLANTS by increasing the stem dbh
             #
@@ -1391,8 +1411,8 @@ class PlantsModel(
             for aggregated_tissue in ("stem", "foliage", "root"):
                 self.data[f"{aggregated_tissue}_turnover_cnp"][cell_id] += (
                     tissue_turnovers[aggregated_tissue]
-                    * cohorts["n_individuals"].to_numpy()
-                ).sum(axis=1)
+                    * cohorts["n_individuals"].to_numpy()[:, None]
+                ).sum(axis=0)
 
             # Expose biomasses that are affected by herbivory and which are currently
             # structured by PFT: foliage, seed and fruit
@@ -1415,29 +1435,28 @@ class PlantsModel(
                 # Calculate the total turnover and standing biomass in each cohort
                 total_turnover_biomass = (
                     tissue_turnovers[by_pft_tissue]
-                    * cohorts["n_individuals"].to_numpy()
+                    * cohorts["n_individuals"].to_numpy()[:, None]
                 )
                 total_standing_biomass = (
-                    self.biomasses[cell_id]
-                    .get_tissue(by_pft_tissue)
-                    .as_array(with_carbon=True)
-                    * cohorts["n_individuals"].to_numpy()
+                    self.biomasses[cell_id].get_tissue(by_pft_tissue).elemental_masses
+                    * cohorts["n_individuals"].to_numpy()[:, None]
                 )
 
-                for pft_idx, col_idx in enumerate(cohort_pft_bool_idx):
+                for pft_idx, row_idx in enumerate(cohort_pft_bool_idx):
                     # Extract the cohorts for this PFT and sum across them and insert
                     # into xxx_turnover_cnp arrays
                     self.data[f"{by_pft_tissue}_turnover_cnp"][cell_id][pft_idx] = (
-                        total_turnover_biomass[:, col_idx].sum(axis=1)
+                        total_turnover_biomass[row_idx, :].sum(axis=0)
                     )
 
                     # Same but for the standing canopy biomass inserted into
                     # canopy_xxx_cnp arrays
                     self.data[f"canopy_{by_pft_tissue}_cnp"][cell_id][pft_idx] = (
-                        total_standing_biomass[:, col_idx].sum(axis=1)
+                        total_standing_biomass[row_idx, :].sum(axis=0)
                     )
 
             # HANDLE ALLOCATION TO GROWTH
+
             biomasses.apply_growth(growth_increments=growth_increments)
 
             # TODO: capture propagules in canopy seedbank.
@@ -1472,31 +1491,22 @@ class PlantsModel(
             #        bring it in here.
             # TODO - need to think here about the allocation model. The supplies should
             #        probably be proportional to relative contributions to the carbon
-            #        supply rather than the number of individuals.
+            #        supply rather than just distributed equally amongst all
+            #        individuals.
 
-            symbiote_nutrients = {}
+            total_individuals = cohorts["n_individuals"].sum()
+            cohort_not_empty = cohorts["n_individuals"] > 0
+            symbiote_nutrients = np.zeros_like(biomasses.element_surpluses)
 
-            for element in ["N", "P"]:
-                # Balance the N & P surplus/deficit with the symbiote carbon supply
+            for col_idx, element in ((1, "n"), (2, "p")):
                 total_supply = float(
-                    self.data["ectomycorrhizal_" + element.lower() + "_supply"][cell_id]
-                    + self.data[
-                        "arbuscular_mycorrhizal_" + element.lower() + "_supply"
-                    ][cell_id]
+                    self.data["ectomycorrhizal_" + element + "_supply"][cell_id]
+                    + self.data["arbuscular_mycorrhizal_" + element + "_supply"][
+                        cell_id
+                    ]
                 )
-
-                # Calculate the fraction of the total supply that each stem gets by
-                # calculating the cohort share (using cohort_fractions) and then
-                # dividing by the number of individuals per cohort. Handle case where
-                # there are no individuals in the cohort, by assigning them zero.
-                n_individuals = cohorts["n_individuals"].to_numpy()
-                cohort_fractions = n_individuals / sum(n_individuals)
-
-                symbiote_nutrients[element] = np.divide(
-                    total_supply * cohort_fractions,
-                    n_individuals,
-                    out=np.zeros_like(cohort_fractions),
-                    where=n_individuals > 0,
+                symbiote_nutrients[cohort_not_empty, col_idx] = (
+                    total_supply / total_individuals
                 )
 
             biomasses._adjust_surpluses(symbiote_nutrients)
@@ -1560,11 +1570,11 @@ class PlantsModel(
                 #    total aggregated elemental contributions:
                 for aggregated_tissue in ("stem", "root"):
                     self.data[f"{aggregated_tissue}_turnover_cnp"][cell_id] += (
-                        biomasses_of_dead_stems.get_tissue(aggregated_tissue).as_array(
-                            with_carbon=True
-                        )
-                        * mortality
-                    ).sum(axis=1)
+                        biomasses_of_dead_stems.get_tissue(
+                            aggregated_tissue
+                        ).elemental_masses
+                        * mortality[:, None]
+                    ).sum(axis=0)
 
                 # 2. Fruit and seed biomasses are stored by PFT so need pooling by PFT.
                 #    TODO - Some structural overlap here with allocate turnover in GPP.
@@ -1576,17 +1586,17 @@ class PlantsModel(
                 for by_pft_tissue in ("fruit", "foliage", "seed"):
                     # Calculate the total turnover and standing biomass in each cohort
                     total_turnover_biomass = (
-                        biomasses_of_dead_stems.get_tissue(by_pft_tissue).as_array(
-                            with_carbon=True
-                        )
-                        * mortality
+                        biomasses_of_dead_stems.get_tissue(
+                            by_pft_tissue
+                        ).elemental_masses
+                        * mortality[:, None]
                     )
 
                     for pft_idx, col_idx in enumerate(cohort_pft_bool_idx):
                         # Extract the cohorts for this PFT and sum across them and
                         # insert into xxx_turnover_cnp arrays
                         self.data[f"{by_pft_tissue}_turnover_cnp"][cell_id][pft_idx] = (
-                            total_turnover_biomass[:, col_idx].sum(axis=1)
+                            total_turnover_biomass[col_idx, :].sum(axis=0)
                         )
 
     def apply_recruitment(self) -> None:
@@ -1654,14 +1664,13 @@ class PlantsModel(
                     cohorts=new_cohorts,
                 )
 
-                # Set the reproductive tissue mass
-                new_community.stem_allometry.reproductive_tissue_mass = np.zeros(
-                    len(new_cohorts)
-                )
+                # Set the reproductive tissue masses
+                new_community.stem_allometry.fruit_mass = np.zeros(len(new_cohorts))
+                new_community.stem_allometry.seed_mass = np.zeros(len(new_cohorts))
 
-                new_biomasses = Biomasses.default_init(
-                    community=new_community,
-                    with_elements=["N", "P"],
+                new_biomasses = Biomasses.from_cohorts(
+                    cohorts=new_community.cohorts,
+                    allometry=new_community.stem_allometry,
                     tissues=self.biomass_tissues,
                 )
 
@@ -1752,10 +1761,14 @@ class PlantsModel(
 
             # Add per-stem uptake to the biomass surplus pools
             self.biomasses[cell_id]._adjust_surpluses(
-                {
-                    "N": ammonium_uptake + nitrate_uptake,
-                    "P": phosphorous_uptake,
-                }
+                np.stack(
+                    [
+                        np.zeros_like(phosphorous_uptake),  # No carbon
+                        ammonium_uptake + nitrate_uptake,
+                        phosphorous_uptake,
+                    ],
+                    axis=1,
+                )
             )
 
     def convert_to_litter_units(self, input_mass: xr.DataArray) -> xr.DataArray:
