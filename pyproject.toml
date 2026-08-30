@@ -37,7 +37,7 @@ dependencies = [
   "openpyxl (>3.1)",
   "pint (>0.24)",
   "pyrealm (>=3.0.0.rc.3)",
-  "scipy (>=1.18.0)", # SPEC0
+  "scipy (>=1.18.1)", # SPEC0
   "tomli-w  (>1.0)",
   "tqdm (>4.66)",
   "xarray (>=2026.7.0)", # SPEC0
