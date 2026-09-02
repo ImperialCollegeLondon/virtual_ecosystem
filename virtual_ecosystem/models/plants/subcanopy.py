@@ -545,7 +545,7 @@ class Subcanopy:
 
         The subcanopy vegetation is represented as a mixture of structural and leaf
         biomass, where the
-        :attr:`virtual_ecosystem.models.plants.model_config.PlantConstants.subcanopy_leaf_fraction`
+        :attr:`virtual_ecosystem.models.plants.model_config.PlantsConstants.subcanopy_leaf_fraction`
         defines the fraction associated with subcanopy structural tissue. The remaining
         leaf biomass (:math:`M_{SC}`, kg m-2) has an associated extinction coefficient
         (:math:`k`) and specific leaf area (:math:`\sigma`, kg m-2) set in the model
@@ -568,7 +568,7 @@ class Subcanopy:
             The subcanopy growth dynamics can lead to very high leaf area index in the
             subcanopy, which crash the calculation of abiotic balances in the
             model. Currently the subcanopy LAI is explicitly capped, using the setting
-            :attr:`virtual_ecosystem.models.plants.model_config.PlantConstants.subcanopy_maximum_leaf_area_index`
+            :attr:`virtual_ecosystem.models.plants.model_config.PlantsConstants.subcanopy_maximum_leaf_area_index`
             to artificially prevent model crashes. This is a temporary feature and
             should be replaced by better biological and environmental control of
             subcanopy growth.
