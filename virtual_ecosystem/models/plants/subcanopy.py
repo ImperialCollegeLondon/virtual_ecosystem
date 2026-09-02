@@ -543,11 +543,15 @@ class Subcanopy:
     def set_light_capture(self, below_canopy_light_fraction: NDArray) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.
 
-        The subcanopy vegetation is represented as pure leaf biomass (:math:`M_{SC}`, kg
-        m-2), with an associated extinction coefficient (:math:`k`) and specific leaf
-        area (:math:`\sigma`, kg m-2) set in the model constants. These can be used to
-        calculate the leaf area index (:math:`L`) and hence the absorption fraction
-        (:math:`f_{a}`) of  the subcanopy vegetation layer via the Beer-Lambert law: 
+        The subcanopy vegetation is represented as a mixture of structural and leaf
+        biomass, where the
+        :attr:`virtual_ecosystem.models.plants.model_config.PlantConstants.subcanopy_leaf_fraction`
+        defines the fraction associated with subcanopy structural tissue. The remaining
+        leaf biomass (:math:`M_{SC}`, kg m-2) has an associated extinction coefficient
+        (:math:`k`) and specific leaf area (:math:`\sigma`, kg m-2) set in the model
+        constants. These can be used to calculate the leaf area index (:math:`L`) and
+        hence the absorption fraction (:math:`f_{a}`) of  the subcanopy vegetation layer
+        via the Beer-Lambert law: 
 
         .. math ::
             :nowrap:
@@ -558,13 +562,27 @@ class Subcanopy:
                     f_a = e^{-kL}
                 \end{align*}
             \]
+
+        .. WARNING::
+
+            The subcanopy growth dynamics can lead to very high leaf area index in the
+            subcanopy, which crash the calculation of abiotic balances in the
+            model. Currently the subcanopy LAI is explicitly capped, using the setting
+            :attr:`virtual_ecosystem.models.plants.model_config.PlantConstants.subcanopy_maximum_leaf_area_index`
+            to artificially prevent model crashes. This is a temporary feature and
+            should be replaced by better biological and environmental control of
+            subcanopy growth.
         """
 
         # Calculate the leaf area index - values are already in kg m-2 so no need to
-        # account for the area occupied by the biomass - and set the leaf area
-        self.lai = (
+        # account for the area occupied by the biomass. This code accounts for the
+        # structural fraction of the subcanopy and caps the resulting LAI.
+        self.lai = np.clip(
             self.data["subcanopy_vegetation_biomass"].to_numpy()
             * self.model_constants.subcanopy_specific_leaf_area
+            * self.model_constants.subcanopy_leaf_fraction,
+            a_min=0,
+            a_max=self.model_constants.subcanopy_maximum_leaf_area_index,
         )
 
         # Beer-Lambert transmission - note that this is 1 when there is no biomass and
