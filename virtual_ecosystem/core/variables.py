@@ -368,15 +368,30 @@ def _collect_vars_populated_by_init(
             data .
     """
     for model in models:
+        provided_by_data: list[str] = []
         for var in model.vars_populated_by_init:
             if var in runtime_variables:
-                raise ValueError(
-                    f"Variable {var} initialised by {model.model_name} already "
-                    f"initialised by {runtime_variables[var].vars_populated_by_init}."
-                )
+                # If var is provided by 'data', we let it through with a warning.
+                if "data" in runtime_variables[var].vars_populated_by_init:
+                    provided_by_data.append(var)
+                else:
+                    raise ValueError(
+                        f"Variable {var} initialised by {model.model_name} already "
+                        "initialised by"
+                        f"{runtime_variables[var].vars_populated_by_init}."
+                    )
 
-            runtime_variables[var] = known_variables[var]
-            runtime_variables[var].vars_populated_by_init.append(model.model_name)
+            # We only add to the runtime variables if not already provided by data.
+            if var not in provided_by_data:
+                runtime_variables[var] = known_variables[var]
+                runtime_variables[var].vars_populated_by_init.append(model.model_name)
+
+        if provided_by_data:
+            LOGGER.warning(
+                f"Variable(s) {provided_by_data} populated by {model.model_name} init "
+                "are provided by the input data instead. This is allowed only if all "
+                "are provided and the model is 'static'"
+            )
 
 
 def _collect_vars_required_for_init(
@@ -438,22 +453,40 @@ def _collect_vars_populated_by_first_update(
             model initialisation or update, or from initial data.
     """
     for model in models:
+        provided_by_data: list[str] = []
         for var in model.vars_populated_by_first_update:
             if var in runtime_variables:
                 v = runtime_variables[var]
-                init_model, init_stage = (
-                    (v.vars_populated_by_init[0], "init")
-                    if v.vars_populated_by_init
-                    else (v.vars_populated_by_first_update[0], "first update")
-                )
-                raise ValueError(
-                    f"Variable {var} initialised at first update by {model.model_name} "
-                    f"already initialised during {init_stage} by {init_model}."
+                # If var is provided by 'data', we let it through with a warning.
+                if (
+                    "data" in v.vars_populated_by_init
+                    or "data" in v.vars_populated_by_first_update
+                ):
+                    provided_by_data.append(var)
+                else:
+                    init_model, init_stage = (
+                        (v.vars_populated_by_init[0], "init")
+                        if v.vars_populated_by_init
+                        else (v.vars_populated_by_first_update[0], "first update")
+                    )
+                    raise ValueError(
+                        f"Variable {var} initialised at first update by "
+                        f"{model.model_name} already initialised during {init_stage} "
+                        f"by {init_model}."
+                    )
+
+            # We only add to the runtime variables if not already provided by data.
+            if var not in provided_by_data:
+                runtime_variables[var] = known_variables[var]
+                runtime_variables[var].vars_populated_by_first_update.append(
+                    model.model_name
                 )
 
-            runtime_variables[var] = known_variables[var]
-            runtime_variables[var].vars_populated_by_first_update.append(
-                model.model_name
+        if provided_by_data:
+            LOGGER.warning(
+                f"Variable(s) {provided_by_data} populated by {model.model_name} first "
+                "update are provided by the input data instead. This is allowed only "
+                "if all are provided and the model is 'static'"
             )
 
 
