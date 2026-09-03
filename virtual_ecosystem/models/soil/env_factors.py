@@ -130,6 +130,11 @@ def calculate_water_potential_impact_on_microbes(
     water potential at which microbial activity ceases suppression is (by definition)
     total, so values of zero are produced.
 
+    The microbial rates effected by the function can be explicit rates (used in the soil
+    model), or implicit rates (i.e. the decay rates of below ground litter pools). In
+    both cases the same functional response is used (which is taken from
+    :cite:t:`moyano_responses_2013`).
+
     Args:
         water_potential: Soil water potential [kPa]
         water_potential_halt: Water potential at which all microbial activity stops
