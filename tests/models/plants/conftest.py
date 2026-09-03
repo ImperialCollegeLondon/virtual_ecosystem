@@ -324,6 +324,7 @@ def fixture_canopy_layer_data(
     subcanopy_vegetation_lai = (
         plants_data["subcanopy_vegetation_biomass"]
         * fixture_plants_constants.subcanopy_specific_leaf_area
+        * fixture_plants_constants.subcanopy_leaf_fraction
     )
     subcanopy_transmission = np.exp(
         -fixture_plants_constants.subcanopy_extinction_coef * subcanopy_vegetation_lai

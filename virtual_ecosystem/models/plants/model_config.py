@@ -48,8 +48,17 @@ class PlantsConstants(Configuration):
     subcanopy_extinction_coef: float = 0.5
     """The extinction coefficient of subcanopy vegetation (unitless)."""
 
+    subcanopy_leaf_fraction: float = 0.5
+    """The fraction of subcanopy vegetation biomass allocated to leaf tissue rather than
+    to stems and other structural tissue (unitless)."""
+
     subcanopy_specific_leaf_area: float = 14
     """The specific leaf area of subcanopy vegetation (m2 kg-1)."""
+
+    subcanopy_maximum_leaf_area_index: float = 5
+    """A cap on the maximum leaf area index from the subcanopy. This is a temporary
+    safeguard to prevent subcanopy dynamics from driving unrealistic abiotic conditions
+    and should be replaced by biological limitations on subcanopy growth (m2 m-2)."""
 
     subcanopy_respiration_fraction: float = 0.1
     """The fraction of gross primary productivity used in respiration (unitless)."""
