@@ -12,7 +12,6 @@ from scipy.special import expit
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
-from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.soil.model_config import SoilConstants
 
 
@@ -188,18 +187,6 @@ def calculate_pH_suitability(
     Returns:
         A multiplicative factor capturing the effect of pH on microbial rates
     """
-
-    # TODO - This check is necessary to prevent nonsensical output being generated,
-    # however it could be done when constants are loaded, rather than for every function
-    # call
-    if (
-        maximum_pH <= upper_optimum_pH
-        or upper_optimum_pH <= lower_optimum_pH
-        or lower_optimum_pH <= minimum_pH
-    ):
-        to_raise = ValueError("At least one pH threshold has an invalid value!")
-        LOGGER.error(to_raise)
-        raise to_raise
 
     pH_factors = np.full(len(soil_pH), np.nan)
 
