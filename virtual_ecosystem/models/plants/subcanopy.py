@@ -543,15 +543,18 @@ class Subcanopy:
     def set_light_capture(self, below_canopy_light_fraction: NDArray) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.
 
-        The subcanopy vegetation is represented as a mixture of structural and leaf
-        biomass, where the
+        The subcanopy vegetation is represented as a single pool of biomass with
+        associated stoichiometric values but, when calculating light capture, the pool
+        is divided into structural and leaf biomass components. The
         :attr:`virtual_ecosystem.models.plants.model_config.PlantsConstants.subcanopy_leaf_fraction`
-        defines the fraction associated with subcanopy structural tissue. The remaining
-        leaf biomass (:math:`M_{SC}`, kg m-2) has an associated extinction coefficient
-        (:math:`k`) and specific leaf area (:math:`\sigma`, kg m-2) set in the model
-        constants. These can be used to calculate the leaf area index (:math:`L`) and
-        hence the absorption fraction (:math:`f_{a}`) of  the subcanopy vegetation layer
-        via the Beer-Lambert law: 
+        configuration setting defines the subcanopy leaf biomass (:math:`M_{SC}`, kg C
+        m-2) as a fraction of the total subcanopy biomass pool.
+        
+        The model consstants also define subcanopy values for the light extinction
+        coefficient (:math:`k`) and specific leaf area (:math:`\sigma`, m2 kg-1 C).
+        These can be used to calculate the leaf area index (:math:`L`) and hence the
+        absorption fraction (:math:`f_{a}`) of  the subcanopy leaf biomass via the
+        Beer-Lambert law: 
 
         .. math ::
             :nowrap:

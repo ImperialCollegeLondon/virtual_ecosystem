@@ -56,9 +56,9 @@ class PlantsConstants(Configuration):
     """The specific leaf area of subcanopy vegetation (m2 kg-1)."""
 
     subcanopy_maximum_leaf_area_index: float = 5
-    """A cap on the maximum leaf area index from the subcanopy. This is an temporary
+    """A cap on the maximum leaf area index from the subcanopy. This is a temporary
     safeguard to prevent subcanopy dynamics from driving unrealistic abiotic conditions
-    and should be replaced by biological limitations on subcanopy growth. (m2 m)"""
+    and should be replaced by biological limitations on subcanopy growth (m2 m-2)."""
 
     subcanopy_respiration_fraction: float = 0.1
     """The fraction of gross primary productivity used in respiration (unitless)."""
