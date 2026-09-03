@@ -25,7 +25,8 @@ vegetation to setup the plant model. Each of these follows a different approach.
 
 To specify tree communities you must define the plant functional types (PFTs) you wish
 to use, as well as how they are distributed across the simulation grid. The formats and
-required data are described in the [PFT configuration details page](pft_configuration.md).
+required data are described in the [PFT configuration details
+page](pft_configuration.md).
 
 ### Subcanopy vegetation
 
