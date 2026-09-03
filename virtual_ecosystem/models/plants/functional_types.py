@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 import pandas as pd
-from pydantic import computed_field, model_validator
+from pydantic import ConfigDict, computed_field, model_validator
 from pyrealm.demography.flora import Flora, FloraValidator, load_flora_from_csv
 
 from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
@@ -18,9 +18,11 @@ from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
 class VEFloraValidator(FloraValidator):
     """Extended plant functional trait definition.
 
-    This class extends the basic pyrealm Flora definition to include the extra traits
+    This class extends the basic pyrealm Flora definition to include the extra traitsp
     required for the Virtual Ecosystem.
     """
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
 
     p_foliage_for_reproductive_tissue: tuple[float, ...] = (0.05,)
     r"""The carbon allocation to reproductive tissue as a proportion of foliage mass (kg

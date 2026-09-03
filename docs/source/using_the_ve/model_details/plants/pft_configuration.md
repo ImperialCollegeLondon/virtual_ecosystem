@@ -22,11 +22,19 @@ language_info:
   version: 3.11.9
 ---
 
-# Configuring plant functional types
+# Configuring plant communities
 
-The Plants Model requires the definition of a set of plant functional types, which are
-defined as a set of trait values that describe the allometry, carbon allocation,
-demography and stoichiometry of each PFT.
+There are two steps to setting up plant communities in the Plants model:
+
+1. Defining sets of traits for each of the plant functional types (PFTs) to be used in the
+   model.
+2. Defining the sets of size-structured cohorts of different PFTs growing in the cells
+   of the simulation.
+
+## Defining plant functional types
+
+Plant functional types in the plants model are defined as a set of trait values that
+describe the allometry, carbon allocation, demography and stoichiometry of each PFT.
 
 The PFT definitions for a simulation need to be stored in a
 CSV file: each PFT must have a unique name and each row then provides the trait values
@@ -40,57 +48,50 @@ pft_definitions_path = '/path/to/pft_definitions.csv'
 
 The majority of the traits required for each PFT are used to define the allometry of
 growing trees, the vertical structure of the canopy and the estimation of growth from
-gross primary productivity. This modelling uses an implementation called the T Model
-[insert citation] and you can read more
-about the T Model and traits in the documentation for the [`pyrealm`
+gross primary productivity, following the T Model {cite:p}`li_tmodel_2014`. You can read
+more about the T Model and traits in the documentation for the [`pyrealm`
 package](https://pyrealm.readthedocs.io/en/stable/users/demography/flora.html#plant-traits),
-which is used by the Virtual Ecosystem to simulate plant growth.
-
-In addition to the T Model, the Virtual Ecosystem also defines a set of extra traits to
-describe the stoichiometry of plant tissues. Stoichiometry is not currently implemented
-in the `pyrealm` package and so these values are additional requirements of the Virtual
-Ecosystem.
+which is used by the Virtual Ecosystem to simulate plant growth. The Virtual Ecosystem
+extends the set of traits used in `pyrealm` to add traits defining stoichiometric
+ratios and to define fruiting behaviour.
 
 The PFT definitions file needs to include the following fields (the order doesn't
 matter) defining the PFT names and then values for all of the traits:
 
-```{csv-table}
-:header: >
-: Field name,Description,Example value,VE only
+```{code-cell} ipython3
+:tags: [remove-input]
 
-name,TBD,pioneer,
-hd,TBD,116.0,
-ca_ratio,TBD,390.43,
-f_g,TBD,0.02,
-h_max,TBD,25.33,
-lai,TBD,1.8,
-m,TBD,2,
-n,TBD,5,
-name,TBD,'shrub',
-par_ext,TBD,0.5,
-resp_f,TBD,0.1,
-resp_r,TBD,0.913,
-resp_s,TBD,0.044,
-resp_rt,TBD,0.05,
-rho_s,TBD,200.0,
-sla,TBD,14.0,
-tau_f,TBD,4.0,
-tau_r,TBD,1.04,
-tau_rt,TBD,1,
-yld,TBD,0.6,
-zeta,TBD,0.17,
-gpp_topslice,TBD,0.1,
-p_foliage_for_reproductive_tissue,TBD,0.05,
-deadwood_c_n_ratio,TBD,60.7,✓
-deadwood_c_p_ratio,TBD,856.5,✓
-leaf_turnover_c_n_ratio,TBD,25.5,✓
-leaf_turnover_c_p_ratio,TBD,415.0,✓
-plant_reproductive_tissue_turnover_c_n_ratio,TBD,12.5,✓
-plant_reproductive_tissue_turnover_c_p_ratio,TBD,125.5,✓
-root_turnover_c_p_ratio,TBD,656.7,✓
-root_turnover_c_n_ratio,TBD,45.6,✓
-foliage_c_n_ratio,TBD,15,✓
-foliage_c_p_ratio,TBD,300,✓
+# This cell generates a CSV file from the pydantic validation object for PFT data,
+# ensuring that the description here is up to date with the codebase.
+
+from virtual_ecosystem.models.plants.functional_types import VEFloraValidator
+import re
+
+rows = ["Field name,Description,Default value"]
+
+# Parse the fields from the trait validator pydantic model
+for trait, field in VEFloraValidator.model_fields.items():
+
+    # Tidy the description to remove newlines, convert latex and quote to wrap commas
+    desc = "" if field.description is None else field.description
+    desc = re.sub(r":math:`\\(.+)`", r"$\\\1$", desc)
+    desc = re.sub(r":math:`(.+)`", r"$\1$", desc)
+    desc = f'"{desc.replace("\n", " ")}"'
+
+    # Add to the rows
+    rows.append(
+        f"`{trait}`,{desc},{ '-' if field.default is None else field.default[0]}"
+    )
+
+# Dump CSV data to file for ingestion by csv-table directive.
+with open("pft_data.csv", "w") as pft_data:
+    pft_data.write("\n".join(rows))
+```
+
+```{csv-table}
+:file: pft_data.csv
+:header-rows: 1
+:quote: '"'
 ```
 
 ## Initial cohort data
@@ -127,7 +128,7 @@ and the plant cohort distribution.
 ````{dropdown} pft_definitions.csv
 ```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/plant_pfts.csv
 ```
-````
+`````
 
 ````{dropdown} cohort_data.csv
 ```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/example_plant_cohorts.csv
