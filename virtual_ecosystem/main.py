@@ -461,6 +461,7 @@ def ve_run(
         LOGGER.info(f"Starting update {time_index}: {current_time}")
 
         current_time += core_components.model_timing.update_interval
+        data.time_index = time_index
 
         # Canary variable for model variable spec issues
         model_variables_ok = True

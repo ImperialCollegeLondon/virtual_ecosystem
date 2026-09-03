@@ -185,6 +185,8 @@ class Data:
         subclass applied to that axis. If no validator was applied, the entry for that
         core axis will be ``None``.
         """
+        self.time_index: int = 0
+        """Current time index, to be used to slice DataArrays with a time axis."""
 
     def __repr__(self) -> str:
         """Returns a representation of a Data instance."""
@@ -248,11 +250,13 @@ class Data:
         self.variable_validation[key] = valid_dict
 
     def __getitem__(self, key: str) -> DataArray:
-        """Get a given data variable from a Data instance.
+        """Get a given data variable at the current time index from a Data instance.
 
         This method looks for the provided key in the data variables saved in the `data`
-        attribute and returns the DataArray for that variable. Note that this is just a
-        shortcut: ``data_instance['var']`` is the same as ``data_instance.data['var']``.
+        attribute and returns the DataArray for that variable at the current time index,
+        if it has a `time_index` dimension. Note that this is just a shortcut:
+        ``data_instance['var']`` is the same as ``data_instance.data['var']`` for the
+        case where there is not a 'time_index`.
 
         Args:
             key: The name of the data variable to get
@@ -260,8 +264,11 @@ class Data:
         Raises:
             KeyError: if the data variable is not present
         """
+        value = self.data[key]
 
-        return self.data[key]
+        return (
+            value.isel(time_index=self.time_index) if "time_index" in value else value
+        )
 
     def __contains__(self, key: str) -> bool:
         """Check if a given data variable is present in a Data instance.
@@ -275,6 +282,19 @@ class Data:
         """
 
         return key in self.data
+
+    def get_time_slice(self, variable: str, time_index: int) -> DataArray:
+        """Get the variable and the chosen time_index.
+
+        Args:
+            variable: The name of the data variable to get.
+            time_index: The time index to get the data for.
+
+        Raises:
+            KeyError: if the data variable is not present.
+            ValueError: if the DataArray does not have a `time_index` dimension.
+        """
+        return self.data[variable].isel(time_index=time_index)
 
     def on_core_axis(self, var_name: str, axis_name: str) -> bool:
         """Check core axis validation.
