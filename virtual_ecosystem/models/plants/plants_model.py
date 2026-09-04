@@ -392,7 +392,7 @@ class PlantsModel(
                 partition_reproductive_tissue_mass(
                     cohorts=cmty.cohorts,
                     mass=cmty.stem_allometry.foliage_mass
-                    * cmty.cohorts["p_foliage_for_reproductive_tissue"].to_numpy(),
+                    * cmty.cohorts["fruit_seed_foliage_mass_fraction"].to_numpy(),
                 )
             )
 
@@ -1321,7 +1321,7 @@ class PlantsModel(
             # Calculate carbon costs of fruit
             reproductive_tissue_mass = (
                 community.stem_allometry.foliage_mass
-                * cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
+                * cohorts["fruit_seed_foliage_mass_fraction"].to_numpy()
             )
             reproductive_tissue_respiration = (
                 reproductive_tissue_mass * cohorts["resp_rt"].to_numpy()
@@ -1342,7 +1342,7 @@ class PlantsModel(
 
             # Per stem carbon costs of root exudates
             symbiote_allocation = (
-                unallocated_carbon * cohorts["gpp_topslice"].to_numpy()
+                unallocated_carbon * cohorts["root_symbiote_npp_fraction"].to_numpy()
             )
 
             # Calculate carbon available for growth

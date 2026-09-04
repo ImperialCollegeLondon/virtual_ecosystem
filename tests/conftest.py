@@ -462,9 +462,9 @@ def dummy_litter_data(fixture_core_components):
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "subcanopy_vegetation_litter_lignin": [0.05, 0.43, 0.84, 0.01],
+        "fruit_seed_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
+        "fruit_seed_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
         "subcanopy_seedbank_litter_lignin": [0.24, 0.68, 0.10, 0.014],
-        "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
-        "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
         "herbivory_waste_above_lignin": [0.13, 0.08, 0.27, 0.22],
         "herbivory_waste_below_lignin": [0.33, 0.089, 0.46, 0.35],
     }
