@@ -47,6 +47,7 @@ from virtual_ecosystem.models.plants.canopy import (
 )
 from virtual_ecosystem.models.plants.communities import Community, PlantCommunities
 from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+from virtual_ecosystem.models.plants.fruit import calculate_fallen_fruit_decay_fraction
 from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 from virtual_ecosystem.models.plants.model_config import (
     PlantsConfiguration,
@@ -1784,11 +1785,12 @@ class PlantsModel(
         )
 
         # Estimate the fraction of this remaining fruit that decays
-        fraction_decayed = self.calculate_fallen_fruit_decay_fraction(
+        fraction_decayed = calculate_fallen_fruit_decay_fraction(
             decay_rate=self.model_constants.fallen_fruit_decay_rate,
             surface_temperature=self.data["air_temperature"][
                 self.layer_structure.index_surface_scalar
             ],
+            days=self.model_timing.update_interval_quantity.to("days").magnitude,
         )
         fruit_decay = fraction_decayed * post_consumption_fruit
 
@@ -1804,35 +1806,6 @@ class PlantsModel(
             self.grid.cell_area
             * self.model_timing.update_interval_quantity.to("days").magnitude
         )
-
-    def calculate_fallen_fruit_decay_fraction(
-        self, decay_rate: float, surface_temperature: xr.DataArray
-    ) -> xr.DataArray:
-        """Calculate fraction of fallen fruit that decays in a given timestep.
-
-        The fraction of fruit (flesh) that has decayed is effected by two things: the
-        length of the simulation time step, and the average (soil surface) temperature
-        for this time step. We combine these into a single measure, degree days, which
-        uses 0 Celsius as a basis, i.e. if temperatures are zero or below no decay will
-        occur.
-
-        Args:
-            decay_rate: Rate at which fruit decays [Celsius^-1 day^-1]
-            surface_temperature: Temperature of the forest floor [Celsius]
-
-        Returns:
-            The fraction of the fallen fruit that has decayed into the soil.
-        """
-
-        # Calculate the degree days (subzero temperatures are treated as zero)
-        degree_days = np.where(
-            surface_temperature >= 0.0,
-            surface_temperature
-            * (self.model_timing.update_interval_quantity.to("days").magnitude),
-            0.0,
-        )
-
-        return xr.DataArray(1 - np.exp(-decay_rate * degree_days), dims="cell_id")
 
     def convert_to_soil_units(
         self, input_mass: NDArray[np.floating]
