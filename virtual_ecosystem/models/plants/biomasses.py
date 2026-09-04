@@ -327,7 +327,7 @@ class FoliageBiomass(BiomassTissueABC):
     turnover_mass_attr = "foliage_turnover"
     growth_mass_attr = "delta_foliage_mass"
     ideal_ratio_attrs = "foliage_c_ELEM_ratio"
-    turnover_ratio_attrs = "leaf_turnover_c_ELEM_ratio"
+    turnover_ratio_attrs = "foliage_turnover_c_ELEM_ratio"
 
 
 class FruitBiomass(BiomassTissueABC):
@@ -337,8 +337,8 @@ class FruitBiomass(BiomassTissueABC):
     mass_attr = "fruit_mass"
     turnover_mass_attr = "fruit_turnover"
     growth_mass_attr = "delta_fruit_mass"
-    ideal_ratio_attrs = "plant_reproductive_tissue_turnover_c_ELEM_ratio"
-    turnover_ratio_attrs = "plant_reproductive_tissue_turnover_c_ELEM_ratio"
+    ideal_ratio_attrs = "fruit_seed_c_ELEM_ratio"
+    turnover_ratio_attrs = "fruit_seed_c_ELEM_ratio"
 
 
 class SeedBiomass(BiomassTissueABC):
@@ -348,8 +348,8 @@ class SeedBiomass(BiomassTissueABC):
     mass_attr = "seed_mass"
     turnover_mass_attr = "seed_turnover"
     growth_mass_attr = "delta_seed_mass"
-    ideal_ratio_attrs = "plant_reproductive_tissue_turnover_c_ELEM_ratio"
-    turnover_ratio_attrs = "plant_reproductive_tissue_turnover_c_ELEM_ratio"
+    ideal_ratio_attrs = "fruit_seed_c_ELEM_ratio"
+    turnover_ratio_attrs = "fruit_seed_c_ELEM_ratio"
 
 
 class StemBiomass(BiomassTissueABC):
@@ -359,8 +359,8 @@ class StemBiomass(BiomassTissueABC):
     mass_attr = "stem_mass"
     turnover_mass_attr = "branch_turnover"
     growth_mass_attr = "delta_stem_mass"
-    ideal_ratio_attrs = "deadwood_c_ELEM_ratio"
-    turnover_ratio_attrs = "deadwood_c_ELEM_ratio"
+    ideal_ratio_attrs = "stem_c_ELEM_ratio"
+    turnover_ratio_attrs = "stem_c_ELEM_ratio"
 
 
 class RootBiomass(BiomassTissueABC):
@@ -370,8 +370,8 @@ class RootBiomass(BiomassTissueABC):
     mass_attr = "fine_root_mass"
     turnover_mass_attr = "fine_root_turnover"
     growth_mass_attr = "delta_fine_root_mass"
-    ideal_ratio_attrs = "root_turnover_c_ELEM_ratio"
-    turnover_ratio_attrs = "root_turnover_c_ELEM_ratio"
+    ideal_ratio_attrs = "root_c_ELEM_ratio"
+    turnover_ratio_attrs = "root_c_ELEM_ratio"
 
 
 class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
