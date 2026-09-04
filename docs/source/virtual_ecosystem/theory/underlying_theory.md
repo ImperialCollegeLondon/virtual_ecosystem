@@ -27,7 +27,7 @@ language_info:
 
 Ecosystems are complex systems that arise from the interplay between
 [animals](./animals/animal_theory.md),
-[plants](./plant_theory.md),
+[plants](./plants/plant_theory.md),
 and [soil microbes](./soil/summary.md) with their
 [abiotic environment](./abiotic_theory.md). Many of these interactions are
 non-linear and happen across a wide range of spatial and temporal scales which makes
@@ -72,7 +72,7 @@ The ecological (or physical) theory underlying each of our core set of models ar
 described in the following pages:
 
 * The [animal model](./animals/animal_theory.md).
-* The [plants model](./plant_theory.md).
+* The [plants model](./plants/plant_theory.md).
 * The [abiotic models](./abiotic_theory.md) (i.e. `hydrology`, `abiotic` and
   `abiotic_simple`)
 * The [soil models](./soil/summary.md) (i.e. `soil` and `litter`)
