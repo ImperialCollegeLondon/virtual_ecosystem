@@ -116,6 +116,9 @@ class AnimalConstants(Configuration):
     _ELEMENTAL_MASS_NOISE_TOLERANCE = 1e-10
     """The value used for clamping negative mass movement created by fp errors."""
 
+    _GROWTH_WASTE_TOLERANCE = 1e-12
+    """Relative tolerance for clamping floating point noise in growth waste."""
+
     def get_population_density_terms(
         self, taxa: TaxaType, diet: DietType
     ) -> tuple[float, ...]:
