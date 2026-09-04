@@ -480,53 +480,57 @@ class AnimalCohort:
         return respired_mass
 
     def defecate(
-        self, excrement_pools: list[ExcrementPool], mass_consumed: dict[str, float]
+        self, excrement_pools: list[ExcrementPool], waste_mass: dict[str, float]
     ) -> None:
-        """Transfers unassimilated waste mass from an cohort to the excrement pools.
+        """Transfers waste mass from a cohort to the excrement pools.
+
+        ``waste_mass`` is a cohort-total quantity and is deposited as given. Neither
+        ``conversion_efficiency`` nor ``self.individuals`` is applied here: the
+        individuals scaling is already present from ``F_i_k`` and
+        ``F_i_j_individual``, and the assimilated fraction has already been separated
+        from the unassimilated fraction at the point of ingestion in
+        ``forage_resource_list``.
+
+        The waste is split evenly across the supplied pools, and within each pool
+        between the scavengeable and decomposed fractions according to
+        ``decay_fraction_excrement``.
 
         Args:
             excrement_pools: List of excrement pools for waste distribution.
-            mass_consumed: Dictionary specifying the mass of each element in the
-             consumed food.
+            waste_mass: Cohort-total mass of each element to be deposited as
+                excrement [kg].
 
         Raises:
-            ValueError: If `mass_consumed` is missing required keys or contains negative
-              values.
+            ValueError: If `waste_mass` is missing required keys or contains negative
+                values, or if no excrement pools are provided.
         """
         required_keys = {"C", "N", "P"}
-        if not required_keys.issubset(mass_consumed.keys()):
+        if not required_keys.issubset(waste_mass.keys()):
             raise ValueError(
-                f"mass_consumed must contain all required keys {required_keys}."
+                f"waste_mass must contain all required keys {required_keys}."
             )
-        if any(value < 0 for value in mass_consumed.values()):
-            raise ValueError("Mass values in mass_consumed must be non-negative.")
+        if any(value < 0 for value in waste_mass.values()):
+            raise ValueError("Mass values in waste_mass must be non-negative.")
 
         number_communities = len(excrement_pools)
         if number_communities == 0:
             raise ValueError("No excrement pools provided for waste distribution.")
 
-        # Compute total waste mass based on conversion efficiency and individuals
-        total_waste_mass = {
-            nutrient: mass
-            * self.functional_group.conversion_efficiency
-            * self.individuals
-            for nutrient, mass in mass_consumed.items()
-        }
-
-        # Distribute waste across pools
+        # Distribute the cohort-total waste evenly across pools
         for excrement_pool in excrement_pools:
+            mass_per_pool = {
+                nutrient: mass / number_communities
+                for nutrient, mass in waste_mass.items()
+            }
             scavengeable_mass = {
-                nutrient: (total_waste_mass[nutrient] / number_communities)
-                * (1 - self.decay_fraction_excrement)
-                for nutrient in total_waste_mass
+                nutrient: mass * (1 - self.decay_fraction_excrement)
+                for nutrient, mass in mass_per_pool.items()
             }
             decomposed_mass = {
-                nutrient: (total_waste_mass[nutrient] / number_communities)
-                * self.decay_fraction_excrement
-                for nutrient in total_waste_mass
+                nutrient: mass * self.decay_fraction_excrement
+                for nutrient, mass in mass_per_pool.items()
             }
 
-            # Use CNP methods for in-place updates
             excrement_pool.scavengeable_cnp.update(**scavengeable_mass)
             excrement_pool.decomposed_cnp.update(**decomposed_mass)
 
