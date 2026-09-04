@@ -64,13 +64,13 @@ def test_find_enzyme_substrates(
         ),
         pytest.param(
             "saprotrophic_fungi",
-            {"nitrogen": 5.936557, "phosphorus": 16.79287},
+            {"nitrogen": 5.70632718, "phosphorus": 15.5860039},
             id="fungi",
         ),
     ],
 )
 def test_calculate_new_biomass_average_nutrient_ratios(
-    fixture_configuration, enzyme_classes, group, expected_ratio, fixture_core_constants
+    fixture_configuration, enzyme_classes, group, expected_ratio
 ):
     """Check method to calculate average new biomass nutrient ratios works."""
     import numpy as np
@@ -91,8 +91,6 @@ def test_calculate_new_biomass_average_nutrient_ratios(
         c_p_ratio=15.5,
         enzyme_production=group_config.enzyme_production,
         reproductive_allocation=group_config.reproductive_allocation,
-        c_n_ratio_fruiting_bodies=fixture_core_constants.fungal_fruiting_bodies_c_n_ratio,
-        c_p_ratio_fruiting_bodies=fixture_core_constants.fungal_fruiting_bodies_c_p_ratio,
         enzyme_classes=enzyme_classes,
     )
 
