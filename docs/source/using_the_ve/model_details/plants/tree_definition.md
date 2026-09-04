@@ -22,14 +22,14 @@ language_info:
   version: 3.11.9
 ---
 
-# Configuring plant communities
+# Defining tree communities
 
-There are two steps to setting up plant communities in the Plants model:
+There are three steps to setting up tree communities in the Plants model. You will need
+to define:
 
-1. Defining sets of traits for each of the plant functional types (PFTs) to be used in the
-   model.
-2. Defining the sets of size-structured cohorts of different PFTs growing in the cells
-   of the simulation.
+1. The plant functional types (PFTs) to be used in the model.
+1. The size-structured cohorts of those PFTs growing in the cells of the simulation.
+1. The initial distribution of propagules of the PFTs across cells.
 
 ## Plant functional types
 
@@ -46,8 +46,8 @@ for that PFT. For example, the file below defines two plant functional types:
 ```
 `````
 
-The configuration of the plants model must then provide the `pft_definitions_path`
-setting that gives the path to that CSV file:
+The [configuration of the plants model](./plants_config.md) must then provide the
+`pft_definitions_path` setting that gives the path to that CSV file:
 
 ```toml
 [plants]
@@ -119,8 +119,8 @@ cells. An example file looks like this:
 ```
 ````
 
-The location of this file has to be configured using the `cohort_data_path` setting
-within the plants model configuration:
+Again, the [configuration of the plants model](./plants_config.md) then must provide a
+`cohort_data_path` setting giving the location of the cohort data.
 
 ```toml
 [plants]
@@ -129,14 +129,52 @@ cohort_data_path = '/path/to/cohort_data.csv'
 
 The fields in the cohort data file are:
 
-* `plant_cohorts_pft`: The plant functional type of the cohort: a text value that must
-  match one of the PFT names set in the PFT definitions.
-* `plant_cohorts_cell_id`: The grid cell in which the cohort is found.
-* `plant_cohorts_dbh`: The initial size of each individual in the cohort, as the
-  diameter at breast height (metres)
-* `plant_cohorts_n`: The initial number of individuals in the cohort.
+```{csv-table}
+:header-rows: 1
+
+field,description
+`plant_cohorts_pft`,"The plant functional type of the cohort: a text value that must
+match one of the PFT names set in the PFT definitions."
+`plant_cohorts_cell_id`, "The grid cell in which the cohort is found."
+`plant_cohorts_dbh`, "The initial size of each individual in the cohort, as the diameter
+at breast height (metres)."
+`plant_cohorts_n`, "The initial number of individuals in the cohort."
+```
 
 ```{note}
 Even if you intend cohort distributions to be identical across all simulation cells you
 still **must** provide the input data described above for every single cell individually.
+```
+
+### Initial PFT propagule distributions
+
+The distribution of PFT propagules must be provided as an array variable in a NetCDF
+file. The array must have spatial dimensions (`x` and `y`) mapping counts onto cells and
+also a `pft` dimension, allowing a count to be define for each PFT in each cell. The
+Python code below generates an example of the required format:
+
+```{code-cell} ipython3
+import numpy as np
+import xarray as xr
+
+pft_propagules = xr.DataArray(
+    np.ones((2, 10, 10)),
+    dims=["pft", "x", "y"],
+    coords={
+        "pft": ["broadleaf", "shrub"],
+        "x": np.arange(50, 1000, 100),
+        "y": np.arange(50, 1000, 100),
+    },
+)
+
+pft_propagules
+```
+
+The [model configuration](./plants_config.md) then needs to include the path to the
+NetCDF file containing this array variable.
+
+```toml
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "plant_pft_propagules"
 ```
