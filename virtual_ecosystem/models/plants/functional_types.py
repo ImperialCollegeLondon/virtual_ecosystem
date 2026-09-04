@@ -38,33 +38,35 @@ class VEFloraValidator(FloraValidator):
     r"""Carbon allocation to root symbiotes as a fraction of net primary productivity
      (kg kg-1)."""
     stem_c_n_ratio: tuple[float, ...] = (60.7,)
-    r"""Carbon/Nitrogen ratio of stem tissue."""
+    r"""Carbon/Nitrogen ratio of stem tissue (kg kg-1)."""
     stem_c_p_ratio: tuple[float, ...] = (856.5,)
-    r"""Carbon/Phosphorous ratio of stem tissue."""
+    r"""Carbon/Phosphorous ratio of stem tissue (kg kg-1)."""
     foliage_turnover_c_n_ratio: tuple[float, ...] = (25.5,)
     r"""Carbon/Nitrogen ratio of leaf turnover, following nutrient reabsorption during
-     leaf senescence."""
+     leaf senescence (kg kg-1)."""
     foliage_turnover_c_p_ratio: tuple[float, ...] = (415.0,)
     r"""Carbon/Phosphorous ratio of leaf turnover, following nutrient reabsorption
-     during leaf senescence."""
+     during leaf senescence (kg kg-1)."""
     fruit_seed_c_n_ratio: tuple[float, ...] = (12.5,)
-    r"""Carbon/Nitrogen ratio of reproductive structures (fruit tissue and seeds)."""
+    r"""Carbon/Nitrogen ratio of reproductive structures (fruit tissue and seeds) (kg
+     kg-1)."""
     fruit_seed_c_p_ratio: tuple[float, ...] = (125.5,)
-    r"""Carbon/Phosphorous ratio of reproductive structures (fruit tissue and seeds)."""
+    r"""Carbon/Phosphorous ratio of reproductive structures (fruit tissue and seeds) (kg
+     kg-1)."""
     root_c_n_ratio: tuple[float, ...] = (656.7,)
-    r"""Carbon/Nitrogen ratio of fine root tissue."""
+    r"""Carbon/Nitrogen ratio of fine root tissue (kg kg-1)."""
     root_c_p_ratio: tuple[float, ...] = (45.6,)
-    r"""Carbon/Phosphorous ratio of fine root tissue."""
+    r"""Carbon/Phosphorous ratio of fine root tissue (kg kg-1)."""
     foliage_c_n_ratio: tuple[float, ...] = (15.0,)
-    r"""Carbon/Nitrogen ratio of active leaf tissue."""
+    r"""Carbon/Nitrogen ratio of active leaf tissue (kg kg-1)."""
     foliage_c_p_ratio: tuple[float, ...] = (300.0,)
-    r"""Carbon/Phosphorous ratio of active leaf tissue."""
+    r"""Carbon/Phosphorous ratio of active leaf tissue (kg kg-1)."""
     c_mass_fruit_flesh: tuple[float, ...] = (5.0,)
-    r"""Carbon mass of total fruit flesh in reproductive structures."""
+    r"""Carbon mass of total fruit flesh in reproductive structures (grams)."""
     c_mass_per_fruit_seed: tuple[float, ...] = (1.0,)
-    r"""Carbon mass of individual seeds in reproductive structures."""
+    r"""Carbon mass of individual seeds in reproductive structures (grams)."""
     seeds_per_fruit: tuple[int, ...] = (2,)
-    r"""Number of seeds in each reproductive structure."""
+    r"""Number of seeds in each reproductive structure (unitless)."""
 
     # Additional traits populated during validation - these hold the reference values
     # for lai and tau_f, which are modified by herbivory.

@@ -80,6 +80,10 @@ rows = ["Field name,Description,Default value"]
 # Parse the fields from the trait validator pydantic model
 for trait, field in VEFloraValidator.model_fields.items():
 
+    # Skip reference variables lai_base and tau_f_base, which may disappear.
+    if trait.endswith("_base"):
+        continue
+
     # Tidy the description to remove newlines, convert latex and quote to wrap commas
     desc = "" if field.description is None else field.description
     desc = re.sub(r":math:`\\(.+)`", r"$\\\1$", desc)
@@ -125,12 +129,12 @@ cohort_data_path = '/path/to/cohort_data.csv'
 
 The fields in the cohort data file are:
 
-* `plant_cohorts_pft`: The plant functional type of the cohort, matching one of the
-  names set in the PFT definitions.
+* `plant_cohorts_pft`: The plant functional type of the cohort: a text value that must
+  match one of the PFT names set in the PFT definitions.
 * `plant_cohorts_cell_id`: The grid cell in which the cohort is found.
 * `plant_cohorts_dbh`: The initial size of each individual in the cohort, as the
   diameter at breast height (metres)
-* `plant_cohorts_n`: The initial number of individuals in the cohort
+* `plant_cohorts_n`: The initial number of individuals in the cohort.
 
 ```{note}
 Even if you intend cohort distributions to be identical across all simulation cells you
