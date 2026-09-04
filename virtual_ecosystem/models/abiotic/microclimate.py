@@ -26,6 +26,7 @@ def prepare_static_inputs(
     time_index: int,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
 ) -> dict[str, Any]:
     """Prepare static inputs for microclimate model.
 
@@ -42,6 +43,7 @@ def prepare_static_inputs(
         time_index: Time index
         layer_structure: Layer structure object
         abiotic_constants: Set of constants for abiotic model
+        core_constants: Set of constants shared across all models
 
     Returns:
         Dictionary with prepared static inputs for microclimate model
@@ -93,11 +95,14 @@ def prepare_static_inputs(
     absorbed_longwave_radiation = energy_balance.calculate_absorbed_longwave_radiation(
         downward_longwave=downward_longwave,
         leaf_area_index=data["leaf_area_index"].to_numpy(),
+        canopy_temperature=data["canopy_temperature"].to_numpy(),
+        soil_temperature=data["soil_temperature"].to_numpy(),
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         soil_emissivity=abiotic_constants.soil_emissivity,
+        stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+        zero_Celsius=core_constants.zero_Celsius,
         extinction_coefficient_lw=abiotic_constants.extinction_coefficient_longwave,
-        surface_index=idx.surface,
-        topsoil_index=idx.topsoil,
+        idx=idx,
     )
 
     # Cell area, [m2]
@@ -178,10 +183,15 @@ def calculate_wind_profiles(
     )
 
     #   Wind speed, [m s-1]
+    # The reference wind speed is positive or negative depending on the wind direction.
+    # Since we do not take direction into account, and to ensure correct computation of
+    # wind profiles, the wind speed should be always positive going into the equations.
     wind_reference_height = (
         static["canopy_height"] + abiotic_constants.wind_reference_height
     )
-    reference_wind_speed = data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+    reference_wind_speed = np.abs(
+        data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+    )
 
     wind_speed = layer_structure.from_template()
     wind_speed[layer_structure.index_filled_atmosphere] = wind.calculate_wind_profile(
@@ -490,7 +500,9 @@ def calculate_thermodynamics(
         "latent_heat_vapourisation": latent_heat_vapourisation_j,
         "aerodynamic_resistance_canopy": aerodynamic_resistance_canopy,
         "aerodynamic_resistance_soil": aerodynamic_resistance_soil,
-        "ventilation_rate": ventilation_rate,
+        "ventilation_rate": np.nan_to_num(
+            ventilation_rate, nan=abiotic_constants.understorey_ventilation_rate
+        ),
     }
 
 
@@ -534,7 +546,6 @@ def calculate_vegetation_temperature(
         aerodynamic_resistance=aerodynamic_resistance_2d,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
-        idx=idx,
     )
 
     # Result contains new canopy and understorey temperature
@@ -594,7 +605,6 @@ def calculate_vegetation_fluxes(
         evapotranspiration=state["evapotranspiration"],
         absorbed_shortwave_radiation=state["shortwave_absorption"],
         absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-        longwave_emission_soil=state["longwave_emission"][idx.topsoil],
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         specific_heat_air=state["specific_heat_air"],
         density_air=state["density_air"],
@@ -604,7 +614,6 @@ def calculate_vegetation_fluxes(
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=True,
-        idx=idx,
     )
 
     return fluxes  # type: ignore
@@ -648,30 +657,30 @@ def calculate_soil_fluxes(
     )
 
     #  Sensible heat flux from topsoil, [W m-2]
-    out["sensible_heat_flux_soil"] = energy_balance.calculate_sensible_heat_flux(
+    sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
         density_air=state["density_air"][idx.surface],
         specific_heat_air=state["specific_heat_air"][idx.surface],
         air_temperature=state["air_temperature"][idx.surface],
         surface_temperature=state["soil_temperature"][idx.topsoil],
         aerodynamic_resistance=state["aerodynamic_resistance_soil"],
     )
+    out["sensible_heat_flux_soil"] = -sensible_heat_flux_soil
 
     # Latent heat flux topsoil, [W m-2]
-    out["latent_heat_flux_soil"] = energy_balance.calculate_latent_heat_flux(
+    latent_heat_flux_soil = energy_balance.calculate_latent_heat_flux(
         evapotranspiration=state["soil_evaporation"],
         latent_heat_vapourisation=state["latent_heat_vapourisation"][idx.surface],
         time_interval=time_interval,
     )
+    out["latent_heat_flux_soil"] = -latent_heat_flux_soil
 
     # Ground heat flux, [W m-2]
     out["ground_heat_flux"] = (
         state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
-        - out["latent_heat_flux_soil"]
-        - out["sensible_heat_flux_soil"]
+        - latent_heat_flux_soil
+        - sensible_heat_flux_soil
         + static["absorbed_longwave_radiation"][idx.topsoil]
-        + 0.5 * np.nansum(state["longwave_emission"][idx.canopy], axis=0)
-        + 0.5 * state["longwave_emission"][idx.surface]
     )
 
     # Net radiation, [W m-2]
@@ -679,77 +688,9 @@ def calculate_soil_fluxes(
         state["shortwave_absorption"][idx.topsoil]
         - out["longwave_emission_soil"]
         + static["absorbed_longwave_radiation"][idx.topsoil]
-        + 0.5 * np.nansum(state["longwave_emission"][idx.canopy], axis=0)
-        + 0.5 * state["longwave_emission"][idx.surface]
     )
 
     return out
-
-
-def update_air_temperature(
-    state: dict[str, Any],
-    static: dict[str, Any],
-    abiotic_bounds: AbioticSimpleBounds,
-    idx: SimpleNamespace,
-    denominator_tolerance: float,
-    min_leaf_area_index_for_mixing: float,
-) -> NDArray[np.floating]:
-    """Update air temperature profiles based on calculated fluxes and turbulent mixing.
-
-    Args:
-        state: Current state variables for microclimate model
-        static: Prepared static inputs for microclimate model
-        abiotic_bounds: Bounds for air temperature to ensure physical realism
-        idx: Indices for different layer types
-        denominator_tolerance: Small value to prevent division by zero in calculations
-        min_leaf_area_index_for_mixing: Minimum leaf area index required for turbulent
-            mixing to occur.
-
-    Returns:
-        Updated air temperature profiles for microclimate model
-    """
-    # Update canopy air temperatures, [C]
-    canopy_air_temperature = energy_balance.update_canopy_air_temperature(
-        air_temperature=state["air_temperature"][idx.canopy],
-        sensible_heat_flux=state["sensible_heat_flux"][idx.canopy],
-        specific_heat_air=state["specific_heat_air"][idx.canopy],
-        density_air=state["density_air"][idx.canopy],
-        mixing_layer_thickness=static["geometry"]["thickness"][idx.canopy],
-    )
-
-    # Update surface layer air temperature, [C]
-    surface_air_temperature = energy_balance.update_surface_air_temperature(
-        canopy_air_temperature=state["air_temperature"][idx.canopy],
-        state=state,
-        idx=idx,
-        denominator_tolerance=denominator_tolerance,
-    )
-
-    # Update all air temperatures, [C]
-    # We assume here that if the canopy is very thin, it is in
-    # equilibrium with the air. This is to prevent unrealistic air temperatures when
-    # there is very little canopy.
-    air_temperature = np.copy(state["air_temperature"])
-    air_temperature[idx.canopy] = np.where(
-        static["leaf_area_index"][idx.canopy] > min_leaf_area_index_for_mixing,
-        canopy_air_temperature,
-        state["air_temperature"][idx.canopy],
-    )
-    air_temperature[idx.surface] = surface_air_temperature
-
-    mixing_limits = (
-        abiotic_bounds.air_temperature[0],
-        np.repeat(abiotic_bounds.air_temperature[1], len(state["ventilation_rate"])),
-    )
-    air_temperature = wind.mix_and_ventilate(
-        input_variable=air_temperature,
-        ventilation_rate=state["ventilation_rate"],
-        mixing_coefficient=static["mixing_coefficient"],
-        limits=mixing_limits,
-        surface_index=idx.surface,
-    )
-
-    return air_temperature
 
 
 def update_atmospheric_humidity(
@@ -912,7 +853,7 @@ def run_hour_step(
             static=static,
             abiotic_constants=abiotic_constants,
             core_constants=core_constants,
-            maxiter_air=abiotic_constants.maxiter_secant_solver,
+            maxiter_air=abiotic_constants.maxiter_air_secant_solver,
             air_temperature_tolerance=5,
             maxiter_secant=abiotic_constants.maxiter_secant_solver,
             convergence_tolerance=abiotic_constants.convergence_tolerance_secant_solver,
@@ -920,6 +861,9 @@ def run_hour_step(
                 abiotic_constants.small_perturbation_second_guess_secant_solver
             ),
             denominator_tolerance=abiotic_constants.denominator_tolerance,
+            min_temperature_change=abiotic_constants.min_temperature_change,
+            max_temperature_change=abiotic_constants.max_temperature_change,
+            integration_time_modifier=abiotic_constants.integration_time_modifier,
             idx=idx,
         )
     )
@@ -1118,6 +1062,7 @@ def run_microclimate(
         time_index=time_index,
         layer_structure=layer_structure,
         abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
     )
 
     # Calculate wind profiles for microclimate model

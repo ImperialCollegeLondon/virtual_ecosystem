@@ -104,6 +104,9 @@ class CoreConstants(Configuration):
     seconds_to_hour: float = 3600.0
     """Factor to convert variable unit from seconds to hours."""
 
+    seconds_to_minute: float = 60.0
+    """Factor to convert variable unit from seconds to minutes."""
+
     hours_per_day: int = 24
     """Number of hours per day."""
 

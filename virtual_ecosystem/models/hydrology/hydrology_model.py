@@ -79,6 +79,7 @@ class HydrologyModel(
         "matric_potential",
         "groundwater_storage",
         "subsurface_flow",
+        "subsurface_stormflow",
         "baseflow",
         "bypass_flow",
         "aerodynamic_resistance_soil",
@@ -121,6 +122,7 @@ class HydrologyModel(
         "soil_evaporation",
         "vertical_flow",
         "subsurface_flow",
+        "subsurface_stormflow",
         "baseflow",
         "surface_runoff_routed_plus_local",
         "subsurface_runoff_routed_plus_local",
@@ -286,6 +288,7 @@ class HydrologyModel(
             effective_saturation=effective_saturation,
             air_entry_potential_inverse=self.model_constants.air_entry_potential_inverse,
             van_genuchten_nonlinearily_parameter=self.model_constants.van_genuchten_nonlinearily_parameter,
+            denominator_tolerance=self.model_constants.denominator_tolerance,
         )
         self.data["matric_potential"] = self.layer_structure.from_template()
         self.data["matric_potential"][self.layer_structure.index_all_soil] = DataArray(
@@ -300,9 +303,17 @@ class HydrologyModel(
             self.initial_groundwater_saturation
             * self.model_constants.groundwater_capacity
         )
+        groundwater_layer_indices = [
+            int(self.layer_structure.n_layers),
+            int(self.layer_structure.n_layers) + 1,
+        ]
         self.data["groundwater_storage"] = DataArray(
             np.full((2, self.grid.n_cells), initial_groundwater_storage),
             dims=("groundwater_layers", "cell_id"),
+            coords={
+                "groundwater_layers": groundwater_layer_indices,
+                "cell_id": self.grid.cell_id,
+            },
             name="groundwater_storage",
         )
 
@@ -394,6 +405,7 @@ class HydrologyModel(
         * vertical_flow, [mm d-1]
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
+        * subsurface_stormflow, [mm]
         * baseflow, [mm]
         * surface_runoff_routed_plus_local, [mm]
         * subsurface_runoff_routed_plus_local, [mm]
@@ -440,7 +452,9 @@ class HydrologyModel(
 
         Soil moisture is updated by iteratively updating the soil moisture of individual
         layers under consideration of the vertical flow in and out of each layer, see
-        :func:`~virtual_ecosystem.models.hydrology.below_ground.update_soil_moisture`
+        :func:`~virtual_ecosystem.models.hydrology.below_ground.update_soil_moisture`.
+        After that, transpiration (=root water uptake) and subsurface stormflow are
+        removed from the second soil layer.
 
         Groundwater storage and flows are modelled using two parallel linear
         reservoirs, see
@@ -530,7 +544,7 @@ class HydrologyModel(
             daily_lists["interception"].append(interception)
 
             # Calculate canopy evaporation, [mm day-1]
-            canopy_evaporation = above_ground.calculate_canopy_evaporation(
+            canopy_water_update = above_ground.calculate_canopy_evaporation(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 interception=interception,
                 net_radiation=self.data["net_radiation"].to_numpy(),
@@ -557,15 +571,28 @@ class HydrologyModel(
                     self.model_constants.extinction_coefficient_global_radiation
                 ),
             )
-            daily_lists["canopy_evaporation"].append(canopy_evaporation)
 
-            # Precipitation that reaches the surface per day, [mm]
-            precipitation_surface = hydro_input["current_precipitation"][
-                :, day
-            ] - np.minimum(
-                np.nansum(canopy_evaporation, axis=0),
-                hydro_input["current_precipitation"][:, day],
-                +hydro_input["condensation"],
+            daily_lists["canopy_evaporation"].append(
+                canopy_water_update["canopy_evaporation"]
+            )
+
+            # Precipitation, condensation,  and not-evaporated intercept that reaches
+            # the surface per day, [mm]
+            incoming_water = (
+                hydro_input["current_precipitation"][:, day]
+                + hydro_input["condensation"]
+            )
+
+            canopy_evaporation = np.nansum(
+                canopy_water_update["canopy_evaporation"], axis=0
+            )
+            remaining_interception = np.nansum(
+                canopy_water_update["remaining_interception"], axis=0
+            )
+
+            precipitation_surface = incoming_water - np.minimum(
+                canopy_evaporation + remaining_interception,
+                incoming_water,
             )
 
             hydrology_tools.check_precipitation_surface(
@@ -689,18 +716,31 @@ class HydrologyModel(
                 ),
                 groundwater_capacity=self.model_constants.groundwater_capacity / 1000.0,
                 seconds_to_day=self.core_constants.seconds_to_day,
+                denominator_tolerance=self.model_constants.denominator_tolerance,
             )
             daily_lists["matric_potential"].append(
                 vertical_flow["matric_potential"] * self.model_constants.m_to_kpa
             )
             daily_lists["vertical_flow"].append(vertical_flow["vertical_flow"])
 
+            # Calculate subsurface stormflow, [mm]
+            effective_saturation = vertical_flow["effective_saturation"]
+            subsurface_stormflow = below_ground.calculate_subsurface_stormflow(
+                effective_saturation=effective_saturation[1],
+                root_soil_moisture=soil_moisture_evap_mm[1],
+                transpiration=hydro_input["current_transpiration"],
+                stormflow_coefficient=self.model_constants.stormflow_coefficient,
+                saturation_exponent=self.model_constants.saturation_exponent,
+            )
+            daily_lists["subsurface_stormflow"].append(subsurface_stormflow)
+
             # Update soil moisture by +/- vertical flow to each layer and remove root
-            # water uptake by plants (transpiration), [mm]
+            # water uptake by plants (transpiration) and subsurface stormflow, [mm]
             soil_moisture_updated = below_ground.update_soil_moisture(
                 soil_moisture=soil_moisture_evap_mm,  # mm
                 vertical_flow=vertical_flow["vertical_flow"],  # mm day-1
                 transpiration=hydro_input["current_transpiration"],  # mm
+                subsurface_stormflow=subsurface_stormflow,  # mm
                 soil_moisture_saturation=(  # mm
                     self.model_constants.soil_moisture_saturation
                     * self.soil_layer_thickness_mm
@@ -712,7 +752,7 @@ class HydrologyModel(
             )
             daily_lists["soil_moisture"].append(soil_moisture_updated)
 
-            # calculate below ground horizontal flow and update ground water
+            # Calculate below ground horizontal flow and update ground water
             below_ground_flow = below_ground.update_groundwater_storage(
                 groundwater_storage=hydro_input["groundwater_storage"],
                 vertical_flow_to_groundwater=vertical_flow["vertical_flow"][-1],
@@ -746,13 +786,16 @@ class HydrologyModel(
             )
 
             # Subsurface runoff routed to each cell + local subsurface runoff
-            subsurface_flow = np.array(
-                below_ground_flow["subsurface_flow"] + below_ground_flow["baseflow"]
+            subsurface_runoff = (
+                below_ground_flow["subsurface_flow"]
+                + below_ground_flow["baseflow"]
+                + subsurface_stormflow
             )
+
             subsurface_runoff_routed_plus_local = above_ground.route_horizontal_flow(
                 drainage_map=self.drainage_map,
-                surface_runoff=np.zeros_like(subsurface_flow),  # only subsurface here
-                subsurface_runoff=subsurface_flow,
+                surface_runoff=np.zeros_like(subsurface_runoff),  # only subsurface here
+                subsurface_runoff=subsurface_runoff,
             )
             daily_lists["subsurface_runoff_routed_plus_local"].append(
                 subsurface_runoff_routed_plus_local
@@ -764,7 +807,7 @@ class HydrologyModel(
             )
             daily_lists["total_runoff"].append(total_runoff)
 
-            # Convert total runoff [mm] to river discharge rate [m³/s]
+            # Convert total runoff [mm] to river discharge rate [m3 s-1]
             river_discharge_rate = above_ground.convert_mm_flow_to_m3_per_second(
                 river_discharge_mm=total_runoff,
                 area=self.grid.cell_area,
@@ -789,6 +832,7 @@ class HydrologyModel(
             "surface_runoff",
             "soil_evaporation",
             "subsurface_flow",
+            "subsurface_stormflow",
             "baseflow",
             "bypass_flow",
             "surface_runoff_routed_plus_local",
@@ -830,6 +874,7 @@ class HydrologyModel(
         soil_hydrology["groundwater_storage"] = DataArray(
             daily_lists["groundwater_storage"][day],
             dims=self.data["groundwater_storage"].dims,
+            coords=self.data["groundwater_storage"].coords,
         )
 
         # Update data object
