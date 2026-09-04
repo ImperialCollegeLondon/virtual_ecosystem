@@ -48,9 +48,9 @@ class VEFloraValidator(FloraValidator):
     r"""Carbon/Phosphorous ratio of leaf turnover, following nutrient reabsorption
      during leaf senescence."""
     fruit_seed_c_n_ratio: tuple[float, ...] = (12.5,)
-    r"""Carbon/Nitrogen ratio of reproductive tissue."""
+    r"""Carbon/Nitrogen ratio of reproductive structures (fruit tissue and seeds)."""
     fruit_seed_c_p_ratio: tuple[float, ...] = (125.5,)
-    r"""Carbon/Phosphorous ratio of reproductive tissue."""
+    r"""Carbon/Phosphorous ratio of reproductive structures (fruit tissue and seeds)."""
     root_c_n_ratio: tuple[float, ...] = (656.7,)
     r"""Carbon/Nitrogen ratio of fine root tissue."""
     root_c_p_ratio: tuple[float, ...] = (45.6,)
