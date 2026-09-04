@@ -283,14 +283,33 @@ class AnimalCohort:
     def grow(self, resource_intake: dict[str, float]) -> dict[str, float]:
         """Handles growth based on resource intake, enforcing stoichiometry.
 
+        Growth is limited by whichever element is scarcest relative to the cohort's
+        fixed C:N:P body proportions; the remainder is returned as stoichiometric
+        waste.
+
+        ``resource_intake`` is a cohort-total quantity: the individuals scaling is
+        applied upstream in ``F_i_k`` and ``F_i_j_individual``, so the mass arriving
+        here is the sum across all individuals in the cohort. ``mass_cnp``, by
+        contrast, holds the body mass of a *single* individual. The mass used for
+        growth is therefore divided by ``self.individuals`` before being added to
+        ``mass_cnp``, while the returned waste stays at cohort scale for the
+        downstream waste pools.
+
         Args:
-            resource_intake: A dictionary of the mass of C, N, and P available for
-              intake.
+            resource_intake: The cohort-total mass of C, N, and P available for
+                growth [kg].
 
         Returns:
-            A dictionary of the excess elements (waste) that could not be used for
-             growth.
+            The cohort-total mass of each element that could not be used for growth
+            [kg].
+
+        Raises:
+            ValueError: If the intake remaining after growth is negative by more than
+                floating point noise, indicating an arithmetic error upstream.
         """
+
+        if self.individuals <= 0:
+            return {"C": 0.0, "N": 0.0, "P": 0.0}
 
         # Determine the potential growth for each element
         potential_growth = {
@@ -301,32 +320,39 @@ class AnimalCohort:
         # Identify the limiting element based on the minimum growth
         max_growth = min(potential_growth.values())
 
-        # Calculate the mass of each element used for growth
-        used_carbon = max_growth * self.cnp_proportions["C"]
-        used_nitrogen = max_growth * self.cnp_proportions["N"]
-        used_phosphorus = max_growth * self.cnp_proportions["P"]
+        # Cohort-total mass of each element used for growth
+        used = {
+            element: max_growth * proportion
+            for element, proportion in self.cnp_proportions.items()
+        }
 
-        # Update the mass_cnp object using the new add method
-        self.mass_cnp.update(C=used_carbon, N=used_nitrogen, P=used_phosphorus)
+        # Convert cohort-total growth to per-individual before updating body mass
+        self.mass_cnp.update(
+            C=used["C"] / self.individuals,
+            N=used["N"] / self.individuals,
+            P=used["P"] / self.individuals,
+        )
 
-        # Subtract the used mass from the resource intake to get waste
-        resource_intake["C"] -= used_carbon
-        resource_intake["N"] -= used_nitrogen
-        resource_intake["P"] -= used_phosphorus
+        # Cohort-total stoichiometric excess left over after growth
+        waste = {
+            element: resource_intake[element] - used[element]
+            for element in ("C", "N", "P")
+        }
 
-        # Numerical safety: clamp tiny negatives to zero, but catch real bugs.
-        eps = 1e-12
-        for element in ("C", "N", "P"):
-            value = resource_intake[element]
+        # Numerical safety: clamp tiny negatives to zero, but catch real bugs. The
+        # tolerance is relative to the intake so that it scales with pool magnitude.
+        for element, value in waste.items():
             if value < 0.0:
-                if value > -eps:
-                    resource_intake[element] = 0.0
+                if value > -self.constants._GROWTH_WASTE_TOLERANCE * max(
+                    abs(resource_intake[element]), 1.0
+                ):
+                    waste[element] = 0.0
                 else:
                     raise ValueError(
                         f"grow produced negative waste for {element}: {value}"
                     )
 
-        return resource_intake
+        return waste
 
     def metabolize(self, temperature: float, dt: timedelta64) -> dict[str, float]:
         """The function to reduce body carbon mass through metabolism.
