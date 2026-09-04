@@ -1099,7 +1099,7 @@ class AnimalCohort:
         animal_list: list[AnimalCohort],
         carcass_pools: dict[int, list[CarcassPool]],
         adjusted_dt: timedelta64,
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Handles mass assimilation from predation.
 
         This is Madingley's delta_assimilation_mass_predation.
@@ -1107,14 +1107,21 @@ class AnimalCohort:
         Pre-computes territory intersections, draws theta_opt once, and builds
         the prey bin density dict.
 
+        Ingested prey mass is split by ``conversion_efficiency`` into an assimilated
+        fraction and an unassimilated fraction, matching the treatment of non-predation
+        resources in ``forage_resource_list``. This is Madingley's per-functional-group
+        predation assimilation efficiency. It is applied after the mechanical loss
+        inside ``get_eaten``, which routes unconsumed carcass mass to the carcass
+        pools. Both returned quantities are cohort-total.
+
         Args:
             animal_list: A list of animal cohorts that can be consumed by the predator.
             carcass_pools: The pools to which animal carcasses are delivered.
             adjusted_dt: The amount of time (D) in the time-step available for foraging.
 
         Returns:
-            A dictionary representing the total change in mass (C, N, P) experienced by
-            the predator: {"C": value, "N": value, "P": value}.
+            A tuple of the cohort-total assimilated mass gained and the cohort-total
+            unassimilated mass ingested by the predator (kg of C, N, P).
 
         Raises:
             ValueError: If `animal_list` or `carcass_pools` is None.
@@ -1126,8 +1133,11 @@ class AnimalCohort:
         if carcass_pools is None:
             raise ValueError("carcass_pools cannot be None.")
 
+        total_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
+        total_unassimilated = {"C": 0.0, "N": 0.0, "P": 0.0}
+
         if not animal_list:
-            return {"C": 0.0, "N": 0.0, "P": 0.0}
+            return total_gain, total_unassimilated
 
         # Pre-compute once per encounter
         theta_opt = self.calculate_theta_opt_i()
@@ -1139,7 +1149,7 @@ class AnimalCohort:
             animal_list, theta_opt, bin_densities, intersection_areas
         )
 
-        total_consumed_mass = {"C": 0.0, "N": 0.0, "P": 0.0}
+        conv_eff = self.functional_group.conversion_efficiency
 
         for prey_cohort in animal_list:
             intersection_area = intersection_areas[id(prey_cohort)]
@@ -1174,10 +1184,14 @@ class AnimalCohort:
                 CNP.from_dict(actual_consumed_cnp),
             )
 
-            for element in total_consumed_mass:
-                total_consumed_mass[element] += actual_consumed_cnp[element]
+            # Split ingested mass into assimilated and unassimilated fractions.
+            for element in total_gain:
+                total_gain[element] += actual_consumed_cnp[element] * conv_eff
+                total_unassimilated[element] += actual_consumed_cnp[element] * (
+                    1.0 - conv_eff
+                )
 
-        return total_consumed_mass
+        return total_gain, total_unassimilated
 
     def forage_resource_list(
         self,
@@ -1185,12 +1199,22 @@ class AnimalCohort:
         adjusted_dt: timedelta64,
         resource_kind: str,
         herbivory_waste_pools: dict[int, HerbivoryWaste] | None = None,
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Generic foraging function for all non-predation resources.
 
         Implements a Holling Type III functional response over a list of resources.
         Cohort-level quantities (search efficiency and total handling time) are
         precomputed once per foraging bout before the resource loop.
+
+        Ingested mass is split by ``conversion_efficiency`` into an assimilated
+        fraction, which is available for growth, and an unassimilated fraction, which
+        passes through the gut and is returned for deposition as excrement by
+        ``defecate``. This is distinct from the mechanical loss applied inside
+        ``get_eaten``, which is biomass detached from the resource but never ingested
+        and is routed to the herbivory waste pools as litter.
+
+        Both returned quantities are cohort-total: the individuals scaling enters in
+        ``F_i_k``.
 
         Elemental mass values returned by ``get_eaten`` are clamped to remove
         floating point noise before being passed to downstream validators. Values
@@ -1203,15 +1227,17 @@ class AnimalCohort:
             resource_kind: A string label of the resource type, used as a key in
                 trophic transfer records.
             herbivory_waste_pools: Optional mapping of cell_id to waste pool for
-                unassimilated biomass. If None, mechanical losses are discarded.
+                mechanically lost biomass. If None, mechanical losses are discarded.
 
         Returns:
-            Stoichiometric mass gained by the cohort (kg of C, N, P).
+            A tuple of the cohort-total assimilated mass gained and the cohort-total
+            unassimilated mass ingested (kg of C, N, P).
         """
         total_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
+        total_unassimilated = {"C": 0.0, "N": 0.0, "P": 0.0}
 
         if not resources:
-            return total_gain
+            return total_gain, total_unassimilated
 
         # Precompute cohort-level quantities — invariant across the resource loop.
         alpha = self.calculate_alpha()
@@ -1243,8 +1269,10 @@ class AnimalCohort:
                 CNP.from_dict(gain_cnp),
             )
 
+            # Split ingested mass into assimilated and unassimilated fractions.
             for elem in total_gain:
                 total_gain[elem] += gain_cnp[elem] * conv_eff
+                total_unassimilated[elem] += gain_cnp[elem] * (1.0 - conv_eff)
 
             if herbivory_waste_pools and litter_cnp:
                 herbivory_waste_pools[resource.cell_id].add_waste(
@@ -1253,23 +1281,24 @@ class AnimalCohort:
                     input_lignin=litter_lignin,
                 )
 
-        return total_gain
+        return total_gain, total_unassimilated
 
     def delta_mass_herbivory(
         self,
         plant_list: list[CellResource],
         adjusted_dt: timedelta64,
         herbivory_waste_pools: dict[int, HerbivoryWaste],
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from live plant herbivory.
 
         Args:
             plant_list: List of live plant resources.
             adjusted_dt: Time available for foraging.
-            herbivory_waste_pools: Waste pools for unassimilated plant matter.
+            herbivory_waste_pools: Waste pools for mechanically lost plant matter.
 
         Returns:
-            Stoichiometric mass gained by the cohort.
+            A tuple of the assimilated mass gained and the unassimilated mass
+            ingested by the cohort.
         """
         return self.forage_resource_list(
             resources=plant_list,
@@ -1282,7 +1311,7 @@ class AnimalCohort:
         self,
         litter_pools: list[CellResource],
         adjusted_dt: timedelta64,
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from litter (detritivory).
 
         Args:
@@ -1290,7 +1319,8 @@ class AnimalCohort:
             adjusted_dt: Time available for foraging.
 
         Returns:
-            Stoichiometric mass gained by the cohort.
+            A tuple of the assimilated mass gained and the unassimilated mass
+            ingested by the cohort.
         """
         return self.forage_resource_list(
             resources=litter_pools,
@@ -1302,7 +1332,7 @@ class AnimalCohort:
         self,
         carcass_pools: list[Resource],
         adjusted_dt: timedelta64,
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from carcass scavenging.
 
         Args:
@@ -1310,7 +1340,8 @@ class AnimalCohort:
             adjusted_dt: Time available for foraging.
 
         Returns:
-            Stoichiometric mass gained by the cohort.
+            A tuple of the assimilated mass gained and the unassimilated mass
+            ingested by the cohort.
         """
         return self.forage_resource_list(
             resources=carcass_pools,
@@ -1322,7 +1353,7 @@ class AnimalCohort:
         self,
         excrement_pools: list[Resource],
         adjusted_dt: timedelta64,
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from excrement (coprophagy).
 
         Args:
@@ -1330,7 +1361,8 @@ class AnimalCohort:
             adjusted_dt: Time available for foraging.
 
         Returns:
-            Stoichiometric mass gained by the cohort.
+            A tuple of the assimilated mass gained and the unassimilated mass
+            ingested by the cohort.
         """
         return self.forage_resource_list(
             resources=excrement_pools,
@@ -1343,16 +1375,17 @@ class AnimalCohort:
         fungal_fruit_list: list[CellResource],
         adjusted_dt: timedelta64,
         herbivory_waste_pools: dict[int, HerbivoryWaste],
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from fruiting body (mushroom) fungivory.
 
         Args:
             fungal_fruit_list: List of fungal fruiting resources.
             adjusted_dt: Time available for foraging.
-            herbivory_waste_pools: Waste pools for unassimilated fungal matter.
+            herbivory_waste_pools: Waste pools for mechanically lost fungal matter.
 
         Returns:
-            Stoichiometric mass gained by the cohort.
+            A tuple of the assimilated mass gained and the unassimilated mass
+            ingested by the cohort.
         """
         return self.forage_resource_list(
             resources=fungal_fruit_list,
@@ -1365,7 +1398,7 @@ class AnimalCohort:
         self,
         soil_fungi_list: list[Resource],
         adjusted_dt: timedelta64,
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from soil fungi foraging.
 
         Args:
@@ -1374,7 +1407,8 @@ class AnimalCohort:
             adjusted_dt: Time available for foraging.
 
         Returns:
-            Stoichiometric mass gained by the cohort.
+            A tuple of the assimilated mass gained and the unassimilated mass
+            ingested by the cohort.
         """
         return self.forage_resource_list(
             resources=soil_fungi_list,
@@ -1386,7 +1420,7 @@ class AnimalCohort:
         self,
         pom_list: list[Resource],
         adjusted_dt: timedelta64,
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from POM (particulate organic matter) foraging.
 
         Args:
@@ -1394,7 +1428,8 @@ class AnimalCohort:
             adjusted_dt: Time available for foraging.
 
         Returns:
-            Stoichiometric mass gained by the cohort.
+            A tuple of the assimilated mass gained and the unassimilated mass
+            ingested by the cohort.
         """
         return self.forage_resource_list(
             resources=pom_list,
@@ -1406,7 +1441,7 @@ class AnimalCohort:
         self,
         bacteria_list: list[Resource],
         adjusted_dt: timedelta64,
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from soil bacteria.
 
         Args:
@@ -1414,7 +1449,8 @@ class AnimalCohort:
             adjusted_dt: Time available for foraging.
 
         Returns:
-            Stoichiometric mass gained by the cohort.
+            A tuple of the assimilated mass gained and the unassimilated mass
+            ingested by the cohort.
         """
         return self.forage_resource_list(
             resources=bacteria_list,
@@ -1444,6 +1480,13 @@ class AnimalCohort:
         deposition pools (`excrement_pools`, `carcass_pool_map`) so that
         waste and carcass remains are always routed correctly, even if the
         cohort is not actively scavenging.
+
+        Each helper returns the ingested mass already split by
+        ``conversion_efficiency`` into an assimilated fraction, available for growth,
+        and an unassimilated fraction, which passes through the gut to the excrement
+        pools. Both are accumulated across all resource classes and handed to ``eat``
+        together. All accumulated masses are cohort-total: the individuals scaling
+        enters in ``F_i_k`` and ``F_i_j_individual``.
 
         Args:
             array_resource_list: Full set of resources available through the array
@@ -1508,139 +1551,168 @@ class AnimalCohort:
         )
 
         total_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
+        total_unassimilated = {"C": 0.0, "N": 0.0, "P": 0.0}
 
         # live plant herbivory
         if plant_list:
-            gain = self.delta_mass_herbivory(
+            gain, unassimilated = self.delta_mass_herbivory(
                 plant_list=plant_list,
                 adjusted_dt=time_available_per_diet,
                 herbivory_waste_pools=herbivory_waste_pools,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
+                total_unassimilated[k] += unassimilated[k]
 
         # live prey predation (adds carcasses to map)
         if animal_list:
-            gain = self.delta_mass_predation(
+            gain, unassimilated = self.delta_mass_predation(
                 animal_list=animal_list,
                 carcass_pools=carcass_pool_map,
                 adjusted_dt=time_available_per_diet,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
+                total_unassimilated[k] += unassimilated[k]
 
         # live mushroom fungivory
         if fungal_fruit_list:
-            gain = self.delta_mass_fruiting_fungivory(
+            gain, unassimilated = self.delta_mass_fruiting_fungivory(
                 fungal_fruit_list=fungal_fruit_list,
                 adjusted_dt=time_available_per_diet,
                 herbivory_waste_pools=herbivory_waste_pools,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
+                total_unassimilated[k] += unassimilated[k]
 
         # soil fungi fungivory
         if soil_fungi_list:
-            gain = self.delta_mass_soil_fungivory(
+            gain, unassimilated = self.delta_mass_soil_fungivory(
                 soil_fungi_list=soil_fungi_list,
                 adjusted_dt=time_available_per_diet,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
+                total_unassimilated[k] += unassimilated[k]
 
         # particulate organic matter consumption
         if pom_list:
-            gain = self.delta_mass_pomivory(
+            gain, unassimilated = self.delta_mass_pomivory(
                 pom_list=pom_list,
                 adjusted_dt=time_available_per_diet,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
+                total_unassimilated[k] += unassimilated[k]
 
         # bacteria foraging
         if bacteria_list:
-            gain = self.delta_mass_bacteriophagy(
+            gain, unassimilated = self.delta_mass_bacteriophagy(
                 bacteria_list=bacteria_list,
                 adjusted_dt=time_available_per_diet,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
+                total_unassimilated[k] += unassimilated[k]
 
         # litter detritivory
         if litter_pools:
-            gain = self.delta_mass_detritivory(
+            gain, unassimilated = self.delta_mass_detritivory(
                 litter_pools=litter_pools,
                 adjusted_dt=time_available_per_diet,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
+                total_unassimilated[k] += unassimilated[k]
 
         # carcass scavenging
-        if scavenge_carcass_pools or scavenge_excrement_pools:
-            gain = self.delta_mass_carcass_scavenging(
+        if scavenge_carcass_pools:
+            gain, unassimilated = self.delta_mass_carcass_scavenging(
                 carcass_pools=scavenge_carcass_pools,
                 adjusted_dt=time_available_per_diet,
             )
-
             for k in total_gain:
                 total_gain[k] += gain[k]
+                total_unassimilated[k] += unassimilated[k]
 
         # waste scavenging
-        if scavenge_carcass_pools or scavenge_excrement_pools:
-            gain = self.delta_mass_excrement_scavenging(
+        if scavenge_excrement_pools:
+            gain, unassimilated = self.delta_mass_excrement_scavenging(
                 excrement_pools=scavenge_excrement_pools,
                 adjusted_dt=time_available_per_diet,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
+                total_unassimilated[k] += unassimilated[k]
 
         # -- assimilate & deposit wastes
-        if any(v > 0 for v in total_gain.values()):
-            self.eat(total_gain, excrement_pools)
+        if any(v > 0 for v in total_gain.values()) or any(
+            v > 0 for v in total_unassimilated.values()
+        ):
+            self.eat(total_gain, total_unassimilated, excrement_pools)
 
     def eat(
-        self, mass_consumed: dict[str, float], excrement_pools: list[ExcrementPool]
+        self,
+        mass_consumed: dict[str, float],
+        unassimilated_mass: dict[str, float],
+        excrement_pools: list[ExcrementPool],
     ) -> None:
         """Handles the mass gain from consuming food and processes waste.
 
-        This method updates the consumer's mass based on the amount of food consumed
-        in stoichiometric terms. It also handles waste by calling `defecate` with any
-        excess nutrients after growth.
+        Growth is applied to the assimilated mass, subject to the cohort's
+        stoichiometric constraints. The waste deposited as excrement is the sum of
+        two distinct streams: the unassimilated fraction that passed through the gut
+        without being absorbed, separated at the point of ingestion in
+        ``forage_resource_list`` and ``delta_mass_predation``; and the stoichiometric
+        excess of absorbed mass that could not be used for growth because the
+        elemental ratios of the food did not match those of the body.
+
+        All mass arguments are cohort-total.
 
         Args:
-            mass_consumed: A dictionary representing the mass of each nutrient consumed
-                by this consumer: {"C": value, "N": value,
-                "P": value}.
+            mass_consumed: The assimilated mass of each nutrient available for growth
+                [kg].
+            unassimilated_mass: The ingested mass of each nutrient that was not
+                assimilated and passes to excrement [kg].
             excrement_pools: The ExcrementPool objects in the cohort's territory in
                 which waste is deposited.
 
         Raises:
-            ValueError: If `mass_consumed` contains negative values or missing keys.
+            ValueError: If either mass dictionary is missing required keys or contains
+                negative values.
             ValueError: If no excrement pools are provided.
         """
         if self.individuals == 0:
             return
 
-        # Validate mass_consumed input
+        # Validate both mass inputs
         required_keys = {"C", "N", "P"}
-        if not required_keys.issubset(mass_consumed.keys()):
-            raise ValueError(
-                f"mass_consumed must contain all required keys {required_keys}. "
-                f"Provided keys: {mass_consumed.keys()}"
-            )
-        if any(value < 0 for value in mass_consumed.values()):
-            raise ValueError(
-                f"Values in mass_consumed must be non-negative: {mass_consumed}"
-            )
+        for name, masses in (
+            ("mass_consumed", mass_consumed),
+            ("unassimilated_mass", unassimilated_mass),
+        ):
+            if not required_keys.issubset(masses.keys()):
+                raise ValueError(
+                    f"{name} must contain all required keys {required_keys}. "
+                    f"Provided keys: {masses.keys()}"
+                )
+            if any(value < 0 for value in masses.values()):
+                raise ValueError(f"Values in {name} must be non-negative: {masses}")
 
         # Ensure at least one excrement pool is provided
         if not excrement_pools:
             raise ValueError("At least one excrement pool must be provided.")
 
-        # Apply growth and calculate waste
-        waste_mass = self.grow(mass_consumed)
+        # Apply growth and calculate the stoichiometric excess
+        stoichiometric_waste = self.grow(mass_consumed)
 
-        # Pass the waste to the defecate method for processing
+        # Combine gut passage and stoichiometric excess into a single waste stream
+        waste_mass = {
+            element: unassimilated_mass[element] + stoichiometric_waste[element]
+            for element in required_keys
+        }
+
         self.defecate(excrement_pools, waste_mass)
 
     def is_below_mass_threshold(self, mass_threshold: float) -> bool:
