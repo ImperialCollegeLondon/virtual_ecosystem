@@ -31,29 +31,37 @@ There are two steps to setting up plant communities in the Plants model:
 2. Defining the sets of size-structured cohorts of different PFTs growing in the cells
    of the simulation.
 
-## Defining plant functional types
+## Plant functional types
 
 Plant functional types in the plants model are defined as a set of trait values that
 describe the allometry, carbon allocation, demography and stoichiometry of each PFT.
 
 The PFT definitions for a simulation need to be stored in a
 CSV file: each PFT must have a unique name and each row then provides the trait values
-for that PFT. The configuration of the plants model must then provide the
-`pft_definitions_path` setting that gives the path to that CSV file:
+for that PFT. For example, the file below defines two plant functional types:
+`broadleaf` and `shrub`.
+
+````{dropdown} pft_definitions.csv
+```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/plant_pfts.csv
+```
+`````
+
+The configuration of the plants model must then provide the `pft_definitions_path`
+setting that gives the path to that CSV file:
 
 ```toml
 [plants]
 pft_definitions_path = '/path/to/pft_definitions.csv'
 ```
 
-The majority of the traits required for each PFT are used to define the allometry of
-growing trees, the vertical structure of the canopy and the estimation of growth from
-gross primary productivity, following the T Model {cite:p}`li_tmodel_2014`. You can read
-more about the T Model and traits in the documentation for the [`pyrealm`
-package](https://pyrealm.readthedocs.io/en/stable/users/demography/flora.html#plant-traits),
-which is used by the Virtual Ecosystem to simulate plant growth. The Virtual Ecosystem
-extends the set of traits used in `pyrealm` to add traits defining stoichiometric
-ratios and to define fruiting behaviour.
+Many of the traits required for each PFT are used to define the allometry of growing
+trees, the vertical structure of the canopy and the estimation of growth from gross
+primary productivity, using the implementation of the T Model {cite:p}`li_tmodel_2014`
+in the [`pyrealm`
+package](https://pyrealm.readthedocs.io/en/stable/users/demography/flora.html#plant-traits).
+The Virtual Ecosystem extends the set of traits used in `pyrealm` to add traits to
+define stoichiometric ratios, lignin concentrations, fruiting behaviour and other
+extended aspects of tree demography.
 
 The PFT definitions file needs to include the following fields (the order doesn't
 matter) defining the PFT names and then values for all of the traits:
@@ -88,6 +96,7 @@ with open("pft_data.csv", "w") as pft_data:
     pft_data.write("\n".join(rows))
 ```
 
+<!-- This simply ingests the file generated above and displays it as a table. -->
 ```{csv-table}
 :file: pft_data.csv
 :header-rows: 1
@@ -97,40 +106,33 @@ with open("pft_data.csv", "w") as pft_data:
 ## Initial cohort data
 
 The plants model then needs an initial distribution of size-structured cohorts across
-the cells within the simulation. This is configured using the `cohort_data_path`
-setting within the model configuration:
+the cells within the simulation. This is defined using a CSV file, where each row
+represents a size-structured cohort of a given PFT growing in one of the simulation
+cells. An example file looks like this:
+
+````{dropdown} cohort_data.csv
+```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/example_plant_cohorts.csv
+```
+````
+
+The location of this file has to be configured using the `cohort_data_path` setting
+within the plants model configuration:
 
 ```toml
 [plants]
 cohort_data_path = '/path/to/cohort_data.csv'
 ```
 
-The initial cohort data must be provided as a CSV file, with each row representing a
-plant cohort. The fields in this file must set:
+The fields in the cohort data file are:
 
-* `plant_cohort_pft`: the plant functional type of the cohort, matching one of the
+* `plant_cohorts_pft`: The plant functional type of the cohort, matching one of the
   names set in the PFT definitions.
-* `plant_cohorts_cell_id`: the grid cell in which the cohort is found.
-* `plant_cohorts_dbh`: the initial size of each individual in the cohort, as the
-  diameter at breast height (m)
-* `plant_cohorts_n`: the initial number of individuals in the cohort
+* `plant_cohorts_cell_id`: The grid cell in which the cohort is found.
+* `plant_cohorts_dbh`: The initial size of each individual in the cohort, as the
+  diameter at breast height (metres)
+* `plant_cohorts_n`: The initial number of individuals in the cohort
 
 ```{note}
 Even if you intend cohort distributions to be identical across all simulation cells you
 still **must** provide the input data described above for every single cell individually.
 ```
-
-## Example files
-
-The dropdowns below show the example versions of the plant functional type definitions
-and the plant cohort distribution.
-
-````{dropdown} pft_definitions.csv
-```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/plant_pfts.csv
-```
-`````
-
-````{dropdown} cohort_data.csv
-```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/example_plant_cohorts.csv
-```
-````
