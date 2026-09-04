@@ -128,8 +128,18 @@ class MicrobialChanges:
     necromass_p_flow: NDArray[np.floating]
     """Phosphorus flow associated with necromass generation [kg{P} m^-3 day^-1]."""
 
-    fruiting_body_production: NDArray[np.floating]
+    fruiting_body_production_carbon: NDArray[np.floating]
     """Rate at which fungal fruiting bodies are being produced [kg{C} m^-3 day^-1]."""
+
+    fruiting_body_production_nitrogen: NDArray[np.floating]
+    """Rate at which nitrogen is used for fungal fruiting body production.
+    
+    Units of [kg{N} m^-3 day^-1]."""
+
+    fruiting_body_production_phosphorus: NDArray[np.floating]
+    """Rate at which phosphorus is used for fungal fruiting body production.
+    
+    Units of [kg{P} m^-3 day^-1]."""
 
     arbuscular_mycorrhiza_n_supply: NDArray[np.floating]
     """Supply rate of nitrogen to plants by arbuscular mycorrhiza [kg{N} m^-3 day^-1].
@@ -368,8 +378,18 @@ class PoolData:
     soil_p_pool_labile: NDArray[np.floating]
     """Inorganic labile phosphorus pool [kg{P} m^-3]."""
 
-    new_fungal_fruiting_body_production: NDArray[np.floating]
+    cnp_fungal_fruiting_body_production_carbon: NDArray[np.floating]
     """Fungal fruiting biomass produced during simulation time step [kg{C} m^-3]."""
+
+    cnp_fungal_fruiting_body_production_nitrogen: NDArray[np.floating]
+    """Nitrogen content of fungal fruiting biomass produced during model time step.
+     
+    Units of [kg{N} m^-3]."""
+
+    cnp_fungal_fruiting_body_production_phosphorus: NDArray[np.floating]
+    """Phosphorus content of fungal fruiting biomass produced during model time step.
+    
+    Units of [kg{P} m^-3]."""
 
     new_amf_n_supply: NDArray[np.floating]
     """Nitrogen supplied to plants by arbuscular mycorrhiza over integration time.
@@ -413,6 +433,7 @@ class SoilPools:
         functional_groups: dict[str, MicrobialGroupConstants],
         enzyme_classes: dict[str, SoilEnzymeClass],
         core_constants: CoreConstants,
+        fungal_fruiting_body_decay: DataArray,
     ):
         self.data = data
         """The data object for the Virtual Ecosystem simulation."""
@@ -434,6 +455,30 @@ class SoilPools:
 
         self.enzyme_classes = enzyme_classes
         """Details of the enzyme classes used by the soil model."""
+
+        self.fungal_fruiting_body_decay_carbon = fungal_fruiting_body_decay.sel(
+            element="C"
+        ).to_numpy()
+        """Carbon addition rate to :term:`LMWC` due to fungal fruiting body decay.
+        
+        Units of [kg{C} m^-3 day^-1]
+        """
+
+        self.fungal_fruiting_body_decay_nitrogen = fungal_fruiting_body_decay.sel(
+            element="N"
+        ).to_numpy()
+        """Nitrogen addition rate to :term:`LMWC` due to fungal fruiting body decay.
+                
+        Units of [kg{N} m^-3 day^-1]
+        """
+
+        self.fungal_fruiting_body_decay_phosphorus = fungal_fruiting_body_decay.sel(
+            element="P"
+        ).to_numpy()
+        """Phosphorus addition rate to :term:`LMWC` due to fungal fruiting body decay.
+                        
+        Units of [kg{P} m^-3 day^-1]
+        """
 
     def calculate_all_pool_updates(
         self,
@@ -581,6 +626,10 @@ class SoilPools:
             breakdown_rate=enzyme_mediated.pom_to_lmwc,
         )
 
+        # Combine inputs from direct biomass decay (i.e. decay that doesn't occur via
+        # the litter model) into a single value
+        direct_biomass_decay = self.combine_direct_biomass_decays()
+
         # Find nitrogen released by necromass breakdown/sorption
         necromass_outflows = find_necromass_nutrient_outflows(
             necromass_carbon=self.pools.soil_cnp_pool_necromass_carbon,
@@ -655,14 +704,6 @@ class SoilPools:
             labile_p_sorption_rate=self.model_constants.labile_phosphorus_sorption_rate,
         )
 
-        fungal_fruiting_body_decay = calculate_fungal_fruiting_body_decay(
-            decay_rate=self.to_per_volume(
-                self.data["decay_of_fungal_fruiting_bodies"].to_numpy()
-            ),
-            fungal_fruiting_body_c_n_ratio=self.core_constants.fungal_fruiting_bodies_c_n_ratio,
-            fungal_fruiting_body_c_p_ratio=self.core_constants.fungal_fruiting_bodies_c_p_ratio,
-        )
-
         # Determine net changes to the pools
         delta_pools_ordered["soil_cnp_pool_lmwc_carbon"] = (
             litter_mineralisation_flux.lmwc
@@ -671,13 +712,8 @@ class SoilPools:
             + enzyme_mediated.maom_to_lmwc
             + maom_desorption_to_lmwc
             + necromass_decay_to_lmwc
-            + fungal_fruiting_body_decay["carbon"]
-            + self.to_per_volume(
-                self.data["decomposed_excrement_cnp"].sel(element="C").to_numpy()
-            )
-            + self.to_per_volume(
-                self.data["decomposed_carcasses_cnp"].sel(element="C").to_numpy()
-            )
+            + self.fungal_fruiting_body_decay_carbon
+            + self.to_per_volume(direct_biomass_decay.sel(element="C").to_numpy())
             - microbial_changes.lmwc_uptake
             - lmwc_sorption_to_maom
             - nutrient_removal_by_water.lmwc
@@ -727,8 +763,14 @@ class SoilPools:
         delta_pools_ordered["soil_enzyme_maom_fungi"] = (
             microbial_changes.maom_enzyme_fungi_change
         )
-        delta_pools_ordered["new_fungal_fruiting_body_production"] = (
-            microbial_changes.fruiting_body_production
+        delta_pools_ordered["cnp_fungal_fruiting_body_production_carbon"] = (
+            microbial_changes.fruiting_body_production_carbon
+        )
+        delta_pools_ordered["cnp_fungal_fruiting_body_production_nitrogen"] = (
+            microbial_changes.fruiting_body_production_nitrogen
+        )
+        delta_pools_ordered["cnp_fungal_fruiting_body_production_phosphorus"] = (
+            microbial_changes.fruiting_body_production_phosphorus
         )
         delta_pools_ordered["new_amf_n_supply"] = (
             microbial_changes.arbuscular_mycorrhiza_n_supply
@@ -747,13 +789,8 @@ class SoilPools:
             + pom_n_mineralisation
             + necromass_outflows["decay_nitrogen"]
             + nutrient_transfers_maom_to_lmwc["nitrogen"]
-            + fungal_fruiting_body_decay["nitrogen"]
-            + self.to_per_volume(
-                self.data["decomposed_excrement_cnp"].sel(element="N").to_numpy()
-            )
-            + self.to_per_volume(
-                self.data["decomposed_carcasses_cnp"].sel(element="N").to_numpy()
-            )
+            + self.fungal_fruiting_body_decay_nitrogen
+            + self.to_per_volume(direct_biomass_decay.sel(element="N").to_numpy())
             - microbial_changes.don_uptake
             - nutrient_removal_by_water.don
         )
@@ -796,13 +833,8 @@ class SoilPools:
             + pom_p_mineralisation
             + necromass_outflows["decay_phosphorus"]
             + nutrient_transfers_maom_to_lmwc["phosphorus"]
-            + fungal_fruiting_body_decay["phosphorus"]
-            + self.to_per_volume(
-                self.data["decomposed_excrement_cnp"].sel(element="P").to_numpy()
-            )
-            + self.to_per_volume(
-                self.data["decomposed_carcasses_cnp"].sel(element="P").to_numpy()
-            )
+            + self.fungal_fruiting_body_decay_phosphorus
+            + self.to_per_volume(direct_biomass_decay.sel(element="P").to_numpy())
             - microbial_changes.dop_uptake
             - nutrient_removal_by_water.dop
         )
@@ -838,6 +870,24 @@ class SoilPools:
 
         # Create output array of pools in desired order
         return np.concatenate(list(delta_pools_ordered.values()))
+
+    def combine_direct_biomass_decays(self):
+        """Combine direct decay biomass decay streams into a single input stream.
+
+        While most biomass decay occurs via the litter model, some biomass decay into
+        the soil model occurs directly. This helper function exists group the various
+        input streams into a single variable.
+
+        Returns:
+            The rate of external biomass input to the soil that isn't litter
+            mineralisation [kg m^-2 day^-1]
+        """
+
+        return (
+            self.data["decomposed_excrement_cnp"]
+            + self.data["decomposed_carcasses_cnp"]
+            + self.data["fallen_fruit_decay_cnp"]
+        )
 
     def to_per_volume(
         self, input_rate: float | NDArray[np.floating]
@@ -1068,7 +1118,11 @@ def calculate_microbial_changes(
         ),
         necromass_n_flow=necromass_n_flow,
         necromass_p_flow=necromass_p_flow,
-        fruiting_body_production=fungal_fruiting_body_production,
+        fruiting_body_production_carbon=fungal_fruiting_body_production["carbon"],
+        fruiting_body_production_nitrogen=fungal_fruiting_body_production["nitrogen"],
+        fruiting_body_production_phosphorus=fungal_fruiting_body_production[
+            "phosphorus"
+        ],
         arbuscular_mycorrhiza_n_supply=arbuscular_mycorrhiza_n_supply,
         arbuscular_mycorrhiza_p_supply=arbuscular_mycorrhiza_p_supply,
         ectomycorrhiza_n_supply=ectomycorrhiza_n_supply,
@@ -1363,7 +1417,7 @@ def calculate_enzyme_production(
 def calculate_fruiting_body_production(
     microbial_groups: dict[str, MicrobialGroupConstants],
     growth_rates: dict[str, NDArray[np.floating]],
-) -> NDArray[np.floating]:
+) -> dict[str, NDArray[np.floating]]:
     """Calculate the total production of fungal fruiting bodies by all microbial groups.
 
     Args:
@@ -1373,10 +1427,14 @@ def calculate_fruiting_body_production(
 
     Returns:
         The total production rate of fungal fruiting bodies by the soil microbes
-        [kg{C} m^-3 day^-1]
+        (expressed as a nutrient triplet) [kg{nutrient} m^-3 day^-1]
     """
 
-    fruiting_body_production = np.zeros_like(growth_rates["bacteria"])
+    fruiting_body_production = {
+        "carbon": np.zeros_like(growth_rates["bacteria"]),
+        "nitrogen": np.zeros_like(growth_rates["bacteria"]),
+        "phosphorus": np.zeros_like(growth_rates["bacteria"]),
+    }
 
     for group in microbial_groups.values():
         # Only fungi produce fruiting bodies so only add contributions from them
@@ -1385,7 +1443,13 @@ def calculate_fruiting_body_production(
             # fungi, but shouldn't produce a negative amount of fruiting bodies)
             growth = np.where(growth_rates[group.name] > 0, growth_rates[group.name], 0)
 
-            fruiting_body_production += growth * group.reproductive_allocation
+            fruiting_body_production["carbon"] += growth * group.reproductive_allocation
+            fruiting_body_production["nitrogen"] += (
+                growth * group.reproductive_allocation / group.c_n_ratio
+            )
+            fruiting_body_production["phosphorus"] += (
+                growth * group.reproductive_allocation / group.c_p_ratio
+            )
 
     return fruiting_body_production
 
@@ -2066,35 +2130,3 @@ def calculate_net_formation_of_secondary_P(
     breakdown_rate = secondary_p_breakdown_rate * soil_p_pool_secondary
 
     return association_rate - breakdown_rate
-
-
-def calculate_fungal_fruiting_body_decay(
-    decay_rate: NDArray[np.floating],
-    fungal_fruiting_body_c_n_ratio: float,
-    fungal_fruiting_body_c_p_ratio: float,
-) -> dict[str, NDArray[np.floating]]:
-    """Calculate contribution to different soil pools from fungal fruiting body decay.
-
-    Fungal fruiting bodies are organic matter so they decay into the :term:`LMWC` pool.
-    The decay rate is already known in carbon terms and the decay into the organic
-    nitrogen and phosphorus pools is found based on this and the fixed stoichiometric
-    ratios of the fungal fruiting bodies pool.
-
-    Args:
-        decay_rate: The rate at which fungal fruiting bodies decay in carbon terms
-            [kg{C} m^-3 day^-1]
-        fungal_fruiting_body_c_n_ratio: The carbon to nitrogen ratio of fungal fruiting
-            bodies pool [unitless]
-        fungal_fruiting_body_c_p_ratio: The carbon to phosphorus ratio of fungal
-            fruiting bodies pool [unitless]
-
-    Returns:
-        The input rate to each soil organic matter pool (carbon, nitrogen, phosphorus)
-        due to the decay of fungal fruiting bodies [kg m^-3 day^-1].
-    """
-
-    return {
-        "carbon": decay_rate,
-        "nitrogen": decay_rate / fungal_fruiting_body_c_n_ratio,
-        "phosphorus": decay_rate / fungal_fruiting_body_c_p_ratio,
-    }

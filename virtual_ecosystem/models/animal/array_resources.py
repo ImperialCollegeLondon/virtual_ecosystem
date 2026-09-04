@@ -246,15 +246,15 @@ ARRAY_RESOURCES = [
         partition_by_pft=True,
     ),
     ArrayResourceDefinition(
-        pool_array="seed_turnover_cnp",
-        consumed_array="seed_turnover_cnp_consumed",
+        pool_array="fallen_seeds_cnp",
+        consumed_array="fallen_seeds_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.SEEDS,
         partition_by_pft=True,
     ),
     ArrayResourceDefinition(
-        pool_array="fruit_turnover_cnp",
-        consumed_array="fruit_turnover_cnp_consumed",
+        pool_array="fallen_fruit_cnp",
+        consumed_array="fallen_fruit_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.FRUIT,
         partition_by_pft=True,
@@ -295,6 +295,13 @@ ARRAY_RESOURCES = [
         vertical_occupancy=VerticalOccupancy.SOIL,
         diet_type=DietType.DETRITUS,
         lignin_array="lignin_below_structural",
+        density=True,
+    ),
+    ArrayResourceDefinition(
+        pool_array="fungal_fruiting_bodies_cnp",
+        consumed_array="fungal_fruiting_bodies_consumed_cnp",
+        vertical_occupancy=VerticalOccupancy.SOIL | VerticalOccupancy.GROUND,
+        diet_type=DietType.MUSHROOMS,
         density=True,
     ),
 ]

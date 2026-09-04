@@ -734,10 +734,6 @@ def test_PlantsModel_populate_lignin_proportions(fxt_plants_model):
     assert np.allclose(
         fxt_plants_model.data["senesced_leaf_lignin"], consts.senesced_leaf_lignin
     )
-    assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_lignin"],
-        consts.plant_reproductive_tissue_lignin,
-    )
     assert np.allclose(fxt_plants_model.data["root_lignin"], consts.root_lignin)
     assert np.allclose(
         fxt_plants_model.data["subcanopy_vegetation_litter_lignin"],
@@ -746,6 +742,70 @@ def test_PlantsModel_populate_lignin_proportions(fxt_plants_model):
     assert np.allclose(
         fxt_plants_model.data["subcanopy_seedbank_litter_lignin"],
         consts.subcanopy_seedbank_lignin,
+    )
+
+
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_update_fallen_pools(
+    fxt_plants_model, fixture_plants_constants, plants_data, fixture_core_components
+):
+    """Test the update_fallen_pools method of the plants model."""
+
+    from virtual_ecosystem.models.plants.fruit import (
+        calculate_fallen_fruit_decay_fraction,
+    )
+
+    # Update model so that pools are populated (otherwise everything is zero)
+    fxt_plants_model.update(time_index=0)
+
+    # Compute expected values
+    expected_fallen_seeds_cnp = (
+        fxt_plants_model.data["fallen_seeds_cnp"]
+        + fxt_plants_model.data["seed_turnover_cnp"]
+        - fxt_plants_model.data["fallen_seeds_cnp_consumed"]
+    )
+
+    decay_fraction = calculate_fallen_fruit_decay_fraction(
+        decay_rate=fixture_plants_constants.fallen_fruit_decay_rate,
+        surface_temperature=plants_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ],
+        days=fxt_plants_model.model_timing.update_interval_quantity.to(
+            "days"
+        ).magnitude,
+    )
+
+    expected_fallen_fruit_cnp = (1 - decay_fraction) * (
+        fxt_plants_model.data["fallen_fruit_cnp"]
+        - fxt_plants_model.data["fallen_fruit_cnp_consumed"]
+    ) + fxt_plants_model.data["fruit_turnover_cnp"]
+
+    expected_decay_cnp = (
+        decay_fraction
+        * (
+            fxt_plants_model.data["fallen_fruit_cnp"]
+            - fxt_plants_model.data["fallen_fruit_cnp_consumed"]
+        )
+        / (
+            fixture_core_components.grid.cell_area
+            * fixture_core_components.model_timing.update_interval_quantity.to(
+                "days"
+            ).magnitude
+        )
+    ).sum(dim="pft")
+
+    # Then update the fallen fruit and seed pools
+    fxt_plants_model.update_fallen_pools()
+
+    # Check the uptake values in the data variable
+    assert np.allclose(
+        fxt_plants_model.data["fallen_seeds_cnp"], expected_fallen_seeds_cnp
+    )
+    assert np.allclose(
+        fxt_plants_model.data["fallen_fruit_cnp"], expected_fallen_fruit_cnp
+    )
+    assert np.allclose(
+        fxt_plants_model.data["fallen_fruit_decay_cnp"], expected_decay_cnp
     )
 
 
@@ -884,24 +944,8 @@ def test_PlantsModel_apply_recruitment(fxt_plants_model, tricky_plant_cohorts):
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
-def test_convert_to_litter_units(fxt_plants_model, tricky_plant_cohorts):
-    """Tests the helper function that converts to litter model units."""
-
-    input_mass = np.array([1e5, 3.4e2, 123.7, 0.007])
-    expected_input_density = [12.345679, 0.0419753, 0.0152716, 8.64198e-7]
-
-    actual_input_density = fxt_plants_model.convert_to_litter_units(
-        input_mass=input_mass
-    )
-
-    assert np.allclose(expected_input_density, actual_input_density)
-
-
-@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 def test_convert_to_soil_units(fxt_plants_model, tricky_plant_cohorts):
     """Tests the helper function that converts to soil model units."""
-
-    print(fxt_plants_model.model_timing.update_interval_quantity)
 
     input_mass = np.array([1e6, 3.4e3, 1237.0, 0.07])
     expected_input_density = [0.008818342, 2.998236e-5, 1.090829e-5, 6.17284e-10]

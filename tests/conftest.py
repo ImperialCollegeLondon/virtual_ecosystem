@@ -460,11 +460,11 @@ def dummy_litter_data(fixture_core_components):
         "fallen_non_propagule_c_mass": [0.003, 0.0075, 0.00255, 0.00375],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
-        "plant_reproductive_tissue_lignin": [0.01, 0.03, 0.04, 0.02],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "subcanopy_vegetation_litter_lignin": [0.05, 0.43, 0.84, 0.01],
         "fruit_seed_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
         "fruit_seed_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
+        "subcanopy_seedbank_litter_lignin": [0.24, 0.68, 0.10, 0.014],
         "herbivory_waste_above_lignin": [0.13, 0.08, 0.27, 0.22],
         "herbivory_waste_below_lignin": [0.33, 0.089, 0.46, 0.35],
     }
@@ -644,6 +644,17 @@ def dummy_litter_data(fixture_core_components):
                 [1.771, 5.296, 0.0392, 11.652],
                 [0.6592, 0.3446, 0.001371, 0.1192],
                 [0.005292, 0.02255, 2.843e-5, 0.02516],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    data["subcanopy_seedbank_litter_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.0272, 0.317, 0.000338, 0.962],
+                [0.0594, 0.0155, 2.36e-5, 0.0106],
+                [0.000449, 0.00169, 6.19e-7, 0.000928],
             ],
             axis=1,
         ),

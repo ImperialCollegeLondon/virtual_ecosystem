@@ -9,7 +9,6 @@ from functools import cached_property
 from pathlib import Path
 from typing import ClassVar
 
-import numpy as np
 from pint import DimensionalityError, Quantity, UndefinedUnitError
 from pydantic import (
     ConfigDict,
@@ -133,29 +132,6 @@ class CoreConstants(Configuration):
 
     density_water: float = 1000.0
     """Density of water, [kg m-3]."""
-
-    fungal_fruiting_bodies_c_n_ratio: float = 10.0
-    """Carbon to nitrogen ratio of fungal fruiting bodies, [unitless].
-    
-    This constant is stored in the CoreConsts as it is used by both the animal model
-    (to work out consumption flows) and the soil model (to work out production rates).
-    The current default value is very much a guess.
-    """
-
-    fungal_fruiting_bodies_c_p_ratio: float = 75.0
-    """Carbon to phosphorus ratio of fungal fruiting bodies, [unitless].
-    
-    This constant is stored in the CoreConsts as it is used by both the animal model (to
-    work out consumption flows) and the soil model (to work out production rates). The
-    current default value is very much a guess.
-    """
-
-    fungal_fruiting_bodies_decay_rate: float = np.log(2) / 50.0
-    """Rate constant for the decay of fungal fruiting bodies, [day^-1].
-    
-    This is calculated based on the assumption that fungal fruiting bodies decay with a
-    half-life of 50 days. This estimate should be improved based on empirical data.
-    """
 
     air_volumetric_heat_capacity: float = 1200.0
     """Volumetric heat capacity of air at constant pressure, [J m-3 K-1].

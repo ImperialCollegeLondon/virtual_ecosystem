@@ -47,6 +47,7 @@ from virtual_ecosystem.models.plants.canopy import (
 )
 from virtual_ecosystem.models.plants.communities import Community, PlantCommunities
 from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+from virtual_ecosystem.models.plants.fruit import calculate_fallen_fruit_decay_fraction
 from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 from virtual_ecosystem.models.plants.model_config import (
     PlantsConfiguration,
@@ -77,12 +78,8 @@ class PlantsModel(
         "subcanopy_seedbank_cnp",
         "fallen_seeds_cnp",
         "fallen_fruit_cnp",
-        "fallen_seeds_per_fruit",
-        "fallen_fruit_n",
         "canopy_seed_cnp",
         "canopy_fruit_cnp",
-        "canopy_seeds_per_fruit",
-        "canopy_fruit_n",
         "canopy_foliage_cnp",
         "stem_turnover_cnp",
         "foliage_turnover_cnp",
@@ -94,9 +91,8 @@ class PlantsModel(
         "canopy_foliage_cnp_consumed",
         "canopy_seed_cnp_consumed",
         "canopy_fruit_cnp_consumed",
-        "seed_turnover_cnp_consumed",
-        "fruit_turnover_cnp_consumed",
-        "plant_reproductive_tissue_lignin",
+        "fallen_seeds_cnp_consumed",
+        "fallen_fruit_cnp_consumed",
         "root_lignin",
         "senesced_leaf_lignin",
         "stem_lignin",
@@ -127,13 +123,9 @@ class PlantsModel(
         "root_turnover_cnp",
         "seed_turnover_cnp",
         "fruit_turnover_cnp",
-        "canopy_fruit_n",
         "canopy_fruit_cnp",
-        "canopy_seeds_per_fruit",
         "canopy_seed_cnp",
-        "fallen_fruit_n",
         "fallen_fruit_cnp",
-        "fallen_seeds_per_fruit",
         "fallen_seeds_cnp",
         "canopy_foliage_cnp",
         "subcanopy_seedbank_litter_cnp",
@@ -147,7 +139,6 @@ class PlantsModel(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
-        "plant_reproductive_tissue_lignin",  # NOTE - will be deprecated in #1132
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "shortwave_absorption",
@@ -157,6 +148,7 @@ class PlantsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
+        "fallen_fruit_decay_cnp",
     ),
     vars_populated_by_first_update=(
         "plant_ammonium_uptake",
@@ -168,6 +160,7 @@ class PlantsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
+        "fallen_fruit_decay_cnp",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -254,7 +247,7 @@ class PlantsModel(
         """A dataframe providing the initial cohort data."""
         self.cohort_id_generator: Iterator
         """Set of constants for the plants model"""
-        self.model_constant: PlantsConstants
+        self.model_constants: PlantsConstants
         """Set of constants for the plants model"""
         self.communities: PlantCommunities
         """An instance of PlantCommunities providing dictionary access keyed by cell id
@@ -480,13 +473,9 @@ class PlantsModel(
             "canopy_foliage_cnp",
             "canopy_seed_cnp",
             "canopy_fruit_cnp",
-            "canopy_seeds_per_fruit",  # TODO - same as fallen seeds per fruit
-            "canopy_fruit_n",
             # Turnover biomasses
             "fallen_fruit_cnp",
             "fallen_seeds_cnp",
-            "fallen_fruit_n",
-            "fallen_seeds_per_fruit",
             "foliage_turnover_cnp",
             "seed_turnover_cnp",
             "fruit_turnover_cnp",
@@ -496,8 +485,8 @@ class PlantsModel(
             "canopy_foliage_cnp_consumed",
             "canopy_seed_cnp_consumed",
             "canopy_fruit_cnp_consumed",
-            "seed_turnover_cnp_consumed",
-            "fruit_turnover_cnp_consumed",
+            "fallen_seeds_cnp_consumed",
+            "fallen_fruit_cnp_consumed",
         ]
         for var_name in vars_to_initialize:
             self.data[var_name] = self.data_object_templates["cnp_pft"].copy()
@@ -799,6 +788,9 @@ class PlantsModel(
         # trait (tau_f), modified by apply_herbivory above, to account for carbon costs
         # of folivory.
         self.allocate_gpp()
+
+        # Update the fallen fruits and seeds pools
+        self.update_fallen_pools()
 
         # Calculate the subcanopy vegetation dynamics
         self.subcanopy.calculate_dynamics()
@@ -1695,10 +1687,6 @@ class PlantsModel(
         self.data["senesced_leaf_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.senesced_leaf_lignin
         )
-        self.data["plant_reproductive_tissue_lignin"] = xr.full_like(
-            self.data["elevation"],
-            self.model_constants.plant_reproductive_tissue_lignin,
-        )
         self.data["root_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_lignin
         )
@@ -1771,21 +1759,53 @@ class PlantsModel(
                 )
             )
 
-    def convert_to_litter_units(self, input_mass: xr.DataArray) -> xr.DataArray:
-        """Helper function to convert plant quantities into litter model units.
+    def update_fallen_pools(self) -> None:
+        """Update the fallen seeds and fruit pools.
 
-        The plant model records the plant biomass in units of mass (kg) per grid square,
-        whereas the litter model expects litter inputs as kg per m^2.
+        This method calculates the new values for the pools based on the turnover of the
+        input biomass (from the canopy plants) and the consumption of the pools by
+        animals.
 
-        Args:
-            input_mass: The mass (of carbon) being passed from the plant model to the
-                litter model [kg/g]
-
-        Returns:
-            The input mass converted to the density units that the litter model uses [kg
-            m^-2]
+        Seeds are assumed not to decay if left unconsumed by animals. Fruit, however, do
+        decay if left uneaten. This decay is applied to the fruit left after animal
+        consumption has occurred, and the size of the depends on both the length of
+        simulation time step and the average (soil surface) temperature across the
+        previous timestep. The carbon, nitrogen and phosphorus from the decayed fruit is
+        then added directly into the soil (bypassing the litter model).
         """
-        return input_mass / self.grid.cell_area
+
+        # Seeds do not decay, so if they aren't eaten by animals they accumulate
+        self.data["fallen_seeds_cnp"] += (
+            self.data["seed_turnover_cnp"] - self.data["fallen_seeds_cnp_consumed"]
+        )
+
+        # Find the amount of fruit left after animal consumption
+        post_consumption_fruit = (
+            self.data["fallen_fruit_cnp"] - self.data["fallen_fruit_cnp_consumed"]
+        )
+
+        # Estimate the fraction of this remaining fruit that decays
+        fraction_decayed = calculate_fallen_fruit_decay_fraction(
+            decay_rate=self.model_constants.fallen_fruit_decay_rate,
+            surface_temperature=self.data["air_temperature"][
+                self.layer_structure.index_surface_scalar
+            ],
+            days=self.model_timing.update_interval_quantity.to("days").magnitude,
+        )
+        fruit_decay = fraction_decayed * post_consumption_fruit
+
+        # Find the pool size for the next time stop by adding new biomass and
+        # subtracting decay
+        self.data["fallen_fruit_cnp"] = (
+            post_consumption_fruit + self.data["fruit_turnover_cnp"] - fruit_decay
+        )
+
+        # Update data object with total (summed across PFTs) decay into the soil model
+        # (expressed as a rate per area)
+        self.data["fallen_fruit_decay_cnp"] = fruit_decay.sum(dim="pft") / (
+            self.grid.cell_area
+            * self.model_timing.update_interval_quantity.to("days").magnitude
+        )
 
     def convert_to_soil_units(
         self, input_mass: NDArray[np.floating]

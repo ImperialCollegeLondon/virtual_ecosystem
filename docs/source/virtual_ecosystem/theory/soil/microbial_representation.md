@@ -147,13 +147,10 @@ microbial functional groups are given below.
 ### Fungal fruiting
 
 Fungal groups allocate a (configurable) fixed proportion of their synthesis of new
-biomass to the production of fungal fruiting bodies. The stoichiometric ratios of these
-bodies are lower than for soil fungal biomass, so producing them takes a proportionally
-greater uptake of nutrients.
-
-These fruiting bodies are made available for animal consumption (this process is tracked
-with the animal model). Fungal fruiting bodies that aren't consumed decay back into the
-soil in a labile organic form, i.e. as {term}`LMWC`.
+biomass to the production of fungal fruiting bodies. This contributes to a single pool
+of fungal fruiting bodies that are made available for (above- and below-ground) animal
+consumption. Fungal fruiting bodies that aren't consumed decay back into the soil in a
+labile organic form, i.e. as {term}`LMWC`.
 
 ### Mycorrhiza
 
