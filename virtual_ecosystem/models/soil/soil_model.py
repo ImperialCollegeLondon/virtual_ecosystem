@@ -142,6 +142,7 @@ class SoilModel(
         "fungal_fruiting_bodies_consumed_cnp",
         "decomposed_excrement_cnp",
         "decomposed_carcasses_cnp",
+        "fallen_fruit_decay_cnp",
     ),
     vars_updated=(
         "soil_cnp_pool_maom",
