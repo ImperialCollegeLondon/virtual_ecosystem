@@ -21,34 +21,49 @@ data paths and to alter model settings and constants. It may be helpful to read 
 system](../../running_ve_with_your_own_data.md#configuration-system-overview) before
 reading this section. You can also look at the [API documentation of the plants
 configuration](../../../api/models/plants/model_config.md): it is aimed at programmers
-but does contain a lot of technical detail
+but does contain useful detail.
 
 ## Configuration sections
 
-The configuration for the `plants` model includes the following entries:
+The configuration for the `plants` model has two sections that are mandatory - these are
+simply the settings that point to the required input data to run the model.
+
+* The settings for the array variables required by the model - see the [tree
+  configuration](./tree_definition.md) and [subcanopy
+  configuration](./subcanopy_definition.md) pages for details. These are configured
+  using the `[core.variable]` setting
 
 * Paths to CSV files defining the plant functional types and size-structured cohorts to
-  be used in the model. These are the `[plants.pft_definitions_path]` and
-  `[plants.cohort_data_path]` settings, and the files and configuration are described in
-  the [tree community configuration page](./tree_definition.md).
-* Paths to the array variables required by the plants model - see the [tree
-  configuration](./tree_definition.md) and [subcanopy
-  configuration](./subcanopy_definition.md) pages for details.
+  be used in the model. These are configured using the `[plants.pft_definitions_path]`
+  and `[plants.cohort_data_path]` settings, and the files and configuration are
+  described in more detail in the [tree community configuration
+  page](./tree_definition.md).
+
+The remaining sections all have default values and so the model will run if they are
+omitted, but you will likely want to change the defaults to values appropriate for your
+site or to change cohort and community data output options. These sections are:
+
 * The values of constants used within the model (`[plants.constants]`). These all have
   default values but you will need to provide configuration details if you want to use
   different values.
-* Configuration of export options for data on the plant cohort and communities at each
-  time step (`[plants.community_data_export]`).
+* The configuration of data export options for the plant cohort and communities at
+  each time step (`[plants.community_data_export]`). This data are not stored as array
+  variables and so are not exported in the main Zarr output file. You will need to
+  set these export options if you want to track cohort dynamics through the simulation.
 
-A complete plant configuration, including all the default fields is shown below. You do
-not have to settings unless you want to change the default values, but the whole set is
-shown here for clarity.
+A complete plant configuration, including all the default fields is shown below. The
+mandatory fields are highlighted.
 
 ```{code-cell} ipython3
-:tags: [remove-input]
-
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
 # This cell autogenerates a configuration for the model from the code objects, which
-# keeps these docs up to date with the code state.
+# keeps these docs up to date with the code state. Note that that highlighting
+# (emphasize-lines) settings in the TOML output will not automatically adjust if the
+# configuration changes
 
 import json
 
@@ -69,7 +84,7 @@ plants_cfg = json.loads(
 )
 
 # Build complete set of config including data variables
-cfg = {"plants": plants_cfg, "core": {"variable": []}}
+cfg = {"core": {"variable": []}, "plants": plants_cfg}
 
 for var in PlantsModel.vars_required_for_init:
     cfg["core"]["variable"].append(
@@ -81,7 +96,12 @@ for var in PlantsModel.vars_required_for_init:
     )
 
 # Display as markdown
-display_markdown("```toml\n" + tomli_w.dumps(cfg) + "```", raw=True)
+display_markdown(
+    "```{code-block} toml\n:emphasize-lines: 3-6,11-12\n\n"
+    + tomli_w.dumps(cfg)
+    + "```",
+    raw=True,
+)
 ```
 
 ## Plants constants
@@ -202,8 +222,8 @@ The choices are:
   `plants_stem_canopy_data.csv` will be exported for each time step. The available
   attributes for plant cohort data are: {glue:text}`stem_canopy_attributes`.
 
-To show the configuration of the exporter in use, the TOML data below configures the
-exporter to write out trait data in all three data files:
+To show the configuration of the exporter in use, the TOML settings below show how to
+configure the exporter to write out selected trait data for all three data files:
 
 ```{code-cell} ipython3
 :tags: [remove-input]
