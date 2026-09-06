@@ -15,55 +15,113 @@ kernelspec:
 
 # Plants model configuration
 
-[See also the [configuration details](../../../api/models/plants/model_config.md)]
+The plants model is configured using a TOML format file that is used to set required
+data paths and to alter model settings and constants. It may be helpful to read the
+[general overview of the configuration
+system](../../running_ve_with_your_own_data.md#configuration-system-overview) before
+reading this section. You can also look at the [API documentation of the plants
+configuration](../../../api/models/plants/model_config.md): it is aimed at programmers
+but does contain a lot of technical detail
 
-Configuration for the `plants` model includes four sections:
+## Configuration sections
 
-* A path to a CSV file defining the plant functional types to be used in the model
-  (`[plants.pft_definitions_path]`)
-* A path to another CSV file defining the size-structured communities of plant
-  functional types found in each cell (`[plants.cohort_data_path]`).
-* Configuration details for the export of plant community data at each time step
-  (`[plants.community_data_export]`).
-* A set of constants values used within the model (`[plants.constants]`) that need to be
-  specified in the configuration if you want to change them from the default values.
+The configuration for the `plants` model includes the following entries:
 
-## Plant functional types
+* Paths to CSV files defining the plant functional types and size-structured cohorts to
+  be used in the model. These are the `[plants.pft_definitions_path]` and
+  `[plants.cohort_data_path]` settings, and the files and configuration are described in
+  the [tree community configuration page](./tree_definition.md).
+* Paths to the array variables required by the plants model - see the [tree
+  configuration](./tree_definition.md) and [subcanopy
+  configuration](./subcanopy_definition.md) pages for details.
+* The values of constants used within the model (`[plants.constants]`). These all have
+  default values but you will need to provide configuration details if you want to use
+  different values.
+* Configuration of export options for data on the plant cohort and communities at each
+  time step (`[plants.community_data_export]`).
+
+A complete plant configuration, including all the default fields is shown below. You do
+not have to settings unless you want to change the default values, but the whole set is
+shown here for clarity.
 
 ```{code-cell} ipython3
-:tags: [remove-cell]
+:tags: [remove-input]
 
-from myst_nb import glue
-from virtual_ecosystem.core.docutils import dump_config_toml, model_config_to_deflist
-from virtual_ecosystem.models.plants.functional_types import VEFloraValidator
+# This cell autogenerates a configuration for the model from the code objects, which
+# keeps these docs up to date with the code state.
 
-traits = list(VEFloraValidator.model_fields.keys())
+import json
 
-# Remove internally assigned values
-for calc_trait in ["lai_base", "tau_f_base"]:
-    traits.remove(calc_trait)
+import tomli_w
+from IPython.display import display_markdown
 
-glue("pft_traits", ", ".join([f'"{t}"' for t in traits]))
+from virtual_ecosystem.core.model_config import DataSource
+from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
+from virtual_ecosystem.models.plants.plants_model import PlantsModel
+
+# Generate a default plant configuration, using model_construct() to bypass validation
+# on placeholder file names
+plants_cfg = json.loads(
+    PlantsConfiguration.model_construct(
+        pft_definitions_path="/path/to/pft_definitions.csv",
+        cohort_data_path="/path/to/cohort_data.csv",
+    ).model_dump_json()
+)
+
+# Build complete set of config including data variables
+cfg = {"plants": plants_cfg, "core": {"variable": []}}
+
+for var in PlantsModel.vars_required_for_init:
+    cfg["core"]["variable"].append(
+        json.loads(
+            DataSource.model_construct(
+                file_path="/path/to/plant_data.nc", var_name=var
+            ).model_dump_json()
+        )
+    )
+
+# Display as markdown
+display_markdown("```toml\n" + tomli_w.dumps(cfg) + "```", raw=True)
 ```
 
-The `plants.pft_definitions_path` configuration setting must point to a CSV defining
-the plant functional types to be used in a simulation. Each row in the CSV must provide
-a unique PFT name and then a set of plant functional trait values for that PFT. The file
-in the example data is a good template to use for preparing this file. The required
-trait fields are:
+## Plants constants
 
-{glue:text}`pft_traits`.
+The plant constants section shown in the configuration above sets a large number of
+constants that drive how the simulation works. These are described below:
 
-## Plant cohort data
+```{code-cell} ipython3
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+# This cell generates a CSV table from the pydantic validation object for PFT data,
+# ensuring that the description here is up to date with the codebase.
 
-The `plants.cohort_data_path` configuration setting must point to a CSV file defining
-the cohorts in each cell. Again, the file in the example data is a good template but the
-basic structure is that each row must provide size-structured cohort data as:
+from virtual_ecosystem.models.plants.model_config import PlantsConstants
+import re
 
-* the name of a PFT,
-* a cell ID value,
-* the size of the individuals in the cohort as diameter at breast height, and
-* the number of individuals in the cohort.
+rows = ["Field name,Description,Default value"]
+
+# Parse the fields from the trait validator pydantic model
+for trait, field in PlantsConstants.model_fields.items():
+
+    # Tidy the description to remove newlines, convert latex and quote to wrap commas
+    desc = "" if field.description is None else field.description
+    desc = re.sub(r":math:`\\(.+)`", r"$\\\1$", desc)
+    desc = re.sub(r":math:`(.+)`", r"$\1$", desc)
+    desc = f'"{desc.replace("\n", " ")}"'
+
+    # Add to the rows
+    rows.append(f"`{trait}`,{desc},{ '-' if field.default is None else field.default}")
+
+
+# Display as markdown
+display_markdown(
+    f"```{{csv-table}}\n:header-rows: 1\n:quote: '\"'\n\n{"\n".join(rows)}\n```",
+    raw=True,
+)
+```
 
 ## Plants community data export
 
@@ -118,6 +176,7 @@ glue(
 ```{code-cell} ipython3
 :tags: [remove-input]
 
+from virtual_ecosystem.core.docutils import dump_config_toml, model_config_to_deflist
 from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
 config_object = PlantsExportConfig()
@@ -156,16 +215,4 @@ config_object = PlantsExportConfig(
     stem_canopy_attributes=["cell_id", "cohort_id", "canopy_layer_index", "fapar"],
 )
 dump_config_toml("plants.community_data_export", config_object)
-```
-
-## Plants constants
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.plants.model_config import PlantsConstants
-
-config_object = PlantsConstants()
-dump_config_toml("plants.constants", config_object)
-model_config_to_deflist("plants.constants", config_object)
 ```

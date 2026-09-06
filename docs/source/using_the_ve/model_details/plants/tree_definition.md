@@ -67,10 +67,15 @@ The PFT definitions file needs to include the following fields (the order doesn'
 matter) defining the PFT names and then values for all of the traits:
 
 ```{code-cell} ipython3
-:tags: [remove-input]
-
-# This cell generates a CSV file from the pydantic validation object for PFT data,
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+# This cell generates a CSV table from the pydantic validation object for PFT data,
 # ensuring that the description here is up to date with the codebase.
+
+from IPython.display import display_markdown
 
 from virtual_ecosystem.models.plants.functional_types import VEFloraValidator
 import re
@@ -95,16 +100,11 @@ for trait, field in VEFloraValidator.model_fields.items():
         f"`{trait}`,{desc},{ '-' if field.default is None else field.default[0]}"
     )
 
-# Dump CSV data to file for ingestion by csv-table directive.
-with open("pft_data.csv", "w") as pft_data:
-    pft_data.write("\n".join(rows))
-```
-
-<!-- This simply ingests the file generated above and displays it as a table. -->
-```{csv-table}
-:file: pft_data.csv
-:header-rows: 1
-:quote: '"'
+# Display as markdown
+display_markdown(
+    f"```{{csv-table}}\n:header-rows: 1\n:quote: '\"'\n\n{"\n".join(rows)}\n```",
+    raw=True,
+)
 ```
 
 ## Initial cohort data
