@@ -32,6 +32,10 @@ class VEFloraValidator(FloraValidator):
      seeds): tissue respiration costs from GPP are calculated as a fraction of tissue
      carbon mass (:math:`r_{rt}`, kg kg-1)."""
     tau_rt: tuple[float, ...] = (1.0,)
+
+    r"""Turnover time of tissues in reproductive structures (fruit and seeds), expressed
+     as the time for the entire tissue carbon mass to be replaced through turnover
+     (:math:`\tau_{rt}`, years)."""
     r"""The annual turnover rate of reproductive tissues (:math:`\tau_{rt}`, kg
      kg-1)."""
     root_symbiote_npp_fraction: tuple[float, ...] = (0.1,)
