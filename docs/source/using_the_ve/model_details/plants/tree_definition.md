@@ -33,7 +33,7 @@ to define:
 
 ## Plant functional types
 
-Plant functional types in the plants model are defined as a set of trait values that
+Plant functional types in the plants model are defined by a set of trait values that
 describe the allometry, carbon allocation, demography and stoichiometry of each PFT.
 
 The PFT definitions for a simulation need to be stored in a
@@ -150,7 +150,7 @@ still **must** provide the input data described above for every single cell indi
 
 The distribution of PFT propagules must be provided as an array variable in a NetCDF
 file. The array must have spatial dimensions (`x` and `y`) mapping counts onto cells and
-also a `pft` dimension, allowing a count to be define for each PFT in each cell. The
+also a `pft` dimension, allowing a count to be defined for each PFT in each cell. The
 Python code below generates an example of the required format:
 
 ```{code-cell} ipython3

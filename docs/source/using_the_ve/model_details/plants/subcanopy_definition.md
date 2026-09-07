@@ -25,7 +25,8 @@ language_info:
 # Defining subcanopy vegetation
 
 The subcanopy/understory vegetation is defined using array variables that define
-the biomasses in each of two simple pools for each cell in the simulation:
+the biomasses in each of two simple pools for each cell in the simulation, with
+units of kg C m-2:
 
 * Vegetative subcanopy biomass that includes both structural and leaf tissue of
   the understory.

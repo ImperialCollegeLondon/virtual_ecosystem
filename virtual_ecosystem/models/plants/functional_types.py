@@ -18,19 +18,19 @@ from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
 class VEFloraValidator(FloraValidator):
     """Extended plant functional trait definition.
 
-    This class extends the basic pyrealm Flora definition to include the extra traitsp
+    This class extends the basic pyrealm Flora definition to include the extra traits
     required for the Virtual Ecosystem.
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
     fruit_seed_foliage_mass_fraction: tuple[float, ...] = (0.05,)
-    r"""Defines the initial carbon allocation to reproductive structures (fruit and
-     seed) from net primary productivity as a fraction of the initial individual canopy
-     carbon mass (kg kg-1)."""
+    r"""Carbon allocation to reproductive structures tissue (fruit and seeds) as a
+     fraction of foliage carbon mass (kg kg-1)."""
     resp_rt: tuple[float, ...] = (0.05,)
-    r"""The annual respiration rate of reproductive tissues (:math:`r_{rt}`, kg
-     kg-1)."""
+    r"""Annual respiration fraction of tissues in reproductive structures (fruit and
+     seeds): tissue respiration costs from GPP are calculated as a fraction of tissue
+     carbon mass (:math:`r_{rt}`, kg kg-1)."""
     tau_rt: tuple[float, ...] = (1.0,)
     r"""The annual turnover rate of reproductive tissues (:math:`\tau_{rt}`, kg
      kg-1)."""
@@ -42,31 +42,31 @@ class VEFloraValidator(FloraValidator):
     stem_c_p_ratio: tuple[float, ...] = (856.5,)
     r"""Carbon/Phosphorous ratio of stem tissue (kg kg-1)."""
     foliage_turnover_c_n_ratio: tuple[float, ...] = (25.5,)
-    r"""Carbon/Nitrogen ratio of leaf turnover, following nutrient reabsorption during
-     leaf senescence (kg kg-1)."""
+    r"""Carbon/Nitrogen ratio of foliage tissue that is lost through turnover, after
+     nutrient resorption during leaf senescence (kg kg-1)."""
     foliage_turnover_c_p_ratio: tuple[float, ...] = (415.0,)
-    r"""Carbon/Phosphorous ratio of leaf turnover, following nutrient reabsorption
-     during leaf senescence (kg kg-1)."""
+    r"""Carbon/Phosphorous ratio of foliage tissue that is lost through turnover, after
+     nutrient resorption during leaf senescence (kg kg-1)."""
     fruit_seed_c_n_ratio: tuple[float, ...] = (12.5,)
-    r"""Carbon/Nitrogen ratio of reproductive structures (fruit tissue and seeds) (kg
-     kg-1)."""
+    r"""Carbon/Nitrogen ratio of tissues in reproductive structures (fruit and seeds)
+     (kg kg-1)."""
     fruit_seed_c_p_ratio: tuple[float, ...] = (125.5,)
-    r"""Carbon/Phosphorous ratio of reproductive structures (fruit tissue and seeds) (kg
-     kg-1)."""
+    r"""Carbon/Phosphorous ratio of tissues in reproductive structures (fruit and seeds)
+     (kg kg-1)."""
     root_c_n_ratio: tuple[float, ...] = (656.7,)
     r"""Carbon/Nitrogen ratio of fine root tissue (kg kg-1)."""
     root_c_p_ratio: tuple[float, ...] = (45.6,)
     r"""Carbon/Phosphorous ratio of fine root tissue (kg kg-1)."""
     foliage_c_n_ratio: tuple[float, ...] = (15.0,)
-    r"""Carbon/Nitrogen ratio of active leaf tissue (kg kg-1)."""
+    r"""Carbon/Nitrogen ratio of foliage tissue (kg kg-1)."""
     foliage_c_p_ratio: tuple[float, ...] = (300.0,)
-    r"""Carbon/Phosphorous ratio of active leaf tissue (kg kg-1)."""
+    r"""Carbon/Phosphorous ratio of foliage tissue (kg kg-1)."""
     c_mass_fruit_flesh: tuple[float, ...] = (5.0,)
-    r"""Carbon mass of total fruit flesh in reproductive structures (grams)."""
-    c_mass_per_fruit_seed: tuple[float, ...] = (1.0,)
-    r"""Carbon mass of individual seeds in reproductive structures (grams)."""
+    r"""Carbon mass of fruit flesh in a fruit (g)."""
+    c_mass_fruit_seed: tuple[float, ...] = (1.0,)
+    r"""Carbon mass of a single seed in a fruit (g)."""
     seeds_per_fruit: tuple[int, ...] = (2,)
-    r"""Number of seeds in each reproductive structure (unitless)."""
+    r"""Number of seeds in a fruit (unitless)."""
 
     # Additional traits populated during validation - these hold the reference values
     # for lai and tau_f, which are modified by herbivory.
@@ -105,7 +105,7 @@ class VEFloraValidator(FloraValidator):
                 cmf / (cmf + (cms * spf))
                 for cmf, cms, spf in zip(
                     self.c_mass_fruit_flesh,
-                    self.c_mass_per_fruit_seed,
+                    self.c_mass_fruit_seed,
                     self.seeds_per_fruit,
                 )
             ]

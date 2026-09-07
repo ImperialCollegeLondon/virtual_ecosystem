@@ -18,8 +18,8 @@ cell in the simulation can contain:
 
 * a vertically structured tree community consisting of size structured cohorts of defined
    plant functional types (PFTs), and
-* a simple subcanopy (or understory) layer that represents grass and shrub biomass
-  underneath the main canopy as simple biomass pools.
+* a simple subcanopy (or understory) layer that represents herbaceous biomass underneath
+  the main canopy as simple pools of vegetative and reproductive biomass.
 
 <!-- markdownlint-disable MD033 -->
 These features are defined using two CSV files that define PFTs and tree cohorts across
