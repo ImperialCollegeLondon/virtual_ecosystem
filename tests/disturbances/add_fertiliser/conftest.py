@@ -40,6 +40,7 @@ def fixture_add_fertiliser_model(fixture_fertiliser_init_data):
     # Build the config object
     cfg_strings = (
         "[core]\n[core.grid]\ncell_nx = 2\ncell_ny = 2\n"
+        "[disturbance.add_fertiliser]\nrun_at=[0,1]\n"
         "[disturbance.add_fertiliser.constants]\n"
         "nitrate_fraction=0.75\ninorganic_nitrogen_addition=2.5e-3"
     )

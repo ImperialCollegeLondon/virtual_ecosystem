@@ -23,7 +23,6 @@ from virtual_ecosystem.models.animal.array_resources import ResourcePool
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
-    FungalFruitPool,
     SoilPool,
 )
 from virtual_ecosystem.models.animal.model_config import (
@@ -568,7 +567,6 @@ class ResourcePoolDataExporter:
         self,
         carcass_pools: dict[int, list[CarcassPool]],
         excrement_pools: dict[int, list[ExcrementPool]],
-        fungal_fruiting_pools: dict[int, FungalFruitPool],
         soil_pools: dict[int, dict[str, SoilPool]],
         resource_pools: list[ResourcePool],
         time: np.datetime64,
@@ -583,10 +581,9 @@ class ResourcePoolDataExporter:
                 or more CarcassPool instances.
             excrement_pools: Excrement pools keyed by cell id, each containing
                 one or more ExcrementPool instances.
-            fungal_fruiting_pools: Fungal fruiting body pools keyed by cell id.
             soil_pools: Soil pools keyed by cell id and then by pool-type string
                 (e.g. ``"bacteria"``, ``"saprotrophic_fungi"``).
-            resource_pools: Flat list of plant and litter ResourcePool
+            resource_pools: Flat list of plant, litter and fungal fruit ResourcePool
                 instances. Each pool's ``elemental_masses`` array holds
                 pre-foraging available masses set by the most recent
                 ``set_resources`` call.
@@ -603,7 +600,6 @@ class ResourcePoolDataExporter:
         rows: list[dict[str, object]] = []
         rows.extend(self._build_carcass_rows(carcass_pools, time, time_index))
         rows.extend(self._build_excrement_rows(excrement_pools, time, time_index))
-        rows.extend(self._build_fungal_rows(fungal_fruiting_pools, time, time_index))
         rows.extend(self._build_soil_rows(soil_pools, time, time_index))
         rows.extend(self._build_resource_pool_rows(resource_pools, time, time_index))
 
@@ -706,42 +702,6 @@ class ResourcePoolDataExporter:
                             "P": cnp.P,
                         }
                     )
-        return rows
-
-    def _build_fungal_rows(
-        self,
-        fungal_fruiting_pools: dict[int, FungalFruitPool],
-        time: np.datetime64,
-        time_index: int,
-    ) -> list[dict[str, object]]:
-        """Build output rows for all fungal fruiting body pools.
-
-        Emits one row per pool instance.
-
-        Args:
-            fungal_fruiting_pools: Fungal fruiting body pools keyed by cell id.
-            time: Timestamp for this snapshot.
-            time_index: The index of the datetime within the model updates.
-
-        Returns:
-            List of row dictionaries, one per FungalFruitPool instance.
-        """
-        rows = []
-        for cell_id, pool in fungal_fruiting_pools.items():
-            rows.append(
-                {
-                    "time": time,
-                    "time_index": time_index,
-                    "pool_type": "fungal_fruiting",
-                    "pool_name": "",
-                    "sub_pool": "",
-                    "pft": "",
-                    "cell_id": cell_id,
-                    "C": pool.mass_cnp.C,
-                    "N": pool.mass_cnp.N,
-                    "P": pool.mass_cnp.P,
-                }
-            )
         return rows
 
     def _build_soil_rows(

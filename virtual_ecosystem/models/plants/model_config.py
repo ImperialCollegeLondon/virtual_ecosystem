@@ -2,6 +2,8 @@
 
 from typing import Literal
 
+from pydantic import Field
+
 from virtual_ecosystem.core.configuration import (
     FILEPATH_PLACEHOLDER,
     Configuration,
@@ -39,17 +41,23 @@ class PlantsConstants(Configuration):
     senesced_leaf_lignin: float = 0.05
     """Fraction of senesced leaf biomass that is lignin."""
 
-    plant_reproductive_tissue_lignin: float = 0.01
-    """Fraction of plant reproductive tissue biomass that is lignin."""
-
     root_lignin: float = 0.20
     """Fraction of root biomass that is lignin."""
 
     subcanopy_extinction_coef: float = 0.5
     """The extinction coefficient of subcanopy vegetation (unitless)."""
 
+    subcanopy_leaf_fraction: float = 0.5
+    """The fraction of subcanopy vegetation biomass allocated to leaf tissue rather than
+    to stems and other structural tissue (unitless)."""
+
     subcanopy_specific_leaf_area: float = 14
     """The specific leaf area of subcanopy vegetation (m2 kg-1)."""
+
+    subcanopy_maximum_leaf_area_index: float = 5
+    """A cap on the maximum leaf area index from the subcanopy. This is a temporary
+    safeguard to prevent subcanopy dynamics from driving unrealistic abiotic conditions
+    and should be replaced by biological limitations on subcanopy growth (m2 m-2)."""
 
     subcanopy_respiration_fraction: float = 0.1
     """The fraction of gross primary productivity used in respiration (unitless)."""
@@ -103,6 +111,13 @@ class PlantsConstants(Configuration):
 
     carbon_mass_per_propagule: float = 1
     """Mass of carbon per propagule in g."""
+
+    fallen_fruit_decay_rate: float = Field(default=0.0075, gt=0.0)
+    """Rate at which fruit that has fallen from the canopy decays [Celsius^-1 day^-1].
+    
+    This rate is measured relative to degree days (with a basis of 0 Celsius) so that
+    decay happens faster at higher temperatures and doesn't happen at sub-zero
+    temperatures."""
 
 
 class PlantsExportConfig(Configuration):

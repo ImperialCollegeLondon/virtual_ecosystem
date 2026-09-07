@@ -306,6 +306,14 @@ class SoilConstants(Configuration):
     """Fraction of plant carbon supply to mycorrhizal fungi that goes to ectomycorrhiza.
     [unitless]. The remainder goes to arbuscular mycorrhizal fungi."""
 
+    fungal_fruiting_bodies_decay_rate: float = Field(default=np.log(2) / 50.0, gt=0.0)
+    """Rate constant for the decay of fungal fruiting bodies, [day^-1].
+        
+    The default value is calculated based on the assumption that fungal fruiting bodies
+    decay with a half-life of 50 days. This estimate should be improved based on
+    empirical data.
+    """
+
     @model_validator(mode="after")
     def _check_pH_sequence(self) -> SoilConstants:
         """Checks that the microbe pH thresholds are in the correct order."""

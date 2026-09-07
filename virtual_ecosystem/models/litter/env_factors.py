@@ -9,6 +9,9 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.models.litter.model_config import LitterConstants
+from virtual_ecosystem.models.soil.env_factors import (
+    calculate_water_potential_impact_on_microbes,
+)
 
 
 def calculate_environmental_factors(
@@ -78,11 +81,11 @@ def calculate_environmental_factors(
     }
 
     # Calculate the water factor (relevant for below ground layers)
-    water_factor = calculate_soil_water_effect_on_litter_decomp(
+    water_factor = calculate_water_potential_impact_on_microbes(
         water_potential=water_potential,
         water_potential_halt=constants.litter_decay_water_potential_halt,
         water_potential_opt=constants.litter_decay_water_potential_optimum,
-        moisture_response_curvature=constants.moisture_response_curvature,
+        response_curvature=constants.moisture_response_curvature,
     )
 
     return {
@@ -118,42 +121,6 @@ def calculate_temperature_effect_on_litter_decomp(
     return np.exp(
         temp_response * (temperature - reference_temp) / (temperature + offset_temp)
     )
-
-
-def calculate_soil_water_effect_on_litter_decomp(
-    water_potential: NDArray[np.floating],
-    water_potential_halt: float,
-    water_potential_opt: float,
-    moisture_response_curvature: float,
-) -> NDArray[np.floating]:
-    """Calculate the effect that soil water potential has on litter decomposition rates.
-
-    This function is only relevant for the below ground litter pools. Its functional
-    form is taken from :cite:t:`moyano_responses_2013`.
-
-    Args:
-        water_potential: Soil water potential [kPa]
-        water_potential_halt: Water potential at which all microbial activity stops
-            [kPa]
-        water_potential_opt: Optimal water potential for microbial activity [kPa]
-        moisture_response_curvature: Parameter controlling the curvature of the moisture
-            response function [unitless]
-
-    Returns:
-        A multiplicative factor capturing the impact of moisture on below ground litter
-        decomposition [unitless]
-    """
-
-    # TODO - Need to make sure that this function is properly defined for a plausible
-    # range of matric potentials.
-
-    # Calculate how much moisture suppresses microbial activity
-    suppression = (
-        (np.log10(-water_potential) - np.log10(-water_potential_opt))
-        / (np.log10(-water_potential_halt) - np.log10(-water_potential_opt))
-    ) ** moisture_response_curvature
-
-    return 1 - suppression
 
 
 def average_temperature_over_microbially_active_layers(

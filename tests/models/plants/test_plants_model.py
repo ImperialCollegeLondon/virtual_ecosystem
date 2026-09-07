@@ -88,7 +88,7 @@ def test_PlantsModel__init__(
 
     # Test the flora and community are as expected
     n_cells = fixture_core_components.grid.n_cells
-    assert plants_model.flora == fixture_flora
+    assert plants_model.flora.equals(fixture_flora)
     assert len(plants_model.communities) == n_cells
 
     # Check the canopy and subcanopy vegetation has been initialised and updated,
@@ -300,9 +300,7 @@ def fxt_plants_model_hbvry(fxt_plants_model):
         for tissue in ("fruit", "seed", "foliage"):
             # Get the biomass and divide in half
             consumed_biomass = (
-                fxt_plants_model.biomasses[cid]
-                .get_tissue(tissue)
-                .as_array(with_carbon=True)
+                fxt_plants_model.biomasses[cid].get_tissue(tissue).elemental_masses
             ) / 2
 
             # Construct an xarray with dimensions to make it easier to group cohort data
@@ -310,10 +308,10 @@ def fxt_plants_model_hbvry(fxt_plants_model):
             target_array = fxt_plants_model.data[f"canopy_{tissue}_cnp_consumed"]
             consumed_biomass_by_pft = xarray.DataArray(
                 consumed_biomass,
-                dims=("element", "pft"),
+                dims=("pft", "element"),
                 coords={
+                    "pft": fxt_plants_model.communities[cid].cohorts["pft_name"],
                     "element": target_array.element,
-                    "pft": fxt_plants_model.biomasses[cid].community.cohorts.pft_name,
                 },
             )
 
@@ -358,11 +356,10 @@ def test_PlantsModel_apply_herbivory(fxt_plants_model_hbvry, tricky_plant_cohort
     for cid in fxt_plants_model_hbvry.grid.cell_id:
         for tissue in ("fruit", "seed", "foliage"):
             assert_allclose(
-                initial_biomasses[cid].get_tissue(tissue).as_array(with_carbon=True)
-                / 2,
+                initial_biomasses[cid].get_tissue(tissue).elemental_masses / 2,
                 fxt_plants_model_hbvry.biomasses[cid]
                 .get_tissue(tissue)
-                .as_array(with_carbon=True),
+                .elemental_masses,
             )
 
     # Check that the LAI has been reduced to 75%: 50% of foliage lost in total is an
@@ -543,6 +540,80 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, tricky_plant_cohorts):
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_apply_water_limitation(fxt_plants_model, tricky_plant_cohorts):
+    """Test the estimate_gpp method."""
+
+    # Set the canopy and absorbed irradiance
+    fxt_plants_model.set_canopy_top_radiation(time_index=0)
+    fxt_plants_model.update_canopy_layers()
+    fxt_plants_model.subcanopy.set_light_capture(
+        below_canopy_light_fraction=fxt_plants_model.below_canopy_light_fraction
+    )
+    fxt_plants_model.set_shortwave_absorption()
+
+    # Calculate GPP
+    fxt_plants_model.reset_update_vars()
+    fxt_plants_model.calculate_light_use_efficiency()
+    fxt_plants_model.estimate_gpp(time_index=0)
+    fxt_plants_model.subcanopy.estimate_gpp(
+        pmodel=fxt_plants_model.pmodel, swd=fxt_plants_model.canopy_top_radiation
+    )
+
+    # Calculate water demand
+    fxt_plants_model.calculate_daily_water_demand()
+
+    # Save comparison values
+    original_stem_gpp = deepcopy(fxt_plants_model.per_stem_gpp)
+    original_stem_transpiration = deepcopy(fxt_plants_model.per_stem_transpiration)
+    original_subcanopy_gpp = fxt_plants_model.subcanopy.subcanopy_gpp.copy()
+    original_subcanopy_transpiration = (
+        fxt_plants_model.subcanopy.subcanopy_transpiration.copy()
+    )
+    original_transpiration = fxt_plants_model.data["transpiration"].copy()
+
+    # Modify available water to induce a range of penalties
+    severity = np.array([2, 1, 0.5, 0.25])
+    fxt_plants_model.data["soil_moisture"][:,] = (
+        fxt_plants_model.soil_water_residual
+        + fxt_plants_model.total_daily_water_demand * severity
+    )
+
+    # Apply water limitation
+    fxt_plants_model.apply_water_limitation()
+
+    # Check the expected water limitation factor
+    assert_allclose(
+        fxt_plants_model.water_limitation_factor, np.array([1, 1, 0.5, 0.25])
+    )
+
+    # Check the penalties are all applied
+    assert_allclose(
+        fxt_plants_model.subcanopy.subcanopy_gpp,
+        original_subcanopy_gpp * fxt_plants_model.water_limitation_factor,
+    )
+    assert_allclose(
+        fxt_plants_model.subcanopy.subcanopy_transpiration,
+        original_subcanopy_transpiration * fxt_plants_model.water_limitation_factor,
+    )
+    assert_allclose(
+        fxt_plants_model.data["transpiration"],
+        original_transpiration * fxt_plants_model.water_limitation_factor,
+    )
+
+    for cell_id in original_stem_gpp.keys():
+        assert_allclose(
+            fxt_plants_model.per_stem_gpp[cell_id],
+            original_stem_gpp[cell_id]
+            * fxt_plants_model.water_limitation_factor[cell_id],
+        )
+        assert_allclose(
+            fxt_plants_model.per_stem_transpiration[cell_id],
+            original_stem_transpiration[cell_id]
+            * fxt_plants_model.water_limitation_factor[cell_id],
+        )
+
+
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
     """Test the allocate_gpp method."""
 
@@ -663,10 +734,6 @@ def test_PlantsModel_populate_lignin_proportions(fxt_plants_model):
     assert np.allclose(
         fxt_plants_model.data["senesced_leaf_lignin"], consts.senesced_leaf_lignin
     )
-    assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_lignin"],
-        consts.plant_reproductive_tissue_lignin,
-    )
     assert np.allclose(fxt_plants_model.data["root_lignin"], consts.root_lignin)
     assert np.allclose(
         fxt_plants_model.data["subcanopy_vegetation_litter_lignin"],
@@ -675,6 +742,70 @@ def test_PlantsModel_populate_lignin_proportions(fxt_plants_model):
     assert np.allclose(
         fxt_plants_model.data["subcanopy_seedbank_litter_lignin"],
         consts.subcanopy_seedbank_lignin,
+    )
+
+
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_update_fallen_pools(
+    fxt_plants_model, fixture_plants_constants, plants_data, fixture_core_components
+):
+    """Test the update_fallen_pools method of the plants model."""
+
+    from virtual_ecosystem.models.plants.fruit import (
+        calculate_fallen_fruit_decay_fraction,
+    )
+
+    # Update model so that pools are populated (otherwise everything is zero)
+    fxt_plants_model.update(time_index=0)
+
+    # Compute expected values
+    expected_fallen_seeds_cnp = (
+        fxt_plants_model.data["fallen_seeds_cnp"]
+        + fxt_plants_model.data["seed_turnover_cnp"]
+        - fxt_plants_model.data["fallen_seeds_cnp_consumed"]
+    )
+
+    decay_fraction = calculate_fallen_fruit_decay_fraction(
+        decay_rate=fixture_plants_constants.fallen_fruit_decay_rate,
+        surface_temperature=plants_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ],
+        days=fxt_plants_model.model_timing.update_interval_quantity.to(
+            "days"
+        ).magnitude,
+    )
+
+    expected_fallen_fruit_cnp = (1 - decay_fraction) * (
+        fxt_plants_model.data["fallen_fruit_cnp"]
+        - fxt_plants_model.data["fallen_fruit_cnp_consumed"]
+    ) + fxt_plants_model.data["fruit_turnover_cnp"]
+
+    expected_decay_cnp = (
+        decay_fraction
+        * (
+            fxt_plants_model.data["fallen_fruit_cnp"]
+            - fxt_plants_model.data["fallen_fruit_cnp_consumed"]
+        )
+        / (
+            fixture_core_components.grid.cell_area
+            * fixture_core_components.model_timing.update_interval_quantity.to(
+                "days"
+            ).magnitude
+        )
+    ).sum(dim="pft")
+
+    # Then update the fallen fruit and seed pools
+    fxt_plants_model.update_fallen_pools()
+
+    # Check the uptake values in the data variable
+    assert np.allclose(
+        fxt_plants_model.data["fallen_seeds_cnp"], expected_fallen_seeds_cnp
+    )
+    assert np.allclose(
+        fxt_plants_model.data["fallen_fruit_cnp"], expected_fallen_fruit_cnp
+    )
+    assert np.allclose(
+        fxt_plants_model.data["fallen_fruit_decay_cnp"], expected_decay_cnp
     )
 
 
@@ -710,11 +841,11 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model, tricky_plant_co
 
     # Check the values in the stoichiometry surplus
     assert np.allclose(
-        fxt_plants_model.biomasses[0].element_surplus["N"],
+        fxt_plants_model.biomasses[0].element_surpluses[:, 1],
         expected_ammonium[0].item() + expected_nitrate[0].item(),
     )
     assert np.allclose(
-        fxt_plants_model.biomasses[0].element_surplus["P"],
+        fxt_plants_model.biomasses[0].element_surpluses[:, 2],
         expected_phosphorus[0].item(),
     )
 
@@ -758,7 +889,7 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model, tricky_plant_coho
             tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
             assert_allclose(
                 fxt_plants_model.data[f"{var}_turnover_cnp"][cell_id],
-                tissue.as_array(with_carbon=True).sum(axis=1),
+                tissue.elemental_masses.sum(axis=0),
             )
 
         # More complex for fruit and seed - need to calculate per PFT values so need to
@@ -771,9 +902,7 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model, tricky_plant_coho
                 cohorts_this_pft = (
                     fxt_plants_model.communities[cell_id].cohorts.pft_name == pft
                 )
-                pft_biomass = tissue.as_array(with_carbon=True)[
-                    :, cohorts_this_pft
-                ].sum(axis=1)
+                pft_biomass = tissue.elemental_masses[cohorts_this_pft, :].sum(axis=0)
 
                 assert_allclose(
                     fxt_plants_model.data[f"{var}_turnover_cnp"][cell_id, idx, :],
@@ -815,24 +944,8 @@ def test_PlantsModel_apply_recruitment(fxt_plants_model, tricky_plant_cohorts):
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
-def test_convert_to_litter_units(fxt_plants_model, tricky_plant_cohorts):
-    """Tests the helper function that converts to litter model units."""
-
-    input_mass = np.array([1e5, 3.4e2, 123.7, 0.007])
-    expected_input_density = [12.345679, 0.0419753, 0.0152716, 8.64198e-7]
-
-    actual_input_density = fxt_plants_model.convert_to_litter_units(
-        input_mass=input_mass
-    )
-
-    assert np.allclose(expected_input_density, actual_input_density)
-
-
-@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 def test_convert_to_soil_units(fxt_plants_model, tricky_plant_cohorts):
     """Tests the helper function that converts to soil model units."""
-
-    print(fxt_plants_model.model_timing.update_interval_quantity)
 
     input_mass = np.array([1e6, 3.4e3, 1237.0, 0.07])
     expected_input_density = [0.008818342, 2.998236e-5, 1.090829e-5, 6.17284e-10]

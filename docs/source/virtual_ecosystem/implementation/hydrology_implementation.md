@@ -101,9 +101,9 @@ grid cell with solid lines representing water that flows out of each layer in th
 current time step and dashed lines representing water that originates from upstream
 grid cells and flows through the grid cell directly to the stream.
 **NOTE!** Top soil and middle soil are currently treated as one layer in the model.
-Subsurface stormflow (Q2) and interflow (Q3) are currently not implemented; the
-total runoff is calculated as the sum of surface runoff (Q1) and the flows out of the
-groundwater buckets (=subsurface runoff, Q4+Q5).
+Interflow ($Q3$) is currently not implemented; the
+total runoff is calculated as the sum of surface runoff ($Q1$), subsurface stormflow ($Q2$),
+and the flows out of the groundwater buckets (=subsurface runoff, $Q4+Q5$).
 :::
 
 ### Rainfall generator
@@ -370,6 +370,82 @@ There are severe limitations to this approach on the temporal and spatial scale 
 model and this can only be treated as a very rough approximation!
 ```
 
+### Subsurface stormflow
+
+Subsurface stormflow ($Q2$) is a major runoff generation mechanism in humid forested
+catchments, particularly in steep tropical landscapes where infiltrated water moves
+laterally through shallow soil layers once the soil approaches saturation, rather than
+continuing to drain vertically. This rapid lateral flow contributes significantly to
+storm runoff and streamflow response, making it an important hydrological process to
+represent in catchment models
+{cite}`whipkey_subsurface_1965`;{cite}`beven_on_1982`;{cite}`sloan_modeling_1984`;
+{cite}`lee_streamflow_2025`.
+
+The $Q2$ formulation here is adapted from the power-law storage-discharge relationship
+presented by {cite:t}`ye_regionalization_2014` for shallow subsurface stormflow, in
+which subsurface discharge is expressed as a function of subsurface storage:
+
+$$Q = a S^{b}$$
+
+where $Q$ is subsurface flow, $S$ is saturated subsurface storage, and $a$ and $b$ are
+empirical parameters controlling the magnitude and non-linearity of the
+storage–discharge relationship.
+
+To maintain consistency with the existing bucket-based architecture of the Virtual
+Ecosystem hydrology model, the original storage–discharge relationship is modified as:
+
+$$Q2 = k_{Q2} S_{e} \beta (S2-T)$$
+
+where $Q2$ is the lateral subsurface stormflow (mm timestep-1), $k_{Q2}$ is the
+empirical lateral flow coefficient, $S_{e}$ is the effective saturation of the middle
+soil layer (-), $\beta$ is the non-linearity exponent, $S2$ is the middle soil water
+storage (mm), an $T$ is the transpiration extracted from the middle soil layer during
+the current timestep (mm).
+
+#### Adaptation from Ye et al. (2014)
+
+The implemented equation retains the power-law dependence of discharge on storage
+described by {cite:t}`ye_regionalization_2014`, but is reformulated to use variables
+already available within the Virtual Ecosystem hydrology model. Instead of using
+saturated storage directly, the formulation uses the remaining middle soil water after
+transpiration as the available water for lateral drainage and introduces a saturation
+weighting term to represent the increasing activation of subsurface flow under wet
+conditions. This adaptation avoids introducing additional state variables while
+remaining consistent with the conceptual storage–discharge framework proposed by
+{cite:t}`ye_regionalization_2014`.
+
+**Why is effective saturation included?**
+
+Effective saturation ($S_{e}$) is introduced to represent the strong dependence of
+shallow subsurface stormflow on soil wetness.
+
+Under dry soil conditions, pore connectivity is limited and lateral flow is negligible.
+As soil moisture approaches saturation, hydraulic connectivity increases rapidly,
+activating preferential flow paths and producing substantially larger subsurface
+stormflow. Raising $S_{e}$ to the exponent $\beta$ introduces this observed non-linear
+threshold behaviour while using a variable that is already calculated within the
+hydrology model. This is consistent with conceptual subsurface runoff parameterisations
+in TOPMODEL and other storage–discharge models, where runoff increases non-linearly with
+soil saturation {cite}`beven_on_1982`;{cite}`ye_regionalization_2014`.
+
+**Why use ($S2-T$)?**
+
+The term $(S2-T)$ represents the remaining mobile water in the middle soil layer after
+transpiration has been satisfied.
+
+Within the current Virtual Ecosystem architecture, transpiration is extracted from the
+middle soil layer before vertical drainage occurs. Therefore, only the water remaining
+after transpiration should be available to generate lateral subsurface flow.
+Using ($S2-T$):
+
+* maintains mass conservation,
+* prevents transpired water from contributing to runoff,
+* follows the existing process sequence in the Virtual Ecosystem, and
+* requires minimal modification to the current bucket-model implementation.
+
+Consequently, $Q2$ represents the fraction of the remaining soil water that is
+diverted laterally before draining vertically to the lower soil layer.
+
 ### Soil moisture redistribution
 
 Soil moisture is updated for each layer by removing the vertical flow
@@ -379,7 +455,7 @@ removed from the second soil layer.
 
 ```{note}
 We do currently NOT include any horizontal flows from the soil layers towards the stream
-(Q2 and Q3 in {numref}`bucket_model`).
+($Q3$ in {numref}`bucket_model`).
 ```
 
 ### Belowground runoff and groundwater storage
@@ -394,7 +470,7 @@ and (vertical) subsurface flow through macro-pores in the soil. The lower zone
 represents the slow groundwater component that generates the base flow.
 
 The runoff from the upper zone to the channel, $Q_{uz}$, (mm),
-(Q4 in {numref}`bucket_model`) equals:
+($Q4$ in {numref}`bucket_model`) equals:
 
 $$Q_{uz} = \frac{1}{T_{uz}} \cdot UZ \cdot \Delta t$$
 
@@ -418,7 +494,7 @@ $$D_{uz,lz} = min(GW_{perc} \cdot \Delta t, UZ)$$
 
 where $GW_{perc}$, [mm day-1], is the maximum percolation rate from the upper to
 the lower groundwater zone. The runoff from the lower zone to the channel $Q_{lz}$,
-(mm), (Q5 in {numref}`bucket_model`) is then computed by:
+(mm), ($Q5$ in {numref}`bucket_model`) is then computed by:
 
 $$Q_{lz} = \frac{1}{T_{lz}} \cdot LZ \cdot \Delta t$$
 

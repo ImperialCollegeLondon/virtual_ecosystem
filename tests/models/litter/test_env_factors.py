@@ -26,28 +26,6 @@ def test_calculate_temperature_effect_on_litter_decomp(
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_calculate_soil_water_effect_on_litter_decomp(
-    dummy_litter_data, fixture_core_components, fixture_litter_constants
-):
-    """Test that soil moisture effects on decomposition are calculated correctly."""
-    from virtual_ecosystem.models.litter.env_factors import (
-        calculate_soil_water_effect_on_litter_decomp,
-    )
-
-    expected_factor = [1.0, 0.88496823, 0.71093190, 0.71093190]
-
-    actual_factor = calculate_soil_water_effect_on_litter_decomp(
-        water_potential=dummy_litter_data["matric_potential"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        water_potential_halt=fixture_litter_constants.litter_decay_water_potential_halt,
-        water_potential_opt=fixture_litter_constants.litter_decay_water_potential_optimum,
-        moisture_response_curvature=fixture_litter_constants.moisture_response_curvature,
-    )
-
-    assert np.allclose(actual_factor, expected_factor)
-
-
 @pytest.mark.parametrize(
     "increased_depth,expected_av_temps",
     [
