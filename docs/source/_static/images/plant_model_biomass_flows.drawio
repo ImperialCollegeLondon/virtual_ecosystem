@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="Q6UUEhZTevKKt8VJyxFM">
-    <mxGraphModel dx="330" dy="286" grid="1" gridSize="14" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="300" pageHeight="300" math="0" shadow="0">
+    <mxGraphModel dx="397" dy="343" grid="1" gridSize="14" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="300" pageHeight="300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -118,7 +118,7 @@
         <mxCell id="zMYAIR9RL8RD4mphqy8V-78" edge="1" parent="1" source="zMYAIR9RL8RD4mphqy8V-24" style="edgeStyle=orthogonalEdgeStyle;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#CC0000;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=classicThin;endFill=1;" target="zMYAIR9RL8RD4mphqy8V-77">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="zMYAIR9RL8RD4mphqy8V-24" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;font size=&quot;1&quot;&gt;Herbivory waste&lt;/font&gt;" vertex="1">
+        <mxCell id="zMYAIR9RL8RD4mphqy8V-24" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#a0552c, #ededed);" value="&lt;font size=&quot;1&quot;&gt;Herbivory waste&lt;/font&gt;" vertex="1">
           <mxGeometry height="14" width="112" x="638" y="180" as="geometry" />
         </mxCell>
         <mxCell id="zMYAIR9RL8RD4mphqy8V-53" edge="1" parent="1" source="zMYAIR9RL8RD4mphqy8V-25" style="edgeStyle=orthogonalEdgeStyle;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#CC0000;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=classicThin;endFill=1;" target="zMYAIR9RL8RD4mphqy8V-40">
@@ -155,7 +155,7 @@
             <mxPoint x="237.99999999999994" y="58.43" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="zMYAIR9RL8RD4mphqy8V-40" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;font size=&quot;1&quot;&gt;Animal biomass&lt;/font&gt;" vertex="1">
+        <mxCell id="zMYAIR9RL8RD4mphqy8V-40" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#ff23f7, #ededed);" value="&lt;font size=&quot;1&quot;&gt;Animal biomass&lt;/font&gt;" vertex="1">
           <mxGeometry height="14" width="112" x="600" y="42" as="geometry" />
         </mxCell>
         <mxCell id="zMYAIR9RL8RD4mphqy8V-55" edge="1" parent="1" source="zMYAIR9RL8RD4mphqy8V-19" style="edgeStyle=orthogonalEdgeStyle;shape=connector;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#CC0000;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=classicThin;endFill=1;curved=0;" target="zMYAIR9RL8RD4mphqy8V-25">
@@ -265,7 +265,7 @@
             <mxPoint x="258" y="139" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="sxzCH9CpXO6Jz4fN15hH-23" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#4D9900;" value="&lt;font size=&quot;1&quot;&gt;Fruit decay&lt;/font&gt;" vertex="1">
+        <mxCell id="sxzCH9CpXO6Jz4fN15hH-23" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#a0522c, #589916);" value="&lt;font size=&quot;1&quot;&gt;Fruit decay&lt;/font&gt;" vertex="1">
           <mxGeometry height="14" width="84" x="530" y="284" as="geometry" />
         </mxCell>
         <mxCell id="sxzCH9CpXO6Jz4fN15hH-25" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#a0522c, #589916);" value="&lt;font size=&quot;1&quot;&gt;Soil&lt;/font&gt;" vertex="1">

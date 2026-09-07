@@ -50,7 +50,9 @@ available for plant consumption can be seen in {numref}`plant_biomass_flows`.
 
 A visualisation of the biomass pools produced by the plants models and their possible
 destinations. Links indicated by dashed lines represent links that are planned but not
-yet implemented.
+yet implemented. Green boxes represent plant resource pools available for consumption,
+brown boxes represent biomass flows/pools tracked by the soil and/or litter models,
+black boxes represent trophic interactions and the pink box represents animal biomass.
 
 All living plant tissues are possible targets of herbivory, and every tissue has a
 turnover rate. For most cases this turnover is passed directly to the litter, but as
