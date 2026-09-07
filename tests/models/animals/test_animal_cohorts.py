@@ -827,37 +827,53 @@ class TestAnimalCohort:
         )
 
     @pytest.mark.parametrize(
-        "mass_consumed, expected_waste",
+        "mass_consumed, unassimilated_mass, stoichiometric_waste, expected_waste",
         [
             # Normal cases
             (
                 {"C": 100.0, "N": 10.0, "P": 1.0},
+                {"C": 40.0, "N": 4.0, "P": 0.4},
                 {"C": 20.0, "N": 2.0, "P": 0.2},
+                {"C": 60.0, "N": 6.0, "P": 0.6},
             ),
             (
                 {"C": 50.0, "N": 5.0, "P": 0.5},
+                {"C": 20.0, "N": 2.0, "P": 0.2},
                 {"C": 10.0, "N": 1.0, "P": 0.1},
+                {"C": 30.0, "N": 3.0, "P": 0.3},
+            ),
+            # Only unassimilated waste, growth consumes all assimilated mass
+            (
+                {"C": 100.0, "N": 10.0, "P": 1.0},
+                {"C": 40.0, "N": 4.0, "P": 0.4},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                {"C": 40.0, "N": 4.0, "P": 0.4},
+            ),
+            # Only stoichiometric waste, perfect assimilation
+            (
+                {"C": 100.0, "N": 10.0, "P": 1.0},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                {"C": 20.0, "N": 2.0, "P": 0.2},
+                {"C": 20.0, "N": 2.0, "P": 0.2},
             ),
             # Edge cases
             (
                 {"C": 0.0, "N": 0.0, "P": 0.0},
                 {"C": 0.0, "N": 0.0, "P": 0.0},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
             ),  # Zero consumption
             (
                 {"C": 1e9, "N": 1e9, "P": 1e9},
+                {"C": 4e8, "N": 4e8, "P": 4e8},
                 {"C": 2e8, "N": 2e8, "P": 2e8},
+                {"C": 6e8, "N": 6e8, "P": 6e8},
             ),  # Extremely high consumption
             (
-                {"C": 0.0000001, "N": 0.0000001, "P": 0.0000001},
-                {
-                    "C": 0.00000002,
-                    "N": 0.00000002,
-                    "P": 0.00000002,
-                },
-            ),  # Floating point precision
-            (
                 {"C": 1e-6, "N": 1e-6, "P": 1e-6},
+                {"C": 4e-7, "N": 4e-7, "P": 4e-7},
                 {"C": 2e-7, "N": 2e-7, "P": 2e-7},
+                {"C": 6e-7, "N": 6e-7, "P": 6e-7},
             ),  # Minimum nonzero consumption
         ],
     )
@@ -866,68 +882,111 @@ class TestAnimalCohort:
         mocker,
         herbivore_cohort_instance,
         mass_consumed,
+        unassimilated_mass,
+        stoichiometric_waste,
         expected_waste,
         excrement_pools_by_cell_instance,
     ):
-        """Test that `eat` calls `grow` and `defecate` with correct arguments."""
+        """Test that `eat` combines both waste streams before defecating.
 
-        # Mock the grow method to return expected waste mass
+        `grow` and `defecate` are mocked to isolate the routing logic: the waste
+        passed to `defecate` must be the sum of the unassimilated fraction supplied
+        by the caller and the stoichiometric excess returned by `grow`.
+        """
+
+        # Mock grow to return a controlled stoichiometric excess
         mock_grow = mocker.patch.object(
-            herbivore_cohort_instance, "grow", return_value=expected_waste
+            herbivore_cohort_instance, "grow", return_value=stoichiometric_waste
         )
 
         # Mock the defecate method
         mock_defecate = mocker.patch.object(herbivore_cohort_instance, "defecate")
 
         # Call eat method
-        herbivore_cohort_instance.eat(mass_consumed, excrement_pools_by_cell_instance)
-
-        # Assert that grow was called once with the expected arguments
-        mock_grow.assert_called_once_with(mass_consumed)
-
-        # Assert that defecate was called once with the expected waste mass
-        mock_defecate.assert_called_once_with(
-            excrement_pools_by_cell_instance, expected_waste
+        herbivore_cohort_instance.eat(
+            mass_consumed, unassimilated_mass, excrement_pools_by_cell_instance
         )
 
+        # Growth is applied to the assimilated mass only
+        mock_grow.assert_called_once_with(mass_consumed)
+
+        # Defecate receives the combined waste, not either stream alone
+        mock_defecate.assert_called_once()
+        call_pools, call_waste = mock_defecate.call_args.args
+        assert call_pools is excrement_pools_by_cell_instance
+        assert call_waste == pytest.approx(expected_waste)
+
     @pytest.mark.parametrize(
-        "mass_consumed, excrement_pools, expected_error_message",
+        "mass_consumed, unassimilated_mass, excrement_pools, expected_error_message",
         [
-            # Missing required keys
+            # Missing required keys in mass_consumed
             (
                 {"C": 100.0, "N": 10.0},
+                {"C": 40.0, "N": 4.0, "P": 0.4},
                 ["mock_pool"],
                 "mass_consumed must contain all required keys",
             ),
             (
                 {"C": 100.0, "P": 1.0},
+                {"C": 40.0, "N": 4.0, "P": 0.4},
                 ["mock_pool"],
                 "mass_consumed must contain all required keys",
             ),
             (
                 {"N": 10.0, "P": 1.0},
+                {"C": 40.0, "N": 4.0, "P": 0.4},
                 ["mock_pool"],
                 "mass_consumed must contain all required keys",
             ),
-            # Negative values
+            # Missing required keys in unassimilated_mass
+            (
+                {"C": 100.0, "N": 10.0, "P": 1.0},
+                {"C": 40.0, "N": 4.0},
+                ["mock_pool"],
+                "unassimilated_mass must contain all required keys",
+            ),
+            (
+                {"C": 100.0, "N": 10.0, "P": 1.0},
+                {"N": 4.0, "P": 0.4},
+                ["mock_pool"],
+                "unassimilated_mass must contain all required keys",
+            ),
+            # Negative values in mass_consumed
             (
                 {"C": -100.0, "N": 10.0, "P": 1.0},
+                {"C": 40.0, "N": 4.0, "P": 0.4},
                 ["mock_pool"],
                 "Values in mass_consumed must be non-negative",
             ),
             (
                 {"C": 100.0, "N": -10.0, "P": 1.0},
+                {"C": 40.0, "N": 4.0, "P": 0.4},
                 ["mock_pool"],
                 "Values in mass_consumed must be non-negative",
             ),
             (
                 {"C": 100.0, "N": 10.0, "P": -1.0},
+                {"C": 40.0, "N": 4.0, "P": 0.4},
                 ["mock_pool"],
                 "Values in mass_consumed must be non-negative",
+            ),
+            # Negative values in unassimilated_mass
+            (
+                {"C": 100.0, "N": 10.0, "P": 1.0},
+                {"C": -40.0, "N": 4.0, "P": 0.4},
+                ["mock_pool"],
+                "Values in unassimilated_mass must be non-negative",
+            ),
+            (
+                {"C": 100.0, "N": 10.0, "P": 1.0},
+                {"C": 40.0, "N": 4.0, "P": -0.4},
+                ["mock_pool"],
+                "Values in unassimilated_mass must be non-negative",
             ),
             # No excrement pools
             (
                 {"C": 100.0, "N": 10.0, "P": 1.0},
+                {"C": 40.0, "N": 4.0, "P": 0.4},
                 [],
                 "At least one excrement pool must be provided.",
             ),
@@ -937,12 +996,15 @@ class TestAnimalCohort:
         self,
         herbivore_cohort_instance,
         mass_consumed,
+        unassimilated_mass,
         excrement_pools,
         expected_error_message,
     ):
         """Test that `eat` raises appropriate ValueErrors for invalid inputs."""
         with pytest.raises(ValueError, match=expected_error_message):
-            herbivore_cohort_instance.eat(mass_consumed, excrement_pools)
+            herbivore_cohort_instance.eat(
+                mass_consumed, unassimilated_mass, excrement_pools
+            )
 
     @pytest.mark.parametrize(
         "mass_current, reproductive_mass, adult_mass, threshold, expected_result",
@@ -1545,7 +1607,7 @@ class TestAnimalCohort:
 
     @pytest.mark.parametrize(
         "animal_list_spec, carcass_pools_spec, should_raise, error_match, "
-        "mock_consumed_mass, mock_actual_cnp, expected_total",
+        "mock_consumed_mass, mock_actual_cnp, expected_gain, expected_unassimilated",
         [
             pytest.param(
                 [],
@@ -1554,6 +1616,7 @@ class TestAnimalCohort:
                 None,
                 None,
                 None,
+                {"C": 0.0, "N": 0.0, "P": 0.0},
                 {"C": 0.0, "N": 0.0, "P": 0.0},
                 id="empty_list_returns_zero",
             ),
@@ -1564,7 +1627,8 @@ class TestAnimalCohort:
                 None,
                 10.0,
                 {"C": 8.0, "N": 1.5, "P": 0.8},
-                {"C": 8.0, "N": 1.5, "P": 0.8},
+                {"C": 4.0, "N": 0.75, "P": 0.4},
+                {"C": 4.0, "N": 0.75, "P": 0.4},
                 id="single_prey_accumulates_cnp",
             ),
             pytest.param(
@@ -1574,7 +1638,8 @@ class TestAnimalCohort:
                 None,
                 5.0,
                 {"C": 4.0, "N": 0.8, "P": 0.4},
-                {"C": 8.0, "N": 1.6, "P": 0.8},
+                {"C": 4.0, "N": 0.8, "P": 0.4},
+                {"C": 4.0, "N": 0.8, "P": 0.4},
                 id="two_prey_cnp_summed",
             ),
             pytest.param(
@@ -1582,6 +1647,7 @@ class TestAnimalCohort:
                 {1: [True]},
                 True,
                 "animal_list cannot be None",
+                None,
                 None,
                 None,
                 None,
@@ -1595,6 +1661,7 @@ class TestAnimalCohort:
                 None,
                 None,
                 None,
+                None,
                 id="none_carcass_pools_raises",
             ),
             pytest.param(
@@ -1605,6 +1672,7 @@ class TestAnimalCohort:
                 None,
                 {"C": 8.0, "N": 1.5, "P": 0.8},
                 None,
+                None,
                 id="none_consumed_mass_raises",
             ),
             pytest.param(
@@ -1613,6 +1681,7 @@ class TestAnimalCohort:
                 True,
                 "get_eaten.*returned None",
                 10.0,
+                None,
                 None,
                 None,
                 id="none_get_eaten_raises",
@@ -1629,12 +1698,16 @@ class TestAnimalCohort:
         error_match,
         mock_consumed_mass,
         mock_actual_cnp,
-        expected_total,
+        expected_gain,
+        expected_unassimilated,
     ):
         """Test delta_mass_predation accumulation, empty list, and error cases.
 
         calculate_consumed_mass_predation returns a float (kg), get_eaten returns
         the CNP dict. Both are mocked here to isolate orchestration logic.
+        Conversion efficiency is pinned to 0.5 so that the expected assimilated and
+        unassimilated fractions are fixed values rather than being derived from the
+        implementation's own arithmetic.
         """
         from numpy import timedelta64
 
@@ -1660,6 +1733,11 @@ class TestAnimalCohort:
             else None
         )
 
+        mocker.patch.object(
+            predator_cohort_instance.functional_group,
+            "conversion_efficiency",
+            0.5,
+        )
         mocker.patch.object(
             predator_cohort_instance, "calculate_theta_opt_i", return_value=0.1
         )
@@ -1690,10 +1768,27 @@ class TestAnimalCohort:
                     animal_list, carcass_pools, timedelta64(10, "D")
                 )
         else:
-            result = predator_cohort_instance.delta_mass_predation(
+            gain, unassimilated = predator_cohort_instance.delta_mass_predation(
                 animal_list, carcass_pools, timedelta64(10, "D")
             )
-            assert result == expected_total
+
+            assert gain == pytest.approx(expected_gain)
+            assert unassimilated == pytest.approx(expected_unassimilated)
+
+            # The two fractions must together account for all ingested mass.
+            n_prey = len(animal_list)
+            ingested = (
+                {
+                    element: mock_actual_cnp[element] * n_prey
+                    for element in ("C", "N", "P")
+                }
+                if mock_actual_cnp is not None
+                else {"C": 0.0, "N": 0.0, "P": 0.0}
+            )
+            for element in ("C", "N", "P"):
+                assert gain[element] + unassimilated[element] == pytest.approx(
+                    ingested[element]
+                )
 
     def test_delta_mass_predation_precomputes_once(
         self,
@@ -1797,12 +1892,15 @@ class TestAnimalCohort:
         mock_consume.assert_not_called()
 
     @pytest.mark.parametrize(
-        "gain, litter, lignin, expect_waste_call, expect_error, test_id",
+        "gain, litter, lignin, expected_gain, expected_unassimilated, "
+        "expect_waste_call, expect_error, test_id",
         [
             (
                 {"C": 10.0, "N": 5.0, "P": 2.0},
                 {"C": 3.0, "N": 1.0, "P": 0.5},
                 0.1,
+                {"C": 10.0, "N": 5.0, "P": 2.0},
+                {"C": 10.0, "N": 5.0, "P": 2.0},
                 2,
                 None,
                 "standard",
@@ -1811,6 +1909,8 @@ class TestAnimalCohort:
                 {"C": 0.0, "N": 0.0, "P": 0.0},
                 {"C": 0.0, "N": 0.0, "P": 0.0},
                 0.0,
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                {"C": 0.0, "N": 0.0, "P": 0.0},
                 2,
                 None,
                 "no_gain",
@@ -1819,6 +1919,8 @@ class TestAnimalCohort:
                 {"C": 4.0, "N": 2.0, "P": 1.0},
                 {"C": 1.0, "N": 0.5, "P": 0.25},
                 0.2,
+                None,
+                None,
                 0,
                 KeyError,
                 "no_waste_pool",
@@ -1827,6 +1929,8 @@ class TestAnimalCohort:
                 {"C": 5.0, "N": 2.5, "P": 1.0},
                 {},
                 0.0,
+                {"C": 5.0, "N": 2.5, "P": 1.0},
+                {"C": 5.0, "N": 2.5, "P": 1.0},
                 0,
                 None,
                 "no_litter",
@@ -1841,11 +1945,19 @@ class TestAnimalCohort:
         gain,
         litter,
         lignin,
+        expected_gain,
+        expected_unassimilated,
         expect_waste_call,
         expect_error,
         test_id,
     ):
-        """Test `forage_resource_list` with different gain/litter scenarios."""
+        """Test `forage_resource_list` with different gain/litter scenarios.
+
+        Conversion efficiency is pinned to 0.5, so with two identical resources the
+        assimilated and unassimilated fractions each equal the single-resource gain.
+        Expected values are given as literals rather than derived from the
+        implementation's own arithmetic.
+        """
         herbivore = herbivore_cohort_instance
         herbivore.functional_group.conversion_efficiency = 0.5
 
@@ -1882,18 +1994,23 @@ class TestAnimalCohort:
                     resource_kind="plant_resource",
                 )
         else:
-            result = herbivore.forage_resource_list(
+            result_gain, result_unassimilated = herbivore.forage_resource_list(
                 resources=[resource1, resource2],
                 adjusted_dt=timedelta64(10, "D"),
                 herbivory_waste_pools=waste_pools,
                 resource_kind="plant_resource",
             )
-            expected = {
-                "C": gain["C"] * 0.5 * 2,
-                "N": gain["N"] * 0.5 * 2,
-                "P": gain["P"] * 0.5 * 2,
-            }
-            assert result == expected
+
+            assert result_gain == pytest.approx(expected_gain)
+            assert result_unassimilated == pytest.approx(expected_unassimilated)
+
+            # The two fractions must together account for all ingested mass across
+            # both resources.
+            for element in ("C", "N", "P"):
+                assert result_gain[element] + result_unassimilated[
+                    element
+                ] == pytest.approx(gain[element] * 2)
+
             if expect_waste_call:
                 for waste in waste_pools.values():
                     assert waste.add_waste.call_count == expect_waste_call
@@ -2079,7 +2196,8 @@ class TestAnimalCohort:
 
     @pytest.mark.parametrize(
         "cohort_instance, diet_string, plant_list, animal_list, soil_fungi_list,"
-        "pom_list, bacteria_list, expected_nutrient_gain, delta_mass_mock",
+        "pom_list, bacteria_list, expected_nutrient_gain, expected_unassimilated,"
+        "delta_mass_mock",
         [
             (
                 "herbivore_cohort_instance",
@@ -2090,6 +2208,7 @@ class TestAnimalCohort:
                 [],
                 [],
                 {"C": 60.0, "N": 30.0, "P": 10.0},
+                {"C": 20.0, "N": 10.0, "P": 5.0},
                 "delta_mass_herbivory",
             ),
             (
@@ -2101,6 +2220,7 @@ class TestAnimalCohort:
                 [],
                 [],
                 {"C": 120.0, "N": 60.0, "P": 20.0},
+                {"C": 40.0, "N": 20.0, "P": 10.0},
                 "delta_mass_predation",
             ),
         ],
@@ -2118,6 +2238,7 @@ class TestAnimalCohort:
         pom_list,
         bacteria_list,
         expected_nutrient_gain,
+        expected_unassimilated,
         delta_mass_mock,
         array_plant_list_instance,
         animal_list_instance,
@@ -2146,8 +2267,13 @@ class TestAnimalCohort:
         }
 
         mock_delta_mass = mocker.patch.object(
-            cohort, delta_mass_mock, return_value=expected_nutrient_gain
+            cohort,
+            delta_mass_mock,
+            return_value=(expected_nutrient_gain, expected_unassimilated),
         )
+
+        # Mock eat to capture the accumulated totals without triggering growth.
+        mock_eat = mocker.patch.object(cohort, "eat")
 
         empty_list = []
         dt = timedelta64(30, "D")
@@ -2171,12 +2297,16 @@ class TestAnimalCohort:
         mock_delta_mass.assert_called_once()
         kwargs = mock_delta_mass.call_args.kwargs
 
+        # Both accumulated streams must reach eat, in order.
+        mock_eat.assert_called_once()
+        eat_gain, eat_unassimilated, eat_pools = mock_eat.call_args.args
+        assert eat_gain == pytest.approx(expected_nutrient_gain)
+        assert eat_unassimilated == pytest.approx(expected_unassimilated)
+        assert eat_pools == [excrement_pool_instance]
+
         if diet_string == "foliage_fruit":
             assert kwargs["plant_list"] == array_plant_list_instance
             assert kwargs["herbivory_waste_pools"] == herbivory_waste_pools
-            assert kwargs["adjusted_dt"] == pytest.approx(
-                dt * 0 + kwargs["adjusted_dt"]
-            )
             assert kwargs["adjusted_dt"] > 0
 
         elif diet_string == "vertebrates_invertebrates_carcasses":
@@ -2206,7 +2336,9 @@ class TestAnimalCohort:
         cohort.functional_group.diet = DietType.parse("detritus_fungi_pom_bacteria")
 
         # Patch delta-mass methods to observe calls and avoid side effects.
-        expected = {"C": 1.0, "N": 0.5, "P": 0.1}
+        expected_gain = {"C": 1.0, "N": 0.5, "P": 0.1}
+        expected_unassimilated = {"C": 0.4, "N": 0.2, "P": 0.04}
+        expected = (expected_gain, expected_unassimilated)
         m_det = mocker.patch.object(
             cohort, "delta_mass_detritivory", return_value=expected
         )
@@ -2219,6 +2351,7 @@ class TestAnimalCohort:
         m_bact = mocker.patch.object(
             cohort, "delta_mass_bacteriophagy", return_value=expected
         )
+        mock_eat = mocker.patch.object(cohort, "eat")
 
         cohort.forage_cohort(
             array_resource_list=array_litter_list_instance,
@@ -2244,6 +2377,15 @@ class TestAnimalCohort:
         assert m_fungi.call_args.kwargs["soil_fungi_list"] == soil_fungi_list_instance
         assert m_pom.call_args.kwargs["pom_list"] == pom_list_instance
         assert m_bact.call_args.kwargs["bacteria_list"] == bacteria_list_instance
+
+        # Both streams accumulate across all four foraging paths.
+        mock_eat.assert_called_once()
+        eat_gain, eat_unassimilated, _ = mock_eat.call_args.args
+        for element in ("C", "N", "P"):
+            assert eat_gain[element] == pytest.approx(expected_gain[element] * 4)
+            assert eat_unassimilated[element] == pytest.approx(
+                expected_unassimilated[element] * 4
+            )
 
         # Basic sanity: adjusted_dt is numeric for each call.
         for m in (m_det, m_fungi, m_pom, m_bact):
