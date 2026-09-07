@@ -190,6 +190,20 @@ and climate change. As a programmer working on the Virtual Ecosystem, she contri
 both the core structure and science models.
 :::
 
+:::{grid-item-card} Dr. Tanner Dulay
+:margin: 2 2 0 0
+
+```{image} _static/images/people/tanner_dulay.jpeg
+:alt: Dr. Tanner Dulay
+:class: team-photo
+```
+
+Tanner is a quantitative ecologist interested in the factors shaping the stability and
+functioning of communities. He is one of the programmers for the Virtual Ecosystem, with
+a particular focus on the plants science model. Tanner is based at the Silwood Park
+Campus of Imperial College London.
+:::
+
 ::::
 
 ## Model parameterisation and data science
