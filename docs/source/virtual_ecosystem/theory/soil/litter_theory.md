@@ -239,3 +239,12 @@ because the animal model already [models their
 decay](../animals/carcasses_and_excrement.md), tracking these within the litter model
 would essentially force them to decay twice. Instead the flow of decayed matter from
 carcasses and excrement flows straight from the animal model to the soil model.
+
+## Fallen fruits and seeds
+
+Fallen seeds and fruit are handled by the plant model as they are relevant to the
+recruitment of new plant cohorts. Fallen seeds do not decay, they either get eaten by
+animals or contribute to the recruitment of new cohorts. Fruit decay is [calculated by
+the plants model](../plants/fallen_fruit_and_seeds.md#fruit-decay) and the decayed
+biomass is added directly to the soil model (again this is to avoid a situation where
+biomass has to decay twice).

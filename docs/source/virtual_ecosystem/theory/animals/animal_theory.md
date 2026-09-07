@@ -92,6 +92,9 @@ Additional dietary categories under development:
 - **Coprophage**: Consumes feces as a significant food source.
 - **Ectoparasite**: Feeds on the external surfaces of a host organism.
 
+We also provide [details of the full set of resources that animals can
+consume](consumption.md).
+
 #### **Taxa Type**
 
 A broad classification based on taxonomic group:
@@ -225,7 +228,3 @@ computational efficiency for large landscapes.
 cohesive framework.
 - **Temporal and spatial dynamics**: Capturing short-term behaviors and long-term
 ecosystem impacts within the same model.
-
-Both animal carcasses and excrement are important resources for animals to scavenge
-from, as such the [decay of carcasses and excrement](./carcasses_and_excrement.md) is
-tracked as part of the animal model.
