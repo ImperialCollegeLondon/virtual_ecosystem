@@ -25,8 +25,10 @@ class LitterInputs:
     """Total root input rate to litter of each nutrient [kg m^-2 day^-1]"""
     deadwood_mass: DataArray
     """Total deadwood input rate to litter of each nutrient [kg m^-2 day^-1]"""
-    subcanopy_mass: DataArray
+    subcanopy_veg_mass: DataArray
     """Total input rate from sub-canopy vegetation (per nutrient) [kg m^-2 day^-1]"""
+    subcanopy_seed_mass: DataArray
+    """Total input rate from sub-canopy seedbank (per nutrient) [kg m^-2 day^-1]"""
     herbivore_waste_above_mass: DataArray
     """Total input rate due to mechanical inefficiency of above-ground herbivores
     [kg m^-2 day^-1]"""
@@ -40,8 +42,10 @@ class LitterInputs:
     """Lignin proportion of root input [kg{lignin C} kg{C}^-1]"""
     stem_lignin: DataArray
     """Lignin proportion of deadwood input [kg{lignin C} kg{C}^-1]"""
-    subcanopy_lignin: DataArray
+    subcanopy_veg_lignin: DataArray
     """Lignin proportion of sub-canopy vegetation input [kg{lignin C} kg{C}^-1]"""
+    subcanopy_seed_lignin: DataArray
+    """Lignin proportion of sub-canopy seedbank input [kg{lignin C} kg{C}^-1]"""
     herbivore_waste_above_lignin: DataArray
     """Lignin proportion of above-ground herbivore waste input [kg{lignin C} kg{C}^-1]
     """
@@ -53,8 +57,11 @@ class LitterInputs:
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
     root_meta_split: DataArray
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
-    subcanopy_meta_split: DataArray
+    subcanopy_veg_meta_split: DataArray
     """Fraction of subcanopy vegetation input that goes to metabolic litter [unitless]
+    """
+    subcanopy_seed_meta_split: DataArray
+    """Fraction of subcanopy seedbank input that goes to metabolic litter [unitless]
     """
     herbivore_waste_above_meta_split: DataArray
     """Fraction of above-ground herbivore waste input that goes to metabolic litter
@@ -169,7 +176,8 @@ def combine_input_sources(data: Data, update_interval: float) -> dict[str, DataA
     other_input_streams = (
         ("stem_turnover_cnp", "deadwood_mass"),
         ("root_turnover_cnp", "root_mass"),
-        ("subcanopy_vegetation_litter_cnp", "subcanopy_mass"),
+        ("subcanopy_vegetation_litter_cnp", "subcanopy_veg_mass"),
+        ("subcanopy_seedbank_litter_cnp", "subcanopy_seed_mass"),
         ("herbivory_waste_above_cnp", "herbivore_waste_above_mass"),
         ("herbivory_waste_below_cnp", "herbivore_waste_below_mass"),
     )
@@ -189,7 +197,8 @@ def combine_input_sources(data: Data, update_interval: float) -> dict[str, DataA
         "leaf_lignin": data["senesced_leaf_lignin"],
         "root_lignin": data["root_lignin"],
         "stem_lignin": data["stem_lignin"],
-        "subcanopy_lignin": data["subcanopy_vegetation_litter_lignin"],
+        "subcanopy_veg_lignin": data["subcanopy_vegetation_litter_lignin"],
+        "subcanopy_seed_lignin": data["subcanopy_seedbank_litter_lignin"],
         "herbivore_waste_above_lignin": data["herbivory_waste_above_lignin"],
         "herbivore_waste_below_lignin": data["herbivory_waste_below_lignin"],
     }
@@ -200,9 +209,9 @@ def calculate_metabolic_proportions_of_input(
 ) -> dict[str, DataArray]:
     """Calculate the proportion of each input type that flows to the metabolic pool.
 
-    This function is used for roots, leaves, subcanopy biomass, and above- and
-    below-ground herbivory waste, but not for deadwood because all deadwood goes into a
-    single woody litter pool.
+    This function is used for roots, leaves, subcanopy vegetation and seedbank
+    biomasses, and above- and below-ground herbivory waste, but not for deadwood because
+    all deadwood goes into a single woody litter pool.
 
     Args:
         total_input: The total amount of carbon in each input pools [kg{C} m^-3], as
@@ -220,7 +229,8 @@ def calculate_metabolic_proportions_of_input(
     split_variables = [
         "leaf",
         "root",
-        "subcanopy",
+        "subcanopy_veg",
+        "subcanopy_seed",
         "herbivore_waste_above",
         "herbivore_waste_below",
     ]
@@ -247,19 +257,19 @@ def partion_plant_inputs_between_pools(
     above ground metabolic and structural pools based on lignin concentration and carbon
     nitrogen ratios. Root biomass is split between the below ground metabolic and
     structural pools based on lignin concentration and carbon nitrogen ratios.
-    Sub-canopy biomass is considered to not be woody, so is treated the same as (canopy)
-    leaf biomass (i.e. split between the above ground metabolic and structural pools).
-    Herbivore waste is split between the metabolic and structural litter pools of the
-    strata the waste belongs to.
+    Sub-canopy biomass (both vegetation and seedbank) is considered to not be woody, so
+    is treated the same as (canopy) leaf biomass (i.e. split between the above ground
+    metabolic and structural pools). Herbivore waste is split between the metabolic and
+    structural litter pools of the strata the waste belongs to.
 
     Args:
         total_input: The the total pool size for each input pools for each nutrient
             [kg{nutrient} m^-3], as lignin proportions [kg{lignin C} kg{C}^-1] of each
             of these pools.
         metabolic_splits: Dictionary containing the proportion of each input that
-            goes to the relevant metabolic pool. This is for five input types:
-            leaves, roots, subcanopy biomass, above-ground herbivore waste and
-            below-ground herbivore waste [unitless]
+            goes to the relevant metabolic pool. This is for six input types: leaves,
+            roots, subcanopy vegetation, subcanopy seedbank, above-ground herbivore
+            waste and below-ground herbivore waste [unitless]
 
     Returns:
         A dictionary containing the rate of biomass flow into each of the five litter
@@ -275,8 +285,12 @@ def partion_plant_inputs_between_pools(
             * total_input["leaf_mass"].sel(element="C")
         )
         + (
-            metabolic_splits["subcanopy_meta_split"]
-            * total_input["subcanopy_mass"].sel(element="C")
+            metabolic_splits["subcanopy_veg_meta_split"]
+            * total_input["subcanopy_veg_mass"].sel(element="C")
+        )
+        + (
+            metabolic_splits["subcanopy_seed_meta_split"]
+            * total_input["subcanopy_seed_mass"].sel(element="C")
         )
         + (
             metabolic_splits["herbivore_waste_above_meta_split"]
@@ -289,8 +303,12 @@ def partion_plant_inputs_between_pools(
             * total_input["leaf_mass"].sel(element="C")
         )
         + (
-            (1 - metabolic_splits["subcanopy_meta_split"])
-            * total_input["subcanopy_mass"].sel(element="C")
+            (1 - metabolic_splits["subcanopy_veg_meta_split"])
+            * total_input["subcanopy_veg_mass"].sel(element="C")
+        )
+        + (
+            (1 - metabolic_splits["subcanopy_seed_meta_split"])
+            * total_input["subcanopy_seed_mass"].sel(element="C")
         )
         + (
             (1 - metabolic_splits["herbivore_waste_above_meta_split"])
@@ -516,15 +534,26 @@ def calculate_litter_input_lignin_concentrations(
 
     lignin_proportion_below_structural = (
         litter_inputs.root_lignin * litter_inputs.root_mass.sel(element="C")
-        + litter_inputs.herbivore_waste_below_lignin
-        * litter_inputs.herbivore_waste_below_mass.sel(element="C")
+        + (
+            litter_inputs.herbivore_waste_below_lignin
+            * litter_inputs.herbivore_waste_below_mass.sel(element="C")
+        )
     ) / litter_inputs.below_structural
 
     lignin_proportion_above_structural = (
         litter_inputs.leaf_lignin * litter_inputs.leaf_mass.sel(element="C")
-        + litter_inputs.subcanopy_lignin * litter_inputs.subcanopy_mass.sel(element="C")
-        + litter_inputs.herbivore_waste_above_lignin
-        * litter_inputs.herbivore_waste_above_mass.sel(element="C")
+        + (
+            litter_inputs.subcanopy_veg_lignin
+            * litter_inputs.subcanopy_veg_mass.sel(element="C")
+        )
+        + (
+            litter_inputs.subcanopy_seed_lignin
+            * litter_inputs.subcanopy_seed_mass.sel(element="C")
+        )
+        + (
+            litter_inputs.herbivore_waste_above_lignin
+            * litter_inputs.herbivore_waste_above_mass.sel(element="C")
+        )
     ) / litter_inputs.above_structural
 
     return {
@@ -571,7 +600,8 @@ def calculate_litter_input_nutrient_masses(
     split_variables = [
         "leaf",
         "root",
-        "subcanopy",
+        "subcanopy_veg",
+        "subcanopy_seed",
         "herbivore_waste_above",
         "herbivore_waste_below",
     ]
@@ -597,10 +627,12 @@ def calculate_litter_input_nutrient_masses(
         f"below_structural_{nutrient}": nutrient_splits["root"]["struct"]
         + nutrient_splits["herbivore_waste_below"]["struct"],
         f"above_metabolic_{nutrient}": nutrient_splits["leaf"]["meta"]
-        + nutrient_splits["subcanopy"]["meta"]
+        + nutrient_splits["subcanopy_veg"]["meta"]
+        + nutrient_splits["subcanopy_seed"]["meta"]
         + nutrient_splits["herbivore_waste_above"]["meta"],
         f"above_structural_{nutrient}": nutrient_splits["leaf"]["struct"]
-        + nutrient_splits["subcanopy"]["struct"]
+        + nutrient_splits["subcanopy_veg"]["struct"]
+        + nutrient_splits["subcanopy_seed"]["struct"]
         + nutrient_splits["herbivore_waste_above"]["struct"],
     }
 

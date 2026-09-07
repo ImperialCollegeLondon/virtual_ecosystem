@@ -626,6 +626,10 @@ class SoilPools:
             breakdown_rate=enzyme_mediated.pom_to_lmwc,
         )
 
+        # Combine inputs from direct biomass decay (i.e. decay that doesn't occur via
+        # the litter model) into a single value
+        direct_biomass_decay = self.combine_direct_biomass_decays()
+
         # Find nitrogen released by necromass breakdown/sorption
         necromass_outflows = find_necromass_nutrient_outflows(
             necromass_carbon=self.pools.soil_cnp_pool_necromass_carbon,
@@ -709,12 +713,7 @@ class SoilPools:
             + maom_desorption_to_lmwc
             + necromass_decay_to_lmwc
             + self.fungal_fruiting_body_decay_carbon
-            + self.to_per_volume(
-                self.data["decomposed_excrement_cnp"].sel(element="C").to_numpy()
-            )
-            + self.to_per_volume(
-                self.data["decomposed_carcasses_cnp"].sel(element="C").to_numpy()
-            )
+            + self.to_per_volume(direct_biomass_decay.sel(element="C").to_numpy())
             - microbial_changes.lmwc_uptake
             - lmwc_sorption_to_maom
             - nutrient_removal_by_water.lmwc
@@ -791,12 +790,7 @@ class SoilPools:
             + necromass_outflows["decay_nitrogen"]
             + nutrient_transfers_maom_to_lmwc["nitrogen"]
             + self.fungal_fruiting_body_decay_nitrogen
-            + self.to_per_volume(
-                self.data["decomposed_excrement_cnp"].sel(element="N").to_numpy()
-            )
-            + self.to_per_volume(
-                self.data["decomposed_carcasses_cnp"].sel(element="N").to_numpy()
-            )
+            + self.to_per_volume(direct_biomass_decay.sel(element="N").to_numpy())
             - microbial_changes.don_uptake
             - nutrient_removal_by_water.don
         )
@@ -840,12 +834,7 @@ class SoilPools:
             + necromass_outflows["decay_phosphorus"]
             + nutrient_transfers_maom_to_lmwc["phosphorus"]
             + self.fungal_fruiting_body_decay_phosphorus
-            + self.to_per_volume(
-                self.data["decomposed_excrement_cnp"].sel(element="P").to_numpy()
-            )
-            + self.to_per_volume(
-                self.data["decomposed_carcasses_cnp"].sel(element="P").to_numpy()
-            )
+            + self.to_per_volume(direct_biomass_decay.sel(element="P").to_numpy())
             - microbial_changes.dop_uptake
             - nutrient_removal_by_water.dop
         )
@@ -881,6 +870,24 @@ class SoilPools:
 
         # Create output array of pools in desired order
         return np.concatenate(list(delta_pools_ordered.values()))
+
+    def combine_direct_biomass_decays(self):
+        """Combine direct decay biomass decay streams into a single input stream.
+
+        While most biomass decay occurs via the litter model, some biomass decay into
+        the soil model occurs directly. This helper function exists group the various
+        input streams into a single variable.
+
+        Returns:
+            The rate of external biomass input to the soil that isn't litter
+            mineralisation [kg m^-2 day^-1]
+        """
+
+        return (
+            self.data["decomposed_excrement_cnp"]
+            + self.data["decomposed_carcasses_cnp"]
+            + self.data["fallen_fruit_decay_cnp"]
+        )
 
     def to_per_volume(
         self, input_rate: float | NDArray[np.floating]

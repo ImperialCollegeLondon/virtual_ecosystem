@@ -14,10 +14,10 @@ def test_calculate_all_pool_updates(
 
     change_in_pools = {
         "soil_cnp_pool_lmwc_carbon": [
-            0.14870579528,
-            0.76746795708,
-            0.26211082941,
-            0.06982513851,
+            0.15312579528,
+            0.77032795708,
+            0.26251882941,
+            0.18714513851,
         ],
         "soil_cnp_pool_maom_carbon": [
             3.7894322e-2,
@@ -76,10 +76,10 @@ def test_calculate_all_pool_updates(
             -3.22667588e-5,
         ],
         "soil_cnp_pool_lmwc_nitrogen": [
-            0.0016886837,
-            0.0056764689,
-            0.0061375575,
-            0.0048149145,
+            0.0026366837,
+            0.0060125609,
+            0.0062434815,
+            0.0259165145,
         ],
         "soil_cnp_pool_pom_nitrogen": [
             -8.93527e-5,
@@ -112,10 +112,10 @@ def test_calculate_all_pool_updates(
             -1.57775072e-3,
         ],
         "soil_cnp_pool_lmwc_phosphorus": [
-            0.00024375109,
-            0.00013527753,
-            0.00020238357,
-            0.00026049544,
+            0.00099175109,
+            0.00057127753,
+            0.00026006357,
+            0.00816849544,
         ],
         "soil_cnp_pool_pom_phosphorus": [
             6.804384e-6,
@@ -201,6 +201,31 @@ def test_calculate_all_pool_updates(
     # checks that the output order matches the input order.
     for i, pool in enumerate(change_in_pools.keys()):
         assert np.allclose(delta_pools[i * 4 : (i + 1) * 4], change_in_pools[pool])
+
+
+def test_combine_direct_biomass_decays(soil_pools_fixture):
+    """Test that the SoilPools.combine_direct_biomass_decays method works correctly."""
+
+    from xarray import DataArray
+
+    expected_decay = DataArray(
+        data=np.stack(
+            [
+                [0.00143154, 0.00121389, 0.00068159, 0.036534],
+                [0.000240483, 0.000258173, 4.16309e-5, 0.0057801],
+                [0.0001910675, 0.000116613, 2.5626e-5, 0.002019229],
+            ],
+            axis=1,
+        ),
+        coords={
+            "cell_id": soil_pools_fixture.data["cell_id"],
+            "element": ["C", "N", "P"],
+        },
+    )
+
+    assert np.allclose(
+        soil_pools_fixture.combine_direct_biomass_decays(), expected_decay
+    )
 
 
 def test_to_per_volume(soil_pools_fixture):
