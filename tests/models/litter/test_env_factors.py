@@ -49,26 +49,44 @@ def test_calculate_soil_water_effect_on_litter_decomp(
 
 
 @pytest.mark.parametrize(
-    "increased_depth,expected_av_temps",
+    "increased_depth,variable,expected_average",
     [
         pytest.param(
             True,
-            [18.6319817, 18.498648, 18.498648, 18.315315],
-            id="increased depth",
+            "soil_temperature",
+            [19.833333, 19.566667, 19.566667, 19.2],
+            id="increased depth, temperature",
         ),
         pytest.param(
             False,
-            [18.0729725, 18.0729725, 18.0729725, 18.0729725],
-            id="normal depth",
+            "soil_temperature",
+            [20.0, 20.0, 20.0, 20.0],
+            id="normal depth, temperature",
+        ),
+        pytest.param(
+            True,
+            "matric_potential",
+            [-10.333333, -26.5, -107.666667, -118.033333],
+            id="increased depth, matric potential",
+        ),
+        pytest.param(
+            False,
+            "matric_potential",
+            [-10.0, -25.0, -100.0, -100.0],
+            id="normal depth, matric potential",
         ),
     ],
 )
-def test_average_temperature_over_microbially_active_layers(
-    dummy_litter_data, fixture_core_components, increased_depth, expected_av_temps
+def test_average_abiotic_environment_over_microbially_active_layers(
+    dummy_litter_data,
+    fixture_core_components,
+    increased_depth,
+    variable,
+    expected_average,
 ):
     """Check averaging of temperatures over soil layers works correctly."""
     from virtual_ecosystem.models.litter.env_factors import (
-        average_temperature_over_microbially_active_layers,
+        average_abiotic_environment_over_microbially_active_layers,
     )
 
     if increased_depth:
@@ -77,52 +95,12 @@ def test_average_temperature_over_microbially_active_layers(
         )
         fixture_core_components.layer_structure.microbial_simulation_depth = 0.75
 
-    actual_av_temps = average_temperature_over_microbially_active_layers(
-        soil_temperatures=dummy_litter_data["soil_temperature"],
-        surface_temperature=dummy_litter_data["air_temperature"][
-            fixture_core_components.layer_structure.index_surface
-        ].to_numpy(),
+    actual_average = average_abiotic_environment_over_microbially_active_layers(
+        environmental_variable=dummy_litter_data[variable],
         layer_structure=fixture_core_components.layer_structure,
     )
 
-    assert np.allclose(actual_av_temps, expected_av_temps)
-
-
-@pytest.mark.parametrize(
-    "increased_depth,expected_water_pots",
-    [
-        pytest.param(
-            True,
-            [-10.1667, -25.750, -103.8333, -109.0167],
-            id="increased depth",
-        ),
-        pytest.param(
-            False,
-            [-10.0, -25.0, -100.0, -100.0],
-            id="normal depth",
-        ),
-    ],
-)
-def test_average_water_potential_over_microbially_active_layers(
-    dummy_litter_data, fixture_core_components, increased_depth, expected_water_pots
-):
-    """Check averaging of water potentials over soil layers works correctly."""
-    from virtual_ecosystem.models.litter.env_factors import (
-        average_water_potential_over_microbially_active_layers,
-    )
-
-    if increased_depth:
-        fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
-            [0.5, 0.25]
-        )
-        fixture_core_components.layer_structure.microbial_simulation_depth = 0.75
-
-    actual_water_pots = average_water_potential_over_microbially_active_layers(
-        water_potentials=dummy_litter_data["matric_potential"],
-        layer_structure=fixture_core_components.layer_structure,
-    )
-
-    assert np.allclose(actual_water_pots, expected_water_pots)
+    assert np.allclose(actual_average, expected_average)
 
 
 @pytest.mark.parametrize(
@@ -132,8 +110,8 @@ def test_average_water_potential_over_microbially_active_layers(
             True,
             {
                 "temp_above": [0.1878681, 0.1878681, 0.1878681, 0.1878681],
-                "temp_below": [0.2407699, 0.2377353, 0.2377353, 0.2335993],
-                "water": [0.9979245, 0.8812574, 0.7062095, 0.7000939],
+                "temp_below": [0.2691235, 0.2626726, 0.2626726, 0.2539490],
+                "water": [0.9958835, 0.8776531, 0.7016582, 0.6901177],
             },
             id="increased depth",
         ),
@@ -141,8 +119,8 @@ def test_average_water_potential_over_microbially_active_layers(
             False,
             {
                 "temp_above": [0.1878681, 0.1878681, 0.1878681, 0.1878681],
-                "temp_below": [0.2281971, 0.2281971, 0.2281971, 0.2281971],
-                "water": [1.0, 0.88496823, 0.71093190, 0.71093190],
+                "temp_below": [0.2732009, 0.2732009, 0.2732009, 0.2732009],
+                "water": [1.0, 0.884968239, 0.710931904, 0.710931904],
             },
             id="normal depth",
         ),

@@ -52,19 +52,13 @@ def calculate_environmental_factors(
 
     temperatures = {
         "surface": air_temperatures[layer_structure.index_surface_scalar].to_numpy(),
-        # TODO - This currently takes uses the surface temperature for the first layer.
-        # Once we start change the default to use a thin topsoil layer that should be
-        # used here instead
-        "below_ground": average_temperature_over_microbially_active_layers(
-            soil_temperatures=soil_temperatures,
-            surface_temperature=air_temperatures[
-                layer_structure.index_surface_scalar
-            ].to_numpy(),
+        "below_ground": average_abiotic_environment_over_microbially_active_layers(
+            environmental_variable=soil_temperatures,
             layer_structure=layer_structure,
         ),
     }
-    water_potential = average_water_potential_over_microbially_active_layers(
-        water_potentials=water_potentials, layer_structure=layer_structure
+    water_potential = average_abiotic_environment_over_microbially_active_layers(
+        environmental_variable=water_potentials, layer_structure=layer_structure
     )
 
     temperature_factors = {
@@ -156,25 +150,23 @@ def calculate_soil_water_effect_on_litter_decomp(
     return 1 - suppression
 
 
-def average_temperature_over_microbially_active_layers(
-    soil_temperatures: DataArray,
-    surface_temperature: NDArray[np.floating],
+def average_abiotic_environment_over_microbially_active_layers(
+    environmental_variable: DataArray,
     layer_structure: LayerStructure,
 ) -> NDArray[np.floating]:
-    """Average soil temperatures over the microbially active layers.
+    """Average abiotic environmental variables over the microbially active layers.
 
-    First the average temperature is found for each layer. Then an average across the
-    microbially active depth (biotic topsoil) is taken, weighting by how much of the
-    microbially active depth lies within each layer.
+    This function calculated an average across the microbially active depth (biotic
+    topsoil) which is weighted by how much of the microbially active depth lies within
+    each layer.
 
     Args:
-        soil_temperatures: Soil temperatures to be averaged [Celsius]
-        surface_temperature: Air temperature just above the soil surface [Celsius]
+        environmental_variable: The environmental variable to be averaged.
         layer_structure: The LayerStructure instance for the simulation.
 
     Returns:
-        The average temperature across the soil depth considered to be microbially
-        active [Celsius]
+        The average of the environmental variable of interest across the soil depth
+        considered to be microbially active.
     """
 
     # Find weighting for each layer in the average by dividing the microbially active
@@ -184,61 +176,4 @@ def average_temperature_over_microbially_active_layers(
         / layer_structure.microbial_simulation_depth
     )
 
-    # Find the average for each layer
-    layer_averages = np.empty((layer_weights.shape[0], soil_temperatures.shape[1]))
-    layer_averages[0, :] = (
-        surface_temperature + soil_temperatures[layer_structure.index_topsoil]
-    ) / 2.0
-
-    for index in range(1, len(layer_structure.soil_layer_active_thickness)):
-        layer_averages[index, :] = (
-            soil_temperatures[layer_structure.index_topsoil_scalar + index - 1]
-            + soil_temperatures[layer_structure.index_topsoil_scalar + index]
-        ) / 2.0
-
-    return np.dot(layer_weights, layer_averages)
-
-
-def average_water_potential_over_microbially_active_layers(
-    water_potentials: DataArray,
-    layer_structure: LayerStructure,
-) -> NDArray[np.floating]:
-    """Average water potentials over the microbially active layers.
-
-    The average water potential is found for each layer apart from the top layer. This
-    is because for the top layer a sensible average can't be taken as water potential is
-    not defined for the surface layer. In this case, the water potential at the maximum
-    layer height is just treated as the average of the layer. This is a reasonable
-    assumption if the first soil layer is shallow.
-
-    These water potentials are then averaged across the microbially active depth,
-    weighting by how much of the microbially active depth lies within each layer.
-
-    Args:
-        water_potentials: Soil water potentials to be averaged [kPa]
-        layer_structure: The LayerStructure instance for the simulation.
-
-    Returns:
-        The average water potential across the soil depth considered to be microbially
-        active [kPa]
-    """
-
-    # Find weighting for each layer in the average by dividing the microbially active
-    # depth in each layer by the total depth of microbial activity
-    layer_weights = (
-        layer_structure.soil_layer_active_thickness
-        / layer_structure.microbial_simulation_depth
-    )
-
-    # Find the average for each layer
-    layer_averages = np.empty((layer_weights.shape[0], water_potentials.shape[1]))
-    # Top layer cannot be averaged
-    layer_averages[0, :] = water_potentials[layer_structure.index_topsoil]
-
-    for index in range(1, len(layer_structure.soil_layer_active_thickness)):
-        layer_averages[index, :] = (
-            water_potentials[layer_structure.index_topsoil_scalar + index - 1]
-            + water_potentials[layer_structure.index_topsoil_scalar + index]
-        ) / 2.0
-
-    return np.dot(layer_weights, layer_averages)
+    return np.dot(layer_weights, environmental_variable[layer_structure.index_all_soil])
