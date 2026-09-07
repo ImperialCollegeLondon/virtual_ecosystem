@@ -18,10 +18,14 @@ subtrees:
                 - file: virtual_ecosystem/theory/hydrology_theory
                   entries:
                     - file: virtual_ecosystem/theory/hydrology_primer
-            - file: virtual_ecosystem/theory/plant_theory
+            - file: virtual_ecosystem/theory/plants/plant_theory
+              entries:
+                - file: virtual_ecosystem/theory/plants/fallen_fruit_and_seeds
             - file: virtual_ecosystem/theory/animals/animal_theory
               entries:
-                - file: virtual_ecosystem/theory/animals/carcasses_and_excrement
+                - file: virtual_ecosystem/theory/animals/consumption
+                  entries:
+                    - file: virtual_ecosystem/theory/animals/carcasses_and_excrement
             - file: virtual_ecosystem/theory/soil/summary
               entries:
                 - file: virtual_ecosystem/theory/soil/soil_carbon
