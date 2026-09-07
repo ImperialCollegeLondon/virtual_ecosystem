@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="Q6UUEhZTevKKt8VJyxFM">
-    <mxGraphModel dx="578" dy="500" grid="1" gridSize="14" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="300" pageHeight="300" math="0" shadow="0">
+    <mxGraphModel dx="496" dy="429" grid="1" gridSize="14" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="300" pageHeight="300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -10,7 +10,7 @@
         <mxCell id="zMYAIR9RL8RD4mphqy8V-25" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;Litter consumption&lt;/font&gt;" vertex="1">
           <mxGeometry height="42" width="70" x="161" y="107" as="geometry" />
         </mxCell>
-        <mxCell id="zMYAIR9RL8RD4mphqy8V-40" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;font size=&quot;1&quot;&gt;Animal biomass&lt;/font&gt;" vertex="1">
+        <mxCell id="zMYAIR9RL8RD4mphqy8V-40" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#FF23F7;" value="&lt;font size=&quot;1&quot;&gt;Animal biomass&lt;/font&gt;" vertex="1">
           <mxGeometry height="14" width="112" x="266" y="28" as="geometry" />
         </mxCell>
         <mxCell id="zMYAIR9RL8RD4mphqy8V-77" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#a0522c, #ededed);" value="&lt;font size=&quot;1&quot;&gt;Woody litter&lt;/font&gt;" vertex="1">

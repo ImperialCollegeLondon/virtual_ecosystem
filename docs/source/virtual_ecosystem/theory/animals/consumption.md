@@ -80,7 +80,9 @@ these are summarised in {numref}`brown_web_flows`.
 :scale: 100 %
 :align: left
 
-A visualisation of the "brown-web" resources available for animal consumption.
+A visualisation of the "brown-web" resources available for animal consumption. Brown
+boxes represent resource pools available for consumption, while black boxes represent
+trophic interactions and the pink box represents animal biomass.
 
 Partially decayed plant biomass is stored in [litter
 pools](../soil/litter_theory.md#litter-pools), all of which are available to animal
