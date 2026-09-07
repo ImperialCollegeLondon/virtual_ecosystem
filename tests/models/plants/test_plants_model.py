@@ -751,6 +751,10 @@ def test_PlantsModel_update_fallen_pools(
 ):
     """Test the update_fallen_pools method of the plants model."""
 
+    from virtual_ecosystem.models.plants.fruit import (
+        calculate_fallen_fruit_decay_fraction,
+    )
+
     # Update model so that pools are populated (otherwise everything is zero)
     fxt_plants_model.update(time_index=0)
 
@@ -761,11 +765,14 @@ def test_PlantsModel_update_fallen_pools(
         - fxt_plants_model.data["fallen_seeds_cnp_consumed"]
     )
 
-    decay_fraction = fxt_plants_model.calculate_fallen_fruit_decay_fraction(
+    decay_fraction = calculate_fallen_fruit_decay_fraction(
         decay_rate=fixture_plants_constants.fallen_fruit_decay_rate,
         surface_temperature=plants_data["air_temperature"][
             fixture_core_components.layer_structure.index_surface_scalar
         ],
+        days=fxt_plants_model.model_timing.update_interval_quantity.to(
+            "days"
+        ).magnitude,
     )
 
     expected_fallen_fruit_cnp = (1 - decay_fraction) * (
@@ -934,24 +941,6 @@ def test_PlantsModel_apply_recruitment(fxt_plants_model, tricky_plant_cohorts):
     ]
 
     assert np.all(np.less(original_n_cohorts, new_n_cohorts))
-
-
-@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
-def test_PlantsModel_calculate_fallen_fruit_decay_fraction(
-    fxt_plants_model, plants_data, fixture_plants_constants, fixture_core_components
-):
-    """Test that the calculation of the fallen fruit decay fraction works correctly."""
-
-    expected_decay_fraction = [0.87754, 0.87754, 0.87754, 0.87754]
-
-    actual_decay_fraction = fxt_plants_model.calculate_fallen_fruit_decay_fraction(
-        decay_rate=fixture_plants_constants.fallen_fruit_decay_rate,
-        surface_temperature=plants_data["air_temperature"][
-            fixture_core_components.layer_structure.index_surface_scalar
-        ],
-    )
-
-    assert np.allclose(actual_decay_fraction, expected_decay_fraction)
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
