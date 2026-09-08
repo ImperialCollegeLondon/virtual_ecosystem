@@ -189,8 +189,8 @@ def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_
         pytest.param(
             "not_existing_var",
             pytest.raises(KeyError),
-            """"No variable named 'not_existing_var'. """
-            '''Variables on the dataset include ['atmospheric_co2']"''',
+            "\"No variable named 'not_existing_var'. "
+            """Variables on the dataset include ['atmospheric_co2']\"""",
             None,
             id="should_not_get",
         ),
@@ -209,6 +209,123 @@ def test_Data_getitem(fixture_data, var_name, exp_err, exp_msg, exp_vals):
     # Check the error reports
     if err:
         assert str(err.value) == exp_msg
+
+
+@pytest.fixture
+def fixture_data_with_time(fixture_data):
+    """Extend fixture_data with a variable that has a time_index dimension."""
+
+    fixture_data["air_temperature_ref"] = DataArray(
+        data=np.array(
+            [
+                [10.0, 20.0, 30.0],
+                [11.0, 21.0, 31.0],
+                [12.0, 22.0, 32.0],
+                [13.0, 23.0, 33.0],
+            ]
+        ),
+        dims=("cell_id", "time_index"),
+        coords={"time_index": [0, 1, 2]},
+    )
+
+    return fixture_data
+
+
+def test_Data_getitem_default_time_index(fixture_data_with_time):
+    """Test that __getitem__ defaults to time_index 0 for time-varying data."""
+
+    assert fixture_data_with_time.time_index == 0
+
+    darray = fixture_data_with_time["air_temperature_ref"]
+
+    # The time_index dimension has been sliced away, leaving only cell_id
+    assert darray.dims == ("cell_id",)
+    assert np.allclose(darray.values, [10.0, 11.0, 12.0, 13.0])
+
+
+@pytest.mark.parametrize(
+    argnames=["time_index", "exp_vals"],
+    argvalues=[
+        pytest.param(0, [10.0, 11.0, 12.0, 13.0], id="time_index_0"),
+        pytest.param(1, [20.0, 21.0, 22.0, 23.0], id="time_index_1"),
+        pytest.param(2, [30.0, 31.0, 32.0, 33.0], id="time_index_2"),
+    ],
+)
+def test_Data_getitem_time_index_selection(
+    fixture_data_with_time, time_index, exp_vals
+):
+    """Test that __getitem__ tracks changes to the current Data.time_index."""
+
+    fixture_data_with_time.time_index = time_index
+    darray = fixture_data_with_time["air_temperature_ref"]
+
+    assert "time_index" not in darray.dims
+    assert np.allclose(darray.values, exp_vals)
+
+
+def test_Data_getitem_no_time_index_dimension(fixture_data_with_time):
+    """Test that __getitem__ leaves variables without a time_index dim unchanged."""
+
+    # atmospheric_co2 has no time_index dimension, so changing time_index should have
+    # no effect on the returned data.
+    fixture_data_with_time.time_index = 1
+    darray = fixture_data_with_time["atmospheric_co2"]
+
+    assert "time_index" not in darray.dims
+    assert np.allclose(darray.values, [1, 2, 3, 4])
+
+
+@pytest.mark.parametrize(
+    argnames=["variable", "time_index", "exp_err", "exp_vals"],
+    argvalues=[
+        pytest.param(
+            "air_temperature_ref",
+            0,
+            does_not_raise(),
+            [10.0, 11.0, 12.0, 13.0],
+            id="valid_time_index_0",
+        ),
+        pytest.param(
+            "air_temperature_ref",
+            2,
+            does_not_raise(),
+            [30.0, 31.0, 32.0, 33.0],
+            id="valid_time_index_2",
+        ),
+        pytest.param(
+            "not_existing_var",
+            0,
+            pytest.raises(KeyError),
+            None,
+            id="missing_variable",
+        ),
+        pytest.param(
+            "atmospheric_co2",
+            0,
+            pytest.raises(ValueError),
+            None,
+            id="no_time_index_dimension",
+        ),
+    ],
+)
+def test_Data_get_time_slice(
+    fixture_data_with_time, variable, time_index, exp_err, exp_vals
+):
+    """Test the get_time_slice method.
+
+    This checks that an explicit time index can be retrieved regardless of the
+    current value of ``Data.time_index``, and that the expected exceptions are
+    raised for a missing variable or a variable without a `time_index` dimension.
+    """
+
+    # Set the current time index to something other than the requested time_index, to
+    # confirm that get_time_slice is independent of Data.time_index.
+    fixture_data_with_time.time_index = 1
+
+    with exp_err:
+        darray = fixture_data_with_time.get_time_slice(variable, time_index)
+        assert "time_index" not in darray.dims
+        assert np.allclose(darray.values, exp_vals)
 
 
 @pytest.mark.parametrize(

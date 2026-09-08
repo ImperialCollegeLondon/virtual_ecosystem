@@ -55,7 +55,7 @@ def fixture_abiotic_simple_init_data(dummy_climate_data):
     # Reduce to data to initialise model
     init_data = Data(grid=dummy_climate_data.grid)
     for var in AbioticSimpleModel.vars_required_for_init:
-        init_data[var] = dummy_climate_data[var]
+        init_data[var] = dummy_climate_data.data[var]
 
     return init_data
 
@@ -192,11 +192,13 @@ def test_setup_and_update_abiotic_simple_model(
         dims=["cell_id", "time_index"],
         coords={"cell_id": [0, 1, 2, 3], "time_index": [0, 1, 2]},
     )
-    xr.testing.assert_allclose(model.data["vapour_pressure_deficit_ref"], exp_vpdref)
+    xr.testing.assert_allclose(
+        model.data.data["vapour_pressure_deficit_ref"], exp_vpdref
+    )
 
     # Add update data to the model data
     for var in AbioticSimpleModel.vars_required_for_update:
-        model.data[var] = dummy_climate_data[var]
+        model.data[var] = dummy_climate_data.data[var]
 
     # Run the update step
     model.update(time_index=0)

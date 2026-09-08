@@ -167,17 +167,19 @@ def run_simple_microclimate(
 
     # Mean atmospheric pressure profile, [kPa]
     output["atmospheric_pressure"] = abiotic_tools.update_profile_from_reference(
+        data=data,
         layer_structure=layer_structure,
         mask_variable=output["air_temperature"],
-        variable_name=data["atmospheric_pressure_ref"],
+        variable_name="atmospheric_pressure_ref",
         time_index=time_index,
     )
 
     # Mean atmospheric C02 profile, [ppm]
     output["atmospheric_co2"] = abiotic_tools.update_profile_from_reference(
+        data=data,
         layer_structure=layer_structure,
         mask_variable=output["air_temperature"],
-        variable_name=data["atmospheric_co2_ref"],
+        variable_name="atmospheric_co2_ref",
         time_index=time_index,
     )
 
@@ -188,8 +190,8 @@ def run_simple_microclimate(
         surface_temperature=output["air_temperature"].isel(
             layers=layer_structure.index_surface
         ),
-        mean_annual_temperature=data["mean_annual_temperature"].isel(
-            time_index=time_index
+        mean_annual_temperature=data.get_time_slice(
+            "mean_annual_temperature", time_index
         ),
         layer_structure=layer_structure,
         upper_bound=upper,
