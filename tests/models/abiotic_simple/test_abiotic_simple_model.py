@@ -45,7 +45,7 @@ def fixture_abiotic_simple_init_log():
 
 
 @pytest.fixture
-def fixture_abiotic_simple_init_data(dummy_climate_data_varying_canopy):
+def fixture_abiotic_simple_init_data(dummy_climate_data):
     """Returns a reduced dataset suitable for initialising an Abiotic Model."""
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
@@ -53,9 +53,9 @@ def fixture_abiotic_simple_init_data(dummy_climate_data_varying_canopy):
     )
 
     # Reduce to data to initialise model
-    init_data = Data(grid=dummy_climate_data_varying_canopy.grid)
+    init_data = Data(grid=dummy_climate_data.grid)
     for var in AbioticSimpleModel.vars_required_for_init:
-        init_data[var] = dummy_climate_data_varying_canopy[var]
+        init_data[var] = dummy_climate_data[var]
 
     return init_data
 
@@ -152,7 +152,7 @@ def test_generate_abiotic_simple_model(
 
 def test_setup_and_update_abiotic_simple_model(
     fixture_abiotic_simple_init_data,
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     fixture_core_components,
     fixture_pyrealm_config,
 ):
@@ -177,23 +177,26 @@ def test_setup_and_update_abiotic_simple_model(
 
     exp_soil_temp = lyr_strct.from_template()
     exp_soil_temp[lyr_strct.index_all_soil] = [
-        [21.48431, 21.832134, 22.179959, 22.527783],
-        [20.0, 20.0, 20.0, 20.0],
+        [20.131051, 21.591324, 23.142502, 24.505557],
+        [22.0, 22.5, 23.0, 24.0],
     ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 
-    xr.testing.assert_allclose(
-        model.data["vapour_pressure_deficit_ref"],
-        DataArray(
-            np.full((4, 3), 0.423372),
-            dims=["cell_id", "time_index"],
-            coords={"cell_id": [0, 1, 2, 3]},
-        ),
+    exp_vpdref = DataArray(
+        [
+            [0.280251, 0.280251, 0.280251],
+            [0.535786, 0.535786, 0.535786],
+            [0.884816, 0.884816, 0.884816],
+            [1.341337, 1.341337, 1.341337],
+        ],
+        dims=["cell_id", "time_index"],
+        coords={"cell_id": [0, 1, 2, 3]},
     )
+    xr.testing.assert_allclose(model.data["vapour_pressure_deficit_ref"], exp_vpdref)
 
     # Add update data to the model data
     for var in AbioticSimpleModel.vars_required_for_update:
-        model.data[var] = dummy_climate_data_varying_canopy[var]
+        model.data[var] = dummy_climate_data[var]
 
     # Run the update step
     model.update(time_index=0)
@@ -212,51 +215,52 @@ def test_setup_and_update_abiotic_simple_model(
 
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = [
-        [30.0, 30.0, 30.0, 30.0],
-        [29.870794, 29.913863, 29.956931, np.nan],
-        [29.035646, 29.357097, np.nan, np.nan],
-        [27.769159, np.nan, np.nan, np.nan],
-        [25.871986, 27.247991, 28.623995, 30.0],
+        [23.0, 24.0, 25.0, 26.0],
+        [22.737281, 23.786638, 24.87785, np.nan],
+        [21.039147, 22.270679, np.nan, np.nan],
+        [18.463956, np.nan, np.nan, np.nan],
+        [14.606371, 18.905246, 23.563744, 26.0],
     ]
+
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
     exp_air_temp_range = lyr_strct.from_template()
     exp_air_temp_range[lyr_strct.index_filled_atmosphere] = [
-        [5, 5, 5, 5],
-        [5, 5, 5, np.nan],
-        [5, 5, np.nan, np.nan],
-        [5, np.nan, np.nan, np.nan],
-        [5, 5, 5, 5],
+        [6, 7, 9, 11],
+        [6, 7, 9, np.nan],
+        [6, 7, np.nan, np.nan],
+        [6, np.nan, np.nan, np.nan],
+        [6, 7, 9, 11],
     ]
-    exp_air_temp_range[lyr_strct.index_all_soil] = 5
+    exp_air_temp_range[lyr_strct.index_all_soil] = [[6, 7, 9, 11], [6, 7, 9, 11]]
     xr.testing.assert_allclose(
         model.data["diurnal_temperature_range"], exp_air_temp_range
     )
 
     exp_wind = lyr_strct.from_template()
     exp_wind[lyr_strct.index_filled_atmosphere] = [
-        [1.0, 1.0, 1.0, 1.0],
-        [0.993673, 0.995782, 0.997891, np.nan],
-        [0.953925, 0.969284, np.nan, np.nan],
-        [0.885976, np.nan, np.nan, np.nan],
-        [0.434528, 0.623019, 0.811509, 1.0],
+        [5.000000e-01, 8.000000e-01, 1.200000e00, 1.800000e00],
+        [4.871356e-01, 7.887022e-01, 1.192109e00, np.nan],
+        [4.063148e-01, 7.100000e-01, np.nan, np.nan],
+        [2.681506e-01, np.nan, np.nan, np.nan],
+        [1.000000e-03, 8.837985e-02, 9.927933e-01, 1.800000e00],
     ]
     xr.testing.assert_allclose(model.data["wind_speed"], exp_wind)
 
     exp_soil_temp = lyr_strct.from_template()
     exp_soil_temp[lyr_strct.index_all_soil] = [
-        [21.48431, 21.832134, 22.179959, 22.527783],
-        [20.0, 20.0, 20.0, 20.0],
+        [20.131051, 21.591324, 23.142502, 24.505557],
+        [22.0, 22.5, 23.0, 24.0],
     ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 
     exp_netrad = lyr_strct.from_template()
-    exp_netrad[lyr_strct.index_filled_canopy] = [
-        [179.955, 179.955, 179.955, np.nan],
-        [159.960, 159.958, np.nan, np.nan],
-        [119.966, np.nan, np.nan, np.nan],
+    exp_netrad[lyr_strct.index_flux_layers] = [
+        [9.985148, 17.98221, 21.978714, np.nan],
+        [6.989112, 7.98633, np.nan, np.nan],
+        [2.993541, np.nan, np.nan, np.nan],
+        [9.997471, 11.992901, 13.982868, 17.974606],
+        [1.991153, 2.988293, 3.984548, 5.980574],
     ]
-    exp_netrad[lyr_strct.index_surface_scalar] = [179.975, 179.969, 179.962, 179.954]
-    exp_netrad[lyr_strct.index_topsoil_scalar] = [179.988, 179.987, 179.986, 179.986]
 
     xr.testing.assert_allclose(model.data["net_radiation"], exp_netrad)

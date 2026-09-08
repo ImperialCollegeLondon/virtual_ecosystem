@@ -57,7 +57,6 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_weights_from_absorbed_radiation,
-    find_last_valid_row,
     set_unintended_nan_to_zero,
 )
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
@@ -70,8 +69,8 @@ def initialise_canopy_and_soil_fluxes(
     """Initialise canopy temperature and energy fluxes.
 
     This function initializes the following variables to run the first step of the
-    energy balance routine: sensible and latent heat flux (canopy and soil), and ground
-    heat flux, all in [W m-2].
+    energy balance routine: sensible and latent heat flux (canopy and soil), ground
+    heat flux, and absorbed longwave radiation, all in [W m-2].
 
     Args:
         air_temperature: Air temperature, [C]
@@ -81,7 +80,7 @@ def initialise_canopy_and_soil_fluxes(
 
     Returns:
         Dictionary with sensible and latent heat flux (canopy and soil), [W m-2],
-        and ground heat flux, [W m-2].
+        ground heat flux, and absorbed longwave radiation [W m-2].
     """
 
     output = {}
@@ -95,6 +94,7 @@ def initialise_canopy_and_soil_fluxes(
         "sensible_heat_flux",
         "latent_heat_flux",
         "longwave_emission",
+        "absorbed_longwave_radiation",
     ):
         output[name] = base_flux.copy()
 
@@ -163,75 +163,234 @@ def calculate_sensible_heat_flux(
     )
 
 
+def normalised_source_fractions(
+    cumulative_lai_above: NDArray[np.float64],
+    cumulative_lai_below: NDArray[np.float64],
+    longwave_extinction_coefficient: float,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+    """Calculate normalised longwave source fractions from sky, soil, and vegetation.
+
+    This helper estimates the relative contribution of three longwave radiation
+    sources seen by a target layer:
+
+    - sky radiation transmitted through vegetation above the layer,
+    - soil radiation transmitted through vegetation below the layer,
+    - surrounding vegetation radiation represented as the remaining fraction.
+
+    The unnormalised sky and soil source terms are calculated as exponential
+    transmissivities through the cumulative leaf area index above and below the
+    target layer:
+
+    - sky transmissivity decreases with increasing vegetation above,
+    - soil transmissivity decreases with increasing vegetation below.
+
+    The vegetation source fraction is then assigned as the remainder after sky
+    and soil contributions, with all three fractions clipped to the range
+    [0, 1]. Finally, the fractions are normalised so that, for each element,
+    the sky, soil, and vegetation fractions sum to 1 whenever the total
+    source weight is positive.
+
+    Args:
+        cumulative_lai_above: Cumulative leaf area index above the target layer,
+            [m m-1]
+        cumulative_lai_below: Cumulative leaf area index below the target layer,
+            [m m-1]
+        longwave_extinction_coefficient: Extinction coefficient controlling how
+            quickly longwave transmissivity decreases with cumulative leaf area,
+            dimensionless.
+
+    Returns:
+        A tuple containing three arrays of normalised source fractions for sky, soil,
+        and surrounding vegetation
+    """
+
+    sky_source_fraction = np.exp(
+        -longwave_extinction_coefficient * cumulative_lai_above
+    )
+    soil_source_fraction = np.exp(
+        -longwave_extinction_coefficient * cumulative_lai_below
+    )
+
+    sky_source_fraction = np.clip(sky_source_fraction, 0.0, 1.0)
+    soil_source_fraction = np.clip(soil_source_fraction, 0.0, 1.0)
+    vegetation_source_fraction = np.clip(
+        1.0 - sky_source_fraction - soil_source_fraction,
+        0.0,
+        1.0,
+    )
+
+    total_source_fraction = (
+        sky_source_fraction + soil_source_fraction + vegetation_source_fraction
+    )
+    sky_source_fraction = np.divide(
+        sky_source_fraction,
+        total_source_fraction,
+        out=np.zeros_like(sky_source_fraction),
+        where=total_source_fraction > 0,
+    )
+    soil_source_fraction = np.divide(
+        soil_source_fraction,
+        total_source_fraction,
+        out=np.zeros_like(soil_source_fraction),
+        where=total_source_fraction > 0,
+    )
+    vegetation_source_fraction = np.divide(
+        vegetation_source_fraction,
+        total_source_fraction,
+        out=np.zeros_like(vegetation_source_fraction),
+        where=total_source_fraction > 0,
+    )
+
+    return (
+        sky_source_fraction,
+        soil_source_fraction,
+        vegetation_source_fraction,
+    )
+
+
 def calculate_absorbed_longwave_radiation(
     downward_longwave: NDArray[np.floating],
     leaf_area_index: NDArray[np.floating],
+    canopy_temperature: NDArray[np.floating],
+    soil_temperature: NDArray[np.floating],
     leaf_emissivity: float,
     soil_emissivity: float,
+    stefan_boltzmann_constant: float,
+    zero_Celsius: float,
     extinction_coefficient_lw: float,
-    surface_index: int,
-    topsoil_index: int,
+    idx: SimpleNamespace,
 ) -> NDArray[np.floating]:
-    """Calculate absorbed longwave radiation per layer using Beer-Lambert attenuation.
+    """Calculate absorbed longwave radiation with separate canopy and surface handling.
 
-    Each canopy layer absorbs downward longwave attenuated from above. The surface
-    layer receives the remainder after full canopy attenuation. The topsoil receives
-    what the surface layer transmitted.
+    Longwave absorption is estimated for canopy, surface, and topsoil layers by
+    combining contributions from sky, soil, and surrounding vegetation using a
+    simple diffuse view-factor approximation.
 
-    Upward longwave from the soil is NOT included here — it is already accounted
-    for in calculate_soil_fluxes via longwave_emission_soil, which drives the
-    ground heat flux and soil sensible heat flux to the surface air layer.
-    Including it here would double-count the soil longwave emission.
+    The surface layer is treated as vegetated if it contains leaf area index and
+    is therefore included in cumulative vegetation area used for longwave
+    attenuation. However, it is excluded from the bulk background vegetation
+    emission term so that ``lw_veg`` represents emission from the overlying canopy
+    rather than the special near-ground surface layer.
+
+    For each vegetated layer, absorbed longwave is approximated as
+
+    ``leaf_emissivity * (f_sky * lw_sky + f_soil * lw_soil + f_veg * lw_veg)``
+
+    where the source fractions are derived from cumulative vegetated leaf area
+    above and below the target layer. The topsoil layer absorbs longwave from the
+    sky and canopy above using a bulk transmissivity through the full vegetated
+    column.
 
     Args:
-        downward_longwave: Downward longwave at top of canopy [W m-2], shape (cells,)
-        leaf_area_index: LAI per layer, shape (layers, cells), NaN for empty layers
+        downward_longwave: Atmospheric downward longwave at canopy top [W m-2]
+        leaf_area_index: Leaf area index, [m m-1]
+        canopy_temperature: Canopy temperature, [C]
+        soil_temperature: Soil temperature, [C]
         leaf_emissivity: Leaf emissivity, dimensionless
         soil_emissivity: Soil emissivity, dimensionless
-        extinction_coefficient_lw: Longwave extinction coefficient, typically ~0.5
-        surface_index: Row index of surface layer
-        topsoil_index: Row index of topsoil layer
+        stefan_boltzmann_constant: Stefan-Boltzmann constant, [W m-2 K-4]
+        zero_Celsius: Conversion from Celsius to Kelvin
+        extinction_coefficient_lw: Longwave attenuation coefficient,
+            dimensionless.
+        idx: Namespace containing layer indices
 
     Returns:
-        Absorbed longwave radiation per layer, shape (layers, cells) [W m-2].
+        Absorbed longwave radiation, [W m-2]
     """
     n_layers, n_cells = leaf_area_index.shape
-    absorbed = np.zeros((n_layers, n_cells))
+    absorbed = np.zeros_like(leaf_area_index, dtype=float)
 
-    cumulative_lai = np.zeros(n_cells)
-    arriving = downward_longwave.copy().astype(float)
+    lai = np.nan_to_num(leaf_area_index, nan=0.0)
 
-    for layer in range(n_layers):
-        lai = np.nan_to_num(leaf_area_index[layer], nan=0.0)
+    # Create masks for canopy and vegetation layers
+    canopy_layer_mask = np.zeros(n_layers, dtype=bool)
+    canopy_layer_mask[np.atleast_1d(idx.canopy)] = True
 
-        if layer == surface_index:
-            # Downward sky LW attenuated through full canopy above
-            transmittance = np.exp(-extinction_coefficient_lw * cumulative_lai)
-            arriving_down = downward_longwave * transmittance
-            absorbed[layer] = leaf_emissivity * arriving_down
+    vegetation_mask = ~np.isnan(leaf_area_index)
+    vegetation_mask[idx.topsoil, :] = False
+    lai_vegetation = np.where(vegetation_mask, lai, 0.0)
 
-            # What passes through to soil
-            arriving = (1.0 - leaf_emissivity) * arriving_down
+    canopy_background_mask = np.zeros_like(leaf_area_index, dtype=bool)
+    canopy_background_mask[canopy_layer_mask, :] = ~np.isnan(
+        leaf_area_index[canopy_layer_mask, :]
+    )
 
-        elif layer == topsoil_index:
-            # Soil absorbs what the surface layer transmitted
-            absorbed[layer] = soil_emissivity * arriving
+    # Calculate longwave emission from sky, soil, and canopy vegetation
+    lw_sky = downward_longwave.astype(float)
 
-        else:
-            transmittance_above = np.exp(-extinction_coefficient_lw * cumulative_lai)
-            transmittance_below = np.exp(
-                -extinction_coefficient_lw * (cumulative_lai + lai)
+    lw_soil = calculate_longwave_emission(
+        temperature=soil_temperature[idx.topsoil] + zero_Celsius,
+        emissivity=soil_emissivity,
+        stefan_boltzmann=stefan_boltzmann_constant,
+    )
+
+    lw_canopy_emit = calculate_longwave_emission(
+        temperature=canopy_temperature + zero_Celsius,
+        emissivity=leaf_emissivity,
+        stefan_boltzmann=stefan_boltzmann_constant,
+    )
+
+    # Mean canopy longwave seen as background vegetation source
+    with np.errstate(invalid="ignore"):
+        lw_veg = np.nanmean(
+            np.where(canopy_background_mask, lw_canopy_emit, np.nan),
+            axis=0,
+        )
+
+    # If there is no canopy in a cell, fall back to sky longwave
+    lw_veg = np.where(np.isfinite(lw_veg), lw_veg, lw_sky)
+
+    # Cumulative LAI above and below each layer
+    cumulative_above = np.zeros((n_layers, n_cells), dtype=float)
+    cumulative_below = np.zeros((n_layers, n_cells), dtype=float)
+
+    running = np.zeros(n_cells, dtype=float)
+    for i in range(n_layers):
+        cumulative_above[i] = running
+        running = running + lai_vegetation[i]
+
+    running = np.zeros(n_cells, dtype=float)
+    for i in range(n_layers - 1, -1, -1):
+        cumulative_below[i] = running
+        running = running + lai_vegetation[i]
+
+    total_vegetation_lai = np.sum(lai_vegetation, axis=0)
+
+    for i in range(n_layers):
+        if i == idx.topsoil:
+            # Soil sees some sky through the canopy and some canopy radiation
+
+            f_sky = np.exp(-extinction_coefficient_lw * total_vegetation_lai)
+            f_veg = 1.0 - f_sky
+            absorbed[i] = soil_emissivity * (f_sky * lw_sky + f_veg * lw_veg)
+            continue
+
+        if i == idx.surface:
+            # Surface layer between canopy and soil: use both sky and soil influence
+
+            has_surface_vegetation = lai[i] > 0
+            f_sky, f_soil, f_veg = normalised_source_fractions(
+                cumulative_lai_above=cumulative_above[i],
+                cumulative_lai_below=cumulative_below[i],
+                longwave_extinction_coefficient=extinction_coefficient_lw,
             )
-
-            absorbed[layer] = np.where(
-                lai > 0,
-                leaf_emissivity
-                * downward_longwave
-                * (transmittance_above - transmittance_below),
-                0.0,
+            surface_absorbed = leaf_emissivity * (
+                f_sky * lw_sky + f_soil * lw_soil + f_veg * lw_veg
             )
+            absorbed[i] = np.where(has_surface_vegetation, surface_absorbed, 0.0)
+            continue
 
-            cumulative_lai += lai
+        if canopy_layer_mask[i]:
+            # Canopy layer sees sky from above, soil from below, vegetation around it
+            f_sky, f_soil, f_veg = normalised_source_fractions(
+                cumulative_lai_above=cumulative_above[i],
+                cumulative_lai_below=cumulative_below[i],
+                longwave_extinction_coefficient=extinction_coefficient_lw,
+            )
+            canopy_absorbed = leaf_emissivity * (
+                f_sky * lw_sky + f_soil * lw_soil + f_veg * lw_veg
+            )
+            absorbed[i] = np.where(lai[i] > 0, canopy_absorbed, 0.0)
 
     return absorbed
 
@@ -289,6 +448,9 @@ def update_soil_temperature(
 
     Returns:
         Updated soil temperatures, [C]
+
+    Raises:
+        ValueError: if soil temperature is nan or -inf
     """
 
     n_layers = len(soil_temperature)
@@ -323,6 +485,13 @@ def update_soil_temperature(
         * (soil_temperature[-2, :] - soil_temperature[-1, :])
     )
 
+    if not np.all(np.isfinite(soil_temperature)):
+        raise ValueError(
+            "Soil temperature is not finite, consider reducing the initial ",
+            "integration time step or the integration time modifier for air ",
+            "temperature in secant method.",
+        )
+
     return soil_temperature
 
 
@@ -332,7 +501,6 @@ def calculate_energy_balance_residual(
     evapotranspiration: NDArray[np.floating],
     absorbed_shortwave_radiation: NDArray[np.floating],
     absorbed_longwave_radiation: NDArray[np.floating],
-    longwave_emission_soil: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
@@ -342,7 +510,6 @@ def calculate_energy_balance_residual(
     zero_Celsius: float,
     seconds_to_hour: float,
     return_fluxes: bool,
-    idx: SimpleNamespace,
 ) -> NDArray[np.floating] | dict[str, NDArray[np.floating]]:
     r"""Calculate energy balance residual for canopy.
 
@@ -365,7 +532,6 @@ def calculate_energy_balance_residual(
             layers, [W m-2]
         absorbed_longwave_radiation: Absorbed longwave radiation for all canopy layers,
             [W m-2]
-        longwave_emission_soil: Longwave emission from topsoil, [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
@@ -377,7 +543,6 @@ def calculate_energy_balance_residual(
         return_fluxes: Flag to indicate if all components of the energy balance should
             be returned. This is false for the newton approach to solve for canopy
             temperature, but true to create the outputs in a second call afterwards.
-        idx: Namespace containing indices for different layers.
 
     Returns:
         full energy balance or energy balance residual, [W m-2]
@@ -422,15 +587,12 @@ def calculate_energy_balance_residual(
         - sensible_heat_flux_canopy
         - latent_heat_flux_canopy
     )
-    # Add longwave_emission from surface to net radiation and energy balance residual
-    net_radiation[idx.surface] += 0.5 * longwave_emission_soil
-    energy_balance_residual[idx.surface] += 0.5 * longwave_emission_soil
 
     if return_fluxes:
         energy_balance = {
             "longwave_emission": longwave_emission_canopy,
-            "sensible_heat_flux": sensible_heat_flux_canopy,
-            "latent_heat_flux": latent_heat_flux_canopy,
+            "sensible_heat_flux": -sensible_heat_flux_canopy,
+            "latent_heat_flux": -latent_heat_flux_canopy,
             "energy_balance_residual": energy_balance_residual,
             "net_radiation": net_radiation,
         }
@@ -445,6 +607,7 @@ def update_canopy_air_temperature(
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
     mixing_layer_thickness: NDArray[np.floating],
+    integration_time_step: float,
 ) -> NDArray[np.floating]:
     r"""Update air temperature surrounding canopy in steady state.
 
@@ -457,12 +620,13 @@ def update_canopy_air_temperature(
     and
 
     .. math::
-        T_{a}^{new} = T_{a}^{old} + \frac{H}{\rho_a c_p z}
+        T_{a}^{new} = T_{a}^{old} + \frac{H \delta t}{\rho_a c_p z}
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
     the surface, :math:`T_{s}` is the surface temperature, :math:`T_{a}` is the air
     temperature, and :math:`z` is the thickness of the air layer we are updating.
+    \delta t is the integration time step.
 
     Args:
         air_temperature: Air temperature, [C]
@@ -470,6 +634,7 @@ def update_canopy_air_temperature(
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         mixing_layer_thickness: thickness of the air layer we are updating, [m]
+        integration_time_step: Time step for integration, [s]
 
     Returns:
         updated air temperatures, [C]
@@ -477,65 +642,11 @@ def update_canopy_air_temperature(
 
     # Update air temperature over a layer of height z (e.g., canopy height)
     new_air_temperature = air_temperature + (
-        sensible_heat_flux / (density_air * specific_heat_air * mixing_layer_thickness)
+        sensible_heat_flux
+        * integration_time_step
+        / (density_air * specific_heat_air * mixing_layer_thickness)
     )
     return new_air_temperature
-
-
-def update_surface_air_temperature(
-    canopy_air_temperature: NDArray[np.floating],
-    state: dict[str, NDArray[np.floating]],
-    idx: SimpleNamespace,
-    denominator_tolerance: float,
-):
-    """Update surface air temperature in equilibrium with soil and canopy fluxes.
-
-    The surface air temperature is diagnosed from the soil and canopy bottom
-    conductances and temperatures, assuming equilibrium between the soil and canopy
-    fluxes. This is necessary because the surface layer is too thin to be updated based
-    on fluxes over a 1-hour timestep, and we want to avoid unrealistic surface air
-    temperatures that would arise from a flux-based update.
-
-    For cells with fewer canopy layers, the bottom canopy temperature is the last
-    finite value in the canopy temperature array. For cells with no canopy, the
-    above-canopy reference temperature is used instead.
-
-    Args:
-        canopy_air_temperature: Canopy air temperature, [C]
-        state: Dictionary of state variables
-        idx: Layer structure index
-        denominator_tolerance: Small value to prevent division by zero
-
-    Returns:
-        Updated surface air temperature, [C]
-    """
-
-    # Last finite canopy temperature per cell — bottom-most occupied canopy layer
-    # Returns NaN for cells with no canopy
-    canopy_bottom_temperature = find_last_valid_row(canopy_air_temperature)
-
-    # For cells with no canopy, fall back to above-canopy reference (row 0)
-    has_canopy = np.isfinite(canopy_bottom_temperature)
-    canopy_bottom_temperature = np.where(
-        has_canopy,
-        canopy_bottom_temperature,
-        state["air_temperature"][0],  # above-canopy reference
-    )
-
-    # Conductance-weighted average of soil and canopy bottom temperatures
-    g_soil = 1.0 / np.maximum(
-        state["aerodynamic_resistance_soil"], denominator_tolerance
-    )
-    g_canopy = 1.0 / np.maximum(
-        state["aerodynamic_resistance_canopy"], denominator_tolerance
-    )
-
-    surface_air_temperature = (
-        g_soil * state["soil_temperature"][idx.topsoil]
-        + g_canopy * canopy_bottom_temperature
-    ) / (g_soil + g_canopy)
-
-    return surface_air_temperature
 
 
 def update_specific_humidity(
@@ -891,7 +1002,6 @@ def make_canopy_residual(
     aerodynamic_resistance: NDArray[np.floating],
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
-    idx: SimpleNamespace,
 ) -> Callable[[NDArray[np.floating]], NDArray[np.floating]]:
     """Creates a residual function for canopy temperature to be used in root finding.
 
@@ -903,7 +1013,6 @@ def make_canopy_residual(
         aerodynamic_resistance: Aerodynamic resistance of canopy, [s m-1]
         abiotic_constants: Constants related to abiotic processes.
         core_constants: Core constants.
-        idx: Namespace containing indices for different layers.
 
     Returns:
         A function that takes canopy_temperature as input and returns the energy balance
@@ -917,7 +1026,6 @@ def make_canopy_residual(
             evapotranspiration=state["evapotranspiration"],
             absorbed_shortwave_radiation=state["shortwave_absorption"],
             absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-            longwave_emission_soil=state["longwave_emission"][idx.topsoil],
             specific_heat_air=state["specific_heat_air"],
             density_air=state["density_air"],
             aerodynamic_resistance=aerodynamic_resistance,
@@ -927,7 +1035,6 @@ def make_canopy_residual(
             zero_Celsius=core_constants.zero_Celsius,
             seconds_to_hour=core_constants.seconds_to_hour,
             return_fluxes=False,
-            idx=idx,
         )
 
     return residual
@@ -944,6 +1051,9 @@ def solve_canopy_temperature_with_air_coupling(
     convergence_tolerance: float,
     small_perturbation_second_guess: float,
     denominator_tolerance: float,
+    min_temperature_change: float,
+    max_temperature_change: float,
+    integration_time_modifier: float,
     idx: SimpleNamespace,
 ) -> tuple[
     NDArray[np.floating],
@@ -955,6 +1065,9 @@ def solve_canopy_temperature_with_air_coupling(
     The canopy temperature is solved with a secant method for fixed air temperature.
     Air temperature is then updated from sensible heat flux, and the process is
     repeated until both canopy and air temperatures converge.
+
+    The solver uses a flexible integration time step to prevent instability in the
+    very thin surface layer.
 
     If the solver does not converge within max iterations, the last best guess is
     returned and solver diagnostics are added to the log file.
@@ -973,6 +1086,11 @@ def solve_canopy_temperature_with_air_coupling(
         convergence_tolerance: Convergence tolerance on max absolute secant update.
         small_perturbation_second_guess: Small perturbation for second initial guess.
         denominator_tolerance: Small value to prevent division by zero.
+        min_temperature_change: Minimum temperature change for flexible integration time
+            step, [C]
+        max_temperature_change: Maximum temperature change for flexible integration time
+            step, [C]
+        integration_time_modifier: Factor to adjust integration time interval
         idx: Namespace containing indices for different layers.
 
     Returns:
@@ -987,14 +1105,19 @@ def solve_canopy_temperature_with_air_coupling(
     canopy_temperature = state["canopy_temperature"].copy()
     air_temperature_above = state["air_temperature"][idx.above].copy()
 
+    # Set initial conservative integration time step
+    integration_time_step = abiotic_constants.integration_time_interval
+
     for _ in range(maxiter_air):
+        state_local["air_temperature"] = air_temperature
+        state_local["canopy_temperature"] = canopy_temperature
+
         residual_function = make_canopy_residual(
             state=state_local,
             static=static,
             aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
             abiotic_constants=abiotic_constants,
             core_constants=core_constants,
-            idx=idx,
         )
 
         new_canopy_temperature = secant_solve_cells_layers(
@@ -1014,7 +1137,6 @@ def solve_canopy_temperature_with_air_coupling(
                 evapotranspiration=state_local["evapotranspiration"],
                 absorbed_shortwave_radiation=state_local["shortwave_absorption"],
                 absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-                longwave_emission_soil=state_local["longwave_emission"][idx.topsoil],
                 specific_heat_air=state_local["specific_heat_air"],
                 density_air=state_local["density_air"],
                 aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
@@ -1024,37 +1146,46 @@ def solve_canopy_temperature_with_air_coupling(
                 zero_Celsius=core_constants.zero_Celsius,
                 seconds_to_hour=core_constants.seconds_to_hour,
                 return_fluxes=True,
-                idx=idx,
             ),
         )
 
         new_air_temperature = update_canopy_air_temperature(
             air_temperature=air_temperature,
-            sensible_heat_flux=fluxes["sensible_heat_flux"],  # type: ignore
+            sensible_heat_flux=-fluxes["sensible_heat_flux"],  # type: ignore
             specific_heat_air=state_local["specific_heat_air"],
             density_air=state_local["density_air"],
             mixing_layer_thickness=static["geometry"]["thickness"],
-        )
-
-        # The surface layer is too thin for stable integration, therefore a simpler
-        # conductivity-based approach is used
-        new_surface_temperature = update_surface_air_temperature(
-            canopy_air_temperature=new_canopy_temperature,
-            state=state_local,
-            idx=idx,
-            denominator_tolerance=denominator_tolerance,
+            integration_time_step=integration_time_step,
         )
 
         canopy_change = np.nanmax(np.abs(new_canopy_temperature - canopy_temperature))
         air_change = np.nanmax(np.abs(new_air_temperature - air_temperature))
 
+        # Safety net: if update is too large, reduce timestep and retry
+        if (
+            canopy_change > max_temperature_change
+            or air_change > max_temperature_change
+        ):
+            integration_time_step *= 1 - integration_time_modifier
+            continue
+
+        # Accept update
         canopy_temperature = new_canopy_temperature
         air_temperature = new_air_temperature
-        air_temperature[idx.surface] = new_surface_temperature
 
         # The air temperature above the canopy is returned as nan, needs to be filled
         # with reference value again
         air_temperature[idx.above] = air_temperature_above
+
+        # If solution is settling, cautiously increase timestep again
+        if (
+            canopy_change < min_temperature_change
+            and air_change < min_temperature_change
+        ):
+            integration_time_step = min(
+                integration_time_step * (1 + integration_time_modifier),
+                abiotic_constants.integration_time_interval,
+            )
 
         if max(canopy_change, air_change) < air_temperature_tolerance:
             break
@@ -1068,7 +1199,6 @@ def solve_canopy_temperature_with_air_coupling(
             evapotranspiration=state_local["evapotranspiration"],
             absorbed_shortwave_radiation=state_local["shortwave_absorption"],
             absorbed_longwave_radiation=static["absorbed_longwave_radiation"],
-            longwave_emission_soil=state_local["longwave_emission"][idx.topsoil],
             specific_heat_air=state_local["specific_heat_air"],
             density_air=state_local["density_air"],
             aerodynamic_resistance=state_local["aerodynamic_resistance_canopy"],
@@ -1078,7 +1208,6 @@ def solve_canopy_temperature_with_air_coupling(
             zero_Celsius=core_constants.zero_Celsius,
             seconds_to_hour=core_constants.seconds_to_hour,
             return_fluxes=True,
-            idx=idx,
         ),
     )
 

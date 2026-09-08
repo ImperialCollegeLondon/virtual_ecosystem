@@ -33,14 +33,14 @@ def test_compute_weights_with_nans():
 
 
 def test_build_indices_returns_expected_namespace(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data, fixture_core_components
 ):
     """Test that _build_indices correctly maps attributes."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import build_indices
 
     layer_structure = fixture_core_components.layer_structure
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
 
     idx = build_indices(data=data, layer_structure=layer_structure)
 
@@ -65,7 +65,7 @@ def test_build_indices_returns_expected_namespace(
 
 
 def test_calculate_molar_density_air(
-    dummy_climate_data_varying_canopy, fixture_core_components, fixture_core_constants
+    dummy_climate_data, fixture_core_components, fixture_core_constants
 ):
     """Test calculate temperature-dependent molar desity of air."""
 
@@ -73,7 +73,7 @@ def test_calculate_molar_density_air(
         calculate_molar_density_air,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
 
     result = calculate_molar_density_air(
@@ -92,13 +92,13 @@ def test_calculate_molar_density_air(
 
 
 def test_calculate_air_density(
-    dummy_climate_data_varying_canopy, fixture_core_components, fixture_core_constants
+    dummy_climate_data, fixture_core_components, fixture_core_constants
 ):
     """Test calculate the density of air."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import calculate_air_density
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
 
     result = calculate_air_density(
@@ -116,7 +116,7 @@ def test_calculate_air_density(
 
 
 def test_calculate_latent_heat_vapourisation(
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     fixture_core_components,
     fixture_abiotic_constants,
     fixture_core_constants,
@@ -127,7 +127,7 @@ def test_calculate_latent_heat_vapourisation(
         calculate_latent_heat_vapourisation,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
     constants = fixture_abiotic_constants
 
@@ -172,7 +172,7 @@ def test_find_last_valid_row(input_array, expected):
 
 
 def test_calculate_slope_of_saturated_pressure_curve(
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     fixture_core_components,
     fixture_abiotic_constants,
 ):
@@ -182,7 +182,7 @@ def test_calculate_slope_of_saturated_pressure_curve(
         calculate_slope_of_saturated_pressure_curve,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
 
     result = calculate_slope_of_saturated_pressure_curve(
@@ -198,7 +198,7 @@ def test_calculate_slope_of_saturated_pressure_curve(
 
 
 def test_calculate_actual_vapour_pressure(
-    dummy_climate_data_varying_canopy, fixture_core_components, fixture_pyrealm_config
+    dummy_climate_data, fixture_core_components, fixture_pyrealm_config
 ):
     """Test calculate effective vapour pressure."""
 
@@ -206,7 +206,7 @@ def test_calculate_actual_vapour_pressure(
         calculate_actual_vapour_pressure,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
 
     result = calculate_actual_vapour_pressure(
@@ -263,21 +263,21 @@ def test_set_unintended_nan_to_zero(input_array, input_nan_mask, expected):
 
 
 def test_compute_layer_thickness_for_varying_canopy(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data, fixture_core_components
 ):
     """Test layer thickness for varying canopy."""
     from virtual_ecosystem.models.abiotic.abiotic_tools import (
         compute_layer_thickness_for_varying_canopy,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
 
     exp_result = np.array(
         [
-            [2.0, 2.0, 2.0, 31.9],
-            [10.0, 10.0, 29.9, np.nan],
-            [10.0, 19.9, np.nan, np.nan],
+            [2.0, 2.0, 2.0, 2.9],
+            [10.0, 10.0, 9.9, np.nan],
+            [10.0, 11.9, np.nan, np.nan],
             [9.9, np.nan, np.nan, np.nan],
             [0.1, 0.1, 0.1, 0.1],
         ]
@@ -290,16 +290,14 @@ def test_compute_layer_thickness_for_varying_canopy(
     np.testing.assert_allclose(result, exp_result)
 
 
-def test_compute_layer_thickness(
-    dummy_climate_data_varying_canopy, fixture_core_components
-):
+def test_compute_layer_thickness(dummy_climate_data, fixture_core_components):
     """Test compute layer thickness for all layers."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import (
         compute_aboveground_layer_thickness,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     lyr_str = fixture_core_components.layer_structure
 
     result = compute_aboveground_layer_thickness(
@@ -308,9 +306,9 @@ def test_compute_layer_thickness(
     exp = lyr_str.from_template()
     exp[lyr_str.index_filled_atmosphere] = np.array(
         [
-            [2.0, 2.0, 2.0, 31.9],
-            [10.0, 10.0, 29.9, np.nan],
-            [10.0, 19.9, np.nan, np.nan],
+            [2.0, 2.0, 2.0, 2.9],
+            [10.0, 10.0, 9.9, np.nan],
+            [10.0, 11.9, np.nan, np.nan],
             [9.9, np.nan, np.nan, np.nan],
             [0.1, 0.1, 0.1, 0.1],
         ]
@@ -319,7 +317,7 @@ def test_compute_layer_thickness(
 
 
 def test_calculate_specific_humidity(
-    dummy_climate_data_varying_canopy, fixture_core_components, fixture_pyrealm_config
+    dummy_climate_data, fixture_core_components, fixture_pyrealm_config
 ):
     """Test specific humidity."""
 
@@ -327,7 +325,7 @@ def test_calculate_specific_humidity(
         calculate_specific_humidity,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
 
     result = calculate_specific_humidity(
@@ -345,9 +343,7 @@ def test_calculate_specific_humidity(
     assert np.all(result[valid] < 1.0)
 
 
-def test_update_profile_from_reference(
-    fixture_core_components, dummy_climate_data_varying_canopy
-):
+def test_update_profile_from_reference(fixture_core_components, dummy_climate_data):
     """Test update atmospheric pressure for varying canopy."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import (
@@ -355,7 +351,7 @@ def test_update_profile_from_reference(
     )
 
     lyr_str = fixture_core_components.layer_structure
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
 
     result = update_profile_from_reference(
         layer_structure=lyr_str,
@@ -366,11 +362,11 @@ def test_update_profile_from_reference(
 
     exp_result = np.array(
         [
-            [96, 96, 96, 96],
-            [96, 96, 96, np.nan],
-            [96, 96, np.nan, np.nan],
+            [96.0, 95.8, 95.5, 95.2],
+            [96, 95.8, 95.5, np.nan],
+            [96, 95.8, np.nan, np.nan],
             [96, np.nan, np.nan, np.nan],
-            [96, 96, 96, 96],
+            [96, 95.8, 95.5, 95.2],
         ]
     )
     np.testing.assert_allclose(
@@ -379,7 +375,7 @@ def test_update_profile_from_reference(
 
 
 def test_calculate_atmospheric_layer_geometry(
-    dummy_climate_data_varying_canopy, fixture_abiotic_indices
+    dummy_climate_data, fixture_abiotic_indices
 ):
     """Test update atmospheric pressure for varying canopy."""
 
@@ -387,12 +383,8 @@ def test_calculate_atmospheric_layer_geometry(
         calculate_atmospheric_layer_geometry,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     idx = fixture_abiotic_indices
-
-    # Set one layer height in the canopy to a very small value to test the lowest canopy
-    # layer correction
-    data["layer_heights"][2, 2] = 0.05
 
     result = calculate_atmospheric_layer_geometry(
         data=data,
@@ -405,9 +397,9 @@ def test_calculate_atmospheric_layer_geometry(
 
     exp_heights = np.array(
         [
-            [32.0, 32.0, 32.0, 32.0],
-            [30.0, 30.0, 30.0, np.nan],
-            [20.0, 20.0, 1.5, np.nan],
+            [32.0, 24.0, 12.0, 3.0],
+            [30.0, 22.0, 10, np.nan],
+            [20.0, 12.0, np.nan, np.nan],
             [10.0, np.nan, np.nan, np.nan],
             [0.1, 0.1, 0.1, 0.1],
         ]
@@ -419,9 +411,9 @@ def test_calculate_atmospheric_layer_geometry(
 
     exp_thickness = np.array(
         [
-            [2.0, 2.0, 2.0, 31.9],
-            [10.0, 10.0, 28.5, np.nan],
-            [10.0, 19.9, 1.4, np.nan],
+            [2.0, 2.0, 2.0, 2.9],
+            [10.0, 10.0, 9.9, np.nan],
+            [10.0, 11.9, np.nan, np.nan],
             [9.9, np.nan, np.nan, np.nan],
             [0.1, 0.1, 0.1, 0.1],
         ]
@@ -432,9 +424,9 @@ def test_calculate_atmospheric_layer_geometry(
 
     exp_midpoints = np.array(
         [
-            [31.0, 31.0, 31.0, 16.05],
-            [25.0, 25.0, 15.75, np.nan],
-            [15.0, 10.05, 0.8, np.nan],
+            [31.0, 23.0, 11.0, 1.55],
+            [25.0, 17.0, 5.05, np.nan],
+            [15.0, 6.05, np.nan, np.nan],
             [5.05, np.nan, np.nan, np.nan],
             [0.05, 0.05, 0.05, 0.05],
         ]
@@ -445,7 +437,7 @@ def test_calculate_atmospheric_layer_geometry(
     )
 
 
-def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_canopy):
+def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
     """Test generation of a single-day diurnal cycle from monthly means."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import (
@@ -456,7 +448,7 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data_varying_can
     month = 2
     days = 30
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     n_layers, n_cells = data["canopy_evaporation"].shape
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
     daily_temp_amplitude = (

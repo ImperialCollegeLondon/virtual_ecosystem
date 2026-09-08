@@ -111,7 +111,7 @@ def calculate_canopy_evaporation(
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
     time_interval: float,
     extinction_coefficient_global_radiation: float,
-) -> NDArray[np.floating]:
+) -> dict[str, NDArray[np.floating]]:
     r"""Calculate evaporation of intercepted water from the canopy, [mm].
 
     This function calculates evaporation of intercepted water from the canopy following
@@ -155,7 +155,7 @@ def calculate_canopy_evaporation(
             radiation
 
     Returns:
-        canopy evaporation [mm per time interval]
+        canopy evaporation and remaining interception [mm per time interval]
     """
 
     output = {}
@@ -198,7 +198,11 @@ def calculate_canopy_evaporation(
 
     # Update interception pool after evaporation
     # Ensure no negative interception
-    return np.maximum(interception - actual_evaporation, 0.0)
+    output["remaining_interception"] = np.maximum(
+        interception - actual_evaporation, 0.0
+    )
+
+    return output
 
 
 def calculate_soil_evaporation(

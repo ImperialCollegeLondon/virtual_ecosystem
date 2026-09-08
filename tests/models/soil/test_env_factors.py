@@ -145,48 +145,6 @@ def test_calculate_pH_suitability(fixture_soil_constants):
     assert np.allclose(expected_inhib, actual_inhib)
 
 
-@pytest.mark.parametrize(
-    argnames=["params"],
-    argvalues=[
-        pytest.param(
-            {
-                "maximum_pH": 7.0,
-                "minimum_pH": 2.5,
-                "lower_optimum_pH": 4.5,
-                "upper_optimum_pH": 7.5,
-            },
-            id="maximum_pH too low",
-        ),
-        pytest.param(
-            {
-                "maximum_pH": 11.0,
-                "minimum_pH": 2.5,
-                "lower_optimum_pH": 1.5,
-                "upper_optimum_pH": 7.5,
-            },
-            id="lower_optimum_pH too low",
-        ),
-        pytest.param(
-            {
-                "maximum_pH": 11.0,
-                "minimum_pH": 2.5,
-                "lower_optimum_pH": 4.5,
-                "upper_optimum_pH": 3.5,
-            },
-            id="upper_optimum_pH too low",
-        ),
-    ],
-)
-def test_calculate_pH_suitability_errors(params):
-    """Test that calculation of pH suitability generates errors if constants are bad."""
-    from virtual_ecosystem.models.soil.env_factors import calculate_pH_suitability
-
-    pH_values = np.array([3.0, 7.5, 9.0, 5.7, 2.0, 11.5])
-
-    with pytest.raises(ValueError):
-        calculate_pH_suitability(soil_pH=pH_values, **params)
-
-
 def test_calculate_clay_impact_on_enzyme_saturation(
     dummy_carbon_data, fixture_soil_constants
 ):

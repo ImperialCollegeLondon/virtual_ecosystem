@@ -287,6 +287,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Absorbed longwave radiation in all flux layers"
+name = "absorbed_longwave_radiation"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Matric potential"
 name = "matric_potential"
 unit = "kPa"
@@ -471,6 +478,13 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Subsurface flow contributing to river discharge in each grid cell"
 name = "subsurface_runoff_routed_plus_local"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Subsurface stormflow contributing to river discharge in each grid cell"
+name = "subsurface_stormflow"
 unit = "mm"
 variable_type = "float"
 
