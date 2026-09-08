@@ -778,7 +778,6 @@ class TestResourcePoolDataExporter:
         exporter.dump(
             carcass_pools={},
             excrement_pools={},
-            fungal_fruiting_pools={},
             soil_pools={},
             resource_pools=[],
             time=np.datetime64("2000-01-01"),
@@ -900,7 +899,6 @@ class TestResourcePoolDataExporter:
         exporter.dump(
             carcass_pools={0: [carcass_pool]},
             excrement_pools={},
-            fungal_fruiting_pools={},
             soil_pools={},
             resource_pools=[],
             time=t1,
@@ -913,7 +911,6 @@ class TestResourcePoolDataExporter:
         exporter.dump(
             carcass_pools={0: [carcass_pool]},
             excrement_pools={},
-            fungal_fruiting_pools={},
             soil_pools={},
             resource_pools=[],
             time=t2,
@@ -951,7 +948,6 @@ class TestResourcePoolDataExporter:
         exporter.dump(
             carcass_pools={0: [carcass_pool]},
             excrement_pools={},
-            fungal_fruiting_pools={},
             soil_pools={},
             resource_pools=[],
             time=np.datetime64("2001-01-01"),
@@ -994,7 +990,6 @@ class TestResourcePoolDataExporter:
         exporter.dump(
             carcass_pools={0: [mocker.Mock()]},
             excrement_pools={},
-            fungal_fruiting_pools={},
             soil_pools={},
             resource_pools=[],
             time=np.datetime64("2001-01-01"),
@@ -1106,41 +1101,6 @@ class TestResourcePoolDataExporter:
 
         decomp = next(r for r in rows if r["sub_pool"] == "decomposed")
         assert decomp["C"] == 2.0
-
-    def test_build_fungal_rows_emits_one_row_per_cell(self, mocker):
-        """Test _build_fungal_rows emits one row per FungalFruitPool.
-
-        Args:
-            mocker: Pytest mocker fixture.
-        """
-        import numpy as np
-
-        from virtual_ecosystem.models.animal.exporter import ResourcePoolDataExporter
-
-        exporter = ResourcePoolDataExporter.__new__(ResourcePoolDataExporter)
-
-        pool_0 = mocker.Mock()
-        pool_0.mass_cnp = mocker.Mock(C=5.0, N=0.2, P=0.05)
-
-        pool_1 = mocker.Mock()
-        pool_1.mass_cnp = mocker.Mock(C=3.0, N=0.12, P=0.03)
-
-        t = np.datetime64("2003-07-01")
-        rows = exporter._build_fungal_rows(
-            fungal_fruiting_pools={0: pool_0, 1: pool_1},
-            time=t,
-            time_index=2,
-        )
-
-        assert len(rows) == 2
-        assert all(r["pool_type"] == "fungal_fruiting" for r in rows)
-        assert all(r["sub_pool"] == "" for r in rows)
-        assert all(r["pft"] == "" for r in rows)
-
-        row_0 = next(r for r in rows if r["cell_id"] == 0)
-        assert row_0["C"] == 5.0
-        assert row_0["N"] == 0.2
-        assert row_0["P"] == 0.05
 
     def test_build_soil_rows_emits_one_row_per_pool_type_per_cell(self, mocker):
         """Test _build_soil_rows emits one row per (cell, pool-type) combination.
@@ -1280,9 +1240,6 @@ class TestResourcePoolDataExporter:
         excrement.scavengeable_cnp = mocker.Mock(C=2.0, N=0.2, P=0.02)
         excrement.decomposed_cnp = mocker.Mock(C=0.0, N=0.0, P=0.0)
 
-        fungal = mocker.Mock()
-        fungal.mass_cnp = mocker.Mock(C=3.0, N=0.12, P=0.03)
-
         soil = mocker.Mock()
         soil.mass_cnp = mocker.Mock(C=4.0, N=0.8, P=0.13)
 
@@ -1294,7 +1251,6 @@ class TestResourcePoolDataExporter:
         exporter.dump(
             carcass_pools={0: [carcass]},
             excrement_pools={0: [excrement]},
-            fungal_fruiting_pools={0: fungal},
             soil_pools={0: {"bacteria": soil}},
             resource_pools=[resource_pool],
             time=np.datetime64("2001-01-01"),
@@ -1305,7 +1261,6 @@ class TestResourcePoolDataExporter:
         assert set(df["pool_type"].unique()) == {
             "carcass",
             "excrement",
-            "fungal_fruiting",
             "soil",
             "resource_array",
         }

@@ -910,23 +910,16 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Density of fungal fruiting bodies growing from the litter and soil"
-name = "fungal_fruiting_bodies"
-unit = "kg C m^-2"
+description = "Density (of carbon, nitrogen and phosphorous) of fungal fruiting bodies growing from the soil"
+name = "fungal_fruiting_bodies_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of decay of fungal fruiting bodies back into the soil"
-name = "decay_of_fungal_fruiting_bodies"
-unit = "kg C m^-2 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Rate at which fungal fruiting bodies are produced by soil fungi"
-name = "production_of_fungal_fruiting_bodies"
-unit = "kg C m^-2 day^-1"
+description = "Mass (carbon, nitrogen and phosphorous) of fungal fruiting bodies consumed by animals"
+name = "fungal_fruiting_bodies_consumed_cnp"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
@@ -954,13 +947,6 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Proportion of carbon in leaf turnover that is lignin carbon"
 name = "senesced_leaf_lignin"
-unit = "unitless"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Proportion of carbon in reproductive tissue turnover that is lignin carbon"
-name = "plant_reproductive_tissue_lignin"
 unit = "unitless"
 variable_type = "float"
 
@@ -1006,25 +992,19 @@ name = "plant_reproductive_tissue_turnover"
 unit = "kg C"
 variable_type = "float"
 
-[[variable]]
-axis = ["spatial"]
-description = "Biomasses of plant reproductive tissue turnover"
-name = "plant_reproductive_tissue_turnover_cnp"
-unit = "kg C"
-variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Biomasses of plant fruit tissue turnover"
+description = "Biomasses (CNP) of plant fruit tissue turnover"
 name = "fruit_turnover_cnp"
-unit = "kg C"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Biomasses of plant seed tissue turnover"
 name = "seed_turnover_cnp"
-unit = "kg C"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
@@ -1273,31 +1253,10 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"] # ["spatial", "pft"]
-description = "Number of fruits of each PFT in the canopy"
-name = "canopy_fruit_n"
-unit = "count"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"] # ["spatial", "pft"]
-description = "Number of seeds per fruit in each PFT"
-name = "canopy_seeds_per_fruit"
-unit = "count"
-variable_type = "float"
-
-[[variable]]
 axis = ["spatial"]
-description = "C, N, and P of each seed PFT"
+description = "C, N, and P mass of each seed PFT"
 name = "canopy_seed_cnp"
 unit = "kg"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"] # ["spatial", "pft"]
-description = "Number of fallen fruits per PFT"
-name = "fallen_fruit_n"
-unit = "count"
 variable_type = "float"
 
 [[variable]]
@@ -1309,21 +1268,14 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Average C, N, and P masses of each fruit per PFT"
+description = "C, N, and P mass of fallen fruit for each PFT"
 name = "fallen_fruit_cnp"
 unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"] # ["spatial", "pft"]
-description = "Number of seeds per fruit per PFT"
-name = "fallen_seeds_per_fruit"
-unit = "count"
-variable_type = "float"
-
-[[variable]]
 axis = ["spatial"]
-description = "Average C, N, and P masses of each seed in a PFT"
+description = "C, N, and P masses of fallen seeds for each a PFT"
 name = "fallen_seeds_cnp"
 unit = "kg"
 variable_type = "float"
@@ -1358,16 +1310,23 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "C, N, and P of seed turnover consumed by animals"
-name = "seed_turnover_cnp_consumed"
+description = "C, N, and P masses of fallen seeds consumed by animals"
+name = "fallen_seeds_cnp_consumed"
 unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "C, N, and P of fruit turnover consumed by animals"
-name = "fruit_turnover_cnp_consumed"
+description = "C, N, and P masses of fallen fruit consumed by animals"
+name = "fallen_fruit_cnp_consumed"
 unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate of decay (C, N, and P) of fallen fruit into the soil"
+name = "fallen_fruit_decay_cnp"
+unit = "kg m^-2 day^-1"
 variable_type = "float"
 
 ## Everything below here added 2026-01-26 by David to meet new requirements for 

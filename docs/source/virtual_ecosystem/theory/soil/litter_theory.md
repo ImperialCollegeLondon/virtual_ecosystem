@@ -103,13 +103,13 @@ where $L$ is the proportion of the litter pool which is lignin and $r$ is a (neg
 empirical constant setting the strength of the inhibition. This choice of function form
 follows {cite:t}`kirschbaum_modelling_2002`.
 
-The litter model takes in input biomass from the plant model as four separate biomass
-streams: wood, leaves, roots, and reproductive biomass (e.g. fruits and flowers). All
-wood input goes to the woody litter pool, but the other three streams need to be
-partitioned between the relevant metabolic and structural litter pools. This partition
-depends on the lignin concentration of the input biomass, as well as its nitrogen and
-phosphorus concentrations. The fraction of a given input biomass stream ($i$) that goes
-into the relevant metabolic litter pool is given by
+The litter model takes in input biomass from the plant model as five separate biomass
+streams: leaves, roots, dead wood, subcanopy vegetation, and turnover from the subcanopy
+vegetation seedbank. All wood input goes to the woody litter pool, but the other four
+streams need to be partitioned between the relevant metabolic and structural litter
+pools. This partition depends on the lignin concentration of the input biomass, as well
+as its nitrogen and phosphorus concentrations. The fraction of a given input biomass
+stream ($i$) that goes into the relevant metabolic litter pool is given by
 
 $$f_{m,i} = f_M - l_i * (s_N N_i + s_P P_i),$$
 
@@ -239,3 +239,12 @@ because the animal model already [models their
 decay](../animals/carcasses_and_excrement.md), tracking these within the litter model
 would essentially force them to decay twice. Instead the flow of decayed matter from
 carcasses and excrement flows straight from the animal model to the soil model.
+
+## Fallen fruits and seeds
+
+Fallen seeds and fruit are handled by the plant model as they are relevant to the
+recruitment of new plant cohorts. Fallen seeds do not decay, they either get eaten by
+animals or contribute to the recruitment of new cohorts. Fruit decay is [calculated by
+the plants model](../plants/fallen_fruit_and_seeds.md#fruit-decay) and the decayed
+biomass is added directly to the soil model (again this is to avoid a situation where
+biomass has to decay twice).

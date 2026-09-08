@@ -2,6 +2,8 @@
 
 from typing import Literal
 
+from pydantic import Field
+
 from virtual_ecosystem.core.configuration import (
     FILEPATH_PLACEHOLDER,
     Configuration,
@@ -38,9 +40,6 @@ class PlantsConstants(Configuration):
 
     senesced_leaf_lignin: float = 0.05
     """Fraction of senesced leaf biomass that is lignin."""
-
-    plant_reproductive_tissue_lignin: float = 0.01
-    """Fraction of plant reproductive tissue biomass that is lignin."""
 
     root_lignin: float = 0.20
     """Fraction of root biomass that is lignin."""
@@ -112,6 +111,13 @@ class PlantsConstants(Configuration):
 
     carbon_mass_per_propagule: float = 1
     """Mass of carbon per propagule in g."""
+
+    fallen_fruit_decay_rate: float = Field(default=0.0075, gt=0.0)
+    """Rate at which fruit that has fallen from the canopy decays [Celsius^-1 day^-1].
+    
+    This rate is measured relative to degree days (with a basis of 0 Celsius) so that
+    decay happens faster at higher temperatures and doesn't happen at sub-zero
+    temperatures."""
 
 
 class PlantsExportConfig(Configuration):

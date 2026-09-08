@@ -118,13 +118,14 @@ class TestAnimalModel:
                             "Adding data array for "
                             "'litter_consumed_below_structural_cnp'",
                         ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'fungal_fruiting_bodies_consumed_cnp'",
+                        ),
                         (INFO, "Adding data array for 'total_animal_respiration'"),
                         (INFO, "Adding data array for 'population_densities'"),
                         (INFO, "Updating animal model"),
-                        (
-                            INFO,
-                            "Adding data array for 'decay_of_fungal_fruiting_bodies'",
-                        ),
                         (INFO, "Adding data array for 'decomposed_excrement_cnp'"),
                         (INFO, "Adding data array for 'decomposed_carcasses_cnp'"),
                         (INFO, "Adding data array for 'animal_pom_consumption_cnp'"),
@@ -440,20 +441,6 @@ class TestAnimalModel:
                     expected_phosphorus[pool_name][cell_id],
                 )
 
-    def test_populate_fungal_fruiting_bodies(self, animal_model_instance):
-        """Test that populating of fungal fruiting bodies pools works as expected."""
-
-        expected_carbon = np.full(9, 12150.0)
-        expected_nitrogen = np.full(9, 1215.0)
-        expected_phosphorus = np.full(9, 162.0)
-
-        fungal_fruiting_bodies = animal_model_instance.populate_fungal_fruiting_bodies()
-
-        for cell_id, pool in fungal_fruiting_bodies.items():
-            assert np.isclose(pool.mass_current, expected_carbon[cell_id])
-            assert np.isclose(pool.mass_cnp.N, expected_nitrogen[cell_id])
-            assert np.isclose(pool.mass_cnp.P, expected_phosphorus[cell_id])
-
     def test_populate_soil_pools_negative(self, animal_model_instance):
         """Test that trying to populate a negative soil pool causes an error."""
         from xarray import DataArray
@@ -735,58 +722,6 @@ class TestAnimalModel:
             model.herbivory_waste_pools[cell_id].below_ground_lignin_proportion, 0.0
         )
 
-    def test_update_fungal_fruiting_bodies(
-        self,
-        litter_soil_data_instance,
-        fixture_core_components,
-        functional_group_list_instance,
-        constants_instance,
-        microbial_c_n_p_ratios,
-        dummy_animal_exporter,
-        dummy_resource_pool_exporter,
-    ):
-        """Test that the function to update fungal fruiting bodies works as expected."""
-        import numpy as np
-
-        from virtual_ecosystem.models.animal.animal_model import AnimalModel
-
-        expected_decay = [0.01008051, 0.00957649, 0.00819042, 0.00724537]
-        expected_new_carbon_mass = [5336.86979, 5070.02630, 4336.20671, 3835.87516]
-        expected_new_nitrogen_mass = [533.686979, 507.002630, 433.620671, 383.587516]
-        expected_new_phosphorus_mass = [71.1582639, 67.6003507, 57.8160895, 51.1450021]
-
-        # Create AnimalModel instance with test data
-        model = AnimalModel(
-            data=litter_soil_data_instance,
-            core_components=fixture_core_components,
-            animal_cohort_exporter=dummy_animal_exporter,
-            resource_pool_exporter=dummy_resource_pool_exporter,
-            functional_groups=functional_group_list_instance,
-            model_constants=constants_instance,
-            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
-        )
-        actual_decay = model.update_fungal_fruiting_bodies()
-
-        actual_new_carbon_mass = [
-            model.fungal_fruiting_bodies[cell_id].mass_current
-            for cell_id in model.fungal_fruiting_bodies
-        ]
-        actual_new_nitrogen_mass = [
-            model.fungal_fruiting_bodies[cell_id].mass_cnp["N"]
-            for cell_id in model.fungal_fruiting_bodies
-        ]
-        actual_new_phosphorus_mass = [
-            model.fungal_fruiting_bodies[cell_id].mass_cnp["P"]
-            for cell_id in model.fungal_fruiting_bodies
-        ]
-
-        assert np.allclose(actual_new_carbon_mass, expected_new_carbon_mass)
-        assert np.allclose(actual_new_nitrogen_mass, expected_new_nitrogen_mass)
-        assert np.allclose(actual_new_phosphorus_mass, expected_new_phosphorus_mass)
-        assert np.allclose(
-            actual_decay["decay_of_fungal_fruiting_bodies"], expected_decay
-        )
-
     def test_calculate_density_for_cohort(self, prepared_animal_model_instance, mocker):
         """Test the calculate_density_for_cohort method."""
 
@@ -812,39 +747,6 @@ class TestAnimalModel:
             f"did not match expected density ({expected_density})."
         )
 
-    def test_update_fungal_fruiting_bodies_in_data(
-        self,
-        litter_soil_data_instance,
-        fixture_core_components,
-        functional_group_list_instance,
-        constants_instance,
-        microbial_c_n_p_ratios,
-        dummy_animal_exporter,
-        dummy_resource_pool_exporter,
-    ):
-        """Test that updating the data object based on FungalFruitPool changes works."""
-        import numpy as np
-
-        from virtual_ecosystem.models.animal.animal_model import AnimalModel
-
-        expected_pool = [0.65887281, 0.62592917, 0.53533416, 0.47356483]
-
-        # Create AnimalModel instance with test data
-        model = AnimalModel(
-            data=litter_soil_data_instance,
-            core_components=fixture_core_components,
-            animal_cohort_exporter=dummy_animal_exporter,
-            resource_pool_exporter=dummy_resource_pool_exporter,
-            functional_groups=functional_group_list_instance,
-            model_constants=constants_instance,
-            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
-        )
-        _ = model.update_fungal_fruiting_bodies()
-        # Update the data object based on the changes caused by previous method
-        model.update_fungal_fruiting_bodies_in_data()
-
-        assert np.allclose(model.data["fungal_fruiting_bodies"], expected_pool)
-
     def test_initialize_communities(
         self,
         mocker,
@@ -863,10 +765,6 @@ class TestAnimalModel:
 
         mocker.patch(
             "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_soil_pools",
-            return_value={},
-        )
-        mocker.patch(
-            "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_fungal_fruiting_bodies",
             return_value={},
         )
 
@@ -1977,7 +1875,6 @@ class TestAnimalModel:
         mock_forage_herbivore.assert_called_once_with(
             array_resource_list=["array_resources"],
             animal_list=[],
-            fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
@@ -2004,7 +1901,6 @@ class TestAnimalModel:
         mock_forage_predator.assert_called_once_with(
             array_resource_list=[],
             animal_list=["prey"],
-            fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],

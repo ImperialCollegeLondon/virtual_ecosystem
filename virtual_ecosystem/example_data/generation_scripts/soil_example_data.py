@@ -95,9 +95,17 @@ secondary_p_values = 0.005 + 0.045 * gradient / 64.0
 # pool [kg P m^-3].
 labile_p_values = 2.5e-5 + 2.5e-5 * gradient / 64.0
 
-# Generate a range of plausible values (0.1-0.4) for the fungal fruiting bodies
-# pool [kg m^-2].
+# Generate a range of plausible carbon values (0.1-0.4) for the fungal fruiting bodies
+# pool [kg C m^-2].
 fungal_fruiting_bodies_values = 0.1 + 0.3 * gradient / 64.0
+
+# Generate a range of plausible nitrogen values (0.01-0.04) for the fungal fruiting
+# bodies pool [kg N m^-2].
+fungal_fruit_n_values = 0.01 + 0.03 * gradient / 64.0
+
+# Generate a range of plausible phosphorus values (0.005-0.01) for the fungal fruiting
+# bodies pool [kg P m^-2].
+fungal_fruit_p_values = 0.005 + 0.005 * gradient / 64.0
 
 # Construct CNP triplets
 lmwc_cnp = np.stack(
@@ -114,6 +122,10 @@ pom_cnp = np.stack(
 )
 necromass_cnp = np.stack(
     [necromass_values, necromass_n_values, necromass_p_values],
+    axis=2,
+)
+fungal_fruiting_body_cnp = np.stack(
+    [fungal_fruiting_bodies_values, fungal_fruit_n_values, fungal_fruit_p_values],
     axis=2,
 )
 
@@ -139,7 +151,7 @@ example_soil_data = Dataset(
         soil_p_pool_primary=(["x", "y"], primary_p_values),
         soil_p_pool_secondary=(["x", "y"], secondary_p_values),
         soil_p_pool_labile=(["x", "y"], labile_p_values),
-        fungal_fruiting_bodies=(["x", "y"], fungal_fruiting_bodies_values),
+        fungal_fruiting_bodies_cnp=(["x", "y", "element"], fungal_fruiting_body_cnp),
     ),
     coords=dict(
         x=(["x"], cell_displacements),
@@ -218,9 +230,9 @@ example_soil_data.soil_p_pool_labile.attrs = dict(
     units="kg P m^-3",
     description="Amount of inorganic phosphorus in a labile form",
 )
-example_soil_data.fungal_fruiting_bodies.attrs = dict(
-    units="kg C m^-2",
-    description="Abundance of fungal fruiting bodies on the ground.",
+example_soil_data.fungal_fruiting_bodies_cnp.attrs = dict(
+    units="kg nutrient m^-2",
+    description="Abundance of fungal fruiting bodies on the ground (and in the soil).",
 )
 
 # Save the example soil data file as netcdf
