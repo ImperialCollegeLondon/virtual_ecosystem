@@ -113,10 +113,15 @@ becomes limiting. The "intrinsic" process rates are altered to capture the effec
 soil moisture by multiplying them with a factor that takes the following form
 
 $$
-A(\psi) = 1 - \left(
+A(\psi) =
+\begin{cases}
+1, \quad \psi \geq \psi_{o} \\
+1 - \left(
 \frac{\log_{10}|\psi| - \log_{10}|\psi_{o}|}
 {\log_{10}|\psi_{h}| - \log_{10}|\psi_{o}|}
-\right)^\alpha,
+\right)^\alpha, \quad \psi_{h} < \psi < \psi_{o} \\
+0, \quad \psi \leq \psi_{h}
+\end{cases}
 $$
 
 where $\psi$ is the soil water potential, $\psi_{o}$ is the "optimal" water potential at
@@ -160,7 +165,7 @@ that temperature has on denitrification rate to be calculated as
 $$
 f_{T,d}(T) =
 \begin{cases}
-0, \quad T <= T_h \\
+0, \quad T \leq T_h \\
 f_\infty * \exp{\left(-\frac{s_d}{T - T_h}\right)}, \quad T > T_h \\
 \end{cases}
 $$
@@ -210,10 +215,10 @@ f_p =
 \begin{cases}
 0, \quad pH < pH_\mathrm{min} \\
 \frac{pH - pH_\mathrm{min}}{pH_l - pH_\mathrm{min}}, \quad
-pH_\mathrm{min} < pH < pH_l \\
-1, \quad pH_l < pH < pH_u \\
+pH_\mathrm{min} \leq pH < pH_l \\
+1, \quad pH_l \leq pH \leq pH_u \\
 \frac{pH_\mathrm{max} - pH}{pH_\mathrm{max} - pH_u}, \quad
-pH_u < pH < pH_\mathrm{max} \\
+pH_u < pH \leq pH_\mathrm{max} \\
 0, \quad pH > pH_\mathrm{max}
 \end{cases}
 $$
