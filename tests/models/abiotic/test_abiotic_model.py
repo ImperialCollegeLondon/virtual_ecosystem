@@ -248,6 +248,7 @@ def test_setup_and_update_abiotic_model(
             dims=["cell_id", "time_index"],
             coords={
                 "cell_id": [0, 1, 2, 3],
+                "time_index": [0, 1, 2],
             },
         ),
     )

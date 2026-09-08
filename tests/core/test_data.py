@@ -842,13 +842,17 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
         "mean_annual_temperature": DataArray(
             np.full((fixture_core_components.grid.n_cells), 40),
             dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            coords={
+                "cell_id": dummy_climate_data["mean_annual_temperature"]["cell_id"]
+            },
             name="mean_annual_temperature",
         ),
         "elevation": DataArray(
             np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            coords={
+                "cell_id": dummy_climate_data["mean_annual_temperature"]["cell_id"]
+            },
             name="elevation",
         ),
     }
@@ -860,7 +864,9 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
         DataArray(
             np.full((fixture_core_components.grid.n_cells), 40),
             dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            coords={
+                "cell_id": dummy_climate_data["mean_annual_temperature"]["cell_id"]
+            },
             name="mean_annual_temperature",
         ),
     )
@@ -869,7 +875,9 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
         DataArray(
             np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            coords={
+                "cell_id": dummy_climate_data["mean_annual_temperature"]["cell_id"]
+            },
             name="elevation",
         ),
     )

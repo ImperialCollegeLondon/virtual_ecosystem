@@ -214,6 +214,7 @@ def dummy_animal_data(animal_fixture_core_components):
         data[var] = DataArray(
             np.full((9, 3), value),  # Update to 9 grid cells
             dims=["cell_id", "time_index"],
+            coords={"time_index": np.arange(3)},
         )
 
     # Spatially varying but not vertically structured

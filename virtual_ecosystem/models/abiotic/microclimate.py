@@ -275,9 +275,7 @@ def generate_hourly_forcing(
             downward_shortwave_radiation=data.get_time_slice(
                 "downward_shortwave_radiation", time_index
             ).to_numpy(),
-            shortwave_absorption_by_canopy=data.get_time_slice(
-                "shortwave_absorption", time_index
-            ).to_numpy(),
+            shortwave_absorption_by_canopy=data["shortwave_absorption"].to_numpy(),
             fraction_par_used=abiotic_constants.fraction_par_used_for_photosynthesis,
             leaf_absorptance_non_par=abiotic_constants.leaf_absorptance_non_par,
             par_fraction=abiotic_constants.par_fraction_of_shortwave_radiation,

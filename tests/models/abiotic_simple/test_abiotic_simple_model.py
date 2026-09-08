@@ -190,7 +190,7 @@ def test_setup_and_update_abiotic_simple_model(
             [1.341337, 1.341337, 1.341337],
         ],
         dims=["cell_id", "time_index"],
-        coords={"cell_id": [0, 1, 2, 3]},
+        coords={"cell_id": [0, 1, 2, 3], "time_index": [0, 1, 2]},
     )
     xr.testing.assert_allclose(model.data["vapour_pressure_deficit_ref"], exp_vpdref)
 
