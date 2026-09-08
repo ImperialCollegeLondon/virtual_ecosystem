@@ -12,7 +12,7 @@ so is less well suited for export through the central data object.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 import numpy as np
 import pandas as pd
@@ -30,53 +30,34 @@ class CommunityDataExporter:
     """The CommunityDataExporter class.
 
     The class is used to export detailed plant community data from inside a PlantsModel
-    instance to CSV files. The community data is split across three output files:
+    instance to CSV files. The community data is split across three output types, which
+    are written to standard file names in the provided output directory.
 
-    * cohort data: details about the stems in each cohort, including the stem allometry
-      and the GPP allocation of the stem. The stem GPP allocation is not defined during
-      the model setup, so these attributes are set to ``np.nan`` for the initial output.
-    * community canopy data: community wide data on the canopy structure, such as the
-      heights of the canopy layers and the light transmission profile.
-    * stem canopy data: details of contribution in leaf area and fAPAR from each stem to
-      the community canopy model.
+    * cohort data ("plants_cohort_data.csv"): details about the stems in each cohort,
+      including the stem allometry and the GPP allocation of the stem. The stem GPP
+      allocation is not defined during the model setup, so these attributes are set to
+      ``np.nan`` for the initial output.
+    * community canopy data ("plants_community_canopy_data.csv"): community wide data on
+      the canopy structure, such as the heights of the canopy layers and the light
+      transmission profile.
+    * stem canopy data ("plants_stem_canopy_data.csv"): details of contribution in leaf
+      area and fAPAR from each stem to the community canopy model.
 
-    The data are written to standard file names in the provided output directory, which
-    will typically be the output directory used by the Virtual Ecosystem model run. The
-    ``required_data`` attribute is used to set which data to export by providing a set
-    of values from: ``cohorts``, ``community_canopy`` and ``stem_canopy``.
-
-    In addition, the attribute arguments can be used to specify a subset of data
-    attributes to be exported. If an empty attribute set is provided (which is the
-    default) then the exporter will write all attributes, otherwise the exported data
-    will be reduced to just the named attributes.
+    The attribute arguments control which data attributes to be exported for each output
+    type. The default (an empty set) turns off data export for that output type,
+    otherwise the set should provide a set of the required output attributes. As a
+    shortcut for including all available attributes, the keyword "ALL" can be provided
+    as a string instead of a set of attribute names.
 
     Args:
         output_directory: The output directory for the files
-        required_data: A set of the required data outputs.
-        cohort_attributes: An optional subset of cohort attributes to export
-        community_canopy_attributes: An optional subset of community canopy attributes
-            to export
-        stem_canopy_attributes: An optional subset of stem canopy attributes
-            to export
-        float_format: A float format string used when writing data.
+        cohort_attributes: An set of cohort attributes to export or the ALL keyword.
+        community_canopy_attributes: A set of community canopy attributes to export or
+            the ALL keyword.
+        stem_canopy_attributes: An set of stem canopy attributes to export or the ALL
+            keyword.
+        float_format: A float format string used when writing numeric data.
     """
-
-    _outputs: ClassVar[dict[str, tuple[str, str]]] = dict(
-        cohorts=(
-            "plants_cohort_data.csv",
-            "_cohort_path",
-        ),
-        community_canopy=(
-            "plants_community_canopy_data.csv",
-            "_community_canopy_path",
-        ),
-        stem_canopy=(
-            "plants_stem_canopy_data.csv",
-            "_stem_canopy_path",
-        ),
-    )
-    """Connects the export data options to a tuple of standard output file and 
-    internal path attribute names."""
 
     available_attributes: ClassVar[dict[str, set[str]]] = {
         "cohort_attributes": set(
@@ -115,28 +96,46 @@ class CommunityDataExporter:
     """Class variable of the available attributes that can be exported for each export
     option."""
 
+    _output_files: ClassVar[dict[str, str]] = dict(
+        cohort="plants_cohort_data.csv",
+        community_canopy="plants_community_canopy_data.csv",
+        stem_canopy="plants_stem_canopy_data.csv",
+    )
+    """Class variable storing the output filenames for each data type."""
+
     def __init__(
         self,
         output_directory: Path,
-        required_data: set[str] = set(),
-        cohort_attributes: set[str] = set(),
-        community_canopy_attributes: set[str] = set(),
-        stem_canopy_attributes: set[str] = set(),
+        cohort_attributes: Literal["ALL"] | set[str] = set(),
+        community_canopy_attributes: Literal["ALL"] | set[str] = set(),
+        stem_canopy_attributes: Literal["ALL"] | set[str] = set(),
         float_format: str = "%0.5f",
     ) -> None:
         # Store the argument values
         self.output_directory: Path = output_directory
         """The directory in which to save plant community data."""
-        self.required_data: set[str] = required_data
-        """The set of plant community data types to be exported."""
-        self.cohort_attributes: set[str] = cohort_attributes
-        """A subset of cohort attribute names to export."""
-        self.community_canopy_attributes: set[str] = community_canopy_attributes
-        """A subset of community canopy attribute names to export."""
-        self.stem_canopy_attributes: set[str] = stem_canopy_attributes
-        """A subset of community canopy attribute names to export."""
         self.float_format = float_format
         """The float format for data export."""
+
+        # Set the attributes, handling the ALL keyword
+        self.cohort_attributes: set[str] = (
+            self.available_attributes["cohort_attributes"]
+            if cohort_attributes == "ALL"
+            else cohort_attributes
+        )
+        """A subset of cohort attribute names to export."""
+        self.community_canopy_attributes: set[str] = (
+            self.available_attributes["community_canopy_attributes"]
+            if community_canopy_attributes == "ALL"
+            else community_canopy_attributes
+        )
+        """A subset of community canopy attribute names to export."""
+        self.stem_canopy_attributes: set[str] = (
+            self.available_attributes["stem_canopy_attributes"]
+            if stem_canopy_attributes == "ALL"
+            else stem_canopy_attributes
+        )
+        """A subset of community canopy attribute names to export."""
 
         # Type and set internal attributes
         self._output_mode: str = "w"
@@ -146,43 +145,36 @@ class CommunityDataExporter:
         self._active: bool = True
         """Has any data export has been requested."""
 
-        # Initialise private data output path attributes - if set in required data,
-        # these are updated to provide a checked path for requested data
-        self._cohort_path: Path | None = None
-        self._community_canopy_path: Path | None = None
-        self._stem_canopy_path: Path | None = None
+        # Define private data output path attributes
+        self._cohort_path: Path
+        self._community_canopy_path: Path
+        self._stem_canopy_path: Path
 
-        # Validate the required data argument
-        unknown_options = required_data.difference(self._outputs.keys())
-        if unknown_options:
-            msg = (
-                f"The required_data setting contains unknown data "
-                f"output options: {', '.join(unknown_options)}"
-            )
-            LOGGER.error(msg)
-            raise ConfigurationError(msg)
+        self._check_and_set_paths()
 
-        # If no output files are required then set the exporter in the inactive state
+        # If no output data is requested then set the exporter in the inactive state
         # and return the instance.
-        if not self.required_data:
+        if not (
+            self.cohort_attributes
+            or self.stem_canopy_attributes
+            or self.community_canopy_attributes
+        ):
             self._active = False
             LOGGER.info("Plant community data exporter not active.")
             return
 
-        self._check_and_set_paths()
+        # Check the attributes subsets
         self._check_attribute_subsets()
         LOGGER.info("Plant community data exporter active.")
 
     def _check_and_set_paths(self) -> None:
         """Check and set the output paths to be used by the exporter.
 
-        This method assumes that the output directory has already been checked. It sets
-        the internal path attributes for each output data type as either None (to signal
-        it should not be written) or to a validated output path.
+        This method localises the output file path for each output data type to the
+        provided output directory.
         """
 
-        # Otherwise check no data will be overwritten and export.
-
+        # Check the output directory
         if not (self.output_directory.exists() and self.output_directory.is_dir()):
             msg = (
                 f"The plant community data output directory does not exist or is not "
@@ -191,20 +183,20 @@ class CommunityDataExporter:
             LOGGER.error(msg)
             raise ConfigurationError(msg)
 
-        for out_option, (fname, attr) in self._outputs.items():
-            # Leave the path attribute at initial None value
-            if out_option not in self.required_data:
-                continue
-
-            # Otherwise check no data will be overwritten and export.
-            data_path = self.output_directory / fname
-            if data_path.exists():
-                msg = f"An output file for {out_option} data already exists: {fname}"
+        for attr, path in self._output_files.items():
+            # Localise the path
+            data_path = self.output_directory / path
+            # Check if any attributes are written for this output and - if so - check no
+            # existing data will be overwritten.
+            if getattr(self, f"{attr}_attributes") and data_path.exists():
+                msg = (
+                    f"An output file for plant data export already exists: {data_path}"
+                )
                 LOGGER.error(msg)
                 raise ConfigurationError(msg)
 
             # Set the path attribute to the output path.
-            setattr(self, attr, data_path)
+            setattr(self, f"_{attr}_path", data_path)
 
     def _check_attribute_subsets(self) -> None:
         """Check attribute subsets contain available fields."""
@@ -240,11 +232,9 @@ class CommunityDataExporter:
 
         """
 
-        # Try and build the arguments as a dictionary from the config, substituting
-        # explicit None values for empty strings
+        # Try and build the arguments as a dictionary from the config
         try:
-            # Get arguments and convert inputs - reduce Literals to plain strings.
-            required_data = set([str(x) for x in config.required_data])
+            # Get arguments and convert inputs
             cohort_attributes = set(config.cohort_attributes)
             community_canopy_attributes = set(config.community_canopy_attributes)
             stem_canopy_attributes = set(config.stem_canopy_attributes)
@@ -255,7 +245,6 @@ class CommunityDataExporter:
         # Return the instance
         return cls(
             output_directory=output_directory,
-            required_data=required_data,
             cohort_attributes=cohort_attributes,
             community_canopy_attributes=community_canopy_attributes,
             stem_canopy_attributes=stem_canopy_attributes,
@@ -293,7 +282,6 @@ class CommunityDataExporter:
         self._dump_cohort_data(
             communities=communities,
             biomasses=biomasses,
-            canopies=canopies,
             stem_allocations=stem_allocations,
             growth_increments=growth_increments,
             time=time,
@@ -319,7 +307,6 @@ class CommunityDataExporter:
         self,
         communities: PlantCommunities,
         biomasses: dict[int, Biomasses],
-        canopies: dict[int, Canopy],
         stem_allocations: dict[int, StemAllocation],
         growth_increments: dict[int, GrowthIncrements],
         time: np.datetime64,
@@ -330,7 +317,6 @@ class CommunityDataExporter:
         Args:
             communities: A PlantCommunities instance.
             biomasses: A dictionary of biomass data keyed by cell id.
-            canopies: A dictionary of Canopy instances, keyed by cell id.
             stem_allocations: A dictionary of StemAllocations, also keyed by cell id
             growth_increments: A dictionary of GrowthIncrements, also keyed by cell id
             time: A datetime to be used as a timestamp in the output files

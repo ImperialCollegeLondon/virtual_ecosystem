@@ -95,59 +95,51 @@ def fixture_exporter_components(
 
 
 @pytest.mark.parametrize(
-    argnames=("required"),
+    argnames=("cohort,community_canopy,stem_canopy"),
     argvalues=(
-        pytest.param(
-            {"cohorts", "community_canopy", "stem_canopy"},
-            id="all_required",
-        ),
-        pytest.param(
-            {"community_canopy", "stem_canopy"},
-            id="two_required",
-        ),
-        pytest.param(
-            {"cohorts"},
-            id="one_required",
-        ),
-        pytest.param(
-            set(),
-            id="none_required",
-        ),
+        pytest.param("ALL", "ALL", "ALL", id="all_required"),
+        pytest.param(set(), "ALL", "ALL", id="two_required"),
+        pytest.param("ALL", set(), set(), id="one_required"),
+        pytest.param(set(), set(), set(), id="none_required"),
     ),
 )
 def test_CommunityDataExporter_check_and_set_paths(
-    tmp_path,
-    required,
+    request, tmp_path, cohort, community_canopy, stem_canopy
 ):
     """Test the path validation of CommunityDataExporter."""
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
     # Create the exporter
-    exporter = CommunityDataExporter(output_directory=tmp_path, required_data=required)
+    exporter = CommunityDataExporter(
+        output_directory=tmp_path,
+        cohort_attributes=cohort,
+        community_canopy_attributes=community_canopy,
+        stem_canopy_attributes=stem_canopy,
+    )
 
     # Check the populated attributes
-    for opt, (fname, attr) in exporter._outputs.items():
-        attr_value = getattr(exporter, attr)
-        if opt in required:
-            assert attr_value == tmp_path / fname
-        else:
-            assert attr_value is None
+    for type, path in exporter._output_files.items():
+        attr_value = getattr(exporter, f"_{type}_path")
+        assert attr_value == tmp_path / path
 
     # Now create files that would be overwritten and check it raises - this does not
     # work for the case with no required files, because there are no files being
     # written, so exit early for that case
 
-    if not required:
+    if request.node.callspec.id == "none_required":
         return
 
-    for opt, (fname, attr) in exporter._outputs.items():
-        if opt in required:
-            existing_file = tmp_path / fname
+    for type, attr in exporter._output_files.items():
+        if eval(type) == "ALL":
+            existing_file = tmp_path / attr
             existing_file.touch(exist_ok=False)
 
     with pytest.raises(ConfigurationError) as excep:
         exporter = CommunityDataExporter(
-            output_directory=tmp_path, required_data=required
+            output_directory=tmp_path,
+            cohort_attributes=cohort,
+            community_canopy_attributes=community_canopy,
+            stem_canopy_attributes=stem_canopy,
         )
 
     assert str(excep.value).startswith("An output file for ")
@@ -216,7 +208,6 @@ def test_CommunityDataExporter_check_attribute_subsets(
     with outcome as excep:
         _ = CommunityDataExporter(
             output_directory=tmp_path,
-            required_data={"cohorts", "community_canopy", "stem_canopy"},
             cohort_attributes=cohort_attr,
             community_canopy_attributes=community_canopy_attr,
             stem_canopy_attributes=stem_canopy_attr,
