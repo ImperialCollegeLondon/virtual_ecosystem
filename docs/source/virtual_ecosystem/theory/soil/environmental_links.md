@@ -98,8 +98,10 @@ $$f_t(T) = \exp{\left(\gamma \frac{T - T_{\mathrm{ref}}}{T + T_{\mathrm{off}}}\r
 
 where $T$ is the litter temperature, $T_\mathrm{ref}$ is reference temperature used to
 establish "intrinsic" litter decay rates, $T_\mathrm{off}$ is an offset temperature, and
-$\gamma$ is a parameter capturing how responsive litter decay rates are to temperature
-changes.
+$\gamma$ is a parameter that sets response strength by setting the high and low
+temperature limits of the response, e.g.
+$\lim\limits_{T\to \infty}f_t(T) = \exp{(\gamma)}$
+and $\lim\limits_{T\to -\infty}f_t(T) = \exp{(-\gamma)}$.
 
 ### Litter decay moisture response
 
