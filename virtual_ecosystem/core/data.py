@@ -267,7 +267,9 @@ class Data:
         value = self.data[key]
 
         return (
-            value.isel(time_index=self.time_index) if "time_index" in value else value
+            value.isel(time_index=self.time_index)
+            if "time_index" in value.dims
+            else value
         )
 
     def __contains__(self, key: str) -> bool:
