@@ -88,9 +88,9 @@ def prepare_static_inputs(
     )
 
     # Absorbed longwave radiation, [W m-2]
-    downward_longwave = (
-        data["downward_longwave_radiation"].isel(time_index=time_index).to_numpy()
-    )
+    downward_longwave = data.get_time_slice(
+        "downward_longwave_radiation", time_index
+    ).to_numpy()
 
     absorbed_longwave_radiation = energy_balance.calculate_absorbed_longwave_radiation(
         downward_longwave=downward_longwave,
@@ -190,7 +190,7 @@ def calculate_wind_profiles(
         static["canopy_height"] + abiotic_constants.wind_reference_height
     )
     reference_wind_speed = np.abs(
-        data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+        data.get_time_slice("wind_speed_ref", time_index).to_numpy()
     )
 
     wind_speed = layer_structure.from_template()
@@ -272,10 +272,12 @@ def generate_hourly_forcing(
     """
     total_shortwave_absorption = (
         energy_balance.calculate_total_absorbed_shortwave_radiation(
-            downward_shortwave_radiation=data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy(),
-            shortwave_absorption_by_canopy=data["shortwave_absorption"].to_numpy(),
+            downward_shortwave_radiation=data.get_time_slice(
+                "downward_shortwave_radiation", time_index
+            ).to_numpy(),
+            shortwave_absorption_by_canopy=data.get_time_slice(
+                "shortwave_absorption", time_index
+            ).to_numpy(),
             fraction_par_used=abiotic_constants.fraction_par_used_for_photosynthesis,
             leaf_absorptance_non_par=abiotic_constants.leaf_absorptance_non_par,
             par_fraction=abiotic_constants.par_fraction_of_shortwave_radiation,
@@ -283,21 +285,21 @@ def generate_hourly_forcing(
     )
 
     return abiotic_tools.generate_diurnal_cycle_from_monthly_data(
-        monthly_air_temperature=data["air_temperature_ref"]
-        .isel(time_index=time_index)
-        .to_numpy(),
+        monthly_air_temperature=data.get_time_slice(
+            "air_temperature_ref", time_index
+        ).to_numpy(),
         monthly_shortwave_absorption=total_shortwave_absorption,
-        monthly_relative_humidity=data["relative_humidity_ref"]
-        .isel(time_index=time_index)
-        .to_numpy(),
+        monthly_relative_humidity=data.get_time_slice(
+            "relative_humidity_ref", time_index
+        ).to_numpy(),
         monthly_evapotranspiration=static["evapotranspiration"],
         monthly_soil_evaporation=data["soil_evaporation"].to_numpy(),
         latitude_deg=latitude,
         month=month,
         days=days,
-        daily_temp_amplitude=data["diurnal_temperature_range_ref"]
-        .isel(time_index=time_index)
-        .to_numpy(),
+        daily_temp_amplitude=data.get_time_slice(
+            "diurnal_temperature_range_ref", time_index
+        ).to_numpy(),
     )
 
 

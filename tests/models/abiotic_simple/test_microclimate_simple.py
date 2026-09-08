@@ -26,7 +26,7 @@ def test_varying_canopy_log_interpolation(
     layer_structure = fixture_core_components.layer_structure
     data = dummy_climate_data
 
-    reference_data = np.abs(data["wind_speed_ref"].isel(time_index=0).to_numpy())
+    reference_data = np.abs(data.get_time_slice("wind_speed_ref", 0).to_numpy())
     layer_heights = data["layer_heights"].to_numpy()
     leaf_area_index_sum = np.nansum(data["leaf_area_index"], axis=0)
 
@@ -79,7 +79,7 @@ def test_exp_interpolation(
     layer_structure = fixture_core_components.layer_structure
     data = dummy_climate_data
 
-    reference_data = data["air_temperature_ref"].isel(time_index=0).to_numpy()
+    reference_data = data.get_time_slice("air_temperature_ref", 0).to_numpy()
     layer_heights = data["layer_heights"].to_numpy()
     leaf_area_index_sum = np.nansum(data["leaf_area_index"], axis=0)
 
@@ -224,7 +224,7 @@ def test_interpolate_soil_temperature(dummy_climate_data, fixture_core_component
     result = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
         surface_temperature=data["air_temperature"][11],
-        mean_annual_temperature=data["mean_annual_temperature"].isel(time_index=0),
+        mean_annual_temperature=data.get_time_slice("mean_annual_temperature", 0),
         layer_structure=lyr_strct,
         upper_bound=50.0,
         lower_bound=-10.0,

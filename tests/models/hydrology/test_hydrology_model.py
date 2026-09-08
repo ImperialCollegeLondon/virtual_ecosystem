@@ -291,9 +291,9 @@ def test_setup_and_update_hydrology_model_ranges(
         surface_channel_inflow_mm=model.data[
             "surface_runoff_routed_plus_local"
         ].to_numpy(),
-        monthly_precipitation_mm=dummy_climate_data["precipitation"]
-        .isel(time_index=1)
-        .to_numpy(),
+        monthly_precipitation_mm=dummy_climate_data.get_time_slice(
+            "precipitation", 1
+        ).to_numpy(),
         monthly_evaporation_mm=model.data["soil_evaporation"].to_numpy(),
     )
 

@@ -381,9 +381,9 @@ def test_energy_balance_residual_only(
         air_temperature=data["air_temperature"].to_numpy(),
         evapotranspiration=evapotranspiration.to_numpy(),
         absorbed_shortwave_radiation=data["shortwave_absorption"].to_numpy(),
-        absorbed_longwave_radiation=data["downward_longwave_radiation"]
-        .isel(time_index=0)
-        .to_numpy()
+        absorbed_longwave_radiation=data.get_time_slice(
+            "downward_longwave_radiation", 0
+        ).to_numpy()
         * fixture_abiotic_constants.leaf_emissivity,
         specific_heat_air=data["specific_heat_air"].to_numpy(),
         density_air=data["density_air"].to_numpy(),
@@ -637,7 +637,7 @@ def test_total_absorbed_shortwave_radiation(
     data = dummy_climate_data
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
 
-    downward_sw = data["downward_shortwave_radiation"].isel(time_index=0).to_numpy()
+    downward_sw = data.get_time_slice("downward_shortwave_radiation", 0).to_numpy()
     canopy_absorption = data["shortwave_absorption"][canopy_index].to_numpy()
 
     weights = compute_weights_from_absorbed_radiation(radiation=canopy_absorption)
