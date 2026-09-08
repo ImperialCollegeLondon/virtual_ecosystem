@@ -229,7 +229,6 @@ configure the exporter to write out selected trait data for all three data files
 :tags: [remove-input]
 
 config_object = PlantsExportConfig(
-    required_data=["cohorts", "community_canopy", "stem_canopy"],
     cohort_attributes=["cell_id", "cohort_id", "dbh", "delta_dbh", "stem_height"],
     community_canopy_attributes=["cell_id", "canopy_layer_index", "heights"],
     stem_canopy_attributes=["cell_id", "cohort_id", "canopy_layer_index", "fapar"],

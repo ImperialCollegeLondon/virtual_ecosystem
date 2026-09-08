@@ -39,24 +39,45 @@ community data to be exported at each time step. Data are exported to CSV format
 and the data for each time step is appended to the files to generate a single file
 containing a time series through a simulation.
 
-This page describes the configuration and available options and variables.
+There are three kinds of data output available for export from the plants model, written
+to separate files in the output directory for a simulation.
+
+* [**Cohort data**](#cohort-data): writes data to the file `plants_cohort_data.csv` on
+  the cohorts across the simulation, with attributes provided for each cohort at each
+  timestep.
+* [**Community canopy data**](#community-canopy-data): writes data to the file
+  `plants_community_canopy_data.csv`  on the canopy structure within each cell in the
+  simulation for each time step, with attributes provided for each community and each
+  canopy layer at each timestep.
+* [**Stem canopy data**](#stem-canopy-data): writes data to the file
+  `plants_stem_canopy_data.csv` data on the individual stem contributions to the
+  community canopy, with attributes provided for each cohort in each canopy layer for
+  each timestep.
+
+The sections below describe the configuration settings and then the available attributes
+for each data type.
 
 ## Configuration settings
+
+Data export is controlled through the `["plants.community_data_export"]` configuration
+section. In the default configuration shown below, the default settings do not
+include any attribute names for any of the three data types and so no data is exported.
 
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-from virtual_ecosystem.core.docutils import dump_config_toml, model_config_to_deflist
+from IPython.display import display_markdown
+import re
+from virtual_ecosystem.core.docutils import (
+    dump_config_toml,
+    get_init_attr_docs,
+    get_dataclass_attr_docs,
+)
 from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
 config_object = PlantsExportConfig()
 dump_config_toml("plants.community_data_export", config_object)
-
-
-model_config_to_deflist("plants.community_data_export", config_object)
 ```
-
-## Cohort data
 
 ```{code-cell} ipython3
 ---
@@ -64,71 +85,13 @@ tags: [remove-input]
 mystnb:
   markdown_format: myst
 ---
-# This cell autogenerates a configuration for the model from the code objects, which
-# keeps these docs up to date with the code state. Note that that highlighting
-# (emphasize-lines) settings in the TOML output will not automatically adjust if the
-# configuration changes
-
-import json
-
-import tomli_w
-from IPython.display import display_markdown
-
-from virtual_ecosystem.core.model_config import DataSource
-from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
-from virtual_ecosystem.models.plants.plants_model import PlantsModel
-
-# Generate a default plant configuration, using model_construct() to bypass validation
-# on placeholder file names
-plants_cfg = json.loads(
-    PlantsConfiguration.model_construct(
-        pft_definitions_path="/path/to/pft_definitions.csv",
-        cohort_data_path="/path/to/cohort_data.csv",
-    ).model_dump_json()
-)
-
-# Build complete set of config including data variables
-cfg = {"core": {"variable": []}, "plants": plants_cfg}
-
-for var in PlantsModel.vars_required_for_init:
-    cfg["core"]["variable"].append(
-        json.loads(
-            DataSource.model_construct(
-                file_path="/path/to/plant_data.nc", var_name=var
-            ).model_dump_json()
-        )
-    )
-
-# Display as markdown
-display_markdown(
-    "```{code-block} toml\n:emphasize-lines: 3-6,11-12\n\n"
-    + tomli_w.dumps(cfg)
-    + "```",
-    raw=True,
-)
-```
-
-## Plants constants
-
-The plant constants section shown in the configuration above sets a large number of
-constants that drive how the simulation works. These are described below:
-
-```{code-cell} ipython3
----
-tags: [remove-input]
-mystnb:
-  markdown_format: myst
----
-# This cell generates a CSV table from the pydantic validation object for PFT data,
+# This cell generates a CSV table from the pydantic validation object for the exporter
 # ensuring that the description here is up to date with the codebase.
-
-from virtual_ecosystem.models.plants.model_config import PlantsConstants
-import re
 
 rows = ["Field name,Description,Default value"]
 
 # Parse the fields from the trait validator pydantic model
-for trait, field in PlantsConstants.model_fields.items():
+for trait, field in PlantsExportConfig.model_fields.items():
 
     # Tidy the description to remove newlines, convert latex and quote to wrap commas
     desc = "" if field.description is None else field.description
@@ -139,7 +102,6 @@ for trait, field in PlantsConstants.model_fields.items():
     # Add to the rows
     rows.append(f"`{trait}`,{desc},{ '-' if field.default is None else field.default}")
 
-
 # Display as markdown
 display_markdown(
     f"```{{csv-table}}\n:header-rows: 1\n:quote: '\"'\n\n{"\n".join(rows)}\n```",
@@ -147,59 +109,109 @@ display_markdown(
 )
 ```
 
-## Plants community data export
-
-The plants model holds a large amount of detailed data on the plant communities growing
-in each cell, on the community-wide canopy structure within each cell and the canopy
-properties of individual stems within each cohort. This data is not required by other
-science models and so is not shared through the central data store. If you want to look
-at plant community data within a simulation, you will need to configure export of plant
-community data using the following configuration settings.
+The alternative configuration below exports selected attributes for all three data
+types and shows the use of the `"ALL"` keyword as a shortcut for exporting all
+attributes for a data type.
 
 ```{code-cell} ipython3
-:tags: [remove-cell]
+:tags: [remove-input]
 
-from myst_nb import glue
-from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
-
-glue(
-    "cohort_attributes",
-    ", ".join(
-        [
-            f'"{t}"'
-            for t in CommunityDataExporter.available_attributes["cohort_attributes"]
-        ]
-    ),
+config_object = PlantsExportConfig(
+    cohort_attributes="ALL",
+    community_canopy_attributes=["cell_id", "canopy_layer_index", "heights"],
+    stem_canopy_attributes=["cell_id", "cohort_id", "canopy_layer_index", "fapar"],
 )
+dump_config_toml("plants.community_data_export", config_object)
+```
 
-glue(
-    "community_canopy_attributes",
-    ", ".join(
-        [
-            f'"{t}"'
-            for t in CommunityDataExporter.available_attributes[
-                "community_canopy_attributes"
-            ]
-        ]
-    ),
-)
+## Cohort data
 
-glue(
-    "stem_canopy_attributes",
-    ", ".join(
-        [
-            f'"{t}"'
-            for t in CommunityDataExporter.available_attributes[
-                "stem_canopy_attributes"
-            ]
-        ]
-    ),
+The simulation provides a lot of different cohort-level attributes that fall into the
+following main groupings:
+
+* The core cohort details - how many individuals of which PFT are in a cell at this
+  timestep.
+* The PFT trait data for the cohort.
+* The stem allometry of the cohort, predicted from individual size (diameter at breast
+  height, metres) following the T Model.
+* The GPP and Carbon allocation for the cohort in the time step, where the GPP is
+  predicted using the P Model and allocation follows the T Model.
+* The predicted growth increments for individuals in the cohort, following the T Model.
+* The realised biomasses of carbon, nitrogen and phosphorous for the plants tissues in
+  each individual. These biomasses can depart from the theoretical allometry under the T
+  Model due to ecological process like herbivory.
+
+### Core cohort details
+
+The table below shows the core cohort attribute. The first four fields are _always_
+included in cohort level data even if they are not explicitly included in the cohort
+attribute export configuration.
+
+```{csv-table}
+:header-rows: 1
+
+Field,Description
+`cohort_id`,"A unique ID code for the cohort that persists through the time series."
+`cell_id`,"The grid cell in which the cohort is found."
+`time`,"The time stamp of the simulation step for the exported data."
+`time_index`,"The index along the time axis for the exported data."
+`pft_name`,"The plant functional type of the cohort: a text value that must match one
+ of the PFT names set in the PFT definitions."
+`n_individuals`,"The current number of individuals in the cohort."
+```
+
+### Plant functional type trait data
+
+These attribute field names and descriptions are identical to the fields reported in the
+[definition of PFTs](./tree_definition.md#plant-functional-types) used in the model.
+
+```{note}
+These fields are mostly constant through time: it may be convenient to include them in
+the plant data export but you can also exclude them and match cohorts back to the
+original PFT input file using the PFT name as a merge key.
+
+An exception is that the `lai` and  `tau_f` fields are altered within the model for
+individual cohorts to capture herbivory effects on light capture and carbon allocation.
+```
+
+### Allometry and allocation attributes
+
+The table below shows the allometry, carbon allocation and growth increment fields
+available for export.
+
+```{code-cell} ipython3
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+from pyrealm.demography.tmodel import StemAllometry, StemAllocation, GrowthIncrements
+
+tmodel_options = ["Field,Description"]
+
+for cls in (StemAllometry, StemAllocation, GrowthIncrements):
+    for attr, desc in get_init_attr_docs(cls.__init__).items():
+        if attr in cls._array_attrs:
+            tmodel_options.append(f'`{attr}`,"{desc}"')
+
+
+# Display as markdown
+display_markdown(
+    f"```{{csv-table}}\n:header-rows: 1\n:quote: '\"'\n\n{"\n".join(tmodel_options)}\n```",
+    raw=True,
 )
 ```
 
 ### Realised tissue biomasses
 
+The fields below show the realised biomass attributes that can be exported.
+
 ```{code-cell} ipython3
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
 from virtual_ecosystem.models.plants.plants_model import PLANT_BIOMASS_TISSUES
 
 biomass_options = ["Field,Description"]
@@ -218,54 +230,50 @@ display_markdown(
 )
 ```
 
+## Community canopy data
+
 ```{code-cell} ipython3
-from virtual_ecosystem.core.docutils import get_init_attr_docs
-from pyrealm.demography.tmodel import StemAllometry, StemAllocation, GrowthIncrements
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+from pyrealm.demography.canopy import CommunityCanopyData
 
-tmodel_options = ["Field,Description"]
+community_canopy_options = ["Field,Description"]
 
-for cls in (StemAllometry, StemAllocation, GrowthIncrements):
-    for attr, desc in get_init_attr_docs(cls.__init__).items():
-        if attr in cls._array_attrs:
-            tmodel_options.append(f'`{attr}`,"{desc}"')
-
+for attr, desc in get_dataclass_attr_docs(CommunityCanopyData).items():
+    if attr in CommunityCanopyData._array_attrs:
+        community_canopy_options.append(f'`{attr}`,"{desc}"')
 
 # Display as markdown
 display_markdown(
-    f"```{{csv-table}}\n:header-rows: 1\n:quote: '\"'\n\n{"\n".join(tmodel_options)}\n```",
+    f"```{{csv-table}}\n:header-rows: 1\n:quote: '\"'"
+    f"\n\n{"\n".join(community_canopy_options)}\n```",
     raw=True,
 )
 ```
 
-There are three possible data files that can be exported - you select one or more by
-including them in `[plants.community_data_export.required]` and can then select which
-attributes you want exported using the appropriate attributes configuration option.
-
-The choices are:
-
-* If `cohorts` is included in `required_data` then the file `plants_cohorts_data.csv`
-  will be exported for each time step. The available attributes for plant cohort data
-  are: {glue:text}`cohort_attributes`.
-
-* If `community_canopy` is included in `required_data` then the file
-  `plants_community_canopy_data.csv` will be exported for each time step. The available
-  attributes for plant cohort data are: {glue:text}`community_canopy_attributes`.
-
-* If `stem_canopy` is included in `required_data` then the file
-  `plants_stem_canopy_data.csv` will be exported for each time step. The available
-  attributes for plant cohort data are: {glue:text}`stem_canopy_attributes`.
-
-To show the configuration of the exporter in use, the TOML settings below show how to
-configure the exporter to write out selected trait data for all three data files:
+## Stem canopy data
 
 ```{code-cell} ipython3
-:tags: [remove-input]
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+from pyrealm.demography.canopy import CohortCanopyData
 
-config_object = PlantsExportConfig(
-    required_data=["cohorts", "community_canopy", "stem_canopy"],
-    cohort_attributes=["cell_id", "cohort_id", "dbh", "delta_dbh", "stem_height"],
-    community_canopy_attributes=["cell_id", "canopy_layer_index", "heights"],
-    stem_canopy_attributes=["cell_id", "cohort_id", "canopy_layer_index", "fapar"],
+cohort_canopy_options = ["Field,Description"]
+
+for attr, desc in get_dataclass_attr_docs(CohortCanopyData).items():
+    if attr in CohortCanopyData._array_attrs:
+        cohort_canopy_options.append(f'`{attr}`,"{desc}"')
+
+# Display as markdown
+display_markdown(
+    f"```{{csv-table}}\n:header-rows: 1\n:quote: '\""
+    f"'\n\n{"\n".join(cohort_canopy_options)}\n```",
+    raw=True,
 )
-dump_config_toml("plants.community_data_export", config_object)
 ```
