@@ -338,10 +338,9 @@ def calculate_specific_humidity(
 
 
 def update_profile_from_reference(
-    data: Data,
     layer_structure: LayerStructure,
     mask_variable: DataArray,
-    variable_name: str,
+    variable_name: DataArray,
     time_index: int,
 ) -> DataArray:
     """Update a layer-based profile for a given time index using a reference variable.
@@ -354,10 +353,10 @@ def update_profile_from_reference(
       - fills the profile template for those layers
 
     Args:
-        data: Data object providing access to the reference variable
         layer_structure: LayerStructure object defining the layer setup
         mask_variable: DataArray used to create the atmospheric mask
-        variable_name: Name of the reference variable (e.g. 'atmospheric_pressure_ref')
+        variable_name: Reference variable as a full timeseries DataArray (e.g.
+            ``data.data["atmospheric_pressure_ref"]``)
         time_index: Index of the current time step
 
     Returns:
@@ -371,7 +370,7 @@ def update_profile_from_reference(
 
     # Mean atmospheric pressure profile, [kPa]
     profile_out = layer_structure.from_template()
-    reference_values = data.get_time_slice(variable_name, time_index)
+    reference_values = variable_name.isel(time_index=time_index)
     valid_values = reference_values.where(atm_mask)
     profile_out[layer_structure.index_filled_atmosphere] = valid_values
 

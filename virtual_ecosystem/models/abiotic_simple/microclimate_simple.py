@@ -167,19 +167,17 @@ def run_simple_microclimate(
 
     # Mean atmospheric pressure profile, [kPa]
     output["atmospheric_pressure"] = abiotic_tools.update_profile_from_reference(
-        data=data,
         layer_structure=layer_structure,
         mask_variable=output["air_temperature"],
-        variable_name="atmospheric_pressure_ref",
+        variable_name=data.data["atmospheric_pressure_ref"],
         time_index=time_index,
     )
 
     # Mean atmospheric C02 profile, [ppm]
     output["atmospheric_co2"] = abiotic_tools.update_profile_from_reference(
-        data=data,
         layer_structure=layer_structure,
         mask_variable=output["air_temperature"],
-        variable_name="atmospheric_co2_ref",
+        variable_name=data.data["atmospheric_co2_ref"],
         time_index=time_index,
     )
 
