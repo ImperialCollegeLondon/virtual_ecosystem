@@ -16,25 +16,20 @@ def fixture_biomass_components():
 
     cohorts = pd.DataFrame(
         dict(
-            # TODO - revisit the ratio names and maybe automate the creation of
-            #        consistent names when loading traits to simplify the biomass
-            #        interface.
             zeta=[0.1, 0.1],
             sla=[2.0, 2.0],
-            p_foliage_for_reproductive_tissue=[0.5, 0.5],
+            fruit_seed_foliage_mass_fraction=[0.5, 0.5],
             pft_name=["shrub", "broadleaf"],
-            foliage_c_n_ratio=[5.0, 6.0],  # Why do these start differently!
-            leaf_turnover_c_n_ratio=[10.0, 12.0],
+            foliage_c_n_ratio=[5.0, 6.0],
+            foliage_turnover_c_n_ratio=[10.0, 12.0],
             foliage_c_p_ratio=[5.0, 6.0],
-            leaf_turnover_c_p_ratio=[10.0, 12.0],
-            # stem_c_n_ratio=[5.0, 6.0],
-            deadwood_c_n_ratio=[5.0, 6.0],
-            # stem_c_p_ratio=[5.0, 6.0],
-            deadwood_c_p_ratio=[5.0, 6.0],
-            root_turnover_c_n_ratio=[5.0, 6.0],
-            root_turnover_c_p_ratio=[5.0, 6.0],
-            plant_reproductive_tissue_turnover_c_n_ratio=[5.0, 6.0],
-            plant_reproductive_tissue_turnover_c_p_ratio=[5.0, 6.0],
+            foliage_turnover_c_p_ratio=[10.0, 12.0],
+            stem_c_n_ratio=[5.0, 6.0],
+            stem_c_p_ratio=[5.0, 6.0],
+            root_c_n_ratio=[5.0, 6.0],
+            root_c_p_ratio=[5.0, 6.0],
+            fruit_seed_c_n_ratio=[5.0, 6.0],
+            fruit_seed_c_p_ratio=[5.0, 6.0],
         )
     )
 
@@ -693,12 +688,12 @@ def test_balance_elements(
 
     cohorts = pd.DataFrame(
         dict(
-            deadwood_c_n_ratio=np.tile(BALANCE_WOOD_CN, n_cases),
-            deadwood_c_p_ratio=np.tile(BALANCE_WOOD_CP, n_cases),
+            stem_c_n_ratio=np.tile(BALANCE_WOOD_CN, n_cases),
+            stem_c_p_ratio=np.tile(BALANCE_WOOD_CP, n_cases),
             foliage_c_n_ratio=np.tile(BALANCE_FOLIAGE_CN, n_cases),
             foliage_c_p_ratio=np.tile(BALANCE_FOLIAGE_CP, n_cases),
-            leaf_turnover_c_n_ratio=np.repeat(np.nan, n_cases * len(BALANCE_WOOD_C)),
-            leaf_turnover_c_p_ratio=np.repeat(np.nan, n_cases * len(BALANCE_WOOD_C)),
+            foliage_turnover_c_n_ratio=np.repeat(np.nan, n_cases * len(BALANCE_WOOD_C)),
+            foliage_turnover_c_p_ratio=np.repeat(np.nan, n_cases * len(BALANCE_WOOD_C)),
         )
     )
 
