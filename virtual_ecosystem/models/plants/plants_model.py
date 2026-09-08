@@ -55,6 +55,15 @@ from virtual_ecosystem.models.plants.model_config import (
 )
 from virtual_ecosystem.models.plants.subcanopy import Subcanopy
 
+PLANT_BIOMASS_TISSUES = [
+    FoliageBiomass,  # foliage mass
+    StemBiomass,  # stem mass
+    RootBiomass,  # fine root mass
+    FruitBiomass,  # fruit tissue mass
+    SeedBiomass,  # seed tissue mass
+]
+"""The set of biomass tissue classes to be used in the model."""
+
 
 class PlantsModel(
     BaseModel,
@@ -397,13 +406,7 @@ class PlantsModel(
             )
 
         # Define the set of tissues to be tracked for each stem.
-        self.biomass_tissues = [
-            FoliageBiomass,  # foliage mass
-            StemBiomass,  # stem mass
-            RootBiomass,  # fine root mass
-            FruitBiomass,  # fruit tissue mass
-            SeedBiomass,  # seed tissue mass
-        ]
+        self.biomass_tissues = PLANT_BIOMASS_TISSUES
 
         # Record the per stem biomasses of stochiometric tissues for each cohort.
         # The initial values for N and P are based on the ideal stoichiometric ratios
