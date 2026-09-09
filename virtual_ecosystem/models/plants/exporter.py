@@ -398,7 +398,7 @@ class CommunityDataExporter:
                         time=time,
                         time_index=time_index,
                     )
-                )
+                ).reset_index(drop=True)
             ]
 
             # Append each of the other dataframes, dropping the repeated cohort_id field
