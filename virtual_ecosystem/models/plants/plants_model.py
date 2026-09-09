@@ -834,10 +834,12 @@ class PlantsModel(
                 # - the top of the canopy (maximum stem height)
                 # - the layer closure heights (if any), rotated into a column array,
                 #   omitting the final layer, which is the ground.
-                heights[fill_idx] = np.concatenate([
-                    [[canopy.max_stem_height]],
-                    canopy.heights[0:-1, None],
-                ])
+                heights[fill_idx] = np.concatenate(
+                    [
+                        [[canopy.max_stem_height]],
+                        canopy.heights[0:-1, None],
+                    ]
+                )
 
                 # Similarly, insert canopy fapar:
                 fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
@@ -878,10 +880,12 @@ class PlantsModel(
         # Update the below canopy light fraction, handling cells with no canopy
         # Note - dual path here: no cohorts = None, extinct cohorts have defined
         # transmission of 1.
-        self.below_canopy_light_fraction = np.array([
-            1 if cnpy is None else cnpy.community_data.transmission_to_ground
-            for cnpy in self.canopies.values()
-        ])
+        self.below_canopy_light_fraction = np.array(
+            [
+                1 if cnpy is None else cnpy.community_data.transmission_to_ground
+                for cnpy in self.canopies.values()
+            ]
+        )
 
         # Update the internal canopy layer mask
         self.filled_canopy_mask = np.logical_not(np.isnan(self.data["layer_leaf_mass"]))
@@ -894,8 +898,7 @@ class PlantsModel(
         """Set the current canopy top shortwave downwelling radiation."""
 
         self.canopy_top_radiation = (
-            self
-            .data["downward_shortwave_radiation"]
+            self.data["downward_shortwave_radiation"]
             .isel(time_index=time_index)
             .to_numpy()
         )
@@ -1241,8 +1244,7 @@ class PlantsModel(
         water_limitation_factor = np.minimum(
             1,
             (
-                self
-                .data["soil_moisture"]
+                self.data["soil_moisture"]
                 .sel(
                     layers=np.argmax(self.layer_structure.index_subsoil)
                 )  # 1st subsoil layer

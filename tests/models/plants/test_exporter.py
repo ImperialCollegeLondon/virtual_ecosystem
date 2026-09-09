@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from pydantic import ValidationError
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
@@ -241,6 +242,17 @@ def test_CommunityDataExporter_check_attribute_subsets(
             "The cohort_attributes exporter configuration contains unknown attributes",
             id="bad_subset",
         ),
+        pytest.param(
+            dict(
+                path="",
+                cohort_attrs="ALLY",
+                ccan_attrs="ALLLL",
+                scan_attrs="EVERY_LAST_ONE",
+            ),
+            pytest.raises(ValidationError),
+            "6 validation errors for PlantsExportConfig",
+            id="bad_kw_to_config",
+        ),
     ),
 )
 def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
@@ -259,32 +271,35 @@ def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
         stem_canopy_attributes=inputs["scan_attrs"],
     )
 
-    config = PlantsExportConfig().model_validate(cfg_data)
-
     with outcome as excep:
+        config = PlantsExportConfig().model_validate(cfg_data)
         CommunityDataExporter.from_config(output_directory=tmp_path, config=config)
 
     if excep:
         assert str(excep.value).startswith(msg)
 
 
-def csv_row_check(path: Path | None, n_rows: int, attr: list[str] = []) -> None:
+def csv_check(
+    path: Path, n_rows: int, attr: str | set[str], expected: set[str]
+) -> None:
     """Shared test function for exported CSV.
 
-    Assert a file exists, can be loaded, has the right number of rows and - if the
-    attribute subset is specified - that the field subset has been saved.
+    Assert the file does not exist if no file requested, otherwise assert that a file
+    exists, can be loaded, has the right number of rows and the correct columns.
+
+    This also checks the definition of available attributes in __init__ against the
+    reality of exporting.
     """
 
-    if path is None:
+    if not attr:
+        assert not path.exists()
         return
 
     assert path.exists()
     content = pd.read_csv(path)
 
     assert len(content) == n_rows
-
-    if attr:
-        assert set(content.columns) == set(attr)
+    assert set(content.columns) == expected
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
@@ -302,10 +317,7 @@ def test_CommunityDataExporter_dump_cohort_data(
     tricky_plant_cohorts,  # Set that the straightforward cohort data gets used
     attributes,
 ):
-    """Test CommunityDataExporter _dump_cohort_data method.
-
-    tricky_plant_cohorts
-    """
+    """Test CommunityDataExporter _dump_cohort_data method."""
 
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
@@ -330,20 +342,28 @@ def test_CommunityDataExporter_dump_cohort_data(
 
     out_path = tmp_path / "plants_cohort_data.csv"
 
-    # Check the output file does not exist no attributes are requested
-    if not attributes:
-        assert not out_path.exists()
-        return
+    # Check the output CSV file.
+    cell_n_cohorts = np.array(
+        [len(cmty.cohorts) for _, cmty in communities.items()]
+    ).sum()
 
-    # Otherwise check it exists and has the requested attributes
-    assert out_path.exists()
-    cell_n_cohorts = np.array([len(cmty.cohorts) for _, cmty in communities.items()])
-    csv_row_check(path=out_path, n_rows=cell_n_cohorts.sum(), attr=attributes)
+    # This needs access to instance so not defined in parameterisation. These
+    # definitions also check the definitions of the mandatory export fields and the
+    # available fields.
+    match attributes:
+        case _ if attributes == set():
+            expected = set()
+        case "ALL":
+            expected = exporter.available_attributes["cohort_attributes"]
+        case _:
+            expected = set(
+                [
+                    *exporter._mandatory_attributes["cohort_attributes"],
+                    *attributes,
+                ]
+            )
 
-    if attributes == "ALL":
-        content = pd.read_csv(out_path)
-        assert "stem_c_biomass" in content.columns
-        assert "foliage_n_biomass" in content.columns
+    csv_check(path=out_path, n_rows=cell_n_cohorts, attr=attributes, expected=expected)
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])

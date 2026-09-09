@@ -11,6 +11,7 @@ so is less well suited for export through the central data object.
 
 from __future__ import annotations
 
+from itertools import product
 from pathlib import Path
 from typing import ClassVar, Literal
 
@@ -21,9 +22,13 @@ from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllo
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.plants.biomasses import Biomasses
+from virtual_ecosystem.models.plants.biomasses import PLANT_BIOMASS_TISSUES, Biomasses
 from virtual_ecosystem.models.plants.communities import PlantCommunities
+from virtual_ecosystem.models.plants.functional_types import VEFloraValidator
 from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
+
+# Global definition of ALL keyword
+ALL = Literal["ALL"]
 
 
 class CommunityDataExporter:
@@ -59,43 +64,6 @@ class CommunityDataExporter:
         float_format: A float format string used when writing numeric data.
     """
 
-    available_attributes: ClassVar[dict[str, set[str]]] = {
-        "cohort_attributes": set(
-            [
-                "cell_id",
-                "time",
-                *StemAllometry._array_attrs,
-                # *list(Cohorts.columns),
-                # pyrealm 3 HACK - the object being exported is a Cohorts df instance
-                #    with columns but the imported object is the class not the instance
-                #    and that does not have columns. Need to work out how to repopulate
-                #    this list
-                *StemAllocation._array_attrs,
-                # *Biomasses._array_attrs,
-            ]
-        ),
-        "community_canopy_attributes": set(
-            [
-                "canopy_layer_index",
-                "heights",
-                "cell_id",
-                "time",
-                *CommunityCanopyData._array_attrs,
-            ]
-        ),
-        "stem_canopy_attributes": set(
-            [
-                "canopy_layer_index",
-                "cohort_id",
-                "cell_id",
-                "time",
-                *CohortCanopyData._array_attrs,
-            ]
-        ),
-    }
-    """Class variable of the available attributes that can be exported for each export
-    option."""
-
     _output_files: ClassVar[dict[str, str]] = dict(
         cohort="plants_cohort_data.csv",
         community_canopy="plants_community_canopy_data.csv",
@@ -103,12 +71,16 @@ class CommunityDataExporter:
     )
     """Class variable storing the output filenames for each data type."""
 
+    _mandatory_attributes: ClassVar[dict[str, set[str]]] = dict(
+        cohort_attributes=set(["cohort_id", "cell_id", "time", "time_index"]),
+    )
+
     def __init__(
         self,
         output_directory: Path,
-        cohort_attributes: Literal["ALL"] | set[str] = set(),
-        community_canopy_attributes: Literal["ALL"] | set[str] = set(),
-        stem_canopy_attributes: Literal["ALL"] | set[str] = set(),
+        cohort_attributes: ALL | set[str] = set(),
+        community_canopy_attributes: ALL | set[str] = set(),
+        stem_canopy_attributes: ALL | set[str] = set(),
         float_format: str = "%0.5f",
     ) -> None:
         # Store the argument values
@@ -117,32 +89,85 @@ class CommunityDataExporter:
         self.float_format = float_format
         """The float format for data export."""
 
-        # Set the attributes, handling the ALL keyword
-        self.cohort_attributes: set[str] = (
-            self.available_attributes["cohort_attributes"]
-            if cohort_attributes == "ALL"
-            else cohort_attributes
-        )
-        """A subset of cohort attribute names to export."""
-        self.community_canopy_attributes: set[str] = (
-            self.available_attributes["community_canopy_attributes"]
-            if community_canopy_attributes == "ALL"
-            else community_canopy_attributes
-        )
-        """A subset of community canopy attribute names to export."""
-        self.stem_canopy_attributes: set[str] = (
-            self.available_attributes["stem_canopy_attributes"]
-            if stem_canopy_attributes == "ALL"
-            else stem_canopy_attributes
-        )
-        """A subset of community canopy attribute names to export."""
+        # Set the attribute export options
+        self.cohort_attributes: ALL | set[str] = cohort_attributes
+        """The set of cohort attribute names to export."""
+        self.community_canopy_attributes: ALL | set[str] = community_canopy_attributes
+        """The set of community canopy attribute names to export."""
+        self.stem_canopy_attributes: ALL | set[str] = stem_canopy_attributes
+        """The subset of community canopy attribute names to export."""
+
+        # Populate the available attributes - this is awkward for cohorts because there
+        # isn't a single common API for getting at the available attributes. Some
+        # objects have _array_attrs but not cohorts or biomasses.
+        # - Cohorts is a dataframe that include cohort details and PFT traits
+        # - Biomasses exports a dataframe with elemental masses for lots of tisses.
+        #   Biomass instances provide the .to_dataframe() method which gives the
+        #   available attributes but adding biomasses to __init__ just to get names is
+        #   is clumsy.
+
+        biomass_attributes = [
+            f"{tissue}_{elem}_biomass"
+            for tissue, elem in product(
+                [*[t.tissue_name for t in PLANT_BIOMASS_TISSUES], "surplus"],
+                ["C", *PLANT_BIOMASS_TISSUES[0].elements],
+            )
+        ]
+
+        self.available_attributes: dict[str, set[str]] = {
+            "cohort_attributes": set(
+                [
+                    *self._mandatory_attributes["cohort_attributes"],
+                    # Cohorts is a dataframe and does not have _array_attrs but is three
+                    # cohort fields and then PFT traits can be extracted from trait model.
+                    "pft_name",
+                    "dbh_value",
+                    "n_individuals",
+                    *VEFloraValidator.model_fields,
+                    *VEFloraValidator.model_computed_fields,
+                    # Biomass attributes
+                    *biomass_attributes,
+                    # Other inputs have defined _array_attrs
+                    *StemAllometry._array_attrs,
+                    *StemAllocation._array_attrs,
+                    *GrowthIncrements._array_attrs,
+                ]
+            ),
+            "community_canopy_attributes": set(
+                [
+                    "canopy_layer_index",
+                    "heights",
+                    "cell_id",
+                    "time",
+                    *CommunityCanopyData._array_attrs,
+                ]
+            ),
+            "stem_canopy_attributes": set(
+                [
+                    "canopy_layer_index",
+                    "cohort_id",
+                    "cell_id",
+                    "time",
+                    *CohortCanopyData._array_attrs,
+                ]
+            ),
+        }
+        """Class variable of the available attributes that can be exported for each 
+        export option."""
 
         # Type and set internal attributes
         self._output_mode: str = "w"
         """Switches the exporter between write and append mode."""
         self._write_header: bool = True
         """Stops headers being duplicated in append mode."""
-        self._active: bool = True
+
+        # Use truthiness of settings to test if _all_ are empty sets or at least one is
+        # ALL or a non-empty set.
+        self._active: bool = bool(
+            self.cohort_attributes
+            or self.stem_canopy_attributes
+            or self.community_canopy_attributes
+        )
         """Has any data export has been requested."""
 
         # Define private data output path attributes
@@ -154,12 +179,7 @@ class CommunityDataExporter:
 
         # If no output data is requested then set the exporter in the inactive state
         # and return the instance.
-        if not (
-            self.cohort_attributes
-            or self.stem_canopy_attributes
-            or self.community_canopy_attributes
-        ):
-            self._active = False
+        if not self._active:
             LOGGER.info("Plant community data exporter not active.")
             return
 
@@ -203,8 +223,9 @@ class CommunityDataExporter:
 
         for subset_name, available in self.available_attributes.items():
             subset = getattr(self, subset_name)
-            # If subset is provided, check the values are all valid
-            if not subset:
+
+            # Skip validation if the set is empty or the ALL keyword.
+            if (subset == "ALL") or (not subset):
                 continue
 
             not_found = subset.difference(available)
@@ -215,6 +236,11 @@ class CommunityDataExporter:
                 )
                 LOGGER.error(msg)
                 raise ConfigurationError(msg)
+
+            # Enforce the mandatory fields
+            setattr(
+                self, subset_name, self._mandatory_attributes[subset_name].union(subset)
+            )
 
     @classmethod
     def from_config(
@@ -319,8 +345,8 @@ class CommunityDataExporter:
             time_index: The index of the datatime within the model updates.
         """
 
-        # If the data has not been requested - so the path is None - then exit
-        if self._cohort_path is None:
+        # If data has not been requested then exit immediately
+        if not self.cohort_attributes:
             return
 
         # Collect cell dataframes into an list for use with row-wise pd.concat()
@@ -348,37 +374,40 @@ class CommunityDataExporter:
                     index=np.arange(len(community.cohorts)),
                 )
 
-            # Concatenate the cohort data, stem allometry and stem allocation by
-            # column
-            # if biomasses is None:
-            #    biomass_data = pd.DataFrame(index=np.arange(len(community)))
-            # else:
-            biomass_data = self._export_biomass_data(biomasses[cell_id])
+            # Create a list of the various dataframes, starting with the key shared
+            # information across all data
+            frames = [
+                pd.DataFrame(
+                    dict(
+                        cell_id=cell_id,
+                        cohort_id=community.cohorts["cohort_id"],
+                        time=time,
+                        time_index=time_index,
+                    )
+                )
+            ]
 
-            # Need to reset indices to concatenate columns.
-            # TODO: repeated columns in here.
-            community_data = pd.concat(
-                [
-                    community.cohorts.reset_index(drop=True),
-                    community.stem_allometry.to_dataframe().reset_index(drop=True),
-                    allocation.reset_index(drop=True),
-                    increments.reset_index(drop=True),
-                    biomass_data.reset_index(drop=True),
-                ],
-                axis=1,
-            )
+            # Append each of the other dataframes, dropping the repeated cohort_id field
+            # and resetting the index to ensure column-wise concatenation works.
+            for df in [
+                community.cohorts,
+                community.stem_allometry.to_dataframe(),
+                allocation,
+                increments,
+                biomasses[cell_id].to_dataframe(),
+            ]:
+                frames.append(df.drop(columns="cohort_id").reset_index(drop=True))
 
-            # Add the cell id and append the cohorts in this community to the list
-            community_data["cell_id"] = cell_id
+            # Simply join frames along the rows
+            community_data = pd.concat(frames, axis=1)
+
             cohort_data.append(community_data)
 
-        # Concatenate the cells by row and add time
+        # Concatenate the cells by row
         cohort_data_compiled = pd.concat(cohort_data)
-        cohort_data_compiled["time"] = time
-        cohort_data_compiled["time_index"] = time_index
 
-        # Reduce to requested attributes
-        if self.cohort_attributes:
+        # If cohort attributes is a subset then reduce
+        if self.cohort_attributes != "ALL":
             cohort_data_compiled = cohort_data_compiled[list(self.cohort_attributes)]
 
         # Export cohort data - this switches from write mode with headers to append
