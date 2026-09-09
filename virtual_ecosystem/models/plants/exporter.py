@@ -232,22 +232,18 @@ class CommunityDataExporter:
 
         """
 
-        # Try and build the arguments as a dictionary from the config
-        try:
-            # Get arguments and convert inputs
-            cohort_attributes = set(config.cohort_attributes)
-            community_canopy_attributes = set(config.community_canopy_attributes)
-            stem_canopy_attributes = set(config.stem_canopy_attributes)
-        except KeyError as excep:
-            LOGGER.error(excep)
-            raise
-
-        # Return the instance
+        # Convert lists to sets and get the instance
         return cls(
             output_directory=output_directory,
-            cohort_attributes=cohort_attributes,
-            community_canopy_attributes=community_canopy_attributes,
-            stem_canopy_attributes=stem_canopy_attributes,
+            cohort_attributes="ALL"
+            if config.cohort_attributes == "ALL"
+            else set(config.cohort_attributes),
+            community_canopy_attributes="ALL"
+            if config.community_canopy_attributes == "ALL"
+            else set(config.community_canopy_attributes),
+            stem_canopy_attributes="ALL"
+            if config.stem_canopy_attributes == "ALL"
+            else set(config.stem_canopy_attributes),
         )
 
     def dump(
