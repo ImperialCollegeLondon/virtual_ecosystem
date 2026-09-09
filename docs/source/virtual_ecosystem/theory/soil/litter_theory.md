@@ -171,15 +171,14 @@ rates.
 The decay of all litter pools are assumed to follow linear kinetics, with the rate of
 change in the carbon mass, $P$, of litter pool $j$ being given by
 
-$$\frac{dP_j}{dt} = I_j - K_j(T,\psi,L)P_j,$$
+$$\frac{dP_j}{dt} = I_{C,j} - K_j(T,\psi,L)P_j,$$
 
-where $I_j$ is the rate of input to pool $j$ (in carbon terms), $T$ is the temperature,
-$\psi$ is the soil water potential and $K_j(T,\psi,L)$ is the decay rate of the pool.
-The decay rate of the pool will always depend on temperature, but only for the
-below-ground pools will it be affected by soil water potential. Further, lignin content
-only affects the decay rates of pools which contain lignin (i.e. structural and woody
-pools). As an example, the decay rate of the below-ground structural litter pool is
-calculated as
+where $I_{C,j}$ is the rate of carbon input to pool $j$, $T$ is the temperature, $\psi$
+is the soil water potential and $K_j(T,\psi,L)$ is the decay rate of the pool. The decay
+rate of the pool will always depend on temperature, but only for the below-ground pools
+will it be affected by soil water potential. Further, lignin content only affects the
+decay rates of pools which contain lignin (i.e. structural and woody pools). As an
+example, the decay rate of the below-ground structural litter pool is calculated as
 
 $$K_{bs}(T,\psi,L) = k_{bs} * f_t(T) * A(\psi) * f_l(L),$$
 
@@ -197,19 +196,108 @@ litter pool size at the end of the model update interval ($\tau$). This solution
 expressed as
 
 $$
-P_j(\tau) = \frac{I_j}{K_j(T,\psi,L)} - \left(\frac{I_j}{K_j(T,\psi,L)} -
+P_j(\tau) = \frac{I_{C,j}}{K_j(T,\psi,L)} - \left(\frac{I_{C,j}}{K_j(T,\psi,L)} -
     P_{j,0}\right) e^{-K_j(T,\psi,L)\tau},
 $$
 
-where $P_{j,0}$ is the size of litter pool $j$ at the start of the update interval. We
-don't use comparable exact solutions for the nitrogen, phosphorus and lignin dynamics.
-Instead, we estimate the loss of each chemical based on the loss of carbon. This
-estimation assumes that old litter (i.e. litter that is there at the start of the time
-step) decays first and that litter added during the update only decays if the total
-decay of litter exceeds the initial litter pool size. Total loss of the chemicals is
-then found either using the initial pool chemistry (if total decay is less than the
-initial pool size), or a weighted average of the initial pool chemistry and the
-chemistry of the input biomass.
+where $P_{j,0}$ is the size of litter pool $j$ at the start of the update interval.
+
+## Litter mineralisation
+
+We now want to find the amount of carbon that is mineralised into the soil, the amount
+of carbon respired from the litter, the amount of nitrogen and phosphorus mineralised
+into the soil, and the amount of lignin lost by the litter pools. To calculate all these
+things we first have to find the total carbon loss from each litter pool, which is given
+by
+
+$$
+L_j(\tau) = P_{j,0} + \Theta_j(\tau) - P_j(\tau).
+$$
+
+where $\Theta_j(\tau)$ is the total input to litter pool $j$ over the time step $\tau$,
+which is calculated as
+
+$$
+\Theta_j(\tau) = \tau * I_{C,j}.
+$$
+
+### Carbon mineralisation
+
+With the carbon loss from each pool found, it is trivial to calculate the mass of carbon
+mineralised over the simulation time step, which is given by.
+
+$$
+M_C(\tau) = \sum^5_{j=1} \epsilon_j * L_j(\tau),
+$$
+
+where $\epsilon_j$ is the carbon use efficiency of litter breakdown for litter pool $j$.
+
+### Respiration
+
+Any carbon that is not mineralised by definition has to be respired, so total
+respiration is calculated as
+
+$$
+R(\tau) = \sum^5_{j=1} (1 - \epsilon_j) * L_j(\tau).
+$$
+
+As a simplifying assumption we assume that these carbon use efficiencies ($\epsilon_j$)
+**do not** vary with temperature. However, litter respiration will still vary with
+temperature as the [rate of litter decay varies with
+temperature](./environmental_links.md#litter-decay-temperature-response).
+
+### Macronutrient mineralisation
+
+By definition all macronutrient loss (nitrogen and phosphorus) from the litter is
+mineralised to the soil. Unfortunately, there is no exact solution for the macronutrient
+losses. Instead, the loss of each macronutrient has to be estimated based on the loss of
+carbon. The estimate is based on the assumption that old litter (i.e. litter that is
+there at the start of the time step) decays first and that litter added during the
+update only decays if the total decay of litter exceeds the initial litter pool size.
+Using this assumption the total mineralisation of macronutrient $k$ over the time step
+length ($\tau$) can be estimated as
+
+$$
+M_k(\tau) = \sum^5_{j=1} (\theta_{0,j} * N_{k,j,0} + \theta_{n,j} * I_{k,j} * \tau),
+$$
+
+where $\theta_{0,j}$ is the fraction of the initial mass of litter pool $j$ that is
+assumed to have decayed, $\theta_{n,j}$ is the fraction of the new input to litter pool
+$j$ that is assumed to have decayed, $N_{k,j,0}$ is the initial mass of macronutrient
+$k$ in litter pool $j$ and $I_{k,j}$ is the input rate of macronutrient $k$ into litter
+pool $j$.
+
+The decay fractions are calculated as
+
+$$
+\theta_{0,j} = \begin{cases}
+L_j(\tau) / P_{j,0}, \quad L_j(\tau) \leq P_{j,0} \\
+1, \quad L_j(\tau) > P_{j,0}
+\end{cases}
+$$
+
+and
+
+$$
+\theta_{n,j} = \begin{cases}
+0, \quad L_j(\tau) \leq P_{j,0} \\
+\frac{L_j(\tau) - P_{j,0}}{\Theta_j(\tau)}, \quad L_j(\tau) \leq P_{j,0}.
+\end{cases}
+$$
+
+### Lignin loss
+
+Lignin is only currently tracked by the litter model, so mineralisation of lignin into
+the soil does not need to be tracked. However, the loss of lignin from the relevant
+litter pools does need to be estimated. This is done following the same procedure used
+for macronutrients, with lignin loss from litter pool $j$ estimated using
+
+$$
+d_{l,j}(\tau) = \theta_{0,j} * N_{L,j,0} + \theta_{n,j} * I_{L,j} * \tau,
+$$
+
+where $N_{L,j,0}$ is the initial mass of lignin in litter pool $j$ and $I_{L,j}$ is the
+input rate of lignin into litter pool $j$.
 
 :::{admonition} Future directions 🔭
 
