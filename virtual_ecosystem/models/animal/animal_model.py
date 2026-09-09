@@ -1187,7 +1187,15 @@ class AnimalModel(
                 # probability based on proportion of cohort that could make it to the
                 # new cell
             )
-            migrate = is_starving or is_juvenile_and_migrate  # bool
+
+            is_thermally_stressed = (
+                self.thermal_suitability is not None
+                and cohort.sigma_f_t < self.model_constants.thermal_dispersal_threshold
+                and random.random()
+                <= 1.0
+                - (cohort.sigma_f_t / self.model_constants.thermal_dispersal_threshold)
+            )
+            migrate = is_starving or is_juvenile_and_migrate or is_thermally_stressed
 
             if not migrate:
                 continue
