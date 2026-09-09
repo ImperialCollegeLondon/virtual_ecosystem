@@ -301,6 +301,24 @@ def test_Biomasses_from_cohorts(fixture_biomass_components, fixture_biomasses):
         )
 
 
+def test_Biomasses_to_dataframe(fixture_biomass_components):
+    """Test the biomass to_dataframe method works."""
+    from virtual_ecosystem.models.plants.biomasses import Biomasses
+
+    cohorts, allometry, _, _ = fixture_biomass_components
+
+    biomasses = Biomasses.from_cohorts(
+        cohorts=cohorts,
+        allometry=allometry,
+    )
+
+    df = biomasses.to_dataframe()
+
+    # Just check it runs and has the right shape - 2 rows for cohorts and then
+    # 19 columns: cohort id + 3 elements for each of 5 tissues and surplus pools
+    assert df.shape == (2, 19)
+
+
 def test_total_element_mass_and_deficit(fixture_biomasses):
     """Test the total element mass and deficit calculations in StemStoichiometry."""
 

@@ -24,9 +24,11 @@ representation.
 from __future__ import annotations
 
 from abc import ABC
+from itertools import product
 from typing import ClassVar
 
 import numpy as np
+import pandas as pd
 from numpy.typing import NDArray
 from pyrealm.demography.cohorts import Cohorts
 from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllometry
@@ -385,7 +387,7 @@ PLANT_BIOMASS_TISSUES: tuple[type[BiomassTissueABC], ...] = (
 plants model."""
 
 
-class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
+class Biomasses:
     """Tissue biomasses for a set of plant cohorts.
 
     A set of plant cohort data and their trait data and stem allometries define the
@@ -410,29 +412,9 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
             across tissues for each cohort.
     """
 
-    # NOTE: these are hard-coded and must be updated if the simulation
-    #       uses different biomass classes.
-    # TODO: Might also be redundant if the ToDataFramMixin approach isn't going to be
-    #       used, which it might well not be - can just concat the tissue arrays into a
-    #       data frame.
-    _array_attrs: ClassVar[tuple[str, ...]] = (
-        "foliage_c_biomass",
-        "foliage_n_biomass",
-        "foliage_p_biomass",
-        "fruit_c_biomass",
-        "fruit_n_biomass",
-        "fruit_p_biomass",
-        "seed_c_biomass",
-        "seed_n_biomass",
-        "seed_p_biomass",
-        "stem_c_biomass",
-        "stem_n_biomass",
-        "stem_p_biomass",
-        "root_c_biomass",
-        "root_n_biomass",
-        "root_p_biomass",
-    )
-    """Array attribute names for all biomass tissue and element data."""
+    # NOTE: the class does not define an _array_attrs class variable, because the actual
+    #       set of exportable attributes depends on the set of tissues (which is
+    #       _usually_ the complete set defined in PLANT_BIOMASS_TISSUES but not always).
 
     def __init__(
         self,
@@ -723,3 +705,36 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
                 other.element_surpluses,
             ]
         )
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Export biomass data to a data frame.
+
+        Returns a dataframe for all cohorts of the elemental biomasses for each tissue
+        and the elemental surplus pool biomasses.
+        """
+
+        # Generate column names
+        columns = [
+            f"{tissue}_{elem}_biomass"
+            for tissue, elem in product(
+                [*[t.tissue_name for t in self.tissues], "surplus"],
+                ["C", *self.elements],
+            )
+        ]
+
+        # Concatenate tissue element masses and surplus by column
+        df = pd.DataFrame(
+            data=np.concat(
+                [
+                    *[t.elemental_masses for t in self.tissues],
+                    self.element_surpluses,
+                ],
+                axis=1,
+            ),
+            columns=columns,
+        )
+
+        # Insert cohort IDs
+        df.insert(loc=0, column="cohort_id", value=self.cohort_id)
+
+        return df
