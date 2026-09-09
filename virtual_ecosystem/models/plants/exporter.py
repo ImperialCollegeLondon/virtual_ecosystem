@@ -73,6 +73,25 @@ class CommunityDataExporter:
 
     _mandatory_attributes: ClassVar[dict[str, set[str]]] = dict(
         cohort_attributes=set(["cohort_id", "cell_id", "time", "time_index"]),
+        community_canopy_attributes=set(
+            [
+                "cell_id",
+                "time",
+                "time_index",
+                "canopy_layer_index",
+                "heights",
+            ]
+        ),
+        stem_canopy_attributes=set(
+            [
+                "cohort_id",
+                "cell_id",
+                "time",
+                "time_index",
+                "canopy_layer_index",
+                "heights",
+            ]
+        ),
     )
 
     def __init__(
@@ -119,7 +138,8 @@ class CommunityDataExporter:
                 [
                     *self._mandatory_attributes["cohort_attributes"],
                     # Cohorts is a dataframe and does not have _array_attrs but is three
-                    # cohort fields and then PFT traits can be extracted from trait model.
+                    # cohort fields and then PFT traits can be extracted from trait
+                    # model.
                     "pft_name",
                     "dbh_value",
                     "n_individuals",
@@ -135,19 +155,13 @@ class CommunityDataExporter:
             ),
             "community_canopy_attributes": set(
                 [
-                    "canopy_layer_index",
-                    "heights",
-                    "cell_id",
-                    "time",
+                    *self._mandatory_attributes["community_canopy_attributes"],
                     *CommunityCanopyData._array_attrs,
                 ]
             ),
             "stem_canopy_attributes": set(
                 [
-                    "canopy_layer_index",
-                    "cohort_id",
-                    "cell_id",
-                    "time",
+                    *self._mandatory_attributes["stem_canopy_attributes"],
                     *CohortCanopyData._array_attrs,
                 ]
             ),
@@ -421,22 +435,6 @@ class CommunityDataExporter:
         )
         LOGGER.info(f"Plant model cohort data dumped at time: {time}")
 
-    @staticmethod
-    def _export_biomass_data(biomass: Biomasses) -> pd.DataFrame:
-        """Extract per-cohort biomass tissue and element data as a dataframe."""
-
-        columns: dict[str, np.ndarray] = {}
-
-        elements = [e.lower() for e in ["C", *biomass.elements]]
-
-        for tissue in biomass.tissues:
-            column_names = [f"{tissue.tissue_name}_{elem}_biomass" for elem in elements]
-            columns.update(
-                dict(zip(column_names, tissue.elemental_masses.transpose().tolist()))
-            )
-
-        return pd.DataFrame(columns)
-
     def _dump_community_canopy_data(
         self,
         canopies: dict[int, Canopy],
@@ -450,26 +448,31 @@ class CommunityDataExporter:
             time: A datetime to be used as a timestamp in the output files
             time_index: The index of the datatime within the model updates.
         """
-        # If the data has not been requested - so the path is None - then exit
-        if self._community_canopy_path is None:
+        # If data has not been requested then exit immediately
+        if not self.community_canopy_attributes:
             return
 
         community_canopy_data = []
         for cell_id, canopy in canopies.items():
             data = canopy.community_data.to_dataframe()
-            data["canopy_layer_index"] = data.index
-            data["heights"] = canopy.heights
-            data["cell_id"] = cell_id
-            data["time"] = time
-            data["time_index"] = time_index
+            full_data = pd.DataFrame(
+                dict(
+                    cell_id=cell_id,
+                    time=time,
+                    time_index=time_index,
+                    canopy_layer_index=data.index,
+                    heights=canopy.heights,
+                    **data,
+                )
+            )
 
-            community_canopy_data.append(data)
+            community_canopy_data.append(full_data)
 
         # Concatenate the cells into a single data frame
         community_canopy_data_compiled = pd.concat(community_canopy_data)
 
         # Reduce to requested attributes
-        if self.community_canopy_attributes:
+        if self.community_canopy_attributes != "ALL":
             community_canopy_data_compiled = community_canopy_data_compiled[
                 list(self.community_canopy_attributes)
             ]
@@ -499,28 +502,34 @@ class CommunityDataExporter:
             time: A datetime to be used as a timestamp in the output files
             time_index: The index of the datatime within the model updates.
         """
-        # If the data has not been requested - so the path is None - then exit
-        if self._stem_canopy_path is None:
+        # If data has not been requested then exit immediately
+        if not self.stem_canopy_attributes:
             return
 
         stem_canopy_data = []
         for (cell_id, canopy), community in zip(canopies.items(), communities.values()):
             data = canopy.cohort_data.to_dataframe()
-            data["canopy_layer_index"] = data.index
-            data["cell_id"] = cell_id
-            # data["cohort_id"] = np.repeat(
-            #     community.cohorts.cohort_id, len(canopy.heights)
-            # )
-
-            data["time"] = time
-            data["time_index"] = time_index
-            stem_canopy_data.append(data)
+            n_heights = len(canopy.heights)
+            full_data = pd.DataFrame(
+                dict(
+                    cohort_id=np.tile(community.cohorts.cohort_id, n_heights),
+                    cell_id=cell_id,
+                    time=time,
+                    time_index=time_index,
+                    canopy_layer_index=np.repeat(
+                        np.arange(n_heights), canopy.n_cohorts
+                    ),
+                    heights=np.repeat(canopy.heights, canopy.n_cohorts),
+                    **data,
+                )
+            )
+            stem_canopy_data.append(full_data)
 
         # Concatenate the cells into a single data frame
         stem_canopy_data_compiled = pd.concat(stem_canopy_data)
 
         # Reduce to requested attributes
-        if self.stem_canopy_attributes:
+        if self.stem_canopy_attributes != "ALL":
             stem_canopy_data_compiled = stem_canopy_data_compiled[
                 list(self.stem_canopy_attributes)
             ]
