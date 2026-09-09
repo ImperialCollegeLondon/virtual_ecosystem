@@ -12,10 +12,15 @@ ELEMENTS = ((1, "n"), (2, "p"))
 
 @pytest.fixture
 def fixture_biomass_components():
-    """Provides a tuple of biomass components."""
+    """Data for generating biomass instances.
+
+    Provides a tuple of biomass components containing the minimal required data for
+    creating Biomass tissues.
+    """
 
     cohorts = pd.DataFrame(
         dict(
+            cohort_id=["C1", "C2"],
             zeta=[0.1, 0.1],
             sla=[2.0, 2.0],
             fruit_seed_foliage_mass_fraction=[0.5, 0.5],
@@ -223,7 +228,7 @@ def test_BiomassTissue_append(fixture_biomass_components, tissue_class):
     biomasses_2 = BiomassTissueClass(cohorts=cohorts, allometry=allometry)
     biomasses_2.elemental_masses *= 2
 
-    # Append
+    # Test Append
     biomasses_1.append(biomasses_2)
 
     # Check shapes
@@ -258,26 +263,21 @@ def fixture_biomasses(fixture_biomass_components):
     stem = StemBiomass(cohorts=cohorts, allometry=allometry)
     fruit = FruitBiomass(cohorts=cohorts, allometry=allometry)
     seed = SeedBiomass(cohorts=cohorts, allometry=allometry)
-    return Biomasses(tissues=[foliage, stem, root, fruit, seed])
+    return Biomasses(
+        cohort_id=cohorts["cohort_id"].to_numpy(),
+        tissues=[foliage, stem, root, fruit, seed],
+    )
 
 
 def test_Biomasses_from_cohorts(fixture_biomass_components, fixture_biomasses):
     """Test the biomass from_cohorts class method gives the same result as direct."""
-    from virtual_ecosystem.models.plants.biomasses import (
-        Biomasses,
-        FoliageBiomass,
-        FruitBiomass,
-        RootBiomass,
-        SeedBiomass,
-        StemBiomass,
-    )
+    from virtual_ecosystem.models.plants.biomasses import Biomasses
 
     cohorts, allometry, _, _ = fixture_biomass_components
 
     biomasses = Biomasses.from_cohorts(
         cohorts=cohorts,
         allometry=allometry,
-        tissues=[FoliageBiomass, FruitBiomass, SeedBiomass, StemBiomass, RootBiomass],
     )
 
     for tissue_name in biomasses.tissue_names:
@@ -688,6 +688,7 @@ def test_balance_elements(
 
     cohorts = pd.DataFrame(
         dict(
+            cohort_id=np.arange(len(BALANCE_WOOD_C) * n_cases),
             stem_c_n_ratio=np.tile(BALANCE_WOOD_CN, n_cases),
             stem_c_p_ratio=np.tile(BALANCE_WOOD_CP, n_cases),
             foliage_c_n_ratio=np.tile(BALANCE_FOLIAGE_CN, n_cases),
@@ -725,6 +726,7 @@ def test_balance_elements(
     )
 
     biomasses = Biomasses(
+        cohort_id=cohorts["cohort_id"].to_numpy(),
         tissues=[foliage, wood],
         element_surpluses=np.concatenate(
             [
