@@ -34,13 +34,16 @@ further broken down into the specific pools that animals can consume from.
 
 ## Carnivory
 
-Animal cohorts can eat individuals from other animal cohorts. This is generally
-only restricted by body size constraints.
+Animal cohorts can consume individuals from other cohorts provided that the consumed
+cohort is a prey type that lies within the consumer cohort's dietary preference.
+Consumption will only occur if the vertical habitat use and spatial distributions of the
+cohorts permit interaction. When predation occurs predator–prey body size relationships
+influence success and consumption rates.
 
 ## Herbivory
 
 Animal cohorts can also consume various plant tissues. The full set of plant tissues
-available for plant consumption can be seen in {numref}`plant_biomass_flows`.
+available for consumption by animals can be seen in {numref}`plant_biomass_flows`.
 
 :::{figure} ../../../_static/images/plant_model_biomass_flows.svg
 :name: plant_biomass_flows
@@ -91,13 +94,13 @@ pools](../soil/litter_theory.md#litter-pools), all of which are available to ani
 consumption. There are five pools in total. The woody litter pool stores deadwood, and
 the remaining plant biomass is divided between the four other pools. Of these four other
 pools, two of them are above-ground pools (and so contain plant biomass that originated
-above-ground) and two of there are below-ground pools. These pairs consist of a
+above-ground) and two of these are below-ground pools. These pairs consist of a
 metabolic pool (for nutrient-rich rapidly-decaying biomass) and a structural pool (for
 biomass that decays slowly due to being nutrient poor and/or having a high lignin
 content).
 
-When animals die they add biomass to the carcass pool and when the excrete waste it is
-added to the excrement pool. These pools are available for scavenging, with their
+When animals die they add biomass to the carcass pool and when animals excrete waste it
+is added to the excrement pool. These pools are available for scavenging, with their
 [decay](./carcasses_and_excrement.md) being tracked by the animal model.
 
 Fungal fruiting bodies are produced by soil fungi and can be consumed by animal cohorts.

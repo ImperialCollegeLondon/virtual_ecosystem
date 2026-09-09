@@ -23,7 +23,7 @@ def test_get_flora_from_config(fixture_configuration):
     assert isinstance(flora, Flora)
 
     # Check one of the extended properties is present
-    assert "deadwood_c_n_ratio" in flora.columns
+    assert "stem_c_n_ratio" in flora.columns
 
     # Check the reference values have been copied across
     assert flora.lai.equals(flora.lai_base)
