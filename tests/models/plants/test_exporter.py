@@ -26,11 +26,6 @@ def fixture_exporter_components(
 
     from virtual_ecosystem.models.plants.biomasses import (
         Biomasses,
-        FoliageBiomass,
-        FruitBiomass,
-        RootBiomass,
-        SeedBiomass,
-        StemBiomass,
     )
     from virtual_ecosystem.models.plants.communities import PlantCommunities
 
@@ -80,13 +75,6 @@ def fixture_exporter_components(
         cell_id: Biomasses.from_cohorts(
             cohorts=cmty.cohorts,
             allometry=cmty.stem_allometry,
-            tissues=[
-                FoliageBiomass,
-                FruitBiomass,
-                SeedBiomass,
-                StemBiomass,
-                RootBiomass,
-            ],
         )
         for cell_id, cmty in communities.items()
     }

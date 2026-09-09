@@ -71,7 +71,7 @@ class CommunityDataExporter:
                 #    and that does not have columns. Need to work out how to repopulate
                 #    this list
                 *StemAllocation._array_attrs,
-                *Biomasses._array_attrs,
+                # *Biomasses._array_attrs,
             ]
         ),
         "community_canopy_attributes": set(

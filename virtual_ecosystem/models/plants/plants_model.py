@@ -33,12 +33,6 @@ from virtual_ecosystem.models.hydrology.model_config import (
 )
 from virtual_ecosystem.models.plants.biomasses import (
     Biomasses,
-    BiomassTissueABC,
-    FoliageBiomass,
-    FruitBiomass,
-    RootBiomass,
-    SeedBiomass,
-    StemBiomass,
     partition_reproductive_tissue_mass,
 )
 from virtual_ecosystem.models.plants.canopy import (
@@ -54,15 +48,6 @@ from virtual_ecosystem.models.plants.model_config import (
     PlantsConstants,
 )
 from virtual_ecosystem.models.plants.subcanopy import Subcanopy
-
-PLANT_BIOMASS_TISSUES = [
-    FoliageBiomass,  # foliage mass
-    StemBiomass,  # stem mass
-    RootBiomass,  # fine root mass
-    FruitBiomass,  # fruit tissue mass
-    SeedBiomass,  # seed tissue mass
-]
-"""The set of biomass tissue classes to be used in the model."""
 
 
 class PlantsModel(
@@ -264,9 +249,6 @@ class PlantsModel(
         self.biomasses: dict[int, Biomasses]
         """A dictionary keyed by cell id of the carbon and nutrient biomass of each
         community."""
-        self.biomass_tissues: list[type[BiomassTissueABC]]
-        """A list of types of biomass subclasses that sets the tissues to be
-        modelled within the simulation."""
         self.allocations: dict[int, StemAllocation]
         """A dictionary keyed by cell id giving the allocation of each community."""
         self._canopy_layer_indices: NDArray[np.bool_]
@@ -405,9 +387,6 @@ class PlantsModel(
                 )
             )
 
-        # Define the set of tissues to be tracked for each stem.
-        self.biomass_tissues = PLANT_BIOMASS_TISSUES
-
         # Record the per stem biomasses of stochiometric tissues for each cohort.
         # The initial values for N and P are based on the ideal stoichiometric ratios
         # defined in the plant traits.
@@ -415,7 +394,6 @@ class PlantsModel(
             cell_id: Biomasses.from_cohorts(
                 cohorts=community.cohorts,
                 allometry=community.stem_allometry,
-                tissues=self.biomass_tissues,
             )
             for cell_id, community in self.communities.items()
         }
@@ -856,12 +834,10 @@ class PlantsModel(
                 # - the top of the canopy (maximum stem height)
                 # - the layer closure heights (if any), rotated into a column array,
                 #   omitting the final layer, which is the ground.
-                heights[fill_idx] = np.concatenate(
-                    [
-                        [[canopy.max_stem_height]],
-                        canopy.heights[0:-1, None],
-                    ]
-                )
+                heights[fill_idx] = np.concatenate([
+                    [[canopy.max_stem_height]],
+                    canopy.heights[0:-1, None],
+                ])
 
                 # Similarly, insert canopy fapar:
                 fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
@@ -902,12 +878,10 @@ class PlantsModel(
         # Update the below canopy light fraction, handling cells with no canopy
         # Note - dual path here: no cohorts = None, extinct cohorts have defined
         # transmission of 1.
-        self.below_canopy_light_fraction = np.array(
-            [
-                1 if cnpy is None else cnpy.community_data.transmission_to_ground
-                for cnpy in self.canopies.values()
-            ]
-        )
+        self.below_canopy_light_fraction = np.array([
+            1 if cnpy is None else cnpy.community_data.transmission_to_ground
+            for cnpy in self.canopies.values()
+        ])
 
         # Update the internal canopy layer mask
         self.filled_canopy_mask = np.logical_not(np.isnan(self.data["layer_leaf_mass"]))
@@ -920,7 +894,8 @@ class PlantsModel(
         """Set the current canopy top shortwave downwelling radiation."""
 
         self.canopy_top_radiation = (
-            self.data["downward_shortwave_radiation"]
+            self
+            .data["downward_shortwave_radiation"]
             .isel(time_index=time_index)
             .to_numpy()
         )
@@ -1266,7 +1241,8 @@ class PlantsModel(
         water_limitation_factor = np.minimum(
             1,
             (
-                self.data["soil_moisture"]
+                self
+                .data["soil_moisture"]
                 .sel(
                     layers=np.argmax(self.layer_structure.index_subsoil)
                 )  # 1st subsoil layer
@@ -1666,7 +1642,6 @@ class PlantsModel(
                 new_biomasses = Biomasses.from_cohorts(
                     cohorts=new_community.cohorts,
                     allometry=new_community.stem_allometry,
-                    tissues=self.biomass_tissues,
                 )
 
                 self.biomasses[cell_id].append(new_biomasses)
