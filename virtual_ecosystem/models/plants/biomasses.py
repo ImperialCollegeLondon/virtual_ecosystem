@@ -396,10 +396,11 @@ class Biomasses:
     a set of tissues for a particular set of cohorts and provides methods to balance
     tissue stochiometries and add cohorts.
 
-    The :meth:`__init__` constructor takes the arguments show below and provides a
-    simple API that does not require a particular set of tissues. The
-    :meth:`from_config` method generates the complete set of tissues currently required
-    for a simulation, currently with tissues at their ideal stochiometric ratios.
+    The :meth:Biomasses.__init__` constructor takes the arguments show below and
+    provides a simple API that does not require a particular set of tissues. The
+    :meth:`Biomasses.from_cohorts` method generates the complete set of tissues
+    currently required for a simulation, currently with tissues at their ideal
+    stochiometric ratios, for a set of cohorts.
 
     The class is designed to be extendable to new tissues and elements
     by adding them to the tissue type definitions, rather than hard-coding a set of
