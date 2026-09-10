@@ -83,8 +83,9 @@ subtrees:
                   - file: using_the_ve/model_details/animal/functional_group_data
               - file: using_the_ve/model_details/plants/overview
                 entries:
-                  - file: using_the_ve/model_details/plants/tree_definition.md
-                  - file: using_the_ve/model_details/plants/subcanopy_definition.md
+                  - file: using_the_ve/model_details/plants/tree_definition
+                  - file: using_the_ve/model_details/plants/subcanopy_definition
+                  - file: using_the_ve/model_details/plants/data_export
                   - file: using_the_ve/model_details/plants/plants_config
               - file: using_the_ve/model_details/decay/overview
                 entries:
