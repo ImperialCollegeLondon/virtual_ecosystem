@@ -13,172 +13,142 @@ def test_calculate_all_pool_updates(
     """Test that the two pool update functions work correctly."""
 
     change_in_pools = {
-        "soil_cnp_pool_lmwc_carbon": [
-            0.15312579528,
-            0.77032795708,
-            0.26251882941,
-            0.18714513851,
-        ],
-        "soil_cnp_pool_maom_carbon": [
-            3.7894322e-2,
-            4.8705495e-3,
-            5.67937268e-2,
-            7.27579158e-2,
-        ],
-        "soil_c_pool_bacteria": [
-            -0.048350513,
-            -0.0172513872,
-            -0.088397382,
-            -0.00681822124,
-        ],
+        "soil_cnp_pool_lmwc_carbon": [0.15366916, 0.76762518, 0.26051393, 0.18554575],
+        "soil_cnp_pool_maom_carbon": [0.03734787, 0.00340136, 0.05447554, 0.07275546],
+        "soil_c_pool_bacteria": [-0.06022178, -0.02270868, -0.11951067, -0.00764474],
         "soil_c_pool_saprotrophic_fungi": [
-            -7.05523264e-3,
-            -6.25154586e-2,
-            -1.69860782e-2,
-            -2.97821673e-2,
+            -0.00887423,
+            -0.08242634,
+            -0.02299858,
+            -0.03353477,
         ],
         "soil_c_pool_arbuscular_mycorrhiza": [
-            -5.07680437e-3,
-            -1.05423533e-2,
-            -2.94358128e-2,
-            -5.55096609e-2,
+            -0.0064004,
+            -0.01380161,
+            -0.03977501,
+            -0.06270593,
         ],
-        "soil_c_pool_ectomycorrhiza": [
-            -4.37734328e-3,
-            -9.55704432e-3,
-            -3.14594275e-2,
-            -2.41007280e-02,
-        ],
-        "soil_cnp_pool_pom_carbon": [
-            -0.007886552416,
-            -0.0349077207,
-            -0.02708249,
-            -0.001980103,
-        ],
+        "soil_c_pool_ectomycorrhiza": [-0.005335, -0.0125084, -0.04348192, -0.02711331],
+        "soil_cnp_pool_pom_carbon": [-0.00804411, -0.03779772, -0.0296999, -0.00199208],
         "soil_cnp_pool_necromass_carbon": [
-            0.0059195,
-            0.09042042,
-            0.08573325,
-            0.02066319,
+            0.0219229,
+            0.12325506,
+            0.1460333,
+            0.03583873,
         ],
-        "soil_enzyme_pom_bacteria": [-5.44018e-4, -2.2835e-4, -1.19517e-3, -7.21028e-5],
-        "soil_enzyme_maom_bacteria": [-8.54122e-4, -2.79326e-4, -5.9611e-4, -1.0930e-4],
+        "soil_enzyme_pom_bacteria": [
+            -5.43951037e-04,
+            -2.27953510e-04,
+            -1.19322945e-03,
+            -7.21042991e-05,
+        ],
+        "soil_enzyme_maom_bacteria": [
+            -0.00085406,
+            -0.00027893,
+            -0.00059417,
+            -0.0001093,
+        ],
         "soil_enzyme_pom_fungi": [
-            -6.25136000e-4,
-            -1.08732063e-4,
-            -1.15512400e-4,
-            -8.61947588e-5,
+            -6.25004175e-04,
+            -1.00853524e-04,
+            -1.21044666e-04,
+            -8.40801622e-05,
         ],
         "soil_enzyme_maom_fungi": [
-            -2.07512000e-4,
-            -1.34556063e-4,
-            -5.18403999e-5,
-            -3.22667588e-5,
+            -2.07380175e-04,
+            -1.26677524e-04,
+            -5.73726662e-05,
+            -3.01521622e-05,
         ],
-        "soil_cnp_pool_lmwc_nitrogen": [
-            0.0026366837,
-            0.0060125609,
-            0.0062434815,
-            0.0259165145,
-        ],
+        "soil_cnp_pool_lmwc_nitrogen": [0.00283278, 0.00606888, 0.0064082, 0.02589927],
         "soil_cnp_pool_pom_nitrogen": [
-            -8.93527e-5,
-            5.102785e-5,
-            9.028158e-5,
-            5.163279e-6,
+            -1.00607087e-04,
+            4.89636674e-05,
+            7.95982722e-05,
+            4.67440633e-06,
         ],
         "soil_cnp_pool_necromass_nitrogen": [
-            7.37406e-3,
-            -1.87488e-3,
-            4.96976e-3,
-            -1.53633e-7,
+            0.01006765,
+            0.00272941,
+            0.01323332,
+            0.00132507,
         ],
-        "soil_cnp_pool_maom_nitrogen": [
-            1.183733e-3,
-            1.082948e-2,
-            1.343197e-2,
-            7.72882e-3,
-        ],
-        "soil_n_pool_ammonium": [
-            1.45780297e-4,
-            8.23956439e-3,
-            -1.89909067e-4,
-            -2.71537385e-4,
-        ],
-        "soil_n_pool_nitrate": [
-            -5.62710718e-3,
-            -5.84164570e-3,
-            -2.02432331e-3,
-            -1.57775072e-3,
-        ],
+        "soil_cnp_pool_maom_nitrogen": [0.00099458, 0.01041398, 0.01326356, 0.00772835],
+        "soil_n_pool_ammonium": [0.00012935, 0.00627144, -0.00024005, -0.0001277],
+        "soil_n_pool_nitrate": [-0.00563891, -0.0057786, -0.00204456, -0.00178871],
         "soil_cnp_pool_lmwc_phosphorus": [
-            0.00099175109,
-            0.00057127753,
-            0.00026006357,
-            0.00816849544,
+            0.00099424,
+            0.00058965,
+            0.00026161,
+            0.00816612,
         ],
         "soil_cnp_pool_pom_phosphorus": [
-            6.804384e-6,
-            -6.47598e-6,
-            -9.0058e-7,
-            1.583258e-7,
+            6.75936879e-06,
+            -7.30169672e-06,
+            -1.32791192e-06,
+            1.38770918e-07,
         ],
         "soil_cnp_pool_necromass_phosphorus": [
-            0.00225261,
-            0.00282114,
-            0.00596048,
-            0.0014114,
+            0.00306012,
+            0.00373769,
+            0.00827202,
+            0.00164524,
         ],
-        "soil_cnp_pool_maom_phosphorus": [5.47518e-4, -3.2943e-5, 4.6272e-4, 3.0915e-4],
+        "soil_cnp_pool_maom_phosphorus": [
+            5.44660113e-04,
+            -6.28584725e-05,
+            4.52813305e-04,
+            3.09131163e-04,
+        ],
         "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
         "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
         "soil_p_pool_labile": [
-            -1.76159741e-5,
-            -4.55931235e-4,
-            -9.76110314e-5,
-            -2.98923683e-5,
+            -1.83486608e-05,
+            -4.73259240e-04,
+            -1.20248620e-04,
+            -3.21100538e-05,
         ],
         "cnp_fungal_fruiting_body_production_carbon": [
-            7.60259952e-6,
-            4.37061529e-4,
-            4.24391470e-4,
-            3.60392817e-4,
+            9.44491405e-06,
+            5.54712673e-04,
+            4.66767176e-04,
+            3.99101273e-04,
         ],
         "cnp_fungal_fruiting_body_production_nitrogen": [
-            6.12904e-7,
-            4.87802e-5,
-            2.83040e-5,
-            2.11042e-5,
+            7.61426696e-07,
+            6.19111888e-05,
+            3.21181525e-05,
+            2.32742859e-05,
         ],
         "cnp_fungal_fruiting_body_production_phosphorus": [
-            9.5663e-8,
-            7.7964e-6,
-            4.3381e-6,
-            3.1868e-6,
+            1.18845272e-07,
+            9.89503562e-06,
+            4.93876588e-06,
+            3.51270361e-06,
         ],
         "new_amf_n_supply": [
-            5.23832484e-7,
-            1.58558494e-5,
-            2.91326775e-5,
-            3.87914510e-5,
+            6.50771197e-07,
+            2.01240329e-05,
+            3.81308482e-05,
+            4.30670470e-05,
         ],
         "new_amf_p_supply": [
-            7.85748725e-8,
-            2.37837741e-6,
-            4.36990162e-6,
-            5.81871765e-6,
+            9.76156795e-08,
+            3.01860493e-06,
+            5.71962723e-06,
+            6.46005705e-06,
         ],
         "new_emf_n_supply": [
-            3.75905320e-7,
-            1.41301787e-5,
-            3.12135830e-5,
-            1.60550066e-5,
+            4.66997299e-07,
+            1.79338346e-05,
+            2.59375488e-05,
+            1.78245904e-05,
         ],
         "new_emf_p_supply": [
-            5.68156771e-8,
-            2.13568583e-6,
-            4.71773278e-6,
-            2.42661123e-06,
+            7.05836452e-08,
+            2.71058402e-06,
+            3.92029406e-06,
+            2.69407247e-06,
         ],
     }
 
@@ -253,94 +223,114 @@ def test_calculate_microbial_changes(
     from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
 
     expected_mic_changes = {
-        "lmwc_uptake": [-0.0276999, -0.68870243, -0.00758562, -0.00537763],
-        "don_uptake": [1.57648458e-5, 8.51236475e-4, 1.55166065e-4, 1.64569944e-4],
-        "ammonium_change": [-4.5189013e-7, -1.9396717e-4, 4.0348864e-4, 1.0024313e-4],
-        "nitrate_change": [3.28271643e-6, -2.44451670e-5, 6.02358611e-5, 3.34017404e-5],
-        "dop_uptake": [1.57632392e-6, 4.47842646e-5, 5.26169499e-5, 2.18040323e-5],
-        "labile_p_change": [3.14421266e-6, 6.55595034e-5, 8.25532473e-5, 2.41611289e-5],
-        "bacteria_change": [-0.04249051, -0.01715269, -0.08741038, -0.00636922],
+        "lmwc_uptake": [
+            -2.75392478e-02,
+            -6.81640462e-01,
+            -6.45117137e-04,
+            -3.76380460e-03,
+        ],
+        "don_uptake": [2.00788176e-05, 1.21247615e-03, 1.69545683e-04, 1.82776752e-04],
+        "ammonium_change": [
+            -1.02274497e-06,
+            -3.65016245e-04,
+            4.94890661e-04,
+            1.08111782e-04,
+        ],
+        "nitrate_change": [
+            4.04583137e-06,
+            -4.42879308e-05,
+            7.39492679e-05,
+            3.79870390e-05,
+        ],
+        "dop_uptake": [1.98755031e-06, 5.71593326e-05, 6.14064428e-05, 2.42162700e-05],
+        "labile_p_change": [
+            3.87689936e-06,
+            8.28875086e-05,
+            1.05190836e-04,
+            2.63788145e-05,
+        ],
+        "bacteria_change": [-0.05436178, -0.02260998, -0.11852367, -0.00719574],
         "saprotrophic_fungi_change": [
-            -0.00650923,
-            -0.06236646,
-            -0.01685108,
-            -0.02892717,
+            -0.00832823,
+            -0.08227734,
+            -0.02286358,
+            -0.03267977,
         ],
         "arbuscular_mycorrhiza_change": [
-            -0.0047338,
-            -0.01011335,
-            -0.02883581,
-            -0.05527966,
+            -0.0060574,
+            -0.01337261,
+            -0.03917501,
+            -0.06247593,
         ],
-        "ectomycorrhiza_change": [-0.00342534, -0.00917304, -0.03108243, -0.02315773],
+        "ectomycorrhiza_change": [-0.004383, -0.0121244, -0.04310492, -0.02617031],
         "pom_enzyme_bacteria_change": [
-            -5.44018325e-04,
-            -2.28350229e-04,
-            -1.19517352e-03,
-            -7.21067159e-05,
+            -5.43951037e-04,
+            -2.27953510e-04,
+            -1.19322945e-03,
+            -7.21042991e-05,
         ],
         "maom_enzyme_bacteria_change": [
-            -0.00085412,
-            -0.00027933,
-            -0.00059611,
-            -0.00010931,
+            -0.00085406,
+            -0.00027893,
+            -0.00059417,
+            -0.0001093,
         ],
         "pom_enzyme_fungi_change": [
-            -6.25136e-4,
-            -1.087321e-4,
-            -1.155124e-4,
-            -8.619476e-5,
+            -6.25004175e-04,
+            -1.00853524e-04,
+            -1.21044666e-04,
+            -8.40801622e-05,
         ],
         "maom_enzyme_fungi_change": [
-            -2.07512e-4,
-            -1.345561e-4,
-            -5.18404e-5,
-            -3.226676e-5,
+            -2.07380175e-04,
+            -1.26677524e-04,
+            -5.73726662e-05,
+            -3.01521622e-05,
         ],
-        "necromass_generation": [0.05952289, 0.10428336, 0.1716835, 0.11770379],
-        "necromass_n_flow": [0.01004001, 0.01465402, 0.02363142, 0.01030819],
-        "necromass_p_flow": [0.00299907, 0.00292777, 0.00662163, 0.00182373],
+        "necromass_generation": [0.07552629, 0.137118, 0.23198355, 0.13287934],
+        "necromass_n_flow": [0.01273361, 0.01925831, 0.03189497, 0.01163342],
+        "necromass_p_flow": [0.00380658, 0.00384432, 0.00893318, 0.00205757],
         "fruiting_body_production_carbon": [
-            7.60259952e-6,
-            4.37061529e-4,
-            4.24391470e-4,
-            3.60392817e-4,
+            9.44491405e-06,
+            5.54712673e-04,
+            4.66767176e-04,
+            3.99101273e-04,
         ],
         "fruiting_body_production_nitrogen": [
-            6.12904e-7,
-            4.87802e-5,
-            2.83040e-5,
-            2.11042e-5,
+            7.61426696e-07,
+            6.19111888e-05,
+            3.21181525e-05,
+            2.32742859e-05,
         ],
         "fruiting_body_production_phosphorus": [
-            9.5663e-8,
-            7.7964e-6,
-            4.3381e-6,
-            3.1868e-6,
+            1.18845272e-07,
+            9.89503562e-06,
+            4.93876588e-06,
+            3.51270361e-06,
         ],
         "arbuscular_mycorrhiza_n_supply": [
-            5.23832484e-7,
-            1.58558494e-5,
-            2.91326775e-5,
-            3.87914510e-5,
+            6.50771197e-07,
+            2.01240329e-05,
+            3.81308482e-05,
+            4.30670470e-05,
         ],
         "arbuscular_mycorrhiza_p_supply": [
-            7.85748725e-8,
-            2.37837741e-6,
-            4.36990162e-6,
-            5.81871765e-6,
+            9.76156795e-08,
+            3.01860493e-06,
+            5.71962723e-06,
+            6.46005705e-06,
         ],
         "ectomycorrhiza_n_supply": [
-            3.75905320e-7,
-            1.41301787e-5,
-            3.12135830e-5,
-            1.60550066e-5,
+            4.66997299e-07,
+            1.79338346e-05,
+            2.59375488e-05,
+            1.78245904e-05,
         ],
         "ectomycorrhiza_p_supply": [
-            5.68156771e-8,
-            2.13568583e-6,
-            4.71773278e-6,
-            2.42661123e-6,
+            7.05836452e-08,
+            2.71058402e-06,
+            3.92029406e-06,
+            2.69407247e-06,
         ],
     }
 
@@ -369,10 +359,10 @@ def test_calculate_biomass_losses(
     from virtual_ecosystem.models.soil.pools import calculate_biomass_losses
 
     expected_losses = {
-        "bacteria": [0.04254605, 0.01744744, 0.08862048, 0.00639588],
-        "saprotrophic_fungi": [0.00652862, 0.06485897, 0.01733197, 0.02903729],
-        "arbuscular_mycorrhiza": [0.00476809, 0.01115119, 0.03074268, 0.05781874],
-        "ectomycorrhiza": [0.0034477, 0.01001331, 0.03293859, 0.02411246],
+        "bacteria": [0.05443078, 0.02298407, 0.12012258, 0.00722288],
+        "saprotrophic_fungi": [0.00835231, 0.0854408, 0.023493, 0.03279189],
+        "arbuscular_mycorrhiza": [0.0061, 0.01468982, 0.04167084, 0.06529486],
+        "ectomycorrhiza": [0.00441077, 0.01319086, 0.04464733, 0.02723027],
     }
 
     actual_losses = calculate_biomass_losses(
@@ -507,24 +497,24 @@ def test_calculate_enzyme_changes(soil_pool_data, enzyme_production, enzyme_clas
 
     expected_enzyme_changes = {
         "net_change_pom_bacteria": [
-            -5.44018325e-4,
-            -2.28350229e-4,
-            -1.19517352e-3,
-            -7.21067159e-5,
+            -5.43951037e-04,
+            -2.27953510e-04,
+            -1.19322945e-03,
+            -7.21042991e-05,
         ],
-        "net_change_maom_bacteria": [
-            -0.00085412,
-            -0.00027933,
-            -0.00059611,
-            -0.00010931,
-        ],
+        "net_change_maom_bacteria": [-0.00085406, -0.00027893, -0.00059417, -0.0001093],
         "net_change_pom_fungi": [
-            -6.25136e-4,
-            -1.08732063e-4,
-            -1.155124e-4,
-            -8.61947588e-5,
+            -6.25004175e-04,
+            -1.00853524e-04,
+            -1.21044666e-04,
+            -8.40801622e-05,
         ],
-        "net_change_maom_fungi": [-2.07512e-4, -1.345561e-4, -5.18404e-5, -3.226676e-5],
+        "net_change_maom_fungi": [
+            -2.07380175e-04,
+            -1.26677524e-04,
+            -5.73726662e-05,
+            -3.01521622e-05,
+        ],
         "denaturation_maom_bacteria": [0.0008544, 0.0002808, 0.00060216, 0.00010944],
         "denaturation_pom_bacteria": [
             5.442960e-4,
@@ -559,7 +549,7 @@ def test_calculate_net_enzyme_change(
 
     from virtual_ecosystem.models.soil.pools import calculate_net_enzyme_change
 
-    expected_net_change = [-0.00054402, -0.00022835, -0.00119517, -7.21028e-5]
+    expected_net_change = [-5.4395104e-4, -2.2795351e-4, -1.1932295e-3, -7.2104299e-5]
     expected_denat = [0.000544296, 0.000229824, 0.001201224, 7.224e-5]
 
     actual_net_change, actual_denat = calculate_net_enzyme_change(
@@ -577,10 +567,10 @@ def test_calculate_enzyme_production(functional_groups, growth_rates):
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_production
 
     expected_production = {
-        "bacteria_pom": [2.77675102e-7, 1.47377060e-6, 6.05047838e-6, 1.33284114e-7],
-        "bacteria_maom": [2.77675102e-7, 1.47377060e-6, 6.05047838e-6, 1.33284114e-7],
-        "fungi_pom": [5.43999525e-7, 2.92679369e-5, 3.95276001e-5, 1.96452412e-5],
-        "fungi_maom": [5.43999525e-7, 2.92679369e-5, 3.95276001e-5, 1.96452412e-5],
+        "bacteria_pom": [3.44963254e-7, 1.87049002e-6, 7.99454784e-6, 1.35700856e-7],
+        "bacteria_maom": [3.44963254e-7, 1.87049002e-6, 7.99454784e-6, 1.35700856e-7],
+        "fungi_pom": [6.75825255e-07, 3.71464758e-05, 3.39953338e-05, 2.17598378e-05],
+        "fungi_maom": [6.75825255e-07, 3.71464758e-05, 3.39953338e-05, 2.17598378e-05],
     }
 
     actual_production = calculate_enzyme_production(
@@ -597,9 +587,24 @@ def test_calculate_fruiting_body_production(functional_groups, growth_rates):
     """Test that the calculation of total fruiting body production works as expected."""
     from virtual_ecosystem.models.soil.pools import calculate_fruiting_body_production
 
-    expected_production_carbon = [7.6026e-6, 4.37062e-4, 4.24391e-4, 3.60393e-4]
-    expected_production_nitrogen = [6.12904e-7, 4.87802e-5, 2.83040e-5, 2.11042e-5]
-    expected_production_phosphorus = [9.5663e-8, 7.7964e-6, 4.3381e-6, 3.1868e-6]
+    expected_production_carbon = [
+        9.44491405e-06,
+        5.54712673e-04,
+        4.66767176e-04,
+        3.99101273e-04,
+    ]
+    expected_production_nitrogen = [
+        7.61426696e-07,
+        6.19111888e-05,
+        3.21181525e-05,
+        2.32742859e-05,
+    ]
+    expected_production_phosphorus = [
+        1.18845272e-07,
+        9.89503562e-06,
+        4.93876588e-06,
+        3.51270361e-06,
+    ]
 
     actual_production = calculate_fruiting_body_production(
         microbial_groups=functional_groups, growth_rates=growth_rates
@@ -618,7 +623,7 @@ def test_calculate_maintenance_biomass_synthesis(
         calculate_maintenance_biomass_synthesis,
     )
 
-    expected_loss = [0.04254605, 0.01744744, 0.08862048, 0.00639588]
+    expected_loss = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
 
     actual_loss = calculate_maintenance_biomass_synthesis(
         microbe_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
@@ -642,7 +647,7 @@ def test_calculate_maintenance_biomass_synthesis_negative(
     microbe_pool_size[1] = -0.456
     microbe_pool_size[3] = -1.33e-3
 
-    expected_loss = [0.04254605, 0.0, 0.08862048, 0.0]
+    expected_loss = [0.05443078, 0.0, 0.12012258, 0.0]
 
     actual_loss = calculate_maintenance_biomass_synthesis(
         microbe_pool_size=microbe_pool_size,
@@ -978,8 +983,8 @@ def test_calculate_nutrient_flows_to_necromass(
         calculate_nutrient_flows_to_necromass,
     )
 
-    expected_n_flow_to_necromass = [0.0100400, 0.0146540, 0.0236314, 0.0103082]
-    expected_p_flow_to_necromass = [0.00299907, 0.00292777, 0.00662163, 0.00182373]
+    expected_n_flow_to_necromass = [0.01273361, 0.01925831, 0.03189497, 0.01163342]
+    expected_p_flow_to_necromass = [0.00380658, 0.00384432, 0.00893318, 0.00205757]
 
     actual_n_flow_to_necromass, actual_p_flow_to_necromass = (
         calculate_nutrient_flows_to_necromass(
@@ -1279,7 +1284,7 @@ def test_calculate_symbiotic_nitrogen_fixation(
         calculate_symbiotic_nitrogen_fixation,
     )
 
-    expected_fixation = [0.0003324566937, 0.00823450715, 0.00024225401, 0.00014608985]
+    expected_fixation = [0.00026199, 0.00606494, 0.00017081, 0.00015635]
 
     actual_fixation = calculate_symbiotic_nitrogen_fixation(
         carbon_supply=carbon_supply_from_plants.nitrogen_fixers,
@@ -1304,7 +1309,7 @@ def test_calculate_symbiotic_nitrogen_fixation_negative_temps(
     soil_temp[1] = -23.3
     soil_temp[3] = -200.0
 
-    expected_fixation = [0.0003324566937, 0.0, 0.00024225401, 0.0]
+    expected_fixation = [0.00026199, 0.0, 0.00017081, 0.0]
 
     actual_fixation = calculate_symbiotic_nitrogen_fixation(
         carbon_supply=carbon_supply_from_plants.nitrogen_fixers,
