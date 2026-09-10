@@ -42,26 +42,34 @@ containing a time series through a simulation.
 There are three kinds of data output available for export from the plants model, written
 to separate files in the output directory for a simulation.
 
-* [**Cohort data**](#cohort-data): writes data to the file `plants_cohort_data.csv` on
-  the cohorts across the simulation, with attributes provided for each cohort at each
-  timestep.
-* [**Community canopy data**](#community-canopy-data): writes data to the file
-  `plants_community_canopy_data.csv`  on the canopy structure within each cell in the
-  simulation for each time step, with attributes provided for each community and each
-  canopy layer at each timestep.
-* [**Stem canopy data**](#stem-canopy-data): writes data to the file
-  `plants_stem_canopy_data.csv` data on the individual stem contributions to the
-  community canopy, with attributes provided for each cohort in each canopy layer for
-  each timestep.
-
-The sections below describe the configuration settings and then the available attributes
-for each data type.
+* [**Cohort data**](#cohort-data): provides data on the individuals within each cohort
+  at each timestep, including traits, allometry, carbon allocation and stoichiometric
+  biomasses. The data are written to the file `plants_cohort_data.csv`
+* [**Community canopy data**](#community-canopy-data): provides community level summary
+  data on the vertically structured canopy within each cell at each time step. The data
+  are written to the file `plants_community_canopy_data.csv`.
+* [**Stem canopy data**](#stem-canopy-data): provides data on the contribution of
+  individual crowns within cohorts to the vertically structured canopy within each cell
+  at each time step. Data are written to the file `plants_stem_canopy_data.csv`.
 
 ## Configuration settings
 
 Data export is controlled through the `["plants.community_data_export"]` configuration
-section. In the default configuration shown below, the default settings do not
-include any attribute names for any of the three data types and so no data is exported.
+section. The configuration settings includes a section for each of the three data types
+above, which can be used to provide a list of names of attributes to be exported for
+that data type:
+
+* `[]` - the default value of an empty list does not export any attributes.
+* `["attribute_a", "attribute_b"]`: the named attributes are exported.
+* `"ALL"`: This is a special keyword value that provides a shortcut to exporting all
+  available attributes.
+
+Each data type has a number of mandatory indexing fields which will automatically be
+exported if any attributes are selected. These are shown in the sections below, but are
+the fields needed to index the data within the simulation, such as the cohort ID, cell
+ID, time etc.
+
+The default settings are shown below along with a short description of each setting:
 
 ```{code-cell} ipython3
 :tags: [remove-input]
@@ -143,7 +151,7 @@ following main groupings:
 
 ### Core cohort details
 
-The table below shows the core cohort attribute. The first four fields are _always_
+The table below shows the core cohort attribute. The starred fields are _always_
 included in cohort level data even if they are not explicitly included in the cohort
 attribute export configuration.
 
@@ -151,10 +159,10 @@ attribute export configuration.
 :header-rows: 1
 
 Field,Description
-`cohort_id`,"A unique ID code for the cohort that persists through the time series."
-`cell_id`,"The grid cell in which the cohort is found."
-`time`,"The time stamp of the simulation step for the exported data."
-`time_index`,"The index along the time axis for the exported data."
+`cohort_id`*,"A unique ID code for the cohort that persists through the time series."
+`cell_id`*,"The grid cell in which the cohort is found."
+`time`*,"The time stamp of the simulation step for the exported data."
+`time_index`*,"The index along the time axis for the exported data."
 `pft_name`,"The plant functional type of the cohort: a text value that must match one
  of the PFT names set in the PFT definitions."
 `n_individuals`,"The current number of individuals in the cohort."
@@ -191,7 +199,7 @@ tmodel_options = ["Field,Description"]
 
 for cls in (StemAllometry, StemAllocation, GrowthIncrements):
     for attr, desc in get_init_attr_docs(cls.__init__).items():
-        if attr in cls._array_attrs:
+        if (attr in cls._array_attrs) and (attr != "cohort_id"):
             tmodel_options.append(f'`{attr}`,"{desc}"')
 
 
@@ -204,7 +212,10 @@ display_markdown(
 
 ### Realised tissue biomasses
 
-The fields below show the realised biomass attributes that can be exported.
+The Plants model records the elemental masses in each of the tissues of individuals
+within cohorts, along with any surplus elemental masses that accumulate when tissues
+have reached their ideal stoichiometric ratios. The fields below show the realised
+biomass attributes that can be exported.
 
 ```{code-cell} ipython3
 ---
@@ -212,7 +223,7 @@ tags: [remove-input]
 mystnb:
   markdown_format: myst
 ---
-from virtual_ecosystem.models.plants.plants_model import PLANT_BIOMASS_TISSUES
+from virtual_ecosystem.models.plants.biomasses import PLANT_BIOMASS_TISSUES
 
 biomass_options = ["Field,Description"]
 
@@ -223,6 +234,14 @@ for tissue in PLANT_BIOMASS_TISSUES:
             f"Mass of {element} in {tissue.tissue_name} tissue (kg{{{element}}})"
         )
 
+
+for element in ["C", *tissue.elements]:
+    biomass_options.append(
+        f"`surplus_{element.lower()}_biomass`,"
+        f"Mass of {element} in surplus pool for individuals (kg{{{element}}})"
+    )
+
+
 # Display as markdown
 display_markdown(
     f"```{{csv-table}}\n:header-rows: 1\n:quote: '\"'\n\n{"\n".join(biomass_options)}\n```",
@@ -232,6 +251,12 @@ display_markdown(
 
 ## Community canopy data
 
+The community canopy data provides details of the whole community canopy properties.
+This includes the canopy layer closure heights under the perfect plasticity
+approximation and the modelled light environment through the canopy. The starred
+attributes are again the indexing fields that are always included in exported data for
+this type.
+
 ```{code-cell} ipython3
 ---
 tags: [remove-input]
@@ -240,7 +265,14 @@ mystnb:
 ---
 from pyrealm.demography.canopy import CommunityCanopyData
 
-community_canopy_options = ["Field,Description"]
+community_canopy_options = [
+    "Field,Description",
+    '`cell_id`*,"The grid cell in which the cohort is found."',
+    '`time`*,"The time stamp of the simulation step for the exported data."',
+    '`time_index`*,"The index along the time axis for the exported data."',
+    '`canopy_layer_index`*,"The index of the canopy layer in the vertical axis of the simulation"',
+    '`heights`*,"The closure height of the canopy layer [m]"',
+]
 
 for attr, desc in get_dataclass_attr_docs(CommunityCanopyData).items():
     if attr in CommunityCanopyData._array_attrs:
@@ -256,6 +288,10 @@ display_markdown(
 
 ## Stem canopy data
 
+The stem canopy data provides details of contributions of the individual stems within
+each cohort to the community crown. The starred attributes are again the indexing fields
+that are always included in exported data for this type.
+
 ```{code-cell} ipython3
 ---
 tags: [remove-input]
@@ -264,7 +300,16 @@ mystnb:
 ---
 from pyrealm.demography.canopy import CohortCanopyData
 
-cohort_canopy_options = ["Field,Description"]
+cohort_canopy_options = [
+    "Field,Description",
+    '`cohort_id`*,"A unique ID code for the cohort that persists through the time series."',
+    '`cell_id`*,"The grid cell in which the cohort is found."',
+    '`time`*,"The time stamp of the simulation step for the exported data."',
+    '`time_index`*,"The index along the time axis for the exported data."',
+    '`canopy_layer_index`*,"The index of the canopy layer in the vertical axis of the simulation"',
+    '`heights`*,"The closure height of the canopy layer [m]"',
+]
+
 
 for attr, desc in get_dataclass_attr_docs(CohortCanopyData).items():
     if attr in CohortCanopyData._array_attrs:

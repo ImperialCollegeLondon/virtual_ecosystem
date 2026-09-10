@@ -45,11 +45,13 @@ site or to change cohort and community data output options. These sections are:
 
 * The values of constants used within the model (`[plants.constants]`). These all have
   default values but you will need to provide configuration details if you want to use
-  different values.
+  different values. These are described below.
+
 * The configuration of data export options for the plant cohort and communities at
   each time step (`[plants.community_data_export]`). This data are not stored as array
   variables and so are not exported in the main Zarr output file. You will need to
-  set these export options if you want to track cohort dynamics through the simulation.
+  [configure these export options](./data_export.md) if you want to explore cohort
+  dynamics and canopy structure through the simulation.
 
 A complete plant configuration, including all the default fields is shown below. The
 mandatory fields are highlighted.
@@ -141,97 +143,4 @@ display_markdown(
     f"```{{csv-table}}\n:header-rows: 1\n:quote: '\"'\n\n{"\n".join(rows)}\n```",
     raw=True,
 )
-```
-
-## Plants community data export
-
-The plants model holds a large amount of detailed data on the plant communities growing
-in each cell, on the community-wide canopy structure within each cell and the canopy
-properties of individual stems within each cohort. This data is not required by other
-science models and so is not shared through the central data store. If you want to look
-at plant community data within a simulation, you will need to configure export of plant
-community data using the following configuration settings.
-
-```{code-cell} ipython3
-:tags: [remove-cell]
-
-from myst_nb import glue
-from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
-
-glue(
-    "cohort_attributes",
-    ", ".join(
-        [
-            f'"{t}"'
-            for t in CommunityDataExporter.available_attributes["cohort_attributes"]
-        ]
-    ),
-)
-
-glue(
-    "community_canopy_attributes",
-    ", ".join(
-        [
-            f'"{t}"'
-            for t in CommunityDataExporter.available_attributes[
-                "community_canopy_attributes"
-            ]
-        ]
-    ),
-)
-
-glue(
-    "stem_canopy_attributes",
-    ", ".join(
-        [
-            f'"{t}"'
-            for t in CommunityDataExporter.available_attributes[
-                "stem_canopy_attributes"
-            ]
-        ]
-    ),
-)
-```
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.core.docutils import dump_config_toml, model_config_to_deflist
-from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
-
-config_object = PlantsExportConfig()
-dump_config_toml("plants.community_data_export", config_object)
-model_config_to_deflist("plants.community_data_export", config_object)
-```
-
-There are three possible data files that can be exported - you select one or more by
-including them in `[plants.community_data_export.required]` and can then select which
-attributes you want exported using the appropriate attributes configuration option.
-
-The choices are:
-
-* If `cohorts` is included in `required_data` then the file `plants_cohorts_data.csv`
-  will be exported for each time step. The available attributes for plant cohort data
-  are: {glue:text}`cohort_attributes`.
-
-* If `community_canopy` is included in `required_data` then the file
-  `plants_community_canopy_data.csv` will be exported for each time step. The available
-  attributes for plant cohort data are: {glue:text}`community_canopy_attributes`.
-
-* If `stem_canopy` is included in `required_data` then the file
-  `plants_stem_canopy_data.csv` will be exported for each time step. The available
-  attributes for plant cohort data are: {glue:text}`stem_canopy_attributes`.
-
-To show the configuration of the exporter in use, the TOML settings below show how to
-configure the exporter to write out selected trait data for all three data files:
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-config_object = PlantsExportConfig(
-    cohort_attributes=["cell_id", "cohort_id", "dbh", "delta_dbh", "stem_height"],
-    community_canopy_attributes=["cell_id", "canopy_layer_index", "heights"],
-    stem_canopy_attributes=["cell_id", "cohort_id", "canopy_layer_index", "fapar"],
-)
-dump_config_toml("plants.community_data_export", config_object)
 ```
