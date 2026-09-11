@@ -20,8 +20,7 @@ from virtual_ecosystem.models.hydrology.hydrology_tools import (
     calculate_effective_saturation,
 )
 from virtual_ecosystem.models.litter.env_factors import (
-    average_temperature_over_microbially_active_layers,
-    average_water_potential_over_microbially_active_layers,
+    average_abiotic_environment_over_microbially_active_layers,
 )
 from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
@@ -519,15 +518,14 @@ class SoilPools:
 
         # Find temperature, soil water potential and soil moisture values for the
         # microbially active depth
-        soil_water_potential = average_water_potential_over_microbially_active_layers(
-            water_potentials=self.data["matric_potential"],
-            layer_structure=layer_structure,
+        soil_water_potential = (
+            average_abiotic_environment_over_microbially_active_layers(
+                environmental_variable=self.data["matric_potential"],
+                layer_structure=layer_structure,
+            )
         )
-        soil_temperature = average_temperature_over_microbially_active_layers(
-            soil_temperatures=self.data["soil_temperature"],
-            surface_temperature=self.data["air_temperature"][
-                layer_structure.index_surface_scalar
-            ].to_numpy(),
+        soil_temperature = average_abiotic_environment_over_microbially_active_layers(
+            environmental_variable=self.data["soil_temperature"],
             layer_structure=layer_structure,
         )
         soil_moisture = find_total_soil_moisture_for_simulation_depth(

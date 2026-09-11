@@ -37,8 +37,7 @@ from virtual_ecosystem.models.hydrology.model_config import (
     HydrologyConfiguration,
 )
 from virtual_ecosystem.models.litter.env_factors import (
-    average_temperature_over_microbially_active_layers,
-    average_water_potential_over_microbially_active_layers,
+    average_abiotic_environment_over_microbially_active_layers,
 )
 from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
@@ -743,17 +742,18 @@ class SoilModel(
 
         # Average soil temperature and water potential over the microbially active
         # layers, and then use to calculate the environmental factors
-        averaged_soil_temperature = average_temperature_over_microbially_active_layers(
-            soil_temperatures=self.data["soil_temperature"],
-            surface_temperature=self.data["air_temperature"][
-                self.layer_structure.index_surface_scalar
-            ].to_numpy(),
-            layer_structure=self.layer_structure,
+        averaged_soil_temperature = (
+            average_abiotic_environment_over_microbially_active_layers(
+                environmental_variable=self.data["soil_temperature"],
+                layer_structure=self.layer_structure,
+            )
         )
 
-        soil_water_potential = average_water_potential_over_microbially_active_layers(
-            water_potentials=self.data["matric_potential"],
-            layer_structure=self.layer_structure,
+        soil_water_potential = (
+            average_abiotic_environment_over_microbially_active_layers(
+                environmental_variable=self.data["matric_potential"],
+                layer_structure=self.layer_structure,
+            )
         )
 
         env_factors = calculate_environmental_effect_factors(
