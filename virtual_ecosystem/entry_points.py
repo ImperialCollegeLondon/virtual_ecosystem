@@ -201,6 +201,12 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     configurations to absolute file paths - this ties the merged configuration to the
     file system where the run is executed.
 
+    The running simulation adds data to a single Zarr store. This format is used because
+    data can easily be appended along the time series of the simulation steps. However
+    the resulting store contains a large number of files and also uses an internal
+    `cell_id` dimension to capture the spatial structure of cells. The `--to-netcdf`
+    file generates an additional single NetCDF file from the Zarr data and converts the
+    data back to using the original XY spatial dimensions.
 
     Args:
         args_list: This is a developer and testing facing argument that is used to
@@ -287,6 +293,13 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         default=0,
     )
 
+    parser.add_argument(
+        "-n",
+        "--to-netcdf",
+        action="store_true",
+        help="Postprocess the output data to NetCDF",
+    )
+
     args = parser.parse_args(args=args_list)
 
     # Cannot use both install example and paths
@@ -336,6 +349,7 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         validate_only=args.validate_only,
         logfile=args.logfile,
         progress=progress,
+        to_netcdf=args.to_netcdf,
     )
 
     return 0

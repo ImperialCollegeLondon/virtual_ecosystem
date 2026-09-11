@@ -873,3 +873,59 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
             name="elevation",
         ),
     )
+
+
+def test_convert_zarr_outputs_to_netcdf(tmp_path):
+    """Tests the final output consolidation function."""
+
+    from virtual_ecosystem.core.data import convert_zarr_outputs_to_netcdf
+
+    # Create n=20 time series on a 10x10 grid and add tell-tale stripes on spatial axes
+    # to detect problem with spatial reconstruction.
+    data = np.zeros((20, 10, 10))
+    x = np.arange(50, 1000, 100)
+    y = np.flip(x)  # Y coordinate increase from bottom left as in maps.
+    time = np.arange(20)
+    da = xr.DataArray(data, dims=["time", "y", "x"], coords=dict(time=time, y=y, x=x))
+    da.loc[dict(y=150)] = 150
+    da.loc[dict(x=350)] = 350
+
+    # Stack into a single dimension as cell_id does
+    da_stack = da.stack(dim={"cell_id": ("y", "x")}, create_index=False)
+    da_stack = da_stack.assign_coords({"cell_id": np.arange(100)})
+
+    # 2 variables per group
+    ds = xr.Dataset({"aaa": da_stack.copy(), "bbb": da_stack.copy()})
+
+    # Generate a grouped output like the real outputs
+    zarr_out = tmp_path / "temp.zarr"
+    groups = ("inputs", "init", "outputs")
+
+    # Output data by time step as used in model update sequence.
+    for time in np.arange(20):
+        for group in groups:
+            ds.sel(time=[time]).to_zarr(
+                store=zarr_out,
+                group=group,
+                mode="w" if time == 0 else "a",
+                append_dim=None if time == 0 else "time",
+                consolidated=False,
+                zarr_format=2,
+            )
+
+    # Run the converter function
+    nc_out = convert_zarr_outputs_to_netcdf(zarr_store=zarr_out)
+
+    # Check groups match
+    zr = xr.open_datatree(zarr_out, consolidated=False)
+    nc = xr.open_datatree(nc_out)
+
+    assert set(zr.groups) == set(nc.groups)
+
+    # Compare data in each group against the original time series.
+    for group in nc.groups:
+        if group == "/":
+            continue
+
+        for data_var in ["aaa", "bbb"]:
+            xr.testing.assert_allclose(nc[group][data_var], da)
