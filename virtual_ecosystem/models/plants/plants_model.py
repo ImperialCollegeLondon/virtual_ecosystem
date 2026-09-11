@@ -33,12 +33,6 @@ from virtual_ecosystem.models.hydrology.model_config import (
 )
 from virtual_ecosystem.models.plants.biomasses import (
     Biomasses,
-    BiomassTissueABC,
-    FoliageBiomass,
-    FruitBiomass,
-    RootBiomass,
-    SeedBiomass,
-    StemBiomass,
     partition_reproductive_tissue_mass,
 )
 from virtual_ecosystem.models.plants.canopy import (
@@ -255,9 +249,6 @@ class PlantsModel(
         self.biomasses: dict[int, Biomasses]
         """A dictionary keyed by cell id of the carbon and nutrient biomass of each
         community."""
-        self.biomass_tissues: list[type[BiomassTissueABC]]
-        """A list of types of biomass subclasses that sets the tissues to be
-        modelled within the simulation."""
         self.allocations: dict[int, StemAllocation]
         """A dictionary keyed by cell id giving the allocation of each community."""
         self._canopy_layer_indices: NDArray[np.bool_]
@@ -396,15 +387,6 @@ class PlantsModel(
                 )
             )
 
-        # Define the set of tissues to be tracked for each stem.
-        self.biomass_tissues = [
-            FoliageBiomass,  # foliage mass
-            StemBiomass,  # stem mass
-            RootBiomass,  # fine root mass
-            FruitBiomass,  # fruit tissue mass
-            SeedBiomass,  # seed tissue mass
-        ]
-
         # Record the per stem biomasses of stochiometric tissues for each cohort.
         # The initial values for N and P are based on the ideal stoichiometric ratios
         # defined in the plant traits.
@@ -412,7 +394,6 @@ class PlantsModel(
             cell_id: Biomasses.from_cohorts(
                 cohorts=community.cohorts,
                 allometry=community.stem_allometry,
-                tissues=self.biomass_tissues,
             )
             for cell_id, community in self.communities.items()
         }
@@ -1661,7 +1642,6 @@ class PlantsModel(
                 new_biomasses = Biomasses.from_cohorts(
                     cohorts=new_community.cohorts,
                     allometry=new_community.stem_allometry,
-                    tissues=self.biomass_tissues,
                 )
 
                 self.biomasses[cell_id].append(new_biomasses)

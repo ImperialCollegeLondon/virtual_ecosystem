@@ -24,9 +24,11 @@ representation.
 from __future__ import annotations
 
 from abc import ABC
+from itertools import product
 from typing import ClassVar
 
 import numpy as np
+import pandas as pd
 from numpy.typing import NDArray
 from pyrealm.demography.cohorts import Cohorts
 from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllometry
@@ -374,50 +376,63 @@ class RootBiomass(BiomassTissueABC):
     turnover_ratio_attrs = "root_c_ELEM_ratio"
 
 
-class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
-    """A class holding biomasses for a set of plant cohorts and tissues.
+PLANT_BIOMASS_TISSUES: tuple[type[BiomassTissueABC], ...] = (
+    FoliageBiomass,  # foliage mass
+    StemBiomass,  # stem mass
+    RootBiomass,  # fine root mass
+    FruitBiomass,  # fruit tissue mass
+    SeedBiomass,  # seed tissue mass
+)
+"""A tuple of the complete set of tissue biomass classes currently required in the
+plants model."""
 
-    This class holds the current ratios across tissue type for a community object, which
-    in essence is a series of cohorts. It acts in parallel with StemAllometry, a class
-    attribute of Community.
 
-    The class is designed to be element-agnostic, so it can be used for any element as
-    required.
+class Biomasses:
+    """Tissue biomasses for a set of plant cohorts.
+
+    A set of plant cohort data and their trait data and stem allometries define the
+    theoretical expectations carbon masses and stoichiometry under the T
+    Model :cite:p:`li_simulation_2014` for a set of plant tissues. This class manages
+    a set of tissues for a particular set of cohorts and provides methods to balance
+    tissue stochiometries and add cohorts.
+
+    The :meth:Biomasses.__init__` constructor takes the arguments show below and
+    provides a simple API that does not require a particular set of tissues. The
+    :meth:`Biomasses.from_cohorts` method generates the complete set of tissues
+    currently required for a simulation, currently with tissues at their ideal
+    stochiometric ratios, for a set of cohorts.
+
+    The class is designed to be extendable to new tissues and elements
+    by adding them to the tissue type definitions, rather than hard-coding a set of
+    elements.
+
+    Args:
+        cohort_ids: A numpy array of cohort id values
+        tissues: A list of biomass tissue instances.
+        element_surpluses: An optional array providing initial elemental surpluses
+            across tissues for each cohort.
     """
 
-    # NOTE: these are hard-coded and must be updated if the simulation
-    #       uses different biomass classes.
-    # TODO: Might also be redundant if the ToDataFramMixin approach isn't going to be
-    #       used, which it might well not be - can just concat the tissue arrays into a
-    #       data frame.
-    _array_attrs: ClassVar[tuple[str, ...]] = (
-        "foliage_c_biomass",
-        "foliage_n_biomass",
-        "foliage_p_biomass",
-        "fruit_c_biomass",
-        "fruit_n_biomass",
-        "fruit_p_biomass",
-        "seed_c_biomass",
-        "seed_n_biomass",
-        "seed_p_biomass",
-        "stem_c_biomass",
-        "stem_n_biomass",
-        "stem_p_biomass",
-        "root_c_biomass",
-        "root_n_biomass",
-        "root_p_biomass",
-    )
-    """Array attribute names for all biomass tissue and element data."""
+    # NOTE: the class does not define an _array_attrs class variable, because the actual
+    #       set of exportable attributes depends on the set of tissues (which is
+    #       _usually_ the complete set defined in PLANT_BIOMASS_TISSUES but not always).
 
     def __init__(
         self,
+        cohort_id: NDArray,
         tissues: list[BiomassTissueABC],
         element_surpluses: NDArray[np.floating] | None = None,
     ) -> None:
+        """Simple Biomasses instance constructor.
 
-        # TODO - do we actually need this constructor as opposed to just using the
-        #        from_cohorts method as __init__?
+        This constructor function provides a simple API to generate Biomasses()
+        instances with an arbitrary set of tissues, which is useful for testing. In
+        actual use in the model, the ``from_cohorts()`` method is used to generate an
+        instance with the complete set of simulated tissues.
+        """
 
+        self.cohort_id: NDArray = cohort_id
+        """Cohort IDs for the cohorts."""
         self.tissues: list[BiomassTissueABC] = tissues
         """Tissues for the associated cohorts."""
         self.element_surpluses: NDArray[np.floating]
@@ -465,14 +480,15 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
         cls,
         cohorts: Cohorts,
         allometry: StemAllometry,
-        tissues: list[type[BiomassTissueABC]],
     ):
         """Create a Biomasses instance from cohort data using the ideal element ratios.
+
+        This generates a Biomasses instance containing all of the currently required
+        tissue types, defined in the :data:`PLANT_BIOMASS_TISSUES` global variable.
 
         Args:
             cohorts: A data frame of cohorts providing trait data.
             allometry: The allometry of the cohorts.
-            tissues: A list of tissue models to be used.
 
         Returns:
             An instance of Biomasses with default element ratios for the cohorts.
@@ -484,10 +500,10 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
                 cohorts=cohorts,
                 allometry=allometry,
             )
-            for tissue in tissues
+            for tissue in PLANT_BIOMASS_TISSUES
         ]
 
-        return cls(tissues=default_tissues)
+        return cls(cohort_id=cohorts["cohort_id"].to_numpy(), tissues=default_tissues)
 
     @property
     def total_element_masses(self) -> NDArray[np.floating]:
@@ -676,7 +692,10 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
     def append(self, other: Biomasses):
         """Append data from another Biomasses instance representing new cohorts."""
 
-        # TODO check tissues and elements?
+        # TODO check tissues and elements align?
+
+        # Concatenate cohort IDs and surpluses and apply append method for tissues.
+        self.cohort_id = np.concat([self.cohort_id, other.cohort_id])
 
         for tissue_name in self.tissue_names:
             self.get_tissue(tissue_name).append(other.get_tissue(tissue_name))
@@ -687,3 +706,36 @@ class Biomasses:  # TODO - ToDataFrameMixin? Some kind of export method
                 other.element_surpluses,
             ]
         )
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Export biomass data to a data frame.
+
+        Returns a dataframe for all cohorts of the elemental biomasses for each tissue
+        and the elemental surplus pool biomasses.
+        """
+
+        # Generate column names
+        columns = [
+            f"{tissue}_{elem}_biomass"
+            for tissue, elem in product(
+                [*[t.tissue_name for t in self.tissues], "surplus"],
+                ["C", *self.elements],
+            )
+        ]
+
+        # Concatenate tissue element masses and surplus by column
+        df = pd.DataFrame(
+            data=np.concat(
+                [
+                    *[t.elemental_masses for t in self.tissues],
+                    self.element_surpluses,
+                ],
+                axis=1,
+            ),
+            columns=columns,
+        )
+
+        # Insert cohort IDs
+        df.insert(loc=0, column="cohort_id", value=self.cohort_id)
+
+        return df

@@ -283,15 +283,15 @@ def environmental_factors(
 ):
     """Environmental factors based on dummy carbon data."""
     from virtual_ecosystem.models.litter.env_factors import (
-        average_water_potential_over_microbially_active_layers,
+        average_abiotic_environment_over_microbially_active_layers,
     )
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_environmental_effect_factors,
     )
 
     return calculate_environmental_effect_factors(
-        soil_water_potential=average_water_potential_over_microbially_active_layers(
-            water_potentials=dummy_carbon_data["matric_potential"],
+        soil_water_potential=average_abiotic_environment_over_microbially_active_layers(
+            environmental_variable=dummy_carbon_data["matric_potential"],
             layer_structure=fixture_core_components.layer_structure,
         ),
         pH=dummy_carbon_data["pH"].to_numpy(),
@@ -321,14 +321,11 @@ def carbon_supply_from_plants(
 def averaged_soil_temp(dummy_carbon_data, fixture_core_components):
     """Soil temperature averaged over the microbially active layers."""
     from virtual_ecosystem.models.litter.env_factors import (
-        average_temperature_over_microbially_active_layers,
+        average_abiotic_environment_over_microbially_active_layers,
     )
 
-    return average_temperature_over_microbially_active_layers(
-        soil_temperatures=dummy_carbon_data["soil_temperature"],
-        surface_temperature=dummy_carbon_data["air_temperature"][
-            fixture_core_components.layer_structure.index_surface_scalar
-        ].to_numpy(),
+    return average_abiotic_environment_over_microbially_active_layers(
+        environmental_variable=dummy_carbon_data["soil_temperature"],
         layer_structure=fixture_core_components.layer_structure,
     )
 
