@@ -29,8 +29,10 @@ from typing import Any, cast
 
 from numpy import (
     array,
+    asarray,
     float32,
     isnan,
+    maximum,
     nanmean,
     random,
     stack,
@@ -1153,9 +1155,10 @@ class AnimalModel(
     def migrate_community(self, dt: timedelta64) -> None:
         """This handles migrating all cohorts with a centroid in the community.
 
-        This migration method initiates migration for two reasons:
+        This migration method initiates migration for three reasons:
         1) The cohort is starving and needs to move for a chance at resource access
         2) An initial migration event immediately after birth.
+        3) Thermal escape with a suitability-weighted destination when the toggle is on.
 
         The destination is drawn uniformly from the cells the cohort can actually
         reach within its mass-scaled dispersal distance, rather than from the
@@ -1210,7 +1213,7 @@ class AnimalModel(
             if not candidate_keys:
                 continue
 
-            self.migrate(cohort, choice(candidate_keys))
+            self.migrate(cohort, self._select_destination(cohort, candidate_keys))
 
     def remove_dead_cohort(self, cohort: AnimalCohort) -> None:
         """Removes an AnimalCohort from the model's cohorts and relevant communities.
@@ -1983,3 +1986,26 @@ class AnimalModel(
                 stratum_mean_climate(fg.vertical_occupancy, climate)
             ]
         }
+
+    def _select_destination(
+        self, cohort: AnimalCohort, candidate_keys: list[int]
+    ) -> int:
+        """Pick a destination cell from the reachable set.
+
+        Uniform when thermal habitat selection is off; otherwise weighted by each
+        reachable cell's suitability for the cohort's functional group, raised to
+        ``thermal_selection_exponent`` and floored at ``thermal_suitability_floor`` so
+        the distribution stays valid even where every reachable cell is lethal.
+        """
+        if self.thermal_suitability is None:
+            return choice(candidate_keys)
+
+        keys = asarray(candidate_keys)
+        weights = (
+            maximum(
+                self.thermal_suitability[cohort.functional_group.name][keys],
+                self.model_constants.thermal_suitability_floor,
+            )
+            ** self.model_constants.thermal_selection_exponent
+        )
+        return int(random.choice(keys, p=weights / weights.sum()))
