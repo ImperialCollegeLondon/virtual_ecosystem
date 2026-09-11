@@ -23,7 +23,7 @@ from virtual_ecosystem.core.configuration import (
     DisturbanceConfigurationRoot,
 )
 from virtual_ecosystem.core.core_components import CoreComponents
-from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.data import Data, convert_zarr_outputs_to_netcdf
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from virtual_ecosystem.core.logger import LOGGER, add_file_logger, remove_file_logger
 from virtual_ecosystem.core.model_config import (
@@ -248,6 +248,7 @@ def ve_run(
     logfile: Path | None = None,
     validate_only: bool = False,
     progress: Progress = Progress.FULL,
+    to_netcdf: bool = False,
 ) -> None:
     """Perform a Virtual Ecosystem simulation.
 
@@ -268,6 +269,8 @@ def ve_run(
         validate_only: Should the command exit after config validation.
         progress: A Progress enum instance setting the level of output to be printed to
             the console when ve_run is running.
+        to_netcdf: Should the simulation postprocess the Zarr outputs to a single NetCDF
+            file.
     """
 
     # Mute the progress information when the log is written to stdout.
@@ -524,6 +527,10 @@ def ve_run(
 
     if progress > Progress.MINIMAL:
         print("* Simulation completed")
+
+    if to_netcdf:
+        convert_zarr_outputs_to_netcdf(zarr_store=zarr_store_path)
+        print("* Data postprocessed to NetCDF.")
 
     LOGGER.info("Virtual Ecosystem model run completed!")
 
