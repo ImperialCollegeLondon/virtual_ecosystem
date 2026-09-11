@@ -970,6 +970,289 @@ def test_activity_window(
     assert result == pytest.approx(expected)
 
 
+@pytest.mark.parametrize(
+    "occupancy, expected_temp, expected_diurnal",
+    [
+        pytest.param("CANOPY", 30.0, 10.0, id="canopy_only"),
+        pytest.param("GROUND", 20.0, 6.0, id="ground_only"),
+        pytest.param("SOIL", 15.0, 1.0, id="soil_only"),
+        pytest.param("GROUND|SOIL", 17.5, 3.5, id="ground_soil_mean"),
+        pytest.param("CANOPY|SOIL", 22.5, 5.5, id="canopy_soil_mean"),
+        pytest.param("CANOPY|GROUND", 25.0, 8.0, id="canopy_ground_mean"),
+        pytest.param("CANOPY|GROUND|SOIL", 65.0 / 3.0, 17.0 / 3.0, id="all_three_mean"),
+    ],
+)
+def test_stratum_mean_climate(occupancy, expected_temp, expected_diurnal):
+    """Test that each occupancy pattern averages the correct strata, cell by cell.
+
+    Each stratum is given a distinct constant so a mis-selected stratum or a wrong
+    mean surfaces as a wrong value. Combined occupancies must return the arithmetic
+    mean of their constituent strata:
+
+    * ground+soil temperature: mean(20, 15) = 17.5
+    * canopy+soil temperature: mean(30, 15) = 22.5
+    * canopy+ground temperature: mean(30, 20) = 25.0
+    * all three temperature: mean(30, 20, 15) = 65/3
+    """
+    from functools import reduce
+    from operator import or_
+
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_climate import StratumClimate
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.scaling_functions import stratum_mean_climate
+
+    n_cells = 4
+    climate = StratumClimate(
+        canopy_temperature=np.full(n_cells, 30.0),
+        ground_temperature=np.full(n_cells, 20.0),
+        soil_temperature=np.full(n_cells, 15.0),
+        canopy_diurnal_range=np.full(n_cells, 10.0),
+        ground_diurnal_range=np.full(n_cells, 6.0),
+        soil_diurnal_range=np.full(n_cells, 1.0),
+    )
+
+    flags = reduce(or_, (VerticalOccupancy[name] for name in occupancy.split("|")))
+
+    temperature, diurnal = stratum_mean_climate(flags, climate)
+
+    assert temperature.shape == (n_cells,)
+    assert diurnal.shape == (n_cells,)
+    assert np.allclose(temperature, expected_temp)
+    assert np.allclose(diurnal, expected_diurnal)
+
+
+def test_stratum_mean_climate_preserves_per_cell_variation():
+    """Test that averaging is per cell, not collapsed to a scalar.
+
+    Cells are given distinct values within a stratum so that a cell-wise mean is
+    distinguishable from a whole-array mean.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_climate import StratumClimate
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.scaling_functions import stratum_mean_climate
+
+    ground = np.array([10.0, 20.0, 30.0, 40.0])
+    soil = np.array([20.0, 20.0, 20.0, 20.0])
+
+    climate = StratumClimate(
+        canopy_temperature=np.zeros(4),
+        ground_temperature=ground,
+        soil_temperature=soil,
+        canopy_diurnal_range=np.zeros(4),
+        ground_diurnal_range=np.full(4, 4.0),
+        soil_diurnal_range=np.full(4, 2.0),
+    )
+
+    temperature, diurnal = stratum_mean_climate(
+        VerticalOccupancy.GROUND | VerticalOccupancy.SOIL, climate
+    )
+
+    assert np.allclose(temperature, [15.0, 20.0, 25.0, 30.0])
+    assert np.allclose(diurnal, 3.0)
+
+
+def test_stratum_mean_climate_raises_on_empty_occupancy():
+    """Test that an occupancy with no recognised strata raises ValueError.
+
+    An empty flag reaches none of the stratum branches, leaving nothing to average,
+    which the function guards against rather than returning an empty mean.
+    """
+
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_climate import StratumClimate
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.scaling_functions import stratum_mean_climate
+
+    climate = StratumClimate(
+        canopy_temperature=np.zeros(2),
+        ground_temperature=np.zeros(2),
+        soil_temperature=np.zeros(2),
+        canopy_diurnal_range=np.zeros(2),
+        ground_diurnal_range=np.zeros(2),
+        soil_diurnal_range=np.zeros(2),
+    )
+
+    empty = VerticalOccupancy(0)
+
+    with pytest.raises(ValueError, match="No recognised vertical occupancy"):
+        stratum_mean_climate(empty, climate)
+
+
+def test_thermal_suitability_endotherm_all_ones():
+    """Endotherms are active in every cell regardless of temperature.
+
+    The endotherm branch short-circuits before any per-cell evaluation, so even
+    lethal temperatures must return 1.0 everywhere — thermal habitat selection is
+    inert for endotherms by construction.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_suitability
+
+    temperature = np.array([-40.0, 25.0, 80.0])
+    diurnal = np.array([5.0, 5.0, 5.0])
+
+    result = thermal_suitability(
+        metabolic_type=MetabolicType.ENDOTHERMIC,
+        temperature=temperature,
+        diurnal_temp_range=diurnal,
+        annual_mean_temp=21.5,
+        annual_temp_sd=1.0,
+        t_opt=25.0,
+        t_max_crit=40.0,
+        t_min_crit=5.0,
+    )
+
+    assert result.shape == temperature.shape
+    assert np.array_equal(result, np.ones(3))
+
+
+def test_thermal_suitability_ectotherm_lethal_and_optimal():
+    """Ectotherm suitability is ~0 in lethal cells and ~1 at the optimum.
+
+    A cell well above t_max_crit spends effectively the whole diurnal cycle beyond
+    tolerance (suitability -> 0); a cell sitting at t_opt with a small diurnal range
+    stays within tolerance the whole cycle (suitability -> 1).
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_suitability
+
+    # cell 0: far above t_max_crit; cell 1: at t_opt with a narrow range
+    temperature = np.array([100.0, 25.0])
+    diurnal = np.array([2.0, 2.0])
+
+    result = thermal_suitability(
+        metabolic_type=MetabolicType.ECTOTHERMIC,
+        temperature=temperature,
+        diurnal_temp_range=diurnal,
+        annual_mean_temp=21.5,
+        annual_temp_sd=1.0,
+        t_opt=25.0,
+        t_max_crit=40.0,
+        t_min_crit=5.0,
+    )
+
+    assert result.shape == temperature.shape
+    assert result[0] == pytest.approx(0.0, abs=1e-9)
+    assert result[1] == pytest.approx(1.0, abs=1e-9)
+
+
+def test_thermal_suitability_is_per_cell():
+    """Suitability varies cell by cell along a temperature gradient.
+
+    A monotonic climb from optimal into lethal temperatures must produce a
+    (weakly) monotonic decline in suitability, confirming the result is a genuine
+    per-cell mapping rather than a single value broadcast across the array.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_suitability
+
+    temperature = np.array([25.0, 35.0, 45.0, 60.0])
+    diurnal = np.full(4, 6.0)
+
+    result = thermal_suitability(
+        metabolic_type=MetabolicType.ECTOTHERMIC,
+        temperature=temperature,
+        diurnal_temp_range=diurnal,
+        annual_mean_temp=21.5,
+        annual_temp_sd=1.0,
+        t_opt=25.0,
+        t_max_crit=40.0,
+        t_min_crit=5.0,
+    )
+
+    assert result.shape == temperature.shape
+    # not all equal — genuinely per-cell
+    assert len(np.unique(result)) > 1
+    # warmer cells are no more suitable than cooler ones as we climb past t_opt
+    assert np.all(np.diff(result) <= 1e-9)
+    assert np.all((result >= 0.0) & (result <= 1.0))
+
+
+def test_thermal_suitability_matches_activity_window_per_cell():
+    """Each element equals activity_window evaluated on that cell's climate.
+
+    thermal_suitability is a per-cell wrapper over activity_window; this pins that
+    contract so the two cannot silently diverge (e.g. via a future re-vectorisation).
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        activity_window,
+        thermal_suitability,
+    )
+
+    temperature = np.array([18.0, 26.0, 33.0])
+    diurnal = np.array([4.0, 6.0, 8.0])
+
+    kwargs = dict(
+        annual_mean_temp=21.5,
+        annual_temp_sd=1.0,
+        t_opt=25.0,
+        t_max_crit=40.0,
+        t_min_crit=5.0,
+    )
+
+    result = thermal_suitability(
+        metabolic_type=MetabolicType.ECTOTHERMIC,
+        temperature=temperature,
+        diurnal_temp_range=diurnal,
+        **kwargs,
+    )
+
+    expected = np.array(
+        [
+            activity_window(
+                metabolic_type=MetabolicType.ECTOTHERMIC,
+                temperature=float(t),
+                diurnal_temp_range=float(d),
+                **kwargs,
+            )
+            for t, d in zip(temperature, diurnal)
+        ]
+    )
+
+    assert np.allclose(result, expected)
+
+
+def test_thermal_suitability_preserves_shape_single_cell():
+    """A single-cell array returns a single-element array, not a scalar.
+
+    Guards the shape contract at the edge case that most easily degrades to a
+    0-d result, since downstream indexing (suitability[fg][candidate_keys]) relies
+    on a 1-D array.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_suitability
+
+    result = thermal_suitability(
+        metabolic_type=MetabolicType.ECTOTHERMIC,
+        temperature=np.array([25.0]),
+        diurnal_temp_range=np.array([5.0]),
+        annual_mean_temp=21.5,
+        annual_temp_sd=1.0,
+        t_opt=25.0,
+        t_max_crit=40.0,
+        t_min_crit=5.0,
+    )
+
+    assert result.shape == (1,)
+    assert 0.0 <= result[0] <= 1.0
+
+
 class TestRawBiomassDensityKgM2:
     """Tests for raw_biomass_density_kg_m2."""
 

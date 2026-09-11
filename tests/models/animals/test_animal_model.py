@@ -234,38 +234,43 @@ class TestAnimalModel:
         assert model.model_constants.density_scaling_method == scaling_method
 
     def test_update_method_sequence(self, mocker, prepared_animal_model_instance):
-        """Test update to ensure it runs the community methods in order."""
+        """Test that update runs the community methods in the expected order.
 
-        # List of methods that should be called in the update sequence
-        method_names = [
+        The expected order reflects the timestep-coherence design: all in-territory
+        processes (foraging, birth, metamorphosis, metabolism, mortality) run before
+        intra-grid migration, so a cohort experiences a whole timestep in one
+        territory and only then relocates for the next. External migration runs last,
+        as it is a departure from the system rather than a response to local
+        conditions.
+        """
+        expected_order = [
             "forage_community",
-            "migrate_community",
             "birth_community",
             "metamorphose_community",
             "metabolize_community",
             "inflict_non_predation_mortality_community",
+            "migrate_community",
+            "migrate_external_community",
             "update_community_bookkeeping",
             "update_cohort_bookkeeping",
         ]
 
-        # Setup mock methods using spy on the prepared_animal_model_instance itself
-        for method_name in method_names:
-            mocker.spy(prepared_animal_model_instance, method_name)
+        model = prepared_animal_model_instance
 
-        # Call the update method
-        prepared_animal_model_instance.update(time_index=0)
+        # Attach every spy to one parent mock so their calls are recorded against a
+        # single shared timeline, letting us read back the true invocation order.
+        recorder = mocker.Mock()
+        for name in expected_order:
+            recorder.attach_mock(mocker.spy(model, name), name)
 
-        # Verify the order of the method calls
-        called_methods = []
-        for method_name in method_names:
-            method = getattr(prepared_animal_model_instance, method_name)
-            # If the method was called, add its name to the list
-            if method.spy_return is not None or method.call_count > 0:
-                called_methods.append(method_name)
+        model.update(time_index=0)
 
-        # Ensure the methods were called in the expected order
-        assert called_methods == method_names, (
-            f"Methods called in wrong order: {called_methods}"
+        called_order = [call[0] for call in recorder.mock_calls]
+
+        assert called_order == expected_order, (
+            f"Methods called in wrong order.\n"
+            f"expected: {expected_order}\n"
+            f"actual:   {called_order}"
         )
 
     def test_update_method_time_index_argument(
@@ -1156,6 +1161,130 @@ class TestAnimalModel:
             mock_migrate.assert_not_called()
 
         cohort.is_below_mass_threshold.assert_called_once()
+
+    def _prime_migrate_cohort(self, model, cohort, mocker, *, starving=False, age=5.0):
+        """Set up a single non-migrating cohort in a fresh model, ready to migrate.
+
+        Populates distances, clears communities, pins the centroid to a valid cell,
+        and neutralises the starvation and juvenile triggers so that any migration
+        observed is attributable to the thermal trigger alone.
+        """
+        from math import sqrt
+
+        model.data.grid.populate_distances()
+
+        model.communities = {cell_id: [] for cell_id in model.communities}
+        model.active_cohorts = {}
+
+        cohort.age = age
+        cohort.centroid_key = model.data.grid.cell_id[0]
+        model.active_cohorts[cohort.id] = cohort
+
+        mocker.patch.object(cohort, "is_below_mass_threshold", return_value=starving)
+        mocker.patch.object(cohort, "migrate_juvenile_probability", return_value=0.0)
+
+        cell_side = sqrt(model.data.grid.cell_area)
+        mocker.patch.object(cohort, "get_dispersal_distance", return_value=cell_side)
+
+    def test_migrate_community_no_op_when_thermal_disabled(
+        self, mocker, animal_model_instance, herbivore_cohort_instance
+    ):
+        """With the cache off, a cold non-starving adult does not migrate.
+
+        This is the critical no-op guard: when thermal_suitability is None, the
+        thermal trigger is inert and dispersal reduces to the pre-thermal behaviour,
+        even for a cohort whose sigma_f_t would otherwise trigger thermal escape.
+        """
+        from numpy import timedelta64
+
+        model = animal_model_instance
+        model.thermal_suitability = None
+
+        cohort = herbivore_cohort_instance
+        self._prime_migrate_cohort(model, cohort, mocker, starving=False, age=5.0)
+
+        # A low activity window that WOULD trigger thermal escape if enabled.
+        cohort.sigma_f_t = 0.0
+
+        mock_migrate = mocker.patch.object(model, "migrate")
+
+        model.migrate_community(timedelta64(30, "D"))
+
+        mock_migrate.assert_not_called()
+
+    def test_migrate_community_thermal_trigger_fires(
+        self, mocker, animal_model_instance, herbivore_cohort_instance
+    ):
+        """A thermally stressed cohort migrates when the toggle is on.
+
+        With the cache present and sigma_f_t well below the threshold, the thermal
+        trigger fires for a cohort that is neither starving nor juvenile, so it
+        migrates where it otherwise would not.
+        """
+        import numpy as np
+        from numpy import timedelta64
+
+        model = animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={
+                "thermal_habitat_selection": True,
+                "thermal_dispersal_threshold": 0.25,
+            }
+        )
+
+        cohort = herbivore_cohort_instance
+        self._prime_migrate_cohort(model, cohort, mocker, starving=False, age=5.0)
+
+        # sigma_f_t = 0 gives a thermal-escape probability of 1.0.
+        cohort.sigma_f_t = 0.0
+
+        n_cells = model.data.grid.n_cells
+        model.thermal_suitability = {
+            cohort.functional_group.name: np.full(n_cells, 0.5)
+        }
+
+        mock_migrate = mocker.patch.object(model, "migrate")
+
+        model.migrate_community(timedelta64(30, "D"))
+
+        mock_migrate.assert_called_once_with(cohort, mocker.ANY)
+
+    def test_migrate_community_thermal_trigger_silent_when_suitable(
+        self, mocker, animal_model_instance, herbivore_cohort_instance
+    ):
+        """A cohort above the stress threshold gains no thermal trigger.
+
+        With sigma_f_t above thermal_dispersal_threshold the thermal condition is
+        false, so a non-starving adult with the toggle on still does not migrate.
+        Guards against the trigger firing for comfortable cohorts.
+        """
+        import numpy as np
+        from numpy import timedelta64
+
+        model = animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={
+                "thermal_habitat_selection": True,
+                "thermal_dispersal_threshold": 0.25,
+            }
+        )
+
+        cohort = herbivore_cohort_instance
+        self._prime_migrate_cohort(model, cohort, mocker, starving=False, age=5.0)
+
+        # Comfortably above the threshold — no thermal stress.
+        cohort.sigma_f_t = 0.9
+
+        n_cells = model.data.grid.n_cells
+        model.thermal_suitability = {
+            cohort.functional_group.name: np.full(n_cells, 0.5)
+        }
+
+        mock_migrate = mocker.patch.object(model, "migrate")
+
+        model.migrate_community(timedelta64(30, "D"))
+
+        mock_migrate.assert_not_called()
 
     @pytest.mark.parametrize(
         "is_cohort_in_model, expected_exception",
@@ -2798,6 +2927,304 @@ class TestAnimalModel:
 
         with pytest.raises(FrozenInstanceError):
             climate.ground_temperature = np.zeros(1)
+
+    def _make_stratum_climate(self, n_cells):
+        """Build a StratumClimate of distinct per-stratum constants for n_cells."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_climate import StratumClimate
+
+        return StratumClimate(
+            canopy_temperature=np.full(n_cells, 28.0),
+            ground_temperature=np.full(n_cells, 24.0),
+            soil_temperature=np.full(n_cells, 20.0),
+            canopy_diurnal_range=np.full(n_cells, 8.0),
+            ground_diurnal_range=np.full(n_cells, 5.0),
+            soil_diurnal_range=np.full(n_cells, 1.0),
+        )
+
+    def test_update_thermal_suitability_none_when_disabled(
+        self, prepared_animal_model_instance
+    ):
+        """Cache stays None when thermal habitat selection is disabled.
+
+        This is the guarantee that the whole thermal system is inert unless
+        explicitly enabled — dispersal then falls through to uniform choice.
+        """
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={"thermal_habitat_selection": False}
+        )
+
+        # Seed a non-None value to prove the method actively resets it.
+        model.thermal_suitability = {"stale": None}
+
+        climate = self._make_stratum_climate(model.data.grid.n_cells)
+        model._update_thermal_suitability(climate)
+
+        assert model.thermal_suitability is None
+
+    def test_update_thermal_suitability_populates_per_functional_group(
+        self, prepared_animal_model_instance
+    ):
+        """When enabled, the cache holds one per-cell array per functional group.
+
+        Keys must match functional group names exactly (they are looked up by
+        fg.name during dispersal), and each value must be a (n_cells,) array in
+        [0, 1].
+        """
+        import numpy as np
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={"thermal_habitat_selection": True}
+        )
+
+        n_cells = model.data.grid.n_cells
+        climate = self._make_stratum_climate(n_cells)
+
+        model._update_thermal_suitability(climate)
+
+        suitability = model.thermal_suitability
+        assert suitability is not None
+
+        expected_names = {fg.name for fg in model.functional_groups}
+        assert set(suitability.keys()) == expected_names
+
+        for name, array in suitability.items():
+            assert array.shape == (n_cells,), (
+                f"{name} has shape {array.shape}, expected {(n_cells,)}."
+            )
+            assert np.all((array >= 0.0) & (array <= 1.0))
+
+    def test_update_thermal_suitability_endotherms_all_ones(
+        self, prepared_animal_model_instance
+    ):
+        """Endothermic functional groups get a suitability of 1.0 in every cell.
+
+        Confirms the endotherm short-circuit propagates through the per-FG build:
+        thermal selection must be inert for them even when the cache is populated.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={"thermal_habitat_selection": True}
+        )
+
+        n_cells = model.data.grid.n_cells
+        climate = self._make_stratum_climate(n_cells)
+
+        model._update_thermal_suitability(climate)
+
+        endotherms = [
+            fg.name
+            for fg in model.functional_groups
+            if fg.metabolic_type == MetabolicType.ENDOTHERMIC
+        ]
+        if not endotherms:
+            pytest.skip("fixture has no endothermic functional groups")
+
+        for name in endotherms:
+            assert np.array_equal(model.thermal_suitability[name], np.ones(n_cells))
+
+    def test_update_thermal_suitability_shared_occupancy_consistent(
+        self, prepared_animal_model_instance
+    ):
+        """Functional groups sharing occupancy and thermal params share suitability.
+
+        stratum_mean_climate depends only on occupancy, so two ectotherm groups with
+        the same vertical occupancy and the same critical temperatures must produce
+        identical per-cell suitability. Guards against a per-FG build accidentally
+        keying the stratum climate on the wrong attribute.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={"thermal_habitat_selection": True}
+        )
+
+        climate = self._make_stratum_climate(model.data.grid.n_cells)
+        model._update_thermal_suitability(climate)
+
+        # Group ectotherm FGs by (occupancy, t_opt, t_max_crit, t_min_crit).
+        groups: dict[tuple, list[str]] = {}
+        for fg in model.functional_groups:
+            if fg.metabolic_type != MetabolicType.ECTOTHERMIC:
+                continue
+            key = (fg.vertical_occupancy, fg.t_opt, fg.t_max_crit, fg.t_min_crit)
+            groups.setdefault(key, []).append(fg.name)
+
+        shared = [names for names in groups.values() if len(names) > 1]
+        if not shared:
+            pytest.skip("fixture has no two ectotherm FGs with matching thermal params")
+
+        for names in shared:
+            first = model.thermal_suitability[names[0]]
+            for other in names[1:]:
+                assert np.allclose(model.thermal_suitability[other], first)
+
+    def test_select_destination_uniform_when_no_cache(
+        self, prepared_animal_model_instance, mocker
+    ):
+        """With no suitability cache, destination is drawn from candidate_keys.
+
+        This is the toggle-off fallback path: _select_destination must return a
+        member of the reachable set using the uniform stdlib choice, exactly as
+        pre-thermal dispersal did.
+        """
+        model = prepared_animal_model_instance
+        model.thermal_suitability = None
+
+        cohort = mocker.Mock()
+        candidate_keys = [3, 7, 11, 19]
+
+        for _ in range(50):
+            result = model._select_destination(cohort, candidate_keys)
+            assert result in candidate_keys
+
+    def test_select_destination_weighted_favours_suitable_cells(
+        self, prepared_animal_model_instance, mocker
+    ):
+        """Destinations skew toward high-suitability cells when the cache is present.
+
+        The reachable set spans cells of sharply differing suitability; over many
+        draws the most suitable cell must be chosen far more often than the least.
+        This is the test that exercises the weighted branch — the path that carried
+        the random.choice typo.
+        """
+        import numpy as np
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={
+                "thermal_habitat_selection": True,
+                "thermal_selection_exponent": 2.0,
+                "thermal_suitability_floor": 0.01,
+            }
+        )
+
+        n_cells = model.data.grid.n_cells
+        # Build a suitability array that is high at one cell, low elsewhere.
+        suitability = np.full(n_cells, 0.05)
+        best_cell = 2
+        suitability[best_cell] = 1.0
+
+        cohort = mocker.Mock()
+        cohort.functional_group.name = "test_fg"
+        model.thermal_suitability = {"test_fg": suitability}
+
+        candidate_keys = [0, 1, 2, 3]  # includes best_cell
+
+        np.random.seed(42)
+        counts = {k: 0 for k in candidate_keys}
+        for _ in range(2000):
+            counts[model._select_destination(cohort, candidate_keys)] += 1
+
+        # The high-suitability cell should dominate.
+        assert counts[best_cell] > sum(
+            counts[k] for k in candidate_keys if k != best_cell
+        )
+
+    def test_select_destination_exponent_zero_is_uniform(
+        self, prepared_animal_model_instance, mocker
+    ):
+        """An exponent of zero flattens weights to uniform selection.
+
+        With thermal_selection_exponent = 0 every weight becomes 1 regardless of
+        suitability, so selection is uniform — the documented sensitivity control.
+        """
+        import numpy as np
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={
+                "thermal_habitat_selection": True,
+                "thermal_selection_exponent": 0.0,
+                "thermal_suitability_floor": 0.01,
+            }
+        )
+
+        n_cells = model.data.grid.n_cells
+        suitability = np.linspace(0.01, 1.0, n_cells)
+
+        cohort = mocker.Mock()
+        cohort.functional_group.name = "test_fg"
+        model.thermal_suitability = {"test_fg": suitability}
+
+        candidate_keys = list(range(min(4, n_cells)))
+
+        np.random.seed(0)
+        counts = {k: 0 for k in candidate_keys}
+        for _ in range(4000):
+            counts[model._select_destination(cohort, candidate_keys)] += 1
+
+        # Each candidate should receive roughly an equal share (~1/n).
+        expected = 4000 / len(candidate_keys)
+        for k in candidate_keys:
+            assert counts[k] == pytest.approx(expected, rel=0.2)
+
+    def test_select_destination_floor_handles_all_lethal(
+        self, prepared_animal_model_instance, mocker
+    ):
+        """All-zero suitability still yields a valid draw, thanks to the floor.
+
+        Without the floor, zero weights would sum to zero and the probability
+        normalisation would divide by zero. The floor guarantees the cohort still
+        moves — blindly — when every reachable cell is lethal.
+        """
+        import numpy as np
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={
+                "thermal_habitat_selection": True,
+                "thermal_selection_exponent": 2.0,
+                "thermal_suitability_floor": 0.01,
+            }
+        )
+
+        n_cells = model.data.grid.n_cells
+        suitability = np.zeros(n_cells)  # every cell lethal
+
+        cohort = mocker.Mock()
+        cohort.functional_group.name = "test_fg"
+        model.thermal_suitability = {"test_fg": suitability}
+
+        candidate_keys = [0, 1, 2, 3]
+
+        # Must not raise and must return a valid candidate.
+        result = model._select_destination(cohort, candidate_keys)
+        assert result in candidate_keys
+
+    def test_select_destination_returns_python_int(
+        self, prepared_animal_model_instance, mocker
+    ):
+        """The weighted path returns a plain int, not a numpy integer.
+
+        migrate() and the communities dict are keyed on Python ints; a numpy int
+        from np.random.choice would work by coercion but is worth pinning, since the
+        function explicitly casts.
+        """
+        import numpy as np
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={"thermal_habitat_selection": True}
+        )
+
+        n_cells = model.data.grid.n_cells
+        cohort = mocker.Mock()
+        cohort.functional_group.name = "test_fg"
+        model.thermal_suitability = {"test_fg": np.full(n_cells, 0.5)}
+
+        result = model._select_destination(cohort, [0, 1, 2, 3])
+        assert type(result) is int
 
 
 def test_to_per_day(prepared_animal_model_instance):

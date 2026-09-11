@@ -411,7 +411,7 @@ class AnimalConstants(Configuration):
     offsets.
     """
 
-    thermal_habitat_selection: bool = False
+    thermal_habitat_selection: bool = True
     """Whether dispersal responds to the per-cell thermal microclimate.
 
     When ``False``, the thermal suitability grid is never built and cohort dispersal

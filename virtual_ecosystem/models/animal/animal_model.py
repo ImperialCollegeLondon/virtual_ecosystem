@@ -528,6 +528,7 @@ class AnimalModel(
         # TODO: merge problems as community looping is not internal to comm methods
         # TODO: These pools are populated but nothing actually gets done with them at
         # the moment, this will have to change when scavenging gets introduced
+        # TODO: the exporter runs AFTER migration events. This creates a mismatch.
 
         # The soil pools have to be populated again to reflect the changes that will
         # have happened in the last time step for those models
@@ -540,12 +541,12 @@ class AnimalModel(
         self.reset_trophic_records()
         self.update_activity_windows_community()
         self.forage_community(self.update_interval_timedelta)
-        self.migrate_community(self.update_interval_timedelta)
         self.birth_community()
         self.metamorphose_community()
-        self.migrate_external_community()
         self.metabolize_community(self.update_interval_timedelta)
         self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
+        self.migrate_community(self.update_interval_timedelta)
+        self.migrate_external_community()
         self.update_community_bookkeeping(self.update_interval_timedelta)
         self.update_cohort_bookkeeping(self.update_interval_timedelta)
 
