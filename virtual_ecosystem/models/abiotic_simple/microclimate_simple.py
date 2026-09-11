@@ -126,7 +126,7 @@ def run_simple_microclimate(
         lower, upper, gradient = getattr(bounds, var)
 
         output[var] = exp_interpolation(
-            reference_data=data[var + "_ref"].isel(time_index=time_index).to_numpy(),
+            reference_data=data.get_time_slice(var + "_ref", time_index).to_numpy(),
             leaf_area_index_sum=leaf_area_index_sum,
             layer_structure=layer_structure,
             layer_heights=data["layer_heights"].to_numpy(),
@@ -142,7 +142,7 @@ def run_simple_microclimate(
     # wind profiles, the wind speed should be always positive going into the equations.
     lower_wind, upper_wind, gradient_wind = getattr(bounds, "wind_speed")
     reference_wind_speed = np.abs(
-        data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+        data.get_time_slice("wind_speed_ref", time_index).to_numpy()
     )
 
     output["wind_speed"] = log_interpolation(
@@ -169,7 +169,7 @@ def run_simple_microclimate(
     output["atmospheric_pressure"] = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
         mask_variable=output["air_temperature"],
-        variable_name=data["atmospheric_pressure_ref"],
+        variable_name=data.data["atmospheric_pressure_ref"],
         time_index=time_index,
     )
 
@@ -177,7 +177,7 @@ def run_simple_microclimate(
     output["atmospheric_co2"] = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
         mask_variable=output["air_temperature"],
-        variable_name=data["atmospheric_co2_ref"],
+        variable_name=data.data["atmospheric_co2_ref"],
         time_index=time_index,
     )
 
@@ -188,8 +188,8 @@ def run_simple_microclimate(
         surface_temperature=output["air_temperature"].isel(
             layers=layer_structure.index_surface
         ),
-        mean_annual_temperature=data["mean_annual_temperature"].isel(
-            time_index=time_index
+        mean_annual_temperature=data.get_time_slice(
+            "mean_annual_temperature", time_index
         ),
         layer_structure=layer_structure,
         upper_bound=upper,
@@ -200,7 +200,7 @@ def run_simple_microclimate(
     output["canopy_temperature"] = output["air_temperature"].copy()
 
     # Initialise diurnal temperature range, [C]
-    layer_values = data["diurnal_temperature_range_ref"].isel(time_index=time_index)
+    layer_values = data.get_time_slice("diurnal_temperature_range_ref", time_index)
 
     valid_mask = (
         output["air_temperature"].notnull() | output["soil_temperature"].notnull()

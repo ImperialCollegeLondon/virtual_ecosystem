@@ -868,6 +868,7 @@ def dummy_climate_data(fixture_core_components):
         data[var] = DataArray(
             np.repeat(np.asarray(values, dtype=float)[:, None], time_steps, axis=1),
             dims=["cell_id", "time_index"],
+            coords={"time_index": np.arange(time_steps)},
         )
 
     # ------------------------------------------------------------------

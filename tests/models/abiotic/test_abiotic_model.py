@@ -47,7 +47,7 @@ def fixture_abiotic_init_data(dummy_climate_data):
     # Reduce to data to initialise model
     init_data = Data(grid=dummy_climate_data.grid)
     for var in AbioticModel.vars_required_for_init:
-        init_data[var] = dummy_climate_data[var]
+        init_data[var] = dummy_climate_data.data[var]
 
     return init_data
 
@@ -235,7 +235,7 @@ def test_setup_and_update_abiotic_model(
 
     # Test that VPD was calculated for all time steps
     xr.testing.assert_allclose(
-        model.data["vapour_pressure_deficit_ref"],
+        model.data.data["vapour_pressure_deficit_ref"],
         DataArray(
             np.array(
                 [
@@ -248,6 +248,7 @@ def test_setup_and_update_abiotic_model(
             dims=["cell_id", "time_index"],
             coords={
                 "cell_id": [0, 1, 2, 3],
+                "time_index": [0, 1, 2],
             },
         ),
     )
@@ -282,7 +283,7 @@ def test_setup_and_update_abiotic_model(
 
     # Add update data to the model data
     for var in model.vars_required_for_update:
-        model.data[var] = dummy_climate_data[var]
+        model.data[var] = dummy_climate_data.data[var]
 
     model.update(time_index=0)
 
@@ -331,7 +332,7 @@ def test_update_warns_for_fractional_days(
     model.model_timing.update_interval_seconds = 90000  # fractional day
 
     for var in model.vars_required_for_update:
-        model.data[var] = dummy_climate_data[var]
+        model.data[var] = dummy_climate_data.data[var]
 
     with patch(
         "virtual_ecosystem.models.abiotic.abiotic_model.LOGGER.warning"

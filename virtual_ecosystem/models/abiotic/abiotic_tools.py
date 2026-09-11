@@ -355,7 +355,8 @@ def update_profile_from_reference(
     Args:
         layer_structure: LayerStructure object defining the layer setup
         mask_variable: DataArray used to create the atmospheric mask
-        variable_name: Reference variable (e.g. data["atmospheric_pressure_ref"])
+        variable_name: Reference variable as a full timeseries DataArray (e.g.
+            ``data.data["atmospheric_pressure_ref"]``)
         time_index: Index of the current time step
 
     Returns:

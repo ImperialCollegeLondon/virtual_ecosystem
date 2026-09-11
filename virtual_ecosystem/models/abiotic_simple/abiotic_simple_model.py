@@ -152,8 +152,8 @@ class AbioticSimpleModel(
 
         # calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
-            temperature=self.data["air_temperature_ref"],
-            relative_humidity=self.data["relative_humidity_ref"],
+            temperature=self.data.data["air_temperature_ref"],
+            relative_humidity=self.data.data["relative_humidity_ref"],
             pyrealm_core_constants=self.pyrealm_core_constants,
         )
         self.data["vapour_pressure_deficit_ref"] = vapour_pressure_and_deficit[

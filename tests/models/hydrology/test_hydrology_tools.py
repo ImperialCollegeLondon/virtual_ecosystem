@@ -108,7 +108,7 @@ def test_setup_hydrology_input_current_timestep(
     # check if climate values are selected correctly
     np.testing.assert_allclose(
         np.sum(result["current_precipitation"], axis=1),
-        (data["precipitation"].isel(time_index=0)).to_numpy(),
+        (data.get_time_slice("precipitation", 0)).to_numpy(),
     )
     # Get the surface layer index as an integer to extract a 1D slice
     surface_idx = lyr_strct.index_surface_scalar

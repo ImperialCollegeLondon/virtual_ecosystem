@@ -559,7 +559,7 @@ class Time(AxisValidator):
     """
 
     core_axis = "time"
-    dim_names = frozenset(["time"])
+    dim_names = frozenset(["time_index"])
 
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Check the validator applies to the inputs.

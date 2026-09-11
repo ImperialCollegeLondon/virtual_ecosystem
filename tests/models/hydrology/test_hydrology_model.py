@@ -40,7 +40,7 @@ def fixture_hydrology_init_data(dummy_climate_data):
     # Reduce to data to initialise model
     init_data = Data(grid=dummy_climate_data.grid)
     for var in HydrologyModel.vars_required_for_init:
-        init_data[var] = dummy_climate_data[var]
+        init_data[var] = dummy_climate_data.data[var]
 
     return init_data
 
@@ -240,7 +240,7 @@ def test_setup_and_update_hydrology_model_ranges(
         model.vars_populated_by_init
     )
     for var in data_required_from_other_sources:
-        model.data[var] = dummy_climate_data[var]
+        model.data[var] = dummy_climate_data.data[var]
 
     # Run the update step
     model.update(time_index=1, seed=42)
@@ -291,9 +291,9 @@ def test_setup_and_update_hydrology_model_ranges(
         surface_channel_inflow_mm=model.data[
             "surface_runoff_routed_plus_local"
         ].to_numpy(),
-        monthly_precipitation_mm=dummy_climate_data["precipitation"]
-        .isel(time_index=1)
-        .to_numpy(),
+        monthly_precipitation_mm=dummy_climate_data.get_time_slice(
+            "precipitation", 1
+        ).to_numpy(),
         monthly_evaporation_mm=model.data["soil_evaporation"].to_numpy(),
     )
 
@@ -317,7 +317,7 @@ def test_update_warns_for_fractional_days(
     model.model_timing.update_interval_seconds = 90000  # fractional day
 
     for var in model.vars_required_for_update:
-        model.data[var] = dummy_climate_data[var]
+        model.data[var] = dummy_climate_data.data[var]
 
     with patch(
         "virtual_ecosystem.models.hydrology.hydrology_model.LOGGER.warning"

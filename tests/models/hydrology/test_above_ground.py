@@ -311,7 +311,7 @@ def test_calculate_interception(
 
     result = calculate_interception(
         leaf_area_index=data["leaf_area_index"].to_numpy(),
-        precipitation=data["precipitation"].isel(time_index=1).to_numpy(),
+        precipitation=data.get_time_slice("precipitation", 1).to_numpy(),
         intercept_parameters=fixture_hydrology_constants.intercept_parameters,
         veg_density_param=fixture_hydrology_constants.veg_density_param,
     )
