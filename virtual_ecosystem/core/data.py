@@ -298,6 +298,26 @@ class Data:
         """
         return self.data[variable].isel(time_index=time_index)
 
+    def get_time_series(self, variable: str) -> DataArray:
+        """Get the variable whole time series information.
+
+        Args:
+            variable: The name of the data variable to get.
+
+        Raises:
+            KeyError: if the data variable is not present.
+            ValueError: if the DataArray does not have a `time_index` dimension.
+        """
+        value = self.data[variable]
+
+        if "time_index" not in value.dims:
+            raise ValueError(
+                "Time series requested for a variable without 'time_index' "
+                f"dimension: {variable}."
+            )
+
+        return value
+
     def on_core_axis(self, var_name: str, axis_name: str) -> bool:
         """Check core axis validation.
 
