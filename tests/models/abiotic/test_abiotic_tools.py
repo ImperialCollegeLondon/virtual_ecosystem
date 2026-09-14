@@ -356,7 +356,7 @@ def test_update_profile_from_reference(fixture_core_components, dummy_climate_da
     result = update_profile_from_reference(
         layer_structure=lyr_str,
         mask_variable=data["air_temperature"],
-        variable_name=data.data["atmospheric_pressure_ref"],
+        variable_name=data.get_time_series("atmospheric_pressure_ref"),
         time_index=1,
     )
 

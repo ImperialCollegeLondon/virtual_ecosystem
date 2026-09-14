@@ -66,7 +66,7 @@ def prepare_static_inputs(
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
         mask_variable=data["air_temperature"],
-        variable_name=data.data["atmospheric_pressure_ref"],
+        variable_name=data.get_time_series("atmospheric_pressure_ref"),
         time_index=time_index,
     )
     atmospheric_pressure_true = atmospheric_pressure.to_numpy()
@@ -75,7 +75,7 @@ def prepare_static_inputs(
     atmospheric_co2 = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
         mask_variable=data["air_temperature"],
-        variable_name=data.data["atmospheric_co2_ref"],
+        variable_name=data.get_time_series("atmospheric_co2_ref"),
         time_index=time_index,
     )
     atmospheric_co2_true = atmospheric_co2.to_numpy()

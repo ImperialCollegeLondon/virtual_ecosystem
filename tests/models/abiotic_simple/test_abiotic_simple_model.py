@@ -193,7 +193,7 @@ def test_setup_and_update_abiotic_simple_model(
         coords={"cell_id": [0, 1, 2, 3], "time_index": [0, 1, 2]},
     )
     xr.testing.assert_allclose(
-        model.data.data["vapour_pressure_deficit_ref"], exp_vpdref
+        model.data.get_time_series("vapour_pressure_deficit_ref"), exp_vpdref
     )
 
     # Add update data to the model data

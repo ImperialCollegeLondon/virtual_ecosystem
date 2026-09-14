@@ -235,7 +235,7 @@ def test_setup_and_update_abiotic_model(
 
     # Test that VPD was calculated for all time steps
     xr.testing.assert_allclose(
-        model.data.data["vapour_pressure_deficit_ref"],
+        model.data.get_time_series("vapour_pressure_deficit_ref"),
         DataArray(
             np.array(
                 [
