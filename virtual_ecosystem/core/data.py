@@ -401,8 +401,8 @@ class Data:
         else:
             out = self.data
 
-        # Unstack cell_id back to XY
-        out = out.set_index(cell_id=["y", "x"]).unstack("cell_id")
+        # # Unstack cell_id back to XY
+        # out = out.set_index(cell_id=["y", "x"]).unstack("cell_id")
 
         out.to_zarr(
             output_file_path, group=group, mode="a", consolidated=False, zarr_format=2
@@ -438,8 +438,8 @@ class Data:
         )
         time_slice["timestamp"] = xr.DataArray([timestamp], dims="time_index")
 
-        # Collapse cell_id back to XY
-        time_slice = time_slice.set_index(cell_id=["y", "x"]).unstack("cell_id")
+        # # Collapse cell_id back to XY
+        # time_slice = time_slice.set_index(cell_id=["y", "x"]).unstack("cell_id")
 
         # Save the variables to the zarr store, appending along time index after the
         # first time step. Zarr format 2 is used here because format 3 doesn't currently
