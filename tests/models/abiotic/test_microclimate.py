@@ -239,9 +239,9 @@ def test_generate_hourly_forcing(
 
     monthly_sum_sw_abs = np.nansum(forcing["shortwave_absorption_hourly"], axis=0)
     total_shortwave_absorption = calculate_total_absorbed_shortwave_radiation(
-        downward_shortwave_radiation=data["downward_shortwave_radiation"]
-        .isel(time_index=time_index)
-        .to_numpy(),
+        downward_shortwave_radiation=data.get_time_slice(
+            "downward_shortwave_radiation", time_index
+        ).to_numpy(),
         shortwave_absorption_by_canopy=data["shortwave_absorption"].to_numpy(),
         fraction_par_used=abiotic_constants.fraction_par_used_for_photosynthesis,
         leaf_absorptance_non_par=abiotic_constants.leaf_absorptance_non_par,
