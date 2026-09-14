@@ -29,9 +29,19 @@ Litter decay and soil nutrient transformations are both affected by environment.
 most basic level these are impacts on the microbial components of the soil and litter
 models, which then impact the models more broadly. There are three different ways that
 these impacts are represented in the models. The rates of processes that are implicitly
-driven by microbes can change, the growth rates of the different microbial groups can be
-directly affected, or the enzymatic rates can be affected. Each of these cases will be
-dealt with in detail below.
+driven by microbes can change, the physiological rates of the different microbial groups
+can be directly affected, or the enzymatic rates can be affected. Each of these cases
+will be dealt with in detail below.
+
+Temperature impacts both the microbially driven and purely physiochemical processes in
+the soil. However, as the microbial processes are generally more affected by temperature
+changes, we only seek to capture this component in our modelling of thermal responses.
+This means that processes that we assume don't have a microbially driven component
+(necromass breakdown, {term}`LMWC` sorption to soil minerals, breakdown of primary
+mineral phosphorus, and the formation and breakdown of secondary mineral phosphorus) are
+also assumed to not vary with temperature. Likewise, in the single case where a process
+has both a microbe-mediated and purely physiochemical term (breakdown of
+{term}`MAOM`), the physicochemical term is assumed to not vary with temperature.
 
 At present, the only environmental impact we represent that isn't mediated by microbes
 is the the rate at which nutrients leach from the soil. As such, this process does not
