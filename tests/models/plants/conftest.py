@@ -341,7 +341,7 @@ def fixture_canopy_layer_data(
 
     # Shortwave radiation is the fraction of canopy top DSR that is absorbed by each
     # layer plus what reaches the ground
-    dsr_t0 = plants_data["downward_shortwave_radiation"][:, 0].drop_vars("time_index")
+    dsr_t0 = plants_data["downward_shortwave_radiation"].drop_vars("time_index")
     dsr_by_layer = expected["layer_fapar_full"][1] * dsr_t0
     ground_incident_dsr = dsr_t0 - dsr_by_layer.sum(axis=0)
     dsr_by_layer[lyr_struct.index_topsoil] = ground_incident_dsr
