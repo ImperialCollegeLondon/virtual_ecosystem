@@ -64,7 +64,7 @@ Each setting accepts a list of attribute names to export for that data type:
 
 Each data type has a number of mandatory indexing fields which will automatically be
 exported if any attributes are selected. These are shown in the sections below, but are
-the fields needed to index the data within the simulation, such as the `cohort_id`, 
+the fields needed to index the data within the simulation, such as the `cohort_id`,
 `cell_id`, `time`, `time_index`, etc.
 
 The default settings are shown below along with a short description of each setting:
