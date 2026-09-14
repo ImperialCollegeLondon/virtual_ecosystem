@@ -1869,9 +1869,9 @@ class AnimalModel(
 
         Per-stratum temperatures and diurnal ranges are pre-computed once per
         timestep as per-cell means by :meth:`_build_stratum_climate`, then
-        :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_mean_territory_climate`
-        derives the climate experienced by each cohort based on its vertical
-        occupancy. Both variables are averaged across all territory cells.
+        AnimalCohort.get_mean_territory_climate derives the climate experienced by each
+        cohort based on its vertical occupancy. Both variables are averaged across all
+        territory cells.
 
         Note:
             Annual values are per-functional-group reference values resolved once at

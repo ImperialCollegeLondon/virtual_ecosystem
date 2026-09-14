@@ -20,7 +20,7 @@ class StratumClimate:
     """Per-cell temperature and diurnal range for each vertical stratum.
 
     Assembled once per timestep from the abiotic model's layered outputs by
-    :meth:`~virtual_ecosystem.models.animal.animal_model.AnimalModel._build_stratum_climate`.
+    AnimalModel._build_stratum_climate.
     Every array is one-dimensional with shape ``(n_cells,)`` and is indexed by grid
     cell id.
 
