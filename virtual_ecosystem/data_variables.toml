@@ -777,6 +777,20 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Rate of respiration from above-ground litter. This is what is empirically considered to be litter respiration."
+name = "above_ground_litter_respiration"
+unit = "kg m-2 day-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate of respiration from above-ground litter. Empirically this will not be distinguishable from soil respiration, and so should be combined with it for downstream analysis"
+name = "below_ground_litter_respiration"
+unit = "kg m-2 day-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Proportion of above ground structural litter carbon which is lignin carbon"
 name = "lignin_above_structural"
 unit = "unitless"
