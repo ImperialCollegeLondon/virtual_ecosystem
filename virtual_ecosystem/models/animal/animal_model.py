@@ -1868,7 +1868,7 @@ class AnimalModel(
         """Update the activity window fraction for all cohorts in all communities.
 
         Per-stratum temperatures and diurnal ranges are pre-computed once per
-        timestep as per-cell means by :meth:`_build_stratum_climate`, then
+        timestep as per-cell means by _build_stratum_climate, then
         AnimalCohort.get_mean_territory_climate derives the climate experienced by each
         cohort based on its vertical occupancy. Both variables are averaged across all
         territory cells.
