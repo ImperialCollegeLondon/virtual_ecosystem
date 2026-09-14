@@ -550,7 +550,7 @@ def growth_rates(
 
     from virtual_ecosystem.models.soil.pools import calculate_nutrient_uptake_rates
 
-    bacterial_growth, _ = calculate_nutrient_uptake_rates(
+    bacterial_growth, _, _ = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=soil_pool_data.soil_cnp_pool_lmwc_carbon,
         soil_n_pool_don=soil_pool_data.soil_cnp_pool_lmwc_nitrogen,
         soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
@@ -565,7 +565,7 @@ def growth_rates(
         constants=fixture_soil_constants,
         functional_group=functional_groups["bacteria"],
     )
-    saprotrophic_fungal_growth, _ = calculate_nutrient_uptake_rates(
+    saprotrophic_fungal_growth, _, _ = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=soil_pool_data.soil_cnp_pool_lmwc_carbon,
         soil_n_pool_don=soil_pool_data.soil_cnp_pool_lmwc_nitrogen,
         soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
@@ -580,7 +580,7 @@ def growth_rates(
         constants=fixture_soil_constants,
         functional_group=functional_groups["saprotrophic_fungi"],
     )
-    arbuscular_mycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
+    arbuscular_mycorrhizal_growth, _, _ = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=soil_pool_data.soil_cnp_pool_lmwc_carbon,
         soil_n_pool_don=soil_pool_data.soil_cnp_pool_lmwc_nitrogen,
         soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
@@ -595,7 +595,7 @@ def growth_rates(
         constants=fixture_soil_constants,
         functional_group=functional_groups["arbuscular_mycorrhiza"],
     )
-    ectomycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
+    ectomycorrhizal_growth, _, _ = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=soil_pool_data.soil_cnp_pool_lmwc_carbon,
         soil_n_pool_don=soil_pool_data.soil_cnp_pool_lmwc_nitrogen,
         soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,

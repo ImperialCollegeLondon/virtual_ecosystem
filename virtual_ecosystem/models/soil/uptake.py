@@ -85,7 +85,7 @@ def calculate_nutrient_uptake_rates(
     soil_temp: NDArray[np.floating],
     constants: SoilConstants,
     functional_group: MicrobialGroupConstants,
-) -> tuple[NDArray[np.floating], NetNutrientConsumption]:
+) -> tuple[NDArray[np.floating], NDArray[np.floating], NetNutrientConsumption]:
     """Calculate the rate at which microbes uptake each nutrient.
 
     These rates are found based on the assumption that microbial stoichiometry is
@@ -125,15 +125,15 @@ def calculate_nutrient_uptake_rates(
     than the microbes can use the surplus is added to the soil as :term:`LMWC`.
 
     Args:
-        soil_c_pool_lmwc: Low molecular weight carbon pool [kg{C} m^-3]
-        soil_n_pool_don: Dissolved organic nitrogen pool [kg{N} m^-3]
-        soil_n_pool_ammonium: Soil ammonium pool [kg{N} m^-3]
-        soil_n_pool_nitrate: Soil nitrate pool [kg{N} m^-3]
-        soil_p_pool_dop: Dissolved organic phosphorus pool [kg{P} m^-3]
-        soil_p_pool_labile: Labile inorganic phosphorus pool [kg{P} m^-3]
-        microbial_pool_size: Amount of biomass for functional of interest [kg{C} m^-3]
+        soil_c_pool_lmwc: Low molecular weight carbon pool [kg{C} m-3]
+        soil_n_pool_don: Dissolved organic nitrogen pool [kg{N} m-3]
+        soil_n_pool_ammonium: Soil ammonium pool [kg{N} m-3]
+        soil_n_pool_nitrate: Soil nitrate pool [kg{N} m-3]
+        soil_p_pool_dop: Dissolved organic phosphorus pool [kg{P} m-3]
+        soil_p_pool_labile: Labile inorganic phosphorus pool [kg{P} m-3]
+        microbial_pool_size: Amount of biomass for functional of interest [kg{C} m-3]
         external_carbon_supply: Additional supply of carbon to the microbial group from
-            external sources (i.e. partner plants) [kg{C} m^-3 day^-1]
+            external sources (i.e. partner plants) [kg{C} m-3 day-1]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
         pH_factor: A factor capturing the impact of soil pH on microbial rates
@@ -145,8 +145,9 @@ def calculate_nutrient_uptake_rates(
 
     Returns:
         A tuple containing the rate at which microbial (cellular) biomass is generated
-        due to nutrient uptake, as well as a dataclass containing the rate at which
-        carbon, nitrogen and phosphorus get taken up.
+        due to nutrient uptake [kg{C} m-3 day-1], the rate at which microbes respire
+        carbon [kg{C} m-3 day-1], and a dataclass containing the rates at which carbon,
+        nitrogen and phosphorus get taken up.
 
     Raises:
         ValueError: If an external carbon supply is provided without a corresponding
@@ -199,9 +200,12 @@ def calculate_nutrient_uptake_rates(
             ammonium_mineralisation_proportion=constants.ammonium_mineralisation_proportion,
         )
 
-    # TODO - the quantities calculated above can be used to calculate the carbon
-    # respired instead of being uptaken. This isn't currently of interest, but will be
-    # in future
+    # Calculate the amount of carbon respired based on the carbon biomass gain and
+    # carbon use efficiency
+    carbon_respired = calculate_carbon_respired(
+        actual_carbon_gain=actual_carbon_gain,
+        carbon_use_efficiency=carbon_use_efficiency,
+    )
 
     # Carbon gain needs to be divided by the proportional enzyme production as it
     # represents biomass gain and enzyme production.
@@ -212,6 +216,7 @@ def calculate_nutrient_uptake_rates(
             + sum(functional_group.enzyme_production.values())
             + functional_group.reproductive_allocation
         ),
+        carbon_respired,
         consumption_rates,
     )
 
@@ -675,3 +680,25 @@ def calculate_highest_achievable_nutrient_uptake(
     return np.where(
         (microbial_pool_size >= 0.0) & (labile_nutrient_pool >= 0.0), uptake_rate, 0.0
     )
+
+
+def calculate_carbon_respired(
+    actual_carbon_gain: NDArray[np.floating],
+    carbon_use_efficiency: NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Calculate respiration based on biomass (carbon) gain and carbon use efficiency.
+
+    Args:
+        actual_carbon_gain: The rate at which carbon is assimilated to biomass
+            [kg{C} m-3 day-1].
+        carbon_use_efficiency: The carbon use efficiency (CUE) of the microbial group
+            [unitless].
+
+    Returns:
+        The rate at which carbon is respired by the microbial group [kg{C} m-3 day-1].
+    """
+
+    # Calculate total carbon uptake based on carbon biomass gain and CUE
+    total_carbon_uptake = actual_carbon_gain / carbon_use_efficiency
+
+    return (1 - carbon_use_efficiency) * total_carbon_uptake
