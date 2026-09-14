@@ -61,7 +61,7 @@ def test_calculate_wind_profile(dummy_climate_data, fixture_core_components):
 
     result = calculate_wind_profile(
         reference_wind_speed=np.abs(
-            data["wind_speed_ref"].isel(time_index=0).to_numpy()
+            data.get_time_slice("wind_speed_ref", 0).to_numpy()
         ),
         reference_height=data["layer_heights"][0].to_numpy() + 10.0,
         wind_heights=data["layer_heights"][lyr_str.index_filled_atmosphere].to_numpy(),
@@ -95,7 +95,7 @@ def test_calculate_friction_velocity(dummy_climate_data):
 
     result = calculate_friction_velocity(
         reference_wind_speed=np.abs(
-            data["wind_speed_ref"].isel(time_index=0).to_numpy()
+            data.get_time_slice("wind_speed_ref", 0).to_numpy()
         ),
         reference_height=data["layer_heights"][0].to_numpy() + 10.0,
         roughness_length=data["roughness_length_momentum"].to_numpy(),
