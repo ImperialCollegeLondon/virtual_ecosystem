@@ -899,7 +899,7 @@ def test_convert_zarr_outputs_to_netcdf(tmp_path):
 
     # Generate a grouped output like the real outputs
     zarr_out = tmp_path / "temp.zarr"
-    groups = ("input", "init", "outputs")
+    groups = ("inputs", "init", "outputs")
 
     # Output data by time step as used in model update sequence.
     for time in np.arange(20):
