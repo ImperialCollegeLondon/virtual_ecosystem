@@ -27,17 +27,16 @@ language_info:
 
 Much of the data in the Plants Model is stored at the level of the individual cohorts
 that form the tree communities present in different cells. The number of cohorts changes
-constantly through the simulation through recruitment and mortality and consist of
-many fields of information about each cohort. The cohort data are stored within the
+constantly through the simulation through recruitment and mortality. The cohort data
+consist of many fields of information about each cohort, and are stored within the
 model in [data frame](https://pandas.pydata.org/docs/user_guide/dsintro.html#dataframe)
-formats and, because these data frames do not have consistent unchanging dimensions, are
+formats. Because these data frames do not have consistent unchanging dimensions, they are
 not stored or exported using the same system as the [array
-variables](../../variables/variables.md) used elsewhere in the model.
-
-Instead, the Plants Model provides a configurable exporter options that allow cohort and
-community data to be exported at each time step. Data are exported to CSV format files
-and the data for each time step is appended to the files to generate a single file
-containing a time series through a simulation.
+variables](../../variables/variables.md) used elsewhere in the model. Instead, the Plants
+Model provides configurable exporter options that allow cohort and community data
+to be exported at each time step. Data are exported to CSV format files and the data for
+each time step is appended to the files to generate a single file containing a time series
+through a simulation.
 
 There are three kinds of data output available for export from the plants model, written
 to separate files in the output directory for a simulation.
@@ -55,19 +54,18 @@ to separate files in the output directory for a simulation.
 ## Configuration settings
 
 Data export is controlled through the `["plants.community_data_export"]` configuration
-section. The configuration settings includes a section for each of the three data types
-above, which can be used to provide a list of names of attributes to be exported for
-that data type:
+section, which contains a separate setting for each of the three export data types above.
+Each setting accepts a list of attribute names to export for that data type:
 
-* `[]` - the default value of an empty list does not export any attributes.
+* `[]`: the default value of an empty list does not export any attributes.
 * `["attribute_a", "attribute_b"]`: the named attributes are exported.
 * `"ALL"`: This is a special keyword value that provides a shortcut to exporting all
   available attributes.
 
 Each data type has a number of mandatory indexing fields which will automatically be
 exported if any attributes are selected. These are shown in the sections below, but are
-the fields needed to index the data within the simulation, such as the cohort ID, cell
-ID, time etc.
+the fields needed to index the data within the simulation, such as the `cohort_id`, 
+`cell_id`, `time`, `time_index`, etc.
 
 The default settings are shown below along with a short description of each setting:
 
@@ -134,8 +132,8 @@ dump_config_toml("plants.community_data_export", config_object)
 
 ## Cohort data
 
-The simulation provides a lot of different cohort-level attributes that fall into the
-following main groupings:
+The simulation provides a set of cohort-level attributes that fall into the following
+main groupings:
 
 * The core cohort details - how many individuals of which PFT are in a cell at this
   timestep.
@@ -151,7 +149,7 @@ following main groupings:
 
 ### Core cohort details
 
-The table below shows the core cohort attribute. The starred fields are _always_
+The table below shows the core cohort attributes. The starred fields are _always_
 included in cohort level data even if they are not explicitly included in the cohort
 attribute export configuration.
 
@@ -254,7 +252,7 @@ display_markdown(
 The community canopy data provides details of the whole community canopy properties.
 This includes the canopy layer closure heights under the perfect plasticity
 approximation and the modelled light environment through the canopy. The starred
-attributes are again the indexing fields that are always included in exported data for
+attributes are the indexing fields that are always included in exported data for
 this type.
 
 ```{code-cell} ipython3
@@ -288,9 +286,9 @@ display_markdown(
 
 ## Stem canopy data
 
-The stem canopy data provides details of contributions of the individual stems within
-each cohort to the community crown. The starred attributes are again the indexing fields
-that are always included in exported data for this type.
+The stem canopy data provide details of how individual stems within each cohort contribute
+to the overall canopy of the plant community. The starred attributes are the indexing
+fields that are always included in exported data for this type.
 
 ```{code-cell} ipython3
 ---
