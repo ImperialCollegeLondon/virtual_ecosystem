@@ -917,7 +917,7 @@ def test_convert_zarr_outputs_to_netcdf(tmp_path):
     nc_out = convert_zarr_outputs_to_netcdf(zarr_store=zarr_out)
 
     # Check groups match
-    zr = xr.open_datatree(zarr_out, consolidated=False)
+    zr = xr.open_datatree(zarr_out, consolidated=False, engine="zarr")
     nc = xr.open_datatree(nc_out)
 
     assert set(zr.groups) == set(nc.groups)
