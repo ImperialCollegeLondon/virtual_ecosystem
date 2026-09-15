@@ -199,6 +199,8 @@ subtrees:
                     title: The animal_traits submodule
                   - file: api/models/animal/cnp
                     title: The CNP submodule
+                  - file: api/models/animal/animal_climate
+                    title: The animal_climate submodule
                   - file: api/models/animal/decay
                     title: The decay submodule
                   - file: api/models/animal/functional_group
