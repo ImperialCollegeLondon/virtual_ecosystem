@@ -215,6 +215,14 @@ carbon costs of herbivory.
 The table below shows the allometry, carbon allocation and growth increment fields
 available for export.
 
+:::{note}
+
+The tissue masses in the table below are _theoretical_ predictions of the values from
+the allometry of the T Model. Herbivory can reduce the [realised
+biomasses](#realised-tissue-biomasses) of some tissues. At present, the Virtual
+Ecosystem only tracks mass loss from folivory.
+:::
+
 ```{code-cell} ipython3
 ---
 tags: [remove-input]
@@ -242,8 +250,13 @@ display_markdown(
 
 The Plants model records the elemental masses in each of the tissues of individuals
 within cohorts, along with any surplus elemental masses that accumulate when tissues
-have reached their ideal stoichiometric ratios. The fields below show the realised
-biomass attributes that can be exported.
+have reached their ideal stoichiometric ratios.
+
+The fields below lists the exportable attributes giving the elemental biomasses for the
+tissues in individuals within each cohort. These are _realised_ tissue masses,
+accounting for herbivory and so the carbon masses can differ from the allometric
+predictions of tissue carbon mass under the T Model that are described in the previous
+section.
 
 ```{code-cell} ipython3
 ---
