@@ -169,10 +169,11 @@ class SoilModel(
         "arbuscular_mycorrhizal_p_supply",
         "ectomycorrhizal_n_supply",
         "ectomycorrhizal_p_supply",
+        "soil_respiration",
     ),
     # TODO - If anything gets added to this section the implementation docs will need to
     # be updated
-    vars_populated_by_first_update=(),
+    vars_populated_by_first_update=("soil_respiration",),
 ):
     """A class defining the soil model.
 
@@ -220,6 +221,7 @@ class SoilModel(
             "new_amf_p_supply",
             "new_emf_n_supply",
             "new_emf_p_supply",
+            "soil_respiration",
         ]
         """List of variables that the model resets for each new integration step.
         
@@ -384,14 +386,25 @@ class SoilModel(
             }
         )
 
-        new_fungal_fruiting_bodies = {
-            "fungal_fruiting_bodies_cnp": self.data["fungal_fruiting_bodies_cnp"]
-            + (
-                updated_soil_pools["cnp_fungal_fruiting_body_production"]
-                / self.core_constants.microbial_simulation_depth
-            )
-        }
-        self.data.add_from_dict(new_fungal_fruiting_bodies)
+        # Update fungal fruiting bodies based on production by soil model
+        self.data.add_from_dict(
+            {
+                "fungal_fruiting_bodies_cnp": self.data["fungal_fruiting_bodies_cnp"]
+                + (
+                    updated_soil_pools["cnp_fungal_fruiting_body_production"]
+                    * self.core_constants.microbial_simulation_depth
+                )
+            }
+        )
+
+        # Add respiration
+        self.data.add_from_dict(
+            {
+                "soil_respiration": updated_soil_pools["soil_respiration"]
+                * self.core_constants.microbial_simulation_depth
+                / self.model_timing.update_interval_quantity.to("days").magnitude
+            }
+        )
 
         # Calculate dissolved amounts of each inorganic nutrients
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
@@ -412,14 +425,17 @@ class SoilModel(
         """Checks if all soil pools values greater than or equal to zero.
 
         Returns:
-            A bool specifying whether all pools updated by the model are positive or
-            not.
+            A bool specifying whether all pools present at setup that are updated by the
+            model are positive or not.
         """
 
         all_positive = True
 
         for var in self.vars_updated:
-            if np.any(self.data[var] < 0.0):
+            # Only check pools if they aren't generated later by the update step
+            if var not in self.vars_populated_by_first_update and np.any(
+                self.data[var] < 0.0
+            ):
                 all_positive = False
 
         return all_positive
@@ -458,7 +474,10 @@ class SoilModel(
 
         # Some variables are updated by the model but not as part of the integration.
         # These are the fungal fruiting bodies + everything populated by the init
-        var_updated_outside_integration = ["fungal_fruiting_bodies_cnp"] + [
+        var_updated_outside_integration = [
+            "fungal_fruiting_bodies_cnp",
+            "soil_respiration",
+        ] + [
             name
             for name in map(str, self.data.data.keys())
             if name in self.vars_populated_by_init
@@ -678,7 +697,7 @@ class SoilModel(
 
         Returns:
             A dictionary of data arrays containing the total supply of each nutrient
-            (per grid cell) [kg nutrient].
+            (per grid cell) [kg{nutrient}].
         """
 
         var_combinations = product(
@@ -702,7 +721,7 @@ class SoilModel(
         converted to this.
 
         Args:
-            output_rate: Rate of output to convert [kg m^-3 day^-1].
+            output_rate: Rate of output to convert [kg m-3 day-1].
 
         Returns:
             Output rate converted to per area units [kg].

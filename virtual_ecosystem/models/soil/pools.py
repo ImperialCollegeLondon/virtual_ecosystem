@@ -324,116 +324,119 @@ class PoolData:
     """Data class collecting the full set of soil pools updated by the soil model."""
 
     soil_cnp_pool_maom_carbon: NDArray[np.floating]
-    """Carbon content of the mineral associated organic matter pool [kg{C} m^-3]."""
+    """Carbon content of the mineral associated organic matter pool [kg{C} m-3]."""
 
     soil_cnp_pool_maom_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the :term:`MAOM` pool [kg{N} m^-3]."""
+    """Nitrogen content of the :term:`MAOM` pool [kg{N} m-3]."""
 
     soil_cnp_pool_maom_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the :term:`MAOM` pool [kg{P} m^-3]."""
+    """Phosphorus content of the :term:`MAOM` pool [kg{P} m-3]."""
 
     soil_cnp_pool_lmwc_carbon: NDArray[np.floating]
-    """Carbon content of the low molecular weight carbon pool [kg{C} m^-3]."""
+    """Carbon content of the low molecular weight carbon pool [kg{C} m-3]."""
 
     soil_cnp_pool_lmwc_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the :term:`LMWC` pool [kg{N} m^-3]."""
+    """Nitrogen content of the :term:`LMWC` pool [kg{N} m-3]."""
 
     soil_cnp_pool_lmwc_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the :term:`LMWC` pool [kg{P} m^-3]."""
+    """Phosphorus content of the :term:`LMWC` pool [kg{P} m-3]."""
 
     soil_c_pool_bacteria: NDArray[np.floating]
-    """Bacterial biomass pool [kg{C} m^-3]."""
+    """Bacterial biomass pool [kg{C} m-3]."""
 
     soil_c_pool_saprotrophic_fungi: NDArray[np.floating]
-    """Saprotrophic fungi biomass pool [kg{C} m^-3]."""
+    """Saprotrophic fungi biomass pool [kg{C} m-3]."""
 
     soil_c_pool_arbuscular_mycorrhiza: NDArray[np.floating]
-    """Arbuscular mycorrhizal fungi biomass pool [kg{C} m^-3]."""
+    """Arbuscular mycorrhizal fungi biomass pool [kg{C} m-3]."""
 
     soil_c_pool_ectomycorrhiza: NDArray[np.floating]
-    """Ectomycorrhizal fungi biomass pool [kg{C} m^-3]."""
+    """Ectomycorrhizal fungi biomass pool [kg{C} m-3]."""
 
     soil_cnp_pool_pom_carbon: NDArray[np.floating]
-    """Carbon content of the particulate organic matter pool [kg{C} m^-3]."""
+    """Carbon content of the particulate organic matter pool [kg{C} m-3]."""
 
     soil_cnp_pool_pom_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the :term:`POM` pool [kg{N} m^-3]."""
+    """Nitrogen content of the :term:`POM` pool [kg{N} m-3]."""
 
     soil_cnp_pool_pom_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the :term:`POM` pool [kg{P} m^-3]."""
+    """Phosphorus content of the :term:`POM` pool [kg{P} m-3]."""
 
     soil_cnp_pool_necromass_carbon: NDArray[np.floating]
-    """Carbon content of the microbial necromass pool [kg{C} m^-3]."""
+    """Carbon content of the microbial necromass pool [kg{C} m-3]."""
 
     soil_cnp_pool_necromass_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the microbial necromass pool [kg{N} m^-3]."""
+    """Nitrogen content of the microbial necromass pool [kg{N} m-3]."""
 
     soil_cnp_pool_necromass_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the microbial necromass pool [kg{P} m^-3]."""
+    """Phosphorus content of the microbial necromass pool [kg{P} m-3]."""
 
     soil_enzyme_pom_bacteria: NDArray[np.floating]
-    """Bacteria produced enzyme class which breaks down :term:`POM` [kg{C} m^-3]."""
+    """Bacteria produced enzyme class which breaks down :term:`POM` [kg{C} m-3]."""
 
     soil_enzyme_maom_bacteria: NDArray[np.floating]
-    """Bacteria produced enzyme class which breaks down :term:`MAOM` [kg{C} m^-3]."""
+    """Bacteria produced enzyme class which breaks down :term:`MAOM` [kg{C} m-3]."""
 
     soil_enzyme_pom_fungi: NDArray[np.floating]
-    """Fungi produced enzyme class which breaks down :term:`POM` [kg{C} m^-3]."""
+    """Fungi produced enzyme class which breaks down :term:`POM` [kg{C} m-3]."""
 
     soil_enzyme_maom_fungi: NDArray[np.floating]
-    """Fungi produced enzyme class which breaks down :term:`MAOM` [kg{C} m^-3]."""
+    """Fungi produced enzyme class which breaks down :term:`MAOM` [kg{C} m-3]."""
 
     soil_n_pool_ammonium: NDArray[np.floating]
-    r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg{N} m^-3]."""
+    r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg{N} m-3]."""
 
     soil_n_pool_nitrate: NDArray[np.floating]
-    r"""Soil nitrate (:math:`\ce{NO3-}`) pool [kg{N} m^-3]."""
+    r"""Soil nitrate (:math:`\ce{NO3-}`) pool [kg{N} m-3]."""
 
     soil_p_pool_primary: NDArray[np.floating]
-    """Primary mineral phosphorus pool [kg{P} m^-3]."""
+    """Primary mineral phosphorus pool [kg{P} m-3]."""
 
     soil_p_pool_secondary: NDArray[np.floating]
-    """Secondary (inorganic) mineral phosphorus pool [kg{P} m^-3]."""
+    """Secondary (inorganic) mineral phosphorus pool [kg{P} m-3]."""
 
     soil_p_pool_labile: NDArray[np.floating]
-    """Inorganic labile phosphorus pool [kg{P} m^-3]."""
+    """Inorganic labile phosphorus pool [kg{P} m-3]."""
 
     cnp_fungal_fruiting_body_production_carbon: NDArray[np.floating]
-    """Fungal fruiting biomass produced during simulation time step [kg{C} m^-3]."""
+    """Fungal fruiting biomass produced during simulation time step [kg{C} m-3]."""
 
     cnp_fungal_fruiting_body_production_nitrogen: NDArray[np.floating]
     """Nitrogen content of fungal fruiting biomass produced during model time step.
      
-    Units of [kg{N} m^-3]."""
+    Units of [kg{N} m-3]."""
 
     cnp_fungal_fruiting_body_production_phosphorus: NDArray[np.floating]
     """Phosphorus content of fungal fruiting biomass produced during model time step.
     
-    Units of [kg{P} m^-3]."""
+    Units of [kg{P} m-3]."""
 
     new_amf_n_supply: NDArray[np.floating]
     """Nitrogen supplied to plants by arbuscular mycorrhiza over integration time.
 
-    Units of [kg{N} m^-3].
+    Units of [kg{N} m-3].
     """
 
     new_amf_p_supply: NDArray[np.floating]
     """Phosphorus supplied to plants by arbuscular mycorrhiza over integration time.
 
-    Units of [kg{P} m^-3].
+    Units of [kg{P} m-3].
     """
 
     new_emf_n_supply: NDArray[np.floating]
     """Nitrogen supplied to plants by ectomycorrhiza over integration time.
 
-    Units of [kg{N} m^-3].
+    Units of [kg{N} m-3].
     """
 
     new_emf_p_supply: NDArray[np.floating]
     """Phosphorus supplied to plants by ectomycorrhiza over integration time.
 
-    Units of [kg{P} m^-3].
+    Units of [kg{P} m-3].
     """
+
+    soil_respiration: NDArray[np.floating]
+    """Carbon respired by microbes over integration time [kg{C} m-3]."""
 
 
 class SoilPools:
@@ -802,6 +805,12 @@ class SoilPools:
         )
         delta_pools_ordered["new_emf_p_supply"] = (
             microbial_changes.ectomycorrhiza_p_supply
+        )
+        delta_pools_ordered["soil_respiration"] = (
+            microbial_changes.bacterial_respiration
+            + microbial_changes.saprotrophic_fungal_respiration
+            + microbial_changes.arbuscular_mycorrhizal_respiration
+            + microbial_changes.ectomycorrhizal_respiration
         )
         delta_pools_ordered["soil_cnp_pool_lmwc_nitrogen"] = (
             litter_mineralisation_flux.don

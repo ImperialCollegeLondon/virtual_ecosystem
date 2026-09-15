@@ -150,6 +150,12 @@ def test_calculate_all_pool_updates(
             3.92029406e-06,
             2.69407247e-06,
         ],
+        "soil_respiration": [
+            0.00028582395193,
+            0.011805566713,
+            0.01353755468,
+            0.004935150175,
+        ],
     }
 
     # Make order of pools object
