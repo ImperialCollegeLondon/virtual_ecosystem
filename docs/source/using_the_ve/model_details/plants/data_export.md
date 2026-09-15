@@ -249,14 +249,17 @@ display_markdown(
 ### Realised tissue biomasses
 
 The Plants model records the elemental masses in each of the tissues of individuals
-within cohorts, along with any surplus elemental masses that accumulate when tissues
-have reached their ideal stoichiometric ratios.
+within cohorts. In addition to the elemental masses within tissues, the model tracks
+elemental surplus pools for each individual. At each time step, nutrient elements are
+balanced across tissues to bring carbon/nutrient ratios as close to ideal values as
+possible. If all tissues are _at_ their ideal ratios, then surplus nutrient masses are
+assigned to these surplus pools, which  can then be used to buffer nutrient demands on
+the plant.
 
-The fields below lists the exportable attributes giving the elemental biomasses for the
-tissues in individuals within each cohort. These are _realised_ tissue masses,
-accounting for herbivory and so the carbon masses can differ from the allometric
-predictions of tissue carbon mass under the T Model that are described in the previous
-section.
+The table below gives the attributes names for the elemental biomasses. These are
+_realised_ tissue masses, accounting for herbivory and so the carbon masses can differ
+from the allometric predictions of tissue carbon mass under the T Model that are
+described in the previous section.
 
 ```{code-cell} ipython3
 ---
