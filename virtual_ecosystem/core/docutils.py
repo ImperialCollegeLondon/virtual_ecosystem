@@ -2,11 +2,16 @@
 None of the functions defined here are intended for use outside of the documentation.
 """  # noqa: D205
 
+import ast
+import inspect
+import textwrap
 import tomllib
+from collections.abc import Callable
 from copy import deepcopy
 from importlib import resources
-from itertools import chain
+from itertools import chain, pairwise
 from textwrap import indent
+from typing import Any
 
 import dominate.tags as dt
 import tomli_w
@@ -337,3 +342,107 @@ def variable_table():
 
     # Return the HTML
     return filters_card.render() + table.render()
+
+
+def get_dataclass_attr_docs(cls: type[Any]) -> dict[str, str]:
+    """Extract attribute docstrings from dataclass reference.
+
+    This function extracts attribute docstrings from a dataclass,
+    providing that they are provided as quoted strings below the attribute assignment.
+    This is similar to how ``sphinx`` extract autodoc contents but is used here to
+    provide access to docstrings of imported classes for use in generating documentation
+    outputs outside of the autodoc system.
+
+    Approach taken from https://davidism.com/attribute-docstrings/
+
+    Args:
+        cls: A reference to a dataclass
+    """
+
+    """Get any docstrings placed after attribute assignments in a class body."""
+    cls_node = ast.parse(textwrap.dedent(inspect.getsource(cls))).body[0]
+
+    if not isinstance(cls_node, ast.ClassDef | ast.FunctionDef):
+        raise TypeError("Given object was not a class.")
+
+    out = {}
+
+    # Consider each pair of nodes.
+    for a, b in pairwise(cls_node.body):
+        # Must be an assignment then a constant string.
+        if (
+            not isinstance(a, ast.Assign | ast.AnnAssign)
+            or not isinstance(b, ast.Expr)
+            or not isinstance(b.value, ast.Constant)
+            or not isinstance(b.value.value, str)
+        ):
+            continue
+
+        doc = inspect.cleandoc(b.value.value)
+
+        if isinstance(a, ast.Assign):
+            # An assignment can have multiple targets (a = b = v).
+            targets = a.targets
+        else:
+            # An annotated assignment only has one target.
+            targets = [a.target]
+
+        for target in targets:
+            # Must be assigning to a plain name.
+            if not isinstance(target, ast.Name):
+                continue
+
+            out[target.id] = doc
+
+    return out
+
+
+def get_init_attr_docs(init_method: Callable[..., Any]) -> dict[str, str]:
+    """Extract attribute docstrings from a class __init__ method.
+
+    This function extracts attribute docstrings from a class ``__init__`` method,
+    providing that they are provided as quoted strings below the attribute assignment.
+    This is similar to how ``sphinx`` extract autodoc contents but is used here to
+    provide access to docstrings of imported classes for use in generating documentation
+    outputs outside of the autodoc system.
+
+    Approach taken from https://davidism.com/attribute-docstrings/
+
+    Args:
+        init_method: A reference to the __init__ method of a class
+    """
+
+    init_ast: ast.Module = ast.parse(textwrap.dedent(inspect.getsource(init_method)))
+    init_node: ast.FunctionDef = init_ast.body[0]  # type: ignore[assignment]
+
+    if not isinstance(init_node, ast.FunctionDef) and init_node.name != "__init__":
+        raise TypeError("Given object was not an __init__ method.")
+
+    out = {}
+
+    # Consider each pair of nodes.
+    for a, b in pairwise(init_node.body):
+        # Must be an assignment then a constant string.
+        if (
+            not isinstance(a, ast.Assign | ast.AnnAssign)
+            or not isinstance(b, ast.Expr)
+            or not isinstance(b.value, ast.Constant)
+            or not isinstance(b.value.value, str)
+        ):
+            continue
+
+        doc = inspect.cleandoc(b.value.value)
+
+        # Get the target (assuming no multiple assignment)
+        if isinstance(a, ast.Assign):
+            target = a.targets[0]
+        elif isinstance(a, ast.AnnAssign):
+            target = a.target
+
+        # Must be assigning to an attribute
+        if not isinstance(target, ast.Attribute):
+            continue
+
+        out[target.attr] = doc
+
+    return out
