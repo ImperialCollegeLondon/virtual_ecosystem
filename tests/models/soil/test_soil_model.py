@@ -310,6 +310,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
         dims=("cell_id", "element"),
         coords=dict(element=np.array(["C", "N", "P"])),
     )
+    soil_respiration = [0.01, 0.005, 0.001, 0.2]
 
     mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
@@ -328,6 +329,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             new_amf_p_supply=DataArray(new_amf_p_supply, dims="cell_id"),
             new_emf_p_supply=DataArray(new_emf_p_supply, dims="cell_id"),
             cnp_fungal_fruiting_body_production=cnp_fungal_fruiting_body_production,
+            soil_respiration=DataArray(soil_respiration, dims="cell_id"),
         )
     )
 
@@ -370,9 +372,9 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     fungal_fruiting_body_final = DataArray(
         np.stack(
             [
-                [0.23955402809, 0.087603390365, 0.4107861413241, 0.039394536436],
-                [0.1679019020381, 0.0681492941357, 0.394461176307, 0.0166380784314],
-                [0.1489216006137, 0.0525304875585, 0.0461457175544, 0.0081695945706],
+                [0.05279964059, 0.012625477865, 0.0360550538241, 0.020645061436],
+                [0.011903439538, 0.0061530341357, 0.039986861307, 0.0073754996814],
+                [0.0098064893637, 0.0033206850585, 0.0030216475544, 0.0006790033206],
             ],
             axis=1,
         ),
@@ -382,6 +384,9 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     assert np.allclose(
         dummy_carbon_data["fungal_fruiting_bodies_cnp"], fungal_fruiting_body_final
     )
+    # Check that soil respiration updates correctly based on what the integrator returns
+    final_soil_respiration = [0.005, 0.0025, 0.0005, 0.1]
+    assert np.allclose(dummy_carbon_data["soil_respiration"], final_soil_respiration)
 
 
 @pytest.mark.parametrize(
@@ -406,9 +411,9 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                     soil_cnp_pool_lmwc=DataArray(
                         data=np.stack(
                             [
-                                [0.124367266, 0.394515410, 0.228526990, 9.52935450e-2],
-                                [2.0843248e-3, 4.2951438e-3, 3.3014081e-3, 1.565302e-2],
-                                [5.3738481e-4, 2.8005139e-4, 3.2911107e-4, 4.167518e-3],
+                                [0.124375028, 0.394508690, 0.228524254, 9.52960328e-2],
+                                [2.0843934e-3, 4.2948841e-3, 3.3014461e-3, 1.565302e-2],
+                                [5.374294e-4, 2.800516e-4, 3.291031e-4, 4.167531e-3],
                             ],
                             axis=1,
                         ),
@@ -462,10 +467,10 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00856991, 0.00678733, 0.00377974, 0.00215334], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [0.00019027, 0.00981517, 0.00023862, 0.00490141], dims="cell_id"
+                        [0.00019038, 0.00981524, 0.00023841, 0.00490147], dims="cell_id"
                     ),
                     soil_n_pool_nitrate=DataArray(
-                        [-0.00117727, -0.00160238, -0.00064369, 0.01254261],
+                        [-0.00115396, -0.00162492, -0.00064311, 0.01254262],
                         dims="cell_id",
                     ),
                     soil_p_pool_primary=DataArray(
@@ -475,22 +480,32 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00705642, 0.03816755, 0.0115255, 0.00733095], dims="cell_id"
                     ),
                     soil_p_pool_labile=DataArray(
-                        [2.45035807e-6, -1.65691445e-4, 2.54670417e-5, 2.17387221e-4],
+                        [
+                            2.45704160e-06,
+                            -1.65743023e-04,
+                            2.54680697e-05,
+                            2.17386423e-04,
+                        ],
                         dims="cell_id",
                     ),
                     cnp_fungal_fruiting_body_production=DataArray(
                         data=np.stack(
                             [
-                                [6.070803e-5, 6.414525e-4, 3.457541e-4, 3.318303e-4],
-                                [4.965892e-6, 7.158910e-5, 2.478335e-5, 2.349736e-5],
-                                [7.760556e-7, 1.144179e-5, 3.826575e-6, 3.623650e-6],
+                                [6.043928e-5, 6.416566e-4, 3.458375e-4, 3.317209e-4],
+                                [4.937344e-6, 7.161188e-5, 2.478646e-5, 2.349150e-5],
+                                [7.715069e-7, 1.144543e-5, 3.827011e-6, 3.622775e-6],
                             ],
                             axis=1,
                         ),
                         coords={"cell_id": np.arange(0, 4), "element": ["C", "N", "P"]},
                     ),
                     new_amf_n_supply=DataArray(
-                        [4.10625930e-6, 2.32739727e-5, 3.23760816e-5, 3.23930333e-5],
+                        [
+                            4.09516624e-06,
+                            2.32813791e-05,
+                            3.23911810e-05,
+                            3.23698263e-05,
+                        ],
                         dims="cell_id",
                     ),
                     new_amf_p_supply=DataArray(
@@ -504,6 +519,9 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                     new_emf_p_supply=DataArray(
                         [4.47876588e-7, 3.13470241e-6, 1.96014703e-6, 1.73594099e-6],
                         dims="cell_id",
+                    ),
+                    soil_respiration=DataArray(
+                        [0.00197672, 0.01365577, 0.01018594, 0.00421197], dims="cell_id"
                     ),
                 ),
             ),
@@ -552,6 +570,8 @@ def test_integrate_soil_model(
         assert set(new_pools.keys()) == set(final_pools.keys())
 
         for key in new_pools.keys():
+            print(key)
+            print(new_pools[key])
             assert np.allclose(new_pools[key], final_pools[key])
 
     # Check that integrator is called once (and once only)
@@ -1067,6 +1087,10 @@ def test_construct_full_soil_model(
         2.71058402e-06,
         3.92029406e-06,
         2.69407247e-06,
+        0.00028582395193,
+        0.011805566713,
+        0.01353755468,
+        0.004935150175,
     ]
     elements = {"C": "carbon", "N": "nitrogen", "P": "phosphorus"}
 

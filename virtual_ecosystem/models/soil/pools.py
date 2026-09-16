@@ -50,21 +50,21 @@ class MicrobialChanges:
     lmwc_uptake: NDArray[np.floating]
     """Total rate of microbial uptake of low molecular weight carbon.
     
-    Units of [kg{C} m^-3 day^-1]."""
+    Units of [kg{C} m-3 day-1]."""
 
     don_uptake: NDArray[np.floating]
     """Total rate of microbial uptake of dissolved organic nitrogen.
     
-    Units of [kg{N} m^-3 day^-1]."""
+    Units of [kg{N} m-3 day-1]."""
 
     ammonium_change: NDArray[np.floating]
-    """Total change in the ammonium pool due to microbial activity [kg{N} m^-3 day^-1].
+    """Total change in the ammonium pool due to microbial activity [kg{N} m-3 day-1].
     
     This change arises from the balance of immobilisation and mineralisation of
     ammonium. A positive value indicates a net immobilisation (uptake) of ammonium."""
 
     nitrate_change: NDArray[np.floating]
-    """Total change in the nitrate pool due to microbial activity [kg{N} m^-3 day^-1].
+    """Total change in the nitrate pool due to microbial activity [kg{N} m-3 day-1].
 
     This change arises from the balance of immobilisation and mineralisation of
     nitrate. A positive value indicates a net immobilisation (uptake) of nitrate."""
@@ -72,87 +72,108 @@ class MicrobialChanges:
     dop_uptake: NDArray[np.floating]
     """Total rate of microbial uptake of dissolved organic phosphorus.
     
-    Units of [kg{P} m^-3 day^-1]."""
+    Units of [kg{P} m-3 day-1]."""
 
     labile_p_change: NDArray[np.floating]
     """Total change in the labile inorganic phosphorus pool due to microbial activity.
     
-    Units of [kg{P} m^-3 day^-1]. This change arises from the balance of immobilisation
+    Units of [kg{P} m-3 day-1]. This change arises from the balance of immobilisation
     and mineralisation of labile P. A positive value indicates a net immobilisation
     (uptake) of P. """
 
     bacteria_change: NDArray[np.floating]
-    """Rate of change of bacterial biomass pool [kg{C} m^-3 day^-1]."""
+    """Rate of change of bacterial biomass pool [kg{C} m-3 day-1]."""
 
     saprotrophic_fungi_change: NDArray[np.floating]
-    """Rate of change of saprotrophic fungal biomass pool [kg{C} m^-3 day^-1]."""
+    """Rate of change of saprotrophic fungal biomass pool [kg{C} m-3 day-1]."""
 
     arbuscular_mycorrhiza_change: NDArray[np.floating]
-    """Rate of change of arbuscular mycorrhizal fungi biomass pool [kg{C} m^-3 day^-1].
+    """Rate of change of arbuscular mycorrhizal fungi biomass pool [kg{C} m-3 day-1].
     """
 
     ectomycorrhiza_change: NDArray[np.floating]
-    """Rate of change of ectomycorrhizal fungi biomass pool [kg{C} m^-3 day^-1]."""
+    """Rate of change of ectomycorrhizal fungi biomass pool [kg{C} m-3 day-1]."""
 
     pom_enzyme_bacteria_change: NDArray[np.floating]
     """Rate of change for the bacterially produced :term:`POM` degrading enzymes.
 
-    Units of [kg{C} m^-3 day^-1].
+    Units of [kg{C} m-3 day-1].
     """
 
     maom_enzyme_bacteria_change: NDArray[np.floating]
     """Rate of change for the bacterially produced :term:`MAOM` degrading enzymes.
     
-    Units of [kg{C} m^-3 day^-1].
+    Units of [kg{C} m-3 day-1].
     """
 
     pom_enzyme_fungi_change: NDArray[np.floating]
     """Rate of change for the fungally produced :term:`POM` degrading enzymes.
 
-    Units of [kg{C} m^-3 day^-1].
+    Units of [kg{C} m-3 day-1].
     """
 
     maom_enzyme_fungi_change: NDArray[np.floating]
     """Rate of change for the fungally produced :term:`MAOM` degrading enzymes.
     
-    Units of [kg{C} m^-3 day^-1].
+    Units of [kg{C} m-3 day-1].
     """
 
     necromass_generation: NDArray[np.floating]
-    """Rate at which necromass is being produced [kg{C} m^-3 day^-1]."""
+    """Rate at which necromass is being produced [kg{C} m-3 day-1]."""
 
     necromass_n_flow: NDArray[np.floating]
-    """Nitrogen flow associated with necromass generation [kg{N} m^-3 day^-1]."""
+    """Nitrogen flow associated with necromass generation [kg{N} m-3 day-1]."""
 
     necromass_p_flow: NDArray[np.floating]
-    """Phosphorus flow associated with necromass generation [kg{P} m^-3 day^-1]."""
+    """Phosphorus flow associated with necromass generation [kg{P} m-3 day-1]."""
 
     fruiting_body_production_carbon: NDArray[np.floating]
-    """Rate at which fungal fruiting bodies are being produced [kg{C} m^-3 day^-1]."""
+    """Rate at which fungal fruiting bodies are being produced [kg{C} m-3 day-1]."""
 
     fruiting_body_production_nitrogen: NDArray[np.floating]
     """Rate at which nitrogen is used for fungal fruiting body production.
     
-    Units of [kg{N} m^-3 day^-1]."""
+    Units of [kg{N} m-3 day-1]."""
 
     fruiting_body_production_phosphorus: NDArray[np.floating]
     """Rate at which phosphorus is used for fungal fruiting body production.
     
-    Units of [kg{P} m^-3 day^-1]."""
+    Units of [kg{P} m-3 day-1]."""
 
     arbuscular_mycorrhiza_n_supply: NDArray[np.floating]
-    """Supply rate of nitrogen to plants by arbuscular mycorrhiza [kg{N} m^-3 day^-1].
+    """Supply rate of nitrogen to plants by arbuscular mycorrhiza [kg{N} m-3 day-1].
     """
 
     arbuscular_mycorrhiza_p_supply: NDArray[np.floating]
-    """Supply rate of phosphorus to plants by arbuscular mycorrhiza [kg{P} m^-3 day^-1].
+    """Supply rate of phosphorus to plants by arbuscular mycorrhiza [kg{P} m-3 day-1].
     """
 
     ectomycorrhiza_n_supply: NDArray[np.floating]
-    """Supply rate of nitrogen to plants by ectomycorrhiza [kg{N} m^-3 day^-1]."""
+    """Supply rate of nitrogen to plants by ectomycorrhiza [kg{N} m-3 day-1]."""
 
     ectomycorrhiza_p_supply: NDArray[np.floating]
-    """Supply rate of phosphorus to plants by ectomycorrhiza [kg{P} m^-3 day^-1].
+    """Supply rate of phosphorus to plants by ectomycorrhiza [kg{P} m-3 day-1].
+    """
+
+    bacterial_respiration: NDArray[np.floating]
+    """Rate at which carbon is respired from the soil by bacteria [kg{C} m-3 day-1]."""
+
+    saprotrophic_fungal_respiration: NDArray[np.floating]
+    """Rate at which carbon is respired from the soil by saprotrophic fungi.
+    
+    Units of [kg{C} m-3 day-1].
+    """
+
+    arbuscular_mycorrhizal_respiration: NDArray[np.floating]
+    """Rate at which carbon is respired from the soil by arbuscular mycorrhizal fungi.
+        
+    Units of [kg{C} m-3 day-1].
+    """
+
+    ectomycorrhizal_respiration: NDArray[np.floating]
+    """Rate at which carbon is respired from the soil by ectomycorrhizal fungi.
+            
+    Units of [kg{C} m-3 day-1].
     """
 
 
@@ -303,116 +324,119 @@ class PoolData:
     """Data class collecting the full set of soil pools updated by the soil model."""
 
     soil_cnp_pool_maom_carbon: NDArray[np.floating]
-    """Carbon content of the mineral associated organic matter pool [kg{C} m^-3]."""
+    """Carbon content of the mineral associated organic matter pool [kg{C} m-3]."""
 
     soil_cnp_pool_maom_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the :term:`MAOM` pool [kg{N} m^-3]."""
+    """Nitrogen content of the :term:`MAOM` pool [kg{N} m-3]."""
 
     soil_cnp_pool_maom_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the :term:`MAOM` pool [kg{P} m^-3]."""
+    """Phosphorus content of the :term:`MAOM` pool [kg{P} m-3]."""
 
     soil_cnp_pool_lmwc_carbon: NDArray[np.floating]
-    """Carbon content of the low molecular weight carbon pool [kg{C} m^-3]."""
+    """Carbon content of the low molecular weight carbon pool [kg{C} m-3]."""
 
     soil_cnp_pool_lmwc_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the :term:`LMWC` pool [kg{N} m^-3]."""
+    """Nitrogen content of the :term:`LMWC` pool [kg{N} m-3]."""
 
     soil_cnp_pool_lmwc_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the :term:`LMWC` pool [kg{P} m^-3]."""
+    """Phosphorus content of the :term:`LMWC` pool [kg{P} m-3]."""
 
     soil_c_pool_bacteria: NDArray[np.floating]
-    """Bacterial biomass pool [kg{C} m^-3]."""
+    """Bacterial biomass pool [kg{C} m-3]."""
 
     soil_c_pool_saprotrophic_fungi: NDArray[np.floating]
-    """Saprotrophic fungi biomass pool [kg{C} m^-3]."""
+    """Saprotrophic fungi biomass pool [kg{C} m-3]."""
 
     soil_c_pool_arbuscular_mycorrhiza: NDArray[np.floating]
-    """Arbuscular mycorrhizal fungi biomass pool [kg{C} m^-3]."""
+    """Arbuscular mycorrhizal fungi biomass pool [kg{C} m-3]."""
 
     soil_c_pool_ectomycorrhiza: NDArray[np.floating]
-    """Ectomycorrhizal fungi biomass pool [kg{C} m^-3]."""
+    """Ectomycorrhizal fungi biomass pool [kg{C} m-3]."""
 
     soil_cnp_pool_pom_carbon: NDArray[np.floating]
-    """Carbon content of the particulate organic matter pool [kg{C} m^-3]."""
+    """Carbon content of the particulate organic matter pool [kg{C} m-3]."""
 
     soil_cnp_pool_pom_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the :term:`POM` pool [kg{N} m^-3]."""
+    """Nitrogen content of the :term:`POM` pool [kg{N} m-3]."""
 
     soil_cnp_pool_pom_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the :term:`POM` pool [kg{P} m^-3]."""
+    """Phosphorus content of the :term:`POM` pool [kg{P} m-3]."""
 
     soil_cnp_pool_necromass_carbon: NDArray[np.floating]
-    """Carbon content of the microbial necromass pool [kg{C} m^-3]."""
+    """Carbon content of the microbial necromass pool [kg{C} m-3]."""
 
     soil_cnp_pool_necromass_nitrogen: NDArray[np.floating]
-    """Nitrogen content of the microbial necromass pool [kg{N} m^-3]."""
+    """Nitrogen content of the microbial necromass pool [kg{N} m-3]."""
 
     soil_cnp_pool_necromass_phosphorus: NDArray[np.floating]
-    """Phosphorus content of the microbial necromass pool [kg{P} m^-3]."""
+    """Phosphorus content of the microbial necromass pool [kg{P} m-3]."""
 
     soil_enzyme_pom_bacteria: NDArray[np.floating]
-    """Bacteria produced enzyme class which breaks down :term:`POM` [kg{C} m^-3]."""
+    """Bacteria produced enzyme class which breaks down :term:`POM` [kg{C} m-3]."""
 
     soil_enzyme_maom_bacteria: NDArray[np.floating]
-    """Bacteria produced enzyme class which breaks down :term:`MAOM` [kg{C} m^-3]."""
+    """Bacteria produced enzyme class which breaks down :term:`MAOM` [kg{C} m-3]."""
 
     soil_enzyme_pom_fungi: NDArray[np.floating]
-    """Fungi produced enzyme class which breaks down :term:`POM` [kg{C} m^-3]."""
+    """Fungi produced enzyme class which breaks down :term:`POM` [kg{C} m-3]."""
 
     soil_enzyme_maom_fungi: NDArray[np.floating]
-    """Fungi produced enzyme class which breaks down :term:`MAOM` [kg{C} m^-3]."""
+    """Fungi produced enzyme class which breaks down :term:`MAOM` [kg{C} m-3]."""
 
     soil_n_pool_ammonium: NDArray[np.floating]
-    r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg{N} m^-3]."""
+    r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg{N} m-3]."""
 
     soil_n_pool_nitrate: NDArray[np.floating]
-    r"""Soil nitrate (:math:`\ce{NO3-}`) pool [kg{N} m^-3]."""
+    r"""Soil nitrate (:math:`\ce{NO3-}`) pool [kg{N} m-3]."""
 
     soil_p_pool_primary: NDArray[np.floating]
-    """Primary mineral phosphorus pool [kg{P} m^-3]."""
+    """Primary mineral phosphorus pool [kg{P} m-3]."""
 
     soil_p_pool_secondary: NDArray[np.floating]
-    """Secondary (inorganic) mineral phosphorus pool [kg{P} m^-3]."""
+    """Secondary (inorganic) mineral phosphorus pool [kg{P} m-3]."""
 
     soil_p_pool_labile: NDArray[np.floating]
-    """Inorganic labile phosphorus pool [kg{P} m^-3]."""
+    """Inorganic labile phosphorus pool [kg{P} m-3]."""
 
     cnp_fungal_fruiting_body_production_carbon: NDArray[np.floating]
-    """Fungal fruiting biomass produced during simulation time step [kg{C} m^-3]."""
+    """Fungal fruiting biomass produced during simulation time step [kg{C} m-3]."""
 
     cnp_fungal_fruiting_body_production_nitrogen: NDArray[np.floating]
     """Nitrogen content of fungal fruiting biomass produced during model time step.
      
-    Units of [kg{N} m^-3]."""
+    Units of [kg{N} m-3]."""
 
     cnp_fungal_fruiting_body_production_phosphorus: NDArray[np.floating]
     """Phosphorus content of fungal fruiting biomass produced during model time step.
     
-    Units of [kg{P} m^-3]."""
+    Units of [kg{P} m-3]."""
 
     new_amf_n_supply: NDArray[np.floating]
     """Nitrogen supplied to plants by arbuscular mycorrhiza over integration time.
 
-    Units of [kg{N} m^-3].
+    Units of [kg{N} m-3].
     """
 
     new_amf_p_supply: NDArray[np.floating]
     """Phosphorus supplied to plants by arbuscular mycorrhiza over integration time.
 
-    Units of [kg{P} m^-3].
+    Units of [kg{P} m-3].
     """
 
     new_emf_n_supply: NDArray[np.floating]
     """Nitrogen supplied to plants by ectomycorrhiza over integration time.
 
-    Units of [kg{N} m^-3].
+    Units of [kg{N} m-3].
     """
 
     new_emf_p_supply: NDArray[np.floating]
     """Phosphorus supplied to plants by ectomycorrhiza over integration time.
 
-    Units of [kg{P} m^-3].
+    Units of [kg{P} m-3].
     """
+
+    soil_respiration: NDArray[np.floating]
+    """Carbon respired by microbes over integration time [kg{C} m-3]."""
 
 
 class SoilPools:
@@ -782,6 +806,12 @@ class SoilPools:
         delta_pools_ordered["new_emf_p_supply"] = (
             microbial_changes.ectomycorrhiza_p_supply
         )
+        delta_pools_ordered["soil_respiration"] = (
+            microbial_changes.bacterial_respiration
+            + microbial_changes.saprotrophic_fungal_respiration
+            + microbial_changes.arbuscular_mycorrhizal_respiration
+            + microbial_changes.ectomycorrhizal_respiration
+        )
         delta_pools_ordered["soil_cnp_pool_lmwc_nitrogen"] = (
             litter_mineralisation_flux.don
             + pom_n_mineralisation
@@ -932,30 +962,15 @@ def calculate_microbial_changes(
         microbial_groups: Set of microbial functional groups used by the soil model.
         enzyme_classes: Details of the enzyme classes used by the soil model.
         carbon_supply: The carbon supply to each symbiotic microbial partner
-            [kg{C} m^-3 day^-1]
+            [kg{C} m-3 day-1]
 
     Returns:
         A dataclass containing the rate at which microbes uptake LMWC, DON and DOP, and
         the rate of change in the microbial biomass pool and the enzyme pools.
     """
 
-    # Calculate uptake, growth rate, and loss rate
-    bacterial_growth, bacterial_uptake = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=pools.soil_cnp_pool_lmwc_carbon,
-        soil_n_pool_don=pools.soil_cnp_pool_lmwc_nitrogen,
-        soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
-        soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
-        soil_p_pool_dop=pools.soil_cnp_pool_lmwc_phosphorus,
-        soil_p_pool_labile=pools.soil_p_pool_labile,
-        microbial_pool_size=pools.soil_c_pool_bacteria,
-        external_carbon_supply=None,
-        water_factor=env_factors.water,
-        pH_factor=env_factors.pH,
-        soil_temp=soil_temp,
-        constants=constants,
-        functional_group=microbial_groups["bacteria"],
-    )
-    saprotrophic_fungal_growth, saprotrophic_fungal_uptake = (
+    # Calculate growth rate, respiration rate and uptake
+    bacterial_growth, bacterial_respiration, bacterial_uptake = (
         calculate_nutrient_uptake_rates(
             soil_c_pool_lmwc=pools.soil_cnp_pool_lmwc_carbon,
             soil_n_pool_don=pools.soil_cnp_pool_lmwc_nitrogen,
@@ -963,16 +978,54 @@ def calculate_microbial_changes(
             soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
             soil_p_pool_dop=pools.soil_cnp_pool_lmwc_phosphorus,
             soil_p_pool_labile=pools.soil_p_pool_labile,
-            microbial_pool_size=pools.soil_c_pool_saprotrophic_fungi,
+            microbial_pool_size=pools.soil_c_pool_bacteria,
             external_carbon_supply=None,
             water_factor=env_factors.water,
             pH_factor=env_factors.pH,
             soil_temp=soil_temp,
             constants=constants,
-            functional_group=microbial_groups["saprotrophic_fungi"],
+            functional_group=microbial_groups["bacteria"],
         )
     )
-    arbuscular_mycorrhizal_growth, arbuscular_mycorrhizal_uptake = (
+    (
+        saprotrophic_fungal_growth,
+        saprotrophic_fungal_respiration,
+        saprotrophic_fungal_uptake,
+    ) = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=pools.soil_cnp_pool_lmwc_carbon,
+        soil_n_pool_don=pools.soil_cnp_pool_lmwc_nitrogen,
+        soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
+        soil_p_pool_dop=pools.soil_cnp_pool_lmwc_phosphorus,
+        soil_p_pool_labile=pools.soil_p_pool_labile,
+        microbial_pool_size=pools.soil_c_pool_saprotrophic_fungi,
+        external_carbon_supply=None,
+        water_factor=env_factors.water,
+        pH_factor=env_factors.pH,
+        soil_temp=soil_temp,
+        constants=constants,
+        functional_group=microbial_groups["saprotrophic_fungi"],
+    )
+    (
+        arbuscular_mycorrhizal_growth,
+        arbuscular_mycorrhizal_respiration,
+        arbuscular_mycorrhizal_uptake,
+    ) = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=pools.soil_cnp_pool_lmwc_carbon,
+        soil_n_pool_don=pools.soil_cnp_pool_lmwc_nitrogen,
+        soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
+        soil_p_pool_dop=pools.soil_cnp_pool_lmwc_phosphorus,
+        soil_p_pool_labile=pools.soil_p_pool_labile,
+        microbial_pool_size=pools.soil_c_pool_arbuscular_mycorrhiza,
+        external_carbon_supply=carbon_supply.arbuscular_mycorrhiza,
+        water_factor=env_factors.water,
+        pH_factor=env_factors.pH,
+        soil_temp=soil_temp,
+        constants=constants,
+        functional_group=microbial_groups["arbuscular_mycorrhiza"],
+    )
+    ectomycorrhizal_growth, ectomycorrhizal_respiration, ectomycorrhizal_uptake = (
         calculate_nutrient_uptake_rates(
             soil_c_pool_lmwc=pools.soil_cnp_pool_lmwc_carbon,
             soil_n_pool_don=pools.soil_cnp_pool_lmwc_nitrogen,
@@ -980,29 +1033,14 @@ def calculate_microbial_changes(
             soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
             soil_p_pool_dop=pools.soil_cnp_pool_lmwc_phosphorus,
             soil_p_pool_labile=pools.soil_p_pool_labile,
-            microbial_pool_size=pools.soil_c_pool_arbuscular_mycorrhiza,
-            external_carbon_supply=carbon_supply.arbuscular_mycorrhiza,
+            microbial_pool_size=pools.soil_c_pool_ectomycorrhiza,
+            external_carbon_supply=carbon_supply.ectomycorrhiza,
             water_factor=env_factors.water,
             pH_factor=env_factors.pH,
             soil_temp=soil_temp,
             constants=constants,
-            functional_group=microbial_groups["arbuscular_mycorrhiza"],
+            functional_group=microbial_groups["ectomycorrhiza"],
         )
-    )
-    ectomycorrhizal_growth, ectomycorrhizal_uptake = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=pools.soil_cnp_pool_lmwc_carbon,
-        soil_n_pool_don=pools.soil_cnp_pool_lmwc_nitrogen,
-        soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
-        soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
-        soil_p_pool_dop=pools.soil_cnp_pool_lmwc_phosphorus,
-        soil_p_pool_labile=pools.soil_p_pool_labile,
-        microbial_pool_size=pools.soil_c_pool_ectomycorrhiza,
-        external_carbon_supply=carbon_supply.ectomycorrhiza,
-        water_factor=env_factors.water,
-        pH_factor=env_factors.pH,
-        soil_temp=soil_temp,
-        constants=constants,
-        functional_group=microbial_groups["ectomycorrhiza"],
     )
 
     biomass_losses = calculate_biomass_losses(
@@ -1125,6 +1163,10 @@ def calculate_microbial_changes(
         arbuscular_mycorrhiza_p_supply=arbuscular_mycorrhiza_p_supply,
         ectomycorrhiza_n_supply=ectomycorrhiza_n_supply,
         ectomycorrhiza_p_supply=ectomycorrhiza_p_supply,
+        bacterial_respiration=bacterial_respiration,
+        saprotrophic_fungal_respiration=saprotrophic_fungal_respiration,
+        arbuscular_mycorrhizal_respiration=arbuscular_mycorrhizal_respiration,
+        ectomycorrhizal_respiration=ectomycorrhizal_respiration,
     )
 
 

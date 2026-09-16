@@ -240,6 +240,18 @@ def test_update(fixture_litter_model, dummy_litter_data):
             ],
             axis=1,
         ),
+        "above_ground_litter_respiration": [
+            0.00282841,
+            0.00163094,
+            0.00133709,
+            0.001306,
+        ],
+        "below_ground_litter_respiration": [
+            0.00616816,
+            0.00518435,
+            0.00073774,
+            0.00078915,
+        ],
     }
 
     # Add the data required for update
