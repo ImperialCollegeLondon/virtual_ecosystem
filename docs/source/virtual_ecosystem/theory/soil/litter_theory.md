@@ -192,7 +192,7 @@ rates](./environmental_links.md#litter-decay-moisture-response).
 The dynamics defined above are analytically solvable provided that the input does not
 vary over the timescale of interest. Because of this, the litter model does not
 numerically integrate the dynamics and instead just uses the exact solution for the
-litter pool size at the end of the model update interval ($\tau$). This solution can be
+litter pool size at the end of the model update time step ($\tau$). This solution can be
 expressed as
 
 $$
@@ -204,37 +204,48 @@ where $P_{j,0}$ is the size of litter pool $j$ at the start of the update interv
 
 ## Litter mineralisation
 
-We now want to find the amount of carbon that is mineralised into the soil, the amount
-of carbon respired from the litter, the amount of nitrogen and phosphorus mineralised
-into the soil, and the amount of lignin lost by the litter pools. To calculate all these
-things we first have to find the total carbon loss from each litter pool, which is given
-by
+We now want to find the amount of carbon, nitrogen and phosphorus that is mineralised
+into the soil, the amount of carbon respired from the litter, and the amount of lignin
+lost by the litter pools. To calculate all these things we first have to find the total
+carbon loss from each litter pool. We can estimate this by first noting that the change
+in the pool over the time step should be equal to the input to the pool minus the
+losses, i.e.
 
-$$
-L_j(\tau) = P_{j,0} + \Theta_j(\tau) - P_j(\tau).
-$$
+```{math}
+:label: eq:pool_change
+P_{j,0} - P_j(\tau) = \Theta_j(\tau) - L_j(\tau),
+```
 
-where $\Theta_j(\tau)$ is the total input to litter pool $j$ over the time step $\tau$,
-which is calculated as
+where $\Theta_j(\tau)$ is the total input to litter pool $j$ over the simulation time
+step $\tau$, which is calculated as
 
-$$
+```{math}
 \Theta_j(\tau) = \tau * I_{C,j}.
-$$
+```
+
+Rearranging Eq.{eq}`eq:pool_change`, gives us an expression for the total carbon loss as
+
+```{math}
+L_j(\tau) = P_{j,0} + \Theta_j(\tau) - P_j(\tau).
+```
 
 ### Carbon mineralisation
 
 With the carbon loss from each pool found, it is trivial to calculate the mass of carbon
-mineralised over the simulation time step, which is given by.
+mineralised over the simulation time step, which is given by:
 
 $$
 M_C(\tau) = \sum^5_{j=1} \epsilon_j * L_j(\tau),
 $$
 
 where $\epsilon_j$ is the carbon use efficiency of litter breakdown for litter pool $j$.
+In contrast to microbial carbon use efficiency, this efficiency doesn't measure the
+fraction of carbon assimilated to biomass, instead it measures the fraction mineralised
+to the soil rather than respired.
 
 ### Respiration
 
-Any carbon that is not mineralised by definition has to be respired, so total
+Any remaining carbon that is not mineralised by definition has to be respired, so total
 respiration is calculated as
 
 $$
@@ -242,8 +253,8 @@ R(\tau) = \sum^5_{j=1} (1 - \epsilon_j) * L_j(\tau).
 $$
 
 As a simplifying assumption we assume that these carbon use efficiencies ($\epsilon_j$)
-**do not** vary with temperature. However, litter respiration will still vary with
-temperature as the [rate of litter decay varies with
+**do not** vary with temperature. However, litter respiration and mineralisation will
+still vary with temperature as the [rate of litter decay varies with
 temperature](./environmental_links.md#litter-decay-temperature-response).
 
 ### Macronutrient mineralisation
@@ -254,8 +265,8 @@ losses. Instead, the loss of each macronutrient has to be estimated based on the
 carbon. The estimate is based on the assumption that old litter (i.e. litter that is
 there at the start of the time step) decays first and that litter added during the
 update only decays if the total decay of litter exceeds the initial litter pool size.
-Using this assumption the total mineralisation of macronutrient $k$ over the time step
-length ($\tau$) can be estimated as
+Using this assumption the total mineralisation of macronutrient $k$ over the duration of
+the simulation time step ($\tau$) can be estimated as
 
 $$
 M_k(\tau) = \sum^5_{j=1} (\theta_{0,j} * N_{k,j,0} + \theta_{n,j} * I_{k,j} * \tau),
