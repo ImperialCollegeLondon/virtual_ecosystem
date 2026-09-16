@@ -897,11 +897,9 @@ class PlantsModel(
     def set_canopy_top_radiation(self, time_index: int) -> None:
         """Set the current canopy top shortwave downwelling radiation."""
 
-        self.canopy_top_radiation = (
-            self.data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy()
-        )
+        self.canopy_top_radiation = self.data.get_time_slice(
+            "downward_shortwave_radiation", time_index
+        ).to_numpy()
 
     def apply_herbivory(self) -> None:
         r"""Applies herbivory effects on the plants model.
