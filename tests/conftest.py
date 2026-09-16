@@ -1181,9 +1181,8 @@ def fixture_static_inputs(
     )
     soil_moisture_volumetric = layer_structure.from_template()
     soil_moisture_volumetric[indices.soil] = (
-        data["soil_moisture"][indices.soil].to_numpy()
-        / layer_structure.soil_layer_thickness[:, np.newaxis]
-    )
+        data["soil_moisture"][indices.soil].to_numpy() / 1000
+    ) / layer_structure.soil_layer_thickness[:, np.newaxis]
 
     return {
         "canopy_height": data["layer_heights"][1].to_numpy(),

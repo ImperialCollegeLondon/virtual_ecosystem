@@ -42,6 +42,10 @@ Advection at the top of the canopy is currently not considered as we don't have
 have horizontal exchange between grid cells and air above canopy values would be
 unrealistic.
 
+Soil temperature is updated using an explicit, moisture-dependent heat diffusion scheme,
+in which soil moisture modifies temperature evolution through its effects on volumetric
+heat capacity and thermal conductivity.
+
 """  # noqa: D205, D415
 
 from collections.abc import Callable
@@ -445,8 +449,19 @@ def johansen_unfrozen_thermal_conductivity(
         Unfrozen-soil thermal conductivity, [W m-1 K-1].
 
     """
-    theta = np.clip(soil_moisture_volumetric, 0.0, None)
-    phi = np.clip(soil_porosity, 1.0e-8, 1.0)
+
+    soil_moisture = np.asarray(soil_moisture_volumetric, dtype=float)
+    porosity = np.asarray(soil_porosity, dtype=float)
+    soil_thermal_conductivity_dry = np.asarray(
+        soil_thermal_conductivity_dry, dtype=float
+    )
+    soil_thermal_conductivity_saturated = np.asarray(
+        soil_thermal_conductivity_saturated, dtype=float
+    )
+    is_coarse_textured = np.asarray(is_coarse_textured, dtype=bool)
+
+    theta = np.clip(soil_moisture, 0.0, None)
+    phi = np.clip(porosity, 1.0e-8, 1.0)
     saturation = np.clip(theta / phi, 0.0, 1.0)
 
     ke = np.zeros_like(saturation)
