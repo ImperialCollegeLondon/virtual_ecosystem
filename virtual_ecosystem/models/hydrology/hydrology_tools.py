@@ -70,8 +70,8 @@ def initialise_atmosphere_for_hydrology(
     )
 
     # Extract air temperature and pressure
-    air_temp = data["air_temperature_ref"].isel(time_index=0).to_numpy()
-    air_pressure = data["atmospheric_pressure_ref"].isel(time_index=0).to_numpy()
+    air_temp = data.get_time_slice("air_temperature_ref", 0).to_numpy()
+    air_pressure = data.get_time_slice("atmospheric_pressure_ref", 0).to_numpy()
 
     # Density of air
     density_air = abiotic_tools.calculate_air_density(
@@ -174,7 +174,7 @@ def setup_hydrology_input_current_timestep(
 
     # Get atmospheric variables
     # Generate daily rainfall, [mm]
-    input_rainfall = data["precipitation"].isel(time_index=time_index).to_numpy()
+    input_rainfall = data.get_time_slice("precipitation", time_index).to_numpy()
     output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
         total_monthly_rainfall=input_rainfall,
         num_days=days,
