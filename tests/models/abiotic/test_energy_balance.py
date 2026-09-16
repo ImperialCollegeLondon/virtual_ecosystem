@@ -265,40 +265,212 @@ def test_calculate_sensible_heat_flux(dummy_climate_data, fixture_core_component
 
 
 @pytest.mark.parametrize(
-    "g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp, raises",
+    (
+        "soil_moisture",
+        "porosity",
+        "k_dry",
+        "k_sat",
+        "is_coarse",
+        "expected",
+    ),
     [
-        # Test case for 2 soil layers and constant (float) soil parameters
-        (
-            np.array([20.0, 25.0, 18.0, 22.0]),
-            np.array([[15.0, 16.0, 14.0, 13.0], [14.0, 15.0, 13.0, 12.0]]),
-            np.array([[0.1, 0.1, 0.1, 0.1], [0.1, 0.1, 0.1, 0.1]]),
-            1.2,
-            1300.0,
-            800.0,
-            3600.0,
-            2,
+        pytest.param(
             np.array(
                 [
-                    [15.692308, 16.865385, 14.623077, 13.761538],
-                    [14.702959, 15.774852, 13.674201, 12.731716],
-                ]
+                    [0.00, 0.02, 0.03],
+                    [0.01, 0.00, 0.04],
+                ],
+                dtype=float,
             ),
-            None,
+            np.full((2, 3), 0.40, dtype=float),
+            np.full((2, 3), 0.25, dtype=float),
+            np.full((2, 3), 1.50, dtype=float),
+            np.array(
+                [
+                    [False, True, False],
+                    [True, False, True],
+                ],
+                dtype=bool,
+            ),
+            np.full((2, 3), 0.25, dtype=float),
+            id="below_saturation_threshold_returns_dry",
         ),
-        # Test case for nan in soil temperature
+        pytest.param(
+            np.full((2, 3), 0.40, dtype=float),
+            np.full((2, 3), 0.40, dtype=float),
+            np.full((2, 3), 0.25, dtype=float),
+            np.full((2, 3), 1.50, dtype=float),
+            np.array(
+                [
+                    [False, True, False],
+                    [True, False, True],
+                ],
+                dtype=bool,
+            ),
+            np.full((2, 3), 1.50, dtype=float),
+            id="full_saturation_returns_saturated",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [0.20, 0.20, 0.20],
+                    [0.20, 0.20, 0.20],
+                ],
+                dtype=float,
+            ),  # saturation = 0.5
+            np.full((2, 3), 0.40, dtype=float),
+            np.full((2, 3), 0.25, dtype=float),
+            np.full((2, 3), 1.50, dtype=float),
+            np.array(
+                [
+                    [False, True, False],
+                    [True, False, True],
+                ],
+                dtype=bool,
+            ),
+            np.array(
+                [
+                    [
+                        0.25 + (np.log10(0.5) + 1.0) * (1.50 - 0.25),
+                        0.25 + (0.7 * np.log10(0.5) + 1.0) * (1.50 - 0.25),
+                        0.25 + (np.log10(0.5) + 1.0) * (1.50 - 0.25),
+                    ],
+                    [
+                        0.25 + (0.7 * np.log10(0.5) + 1.0) * (1.50 - 0.25),
+                        0.25 + (np.log10(0.5) + 1.0) * (1.50 - 0.25),
+                        0.25 + (0.7 * np.log10(0.5) + 1.0) * (1.50 - 0.25),
+                    ],
+                ],
+                dtype=float,
+            ),
+            id="fine_and_coarse_branches_differ",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [-0.10, -0.01, 0.00],
+                    [-0.20, 0.00, -0.30],
+                ],
+                dtype=float,
+            ),
+            np.full((2, 3), 0.40, dtype=float),
+            np.full((2, 3), 0.25, dtype=float),
+            np.full((2, 3), 1.50, dtype=float),
+            np.zeros((2, 3), dtype=bool),
+            np.full((2, 3), 0.25, dtype=float),
+            id="negative_moisture_clipped_to_zero",
+        ),
+        pytest.param(
+            np.full((2, 3), 0.60, dtype=float),  # saturation = 1.5 -> clipped to 1
+            np.full((2, 3), 0.40, dtype=float),
+            np.full((2, 3), 0.25, dtype=float),
+            np.full((2, 3), 1.50, dtype=float),
+            np.array(
+                [
+                    [True, False, True],
+                    [False, True, False],
+                ],
+                dtype=bool,
+            ),
+            np.full((2, 3), 1.50, dtype=float),
+            id="supersaturated_moisture_clipped_to_one",
+        ),
+    ],
+)
+def test_johansen_unfrozen_thermal_conductivity(
+    soil_moisture,
+    porosity,
+    k_dry,
+    k_sat,
+    is_coarse,
+    expected,
+):
+    """Test Johansen unfrozen thermal conductivity calculation."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        johansen_unfrozen_thermal_conductivity,
+    )
+
+    result = johansen_unfrozen_thermal_conductivity(
+        soil_moisture_volumetric=soil_moisture,
+        soil_porosity=porosity,
+        soil_thermal_conductivity_dry=k_dry,
+        soil_thermal_conductivity_saturated=k_sat,
+        coarse_kersten_factor=0.7,
+        is_coarse_textured=is_coarse,
+    )
+
+    assert result.shape == soil_moisture.shape
+    np.testing.assert_allclose(result, expected, rtol=1e-4, atol=1e-4)
+
+
+@pytest.mark.parametrize(
+    (
+        "g, soil_temp, dz, theta, porosity, k_dry, k_sat, rho, cp, dt, "
+        "is_coarse, exp_n, exp_top_warms, exp_finite, raises"
+    ),
+    [
+        # 2 soil layers, scalar soil properties, fine-textured
         (
             np.array([20.0, 25.0, 18.0, 22.0]),
-            np.array([[np.nan, 16.0, 14.0, 13.0], [14.0, 15.0, 13.0, 12.0]]),
-            np.array([[0.1, 0.1, 0.1, 0.1], [0.1, 0.1, 0.1, 0.1]]),
-            1.2,
+            np.array(
+                [
+                    [15.0, 16.0, 14.0, 13.0],
+                    [14.0, 15.0, 13.0, 12.0],
+                ],
+                dtype=float,
+            ),
+            np.array([0.1, 0.1], dtype=float),
+            np.array(
+                [
+                    [0.20, 0.20, 0.20, 0.20],
+                    [0.30, 0.30, 0.30, 0.30],
+                ],
+                dtype=float,
+            ),
+            0.45,
+            0.25,
+            1.50,
             1300.0,
             800.0,
             3600.0,
+            False,
             2,
+            True,
+            True,
+            None,
+        ),
+        # NaN in soil temperature should raise
+        (
+            np.array([20.0, 25.0, 18.0, 22.0]),
+            np.array(
+                [
+                    [np.nan, 16.0, 14.0, 13.0],
+                    [14.0, 15.0, 13.0, 12.0],
+                ],
+                dtype=float,
+            ),
+            np.array([0.1, 0.1], dtype=float),
+            np.array(
+                [
+                    [0.20, 0.20, 0.20, 0.20],
+                    [0.30, 0.30, 0.30, 0.30],
+                ],
+                dtype=float,
+            ),
+            0.45,
+            0.25,
+            1.50,
+            1300.0,
+            800.0,
+            3600.0,
+            False,
+            2,
+            None,
             None,
             ValueError,
         ),
-        # Test case for 5 soil layers and arrays of soil parameters
+        # 5 soil layers, mixed texture mask varying by layer/cell
         (
             np.array([18.0, 19.0, 20.0, 21.0]),
             np.array(
@@ -308,31 +480,61 @@ def test_calculate_sensible_heat_flux(dummy_climate_data, fixture_core_component
                     [14.2, 15.2, 13.2, 12.2],
                     [14.1, 15.1, 13.1, 12.1],
                     [14.0, 15.0, 13.0, 12.0],
-                ]
+                ],
+                dtype=float,
             ),
-            np.array([[0.1], [0.2], [0.2], [0.3], [0.2]]) * np.ones((1, 4)),
-            np.repeat(1.2, 4),
-            np.repeat(1300.0, 4),
-            np.repeat(800.0, 4),
-            3600.0,
-            5,
+            np.array([0.1, 0.2, 0.2, 0.3, 0.2], dtype=float),
             np.array(
                 [
-                    [15.623077, 16.657692, 14.692308, 13.726923],
-                    [14.520769, 15.520769, 13.520769, 12.520769],
-                    [14.222926, 15.222926, 13.222926, 12.222926],
-                    [14.1, 15.1, 13.1, 12.1],
-                    [14.010385, 15.010385, 13.010385, 12.010385],
-                ]
+                    [0.20, 0.22, 0.21, 0.23],
+                    [0.24, 0.25, 0.23, 0.22],
+                    [0.28, 0.27, 0.26, 0.25],
+                    [0.30, 0.29, 0.28, 0.27],
+                    [0.32, 0.31, 0.30, 0.29],
+                ],
+                dtype=float,
             ),
+            0.45,
+            0.25,
+            1.50,
+            1300.0,
+            800.0,
+            3600.0,
+            np.array(
+                [
+                    [False, True, False, True],
+                    [False, True, False, True],
+                    [True, False, True, False],
+                    [True, False, True, False],
+                    [False, False, True, True],
+                ],
+                dtype=bool,
+            ),
+            5,
+            True,
+            True,
             None,
         ),
     ],
 )
 def test_update_soil_temperature(
-    g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp, raises
+    g,
+    soil_temp,
+    dz,
+    theta,
+    porosity,
+    k_dry,
+    k_sat,
+    rho,
+    cp,
+    dt,
+    is_coarse,
+    exp_n,
+    exp_top_warms,
+    exp_finite,
+    raises,
 ):
-    """Test update soil temperature."""
+    """Test moisture-aware soil temperature update."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import update_soil_temperature
 
@@ -342,24 +544,45 @@ def test_update_soil_temperature(
                 ground_heat_flux=g,
                 soil_temperature=soil_temp,
                 soil_layer_thickness=dz,
-                soil_thermal_conductivity=k,
+                soil_moisture_volumetric=theta,
+                soil_porosity=porosity,
+                soil_thermal_conductivity_dry=k_dry,
+                soil_thermal_conductivity_saturated=k_sat,
                 soil_bulk_density=rho,
                 specific_heat_capacity_soil=cp,
                 time_interval=dt,
+                is_coarse_textured=is_coarse,
+                coarse_kersten_factor=0.7,
+                density_water=1000.0,
+                specific_heat_capacity_water=4180.0,
             )
     else:
+        initial_temperature = soil_temp.copy()
+
         updated_temperature = update_soil_temperature(
             ground_heat_flux=g,
             soil_temperature=soil_temp,
             soil_layer_thickness=dz,
-            soil_thermal_conductivity=k,
+            soil_moisture_volumetric=theta,
+            soil_porosity=porosity,
+            soil_thermal_conductivity_dry=k_dry,
+            soil_thermal_conductivity_saturated=k_sat,
             soil_bulk_density=rho,
             specific_heat_capacity_soil=cp,
             time_interval=dt,
+            is_coarse_textured=is_coarse,
+            coarse_kersten_factor=0.7,
+            density_water=1000.0,
+            specific_heat_capacity_water=4180.0,
         )
 
         assert updated_temperature.shape[0] == exp_n
-        np.testing.assert_allclose(updated_temperature, exp_temp, rtol=1e-4, atol=1e-4)
+
+        if exp_finite:
+            assert np.all(np.isfinite(updated_temperature))
+
+        if exp_top_warms:
+            assert np.all(updated_temperature[0, :] > initial_temperature[0, :])
 
 
 def test_energy_balance_residual_only(

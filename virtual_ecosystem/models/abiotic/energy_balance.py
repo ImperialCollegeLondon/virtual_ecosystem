@@ -58,6 +58,7 @@ from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_weights_from_absorbed_radiation,
     set_unintended_nan_to_zero,
+    to_shape,
 )
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 
@@ -395,104 +396,249 @@ def calculate_absorbed_longwave_radiation(
     return absorbed
 
 
+def johansen_unfrozen_thermal_conductivity(
+    soil_moisture_volumetric: NDArray[np.floating],
+    soil_porosity: NDArray[np.floating],
+    soil_thermal_conductivity_dry: NDArray[np.floating],
+    soil_thermal_conductivity_saturated: NDArray[np.floating],
+    coarse_kersten_factor: float,
+    is_coarse_textured: NDArray[np.bool_],
+) -> NDArray[np.floating]:
+    r"""Compute unfrozen-soil thermal conductivity using a Johansen-style scheme.
+
+    This implementation follows the Johansen-style model :cite:p:`johansen_thermal_1975`
+    in which soil thermal conductivity is estimated by interpolating nonlinearly between
+    the conductivity of dry soil and the conductivity of saturated soil using a Kersten
+    number based on degree of saturation.
+
+    For unfrozen mineral soils:
+
+    .. math::
+        \theta_s = \phi
+
+    .. math::
+        S_r = \theta / \theta_s
+
+    .. math::
+        K_e =
+        \begin{cases}
+        0.7 \log_{10}(S_r) + 1, & \text{coarse textured} \\
+        \log_{10}(S_r) + 1, & \text{fine textured}
+        \end{cases}
+
+    .. math::
+        \lambda = \lambda_{dry} + K_e (\lambda_{sat} - \lambda_{dry})
+
+    with :math:`K_e = 0` for :math:`S_r \le 0.1`.
+
+    Args:
+        soil_moisture_volumetric: Volumetric soil moisture, [m3 m-3].
+        soil_porosity: Soil porosity, [unitless].
+        soil_thermal_conductivity_dry: Thermal conductivity of dry soil, [W m-1 K-1].
+        soil_thermal_conductivity_saturated: Thermal conductivity of saturated soil,
+            [W m-1 K-1].
+        coarse_kersten_factor: Empirical factor for adjusting Kersten numbers for
+            coarse-textured soils, [unitless].
+        is_coarse_textured: Boolean array indicating coarse-textured soils.
+
+    Returns:
+        Unfrozen-soil thermal conductivity, [W m-1 K-1].
+
+    """
+    theta = np.clip(soil_moisture_volumetric, 0.0, None)
+    phi = np.clip(soil_porosity, 1.0e-8, 1.0)
+    saturation = np.clip(theta / phi, 0.0, 1.0)
+
+    ke = np.zeros_like(saturation)
+    valid = saturation > 0.1
+
+    coarse_valid = valid & is_coarse_textured
+    fine_valid = valid & ~is_coarse_textured
+
+    ke[coarse_valid] = coarse_kersten_factor * np.log10(saturation[coarse_valid]) + 1.0
+    ke[fine_valid] = np.log10(saturation[fine_valid]) + 1.0
+    ke = np.clip(ke, 0.0, 1.0)
+
+    return soil_thermal_conductivity_dry + ke * (
+        soil_thermal_conductivity_saturated - soil_thermal_conductivity_dry
+    )
+
+
 def update_soil_temperature(
     ground_heat_flux: NDArray[np.floating],
     soil_temperature: NDArray[np.floating],
     soil_layer_thickness: NDArray[np.floating],
-    soil_thermal_conductivity: float | NDArray[np.floating],
+    soil_moisture_volumetric: NDArray[np.floating],
+    soil_porosity: float | NDArray[np.floating],
+    soil_thermal_conductivity_dry: float | NDArray[np.floating],
+    soil_thermal_conductivity_saturated: float | NDArray[np.floating],
     soil_bulk_density: float | NDArray[np.floating],
     specific_heat_capacity_soil: float | NDArray[np.floating],
     time_interval: float,
+    density_water: float,
+    specific_heat_capacity_water: float,
+    coarse_kersten_factor: float,
+    is_coarse_textured: bool | NDArray[np.bool_] = False,
 ) -> NDArray[np.floating]:
-    r"""Update soil temperature using heat diffusion.
+    r"""Update soil temperature using moisture-dependent heat diffusion.
 
-    The function applies an explicit finite-difference approach to update
-    soil temperatures based on thermal diffusivity and heat flux.
+    This function applies an explicit finite-difference temperature update for
+    soil while allowing thermal properties to vary with soil moisture. Moisture
+    influences temperature evolution through both volumetric heat capacity and
+    thermal conductivity.
 
-    Governing equations:
-
-    Soil thermal diffusivity:
+    Volumetric heat capacity is represented as:
 
     .. math::
-        \alpha = \frac{\lambda}{\rho_s c_s}
+        C_{vol} = \rho_b c_s + \theta \rho_w c_w
 
-    where :math:`\lambda` is the soil thermal conductivity [W m-1 K-1],
-    :math:`\rho_s` is the soil bulk density [kg m-3], :math:`c_s` is the specific heat
-    capacity of soil [J kg-1 K-1].
+    where ``rho_b`` is soil bulk density, ``c_s`` is the specific heat capacity
+    of soil solids, ``theta`` is volumetric soil moisture, ``rho_w`` is water
+    density and ``c_w`` is the specific heat capacity of water.
+
+    Soil thermal conductivity is estimated using a Johansen-style unfrozen-soil
+    parameterisation. Conductivity is interpolated nonlinearly between the conductivity
+    of dry soil and the conductivity of saturated soil using a Kersten number based on
+    degree of saturation, with separate empirical forms for coarse- and fine-textured
+    soils.
+
+    Soil thermal diffusivity is then:
+
+    .. math::
+        \alpha = \lambda / C_{vol}
 
     Internal layer update:
 
     .. math::
-        T_i^{t+\Delta t} = T_i^t + (\Delta t / \Delta z^2)
-        * \alpha * (T_{i+1}^t - 2T_i^t + T_{i-1}^t)
+        T_i^{t+\Delta t} = T_i^t + (\Delta t / \Delta z_i^2)
+        \alpha_i (T_{i+1}^t - 2T_i^t + T_{i-1}^t)
 
     Top layer update with ground heat flux:
 
     .. math::
-        T_0^{t+\Delta t} = T_0^t + (\Delta t / (\rho_s c_s \Delta z)) * G
+        T_0^{t+\Delta t} = T_0^t +
+        \frac{\Delta t}{C_{vol,0} \Delta z_0} G
 
-    No-heat-flux bottom boundary condition:
+    Bottom boundary condition:
 
     .. math::
-        T_{n-1}^{t+\Delta t} = T_{n-1}^t + (\Delta t / \Delta z^2)
-        * \alpha * (T_{n-2}^t - T_{n-1}^t)
+        \frac{\partial T}{\partial z} = 0
+
+    implemented as a no-heat-flux lower boundary.
+
+    The update is performed using a forward-in-time, centred-in-space explicit
+    finite-difference scheme for the one-dimensional heat equation following
+    :cite:t:`incropera_fundamentals_2007`.
+
+    The timestep should satisfy the usual stability condition for diffusion problems,
+    approximately ``alpha * dt / dz**2 \lesssim 0.5`` for each layer.
 
     Args:
-        ground_heat_flux: Ground heat flux at top soil, [W m-2]
-        soil_temperature: Soil temperature for each soil layer, [C]
-        soil_thermal_conductivity: Thermal conductivity of soil, [W m-2 K-1]
-        soil_bulk_density: Soil bulk density, [kg m-3]
-        specific_heat_capacity_soil: Specific heat capacity of soil, [J kg-1 K-1]
-        soil_layer_thickness: Thickness of each soil layer, [m]
-        time_interval: Time interval, [s]
+        ground_heat_flux: Ground heat flux into the top soil layer, [W m-2].
+        soil_temperature: Soil temperature for each layer and cell, [C].
+        soil_layer_thickness: Thickness of each soil layer, [m].
+        soil_moisture_volumetric: Volumetric soil moisture, [m3 m-3].
+        soil_porosity: Soil porosity, [m3 m-3].
+        soil_thermal_conductivity_dry: Dry-soil thermal conductivity,
+            [W m-1 K-1].
+        soil_thermal_conductivity_saturated: Saturated-soil thermal conductivity,
+            [W m-1 K-1].
+        soil_bulk_density: Soil bulk density, [kg m-3].
+        specific_heat_capacity_soil: Specific heat capacity of soil solids,
+            [J kg-1 K-1].
+        time_interval: Timestep, [s].
+        density_water: Water density, [kg m-3].
+        specific_heat_capacity_water: Specific heat capacity of water,
+            [J kg-1 K-1].
+        coarse_kersten_factor: Empirical factor for adjusting Kersten numbers for
+            coarse-textured soils, [unitless].
+        is_coarse_textured: Boolean flag identifying coarse-textured soil for
+            the Johansen Kersten number. May be scalar or broadcastable to the
+            soil field shape.
 
     Returns:
-        Updated soil temperatures, [C]
+        Updated soil temperature array, [C].
 
     Raises:
-        ValueError: if soil temperature is nan or -inf
+        ValueError: If array dimensions are inconsistent or non-finite values
+            are produced.
     """
 
-    n_layers = len(soil_temperature)
+    # Convert float inputs to arrays of the same shape as soil_temperature
+    shape = soil_temperature.shape
+    n_layers = shape[0]
 
-    # Soil thermal diffusivity, [m2 s-1]
-    soil_thermal_diffusivity = soil_thermal_conductivity / (
+    soil_porosity = to_shape(soil_porosity, shape, "soil_porosity")
+    soil_bulk_density = to_shape(soil_bulk_density, shape, "soil_bulk_density")
+    specific_heat_capacity_soil = to_shape(
+        specific_heat_capacity_soil, shape, "specific_heat_capacity_soil"
+    )
+    soil_thermal_conductivity_dry = to_shape(
+        soil_thermal_conductivity_dry, shape, "soil_thermal_conductivity_dry"
+    )
+    soil_thermal_conductivity_saturated = to_shape(
+        soil_thermal_conductivity_saturated,
+        shape,
+        "soil_thermal_conductivity_saturated",
+    )
+    is_coarse_textured = to_shape(
+        np.asarray(is_coarse_textured, dtype=bool),
+        shape,
+        "is_coarse_textured",
+    ).astype(bool)
+
+    # Calculate volumetric heat capacity, thermal conductivity, and thermal diffusivity
+    volumetric_heat_capacity = (
         soil_bulk_density * specific_heat_capacity_soil
+        + soil_moisture_volumetric * density_water * specific_heat_capacity_water
     )
 
-    # Update internal layers using diffusion
+    soil_thermal_conductivity = johansen_unfrozen_thermal_conductivity(
+        soil_moisture_volumetric=soil_moisture_volumetric,
+        soil_porosity=soil_porosity,
+        soil_thermal_conductivity_dry=soil_thermal_conductivity_dry,
+        soil_thermal_conductivity_saturated=soil_thermal_conductivity_saturated,
+        coarse_kersten_factor=coarse_kersten_factor,
+        is_coarse_textured=is_coarse_textured,
+    )
+
+    soil_thermal_diffusivity = soil_thermal_conductivity / volumetric_heat_capacity
+
+    # Update soil temperature using explicit finite-difference scheme
+    old_temperature = soil_temperature.copy()
+    new_temperature = old_temperature.copy()
+
     for i in range(1, n_layers - 1):
-        soil_temperature[i, :] += (
+        new_temperature[i, :] = old_temperature[i, :] + (
             (time_interval / soil_layer_thickness[i] ** 2)
-            * soil_thermal_diffusivity
+            * soil_thermal_diffusivity[i, :]
             * (
-                soil_temperature[i + 1, :]
-                - 2 * soil_temperature[i, :]
-                + soil_temperature[i - 1, :]
+                old_temperature[i + 1, :]
+                - 2.0 * old_temperature[i, :]
+                + old_temperature[i - 1, :]
             )
         )
 
-    # Update top layer with ground heat flux
-    soil_temperature[0, :] += (
-        time_interval
-        / (soil_bulk_density * specific_heat_capacity_soil * soil_layer_thickness[0])
-    ) * ground_heat_flux
-
-    # No heat flux boundary at the bottom (insulation assumption)
-    soil_temperature[-1, :] += (
-        (time_interval / soil_layer_thickness[-1] ** 2)
-        * soil_thermal_diffusivity
-        * (soil_temperature[-2, :] - soil_temperature[-1, :])
+    new_temperature[0, :] = (
+        old_temperature[0, :]
+        + (time_interval / (volumetric_heat_capacity[0, :] * soil_layer_thickness[0]))
+        * ground_heat_flux
     )
 
-    if not np.all(np.isfinite(soil_temperature)):
+    new_temperature[-1, :] = old_temperature[-1, :] + (
+        (time_interval / soil_layer_thickness[-1] ** 2)
+        * soil_thermal_diffusivity[-1, :]
+        * (old_temperature[-2, :] - old_temperature[-1, :])
+    )
+
+    if not np.all(np.isfinite(new_temperature)):
         raise ValueError(
             "Soil temperature is not finite, consider reducing the initial ",
             "integration time step or the integration time modifier for air ",
             "temperature in secant method.",
         )
 
-    return soil_temperature
+    return new_temperature
 
 
 def calculate_energy_balance_residual(
