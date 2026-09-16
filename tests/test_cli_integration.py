@@ -140,6 +140,7 @@ def test_ve_run_full(capsys, config_file_list, abiotic_simple):
                     str(outdir),
                     "--logfile",
                     str(logfile),
+                    "--to-netcdf",
                 ]
             )
 
@@ -153,6 +154,13 @@ def test_ve_run_full(capsys, config_file_list, abiotic_simple):
             with open(logfile) as logfile_io:
                 contents = logfile_io.readlines()
                 assert "Virtual Ecosystem model run completed!" in contents[-1]
+
+            # Check output files exist - we have deeper testing of the contents
+            # elsewhere
+            zarr = outdir / "model_data.zarr"
+            assert zarr.exists() and zarr.is_dir()
+            netcdf = outdir / "model_data.nc"
+            assert netcdf.exists() and netcdf.is_file()
 
         except Exception as excep:
             # If the code above fails then tidy up the logger to restore normal
