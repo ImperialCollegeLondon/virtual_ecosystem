@@ -773,7 +773,7 @@ def test_to_shape_broadcasts_valid_inputs(value, shape, expected):
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import to_shape
 
-    result = to_shape(value, shape, "test_value")
+    result = to_shape(value=value, shape=shape, name="test_value")
     assert result.shape == expected.shape
     assert result.dtype == float
     np.testing.assert_allclose(result, expected)
@@ -788,4 +788,4 @@ def test_to_shape_raises_for_invalid_broadcast():
         match=r"test_value could not be broadcast to shape \(2, 3\)\. "
         r"Received shape \(2,\)\.",
     ):
-        to_shape(np.array([1.0, 2.0]), (2, 3), "test_value")
+        to_shape(value=np.array([1.0, 2.0]), shape=(2, 3), name="test_value")

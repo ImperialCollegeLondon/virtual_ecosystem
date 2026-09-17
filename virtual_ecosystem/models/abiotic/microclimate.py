@@ -65,7 +65,7 @@ def prepare_static_inputs(
     # Soil moisture, [m3 m-3]
     soil_moisture_volumetric = layer_structure.from_template()
     soil_moisture_volumetric[idx.soil] = (
-        data["soil_moisture"][idx.soil].to_numpy() / 1000
+        data["soil_moisture"][idx.soil].to_numpy() / core_constants.meters_to_mm
     ) / layer_structure.soil_layer_thickness[:, np.newaxis]
 
     # Atmospheric pressure profile set to reference value, [kPa]

@@ -429,9 +429,42 @@ $\rho_w$: Water density ($\mathrm{kg,m^{-3}}$)
 $c_w$: Specific heat capacity of water ($\mathrm{J,kg^{-1},K^{-1}}$)
 
 The **soil thermal conductivity** $\lambda$ ($\mathrm{W,m^{-1},K^{-1}}$) is estimated
-using a Johansen-style unfrozen-soil parameterisation {cite:p}`johansen_thermal_1975`,
-in which thermal conductivity is calculated as a nonlinear transition from dry-soil
-conductivity to saturated-soil conductivity based on soil wetness.
+following a Johansen-style unfrozen-soil parameterisation
+{cite:p}`johansen_thermal_1975`, using the Kersten number $K_{e}$, which scales
+between the dry ($\lambda_\mathrm{dry}$) and saturated ($\lambda_\mathrm{sat}$)
+conductivity limits.
+
+The saturated volumetric water content ($\theta_{s}$) is taken equal to the porosity and
+the degree of saturation ($\theta$) is then:
+
+$$S_{r} = \frac{\theta}{\theta_{s}}$$
+
+The Kersten number $K_{e}$ depends on soil texture:
+
+```{math}
+    K_{e} =
+    \begin{cases}
+        \kappa \log_{10}(S_{r}) + 1, & \text{coarse-textured soils} \\
+        \log_{10}(S_{r}) + 1,        & \text{fine-textured soils}
+    \end{cases}
+```
+
+where $\kappa$ is the ``coarse_kersten_factor`` parameter.
+{cite:t}`johansen_thermal_1975` gives $\kappa = 0.7$ for coarse mineral soils.
+
+Thermal conductivity is then obtained by linear interpolation between the
+dry and saturated limits:
+
+```{math}
+\lambda = K_{e} \left( \lambda_\mathrm{sat} - \lambda_\mathrm{dry} \right)
++ \lambda_\mathrm{dry}
+```
+
+```{note}
+This formulation is valid for unfrozen mineral soils with $S_{r} > 0.1$. Below
+this threshold the Kersten number becomes negative, which is physically unrealistic;
+implementations should clamp $S_{r}$ or $K_{e}$ accordingly.
+```
 
 **Soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2},s^{-1}}$) is then calculated as:
 
@@ -448,7 +481,7 @@ and time advances in steps of $\Delta t$ (s).
 The topmost layer ($i = 0$) is updated using the net ground heat flux $G$
 ($\mathrm{W\,m^{-2}}$):
 
-$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{\rho c \Delta z_{0}}\right) G$$
+$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{C_{\mathrm{vol},0}\,\Delta z_{0}}\right)G$$
 
 **Interior layers update**:
 
