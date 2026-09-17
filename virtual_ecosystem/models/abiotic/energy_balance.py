@@ -424,11 +424,11 @@ def johansen_unfrozen_thermal_conductivity(
         S_r = \theta / \theta_s
 
     .. math::
-    K_e =
-    \begin{cases}
-    \kappa \log_{10}(S_r) + 1, & \text{coarse textured} \\
-    \log_{10}(S_r) + 1, & \text{fine textured}
-    \end{cases}
+        K_e =
+        \begin{cases}
+        \kappa \log_{10}(S_r) + 1, & \text{coarse textured} \\
+        \log_{10}(S_r) + 1, & \text{fine textured}
+        \end{cases}
 
     where :math:`\kappa` is ``coarse_kersten_factor`` (Johansen (1975) gives
     :math:`\kappa = 0.7` for coarse mineral soils).
