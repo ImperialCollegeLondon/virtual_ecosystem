@@ -29,9 +29,19 @@ Litter decay and soil nutrient transformations are both affected by environment.
 most basic level these are impacts on the microbial components of the soil and litter
 models, which then impact the models more broadly. There are three different ways that
 these impacts are represented in the models. The rates of processes that are implicitly
-driven by microbes can change, the growth rates of the different microbial groups can be
-directly affected, or the enzymatic rates can be affected. Each of these cases will be
-dealt with in detail below.
+driven by microbes can change, the physiological rates of the different microbial groups
+can be directly affected, or the enzymatic rates can be affected. Each of these cases
+will be dealt with in detail below.
+
+Temperature impacts both the microbially driven and purely physiochemical processes in
+the soil. However, as the microbial processes are generally more affected by temperature
+changes, we only seek to capture this component in our modelling of thermal responses.
+This means that processes that we assume don't have a microbially driven component
+(necromass breakdown, {term}`LMWC` sorption to soil minerals, breakdown of primary
+mineral phosphorus, and the formation and breakdown of secondary mineral phosphorus) are
+also assumed to not vary with temperature. Likewise, in the single case where a process
+has both a microbe-mediated and purely physiochemical term (breakdown of
+{term}`MAOM`), the physicochemical term is assumed to not vary with temperature.
 
 At present, the only environmental impact we represent that isn't mediated by microbes
 is the the rate at which nutrients leach from the soil. As such, this process does not
@@ -98,8 +108,10 @@ $$f_t(T) = \exp{\left(\gamma \frac{T - T_{\mathrm{ref}}}{T + T_{\mathrm{off}}}\r
 
 where $T$ is the litter temperature, $T_\mathrm{ref}$ is reference temperature used to
 establish "intrinsic" litter decay rates, $T_\mathrm{off}$ is an offset temperature, and
-$\gamma$ is a parameter capturing how responsive litter decay rates are to temperature
-changes.
+$\gamma$ is a parameter that sets response strength by setting the high and low
+temperature limits of the response, e.g.
+$\lim\limits_{T\to \infty}f_t(T) = \exp{(\gamma)}$
+and $\lim\limits_{T\to -\infty}f_t(T) = \exp{(-\gamma)}$.
 
 ### Litter decay moisture response
 
@@ -113,10 +125,15 @@ becomes limiting. The "intrinsic" process rates are altered to capture the effec
 soil moisture by multiplying them with a factor that takes the following form
 
 $$
-A(\psi) = 1 - \left(
+A(\psi) =
+\begin{cases}
+1, \quad \psi \geq \psi_{o} \\
+1 - \left(
 \frac{\log_{10}|\psi| - \log_{10}|\psi_{o}|}
 {\log_{10}|\psi_{h}| - \log_{10}|\psi_{o}|}
-\right)^\alpha,
+\right)^\alpha, \quad \psi_{h} < \psi < \psi_{o} \\
+0, \quad \psi \leq \psi_{h}
+\end{cases}
 $$
 
 where $\psi$ is the soil water potential, $\psi_{o}$ is the "optimal" water potential at
@@ -160,7 +177,7 @@ that temperature has on denitrification rate to be calculated as
 $$
 f_{T,d}(T) =
 \begin{cases}
-0, \quad T <= T_h \\
+0, \quad T \leq T_h \\
 f_\infty * \exp{\left(-\frac{s_d}{T - T_h}\right)}, \quad T > T_h \\
 \end{cases}
 $$
@@ -210,10 +227,10 @@ f_p =
 \begin{cases}
 0, \quad pH < pH_\mathrm{min} \\
 \frac{pH - pH_\mathrm{min}}{pH_l - pH_\mathrm{min}}, \quad
-pH_\mathrm{min} < pH < pH_l \\
-1, \quad pH_l < pH < pH_u \\
+pH_\mathrm{min} \leq pH < pH_l \\
+1, \quad pH_l \leq pH \leq pH_u \\
 \frac{pH_\mathrm{max} - pH}{pH_\mathrm{max} - pH_u}, \quad
-pH_u < pH < pH_\mathrm{max} \\
+pH_u < pH \leq pH_\mathrm{max} \\
 0, \quad pH > pH_\mathrm{max}
 \end{cases}
 $$
