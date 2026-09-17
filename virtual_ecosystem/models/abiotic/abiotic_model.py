@@ -98,6 +98,7 @@ class AbioticModel(
         "canopy_evaporation",
         "transpiration",
         "condensation",
+        "soil_moisture",
     ),
     vars_populated_by_init=(
         "soil_temperature",

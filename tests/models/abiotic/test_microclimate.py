@@ -44,6 +44,7 @@ def test_prepare_static_inputs_returns_consistent_outputs(
         "geometry",
         "absorbed_longwave_radiation",
         "cell_area",
+        "soil_moisture_volumetric",
     }
 
     assert set(result.keys()) == expected_keys

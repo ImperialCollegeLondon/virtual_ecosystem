@@ -1155,12 +1155,14 @@ def fixture_static_inputs(
     dummy_climate_data,
     fixture_abiotic_indices,
     fixture_abiotic_constants,
+    fixture_core_components,
 ) -> dict[str, NDArray[np.floating]]:
     """Prepare static inputs for the microclimate model."""
 
     data = dummy_climate_data
     indices = fixture_abiotic_indices
     abiotic_constants = fixture_abiotic_constants
+    layer_structure = fixture_core_components.layer_structure
     hours = 30 * 24
 
     leaf_area_index = data["leaf_area_index"].to_numpy()
@@ -1177,6 +1179,10 @@ def fixture_static_inputs(
         idx=indices,
         minimum_mixing_depth=abiotic_constants.minimum_mixing_depth,
     )
+    soil_moisture_volumetric = layer_structure.from_template()
+    soil_moisture_volumetric[indices.soil] = (
+        data["soil_moisture"][indices.soil].to_numpy() / 1000
+    ) / layer_structure.soil_layer_thickness[:, np.newaxis]
 
     return {
         "canopy_height": data["layer_heights"][1].to_numpy(),
@@ -1193,6 +1199,7 @@ def fixture_static_inputs(
         "wind_speed": data["wind_speed"].to_numpy(),
         "ventilation_rate": data["ventilation_rate"].to_numpy(),
         "roughness_length": np.ones(data.grid.n_cells, dtype=float),
+        "soil_moisture_volumetric": soil_moisture_volumetric,
     }
 
 

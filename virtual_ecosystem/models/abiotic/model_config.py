@@ -32,6 +32,23 @@ class AbioticConstants(AbioticSharedConstants):
     soil is taken from :cite:t:`gupta_soilksatdb_2021`.
     """
 
+    soil_porosity: float = 0.5
+    """Soil porosity, [m3 m-3].
+
+    Soil porosity is the fraction of the total volume of soil that is occupied by pores.
+    It is a measure of the soil's ability to hold water and air, with higher porosity
+    indicating more space for water and air. TODO: This value is a placeholder and
+    should be replaced with a more accurate value.
+    """
+
+    coarse_kersten_factor: float = 0.7
+    """Empirical factor for adjusting Kersten numbers for coarse-textured soils.
+
+    The coarse_kersten_factor is used to modify the Kersten number calculation for
+    coarse-textured soils, which have different thermal properties compared to
+    fine-textured soils when using the Johansen model.
+    """
+
     wind_reference_height: float = 10.0
     """Reference height for wind speed above the canopy, [m].
 
@@ -98,12 +115,22 @@ class AbioticConstants(AbioticSharedConstants):
     roughness significantly affects the wind flow over a particular terrain or
     surface. Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
-    soil_thermal_conductivity: float = 1.206
-    """Soil thermal conductivity, [W m-1 K-1].
+    soil_thermal_conductivity_dry: float = 0.25
+    """Dry soil thermal conductivity, [W m-1 K-1].
 
     Soil thermal conductivity is a measure of the soil's ability to conduct heat,
-    influenced by factors such as moisture content, texture, and density. Value is
-    taken from :cite:t:`rasimeng_characterization_2020`.
+    influenced by factors such as moisture content, texture, and density. Dry soil
+    thermal conductivity value is estimated from :cite:t:`xiong_anew_2023`.
+    TODO: This value is a placeholder and should be replaced with a more accurate value.
+    """
+
+    soil_thermal_conductivity_saturated: float = 2.5
+    """Saturated soil thermal conductivity, [W m-1 K-1].
+
+    Soil thermal conductivity is a measure of the soil's ability to conduct heat,
+    influenced by factors such as moisture content, texture, and density. Value at
+    saturation is estimated from :cite:t:`xiong_anew_2023`.
+    TODO: This value is a placeholder and should be replaced with a more accurate value.
     """
 
     specific_heat_capacity_soil: float = 881
