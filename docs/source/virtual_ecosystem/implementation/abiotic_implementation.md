@@ -349,7 +349,7 @@ transferred to the air above the canopy.
 
 ```{note}
 Advection of heat above the canopy is currently not implemented. For time intervals
-$$\geq 1 \text{ h}$$, excess heat is assumed to be removed locally, and horizontal heat
+$\geq 1 \text{ h}$, excess heat is assumed to be removed locally, and horizontal heat
 transfer is not considered.
 ```
 
@@ -407,33 +407,73 @@ $$G = R_{n} - H_{s} - \lambda E_{s} + G_{u}$$
 After the energy fluxes at the land surface have been partitioned, we simulate how heat
 is transported vertically through the soil profile by updating the temperature of each
 soil layer over time. This is done using an explicit finite-difference approach, which
-numerically solves the one-dimensional heat diffusion equation. The method accounts for
-thermal diffusivity and the net ground heat flux to calculate temperature changes at
-each soil depth.
+numerically solves the one-dimensional heat diffusion equation while allowing thermal
+properties to vary with soil moisture. Moisture influences temperature evolution through
+both the soil volumetric heat capacity and thermal conductivity.
 
-The **soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2}\,s^{-1}}$) determines the rate
-at which heat is conducted through the soil. It is defined as:
+The **soil volumetric heat capacity** $C_{\mathrm{vol}}$ ($\mathrm{J,m^{-3},K^{-1}}$)
+determines how much energy is required to change soil temperature and is represented as:
 
-$$\alpha = \frac{k}{\rho_s c_s}$$
+$$C_{vol}=\rho_b c_{s} + \theta \rho_w c_w​$$
 
 where:
 
-$k$:
-Soil thermal conductivity ($\mathrm{W\,m^{-1}\,K^{-1}}$), indicating how
-  easily heat moves through soil
+$\rho_b$: Soil bulk density ($\mathrm{kg,m^{-3}}$)
 
-$\rho_s$:
-Soil bulk density ($\mathrm{kg\,m^{-3}}$), including solids and pore spaces, currently
-constant across all grid cells and layers
+$c_s$: Specific heat capacity of soil solids ($\mathrm{J,kg^{-1},K^{-1}}$)
 
-$c_s$:
-Soil specific heat capacity ($\mathrm{J\,kg^{-1}\,K^{-1}}$), the energy required to
-raise the temperature of 1 kg of soil by 1 K.
+$\theta$: Volumetric soil moisture ($\mathrm{m^{3},m^{-3}}$)
+
+$\rho_w$: Water density ($\mathrm{kg,m^{-3}}$)
+
+$c_w$: Specific heat capacity of water ($\mathrm{J,kg^{-1},K^{-1}}$)
+
+The **soil thermal conductivity** $\lambda$ ($\mathrm{W,m^{-1},K^{-1}}$) is estimated
+following a Johansen-style unfrozen-soil parameterisation
+{cite:p}`johansen_thermal_1975`, using the Kersten number $K_{e}$, which scales
+between the dry ($\lambda_\mathrm{dry}$) and saturated ($\lambda_\mathrm{sat}$)
+conductivity limits.
+
+The saturated volumetric water content ($\theta_{s}$) is taken equal to the porosity and
+the degree of saturation ($\theta$) is then:
+
+$$S_{r} = \frac{\theta}{\theta_{s}}$$
+
+The Kersten number $K_{e}$ depends on soil texture:
+
+```{math}
+    K_{e} =
+    \begin{cases}
+        \kappa \log_{10}(S_{r}) + 1, & \text{coarse-textured soils} \\
+        \log_{10}(S_{r}) + 1,        & \text{fine-textured soils}
+    \end{cases}
+```
+
+where $\kappa$ is the ``coarse_kersten_factor`` parameter.
+{cite:t}`johansen_thermal_1975` gives $\kappa = 0.7$ for coarse mineral soils.
+
+Thermal conductivity is then obtained by linear interpolation between the
+dry and saturated limits:
+
+```{math}
+\lambda = K_{e} \left( \lambda_\mathrm{sat} - \lambda_\mathrm{dry} \right)
++ \lambda_\mathrm{dry}
+```
+
+```{note}
+This formulation is valid for unfrozen mineral soils with $S_{r} > 0.1$. Below
+this threshold the Kersten number becomes negative, which is physically unrealistic;
+implementations should clamp $S_{r}$ or $K_{e}$ accordingly.
+```
+
+**Soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2},s^{-1}}$) is then calculated as:
+
+$$\alpha = \frac{\lambda}{C_{vol}}$$
 
 #### Temperature Update Scheme
 
 Let $T_i^t$ represent the temperature (°C) of the $i^{\text{th}}$ soil layer at time
-$t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z$ (m),
+$t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z_i$ (m),
 and time advances in steps of $\Delta t$ (s).
 
 **Top layer update** (surface boundary condition):
@@ -441,7 +481,7 @@ and time advances in steps of $\Delta t$ (s).
 The topmost layer ($i = 0$) is updated using the net ground heat flux $G$
 ($\mathrm{W\,m^{-2}}$):
 
-$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{\rho c \Delta z}\right) G$$
+$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{C_{\mathrm{vol},0}\,\Delta z_{0}}\right)G$$
 
 **Interior layers update**:
 
@@ -451,12 +491,13 @@ the diffusion equation:
 ```{math}
 \begin{aligned}
 T_i^{t+\Delta t} =
-& T_i^t + (\frac{\Delta t}{\Delta z^2}) \alpha (T_{i+1}^t - 2T_i^t + T_{i-1}^t)
+& T_i^t + (\frac{\Delta t}{\Delta z_i^2}) \alpha_i
+(T_{i+1}^t - 2T_i^t + T_{i-1}^t)
 \end{aligned}
 ```
 
 This term approximates vertical conduction using the second spatial derivative of
-temperature.
+temperature, with moisture-dependent thermal diffusivity.
 
 **Bottom layer update** (no-flux boundary condition):
 
@@ -466,9 +507,14 @@ exchanges heat with the layer above:
 ```{math}
 \begin{aligned}
 T_{n-1}^{t+\Delta t} =
-& T_{n-1}^t + (\frac{\Delta t}{\Delta z^2}) \alpha (T_{n-2}^t - T_{n-1}^t)
+& T_{n-1}^t + (\frac{\Delta t}{\Delta z_{n-1}^2}) \alpha_{n-1}
+(T_{n-2}^t - T_{n-1}^t)
 \end{aligned}
 ```
+
+All layer updates are calculated from the temperature profile at the previous timestep,
+so the scheme is consistent with a forward-in-time, centred-in-space explicit
+finite-difference method.
 
 ## Atmospheric moisture
 
