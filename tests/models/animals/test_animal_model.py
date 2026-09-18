@@ -965,53 +965,72 @@ class TestAnimalModel:
             ]
         )
 
-    def test_update_community_occupancy(
-        self, animal_model_instance, herbivore_cohort_instance, mocker
-    ):
-        """Test update_community_occupancy."""
+    def test_update_community_occupancy_passes_none_when_cache_empty(
+        self, mocker, animal_model_instance, herbivore_cohort_instance
+    ) -> None:
+        """With no suitability cache, territories are built breadth-first.
 
-        # Mock the get_territory_cells method to return specific territory cells
-        mocker.patch.object(
-            herbivore_cohort_instance,
-            "get_territory_cells",
-            return_value=[
-                animal_model_instance.data.grid.cell_id[0],
-                animal_model_instance.data.grid.cell_id[1],
-            ],
-        )
+        This is the state during model setup, before the climate pass has run, and
+        whenever thermal habitat selection is disabled.
+        """
+        model = animal_model_instance
+        model.thermal_suitability = None
 
-        # Spy on the update_territory method to check if it's called
-        spy_update_territory = mocker.spy(herbivore_cohort_instance, "update_territory")
+        cohort = herbivore_cohort_instance
+        spy = mocker.spy(cohort, "get_territory_cells")
 
-        # Choose a centroid key (e.g., the first grid cell)
-        centroid_key = animal_model_instance.data.grid.cell_id[0]
+        model.update_community_occupancy(cohort, model.data.grid.cell_id[0])
 
-        # Call the method to update community occupancy
-        animal_model_instance.update_community_occupancy(
-            herbivore_cohort_instance, centroid_key
-        )
+        assert spy.call_args.args[1] is None
 
-        # Check if the cohort's territory was updated correctly
-        spy_update_territory.assert_called_once_with(
-            [
-                animal_model_instance.data.grid.cell_id[0],
-                animal_model_instance.data.grid.cell_id[1],
-            ]
-        )
+    def test_update_community_occupancy_passes_functional_group_suitability(
+        self, mocker, animal_model_instance, herbivore_cohort_instance
+    ) -> None:
+        """The cohort's own functional group array is selected from the cache.
 
-        # Check if the cohort has been added to the appropriate communities
-        assert (
-            herbivore_cohort_instance
-            in animal_model_instance.communities[
-                animal_model_instance.data.grid.cell_id[0]
-            ]
-        )
-        assert (
-            herbivore_cohort_instance
-            in animal_model_instance.communities[
-                animal_model_instance.data.grid.cell_id[1]
-            ]
-        )
+        The cache is keyed by functional group name, so a cohort must receive its
+        own group's suitability rather than another group's.
+        """
+        import numpy as np
+
+        model = animal_model_instance
+        cohort = herbivore_cohort_instance
+
+        n_cells = model.data.grid.n_cells
+        own = np.full(n_cells, 0.8)
+        other = np.full(n_cells, 0.2)
+
+        model.thermal_suitability = {
+            cohort.functional_group.name: own,
+            "some_other_group": other,
+        }
+
+        spy = mocker.spy(cohort, "get_territory_cells")
+
+        model.update_community_occupancy(cohort, model.data.grid.cell_id[0])
+
+        assert np.array_equal(spy.call_args.args[1], own)
+
+    def test_update_community_occupancy_registers_territory_cells(
+        self, animal_model_instance, herbivore_cohort_instance
+    ) -> None:
+        """The cohort is registered in the communities of every territory cell.
+
+        Guards the bookkeeping that the suitability change sits alongside: the
+        territory stored on the cohort and the community membership must agree.
+        """
+        model = animal_model_instance
+        model.thermal_suitability = None
+        model.communities = {cell_id: [] for cell_id in model.communities}
+
+        cohort = herbivore_cohort_instance
+        centroid = model.data.grid.cell_id[0]
+
+        model.update_community_occupancy(cohort, centroid)
+
+        assert centroid in cohort.territory
+        for cell_id in cohort.territory:
+            assert cohort in model.communities[cell_id]
 
     def test_migrate(self, animal_model_instance, herbivore_cohort_instance, mocker):
         """Test that `migrate` correctly moves an AnimalCohort between grid cells."""
