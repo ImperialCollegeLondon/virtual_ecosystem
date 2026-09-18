@@ -24,7 +24,7 @@ def fixture_pyrealm_constants():
 
 
 @pytest.fixture
-def fixture_exporter(tmpdir, fixture_configuration):
+def fixture_exporter(tmp_path, fixture_configuration):
     """Construct a minimal CommunityDataExporter object.
 
     This exporter uses the default exporter settings that do not output plant community
@@ -38,7 +38,7 @@ def fixture_exporter(tmpdir, fixture_configuration):
         "plants", PlantsConfiguration
     )
     exporter = CommunityDataExporter.from_config(
-        output_directory=tmpdir, config=plants_config.community_data_export
+        output_directory=tmp_path, config=plants_config.community_data_export
     )
 
     return exporter
