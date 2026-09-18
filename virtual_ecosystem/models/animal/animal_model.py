@@ -369,7 +369,8 @@ class AnimalModel(
 
         Keyed by functional group name, each value a ``(n_cells,)`` array in [0, 1].
         ``None`` whenever thermal habitat selection is disabled or the climate pass has
-        not yet run, in which case dispersal falls back to uniform destination choice.
+        not yet run, in which case dispersal falls back to uniform destination choice
+        and territories are built breadth-first.
         """
 
         self.active_cohorts = {}

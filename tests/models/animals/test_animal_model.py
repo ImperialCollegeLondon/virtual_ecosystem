@@ -965,6 +965,57 @@ class TestAnimalModel:
             ]
         )
 
+    def test_update_community_occupancy_registers_only_territory_cells(
+        self, animal_model_instance, herbivore_cohort_instance
+    ) -> None:
+        """The cohort is registered in its territory's communities and nowhere else.
+
+        Asserting only that territory cells contain the cohort would not catch
+        over-registration, so cells outside the territory are checked to be empty.
+        """
+        model = animal_model_instance
+        model.thermal_suitability = None
+        model.communities = {cell_id: [] for cell_id in model.communities}
+
+        cohort = herbivore_cohort_instance
+        centroid = model.data.grid.cell_id[0]
+
+        model.update_community_occupancy(cohort, centroid)
+
+        territory = set(cohort.territory)
+
+        for cell_id, occupants in model.communities.items():
+            if cell_id in territory:
+                assert cohort in occupants
+            else:
+                assert cohort not in occupants
+
+    def test_update_community_occupancy_accumulates_cohorts(
+        self, animal_model_instance, herbivore_cohort_instance, predator_cohort_instance
+    ) -> None:
+        """Multiple cohorts sharing a cell are all registered in its community.
+
+        Occupancy appends rather than replaces, so overlapping territories must
+        leave both cohorts present in the shared cells.
+        """
+        model = animal_model_instance
+        model.thermal_suitability = None
+        model.communities = {cell_id: [] for cell_id in model.communities}
+
+        centroid = model.data.grid.cell_id[0]
+
+        model.update_community_occupancy(herbivore_cohort_instance, centroid)
+        model.update_community_occupancy(predator_cohort_instance, centroid)
+
+        shared = set(herbivore_cohort_instance.territory) & set(
+            predator_cohort_instance.territory
+        )
+        assert shared, "fixture cohorts should share at least the centroid cell"
+
+        for cell_id in shared:
+            assert herbivore_cohort_instance in model.communities[cell_id]
+            assert predator_cohort_instance in model.communities[cell_id]
+
     def test_update_community_occupancy_passes_none_when_cache_empty(
         self, mocker, animal_model_instance, herbivore_cohort_instance
     ) -> None:
