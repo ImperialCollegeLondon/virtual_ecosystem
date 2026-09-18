@@ -426,8 +426,6 @@ def calculate_carbon_use_efficiency(
     We model the carbon use efficiency using a logistic function. This is to ensure that
     carbon use efficiency values remain bounded between zero and one.
 
-    TODO - This should be adapted to use an Arrhenius function at some point.
-
     Args:
         soil_temp: soil temperature for each soil grid cell [Celsius]
         reference_cue_logit: Logit of the carbon use efficiency at reference temp
