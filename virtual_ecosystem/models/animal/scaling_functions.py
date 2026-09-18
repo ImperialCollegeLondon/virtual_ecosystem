@@ -5,6 +5,8 @@ scaling equations" (relationships between body-mass and a trait) required by the
 """  # noqa: D205, D415
 
 from collections.abc import Sequence
+from heapq import heappop, heappush
+from itertools import count
 from math import asin, ceil, exp, isnan, log, pi
 
 import numpy as np
@@ -1141,3 +1143,102 @@ def thermal_suitability(
             for t, d in zip(temperature, diurnal_temp_range)
         ]
     )
+
+
+def thermal_territory(
+    centroid_key: int,
+    target_cell_number: int,
+    cell_nx: int,
+    cell_ny: int,
+    suitability: NDArray | None = None,
+) -> list[int]:
+    """Grow a contiguous territory, preferring thermally suitable cells.
+
+    A generalisation of :func:`bfs_territory` in which the expansion frontier is a
+    priority queue ordered by descending cell suitability rather than a FIFO queue.
+    At each step the territory grows into the most suitable cell adjacent to the
+    territory so far, rather than the cell that was discovered earliest.
+
+    Contiguity is preserved because a cell only enters the frontier once one of its
+    neighbours has already been claimed, so the territory is always connected to the
+    centroid. This is what distinguishes the result from simply taking the
+    ``target_cell_number`` most suitable cells anywhere on the grid.
+
+    When ``suitability`` is ``None`` the function delegates to :func:`bfs_territory`.
+    When it is uniform, ties are broken by insertion order and the expansion
+    degenerates to breadth-first, reproducing :func:`bfs_territory` exactly.
+
+    Growth is greedy and deterministic, so the result is invariant under any
+    monotonic transform of ``suitability``: only the ordering of cells matters, not
+    the magnitudes. The exponent and floor constants used to weight dispersal
+    destinations therefore have no effect here and are not applied.
+
+    TODO: Revise for diagonals if we stay on grid squares/cells, in step with
+        :func:`bfs_territory`.
+
+    Args:
+        centroid_key: The community key anchoring the territory.
+        target_cell_number: The number of grid cells in the territory.
+        cell_nx: Number of cells along the x-axis.
+        cell_ny: Number of cells along the y-axis.
+        suitability: Per-cell thermal suitability in [0, 1] for the cohort's
+            functional group, shape ``(n_cells,)`` and indexed by grid cell key.
+            ``None`` falls back to breadth-first growth.
+
+    Returns:
+        A list of grid cell keys representing the territory, beginning with the
+        centroid.
+    """
+
+    if suitability is None:
+        return bfs_territory(centroid_key, target_cell_number, cell_nx, cell_ny)
+
+    centroid_key = int(centroid_key)
+    target_cell_number = int(target_cell_number)
+    cell_nx = int(cell_nx)
+    cell_ny = int(cell_ny)
+
+    row, col = divmod(centroid_key, cell_nx)
+
+    # The centroid is always occupied, so it is claimed outright rather than being
+    # competed for on the frontier.
+    territory_cells = [centroid_key]
+    visited = {centroid_key}
+
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+    # Frontier entries are (-suitability, tiebreak, row, col). Suitability is negated
+    # because heapq is a min-heap and we want the most suitable cell to pop first.
+    # The monotonically increasing tiebreak preserves insertion order among equally
+    # suitable cells, so uniform suitability reproduces FIFO breadth-first order.
+    frontier: list[tuple[float, int, int, int]] = []
+    tiebreak = count()
+
+    def push_neighbours(r: int, c: int) -> None:
+        """Add the unvisited in-bounds neighbours of a claimed cell to the frontier."""
+
+        for dr, dc in directions:
+            nr, nc = r + dr, c + dc
+            if not (0 <= nr < cell_ny and 0 <= nc < cell_nx):
+                continue
+
+            new_cell = nr * cell_nx + nc
+            if new_cell in visited:
+                continue
+
+            # Marked visited at push time rather than pop time: suitability is fixed
+            # per cell, so a cell's priority does not depend on which neighbour
+            # discovered it and there is no need to reconsider it later.
+            visited.add(new_cell)
+            heappush(frontier, (-float(suitability[new_cell]), next(tiebreak), nr, nc))
+
+    push_neighbours(row, col)
+
+    while frontier and len(territory_cells) < target_cell_number:
+        # Cells are claimed when popped, not when discovered, because a cell cannot
+        # be ranked against the rest of the frontier until it reaches the front.
+        _, _, r, c = heappop(frontier)
+        territory_cells.append(r * cell_nx + c)
+        push_neighbours(r, c)
+
+    return territory_cells
