@@ -664,15 +664,15 @@ although some processes will be implemented in the hydrology model.
 
 First, the snow submodule needs to include a minimum set of **above-ground processes**
 so that snow and below zero temperatures affect precipitation phase (rain vs snow),
-water storage at the surface, melting, and delayed release, surface roughness and wind
-profiles, surface albedo and on absorbed shortwave radiation, surface energy
+water storage at the surface, melting, surface roughness and wind
+profiles, surface albedo and absorbed shortwave radiation, surface energy
 partitioning, and hydrologic liquid-water input from melted snow.
 
 Most snow models use a multi-layer approach with snow accumulating at the top, getting
 more compact and dark as it ages (-> albedo changes), and melting from the lower layers
 (e.g. {cite:t}`maclean_ecologist_2026`, {cite:t}`jennings_spatial_2018`,
 {cite:t}`kearney_how_2020`,).
-For simplicity, the first version of our snow model used a single layer approach. This
+For simplicity, the first version of our snow model uses a single layer approach. This
 layer will cover the current surface layer so that the effects of surface vegetation
 on the energy balance are reduced, details of implementation are still to be decided.
 
