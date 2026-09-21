@@ -44,7 +44,7 @@ dependencies = [
   "types-tabulate (>0.9)",
   "pydantic (>=2.13.5,<3.0.0)",
   "bottleneck (>=1.6.0,<2.0.0)",
-  "zarr (>=3.3.0,<4.0.0)",
+  "zarr (>=3.4.0,<4.0.0)",
 ]
 
 [project.scripts]
@@ -78,10 +78,10 @@ isort = ">=9.0.1,<10.0"
 jupyterlab = "^4.6.3" 
 jupyterlab-myst = "^2.7.0" 
 jupytext = "^1.19.5" 
-matplotlib = ">=3.11.1" # SPEC0
+matplotlib = ">=3.11.2" # SPEC0
 mypy = "^2.3.1" 
 pre-commit = ">=4.6.2,<5" 
-ruff = ">=0.16.5,<0.17.0" 
+ruff = ">=0.16.8,<0.17.0" 
 snakeviz = ">=2.2.2,<3.0.0" 
 
 [tool.poetry.group.docs.dependencies]
