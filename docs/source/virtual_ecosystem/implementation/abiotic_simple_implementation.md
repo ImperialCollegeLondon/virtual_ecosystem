@@ -53,7 +53,7 @@ vertical profiles of these variables from external climate data such as regional
 climate models or satellite observations. The model also provides information on
 atmospheric pressure and $\ce{CO_{2}}$ and soil temperatures at different depths.
 Note this implementation is based on a snow-free environment and effects of below-zero
-temperatures and changes to alebdo due to snow cover or LAI reduction have to be assumed
+temperatures and changes to albedo due to snow cover or LAI reduction have to be assumed
 implicitly.
 
 This sections describes the workflow of the `abiotic_simple` model update step.
