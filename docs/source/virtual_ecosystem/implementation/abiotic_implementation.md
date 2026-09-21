@@ -24,13 +24,6 @@ language_info:
 
 # The abiotic model
 
-```{warning}
-The process-based abiotic model is currently the default abiotic model version in the
-Virtual Ecosystem configuration; however, the model is still under development.
-This page provides a summary of the current status and the directions in which we aim to
-take the model development forward.
-```
-
 ## Required variables
 
 The tables below show the variables that are required to initialise the abiotic model
@@ -656,6 +649,58 @@ vertical scale of exchange, or characteristic height, here canopy height (m).
 
 This rate is used to estimate convective removal of heat and water vapour from the
 canopy.
+
+## Snow and ice (design note)
+
+```{note}
+This section is a design note; snow and freezing processes are currently not
+implemented.
+```
+
+To run the Virtual Ecosystem in seasonal environments, we need to introduce a set of
+processes that allow for below zero degree conditions. This includes effects on both
+microclimate and hydrology. For clarity, the full set of processes is described here
+although some processes will be implemented in the hydrology model.
+
+First, the snow submodule needs to include a minimum set of **above-ground processes**
+so that snow and below zero temperatures affect precipitation phase (rain vs snow),
+water storage at the surface, melting, and delayed release, surface roughness and wind
+profiles, surface albedo and on absorbed shortwave radiation, surface energy
+partitioning, and hydrologic liquid-water input from melted snow.
+
+Most snow models use a multi-layer approach with snow accumulating at the top, getting
+more compact and dark as it ages (-> albedo changes), and melting from the lower layers
+(e.g. {cite:t}`maclean_ecologist_2026`, {cite:t}`jennings_spatial_2018`,
+{cite:t}`kearney_how_2020`,).
+For simplicity, the first version of our snow model used a single layer approach. This
+layer will cover the current surface layer so that the effects of surface vegetation
+on the energy balance are reduced, details of implementation are still to be decided.
+
+The energy balance will mostly be affected by changes in surface albedo. These changes
+will be calculated based on a simple aging scheme. Snow melting will be calculated
+from the thermal energy content of the snow layer and from rainfall, and the additional
+water will be routed to the hydrology model via the surface precipitation variable, so
+it will enter the soil rather than add to the surface runoff.
+
+The exact order of processes will be laid out in a separate issue
+[M1.1.2](https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/1701).
+
+The following additional variables will be produced:
+
+* snow fraction of precipitation, (mm)
+* liquid water fraction of precipitation, (mm)
+* snow water equivalent, (mm)
+* snow height, (m)
+* snow density, (kg m-2)
+* snow melt from energy balance, (mm)
+* snow melt from rainfall, (mm)
+* snow albedo, (unitless)
+
+The second step is a frozen-soil module that uses snow cover to alter
+**below-ground** conditions and processes, including soil thermal conditions,
+infiltration and runoff, soil evaporation, and plant uptake when soils are frozen.
+This part will be described in more detail in
+[M2.1.1](https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/1715).
 
 ## Generated variables
 
