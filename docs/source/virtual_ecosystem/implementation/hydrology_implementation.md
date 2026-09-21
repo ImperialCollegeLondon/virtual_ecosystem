@@ -687,6 +687,13 @@ To close the water balance, water needs to enter and leave the grid at some poin
 boundaries are currently not implemented.
 ```
 
+## Snow and ice
+
+```{note}
+The snow and freezing processes are currently not implemented; a design note is provided
+in the documentation of the abiotic model.
+```
+
 ## Generated variables
 
 The calculations described above result in the following variables being calculated and
