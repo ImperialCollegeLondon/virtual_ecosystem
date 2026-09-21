@@ -17,6 +17,7 @@ from typing import ClassVar
 import numpy as np
 import pandas as pd
 from pyrealm.demography.canopy import Canopy, CohortCanopyData, CommunityCanopyData
+from pyrealm.demography.core import ToDataFrameMixin
 from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllometry
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
@@ -50,6 +51,12 @@ class CommunityDataExporter:
     default) then the exporter will write all attributes, otherwise the exported data
     will be reduced to just the named attributes.
 
+    The ``stem_allometry_cls``, ``stem_allocation_cls`` and ``growth_increments_cls``
+    arguments allow this exporter to be reused by growth forms other than the default
+    tree T Model, such as :mod:`~virtual_ecosystem.models.palms.palms`, by determining
+    which cohort attributes are available and how placeholder (pre-update) cohort data
+    is structured.
+
     Args:
         output_directory: The output directory for the files
         required_data: A set of the required data outputs.
@@ -59,6 +66,13 @@ class CommunityDataExporter:
         stem_canopy_attributes: An optional subset of stem canopy attributes
             to export
         float_format: A float format string used when writing data.
+        stem_allometry_cls: The stem allometry class used by the calling model,
+            providing the ``_array_attrs`` used to validate exportable cohort
+            attributes.
+        stem_allocation_cls: The stem allocation class used by the calling model, as
+            above.
+        growth_increments_cls: The growth increments class used by the calling model,
+            as above.
     """
 
     _outputs: ClassVar[dict[str, tuple[str, str]]] = dict(
@@ -78,43 +92,6 @@ class CommunityDataExporter:
     """Connects the export data options to a tuple of standard output file and 
     internal path attribute names."""
 
-    available_attributes: ClassVar[dict[str, set[str]]] = {
-        "cohort_attributes": set(
-            [
-                "cell_id",
-                "time",
-                *StemAllometry._array_attrs,
-                # *list(Cohorts.columns),
-                # pyrealm 3 HACK - the object being exported is a Cohorts df instance
-                #    with columns but the imported object is the class not the instance
-                #    and that does not have columns. Need to work out how to repopulate
-                #    this list
-                *StemAllocation._array_attrs,
-                *Biomasses._array_attrs,
-            ]
-        ),
-        "community_canopy_attributes": set(
-            [
-                "canopy_layer_index",
-                "heights",
-                "cell_id",
-                "time",
-                *CommunityCanopyData._array_attrs,
-            ]
-        ),
-        "stem_canopy_attributes": set(
-            [
-                "canopy_layer_index",
-                "cohort_id",
-                "cell_id",
-                "time",
-                *CohortCanopyData._array_attrs,
-            ]
-        ),
-    }
-    """Class variable of the available attributes that can be exported for each export
-    option."""
-
     def __init__(
         self,
         output_directory: Path,
@@ -123,7 +100,53 @@ class CommunityDataExporter:
         community_canopy_attributes: set[str] = set(),
         stem_canopy_attributes: set[str] = set(),
         float_format: str = "%0.5f",
+        stem_allometry_cls: type[ToDataFrameMixin] = StemAllometry,
+        stem_allocation_cls: type[ToDataFrameMixin] = StemAllocation,
+        growth_increments_cls: type[ToDataFrameMixin] = GrowthIncrements,
     ) -> None:
+        # Store the growth-form classes used to determine available cohort attributes
+        # and placeholder (pre-update) cohort data structure.
+        self._stem_allometry_cls = stem_allometry_cls
+        self._stem_allocation_cls = stem_allocation_cls
+        self._growth_increments_cls = growth_increments_cls
+
+        self.available_attributes: dict[str, set[str]] = {
+            "cohort_attributes": set(
+                [
+                    "cell_id",
+                    "time",
+                    *stem_allometry_cls._array_attrs,
+                    # *list(Cohorts.columns),
+                    # pyrealm 3 HACK - the object being exported is a Cohorts df
+                    #    instance with columns but the imported object is the class
+                    #    not the instance and that does not have columns. Need to work
+                    #    out how to repopulate this list
+                    *stem_allocation_cls._array_attrs,
+                    *Biomasses._array_attrs,
+                ]
+            ),
+            "community_canopy_attributes": set(
+                [
+                    "canopy_layer_index",
+                    "heights",
+                    "cell_id",
+                    "time",
+                    *CommunityCanopyData._array_attrs,
+                ]
+            ),
+            "stem_canopy_attributes": set(
+                [
+                    "canopy_layer_index",
+                    "cohort_id",
+                    "cell_id",
+                    "time",
+                    *CohortCanopyData._array_attrs,
+                ]
+            ),
+        }
+        """The available attributes that can be exported for each export option, given
+        the growth-form classes provided to this instance."""
+
         # Store the argument values
         self.output_directory: Path = output_directory
         """The directory in which to save plant community data."""
@@ -226,7 +249,12 @@ class CommunityDataExporter:
 
     @classmethod
     def from_config(
-        cls, output_directory: Path, config: PlantsExportConfig
+        cls,
+        output_directory: Path,
+        config: PlantsExportConfig,
+        stem_allometry_cls: type[ToDataFrameMixin] = StemAllometry,
+        stem_allocation_cls: type[ToDataFrameMixin] = StemAllocation,
+        growth_increments_cls: type[ToDataFrameMixin] = GrowthIncrements,
     ) -> CommunityDataExporter:
         """Factory class to create a CommunityDataExporter from configuration data.
 
@@ -237,7 +265,10 @@ class CommunityDataExporter:
         Args:
             output_directory: The path to the output directory for the files
             config: An instance of ``PlantsExportConfig``
-
+            stem_allometry_cls: The stem allometry class used by the calling model.
+            stem_allocation_cls: The stem allocation class used by the calling model.
+            growth_increments_cls: The growth increments class used by the calling
+                model.
         """
 
         # Try and build the arguments as a dictionary from the config, substituting
@@ -255,6 +286,9 @@ class CommunityDataExporter:
         # Return the instance
         return cls(
             output_directory=output_directory,
+            stem_allometry_cls=stem_allometry_cls,
+            stem_allocation_cls=stem_allocation_cls,
+            growth_increments_cls=growth_increments_cls,
             required_data=required_data,
             cohort_attributes=cohort_attributes,
             community_canopy_attributes=community_canopy_attributes,
@@ -353,7 +387,7 @@ class CommunityDataExporter:
             else:
                 # Empty dataframe of NaN values
                 allocation = pd.DataFrame(
-                    columns=StemAllocation._array_attrs,
+                    columns=self._stem_allocation_cls._array_attrs,
                     index=np.arange(len(community.cohorts)),
                 )
 
@@ -362,7 +396,7 @@ class CommunityDataExporter:
             else:
                 # Empty dataframe of NaN values
                 increments = pd.DataFrame(
-                    columns=GrowthIncrements._array_attrs,
+                    columns=self._growth_increments_cls._array_attrs,
                     index=np.arange(len(community.cohorts)),
                 )
 
