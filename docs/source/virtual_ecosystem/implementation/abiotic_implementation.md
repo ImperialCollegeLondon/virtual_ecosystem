@@ -671,7 +671,7 @@ partitioning, and hydrologic liquid-water input from melted snow.
 Most snow models use a multi-layer approach with snow accumulating at the top, getting
 more compact and dark as it ages (-> albedo changes), and melting from the lower layers
 (e.g. {cite:t}`maclean_ecologist_2026`, {cite:t}`jennings_spatial_2018`,
-{cite:t}`kearney_how_2020`,).
+{cite:t}`kearney_how_2020`).
 For simplicity, the first version of our snow model uses a single layer approach. This
 layer will cover the current surface layer so that the effects of surface vegetation
 on the energy balance are reduced, details of implementation are still to be decided.
