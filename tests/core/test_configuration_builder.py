@@ -578,7 +578,7 @@ def test_ConfigurationLoader_load_config_toml_string(
 )
 @pytest.mark.parametrize("use_cli_config", [True, False])
 def test_ConfigurationLoader_load_configuration_data(
-    tmpdir,
+    tmp_path,
     caplog,
     content,
     expected_exception,
@@ -607,7 +607,7 @@ def test_ConfigurationLoader_load_configuration_data(
 
     cfg_paths = []
     for filename, filedata in content.items():
-        filepath = tmpdir / filename
+        filepath = tmp_path / filename
         cfg_paths.append(filepath)
         with open(filepath, "wb") as outfile:
             tomli_w.dump(filedata, outfile)
