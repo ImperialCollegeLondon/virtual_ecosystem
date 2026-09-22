@@ -276,6 +276,7 @@ def microbial_groups_cfg():
 
 
 def generate_config_strings(
+    out_path: Path,
     nx: int = 2,
     ny: int = 2,
     additional_toml: str = MICROBE_CONFIG_TOML,
@@ -290,6 +291,7 @@ def generate_config_strings(
     grid sizes.
 
     Args:
+        out_path: Output directory location
         nx: Number of cells in x axis
         ny: Number of cells in y axis
         additional_toml: Any additional TOML to append to the core string
@@ -306,6 +308,10 @@ def generate_config_strings(
         update_interval = "2 weeks"
         run_length = "50 years"
 
+        [core.data_output_options]
+        # Deliberately using single quote to provide TOML literal string for path
+        out_path = '{out_path!s}'
+        
         [core.layers]
         canopy_layers = 10
         soil_layers = [-0.5, -1.0]
@@ -330,27 +336,31 @@ def generate_config_strings(
 
 
 @pytest.fixture
-def fixture_configuration():
+def fixture_configuration(tmp_path):
     """Default configuration with 2x2 grid."""
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
     )
 
-    config_data = ConfigurationLoader(cfg_strings=generate_config_strings())
+    config_data = ConfigurationLoader(
+        cfg_strings=generate_config_strings(out_path=tmp_path)
+    )
 
     return generate_configuration(config_data.data)
 
 
 @pytest.fixture
-def animal_fixture_configuration():
+def animal_fixture_configuration(tmp_path):
     """Default configuration with 3x3 grid."""
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
     )
 
-    config_data = ConfigurationLoader(cfg_strings=generate_config_strings(nx=3, ny=3))
+    config_data = ConfigurationLoader(
+        cfg_strings=generate_config_strings(out_path=tmp_path, nx=3, ny=3)
+    )
 
     return generate_configuration(config_data.data)
 
