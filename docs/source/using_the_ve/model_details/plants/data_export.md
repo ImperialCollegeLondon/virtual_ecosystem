@@ -53,12 +53,12 @@ to separate files in the output directory for a simulation.
   each cohort at each timestep, along with the traits, allometry, carbon allocation and
   stoichiometric biomasses of the identical individuals within the cohort. The data are
   written to the file `plants_cohort_data.csv`
-* [**Community canopy data**](#community-canopy-data): provides community level summary
-  data on the vertically structured canopy within each cell at each time step. The data
-  are written to the file `plants_community_canopy_data.csv`.
 * [**Stem canopy data**](#stem-canopy-data): provides data on the contribution of
   individual crowns within cohorts to the vertically structured canopy within each cell
   at each time step. Data are written to the file `plants_stem_canopy_data.csv`.
+* [**Community canopy data**](#community-canopy-data): provides community level summary
+  data on the vertically structured canopy within each cell at each time step. The data
+  are written to the file `plants_community_canopy_data.csv`.
 
 ## Configuration settings
 
@@ -160,7 +160,8 @@ Field,Description, CH, CC, SC
 
 ## Cohort data
 
-The simulation provides a set of cohort-level attributes that fall into the following groups:
+The simulation provides a set of cohort-level attributes that fall into the following
+groups:
 
 * Mandatory fields that are always exported when cohort data is requested. These are:
   `cohort_id`, `cell_id`, `time` and  `time_index`.
@@ -293,7 +294,48 @@ display_markdown(
 )
 ```
 
-## Community canopy data
+## Canopy data
+
+Light capture in the canopy of the Virtual Ecosystem is calculated by looking at the
+vertical distribution of leaves for individuals in each cohort. The calculations give
+the overall light absorption and transmission through each canopy layer, along with the
+relative fraction of light absorbed in each layer by individuals in different cohorts.
+
+The calculation is implemented in the `pyrealm` package, and worked example is given in
+the [light capture
+documentation](https://pyrealm.readthedocs.io/en/stable/users/demography/light_capture.html)
+for that package.
+
+### Stem canopy data
+
+The stem canopy data provide details of how individual stems within each cohort contribute
+to the overall canopy of the plant community. In addition to the traits below, the
+mandatory fields for stem canopy data are: `cohort_id`, `cell_id`, `time`, `time_index`,
+`canopy_layer_index` and `heights`.
+
+```{code-cell} ipython3
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+from pyrealm.demography.canopy import CohortCanopyData
+
+cohort_canopy_options = ["Field,Description"]
+
+for attr, desc in get_dataclass_attr_docs(CohortCanopyData).items():
+    if attr in CohortCanopyData._array_attrs:
+        cohort_canopy_options.append(f'`{attr}`,"{desc}"')
+
+# Display as markdown
+display_markdown(
+    f"```{{csv-table}}\n:header-rows: 1\n:quote: '\""
+    f"'\n\n{"\n".join(cohort_canopy_options)}\n```",
+    raw=True,
+)
+```
+
+### Community canopy data
 
 The community canopy data provides details of the whole community canopy properties.
 This includes the canopy layer closure heights under the perfect plasticity
@@ -320,35 +362,6 @@ for attr, desc in get_dataclass_attr_docs(CommunityCanopyData).items():
 display_markdown(
     f"```{{csv-table}}\n:header-rows: 1\n:quote: '\"'"
     f"\n\n{"\n".join(community_canopy_options)}\n```",
-    raw=True,
-)
-```
-
-## Stem canopy data
-
-The stem canopy data provide details of how individual stems within each cohort contribute
-to the overall canopy of the plant community. In addition to the traits below, the
-mandatory fields for stem canopy data are: `cohort_id`, `cell_id`, `time`, `time_index`,
-`canopy_layer_index` and `heights`.
-
-```{code-cell} ipython3
----
-tags: [remove-input]
-mystnb:
-  markdown_format: myst
----
-from pyrealm.demography.canopy import CohortCanopyData
-
-cohort_canopy_options = ["Field,Description"]
-
-for attr, desc in get_dataclass_attr_docs(CohortCanopyData).items():
-    if attr in CohortCanopyData._array_attrs:
-        cohort_canopy_options.append(f'`{attr}`,"{desc}"')
-
-# Display as markdown
-display_markdown(
-    f"```{{csv-table}}\n:header-rows: 1\n:quote: '\""
-    f"'\n\n{"\n".join(cohort_canopy_options)}\n```",
     raw=True,
 )
 ```
