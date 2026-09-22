@@ -57,7 +57,7 @@ class CommunityDataExporter:
 
     The ``stem_allometry_cls``, ``stem_allocation_cls`` and ``growth_increments_cls``
     arguments allow this exporter to be reused by growth forms other than the default
-    tree T Model, such as :mod:`~virtual_ecosystem.models.palms.palms`, by determining
+    tree T Model, such as ``virtual_ecosystem.models.palms.palms``, by determining
     which cohort attributes are available and how placeholder (pre-update) cohort data
     is structured.
 
