@@ -24,7 +24,7 @@ def fixture_pyrealm_constants():
 
 
 @pytest.fixture
-def fixture_exporter(tmpdir, fixture_configuration):
+def fixture_exporter(tmp_path, fixture_configuration):
     """Construct a minimal CommunityDataExporter object.
 
     This exporter uses the default exporter settings that do not output plant community
@@ -38,7 +38,7 @@ def fixture_exporter(tmpdir, fixture_configuration):
         "plants", PlantsConfiguration
     )
     exporter = CommunityDataExporter.from_config(
-        output_directory=tmpdir, config=plants_config.community_data_export
+        output_directory=tmp_path, config=plants_config.community_data_export
     )
 
     return exporter
@@ -341,7 +341,7 @@ def fixture_canopy_layer_data(
 
     # Shortwave radiation is the fraction of canopy top DSR that is absorbed by each
     # layer plus what reaches the ground
-    dsr_t0 = plants_data["downward_shortwave_radiation"][:, 0].drop_vars("time_index")
+    dsr_t0 = plants_data["downward_shortwave_radiation"].drop_vars("time_index")
     dsr_by_layer = expected["layer_fapar_full"][1] * dsr_t0
     ground_incident_dsr = dsr_t0 - dsr_by_layer.sum(axis=0)
     dsr_by_layer[lyr_struct.index_topsoil] = ground_incident_dsr

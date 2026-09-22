@@ -48,12 +48,6 @@ from virtual_ecosystem.models.palms.palms import (
 )
 from virtual_ecosystem.models.plants.biomasses import (
     Biomasses,
-    BiomassTissueABC,
-    FoliageBiomass,
-    FruitBiomass,
-    RootBiomass,
-    SeedBiomass,
-    StemBiomass,
     partition_reproductive_tissue_mass,
 )
 from virtual_ecosystem.models.plants.canopy import (
@@ -269,9 +263,6 @@ class PalmsModel(
         self.biomasses: dict[int, Biomasses]
         """A dictionary keyed by cell id of the carbon and nutrient biomass of each
         community."""
-        self.biomass_tissues: list[type[BiomassTissueABC]]
-        """A list of types of biomass subclasses that sets the tissues to be
-        modelled within the simulation."""
         self.allocations: dict[int, StemAllocation]
         """A dictionary keyed by cell id giving the allocation of each community."""
         self._canopy_layer_indices: NDArray[np.bool_]
@@ -406,18 +397,9 @@ class PalmsModel(
                 partition_reproductive_tissue_mass(
                     cohorts=cmty.cohorts,
                     mass=cmty.stem_allometry.foliage_mass
-                    * cmty.cohorts["p_foliage_for_reproductive_tissue"].to_numpy(),
+                    * cmty.cohorts["fruit_seed_foliage_mass_fraction"].to_numpy(),
                 )
             )
-
-        # Define the set of tissues to be tracked for each stem.
-        self.biomass_tissues = [
-            FoliageBiomass,  # foliage mass
-            StemBiomass,  # stem mass
-            RootBiomass,  # fine root mass
-            FruitBiomass,  # fruit tissue mass
-            SeedBiomass,  # seed tissue mass
-        ]
 
         # Record the per stem biomasses of stochiometric tissues for each cohort.
         # The initial values for N and P are based on the ideal stoichiometric ratios
@@ -426,7 +408,6 @@ class PalmsModel(
             cell_id: Biomasses.from_cohorts(
                 cohorts=community.cohorts,
                 allometry=community.stem_allometry,
-                tissues=self.biomass_tissues,
             )
             for cell_id, community in self.communities.items()
         }
@@ -931,11 +912,9 @@ class PalmsModel(
     def set_canopy_top_radiation(self, time_index: int) -> None:
         """Set the current canopy top shortwave downwelling radiation."""
 
-        self.canopy_top_radiation = (
-            self.data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy()
-        )
+        self.canopy_top_radiation = self.data.get_time_slice(
+            "downward_shortwave_radiation", time_index
+        ).to_numpy()
 
     def apply_herbivory(self) -> None:
         r"""Applies herbivory effects on the palms model.
@@ -1336,7 +1315,7 @@ class PalmsModel(
             # Calculate carbon costs of fruit
             reproductive_tissue_mass = (
                 community.stem_allometry.foliage_mass
-                * cohorts["p_foliage_for_reproductive_tissue"].to_numpy()
+                * cohorts["fruit_seed_foliage_mass_fraction"].to_numpy()
             )
             reproductive_tissue_respiration = (
                 reproductive_tissue_mass * cohorts["resp_rt"].to_numpy()
@@ -1357,7 +1336,7 @@ class PalmsModel(
 
             # Per stem carbon costs of root exudates
             symbiote_allocation = (
-                unallocated_carbon * cohorts["gpp_topslice"].to_numpy()
+                unallocated_carbon * cohorts["root_symbiote_npp_fraction"].to_numpy()
             )
 
             # Calculate carbon available for growth

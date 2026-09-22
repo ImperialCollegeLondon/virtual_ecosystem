@@ -13,26 +13,26 @@ jupyter:
 
 # The plants model
 
-Plant communities in the Virtual Ecosystem are represented by the [`plants`
-model](./plants_config.md).
+Plant communities in the Virtual Ecosystem are represented by the `plants` model. Each
+cell in the simulation can contain:
 
-## Preparing the input data for the plants model
+* a vertically structured tree community consisting of size structured cohorts of defined
+   plant functional types (PFTs), and
+* a simple subcanopy (or understory) layer that represents herbaceous biomass underneath
+  the main canopy as simple pools of vegetative and reproductive biomass.
 
-You need to provide input data for both the tree communities and the sub-canopy
-vegetation to setup the plant model. Each of these follows a different approach.
+<!-- markdownlint-disable MD033 -->
+These features are defined using two CSV files that define PFTs and tree cohorts across
+cells and a small number of <a
+href='../../variables/variables.html?models=plants&roles=vars_required_for_init'>required
+initial array variables</a> that set initial PFT propagule counts and subcanopy
+biomasses for each cell, along with a time series of the downwelling shortwave radiation
+that powers plant growth through time.
+<!-- markdownlint-enable MD033 -->
 
-### Tree communities
+Setting up the model requires you to:
 
-To specify tree communities you must define the plant functional types you wish to use,
-as well as how they are distributed across the simulation grid. You provide these as two
-separate csv files. Further details of what you have to do can be found in [this
-extended description of how you configure plant functional types](pft_configuration.md).
-
-### Subcanopy vegetation
-
-The distribution of subcanopy biomass is provided via the array variables (the specific
-variables required can be found in the [variables table](../../variables/variables.md)).
-The specific properties of this subcanopy vegetation will vary location by location, so
-you will **need** to provide parameters for subcanopy vegetation at your site. This is
-done by altering the relevant [plant model
-constants](./plants_config.md#plants-constants).
+1. [Define the tree communities](./tree_definition.md).
+2. [Define initial subcanopy biomasses](./subcanopy_definition.md).
+3. [Configure the model](./plants_config.md) to point to the data sources and to
+   customise any further model settings.

@@ -12,29 +12,29 @@ ELEMENTS = ((1, "n"), (2, "p"))
 
 @pytest.fixture
 def fixture_biomass_components():
-    """Provides a tuple of biomass components."""
+    """Data for generating biomass instances.
+
+    Provides a tuple of biomass components containing the minimal required data for
+    creating Biomass tissues.
+    """
 
     cohorts = pd.DataFrame(
         dict(
-            # TODO - revisit the ratio names and maybe automate the creation of
-            #        consistent names when loading traits to simplify the biomass
-            #        interface.
+            cohort_id=["C1", "C2"],
             zeta=[0.1, 0.1],
             sla=[2.0, 2.0],
-            p_foliage_for_reproductive_tissue=[0.5, 0.5],
+            fruit_seed_foliage_mass_fraction=[0.5, 0.5],
             pft_name=["shrub", "broadleaf"],
-            foliage_c_n_ratio=[5.0, 6.0],  # Why do these start differently!
-            leaf_turnover_c_n_ratio=[10.0, 12.0],
+            foliage_c_n_ratio=[5.0, 6.0],
+            foliage_turnover_c_n_ratio=[10.0, 12.0],
             foliage_c_p_ratio=[5.0, 6.0],
-            leaf_turnover_c_p_ratio=[10.0, 12.0],
-            # stem_c_n_ratio=[5.0, 6.0],
-            deadwood_c_n_ratio=[5.0, 6.0],
-            # stem_c_p_ratio=[5.0, 6.0],
-            deadwood_c_p_ratio=[5.0, 6.0],
-            root_turnover_c_n_ratio=[5.0, 6.0],
-            root_turnover_c_p_ratio=[5.0, 6.0],
-            plant_reproductive_tissue_turnover_c_n_ratio=[5.0, 6.0],
-            plant_reproductive_tissue_turnover_c_p_ratio=[5.0, 6.0],
+            foliage_turnover_c_p_ratio=[10.0, 12.0],
+            stem_c_n_ratio=[5.0, 6.0],
+            stem_c_p_ratio=[5.0, 6.0],
+            root_c_n_ratio=[5.0, 6.0],
+            root_c_p_ratio=[5.0, 6.0],
+            fruit_seed_c_n_ratio=[5.0, 6.0],
+            fruit_seed_c_p_ratio=[5.0, 6.0],
         )
     )
 
@@ -228,7 +228,7 @@ def test_BiomassTissue_append(fixture_biomass_components, tissue_class):
     biomasses_2 = BiomassTissueClass(cohorts=cohorts, allometry=allometry)
     biomasses_2.elemental_masses *= 2
 
-    # Append
+    # Test Append
     biomasses_1.append(biomasses_2)
 
     # Check shapes
@@ -263,26 +263,21 @@ def fixture_biomasses(fixture_biomass_components):
     stem = StemBiomass(cohorts=cohorts, allometry=allometry)
     fruit = FruitBiomass(cohorts=cohorts, allometry=allometry)
     seed = SeedBiomass(cohorts=cohorts, allometry=allometry)
-    return Biomasses(tissues=[foliage, stem, root, fruit, seed])
+    return Biomasses(
+        cohort_id=cohorts["cohort_id"].to_numpy(),
+        tissues=[foliage, stem, root, fruit, seed],
+    )
 
 
 def test_Biomasses_from_cohorts(fixture_biomass_components, fixture_biomasses):
     """Test the biomass from_cohorts class method gives the same result as direct."""
-    from virtual_ecosystem.models.plants.biomasses import (
-        Biomasses,
-        FoliageBiomass,
-        FruitBiomass,
-        RootBiomass,
-        SeedBiomass,
-        StemBiomass,
-    )
+    from virtual_ecosystem.models.plants.biomasses import Biomasses
 
     cohorts, allometry, _, _ = fixture_biomass_components
 
     biomasses = Biomasses.from_cohorts(
         cohorts=cohorts,
         allometry=allometry,
-        tissues=[FoliageBiomass, FruitBiomass, SeedBiomass, StemBiomass, RootBiomass],
     )
 
     for tissue_name in biomasses.tissue_names:
@@ -304,6 +299,24 @@ def test_Biomasses_from_cohorts(fixture_biomass_components, fixture_biomasses):
             tissue.turnover_ratios,
             fixture_tissue.turnover_ratios,
         )
+
+
+def test_Biomasses_to_dataframe(fixture_biomass_components):
+    """Test the biomass to_dataframe method works."""
+    from virtual_ecosystem.models.plants.biomasses import Biomasses
+
+    cohorts, allometry, _, _ = fixture_biomass_components
+
+    biomasses = Biomasses.from_cohorts(
+        cohorts=cohorts,
+        allometry=allometry,
+    )
+
+    df = biomasses.to_dataframe()
+
+    # Just check it runs and has the right shape - 2 rows for cohorts and then
+    # 19 columns: cohort id + 3 elements for each of 5 tissues and surplus pools
+    assert df.shape == (2, 19)
 
 
 def test_total_element_mass_and_deficit(fixture_biomasses):
@@ -693,12 +706,13 @@ def test_balance_elements(
 
     cohorts = pd.DataFrame(
         dict(
-            deadwood_c_n_ratio=np.tile(BALANCE_WOOD_CN, n_cases),
-            deadwood_c_p_ratio=np.tile(BALANCE_WOOD_CP, n_cases),
+            cohort_id=np.arange(len(BALANCE_WOOD_C) * n_cases),
+            stem_c_n_ratio=np.tile(BALANCE_WOOD_CN, n_cases),
+            stem_c_p_ratio=np.tile(BALANCE_WOOD_CP, n_cases),
             foliage_c_n_ratio=np.tile(BALANCE_FOLIAGE_CN, n_cases),
             foliage_c_p_ratio=np.tile(BALANCE_FOLIAGE_CP, n_cases),
-            leaf_turnover_c_n_ratio=np.repeat(np.nan, n_cases * len(BALANCE_WOOD_C)),
-            leaf_turnover_c_p_ratio=np.repeat(np.nan, n_cases * len(BALANCE_WOOD_C)),
+            foliage_turnover_c_n_ratio=np.repeat(np.nan, n_cases * len(BALANCE_WOOD_C)),
+            foliage_turnover_c_p_ratio=np.repeat(np.nan, n_cases * len(BALANCE_WOOD_C)),
         )
     )
 
@@ -730,6 +744,7 @@ def test_balance_elements(
     )
 
     biomasses = Biomasses(
+        cohort_id=cohorts["cohort_id"].to_numpy(),
         tissues=[foliage, wood],
         element_surpluses=np.concatenate(
             [

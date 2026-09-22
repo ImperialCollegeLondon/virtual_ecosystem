@@ -154,17 +154,13 @@ class PalmsExportConfig(Configuration):
     attribute names to include in the file..
     """
 
-    required_data: tuple[
-        Literal["cohorts", "community_canopy", "stem_canopy"], ...
-    ] = ()
-    """A list of the strings giving the required plant data types to be exported. The 
-    accepted values are "cohorts", "community_canopy" and "stem_canopy"."""
-    cohort_attributes: tuple[str, ...] = ()
-    """A list of the cohort attributes that should be exported."""
-    community_canopy_attributes: tuple[str, ...] = ()
-    """The community canopy attributes that should be exported."""
-    stem_canopy_attributes: tuple[str, ...] = ()
-    """The stem canopy attributes that should be exported."""
+    cohort_attributes: Literal["ALL"] | tuple[str, ...] = ()
+    """A list of the cohort attributes that should be exported or the ALL keyword."""
+    community_canopy_attributes: Literal["ALL"] | tuple[str, ...] = ()
+    """A list of the community canopy attributes that should be exported or the ALL
+    keyword."""
+    stem_canopy_attributes: Literal["ALL"] | tuple[str, ...] = ()
+    """A list of stem canopy attributes that should be exported or the ALL keyword."""
     float_format: str = "%0.5f"
     """A float format string to control data precision in export files."""
 

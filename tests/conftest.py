@@ -276,6 +276,7 @@ def microbial_groups_cfg():
 
 
 def generate_config_strings(
+    out_path: Path,
     nx: int = 2,
     ny: int = 2,
     additional_toml: str = MICROBE_CONFIG_TOML,
@@ -290,6 +291,7 @@ def generate_config_strings(
     grid sizes.
 
     Args:
+        out_path: Output directory location
         nx: Number of cells in x axis
         ny: Number of cells in y axis
         additional_toml: Any additional TOML to append to the core string
@@ -306,6 +308,10 @@ def generate_config_strings(
         update_interval = "2 weeks"
         run_length = "50 years"
 
+        [core.data_output_options]
+        # Deliberately using single quote to provide TOML literal string for path
+        out_path = '{out_path!s}'
+        
         [core.layers]
         canopy_layers = 10
         soil_layers = [-0.5, -1.0]
@@ -330,27 +336,31 @@ def generate_config_strings(
 
 
 @pytest.fixture
-def fixture_configuration():
+def fixture_configuration(tmp_path):
     """Default configuration with 2x2 grid."""
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
     )
 
-    config_data = ConfigurationLoader(cfg_strings=generate_config_strings())
+    config_data = ConfigurationLoader(
+        cfg_strings=generate_config_strings(out_path=tmp_path)
+    )
 
     return generate_configuration(config_data.data)
 
 
 @pytest.fixture
-def animal_fixture_configuration():
+def animal_fixture_configuration(tmp_path):
     """Default configuration with 3x3 grid."""
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
     )
 
-    config_data = ConfigurationLoader(cfg_strings=generate_config_strings(nx=3, ny=3))
+    config_data = ConfigurationLoader(
+        cfg_strings=generate_config_strings(out_path=tmp_path, nx=3, ny=3)
+    )
 
     return generate_configuration(config_data.data)
 
@@ -462,9 +472,9 @@ def dummy_litter_data(fixture_core_components):
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "subcanopy_vegetation_litter_lignin": [0.05, 0.43, 0.84, 0.01],
+        "fruit_seed_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
+        "fruit_seed_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
         "subcanopy_seedbank_litter_lignin": [0.24, 0.68, 0.10, 0.014],
-        "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
-        "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
         "herbivory_waste_above_lignin": [0.13, 0.08, 0.27, 0.22],
         "herbivory_waste_below_lignin": [0.33, 0.089, 0.46, 0.35],
     }
@@ -868,6 +878,7 @@ def dummy_climate_data(fixture_core_components):
         data[var] = DataArray(
             np.repeat(np.asarray(values, dtype=float)[:, None], time_steps, axis=1),
             dims=["cell_id", "time_index"],
+            coords={"time_index": np.arange(time_steps)},
         )
 
     # ------------------------------------------------------------------
@@ -1154,12 +1165,14 @@ def fixture_static_inputs(
     dummy_climate_data,
     fixture_abiotic_indices,
     fixture_abiotic_constants,
+    fixture_core_components,
 ) -> dict[str, NDArray[np.floating]]:
     """Prepare static inputs for the microclimate model."""
 
     data = dummy_climate_data
     indices = fixture_abiotic_indices
     abiotic_constants = fixture_abiotic_constants
+    layer_structure = fixture_core_components.layer_structure
     hours = 30 * 24
 
     leaf_area_index = data["leaf_area_index"].to_numpy()
@@ -1176,6 +1189,10 @@ def fixture_static_inputs(
         idx=indices,
         minimum_mixing_depth=abiotic_constants.minimum_mixing_depth,
     )
+    soil_moisture_volumetric = layer_structure.from_template()
+    soil_moisture_volumetric[indices.soil] = (
+        data["soil_moisture"][indices.soil].to_numpy() / 1000
+    ) / layer_structure.soil_layer_thickness[:, np.newaxis]
 
     return {
         "canopy_height": data["layer_heights"][1].to_numpy(),
@@ -1192,6 +1209,7 @@ def fixture_static_inputs(
         "wind_speed": data["wind_speed"].to_numpy(),
         "ventilation_rate": data["ventilation_rate"].to_numpy(),
         "roughness_length": np.ones(data.grid.n_cells, dtype=float),
+        "soil_moisture_volumetric": soil_moisture_volumetric,
     }
 
 

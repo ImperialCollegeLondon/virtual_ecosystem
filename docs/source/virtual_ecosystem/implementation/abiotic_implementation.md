@@ -24,13 +24,6 @@ language_info:
 
 # The abiotic model
 
-```{warning}
-The process-based abiotic model is currently the default abiotic model version in the
-Virtual Ecosystem configuration; however, the model is still under development.
-This page provides a summary of the current status and the directions in which we aim to
-take the model development forward.
-```
-
 ## Required variables
 
 The tables below show the variables that are required to initialise the abiotic model
@@ -349,7 +342,7 @@ transferred to the air above the canopy.
 
 ```{note}
 Advection of heat above the canopy is currently not implemented. For time intervals
-$$\geq 1 \text{ h}$$, excess heat is assumed to be removed locally, and horizontal heat
+$\geq 1 \text{ h}$, excess heat is assumed to be removed locally, and horizontal heat
 transfer is not considered.
 ```
 
@@ -407,33 +400,73 @@ $$G = R_{n} - H_{s} - \lambda E_{s} + G_{u}$$
 After the energy fluxes at the land surface have been partitioned, we simulate how heat
 is transported vertically through the soil profile by updating the temperature of each
 soil layer over time. This is done using an explicit finite-difference approach, which
-numerically solves the one-dimensional heat diffusion equation. The method accounts for
-thermal diffusivity and the net ground heat flux to calculate temperature changes at
-each soil depth.
+numerically solves the one-dimensional heat diffusion equation while allowing thermal
+properties to vary with soil moisture. Moisture influences temperature evolution through
+both the soil volumetric heat capacity and thermal conductivity.
 
-The **soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2}\,s^{-1}}$) determines the rate
-at which heat is conducted through the soil. It is defined as:
+The **soil volumetric heat capacity** $C_{\mathrm{vol}}$ ($\mathrm{J,m^{-3},K^{-1}}$)
+determines how much energy is required to change soil temperature and is represented as:
 
-$$\alpha = \frac{k}{\rho_s c_s}$$
+$$C_{vol}=\rho_b c_{s} + \theta \rho_w c_w​$$
 
 where:
 
-$k$:
-Soil thermal conductivity ($\mathrm{W\,m^{-1}\,K^{-1}}$), indicating how
-  easily heat moves through soil
+$\rho_b$: Soil bulk density ($\mathrm{kg,m^{-3}}$)
 
-$\rho_s$:
-Soil bulk density ($\mathrm{kg\,m^{-3}}$), including solids and pore spaces, currently
-constant across all grid cells and layers
+$c_s$: Specific heat capacity of soil solids ($\mathrm{J,kg^{-1},K^{-1}}$)
 
-$c_s$:
-Soil specific heat capacity ($\mathrm{J\,kg^{-1}\,K^{-1}}$), the energy required to
-raise the temperature of 1 kg of soil by 1 K.
+$\theta$: Volumetric soil moisture ($\mathrm{m^{3},m^{-3}}$)
+
+$\rho_w$: Water density ($\mathrm{kg,m^{-3}}$)
+
+$c_w$: Specific heat capacity of water ($\mathrm{J,kg^{-1},K^{-1}}$)
+
+The **soil thermal conductivity** $\lambda$ ($\mathrm{W,m^{-1},K^{-1}}$) is estimated
+following a Johansen-style unfrozen-soil parameterisation
+{cite:p}`johansen_thermal_1975`, using the Kersten number $K_{e}$, which scales
+between the dry ($\lambda_\mathrm{dry}$) and saturated ($\lambda_\mathrm{sat}$)
+conductivity limits.
+
+The saturated volumetric water content ($\theta_{s}$) is taken equal to the porosity and
+the degree of saturation ($\theta$) is then:
+
+$$S_{r} = \frac{\theta}{\theta_{s}}$$
+
+The Kersten number $K_{e}$ depends on soil texture:
+
+```{math}
+    K_{e} =
+    \begin{cases}
+        \kappa \log_{10}(S_{r}) + 1, & \text{coarse-textured soils} \\
+        \log_{10}(S_{r}) + 1,        & \text{fine-textured soils}
+    \end{cases}
+```
+
+where $\kappa$ is the ``coarse_kersten_factor`` parameter.
+{cite:t}`johansen_thermal_1975` gives $\kappa = 0.7$ for coarse mineral soils.
+
+Thermal conductivity is then obtained by linear interpolation between the
+dry and saturated limits:
+
+```{math}
+\lambda = K_{e} \left( \lambda_\mathrm{sat} - \lambda_\mathrm{dry} \right)
++ \lambda_\mathrm{dry}
+```
+
+```{note}
+This formulation is valid for unfrozen mineral soils with $S_{r} > 0.1$. Below
+this threshold the Kersten number becomes negative, which is physically unrealistic;
+implementations should clamp $S_{r}$ or $K_{e}$ accordingly.
+```
+
+**Soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2},s^{-1}}$) is then calculated as:
+
+$$\alpha = \frac{\lambda}{C_{vol}}$$
 
 #### Temperature Update Scheme
 
 Let $T_i^t$ represent the temperature (°C) of the $i^{\text{th}}$ soil layer at time
-$t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z$ (m),
+$t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z_i$ (m),
 and time advances in steps of $\Delta t$ (s).
 
 **Top layer update** (surface boundary condition):
@@ -441,7 +474,7 @@ and time advances in steps of $\Delta t$ (s).
 The topmost layer ($i = 0$) is updated using the net ground heat flux $G$
 ($\mathrm{W\,m^{-2}}$):
 
-$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{\rho c \Delta z}\right) G$$
+$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{C_{\mathrm{vol},0}\,\Delta z_{0}}\right)G$$
 
 **Interior layers update**:
 
@@ -451,12 +484,13 @@ the diffusion equation:
 ```{math}
 \begin{aligned}
 T_i^{t+\Delta t} =
-& T_i^t + (\frac{\Delta t}{\Delta z^2}) \alpha (T_{i+1}^t - 2T_i^t + T_{i-1}^t)
+& T_i^t + (\frac{\Delta t}{\Delta z_i^2}) \alpha_i
+(T_{i+1}^t - 2T_i^t + T_{i-1}^t)
 \end{aligned}
 ```
 
 This term approximates vertical conduction using the second spatial derivative of
-temperature.
+temperature, with moisture-dependent thermal diffusivity.
 
 **Bottom layer update** (no-flux boundary condition):
 
@@ -466,9 +500,14 @@ exchanges heat with the layer above:
 ```{math}
 \begin{aligned}
 T_{n-1}^{t+\Delta t} =
-& T_{n-1}^t + (\frac{\Delta t}{\Delta z^2}) \alpha (T_{n-2}^t - T_{n-1}^t)
+& T_{n-1}^t + (\frac{\Delta t}{\Delta z_{n-1}^2}) \alpha_{n-1}
+(T_{n-2}^t - T_{n-1}^t)
 \end{aligned}
 ```
+
+All layer updates are calculated from the temperature profile at the previous timestep,
+so the scheme is consistent with a forward-in-time, centred-in-space explicit
+finite-difference method.
 
 ## Atmospheric moisture
 
@@ -610,6 +649,58 @@ vertical scale of exchange, or characteristic height, here canopy height (m).
 
 This rate is used to estimate convective removal of heat and water vapour from the
 canopy.
+
+## Snow and ice (design note)
+
+```{note}
+This section is a design note; snow and freezing processes are currently not
+implemented.
+```
+
+To run the Virtual Ecosystem in seasonal environments, we need to introduce a set of
+processes that allow for below zero degree conditions. This includes effects on both
+microclimate and hydrology. For clarity, the full set of processes is described here
+although some processes will be implemented in the hydrology model.
+
+First, the snow submodule needs to include a minimum set of **above-ground processes**
+so that snow and below zero temperatures affect precipitation phase (rain vs snow),
+water storage at the surface, melting, surface roughness and wind
+profiles, surface albedo and absorbed shortwave radiation, surface energy
+partitioning, and hydrologic liquid-water input from melted snow.
+
+Most snow models use a multi-layer approach with snow accumulating at the top, getting
+more compact and dark as it ages (-> albedo changes), and melting from the lower layers
+(e.g. {cite:t}`maclean_ecologist_2026`, {cite:t}`jennings_spatial_2018`,
+{cite:t}`kearney_how_2020`).
+For simplicity, the first version of our snow model uses a single layer approach. This
+layer will cover the current surface layer so that the effects of surface vegetation
+on the energy balance are reduced, details of implementation are still to be decided.
+
+The energy balance will mostly be affected by changes in surface albedo. These changes
+will be calculated based on a simple aging scheme. Snow melting will be calculated
+from the thermal energy content of the snow layer and from rainfall, and the additional
+water will be routed to the hydrology model via the surface precipitation variable, so
+it will enter the soil rather than add to the surface runoff.
+
+The exact order of processes will be laid out in a separate issue
+[M1.1.2](https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/1701).
+
+The following additional variables will be produced:
+
+* snow fraction of precipitation, (mm)
+* liquid water fraction of precipitation, (mm)
+* snow water equivalent, (mm)
+* snow height, (m)
+* snow density, (kg m-2)
+* snow melt from energy balance, (mm)
+* snow melt from rainfall, (mm)
+* snow albedo, (unitless)
+
+The second step is a frozen-soil module that uses snow cover to alter
+**below-ground** conditions and processes, including soil thermal conditions,
+infiltration and runoff, soil evaporation, and plant uptake when soils are frozen.
+This part will be described in more detail in
+[M2.1.1](https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/1715).
 
 ## Generated variables
 

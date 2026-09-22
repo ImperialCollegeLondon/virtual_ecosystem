@@ -29,8 +29,10 @@ from typing import Any, cast
 
 from numpy import (
     array,
+    asarray,
     float32,
     isnan,
+    maximum,
     nanmean,
     random,
     stack,
@@ -47,6 +49,7 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration
+from virtual_ecosystem.models.animal.animal_climate import StratumClimate
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import (
     DevelopmentType,
@@ -86,6 +89,8 @@ from virtual_ecosystem.models.animal.scaling_functions import (
     heterotroph_normalization_factor,
     prey_group_selection,
     raw_biomass_density_kg_m2,
+    stratum_mean_climate,
+    thermal_suitability,
 )
 
 
@@ -359,6 +364,14 @@ class AnimalModel(
             cell_id: HerbivoryWaste() for cell_id in self.data.grid.cell_id
         }
 
+        self.thermal_suitability: dict[str, NDArray] | None = None
+        """Per-functional-group, per-cell thermal suitability for the current timestep.
+
+        Keyed by functional group name, each value a ``(n_cells,)`` array in [0, 1].
+        ``None`` whenever thermal habitat selection is disabled or the climate pass has
+        not yet run, in which case dispersal falls back to uniform destination choice.
+        """
+
         self.active_cohorts = {}
         self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
         self.migrated_cohorts = {}
@@ -515,6 +528,7 @@ class AnimalModel(
         # TODO: merge problems as community looping is not internal to comm methods
         # TODO: These pools are populated but nothing actually gets done with them at
         # the moment, this will have to change when scavenging gets introduced
+        # TODO: the exporter runs AFTER migration events. This creates a mismatch.
 
         # The soil pools have to be populated again to reflect the changes that will
         # have happened in the last time step for those models
@@ -527,12 +541,12 @@ class AnimalModel(
         self.reset_trophic_records()
         self.update_activity_windows_community()
         self.forage_community(self.update_interval_timedelta)
-        self.migrate_community(self.update_interval_timedelta)
         self.birth_community()
         self.metamorphose_community()
-        self.migrate_external_community()
         self.metabolize_community(self.update_interval_timedelta)
         self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
+        self.migrate_community(self.update_interval_timedelta)
+        self.migrate_external_community()
         self.update_community_bookkeeping(self.update_interval_timedelta)
         self.update_cohort_bookkeeping(self.update_interval_timedelta)
 
@@ -1142,9 +1156,10 @@ class AnimalModel(
     def migrate_community(self, dt: timedelta64) -> None:
         """This handles migrating all cohorts with a centroid in the community.
 
-        This migration method initiates migration for two reasons:
+        This migration method initiates migration for three reasons:
         1) The cohort is starving and needs to move for a chance at resource access
         2) An initial migration event immediately after birth.
+        3) Thermal escape with a suitability-weighted destination when the toggle is on.
 
         The destination is drawn uniformly from the cells the cohort can actually
         reach within its mass-scaled dispersal distance, rather than from the
@@ -1176,7 +1191,15 @@ class AnimalModel(
                 # probability based on proportion of cohort that could make it to the
                 # new cell
             )
-            migrate = is_starving or is_juvenile_and_migrate  # bool
+
+            is_thermally_stressed = (
+                self.thermal_suitability is not None
+                and cohort.sigma_f_t < self.model_constants.thermal_dispersal_threshold
+                and random.random()
+                <= 1.0
+                - (cohort.sigma_f_t / self.model_constants.thermal_dispersal_threshold)
+            )
+            migrate = is_starving or is_juvenile_and_migrate or is_thermally_stressed
 
             if not migrate:
                 continue
@@ -1191,7 +1214,7 @@ class AnimalModel(
             if not candidate_keys:
                 continue
 
-            self.migrate(cohort, choice(candidate_keys))
+            self.migrate(cohort, self._select_destination(cohort, candidate_keys))
 
     def remove_dead_cohort(self, cohort: AnimalCohort) -> None:
         """Removes an AnimalCohort from the model's cohorts and relevant communities.
@@ -1845,19 +1868,49 @@ class AnimalModel(
         """Update the activity window fraction for all cohorts in all communities.
 
         Per-stratum temperatures and diurnal ranges are pre-computed once per
-        timestep as per-cell means, then
-        :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_mean_territory_climate`
-        derives the climate experienced by each cohort based on its vertical
-        occupancy. Both variables are averaged across all territory cells.
-
-        Where a cell has no filled canopy layers, canopy temperature and diurnal
-        range fall back to the corresponding ground values to avoid NaN propagation.
-
+        timestep as per-cell means by _build_stratum_climate, then
+        AnimalCohort.get_mean_territory_climate derives the climate experienced by each
+        cohort based on its vertical occupancy. Both variables are averaged across all
+        territory cells.
 
         Note:
             Annual values are per-functional-group reference values resolved once at
             FunctionalGroup construction by averaging placeholder per-stratum terms.
         """
+
+        climate = self._build_stratum_climate()
+        self._update_thermal_suitability(climate)
+
+        for cohort in self.active_cohorts.values():
+            temperature, diurnal_range = cohort.get_mean_territory_climate(
+                climate.canopy_temperature,
+                climate.ground_temperature,
+                climate.soil_temperature,
+                climate.canopy_diurnal_range,
+                climate.ground_diurnal_range,
+                climate.soil_diurnal_range,
+            )
+
+            cohort.update_activity_window(
+                temperature=temperature,
+                diurnal_temp_range=diurnal_range,
+                annual_mean_temp=cohort.functional_group.reference_annual_mean_temp,
+                annual_temp_sd=cohort.functional_group.reference_annual_temp_sd,
+            )
+
+    def _build_stratum_climate(self) -> StratumClimate:
+        """Resolve the abiotic model's layered outputs into per-cell stratum climate.
+
+        Canopy values are the mean across filled canopy layers; ground and soil values
+        are taken from the surface and topsoil layers respectively. Where a cell has no
+        filled canopy layers, canopy temperature and diurnal range fall back to the
+        corresponding ground values to avoid NaN propagation.
+
+        Returns:
+            A :class:`~virtual_ecosystem.models.animal.climate.StratumClimate` holding
+            six per-cell arrays of shape ``(n_cells,)``.
+        """
+
         lyr = self.layer_structure
 
         canopy_temp = nanmean(
@@ -1889,19 +1942,71 @@ class AnimalModel(
                 isnan(canopy_diurnal), ground_diurnal, canopy_diurnal
             )
 
-        for cohort in self.active_cohorts.values():
-            temperature, diurnal_range = cohort.get_mean_territory_climate(
-                canopy_temp,
-                ground_temp,
-                soil_temp,
-                canopy_diurnal,
-                ground_diurnal,
-                soil_diurnal,
-            )
+        return StratumClimate(
+            canopy_temperature=canopy_temp,
+            ground_temperature=ground_temp,
+            soil_temperature=soil_temp,
+            canopy_diurnal_range=canopy_diurnal,
+            ground_diurnal_range=ground_diurnal,
+            soil_diurnal_range=soil_diurnal,
+        )
 
-            cohort.update_activity_window(
+    def _update_thermal_suitability(self, climate: StratumClimate) -> None:
+        """Rebuild the per-functional-group thermal suitability grid.
+
+        Computes, for each functional group, the per-cell activity window it would
+        experience given the current stratum climate. The result is cached on
+        :attr:`thermal_suitability` and consumed by dispersal.
+
+        Leaves :attr:`thermal_suitability` as ``None`` when thermal habitat selection
+        is disabled, so that dispersal falls through to uniform destination choice.
+
+        Args:
+            climate: Per-cell, per-stratum climate for the current timestep, as built
+                by :meth:`_build_stratum_climate`.
+        """
+
+        if not self.model_constants.thermal_habitat_selection:
+            self.thermal_suitability = None
+            return
+
+        self.thermal_suitability = {
+            fg.name: thermal_suitability(
+                metabolic_type=fg.metabolic_type,
                 temperature=temperature,
-                diurnal_temp_range=diurnal_range,
-                annual_mean_temp=cohort.functional_group.reference_annual_mean_temp,
-                annual_temp_sd=cohort.functional_group.reference_annual_temp_sd,
+                diurnal_temp_range=diurnal,
+                annual_mean_temp=fg.reference_annual_mean_temp,
+                annual_temp_sd=fg.reference_annual_temp_sd,
+                t_opt=fg.t_opt,
+                t_max_crit=fg.t_max_crit,
+                t_min_crit=fg.t_min_crit,
+                constants=self.model_constants,
             )
+            for fg in self.functional_groups
+            for temperature, diurnal in [
+                stratum_mean_climate(fg.vertical_occupancy, climate)
+            ]
+        }
+
+    def _select_destination(
+        self, cohort: AnimalCohort, candidate_keys: list[int]
+    ) -> int:
+        """Pick a destination cell from the reachable set.
+
+        Uniform when thermal habitat selection is off; otherwise weighted by each
+        reachable cell's suitability for the cohort's functional group, raised to
+        ``thermal_selection_exponent`` and floored at ``thermal_suitability_floor`` so
+        the distribution stays valid even where every reachable cell is lethal.
+        """
+        if self.thermal_suitability is None:
+            return choice(candidate_keys)
+
+        keys = asarray(candidate_keys)
+        weights = (
+            maximum(
+                self.thermal_suitability[cohort.functional_group.name][keys],
+                self.model_constants.thermal_suitability_floor,
+            )
+            ** self.model_constants.thermal_selection_exponent
+        )
+        return int(random.choice(keys, p=weights / weights.sum()))

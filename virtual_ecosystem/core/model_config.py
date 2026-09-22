@@ -133,6 +133,9 @@ class CoreConstants(Configuration):
     density_water: float = 1000.0
     """Density of water, [kg m-3]."""
 
+    specific_heat_capacity_water: float = 4180.0
+    """Specific heat capacity of water, [J kg-1 K-1]."""
+
     air_volumetric_heat_capacity: float = 1200.0
     """Volumetric heat capacity of air at constant pressure, [J m-3 K-1].
     

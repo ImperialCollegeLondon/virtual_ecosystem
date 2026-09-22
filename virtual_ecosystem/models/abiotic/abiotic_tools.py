@@ -355,7 +355,8 @@ def update_profile_from_reference(
     Args:
         layer_structure: LayerStructure object defining the layer setup
         mask_variable: DataArray used to create the atmospheric mask
-        variable_name: Reference variable (e.g. data["atmospheric_pressure_ref"])
+        variable_name: Reference variable as a full timeseries DataArray (e.g.
+            ``data.get_time_series("atmospheric_pressure_ref")``)
         time_index: Index of the current time step
 
     Returns:
@@ -733,3 +734,32 @@ def compute_weights_from_absorbed_radiation(
 
     # Divide — NaN entries stay NaN, zero-total cells become NaN
     return radiation / safe_total
+
+
+def to_shape(
+    value: float | NDArray[np.floating],
+    shape: tuple[int, ...],
+    name: str,
+) -> NDArray[np.floating]:
+    """Broadcast a scalar or array to the requested shape.
+
+    Args:
+        value: Scalar or array to broadcast
+        shape: Target shape to broadcast to
+        name: Name of the variable for error messages
+
+    Returns:
+        Broadcasted array of the requested shape
+
+    Raises:
+        ValueError: if the value cannot be broadcast to the requested shape
+    """
+
+    arr = np.asarray(value, dtype=float)
+    try:
+        return np.broadcast_to(arr, shape).astype(float, copy=False)
+    except ValueError as exc:
+        raise ValueError(
+            f"{name} could not be broadcast to shape {shape}. "
+            f"Received shape {arr.shape}."
+        ) from exc

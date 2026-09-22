@@ -356,7 +356,7 @@ def test_update_profile_from_reference(fixture_core_components, dummy_climate_da
     result = update_profile_from_reference(
         layer_structure=lyr_str,
         mask_variable=data["air_temperature"],
-        variable_name=data["atmospheric_pressure_ref"],
+        variable_name=data.get_time_series("atmospheric_pressure_ref"),
         time_index=1,
     )
 
@@ -451,18 +451,18 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
     data = dummy_climate_data
     n_layers, n_cells = data["canopy_evaporation"].shape
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
-    daily_temp_amplitude = (
-        data["diurnal_temperature_range_ref"].isel(time_index=1).to_numpy()
-    )
+    daily_temp_amplitude = data.get_time_slice(
+        "diurnal_temperature_range_ref", 1
+    ).to_numpy()
 
     # Generate diurnal cycle
     forcing = generate_diurnal_cycle_from_monthly_data(
-        monthly_air_temperature=data["air_temperature_ref"]
-        .isel(time_index=1)
-        .to_numpy(),
-        monthly_relative_humidity=data["relative_humidity_ref"]
-        .isel(time_index=1)
-        .to_numpy(),
+        monthly_air_temperature=data.get_time_slice(
+            "air_temperature_ref", 1
+        ).to_numpy(),
+        monthly_relative_humidity=data.get_time_slice(
+            "relative_humidity_ref", 1
+        ).to_numpy(),
         monthly_shortwave_absorption=data["shortwave_absorption"].to_numpy(),
         monthly_evapotranspiration=evapotranspiration.to_numpy(),
         monthly_soil_evaporation=data["soil_evaporation"].to_numpy(),
@@ -481,7 +481,7 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
 
     # Air temperature bounds
     air_temp = forcing["air_temperature_hourly"]
-    air_temp_monthly = data["air_temperature_ref"].isel(time_index=1).to_numpy()
+    air_temp_monthly = data.get_time_slice("air_temperature_ref", 1).to_numpy()
     assert np.all(air_temp >= air_temp_monthly - daily_temp_amplitude - 1e-6)
     assert np.all(air_temp <= air_temp_monthly + daily_temp_amplitude + 1e-6)
 
@@ -755,3 +755,37 @@ def test_multidimensional_array():
     arr = np.array([[10, 60], [30, 40]])
     with pytest.raises(AssertionError, match="above 50"):
         finite_and_within(arr, 0, 50, "test_var")
+
+
+@pytest.mark.parametrize(
+    ("value", "shape", "expected"),
+    [
+        (2.5, (2, 3), np.full((2, 3), 2.5)),
+        (
+            np.array([1.0, 2.0, 3.0]),
+            (2, 3),
+            np.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]),
+        ),
+    ],
+)
+def test_to_shape_broadcasts_valid_inputs(value, shape, expected):
+    """Test to_shape broadcasts valid inputs correctly."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import to_shape
+
+    result = to_shape(value=value, shape=shape, name="test_value")
+    assert result.shape == expected.shape
+    assert result.dtype == float
+    np.testing.assert_allclose(result, expected)
+
+
+def test_to_shape_raises_for_invalid_broadcast():
+    """Test to_shape raises error for invalid broadcast."""
+    from virtual_ecosystem.models.abiotic.abiotic_tools import to_shape
+
+    with pytest.raises(
+        ValueError,
+        match=r"test_value could not be broadcast to shape \(2, 3\)\. "
+        r"Received shape \(2,\)\.",
+    ):
+        to_shape(value=np.array([1.0, 2.0]), shape=(2, 3), name="test_value")

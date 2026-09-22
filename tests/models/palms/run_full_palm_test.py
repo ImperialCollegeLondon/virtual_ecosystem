@@ -92,7 +92,7 @@ out_path = "{output_path.as_posix()}"
 pft_definitions_path = "{pft_path.as_posix()}"
 cohort_data_path = "{cohort_path.as_posix()}"
 [palms.community_data_export]
-required_data = ["cohorts"]
+cohort_attributes = "ALL"
 
 {data_config}
 """

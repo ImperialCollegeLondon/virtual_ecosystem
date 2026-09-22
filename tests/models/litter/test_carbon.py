@@ -114,13 +114,8 @@ def test_calculate_decay_rates(
         "metabolic_above": [0.0150294488, 0.0150294488, 0.0150294488, 0.0150294488],
         "structural_above": [0.000334859, 0.002474294, 0.000123188, 0.000123188],
         "woody": [0.000102808, 2.293950e-5, 0.000217644, 0.000217644],
-        "metabolic_below": [0.02281971, 0.02019472, 0.01622326, 0.01622326],
-        "structural_below": [
-            0.00050625835,
-            0.00156375238,
-            0.00010311745,
-            0.00010311745,
-        ],
+        "metabolic_below": [0.02732009, 0.02417741, 0.01942272, 0.01942272],
+        "structural_below": [0.0006061, 0.00187215, 0.00012345, 0.00012345],
     }
 
     actual_decay = calculate_decay_rates(
@@ -148,7 +143,7 @@ def test_calculate_total_C_mineralised(
         calculate_total_C_mineralised,
     )
 
-    expected_mineralisation = [0.02666707, 0.0202096, 0.0075679, 0.00760535]
+    expected_mineralisation = [0.02991986, 0.02295185, 0.00795922, 0.00802409]
 
     actual_mineralisation = calculate_total_C_mineralised(
         litter_losses=litter_losses,
@@ -168,8 +163,8 @@ def test_calculate_updated_pools(decay_rates, post_consumption_pools, litter_inp
         "above_metabolic": [0.31292847, 0.1477193, 0.07847686, 0.0712382],
         "above_structural": [0.50477412, 0.24966296, 0.10312207, 0.11937046],
         "woody": [4.774026, 11.89845637, 7.35980938, 7.32981591],
-        "below_metabolic": [0.39768853, 0.36369883, 0.06830231, 0.07781341],
-        "below_structural": [0.61051725, 0.32260976, 0.02192288, 0.03499666],
+        "below_metabolic": [0.39419511, 0.36084662, 0.06786837, 0.07734927],
+        "below_structural": [0.61039646, 0.32241502, 0.02192203, 0.03499554],
     }
 
     actual_pools = calculate_updated_pools(
@@ -267,7 +262,7 @@ def test_calculate_litter_decay_metabolic_below(
         calculate_litter_decay_metabolic_below,
     )
 
-    expected_decay = [0.02281971, 0.02019472, 0.01622326, 0.01622326]
+    expected_decay = [0.02732009, 0.02417741, 0.01942272, 0.01942272]
 
     actual_decay = calculate_litter_decay_metabolic_below(
         temperature_factor=temp_and_water_factors["temp_below"],
@@ -286,7 +281,7 @@ def test_calculate_litter_decay_structural_below(
         calculate_litter_decay_structural_below,
     )
 
-    expected_decay = [0.00050625835, 0.00156375238, 0.00010311745, 0.00010311745]
+    expected_decay = [0.0006061, 0.00187215, 0.00012345, 0.00012345]
 
     actual_decay = calculate_litter_decay_structural_below(
         temperature_factor=temp_and_water_factors["temp_below"],

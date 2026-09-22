@@ -127,7 +127,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from xarray import DataArray, Dataset
+import xarray as xr
 
 from virtual_ecosystem.core.axes import AXIS_VALIDATORS, validate_dataarray
 from virtual_ecosystem.core.exceptions import ConfigurationError
@@ -174,7 +174,7 @@ class Data:
 
         self.grid: Grid = grid
         """The configured Grid to be used in a simulation."""
-        self.data = Dataset()
+        self.data = xr.Dataset()
         """The :class:`~xarray.Dataset` used to store data."""
         self.variable_validation: dict[str, dict[str, str | None]] = {}
         """Records validation details for loaded variables.
@@ -185,6 +185,8 @@ class Data:
         subclass applied to that axis. If no validator was applied, the entry for that
         core axis will be ``None``.
         """
+        self.time_index: int = 0
+        """Current time index, to be used to slice DataArrays with a time axis."""
 
     def __repr__(self) -> str:
         """Returns a representation of a Data instance."""
@@ -194,7 +196,7 @@ class Data:
 
         return "Data: no variables loaded"
 
-    def __setitem__(self, key: str, value: DataArray) -> None:
+    def __setitem__(self, key: str, value: xr.DataArray) -> None:
         """Load a data array into a Data instance.
 
         This method takes an input {class}`~xarray.DataArray` object and then matches
@@ -219,7 +221,7 @@ class Data:
             TypeError: when the value is not a DataArray.
         """
 
-        if not isinstance(value, DataArray):
+        if not isinstance(value, xr.DataArray):
             to_raise = TypeError(
                 "Only DataArray objects can be added to Data instances"
             )
@@ -247,12 +249,14 @@ class Data:
         self.data[key] = value
         self.variable_validation[key] = valid_dict
 
-    def __getitem__(self, key: str) -> DataArray:
-        """Get a given data variable from a Data instance.
+    def __getitem__(self, key: str) -> xr.DataArray:
+        """Get a given data variable at the current time index from a Data instance.
 
         This method looks for the provided key in the data variables saved in the `data`
-        attribute and returns the DataArray for that variable. Note that this is just a
-        shortcut: ``data_instance['var']`` is the same as ``data_instance.data['var']``.
+        attribute and returns the DataArray for that variable at the current time index,
+        if it has a `time_index` dimension. Note that this is just a shortcut:
+        ``data_instance['var']`` is the same as ``data_instance.data['var']`` for the
+        case where there is not a 'time_index`.
 
         Args:
             key: The name of the data variable to get
@@ -260,8 +264,13 @@ class Data:
         Raises:
             KeyError: if the data variable is not present
         """
+        value = self.data[key]
 
-        return self.data[key]
+        return (
+            value.isel(time_index=self.time_index)
+            if "time_index" in value.dims
+            else value
+        )
 
     def __contains__(self, key: str) -> bool:
         """Check if a given data variable is present in a Data instance.
@@ -275,6 +284,39 @@ class Data:
         """
 
         return key in self.data
+
+    def get_time_slice(self, variable: str, time_index: int) -> xr.DataArray:
+        """Get the variable and the chosen time_index.
+
+        Args:
+            variable: The name of the data variable to get.
+            time_index: The time index to get the data for.
+
+        Raises:
+            KeyError: if the data variable is not present.
+            ValueError: if the DataArray does not have a `time_index` dimension.
+        """
+        return self.data[variable].isel(time_index=time_index)
+
+    def get_time_series(self, variable: str) -> xr.DataArray:
+        """Get the variable whole time series information.
+
+        Args:
+            variable: The name of the data variable to get.
+
+        Raises:
+            KeyError: if the data variable is not present.
+            ValueError: if the DataArray does not have a `time_index` dimension.
+        """
+        value = self.data[variable]
+
+        if "time_index" not in value.dims:
+            raise ValueError(
+                "Time series requested for a variable without 'time_index' "
+                f"dimension: {variable}."
+            )
+
+        return value
 
     def on_core_axis(self, var_name: str, axis_name: str) -> bool:
         """Check core axis validation.
@@ -401,6 +443,9 @@ class Data:
         else:
             out = self.data
 
+        # # Unstack cell_id back to XY
+        # out = out.set_index(cell_id=["y", "x"]).unstack("cell_id")
+
         out.to_zarr(
             output_file_path, group=group, mode="a", consolidated=False, zarr_format=2
         )
@@ -433,7 +478,10 @@ class Data:
         time_slice = out.expand_dims({"time_index": 1}).assign_coords(
             time_index=[time_index]
         )
-        time_slice["timestamp"] = DataArray([timestamp], dims="time_index")
+        time_slice["timestamp"] = xr.DataArray([timestamp], dims="time_index")
+
+        # # Collapse cell_id back to XY
+        # time_slice = time_slice.set_index(cell_id=["y", "x"]).unstack("cell_id")
 
         # Save the variables to the zarr store, appending along time index after the
         # first time step. Zarr format 2 is used here because format 3 doesn't currently
@@ -459,7 +507,7 @@ class Data:
                 zarr_format=2,
             )
 
-    def add_from_dict(self, output_dict: dict[str, DataArray]) -> None:
+    def add_from_dict(self, output_dict: dict[str, xr.DataArray]) -> None:
         """Update data object from dictionary of variables.
 
         This function takes a dictionary of updated variables to replace the
@@ -495,3 +543,40 @@ class DataGenerator:
         **kwargs: Any,
     ) -> None:
         pass
+
+
+def convert_zarr_outputs_to_netcdf(zarr_store: Path) -> Path:
+    """Convert the model outputs from a Zarr store to NetCDF.
+
+    This utility function reads in the groups in the Zarr store generated by ``ve_run``
+    and converts them into a grouped NetCDF file. The function also stacks the internal
+    `cell_id` dimension used by ``ve_run`` back into the original ``x`` and ``y``
+    dimensions.
+
+    Returns:
+        The path of the converted NetCDF file
+
+    Args:
+        zarr_store: Path to an output Zarr store generated by ``ve_run``
+    """
+
+    # Open the Zarr outputs as a dictionary of groups, specifying the engine to avoid
+    # problems with autodetection of file format in Windows.
+    data = xr.open_groups(zarr_store, consolidated=False, engine="zarr")
+
+    # Loop over groups
+    for group, dataset in data.items():
+        # Skip the empty root group
+        if group == "/":
+            continue
+        # Unstacking cell id to XY in dimensions.
+        data[group] = data[group].set_index(cell_id=["y", "x"]).unstack("cell_id")
+
+        # Reverse the y coordinates
+        data[group] = data[group].isel(y=slice(None, None, -1))
+
+    # Turn the dictionary of groups into a data tree and export.
+    nc_file = zarr_store.with_suffix(".nc")
+    xr.DataTree.from_dict(data).to_netcdf(nc_file)
+
+    return nc_file

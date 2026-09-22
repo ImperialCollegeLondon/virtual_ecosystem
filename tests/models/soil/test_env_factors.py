@@ -337,7 +337,7 @@ def test_calculate_carbon_use_efficiency(averaged_soil_temp, fixture_soil_consta
         calculate_carbon_use_efficiency,
     )
 
-    expected_cues = [0.46920255, 0.45708189, 0.44501183, 0.51790586]
+    expected_cues = [0.37965802, 0.3569791, 0.33492348, 0.47477144]
 
     actual_cues = calculate_carbon_use_efficiency(
         soil_temp=averaged_soil_temp,

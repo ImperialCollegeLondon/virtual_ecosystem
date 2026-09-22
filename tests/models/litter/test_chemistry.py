@@ -35,7 +35,7 @@ def test_calculate_new_pool_chemistries(
     expected_chemistries = {
         "lignin_above_structural": [0.4976432, 0.10184581, 0.6793591, 0.668817],
         "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
-        "lignin_below_structural": [0.49974115, 0.26255194, 0.73336051, 0.71623416],
+        "lignin_below_structural": [0.49974109, 0.26255952, 0.73335986, 0.71623308],
         "above_metabolic_nitrogen": [0.04164068, 0.01683533, 0.00720338, 0.00710534],
         "above_structural_nitrogen": [0.01340754, 0.0057693, 0.00208167, 0.00228176],
         "woody_nitrogen": [
@@ -44,8 +44,8 @@ def test_calculate_new_pool_chemistries(
             0.15512843175215565,
             0.12406449399964693,
         ],
-        "below_metabolic_nitrogen": [0.03646412, 0.0317839, 0.00448212, 0.00597295],
-        "below_structural_nitrogen": [0.01197869, 0.00567217, 0.0002915, 0.00047729],
+        "below_metabolic_nitrogen": [0.03613763, 0.0315315, 0.00445357, 0.00593552],
+        "below_structural_nitrogen": [0.0119763, 0.00566867, 0.00029149, 0.00047728],
         "above_metabolic_phosphorus": [0.00513782, 0.00212742, 0.00071441, 0.00072071],
         "above_structural_phosphorus": [0.00148339, 0.00052657, 0.00022537, 0.00023009],
         "woody_phosphorus": [
@@ -54,12 +54,12 @@ def test_calculate_new_pool_chemistries(
             0.008679346482530033,
             0.012216757912695322,
         ],
-        "below_metabolic_phosphorus": [0.00126491, 0.0009009, 0.00021935, 0.00021592],
+        "below_metabolic_phosphorus": [0.00125366, 0.00089397, 0.00021798, 0.00021479],
         "below_structural_phosphorus": [
-            1.09386195e-3,
-            5.30764789e-4,
-            2.94140868e-5,
-            4.95474953e-5,
+            1.09364254e-03,
+            5.30437838e-04,
+            2.94129841e-05,
+            4.95457779e-05,
         ],
     }
 
@@ -89,7 +89,7 @@ def test_calculate_new_lignin_proportions(
     expected_lignin = {
         "lignin_above_structural": [0.4976432, 0.10184581, 0.6793591, 0.668817],
         "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
-        "lignin_below_structural": [0.49974115, 0.26255194, 0.73336051, 0.71623416],
+        "lignin_below_structural": [0.49974109, 0.26255952, 0.73335986, 0.71623308],
     }
 
     actual_lignin = litter_chemistry.calculate_new_lignin_proportions(
@@ -156,8 +156,8 @@ def test_calculate_updated_nutrient_pools(
             0.15512843175215565,
             0.12406449399964693,
         ],
-        "below_metabolic_nitrogen": [0.03646412, 0.0317839, 0.00448212, 0.00597295],
-        "below_structural_nitrogen": [0.01197869, 0.00567217, 0.0002915, 0.00047729],
+        "below_metabolic_nitrogen": [0.03613763, 0.0315315, 0.00445357, 0.00593552],
+        "below_structural_nitrogen": [0.0119763, 0.00566867, 0.00029149, 0.00047728],
         "above_metabolic_phosphorus": [0.00513782, 0.00212742, 0.00071441, 0.00072071],
         "above_structural_phosphorus": [0.00148339, 0.00052657, 0.00022537, 0.00023009],
         "woody_phosphorus": [
@@ -166,12 +166,12 @@ def test_calculate_updated_nutrient_pools(
             0.008679346482530033,
             0.012216757912695322,
         ],
-        "below_metabolic_phosphorus": [0.00126491, 0.0009009, 0.00021935, 0.00021592],
+        "below_metabolic_phosphorus": [0.00125366, 0.00089397, 0.00021798, 0.00021479],
         "below_structural_phosphorus": [
-            1.09386195e-3,
-            5.30764789e-4,
-            2.94140868e-5,
-            4.95474953e-5,
+            1.09364254e-03,
+            5.30437838e-04,
+            2.94129841e-05,
+            4.95457779e-05,
         ],
     }
 

@@ -212,6 +212,7 @@ def dummy_animal_data(animal_fixture_core_components):
         data[var] = DataArray(
             np.full((9, 3), value),  # Update to 9 grid cells
             dims=["cell_id", "time_index"],
+            coords={"time_index": np.arange(3)},
         )
 
     # Spatially varying but not vertically structured
@@ -472,7 +473,9 @@ def dummy_animal_data(animal_fixture_core_components):
         data[pool] = lignin_contents
 
     data["diurnal_temperature_range"] = from_template()
+    data["diurnal_temperature_range"][lyr_str.index_filled_canopy] = 8.0
     data["diurnal_temperature_range"][lyr_str.index_surface_scalar] = 10.0
+    data["diurnal_temperature_range"][lyr_str.index_topsoil_scalar] = 1.0
 
     return data
 
