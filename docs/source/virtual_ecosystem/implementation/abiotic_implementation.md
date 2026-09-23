@@ -677,6 +677,24 @@ layer will cover the current surface layer so that the effects of surface vegeta
 on the energy balance are reduced. Note: the precise treatment of sub-canopy snow
 interception and surface vegetation masking is not yet finalised.
 
+Workflow:
+
+Hydrology model runs snow mass balance:
+
+* Partition precipitation in $P_{r}$​ and $P_{s}$
+* Update snow mass balance $\Delta S$
+* Update snow density $\rho_{s}$​ and depth $D_{s}$
+* Calculate melt $M$ and rain-on-snow melt $M_{r}$​
+* Pass liquid water to surface water store
+
+Abiotic model runs snow energy balance:
+
+* Adjust canopy structure for snow burial
+* Solve snow surface energy balance for $T_{s}$​
+* Calculate conductive flux $G$ to soil
+* Update soil temperature profile
+* Pass sublimation flux $E$ back to atmosphere
+
 The second step is a frozen-soil module that uses snow cover to alter
 **below-ground** conditions and processes, including soil thermal conditions,
 infiltration and runoff, soil evaporation, and plant uptake when soils are frozen.
@@ -796,7 +814,9 @@ The snow surface temperature is obtained by solving the surface energy balance, 
 the same framework applied to vegetated surfaces described above. The implementation
 follows {cite:t}`kearney_how_2020` and {cite:t}`maclean_ecologist_2026`, building on
 {cite:t}`anderson_apoint_1976`. The net energy flux at the snow surface determines both
-the snow surface temperature and the conductive heat flux into the soil below.
+the snow surface temperature and the conductive heat flux into the soil below. For this
+to be initiated, snow has to be present when the abiotic model is called, so there needs
+to be a boolean indicator implemented.
 
 **Shortwave radiation** absorbed at the snow surface is determined by snow albedo
 ($\alpha_s$; between 0 and 0.97​), which declines as the snowpack ages due to grain
@@ -808,6 +828,16 @@ $$\alpha_{s} = \frac{-9.8740 ln(t_{s}) + 78.3434}{100}$$
 following regressions derived from {cite:t}`anderson_apoint_1976`. Fresh snow is highly
 reflective ($\alpha_{s} = 0.8-0.9$), and albedo decreases progressively with age. This has
 a strong influence on the surface energy balance and therefore on melt rates.
+
+**Longwave emission** from the snow surface assumes a fixed emissivity of
+$\epsilon = 0.99$, such that emitted longwave radiation ($R_{em,s}, \mathrm{W\,m^{-2}}$)
+is:
+
+$$R_{em,s}=\epsilon \sigma T_{s}^{4}$$
+
+where $\sigma$ is the Stefan-Boltzmann constant and $T_{s}$​ is snow surface temperature
+($K$). Incoming longwave radiation from the canopy and atmosphere above is calculated as
+for other surfaces.
 
 **Sensible heat** exchange between the snow surface and the air above is calculated using
 the same aerodynamic resistance formulation as for other surfaces in the model. However,
@@ -834,27 +864,39 @@ The snowpack is treated as freely evaporating, with water vapour flux driven ent
 the vapour pressure gradient between the snow surface and the air above, and modulated by
 aerodynamic resistance $r_{a}$​.
 
-**Longwave emission** from the snow surface assumes a fixed emissivity of
-$\epsilon = 0.99$, such that emitted longwave radiation ($R_{em,s}, \mathrm{W\,m^{-2}}$)
-is:
+### Snow surface temperature
 
-$$R_{em,s}=\epsilon \sigma T_{s}^{4}$$
+The net energy flux at the snow surface ($R_{net}​, \mathrm{W\, m^{−2}}$) is the sum of
+absorbed shortwave radiation, net longwave radiation, and turbulent sensible and latent
+heat fluxes. In our simple one layer approach, the single snow layer is treated as a
+thermal slab with a conductive flux ($G,\mathrm{W\, m^{−2}}$) to the soil surface below:
 
-where $\sigma$ is the Stefan-Boltzmann constant and $T_{s}$​ is snow surface temperature
-($K$). Incoming longwave radiation from the canopy and atmosphere above is calculated as
-for other surfaces.
+$$G=k_{s} D_{s} (T_{s} − T_{soil})$$
+
+where $k_{s}$​ ($\mathrm{W\, m^{−1}, K^{-1}}$) is the thermal conductivity of snow,
+and $T_{soil}$​ ($K$) is the temperature of the topsoil layer. The snow surface
+temperature is then obtained by solving the energy balance:
+
+$$R_{net} = G$$
+
+Snow thermal conductivity is calculated from snow density as:
+
+$$k_s = 0.0442 \exp(5.151 \rho_{s})$$
+
+following {cite:t}`anderson_apoint_1976`. Denser, older snow conducts heat more
+efficiently than fresh powder, so $k_{s}$​ increases as the snowpack compacts over
+time.
+
+```{note}
+Note that this slab conductance approach is a deliberate simplification consistent with
+the single-layer snow model. It captures the insulating effect of snow on the soil below;
+a shallower or denser snowpack conducts more heat to the soil, while a deep, low-density
+snowpack effectively decouples the soil from the atmosphere above.
+```
 
 The following additional variables will be produced and added to `data`:
 
 * snow albedo, (unitless)
-
-### Snow surface temperature
-
-TBC
-
-### Soil heat flux
-
-TBC
 
 ## Generated variables
 
