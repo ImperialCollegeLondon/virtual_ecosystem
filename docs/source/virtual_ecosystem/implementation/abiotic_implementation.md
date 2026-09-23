@@ -769,7 +769,7 @@ equivalent and snow density:
 
 $$D_{s} = \frac{S}{\rho_{s}}$$
 
-Snow density ($\rho_{s}$, $\mathrm{kg\,kg^{-3}}$) is calculated as a function of snow
+Snow density ($\rho_{s}$, $\mathrm{kg\,m^{-3}}$) is calculated as a function of snow
 depth and snow age following {cite:t}`maclean_ecologist_2026`:
 
 $$\rho_{s} = (\rho_{max} - \rho_{0})(1-\exp(-k_{d} D_{s} -k_{a}t_{s}))+\rho_0$$
@@ -804,7 +804,7 @@ The following additional variables will be produced and added to `data`:
 * liquid water fraction of precipitation, (mm)
 * snow water equivalent, (mm)
 * snow height, (m)
-* snow density, ($\mathrm{kg\,kg^{-2}}$)
+* snow density, ($\mathrm{kg\,m^{-3}}$)
 * snow melt from energy balance, (mm)
 * snow melt from rainfall, (mm)
 
