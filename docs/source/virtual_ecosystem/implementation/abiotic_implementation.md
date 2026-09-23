@@ -474,7 +474,7 @@ and time advances in steps of $\Delta t$ (s).
 The topmost layer ($i = 0$) is updated using the net ground heat flux $G$
 ($\mathrm{W\,m^{-2}}$):
 
-$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{C_{\mathrm{vol},0}\,\Delta z_{0}}\right)G$$
+$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{C_{\mathrm{vol},0}\,\Delta z_{m}}\right)G$$
 
 **Interior layers update**:
 
@@ -566,7 +566,7 @@ speed theoretically becomes zero under neutral atmospheric conditions. It is inf
 by the drag imposed by both the substrate and the vegetation canopy. The roughness
 length is computed as (after {cite:t}`maclean_microclimc_2021`):
 
-$$z_{0} = (h_c − d) exp⁡(−\kappa \frac{1}{R} − C_d)$$
+$$z_{m} = (h_c − d) exp⁡(−\kappa \frac{1}{R} − C_d)$$
 
 with
 
@@ -587,7 +587,7 @@ u(z) = u_{\text{ref}} \cdot \frac{\ln\left( \frac{z - d}{z_0} \right)}
 ```
 
 where $u(z)$ is wind speed at height $z$, $u_{\text{ref}}$ is reference wind speed at
-height $z_{\text{ref}}$, $d$ is the zero-plane displacement height, $z_{0}$ is the
+height $z_{\text{ref}}$, $d$ is the zero-plane displacement height, $z_{m}$ is the
 roughness length.
 
 Minimum wind speed is enforced below the canopy to avoid unrealistically low turbulent
@@ -726,7 +726,7 @@ Sublimation ($E$) is not yet assigned a governing equation in this design note a
 will be specified during implementation.
 ```
 
-### Snow melt
+#### Snow melt
 
 Melt is calculated from the energy available to warm the snowpack to $0\,^{\circ}\mathrm{C}$,
 expressed as a fraction of the latent heat required for phase change.
@@ -744,7 +744,7 @@ $$M_{r} = k_{r}T_{a}P_{r}$$
 
 with $k_{r} = 0.0125$ {cite:p}`kearney_how_2020`.
 
-### Snow depth and density
+#### Snow depth and density
 
 The snow depth ($D_{s}$, $\mathrm{m}$) is defined as the ratio between snow water
 equivalent and snow density:
@@ -770,7 +770,7 @@ circularity is resolved by using the snow depth from the previous timestep when
 computing density at each new timestep.
 ```
 
-### Hydrology outputs
+#### Hydrology outputs
 
 The liquid water generated from snowmelt ($M + M_{r}​$) is added to the surface water
 variable, from which the hydrology model proceeds unchanged as described in the
@@ -786,21 +786,75 @@ The following additional variables will be produced and added to `data`:
 * liquid water fraction of precipitation, (mm)
 * snow water equivalent, (mm)
 * snow height, (m)
-* snow density, (kg m-2)
+* snow density, ($\mathrm{kg\,kg^{-2}}$)
 * snow melt from energy balance, (mm)
 * snow melt from rainfall, (mm)
 
 ### Snow energy balance
 
-The **snow energy balance** will mostly be affected by changes in surface albedo. These
-changes will be calculated based on a simple aging scheme. Snow melting will be calculated
-from the thermal energy content of the snow layer and from rainfall, and the additional
-water will be routed to the hydrology model via the surface precipitation variable, so
-it will enter the soil rather than add to the surface runoff.
+The snow surface temperature is obtained by solving the surface energy balance, using
+the same framework applied to vegetated surfaces described above. The implementation
+follows {cite:t}`kearney_how_2020` and {cite:t}`maclean_ecologist_2026`, building on
+{cite:t}`anderson_apoint_1976`. The net energy flux at the snow surface determines both
+the snow surface temperature and the conductive heat flux into the soil below.
+
+**Shortwave radiation** absorbed at the snow surface is determined by snow albedo
+($\alpha_s$; between 0 and 0.97​), which declines as the snowpack ages due to grain
+metamorphism and deposition of debris. Snow albedo is expressed as a function of snow
+age ($t_{s}$, here in days):
+
+$$\alpha_{s} = \frac{-9.8740 ln(t_{s}) + 78.3434}{100}$$
+
+following regressions derived from {cite:t}`anderson_apoint_1976`. Fresh snow is highly
+reflective ($\alpha_{s} = 0.8-0.9$), and albedo decreases progressively with age. This has
+a strong influence on the surface energy balance and therefore on melt rates.
+
+**Sensible heat** exchange between the snow surface and the air above is calculated using
+the same aerodynamic resistance formulation as for other surfaces in the model. However,
+the roughness length and zero-plane displacement height are adjusted to account for the
+presence of snow.
+
+Where snow depth ($D_{s}$​) is less than canopy height ($h_{c}$), the exposed canopy
+height is reduced to $h_{c}-D_{s}$​, and leaf area index is scaled proportionally. The
+zero-plane displacement height ($d, \mathrm{m}$) and roughness length for momentum
+($z_{m}, \mathrm{m}$​) are then recalculated for the reduced canopy following the standard
+formulations described [above](#turbulence-and-wind).
+
+Where snow depth meets or exceeds vegetation height, the surface is treated as bare
+snow, with:
+
+$$d=0, z_{m}=0.002 \exp(\Psi_{h})$$
+
+where $\Psi_{h}$ is a diabatic correction coefficient for momentum. The aerodynamic
+resistance to heat transfer ($r_{a}​, \mathrm{s\,m^{-1}}$) is then
+calculated using the adjusted values of $d$ and $z_{m}$​​.
+
+**Latent heat** exchange at the snow surface is calculated without a surface resistance.
+The snowpack is treated as freely evaporating, with water vapour flux driven entirely by
+the vapour pressure gradient between the snow surface and the air above, and modulated by
+aerodynamic resistance $r_{a}$​.
+
+**Longwave emission** from the snow surface assumes a fixed emissivity of
+$\epsilon = 0.99$, such that emitted longwave radiation ($R_{em,s}, \mathrm{W\,m^{-2}}$)
+is:
+
+$$R_{em,s}=\epsilon \sigma T_{s}^{4}$$
+
+where $\sigma$ is the Stefan-Boltzmann constant and $T_{s}$​ is snow surface temperature
+($K$). Incoming longwave radiation from the canopy and atmosphere above is calculated as
+for other surfaces.
 
 The following additional variables will be produced and added to `data`:
 
 * snow albedo, (unitless)
+
+### Snow surface temperature
+
+TBC
+
+### Soil heat flux
+
+TBC
 
 ## Generated variables
 
