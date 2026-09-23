@@ -2,6 +2,8 @@
 
 from typing import Literal
 
+from pydantic import Field
+
 from virtual_ecosystem.core.configuration import (
     FILEPATH_PLACEHOLDER,
     Configuration,
@@ -39,17 +41,23 @@ class PlantsConstants(Configuration):
     senesced_leaf_lignin: float = 0.05
     """Fraction of senesced leaf biomass that is lignin."""
 
-    plant_reproductive_tissue_lignin: float = 0.01
-    """Fraction of plant reproductive tissue biomass that is lignin."""
-
     root_lignin: float = 0.20
     """Fraction of root biomass that is lignin."""
 
     subcanopy_extinction_coef: float = 0.5
     """The extinction coefficient of subcanopy vegetation (unitless)."""
 
+    subcanopy_leaf_fraction: float = 0.5
+    """The fraction of subcanopy vegetation biomass allocated to leaf tissue rather than
+    to stems and other structural tissue (unitless)."""
+
     subcanopy_specific_leaf_area: float = 14
     """The specific leaf area of subcanopy vegetation (m2 kg-1)."""
+
+    subcanopy_maximum_leaf_area_index: float = 5
+    """A cap on the maximum leaf area index from the subcanopy. This is a temporary
+    safeguard to prevent subcanopy dynamics from driving unrealistic abiotic conditions
+    and should be replaced by biological limitations on subcanopy growth (m2 m-2)."""
 
     subcanopy_respiration_fraction: float = 0.1
     """The fraction of gross primary productivity used in respiration (unitless)."""
@@ -98,11 +106,12 @@ class PlantsConstants(Configuration):
     root_exudates: float = 0.5
     """Fraction of GPP topslice allocated to root exudates."""
 
-    propagule_mass_portion: float = 0.5
-    """Fraction of reprodutive tissue allocated to propagules."""
-
-    carbon_mass_per_propagule: float = 1
-    """Mass of carbon per propagule in g."""
+    fallen_fruit_decay_rate: float = Field(default=0.0075, gt=0.0)
+    """Rate at which fruit that has fallen from the canopy decays [°C^-1 day^-1].
+    
+    This rate is measured relative to degree days (with a basis of 0 °C) so that
+    decay happens faster at higher temperatures and doesn't happen at sub-zero
+    temperatures."""
 
 
 class PlantsExportConfig(Configuration):
@@ -132,24 +141,18 @@ class PlantsExportConfig(Configuration):
       the community canopy model. This data is exported to the file
       ``plants_stem_canopy_data.csv``.
 
-    By default, the exporter does not export any data, but you can configure which of
-    these files to export. You can also configure which attributes to export for each
-    data file. For each of the three files, the default is to not specify a subset of
-    attributes, but you may not require all of this data and so can set specific
-    attribute names to include in the file..
+    By default, the exporter does not export any data, but output files are generated
+    when lists of attribute names are added to the output options. As a shortcut, the
+    "ALL" keyword can be used to export all the attributes for a given output.
     """
 
-    required_data: tuple[
-        Literal["cohorts", "community_canopy", "stem_canopy"], ...
-    ] = ()
-    """A list of the strings giving the required plant data types to be exported. The 
-    accepted values are "cohorts", "community_canopy" and "stem_canopy"."""
-    cohort_attributes: tuple[str, ...] = ()
-    """A list of the cohort attributes that should be exported."""
-    community_canopy_attributes: tuple[str, ...] = ()
-    """The community canopy attributes that should be exported."""
-    stem_canopy_attributes: tuple[str, ...] = ()
-    """The stem canopy attributes that should be exported."""
+    cohort_attributes: Literal["ALL"] | tuple[str, ...] = ()
+    """A list of the cohort attributes that should be exported or the ALL keyword."""
+    community_canopy_attributes: Literal["ALL"] | tuple[str, ...] = ()
+    """A list of the community canopy attributes that should be exported or the ALL
+    keyword."""
+    stem_canopy_attributes: Literal["ALL"] | tuple[str, ...] = ()
+    """A list of stem canopy attributes that should be exported or the ALL keyword."""
     float_format: str = "%0.5f"
     """A float format string to control data precision in export files."""
 
@@ -162,6 +165,6 @@ class PlantsConfiguration(ModelConfigurationRoot):
     cohort_data_path: FILEPATH_PLACEHOLDER
     """A file path to a file of initial cohort data"""
     community_data_export: PlantsExportConfig = PlantsExportConfig()
-    """Configuration of plant community data export"""
+    """Configuration of plant community data export settings."""
     constants: PlantsConstants = PlantsConstants()
     """Constants for the plants model"""

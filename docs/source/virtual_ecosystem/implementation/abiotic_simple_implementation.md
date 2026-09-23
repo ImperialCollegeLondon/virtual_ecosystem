@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.1
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -53,6 +53,12 @@ vertical profiles of these variables from external climate data such as regional
 climate models or satellite observations. The model also provides information on
 atmospheric pressure and $\ce{CO_{2}}$ and soil temperatures at different depths.
 
+```{warning}
+Note this implementation is based on a snow-free environment and effects of below-zero
+temperatures and changes to albedo due to snow cover or LAI reduction have to be assumed
+implicitly.
+```
+
 This sections describes the workflow of the `abiotic_simple` model update step.
 At each time step when the model updates, the
 {py:meth}`~virtual_ecosystem.models.abiotic_simple.microclimate_simple.run_simple_microclimate`
@@ -60,8 +66,8 @@ function is called to perform the steps outlined below.
 
 ### Step 1: Linear regression above ground
 
-The linear regression for below canopy values (1.5 m) is based on
-{cite:t}`hardwick_relationship_2015` as
+The linear regression for below canopy values at measurement height (default 1.5 m) is
+based on {cite:t}`hardwick_relationship_2015` as
 
 $$y = m * LAI + c$$
 
@@ -77,9 +83,10 @@ We assume that the gradient remains constant throughout the simulation.
 :class: bg-primary
 :width: 450px
 
-Linear regression between leaf area index (LAI) and abiotic variables at 1.5 m above the
-ground. The y-axis is intersected at the temperature at reference height.
-Orange crosses indicate 1.5 m and reference height.
+Linear regression between leaf area index (LAI) and abiotic variables at measurement
+height, here 1.5 m above the ground. The y-axis is intersected at the temperature at
+reference height 2 m above the canopy. Orange crosses indicate measurement and reference
+height.
 :::
 
 ### Step 2: Interpolation above ground
@@ -88,8 +95,8 @@ The values for any other aboveground heights, including but not limited to
 canopy layers and surface layer, are calculated by logarithmic regression (for wind speed)
 or exponential regression (for air temperature, relative humidity and vapour pressure
 deficit) and
-interpolation between the input at reference height 2 m above the canopy and the 1.5 m
-values, see {numref}`abiotic_simple_step2`.
+interpolation between the input at reference height 2 m above the canopy and the
+measured values at 1.5 m, see {numref}`abiotic_simple_step2`.
 
 :::{figure} ../../_static/images/abiotic_simple_step_2.svg
 :name: abiotic_simple_step2
@@ -98,9 +105,10 @@ values, see {numref}`abiotic_simple_step2`.
 :width: 450px
 
 Logarithmic (solid blue curve) and exponential (dashed blue curve) interpolation between
-abiotic variables at 1.5 m and the reference height 2 m above the canopy. This approach
-returns values at any height of interest. Orange crosses indicate 1.5 m and reference
-height as in {numref}`abiotic_simple_step1`.
+abiotic variables at measurement height, here 1.5 m, and the reference height 2 m above
+the canopy. This approach
+returns values at any height of interest. Orange crosses indicate measurement and
+reference height as in {numref}`abiotic_simple_step1`.
 :::
 
 ### Step 3: Broadcasting constant atmospheric properties

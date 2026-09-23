@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.1
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -25,7 +25,7 @@ language_info:
 
 # Plants
 
-:::{figure} ../../\_static/images/Plant_Model_Flow.png
+:::{figure} ../../../\_static/images/Plant_Model_Flow.png
 :name: fig_plant_model_flow
 :alt: Plant Model workflow
 :width: 650px

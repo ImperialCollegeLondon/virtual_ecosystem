@@ -165,6 +165,15 @@ class HydrologyConstants(Configuration):
     m_to_kpa: float = 9.804
     """Factor to convert matric potential from m to kPa."""
 
+    denominator_tolerance: float = 1e-12
+    """Small value to prevent division by zero."""
+
+    saturation_exponent: float = 2.0
+    """Saturation exponent for lateral subsurface stormflow calculation."""
+
+    stormflow_coefficient: float = 0.05
+    """Sormflow coefficient for lateral subsurface stormflow calculation."""
+
 
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration class for the hydrology model."""

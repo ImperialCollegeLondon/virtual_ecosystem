@@ -1,5 +1,7 @@
 """Test the virtual_ecosystem.models.plants.subcanopy module."""
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -191,11 +193,18 @@ def test_subcanopy_vegetation_dynamics(
 
     subcanopy.set_light_capture(below_canopy_light_fraction=np.ones(4))
 
-    subcanopy.calculate_dynamics(
-        lue=np.ones(4),
-        iwue=np.ones(4),
+    # Run the GPP estimation with a simple fake of the P Model structure.
+    shape = (subcanopy.layer_index + 1, 4)
+    subcanopy.estimate_gpp(
+        pmodel=SimpleNamespace(
+            lue=np.ones(shape),
+            iwue=np.ones(shape),
+            env=SimpleNamespace(tc=np.full(shape, 20), patm=np.full(shape, 101235)),
+        ),
         swd=np.ones(4),
     )
+
+    subcanopy.calculate_dynamics()
 
     # Assert that biomasses are either equal to zero or greater.
     assert np.all(

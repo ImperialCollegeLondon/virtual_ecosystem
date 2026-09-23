@@ -13,11 +13,12 @@ import bottleneck as bn
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calc_vp_sat
+from pyrealm.core.hygro import calculate_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic.wind import next_valid_below
 
 
 def build_indices(data: Data, layer_structure: LayerStructure) -> SimpleNamespace:
@@ -195,8 +196,8 @@ def calculate_actual_vapour_pressure(
         actual vapour pressure, [kPa]
     """
 
-    saturation_vapour_pressure_air = calc_vp_sat(
-        ta=air_temperature.to_numpy(),
+    saturation_vapour_pressure_air = calculate_vp_sat(
+        tc=air_temperature.to_numpy(),
         core_const=pyrealm_core_constants,
     )
     return saturation_vapour_pressure_air * relative_humidity / 100.0
@@ -223,7 +224,7 @@ def set_unintended_nan_to_zero(
 def compute_layer_thickness_for_varying_canopy(
     heights: NDArray[np.floating],
 ) -> NDArray[np.floating]:
-    """Calculate layer thickness for varying canopy layers.
+    """Calculate layer thickness for varying canopy layers, true layers only.
 
     Calculate layer thickness by subtracting from the next valid layer below (skipping
     NaNs), and for the last valid layer in each column subtract from zero (ground
@@ -252,6 +253,50 @@ def compute_layer_thickness_for_varying_canopy(
     return thickness
 
 
+def compute_aboveground_layer_thickness(
+    heights: NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Calculate layer thickness for above ground layers only.
+
+    Calculate layer thickness by subtracting from the next valid layer below (skipping
+    NaNs), and for the last valid layer in each column subtract from zero (ground
+    level). Soil layers are set to NaN.
+
+
+    Args:
+        heights: 2D array of layer heights, [m]
+
+    Returns:
+        2D array of layer thickness, [m], same shape as input
+    """
+
+    n_layers, n_cols = heights.shape
+
+    thickness = np.full_like(heights, np.nan)
+
+    # only above ground
+    above_ground = heights > 0
+    valid = above_ground & ~np.isnan(heights)
+
+    # next valid below above ground
+    above_ground_heights = np.where(above_ground, heights, np.nan)
+    below_idx = next_valid_below(above_ground_heights)
+
+    cols = np.broadcast_to(np.arange(n_cols), (n_layers, n_cols))
+
+    mask = valid & (below_idx >= 0)
+
+    h_top = heights[mask]
+    h_bot = heights[below_idx[mask], cols[mask]]
+
+    thickness[mask] = np.abs(h_top - h_bot)
+
+    # last above ground layer → ground
+    mask_last = valid & (below_idx < 0)
+    thickness[mask_last] = np.abs(heights[mask_last])
+    return thickness
+
+
 def calculate_specific_humidity(
     air_temperature: NDArray[np.floating],
     relative_humidity: NDArray[np.floating],
@@ -273,8 +318,8 @@ def calculate_specific_humidity(
         Specific humidity, [kg kg-1]
     """
     # Saturation vapor pressure
-    saturation_vapour_pressure = calc_vp_sat(
-        ta=air_temperature,
+    saturation_vapour_pressure = calculate_vp_sat(
+        tc=air_temperature,
         core_const=pyrealm_core_constants,
     )
 
@@ -310,7 +355,8 @@ def update_profile_from_reference(
     Args:
         layer_structure: LayerStructure object defining the layer setup
         mask_variable: DataArray used to create the atmospheric mask
-        variable_name: Reference variable (e.g. data["atmospheric_pressure_ref"])
+        variable_name: Reference variable as a full timeseries DataArray (e.g.
+            ``data.get_time_series("atmospheric_pressure_ref")``)
         time_index: Index of the current time step
 
     Returns:
@@ -331,28 +377,46 @@ def update_profile_from_reference(
     return profile_out
 
 
-def calculate_atmospheric_layer_geometry(data: Data, layer_structure: LayerStructure):
+def calculate_atmospheric_layer_geometry(
+    data: Data, idx: SimpleNamespace, minimum_mixing_depth: float
+) -> dict[str, NDArray[np.floating]]:
     """Calculate heights, layer thickness, and midpoints for atmospheric layers.
 
     The midpoint values are distances in metres above ground for each cell.
+    For layer heights below the surface layer, a minimum mixing depth is introduced.
+    This is to prevent unrealistically low mixing depths and therefore high temperatures
+    in the lowest canopy layer when the layer height is very low. Note that this is an
+    artificial inflation of the mixing depth.
 
     Args:
         data: Data object
-        layer_structure: LayerStructure object
+        idx: SimpleNamespace containing layer indices
+        minimum_mixing_depth: Minimum depth for lowest canopy layer, [m]
 
     Returns:
         dict containing heights, thickness, layer_top, layer_midpoints
     """
 
-    # Extract above-ground layer heights
-    heights = data["layer_heights"][layer_structure.index_filled_atmosphere].to_numpy()
+    # Extract above-ground layer heights and correct of lowest canopy layer is below
+    # surface layer height
+    heights = data["layer_heights"].to_numpy().copy()
+
+    # Set minimum mixing depth
+    heights[idx.canopy] = np.where(
+        heights[idx.canopy] <= minimum_mixing_depth,
+        minimum_mixing_depth,
+        heights[idx.canopy],
+    )
+    heights_corrected = np.where(
+        np.isnan(data["layer_heights"].to_numpy()), np.nan, heights
+    )
 
     # Compute thickness
-    thickness = compute_layer_thickness_for_varying_canopy(heights=heights)
+    thickness = compute_aboveground_layer_thickness(heights=heights_corrected)
 
     # Compute the midpoint of each layer as the height above ground minus half the layer
     # thickness
-    midpoints = heights - thickness / 2
+    midpoints = heights_corrected - thickness / 2
 
     return {
         "heights": heights,
@@ -367,10 +431,10 @@ def generate_diurnal_cycle_from_monthly_data(
     monthly_relative_humidity: NDArray[np.floating],
     monthly_evapotranspiration: NDArray[np.floating],
     monthly_soil_evaporation: NDArray[np.floating],
+    daily_temp_amplitude: NDArray[np.floating],
     latitude_deg: float,
     month: int,
     days: int,
-    daily_temp_amplitude: float = 5.0,
 ) -> dict[str, NDArray[np.floating]]:
     """Generate synthetic hourly forcing for one day from monthly averages.
 
@@ -380,10 +444,11 @@ def generate_diurnal_cycle_from_monthly_data(
         monthly_relative_humidity: Monthly mean relative humidity [%]
         monthly_evapotranspiration: Monthly total evapotranspiration [mm/month]
         monthly_soil_evaporation: Monthly total soil evaporation [mm/month]
+        daily_temp_amplitude: typical diurnal temperature swing [C]
         latitude_deg: Latitude for daylength calculation [deg]
         month: Month number [1-12]
         days: Number of days in month
-        daily_temp_amplitude: typical diurnal temperature swing [C]
+
 
     Returns:
         dict of arrays air_temperature_hourly, shortwave_absorption_hourly,
@@ -407,58 +472,59 @@ def generate_diurnal_cycle_from_monthly_data(
     sunrise = 12 - daylength / 2
     sunset = 12 + daylength / 2
 
-    # Shortwave radiation (half-sine over daylight)
+    # Shortwave radiation (half-sine over daylight), shape (hours_per_day,)
     hour_fraction = np.zeros(hours_per_day)
-
     for h in range(hours_per_day):
         if sunrise <= h <= sunset:
             hour_fraction[h] = np.sin(np.pi * (h - sunrise) / daylength)
 
+    # Normalise so daytime hours sum to 1 — night hours remain 0
     if hour_fraction.sum() > 0:
         hour_fraction /= hour_fraction.sum()
 
-    # Shortwave absorption (distributed like radiation), (hours_per_day, layer, cell)
+    # Shortwave absorption (hours_per_day, layer, cell)
     shortwave_absorption_hourly = (
         monthly_shortwave_absorption[None, :, :] * hour_fraction[:, None, None]
     )
 
-    # Relative humidity (constant vapor pressure)
-    e_s_mean = calc_vp_sat(monthly_air_temperature)  # (cell,)
-    e_a = monthly_relative_humidity / 100.0 * e_s_mean  # (cell,)
+    # Relative humidity (constant vapour pressure approach)
+    e_s_mean = calculate_vp_sat(monthly_air_temperature)
+    e_a = monthly_relative_humidity / 100.0 * e_s_mean
+    e_s_hourly = calculate_vp_sat(air_temperature_hourly)
+    relative_humidity_hourly = np.clip(100.0 * e_a[None, :] / e_s_hourly, 0.0, 100.0)
 
-    e_s_hourly = calc_vp_sat(air_temperature_hourly)  # (hours_per_day, cell)
-    relative_humidity_hourly = 100.0 * e_a[None, :] / e_s_hourly
-    relative_humidity_hourly = np.clip(relative_humidity_hourly, 0.0, 100.0)
+    # Evapotranspiration — conserve monthly total, distribute by radiation.
+    # hour_fraction is already normalised to sum=1 over daytime hours and
+    # is 0 at night, so multiplying by it gives zero ET at night AND
+    # preserves the daily total exactly.
+    #
+    # Shape: (hours_per_day, layer, cell)
+    monthly_et = monthly_evapotranspiration[None, :, :]  # (1, layer, cell)
+    daily_et = monthly_et / days  # (1, layer, cell)
 
-    # Preselect monthly
-    sw_sum = shortwave_absorption_hourly.sum(axis=0, keepdims=True)
-    monthly_et = monthly_evapotranspiration[None, :, :]
-    monthly_soil = monthly_soil_evaporation[None, :]
+    # Distribute daily ET by hour_fraction (zero at night, sums to 1 over day)
+    evapotranspiration_hourly = daily_et * hour_fraction[:, None, None]
 
-    uniform_et = monthly_et / (days * hours_per_day)
-    uniform_soil = monthly_soil / (days * hours_per_day)
-
-    # Evapotranspiration
-    radiation_fraction = shortwave_absorption_hourly / sw_sum
-    scaled_et = (monthly_et / days) * radiation_fraction
-
+    # Preserve NaN structure from input (unoccupied canopy layers)
+    canopy_nan_mask = np.isnan(monthly_evapotranspiration)  # (layer, cell)
     evapotranspiration_hourly = np.where(
-        sw_sum > 0,
-        scaled_et,
-        uniform_et,
+        canopy_nan_mask[None, :, :],
+        np.nan,
+        evapotranspiration_hourly,
     )
 
-    # Soil evaporation
-    hourly_sw = shortwave_absorption_hourly.sum(axis=1)
-    total_sw = hourly_sw.sum(axis=0)[None, :]
+    # Soil evaporation — same approach, shape (hours_per_day, cell)
+    monthly_soil = monthly_soil_evaporation[None, :]  # (1, cell)
+    daily_soil = monthly_soil / days  # (1, cell)
 
-    soil_fraction = hourly_sw / total_sw
-    scaled_soil = (monthly_soil / days) * soil_fraction
+    soil_evaporation_hourly = daily_soil * hour_fraction[:, None]
 
+    # Preserve NaN structure from input
+    soil_nan_mask = np.isnan(monthly_soil_evaporation)  # (cell,)
     soil_evaporation_hourly = np.where(
-        total_sw > 0,
-        scaled_soil,
-        uniform_soil,
+        soil_nan_mask[None, :],
+        np.nan,
+        soil_evaporation_hourly,
     )
 
     return {
@@ -648,16 +714,52 @@ def compute_weights_from_absorbed_radiation(
 ) -> NDArray[np.floating]:
     """Convert a 2D radiation array into normalized weights that sum to 1.
 
+    Weights sum to 1 along the layer axis (axis=0) for each cell independently,
+    ignoring NaN values. NaN entries in the input remain NaN in the output.
+    Cells where all valid radiation is zero return NaN weights — these are cells
+    with no canopy and no radiation to distribute.
+
     Args:
         radiation: 2D array of absorbed radiation values for each layer and cell
 
     Returns:
-        2D array of normalized weights corresponding to the absorbed radiation. Raises
-            ValueError when total radiation is zero or NaN
+        2D array of normalized weights corresponding to the absorbed radiation
     """
-    total = np.nansum(radiation)
+    # Sum over layers per cell, ignoring NaNs, keep dims for broadcasting
+    total = np.nansum(radiation, axis=0, keepdims=True)  # shape (1, cells)
 
-    if total == 0:
-        raise ValueError("Total radiation is zero — cannot normalize.")
+    # Where total is zero, set to NaN so division produces NaN instead of inf
+    # This handles no-canopy cells cleanly without raising
+    safe_total = np.where(total == 0.0, np.nan, total)
 
-    return radiation / total
+    # Divide — NaN entries stay NaN, zero-total cells become NaN
+    return radiation / safe_total
+
+
+def to_shape(
+    value: float | NDArray[np.floating],
+    shape: tuple[int, ...],
+    name: str,
+) -> NDArray[np.floating]:
+    """Broadcast a scalar or array to the requested shape.
+
+    Args:
+        value: Scalar or array to broadcast
+        shape: Target shape to broadcast to
+        name: Name of the variable for error messages
+
+    Returns:
+        Broadcasted array of the requested shape
+
+    Raises:
+        ValueError: if the value cannot be broadcast to the requested shape
+    """
+
+    arr = np.asarray(value, dtype=float)
+    try:
+        return np.broadcast_to(arr, shape).astype(float, copy=False)
+    except ValueError as exc:
+        raise ValueError(
+            f"{name} could not be broadcast to shape {shape}. "
+            f"Received shape {arr.shape}."
+        ) from exc

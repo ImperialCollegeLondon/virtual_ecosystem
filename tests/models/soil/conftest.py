@@ -47,7 +47,6 @@ def dummy_carbon_data(fixture_core_components):
         "animal_saprotrophic_fungi_consumption": [5.46e-4, 1.49e-4, 1.35e-4, 8.55e-4],
         "animal_ectomycorrhiza_consumption": [9.52e-4, 3.84e-4, 3.77e-4, 9.43e-4],
         "animal_arbuscular_mycorrhiza_consumption": [3.43e-4, 4.29e-4, 6.0e-4, 2.30e-4],
-        "decay_of_fungal_fruiting_bodies": [2.2499e-4, 5.8168e-4, 3.2185e-4, 2.5871e-3],
     }
 
     for var_name, var_values in data_values.items():
@@ -98,6 +97,17 @@ def dummy_carbon_data(fixture_core_components):
         ),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
+    data["fungal_fruiting_bodies_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.0438, 0.0146, 0.0162, 0.0232],
+                [0.00211, 0.00263, 0.0167, 0.00718],
+                [0.000546, 5.36e-5, 0.000201, 0.000231],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     # The layer dependent data has to be handled separately - at present all of these
     # are defined only for the topsoil layer
@@ -113,51 +123,95 @@ def dummy_carbon_data(fixture_core_components):
 
     data["matric_potential"] = lyr_str.from_template()
     data["matric_potential"][lyr_str.index_all_soil] = np.array(
-        [[-3.0, -10.0, -250.0, -10000.0], [-2.8625, -8.978, -137.8, -8553.25]]
+        [
+            [-3.0, -10.0, -250.0, -10000.0],
+            [-2.8625, -8.978, -137.8, -8553.25],
+        ]
     )
 
     data["soil_temperature"] = lyr_str.from_template()
     data["soil_temperature"][lyr_str.index_all_soil] = np.array(
-        [[35.0, 37.5, 40.0, 25.0], [22.5, 22.5, 22.5, 22.5]]
+        [
+            [35.0, 37.5, 40.0, 25.0],
+            [22.5, 22.5, 22.5, 22.5],
+        ]
     )
 
     data["vertical_flow"] = lyr_str.from_template()
     data["vertical_flow"][lyr_str.index_all_soil] = np.array(
-        [[0.1, 0.5, 2.5, 1.59], [0.15, 0.75, 2.75, 1.33]]
+        [
+            [0.1, 0.5, 2.5, 1.59],
+            [0.15, 0.75, 2.75, 1.33],
+        ]
     )
 
     data["air_temperature"] = lyr_str.from_template()
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+        [
+            30.0,
+            29.844995,
+            28.87117,
+            27.206405,
+            16.145945,
+        ]
     )[:, None]
 
     data["decomposed_excrement_cnp"] = DataArray(
-        data=[
-            [4.214e-5, 1.939e-6, 3.174e-6],
-            [0.000388, 9.895e-5, 5.681e-6],
-            [0.000555, 8.199e-7, 6.278e-6],
-            [0.003313, 0.0002465, 3.846e-5],
-        ],
+        data=np.stack(
+            [
+                [4.214e-5, 0.000388, 0.000555, 0.003313],
+                [1.939e-6, 9.895e-5, 8.199e-7, 0.0002465],
+                [3.174e-6, 5.681e-6, 6.278e-6, 3.846e-5],
+            ],
+            axis=1,
+        ),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
     data["decomposed_carcasses_cnp"] = DataArray(
-        data=[
-            [0.0002844, 1.544e-6, 8.935e-7],
-            [0.00011089, 7.520e-5, 1.932e-6],
-            [2.459e-5, 1.433e-5, 4.928e-6],
-            [0.003891, 0.0002582, 3.769e-6],
-        ],
+        data=np.stack(
+            [
+                [0.0002844, 0.00011089, 2.459e-5, 0.003891],
+                [1.544e-6, 7.520e-5, 1.433e-5, 0.0002582],
+                [8.935e-7, 1.932e-6, 4.928e-6, 3.769e-6],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+
+    data["fallen_fruit_decay_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.001105, 0.000715, 0.000102, 0.029330],
+                [0.000237, 8.4023e-5, 2.6481e-5, 0.0052754],
+                [0.000187, 0.000109, 1.442e-5, 0.001977],
+            ],
+            axis=1,
+        ),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
     data["animal_pom_consumption_cnp"] = DataArray(
-        data=[
-            [8.26e-3, 4.86e-8, 1.65e-8],
-            [8.61e-3, 2.86e-8, 7.37e-8],
-            [4.94e-3, 6.95e-8, 3.34e-8],
-            [7.20e-3, 4.95e-8, 5.11e-8],
-        ],
+        data=np.stack(
+            [
+                [8.26e-3, 8.61e-3, 4.94e-3, 7.20e-3],
+                [4.86e-8, 2.86e-8, 6.95e-8, 4.95e-8],
+                [1.65e-8, 7.37e-8, 3.34e-8, 5.11e-8],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    data["fungal_fruiting_bodies_consumed_cnp"] = DataArray(
+        data=np.stack(
+            [
+                [0.00317, 0.00692, 0.00505, 0.00367],
+                [0.000596, 0.000596, 0.000231, 0.000375],
+                [1.015e-5, 1.329e-5, 5.327e-5, 5.012e-5],
+            ],
+            axis=1,
+        ),
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
@@ -186,7 +240,8 @@ def fixture_soil_configuration(microbial_groups_cfg):
 
     config_data = ConfigurationLoader(
         cfg_strings=[
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'",
+            "[core.grid]\ncell_nx = 2\ncell_ny=2\n"
+            "[core.timing]\nupdate_interval = '12 hours'",
             "[hydrology]",
             microbial_groups_cfg,
         ]
@@ -228,15 +283,15 @@ def environmental_factors(
 ):
     """Environmental factors based on dummy carbon data."""
     from virtual_ecosystem.models.litter.env_factors import (
-        average_water_potential_over_microbially_active_layers,
+        average_abiotic_environment_over_microbially_active_layers,
     )
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_environmental_effect_factors,
     )
 
     return calculate_environmental_effect_factors(
-        soil_water_potential=average_water_potential_over_microbially_active_layers(
-            water_potentials=dummy_carbon_data["matric_potential"],
+        soil_water_potential=average_abiotic_environment_over_microbially_active_layers(
+            environmental_variable=dummy_carbon_data["matric_potential"],
             layer_structure=fixture_core_components.layer_structure,
         ),
         pH=dummy_carbon_data["pH"].to_numpy(),
@@ -256,7 +311,7 @@ def carbon_supply_from_plants(
 
     return calculate_symbiotic_carbon_supply(
         total_plant_supply=dummy_carbon_data["plant_symbiote_carbon_supply"]
-        / fixture_core_constants.max_depth_of_microbial_activity,
+        / fixture_core_constants.microbial_simulation_depth,
         nitrogen_fixer_fraction=fixture_soil_constants.nitrogen_fixer_supply_fraction,
         ectomycorrhiza_fraction=fixture_soil_constants.ectomycorrhiza_supply_fraction,
     )
@@ -266,14 +321,11 @@ def carbon_supply_from_plants(
 def averaged_soil_temp(dummy_carbon_data, fixture_core_components):
     """Soil temperature averaged over the microbially active layers."""
     from virtual_ecosystem.models.litter.env_factors import (
-        average_temperature_over_microbially_active_layers,
+        average_abiotic_environment_over_microbially_active_layers,
     )
 
-    return average_temperature_over_microbially_active_layers(
-        soil_temperatures=dummy_carbon_data["soil_temperature"],
-        surface_temperature=dummy_carbon_data["air_temperature"][
-            fixture_core_components.layer_structure.index_surface_scalar
-        ].to_numpy(),
+    return average_abiotic_environment_over_microbially_active_layers(
+        environmental_variable=dummy_carbon_data["soil_temperature"],
         layer_structure=fixture_core_components.layer_structure,
     )
 
@@ -284,10 +336,27 @@ def soil_pool_data(dummy_carbon_data):
     from virtual_ecosystem.models.soil.pools import PoolData
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
+    # Some variables are updated by the model but not as part of the integration.
+    # These are the fungal fruiting bodies + everything populated by the init
+    var_updated_outside_integration = ["fungal_fruiting_bodies_cnp"] + [
+        name
+        for name in map(str, dummy_carbon_data.data.keys())
+        if name in SoilModel.vars_populated_by_init
+    ]
+
+    # Find all variables that get updated, and then subset this into singlets and
+    # biomass triplets
+    updated_variable_names = [
+        name
+        for name in map(str, dummy_carbon_data.data.keys())
+        if name in SoilModel.vars_updated
+        and name not in var_updated_outside_integration
+    ]
+
     # As well as the values stored in the data object, the temporary arrays should be
     # added to the pool data
     refreshed_variables = [
-        "new_fungal_fruiting_body_production",
+        "cnp_fungal_fruiting_body_production",
         "new_amf_n_supply",
         "new_amf_p_supply",
         "new_emf_n_supply",
@@ -300,20 +369,53 @@ def soil_pool_data(dummy_carbon_data):
             f"{var}_{full_name}": pool.sel(element=code)
             for code, full_name in elements.items()
             for var, pool in dummy_carbon_data.data.items()
-            if var in SoilModel.vars_updated and var.startswith("soil_cnp_")
+            if var in updated_variable_names and var.startswith("soil_cnp_")
         },
         **{
             var: pool
             for var, pool in dummy_carbon_data.data.items()
-            if var in SoilModel.vars_updated and not var.startswith("soil_cnp_")
+            if var in updated_variable_names and not var.startswith("soil_cnp_")
         },
         **{
-            name: np.zeros_like(dummy_carbon_data["soil_c_pool_bacteria"])
-            for name in refreshed_variables
+            f"{var}_{element}": np.array([])
+            for element in elements.values()
+            for var in refreshed_variables
+            if var.startswith("cnp_")
+        },
+        **{
+            var: np.zeros_like(dummy_carbon_data["soil_c_pool_bacteria"])
+            for var in refreshed_variables
+            if not var.startswith("cnp_")
         },
     }
 
     return PoolData(**pools)
+
+
+@pytest.fixture
+def soil_pools_fixture(
+    dummy_carbon_data,
+    functional_groups,
+    enzyme_classes,
+    fixture_soil_constants,
+    fixture_core_constants,
+    soil_pool_data,
+    fungal_fruiting_body_decay_rate,
+):
+    """Fixture that creates an instance of SoilPools."""
+    from dataclasses import asdict
+
+    from virtual_ecosystem.models.soil.pools import SoilPools
+
+    return SoilPools(
+        data=dummy_carbon_data,
+        pools=asdict(soil_pool_data),
+        model_constants=fixture_soil_constants,
+        functional_groups=functional_groups,
+        enzyme_classes=enzyme_classes,
+        core_constants=fixture_core_constants,
+        fungal_fruiting_body_decay=fungal_fruiting_body_decay_rate,
+    )
 
 
 @pytest.fixture
@@ -562,4 +664,23 @@ def max_uptake_rates(
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
         functional_group=functional_groups["bacteria"],
+    )
+
+
+@pytest.fixture
+def fungal_fruiting_body_decay_rate(fixture_soil_model, dummy_carbon_data):
+    """Test that the function to calculate fungal fruit decay works correctly."""
+
+    post_consumption_fungal_fruit = (
+        dummy_carbon_data["fungal_fruiting_bodies_cnp"]
+        - dummy_carbon_data["fungal_fruiting_bodies_consumed_cnp"]
+    )
+
+    total_decay = fixture_soil_model.calculate_fungal_fruiting_body_decay(
+        fungal_fruit_cnp=post_consumption_fungal_fruit
+    )
+
+    return total_decay / (
+        fixture_soil_model.model_timing.update_interval_quantity.to("day").magnitude
+        * fixture_soil_model.core_constants.microbial_simulation_depth
     )

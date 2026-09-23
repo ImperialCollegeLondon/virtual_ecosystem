@@ -46,6 +46,7 @@ class AbioticModel(
         "relative_humidity_ref",
         "shortwave_absorption",
         "wind_speed_ref",
+        "diurnal_temperature_range_ref",
         "downward_longwave_radiation",
         # These four aren't actually required but they _are_ populated by
         # HydrologyModel.__init__ and the current logic for static model update checking
@@ -55,6 +56,7 @@ class AbioticModel(
         "specific_heat_air",
         "latent_heat_vapourisation",
         "density_air",
+        "condensation",
     ),
     vars_updated=(
         "air_temperature",
@@ -74,6 +76,8 @@ class AbioticModel(
         "net_radiation",
         "longwave_emission",
         "diurnal_temperature_range",
+        "condensation",
+        "absorbed_longwave_radiation",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -82,6 +86,7 @@ class AbioticModel(
         "atmospheric_pressure_ref",
         "atmospheric_co2_ref",
         "wind_speed_ref",
+        "diurnal_temperature_range_ref",
         "leaf_area_index",
         "layer_heights",
         "downward_shortwave_radiation",
@@ -92,6 +97,8 @@ class AbioticModel(
         "soil_evaporation",
         "canopy_evaporation",
         "transpiration",
+        "condensation",
+        "soil_moisture",
     ),
     vars_populated_by_init=(
         "soil_temperature",
@@ -111,6 +118,7 @@ class AbioticModel(
         "longwave_emission",
         "vapour_pressure",
         "diurnal_temperature_range",
+        "absorbed_longwave_radiation",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -188,8 +196,8 @@ class AbioticModel(
 
         # Calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
-            temperature=self.data["air_temperature_ref"],
-            relative_humidity=self.data["relative_humidity_ref"],
+            temperature=self.data.get_time_series("air_temperature_ref"),
+            relative_humidity=self.data.get_time_series("relative_humidity_ref"),
             pyrealm_core_constants=self.pyrealm_core_constants,
         )
         self.data["vapour_pressure_deficit_ref"] = (
@@ -213,13 +221,9 @@ class AbioticModel(
             bounds=self.bounds,
         )
 
-        # Initialise diurnal temperature range
-        self.data["diurnal_temperature_range"] = self.layer_structure.from_template()
-
         # Generate initial profiles of canopy temperature and heat fluxes from soil and
         # canopy
         initial_canopy_and_soil = initialise_canopy_and_soil_fluxes(
-            air_temperature=initial_microclimate["air_temperature"],
             layer_structure=self.layer_structure,
             initial_flux_value=self.model_constants.initial_flux_value,
         )

@@ -728,47 +728,53 @@ class BaseModel(ABC):
                 or if those variables do not map onto the required axes.
         """
 
-        # Sentinel variables
-        # all_axes_ok: bool = True
-        all_vars_found: bool = True
+        # Canary variable for failed checks
+        init_data_ok = True
 
-        # Loop over the required  and axes
-        for var in self.vars_required_for_init:
-            # Record when a variable is missing
-            if var not in self.data:
-                LOGGER.error(
-                    f"{self.model_name} model: init data missing required var '{var}'"
-                )
-                all_vars_found = False
-                continue
+        # Check for missing init variables
+        provided_variable_names = set(self.data.data.data_vars.variables)
+        missing_vars = set(self.vars_required_for_init).difference(
+            provided_variable_names
+        )
 
-            # # Get a list of missing axes
-            # bad_axes = []
-            # # Could use try: here and let on_core_axis report errors but easier to
-            # # provide more clearly structured feedback this way
-            # for axis in axes:
-            #     if not self.data.on_core_axis(var, axis):
-            #         bad_axes.append(axis)
+        if missing_vars:
+            init_data_ok = False
+            error = ValueError(
+                f"{self.model_name} model: input data is missing required "
+                f"initialisation variables: {','.join(missing_vars)}"
+            )
+            LOGGER.error(error)
 
-            # Log the outcome
-            # if bad_axes:
-            #     LOGGER.error(
-            #         f"{self.model_name} model: required var '{var}' "
-            #         f"not on required axes: {','.join(bad_axes)}"
-            #     )
-            #     all_axes_ok = False
-            # else:
+        # TODO: Check required axes on provided variables but this needs fixing up axis
+        #       requirements in data variables TOML file.
 
-            LOGGER.debug(f"{self.model_name} model: required var '{var}' checked")
+        # # Get a list of missing axes
+        # bad_axes = []
+        # # Could use try: here and let on_core_axis report errors but easier to
+        # # provide more clearly structured feedback this way
+        # for axis in axes:
+        #     if not self.data.on_core_axis(var, axis):
+        #         bad_axes.append(axis)
+
+        # Log the outcome
+        # if bad_axes:
+        #     LOGGER.error(
+        #         f"{self.model_name} model: required var '{var}' "
+        #         f"not on required axes: {','.join(bad_axes)}"
+        #     )
+        #     all_axes_ok = False
+        # else:
 
         # Raise if any problems found
-        if not (all_vars_found):
+        if not init_data_ok:
             error = ValueError(
-                f"{self.model_name} model: error checking vars_required_for_init, "
-                "see log."
+                f"{self.model_name} model: Problems with initial model data: check log."
             )
             LOGGER.error(error)
             raise error
+
+        # Log successful data checking
+        LOGGER.info(f"{self.model_name} model: required initial data variables checked")
 
 
 def to_camel_case(snake_str: str) -> str:

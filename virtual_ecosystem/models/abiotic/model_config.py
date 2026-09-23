@@ -32,6 +32,23 @@ class AbioticConstants(AbioticSharedConstants):
     soil is taken from :cite:t:`gupta_soilksatdb_2021`.
     """
 
+    soil_porosity: float = 0.5
+    """Soil porosity, [m3 m-3].
+
+    Soil porosity is the fraction of the total volume of soil that is occupied by pores.
+    It is a measure of the soil's ability to hold water and air, with higher porosity
+    indicating more space for water and air. TODO: This value is a placeholder and
+    should be replaced with a more accurate value.
+    """
+
+    coarse_kersten_factor: float = 0.7
+    """Empirical factor for adjusting Kersten numbers for coarse-textured soils.
+
+    The coarse_kersten_factor is used to modify the Kersten number calculation for
+    coarse-textured soils, which have different thermal properties compared to
+    fine-textured soils when using the Johansen model.
+    """
+
     wind_reference_height: float = 10.0
     """Reference height for wind speed above the canopy, [m].
 
@@ -98,12 +115,22 @@ class AbioticConstants(AbioticSharedConstants):
     roughness significantly affects the wind flow over a particular terrain or
     surface. Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
-    soil_thermal_conductivity: float = 1.206
-    """Soil thermal conductivity, [W m-1 K-1].
+    soil_thermal_conductivity_dry: float = 0.25
+    """Dry soil thermal conductivity, [W m-1 K-1].
 
     Soil thermal conductivity is a measure of the soil's ability to conduct heat,
-    influenced by factors such as moisture content, texture, and density. Value is
-    taken from :cite:t:`rasimeng_characterization_2020`.
+    influenced by factors such as moisture content, texture, and density. Dry soil
+    thermal conductivity value is estimated from :cite:t:`xiong_anew_2023`.
+    TODO: This value is a placeholder and should be replaced with a more accurate value.
+    """
+
+    soil_thermal_conductivity_saturated: float = 2.5
+    """Saturated soil thermal conductivity, [W m-1 K-1].
+
+    Soil thermal conductivity is a measure of the soil's ability to conduct heat,
+    influenced by factors such as moisture content, texture, and density. Value at
+    saturation is estimated from :cite:t:`xiong_anew_2023`.
+    TODO: This value is a placeholder and should be replaced with a more accurate value.
     """
 
     specific_heat_capacity_soil: float = 881
@@ -139,16 +166,16 @@ class AbioticConstants(AbioticSharedConstants):
     initial_flux_value: float = 0.001
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
 
-    aerodynamic_resistance_canopy_night: float = 50.0
+    aerodynamic_resistance_canopy_night: float = 100.0
     """Aerodynamic resistance of the canopy at night, [s m-1]."""
 
-    aerodynamic_resistance_soil_night: float = 50.0
+    aerodynamic_resistance_soil_night: float = 500.0
     """Aerodynamic resistance of the soil at night, [s m-1]."""
 
     aerodynamic_resistance_canopy_day: float = 20.0
     """Aerodynamic resistance of the canopy during the day, [s m-1]."""
 
-    max_mixing_coefficient: float = 1000.0
+    max_mixing_coefficient: float = 1.0
     """Maximum turbulent mixing coefficients, [m2 s-1].
     """
 
@@ -169,6 +196,8 @@ class AbioticConstants(AbioticSharedConstants):
     density (PPFD)[µmol m-2 s-1]. 1 W m-2 of sunlight is roughly 4.57 µmol m-2 s-1 of
     full spectrum sunlight, of which about 4.57 * 46% = 2.04 µmol m-2 s-1 is PPFD.
     """
+    maxiter_air_secant_solver: int = 20
+    """Maximum number of iterations to solve for air temperature."""
 
     maxiter_secant_solver: int = 8
     """Maximum number of secant iterations to solve for canopy temperature."""
@@ -176,11 +205,40 @@ class AbioticConstants(AbioticSharedConstants):
     convergence_tolerance_secant_solver: float = 1e-2
     """Convergence tolerance for secant solver, in max absolute update."""
 
-    small_perturbation_second_guess_secant_solver: float = 1e-6
+    small_perturbation_second_guess_secant_solver: float = 0.5
     """Small perturbation for second initial guess in secant solver."""
 
     denominator_tolerance: float = 1e-12
     """Small value to prevent division by zero."""
+
+    min_specific_humidity: float = 0.001
+    """Minimum value for specific humidity to avoid dividion by zero, [kg kg-1]."""
+
+    understorey_ventilation_rate: float = 0.001
+    """Understorey ventilation rate, comes into place when there is no canopy, [s-1]."""
+
+    extinction_coefficient_longwave: float = 0.5
+    """Extinction coefficient for longwave radiation, dimensionless."""
+
+    minimum_mixing_depth: float = 1.5
+    """Minimum mixing depth for lowest canopy layer, [m].
+    
+    This is to prevent unrealistically low mixing depths and therefore high temperatures
+    in the lowest canopy layer when the layer height is very low. Note that this is an
+    artificial inflation of the mixing depth.
+    """
+
+    integration_time_interval: float = 300.0
+    """Initial integration time interval for air temperature update, [s]."""
+
+    min_temperature_change: float = 2.0
+    """Minimum temperature change for flexible integration time step, [C]"""
+
+    max_temperature_change: float = 10.0
+    """Maximum temperature change for flexible integration time step, [C]"""
+
+    integration_time_modifier: float = 0.2
+    """Integration time modifier for adaptable time integration of air temperature."""
 
 
 class AbioticConfiguration(ModelConfigurationRoot):

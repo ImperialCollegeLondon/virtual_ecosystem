@@ -4,7 +4,7 @@ This module tests the functionality of base_model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR
+from logging import CRITICAL, ERROR, INFO
 from typing import Any
 
 import pytest
@@ -440,7 +440,13 @@ def test_check_update_speed(
             core_components=core_components,
         )
 
-    log_check(caplog, expected_log)
+    log_check(
+        caplog,
+        (
+            (INFO, "timing_test model: required initial data variables checked"),
+            *expected_log,
+        ),
+    )
 
 
 @pytest.mark.parametrize(

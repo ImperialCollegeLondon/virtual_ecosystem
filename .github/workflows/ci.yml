@@ -13,8 +13,8 @@ jobs:
   qa:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - uses: pre-commit/action@v3.0.1
@@ -29,9 +29,9 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -40,11 +40,20 @@ jobs:
         pipx install poetry --python python${{ matrix.python-version }}
         poetry --version
 
-    - name: Install dependencies
-      run: poetry install
+    - name: Install dependencies for testing
+      run: poetry install  --only main --only test 
 
-    - name: Run tests
-      run: poetry run pytest --cov-report xml
+    - name: Run unit tests
+      run: poetry run pytest --cov-report xml -m "not integration"
+
+    - name: Archive log for error checking on failure
+      if: failure()
+      uses: actions/upload-artifact@v7
+      with:
+        name: failed_tests_ve_run_cli_log
+        path: ${{ runner.temp }}/log_file.log
+        archive: false
+        retention-days: 1
 
     - name: Upload coverage to Codecov
       if: >- 
@@ -56,7 +65,7 @@ jobs:
              matrix.python-version == '3.12'
             )
           }}
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -65,8 +74,8 @@ jobs:
     needs: qa
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 

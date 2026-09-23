@@ -45,6 +45,7 @@ class AbioticSimpleModel(
         "relative_humidity_ref",
         "shortwave_absorption",
         "wind_speed_ref",
+        "diurnal_temperature_range_ref",
     ),
     vars_updated=(
         "air_temperature",
@@ -64,6 +65,7 @@ class AbioticSimpleModel(
         "atmospheric_pressure_ref",
         "atmospheric_co2_ref",
         "wind_speed_ref",
+        "diurnal_temperature_range_ref",
         "leaf_area_index",
         "layer_heights",
         "mean_annual_temperature",
@@ -81,6 +83,8 @@ class AbioticSimpleModel(
         "atmospheric_pressure",
         "atmospheric_co2",
         "wind_speed",
+        "canopy_temperature",
+        "diurnal_temperature_range",
     ),
     vars_populated_by_first_update=tuple(),
 ):
@@ -148,8 +152,8 @@ class AbioticSimpleModel(
 
         # calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
-            temperature=self.data["air_temperature_ref"],
-            relative_humidity=self.data["relative_humidity_ref"],
+            temperature=self.data.get_time_series("air_temperature_ref"),
+            relative_humidity=self.data.get_time_series("relative_humidity_ref"),
             pyrealm_core_constants=self.pyrealm_core_constants,
         )
         self.data["vapour_pressure_deficit_ref"] = vapour_pressure_and_deficit[
@@ -170,6 +174,7 @@ class AbioticSimpleModel(
             pyrealm_core_constants=pyrealm_core_constants,
             bounds=self.bounds,
         )
+
         self.data.add_from_dict(output_dict=output_variables)
 
     @classmethod

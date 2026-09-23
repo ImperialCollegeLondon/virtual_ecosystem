@@ -1,7 +1,7 @@
 """Test module for animal_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import DEBUG, INFO
+from logging import INFO
 
 import numpy as np
 import pytest
@@ -17,6 +17,7 @@ def prepared_animal_model_instance(
     constants_instance,
     microbial_c_n_p_ratios,
     dummy_animal_exporter,
+    dummy_resource_pool_exporter,
 ):
     """Animal model instance in which setup has already been run."""
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
@@ -24,11 +25,14 @@ def prepared_animal_model_instance(
     model = AnimalModel(
         data=dummy_animal_data,
         core_components=fixture_core_components,
-        exporter=dummy_animal_exporter,
+        animal_cohort_exporter=dummy_animal_exporter,
+        resource_pool_exporter=dummy_resource_pool_exporter,
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
+
+    model.data.grid.populate_distances()
     return model
 
 
@@ -48,6 +52,7 @@ class TestAnimalModel:
         functional_group_list_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test `AnimalModel` initialization with both scaling methods."""
         from virtual_ecosystem.core.base_model import BaseModel
@@ -58,7 +63,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=dummy_animal_data,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=AnimalConstants(density_scaling_method=scaling_method),
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -79,64 +85,70 @@ class TestAnimalModel:
             pytest.param(
                 does_not_raise(),
                 (
-                    (INFO, "Animal cohort data exporter not active."),
-                    (
-                        INFO,
-                        "Information required to initialise the animal model"
-                        " successfully extracted.",
-                    ),
-                    (
-                        DEBUG,
-                        "animal model: required var 'fungal_fruiting_bodies' checked",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'subcanopy_vegetation_cnp_consumed'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'subcanopy_seedbank_cnp_consumed'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_above_metabolic_cnp'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_above_structural_cnp'",
-                    ),
-                    (INFO, "Adding data array for 'litter_consumed_woody_cnp'"),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_below_metabolic_cnp'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'litter_consumed_below_structural_cnp'",
-                    ),
-                    (INFO, "Adding data array for 'total_animal_respiration'"),
-                    (INFO, "Adding data array for 'population_densities'"),
-                    (INFO, "Updating animal model"),
-                    (INFO, "Adding data array for 'decay_of_fungal_fruiting_bodies'"),
-                    (INFO, "Adding data array for 'decomposed_excrement_cnp'"),
-                    (INFO, "Adding data array for 'decomposed_carcasses_cnp'"),
-                    (INFO, "Adding data array for 'animal_pom_consumption_cnp'"),
-                    (INFO, "Adding data array for 'animal_bacteria_consumption'"),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_saprotrophic_fungi_consumption'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_ectomycorrhiza_consumption'",
-                    ),
-                    (
-                        INFO,
-                        "Adding data array for 'animal_arbuscular_mycorrhiza_"
-                        "consumption'",
-                    ),
-                    (INFO, "Adding data array for 'herbivory_waste_leaf_cnp'"),
-                    (INFO, "Adding data array for 'herbivory_waste_leaf_lignin'"),
+                    [
+                        (INFO, "Animal cohort data exporter not active."),
+                        (INFO, "Resource pool data exporter not active."),
+                        (
+                            INFO,
+                            "Information required to initialise the animal model "
+                            "successfully extracted.",
+                        ),
+                        (
+                            INFO,
+                            "animal model: required initial data variables checked",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_above_metabolic_cnp'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_above_structural_cnp'",
+                        ),
+                        (INFO, "Adding data array for 'litter_consumed_woody_cnp'"),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_below_metabolic_cnp'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'litter_consumed_below_structural_cnp'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'fungal_fruiting_bodies_consumed_cnp'",
+                        ),
+                        (INFO, "Adding data array for 'total_animal_respiration'"),
+                        (INFO, "Adding data array for 'population_densities'"),
+                        (INFO, "Updating animal model"),
+                        (INFO, "Adding data array for 'decomposed_excrement_cnp'"),
+                        (INFO, "Adding data array for 'decomposed_carcasses_cnp'"),
+                        (INFO, "Adding data array for 'animal_pom_consumption_cnp'"),
+                        (INFO, "Adding data array for 'animal_bacteria_consumption'"),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'animal_saprotrophic_fungi_consumption'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for 'animal_ectomycorrhiza_consumption'",
+                        ),
+                        (
+                            INFO,
+                            "Adding data array for "
+                            "'animal_arbuscular_mycorrhiza_consumption'",
+                        ),
+                        (INFO, "Adding data array for 'herbivory_waste_above_cnp'"),
+                        (INFO, "Adding data array for 'herbivory_waste_above_lignin'"),
+                        (INFO, "Adding data array for 'herbivory_waste_below_cnp'"),
+                        (INFO, "Adding data array for 'herbivory_waste_below_lignin'"),
+                    ]
                 ),
                 id="success",
             ),
@@ -166,6 +178,8 @@ class TestAnimalModel:
                 core_components=core_components,
             )
 
+            model.data.grid.populate_distances()
+
             # Run the update step (once this does something should check output)
             model.update(time_index=0)
 
@@ -173,21 +187,16 @@ class TestAnimalModel:
         for record in caplog.records:
             print(f"Log Level: {record.levelno}, Message: {record.message}")
 
-        # Filter out stochastic log entries
-        filtered_records = [
+        # Filter out stochastic log entries and overwrite the underlying log handler
+        # data so that the caplog.records property returns the filtered records.
+        caplog.handler.records = [
             record
             for record in caplog.records
             if "No individuals in cohort to forage." not in record.message
         ]
 
-        # Create a new caplog object to pass to log_check
-        class FilteredCaplog:
-            records = filtered_records
-
-        filtered_caplog = FilteredCaplog()
-
         # Final check that expected logging entries are produced
-        log_check(filtered_caplog, expected_log_entries)
+        log_check(caplog, expected_log_entries)
 
         for record in caplog.records:
             print(f"Level: {record.levelname}, Message: {record.message}")
@@ -225,38 +234,43 @@ class TestAnimalModel:
         assert model.model_constants.density_scaling_method == scaling_method
 
     def test_update_method_sequence(self, mocker, prepared_animal_model_instance):
-        """Test update to ensure it runs the community methods in order."""
+        """Test that update runs the community methods in the expected order.
 
-        # List of methods that should be called in the update sequence
-        method_names = [
+        The expected order reflects the timestep-coherence design: all in-territory
+        processes (foraging, birth, metamorphosis, metabolism, mortality) run before
+        intra-grid migration, so a cohort experiences a whole timestep in one
+        territory and only then relocates for the next. External migration runs last,
+        as it is a departure from the system rather than a response to local
+        conditions.
+        """
+        expected_order = [
             "forage_community",
-            "migrate_community",
             "birth_community",
             "metamorphose_community",
             "metabolize_community",
             "inflict_non_predation_mortality_community",
+            "migrate_community",
+            "migrate_external_community",
             "update_community_bookkeeping",
             "update_cohort_bookkeeping",
         ]
 
-        # Setup mock methods using spy on the prepared_animal_model_instance itself
-        for method_name in method_names:
-            mocker.spy(prepared_animal_model_instance, method_name)
+        model = prepared_animal_model_instance
 
-        # Call the update method
-        prepared_animal_model_instance.update(time_index=0)
+        # Attach every spy to one parent mock so their calls are recorded against a
+        # single shared timeline, letting us read back the true invocation order.
+        recorder = mocker.Mock()
+        for name in expected_order:
+            recorder.attach_mock(mocker.spy(model, name), name)
 
-        # Verify the order of the method calls
-        called_methods = []
-        for method_name in method_names:
-            method = getattr(prepared_animal_model_instance, method_name)
-            # If the method was called, add its name to the list
-            if method.spy_return is not None or method.call_count > 0:
-                called_methods.append(method_name)
+        model.update(time_index=0)
 
-        # Ensure the methods were called in the expected order
-        assert called_methods == method_names, (
-            f"Methods called in wrong order: {called_methods}"
+        called_order = [call[0] for call in recorder.mock_calls]
+
+        assert called_order == expected_order, (
+            f"Methods called in wrong order.\n"
+            f"expected: {expected_order}\n"
+            f"actual:   {called_order}"
         )
 
     def test_update_method_time_index_argument(
@@ -432,20 +446,6 @@ class TestAnimalModel:
                     expected_phosphorus[pool_name][cell_id],
                 )
 
-    def test_populate_fungal_fruiting_bodies(self, animal_model_instance):
-        """Test that populating of fungal fruiting bodies pools works as expected."""
-
-        expected_carbon = np.full(9, 12150.0)
-        expected_nitrogen = np.full(9, 1215.0)
-        expected_phosphorus = np.full(9, 162.0)
-
-        fungal_fruiting_bodies = animal_model_instance.populate_fungal_fruiting_bodies()
-
-        for cell_id, pool in fungal_fruiting_bodies.items():
-            assert np.isclose(pool.mass_current, expected_carbon[cell_id])
-            assert np.isclose(pool.mass_cnp.N, expected_nitrogen[cell_id])
-            assert np.isclose(pool.mass_cnp.P, expected_phosphorus[cell_id])
-
     def test_populate_soil_pools_negative(self, animal_model_instance):
         """Test that trying to populate a negative soil pool causes an error."""
         from xarray import DataArray
@@ -468,6 +468,7 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
         """Test calculation of total consumption of soil by animals is correct."""
         from copy import deepcopy
@@ -482,7 +483,8 @@ class TestAnimalModel:
         model = AnimalModel(
             data=litter_soil_data_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -561,7 +563,7 @@ class TestAnimalModel:
                     cell_id=cid,
                     data=new_data,
                     cell_area=cell_area,
-                    max_depth_microbial_activity=fixture_core_constants.max_depth_of_microbial_activity,
+                    microbial_simulation_depth=fixture_core_constants.microbial_simulation_depth,
                     c_n_p_ratios=microbial_c_n_p_ratios,
                 )
                 for pool_name in pool_names
@@ -604,7 +606,7 @@ class TestAnimalModel:
                 f"Mismatch for {consumption_type}."
             )
 
-    def test_update_fungal_fruiting_bodies(
+    def test_calculate_litter_additions_from_herbivory(
         self,
         litter_soil_data_instance,
         fixture_core_components,
@@ -612,46 +614,117 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
-        """Test that the function to update fungal fruiting bodies works as expected."""
+        """Test calculation of litter addition via herbivory is correct."""
+
         import numpy as np
+        from xarray import DataArray
 
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
-
-        expected_decay = [0.01008051, 0.00957649, 0.00819042, 0.00724537]
-        expected_new_carbon_mass = [5336.86979, 5070.02630, 4336.20671, 3835.87516]
-        expected_new_nitrogen_mass = [533.686979, 507.002630, 433.620671, 383.587516]
-        expected_new_phosphorus_mass = [71.1582639, 67.6003507, 57.8160895, 51.1450021]
 
         # Create AnimalModel instance with test data
         model = AnimalModel(
             data=litter_soil_data_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
-        actual_decay = model.update_fungal_fruiting_bodies()
 
-        actual_new_carbon_mass = [
-            model.fungal_fruiting_bodies[cell_id].mass_current
-            for cell_id in model.fungal_fruiting_bodies
+        above_mass_cnp = [
+            {"C": 1.0, "N": 1.5, "P": 2.0},
+            {"C": 2.5, "N": 3.0, "P": 3.5},
+            {"C": 4.0, "N": 4.5, "P": 5.0},
+            {"C": 5.5, "N": 6.0, "P": 6.5},
         ]
-        actual_new_nitrogen_mass = [
-            model.fungal_fruiting_bodies[cell_id].mass_cnp["N"]
-            for cell_id in model.fungal_fruiting_bodies
+        below_mass_cnp = [
+            {"C": 7.0, "N": 7.5, "P": 8.0},
+            {"C": 8.5, "N": 9.0, "P": 9.5},
+            {"C": 10.0, "N": 10.5, "P": 11.0},
+            {"C": 11.5, "N": 12.0, "P": 12.5},
         ]
-        actual_new_phosphorus_mass = [
-            model.fungal_fruiting_bodies[cell_id].mass_cnp["P"]
-            for cell_id in model.fungal_fruiting_bodies
-        ]
+        above_lignin = [0.01, 0.05, 0.1, 0.15]
+        below_lignin = [0.2, 0.25, 0.3, 0.35]
 
-        assert np.allclose(actual_new_carbon_mass, expected_new_carbon_mass)
-        assert np.allclose(actual_new_nitrogen_mass, expected_new_nitrogen_mass)
-        assert np.allclose(actual_new_phosphorus_mass, expected_new_phosphorus_mass)
+        cell_ids = np.arange(litter_soil_data_instance.grid.n_cells)
+        elements = np.array(["C", "N", "P"])
+        expected_above_cnp = DataArray(
+            np.stack(
+                [
+                    [1.0, 2.5, 4.0, 5.5],
+                    [1.5, 3.0, 4.5, 6.0],
+                    [2.0, 3.5, 5.0, 6.5],
+                ],
+                axis=1,
+            ),
+            dims=("cell_id", "element"),
+            coords=dict(cell_id=cell_ids, element=elements),
+        )
+        expected_below_cnp = DataArray(
+            np.stack(
+                [
+                    [7.0, 8.5, 10.0, 11.5],
+                    [7.5, 9.0, 10.5, 12.0],
+                    [8.0, 9.5, 11.0, 12.5],
+                ],
+                axis=1,
+            ),
+            dims=("cell_id", "element"),
+            coords=dict(cell_id=cell_ids, element=elements),
+        )
+
+        # Populate the herbivory waste pools
+        for cell_id in range(model.grid.n_cells):
+            model.herbivory_waste_pools[cell_id].above_ground_mass_cnp = above_mass_cnp[
+                cell_id
+            ]
+            model.herbivory_waste_pools[cell_id].below_ground_mass_cnp = below_mass_cnp[
+                cell_id
+            ]
+            model.herbivory_waste_pools[
+                cell_id
+            ].above_ground_lignin_proportion = above_lignin[cell_id]
+            model.herbivory_waste_pools[
+                cell_id
+            ].below_ground_lignin_proportion = below_lignin[cell_id]
+
+        litter_additions = model.calculate_litter_additions_from_herbivory()
+
+        # Check that waste has been added to the pools as expected
         assert np.allclose(
-            actual_decay["decay_of_fungal_fruiting_bodies"], expected_decay
+            litter_additions["herbivory_waste_above_cnp"], expected_above_cnp
+        )
+        assert np.allclose(
+            litter_additions["herbivory_waste_below_cnp"], expected_below_cnp
+        )
+        assert np.allclose(
+            litter_additions["herbivory_waste_above_lignin"], above_lignin
+        )
+        assert np.allclose(
+            litter_additions["herbivory_waste_below_lignin"], below_lignin
+        )
+
+        # Check that all values have been reset to zero
+        for cell_id in range(model.grid.n_cells):
+            assert model.herbivory_waste_pools[cell_id].above_ground_mass_cnp == {
+                "C": 0.0,
+                "N": 0.0,
+                "P": 0.0,
+            }
+            assert model.herbivory_waste_pools[cell_id].below_ground_mass_cnp == {
+                "C": 0.0,
+                "N": 0.0,
+                "P": 0.0,
+            }
+
+        assert np.allclose(
+            model.herbivory_waste_pools[cell_id].above_ground_lignin_proportion, 0.0
+        )
+        assert np.allclose(
+            model.herbivory_waste_pools[cell_id].below_ground_lignin_proportion, 0.0
         )
 
     def test_calculate_density_for_cohort(self, prepared_animal_model_instance, mocker):
@@ -679,37 +752,6 @@ class TestAnimalModel:
             f"did not match expected density ({expected_density})."
         )
 
-    def test_update_fungal_fruiting_bodies_in_data(
-        self,
-        litter_soil_data_instance,
-        fixture_core_components,
-        functional_group_list_instance,
-        constants_instance,
-        microbial_c_n_p_ratios,
-        dummy_animal_exporter,
-    ):
-        """Test that updating the data object based on FungalFruitPool changes works."""
-        import numpy as np
-
-        from virtual_ecosystem.models.animal.animal_model import AnimalModel
-
-        expected_pool = [0.65887281, 0.62592917, 0.53533416, 0.47356483]
-
-        # Create AnimalModel instance with test data
-        model = AnimalModel(
-            data=litter_soil_data_instance,
-            core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
-            functional_groups=functional_group_list_instance,
-            model_constants=constants_instance,
-            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
-        )
-        _ = model.update_fungal_fruiting_bodies()
-        # Update the data object based on the changes caused by previous method
-        model.update_fungal_fruiting_bodies_in_data()
-
-        assert np.allclose(model.data["fungal_fruiting_bodies"], expected_pool)
-
     def test_initialize_communities(
         self,
         mocker,
@@ -719,8 +761,9 @@ class TestAnimalModel:
         constants_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
+        dummy_resource_pool_exporter,
     ):
-        """Test the new _initialize_communities logic more rigorously."""
+        """Test _initialize_communities."""
 
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
@@ -729,164 +772,45 @@ class TestAnimalModel:
             "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_soil_pools",
             return_value={},
         )
-        mocker.patch(
-            "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_fungal_fruiting_bodies",
-            return_value={},
-        )
 
         model = AnimalModel(
             data=animal_data_for_model_instance,
             core_components=fixture_core_components,
-            exporter=dummy_animal_exporter,
+            animal_cohort_exporter=dummy_animal_exporter,
+            resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
-        # Reset any cohorts created during __init__ so we test initialization in
-        # isolation.
         model.active_cohorts = {}
         model.communities = {
             cell_id: [] for cell_id in animal_data_for_model_instance.grid.cell_id
         }
 
-        # Call the new initialization method
         model._initialize_communities(functional_group_list_instance)
 
-        # Check all communities have lists
+        # Every cell has a community list.
         for cell_id in animal_data_for_model_instance.grid.cell_id:
             assert isinstance(model.communities[cell_id], list)
 
-        # Check there are active cohorts
-        assert len(model.active_cohorts) > 0
+        # Every functional group has at least one cohort.
+        fg_names_with_cohorts = {
+            c.functional_group.name for c in model.active_cohorts.values()
+        }
+        expected_fg_names = {fg.name for fg in functional_group_list_instance}
+        assert fg_names_with_cohorts == expected_fg_names
 
-        # Check types
+        # Every cohort has the correct initial state and is registered in its community.
         for cohort in model.active_cohorts.values():
             assert isinstance(cohort, AnimalCohort)
-            assert cohort.centroid_key in model.data.grid.cell_id
-            assert cohort.individuals >= model.minimum_cohort_size
-
-        # Check conservation of total individuals
-        for fg in functional_group_list_instance:
-            estimated_total = model._estimate_total_individuals(fg)
-            actual_total = sum(
-                c.individuals
-                for c in model.active_cohorts.values()
-                if c.functional_group.name == fg.name
+            assert cohort.age == 0.0
+            assert cohort.mass_current == pytest.approx(
+                cohort.functional_group.birth_mass
             )
-            assert abs(estimated_total - actual_total) <= len(model.data.grid.cell_id)
-
-        # Check cohort count is reasonable
-        total_expected = model.target_cohorts_per_fg * len(
-            functional_group_list_instance
-        )
-        assert len(model.active_cohorts) <= total_expected
-
-    @pytest.mark.parametrize(
-        "density,expect_damuth_call,scaling_method",
-        [
-            (0.05, False, "damuth"),
-            (None, True, "damuth"),
-            (0.00001, False, "damuth"),
-            (0.0, False, "damuth"),
-            (1000.0, False, "damuth"),
-            (0.333, False, "damuth"),
-            (-0.1, False, "damuth"),
-            (0.05, False, "madingley"),
-            (None, True, "madingley"),
-            (0.00001, False, "madingley"),
-            (0.0, False, "madingley"),
-            (1000.0, False, "madingley"),
-            (0.333, False, "madingley"),
-            (-0.1, False, "madingley"),
-        ],
-        ids=[
-            "standard_empirical_damuth",
-            "damuth_fallback_damuth",
-            "very_low_density_damuth",
-            "zero_density_damuth",
-            "very_high_density_damuth",
-            "fractional_density_damuth",
-            "negative_density_damuth",
-            "standard_empirical_madingley",
-            "madingley_fallback_madingley",
-            "very_low_density_madingley",
-            "zero_density_madingley",
-            "very_high_density_madingley",
-            "fractional_density_madingley",
-            "negative_density_madingley",
-        ],
-    )
-    def test_estimate_total_individuals(
-        self,
-        mocker,
-        animal_model_instance,
-        animal_model_damuth_instance,
-        density,
-        expect_damuth_call,
-        scaling_method,
-    ):
-        """Parametrized test for _estimate_total_individuals."""
-
-        from math import ceil
-
-        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
-        from virtual_ecosystem.models.animal.model_config import AnimalConstants
-
-        # Always patch damuths_law to return predictable 42.0
-        mock_damuth = mocker.patch(
-            "virtual_ecosystem.models.animal.animal_model.damuths_law",
-            return_value=42.0,
-        )
-
-        # Choose correct model instance
-        if scaling_method == "damuth":
-            model = animal_model_damuth_instance
-        elif scaling_method == "madingley":
-            model = animal_model_instance
-
-        n_cells = model.data.grid.n_cells
-        cell_area = model.data.grid.cell_area
-
-        # Create functional group with scaling method consistency
-        fg = FunctionalGroup(
-            name="test_fg",
-            taxa="mammal",
-            diet="herbivore",
-            metabolic_type="endothermic",
-            reproductive_environment="terrestrial",
-            reproductive_type="iteroparous",
-            development_type="direct",
-            development_status="adult",
-            offspring_functional_group="test_fg",
-            excretion_type="uricotelic",
-            migration_type="none",
-            vertical_occupancy="ground",
-            birth_mass=0.1,
-            adult_mass=10.0,
-            constants=AnimalConstants(density_scaling_method=scaling_method),
-            density_individuals_m2=density,
-        )
-
-        result = model._estimate_total_individuals(fg)
-
-        if density is not None:
-            # Empirical density path
-            expected_total = int(density * n_cells * cell_area)
-            assert result == expected_total
-            mock_damuth.assert_not_called()
-
-        else:
-            # Fallback scaling path
-            if scaling_method == "damuth":
-                expected_total = ceil(42.0 * n_cells * cell_area)
-                assert result == expected_total
-                mock_damuth.assert_called_once_with(10.0, fg.population_density_terms)
-            else:
-                # madingley fallback: real calculation, can't match 42.0
-                assert isinstance(result, int)
-                assert result >= 0
-                mock_damuth.assert_not_called()
+            assert cohort.individuals >= model.minimum_cohort_size
+            assert cohort.centroid_key in model.data.grid.cell_id
+            assert cohort in model.communities[cohort.centroid_key]
 
     @pytest.mark.parametrize(
         "total_individuals,target_cohorts,min_cohort_size,expected_n_cohorts",
@@ -1141,32 +1065,12 @@ class TestAnimalModel:
     @pytest.mark.parametrize(
         "mass_ratio, age, probability_output, should_migrate",
         [
-            (0.5, 5.0, False, True),  # Starving non-juvenile, should migrate
-            (
-                1.0,
-                0.0,
-                False,
-                False,
-            ),  # Well-fed juvenile, low probability, should not migrate
-            (
-                1.0,
-                0.0,
-                1.0,
-                True,
-            ),  # Well-fed juvenile, high probability (1.0), should migrate
-            (
-                0.5,
-                0.0,
-                1.0,
-                True,
-            ),  # Starving juvenile, high probability (1.0), should migrate
-            (
-                0.5,
-                0.0,
-                0.0,
-                True,
-            ),  # Starving juvenile, low probability (0.0), should migrate
-            (1.0, 5.0, False, False),  # Well-fed non-juvenile, should not migrate
+            (0.5, 5.0, 0.0, True),
+            (1.0, 0.0, 0.0, False),
+            (1.0, 0.0, 1.0, True),
+            (0.5, 0.0, 1.0, True),
+            (0.5, 0.0, 0.0, True),
+            (1.0, 5.0, 0.0, False),
         ],
         ids=[
             "starving_non_juvenile",
@@ -1187,7 +1091,21 @@ class TestAnimalModel:
         animal_model_instance,
         herbivore_cohort_instance,
     ):
-        """Test migrate_community method in the AnimalModel class."""
+        """Test migrate_community method in the AnimalModel class.
+
+        The dispersal distance is mocked to one cell side so that the reachable set is
+        the cohort's orthogonal neighbours, and the destination is asserted to fall
+        within that set rather than merely to exist.
+        """
+        from math import sqrt
+
+        from numpy import timedelta64
+
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            cells_within_distance,
+        )
+
+        animal_model_instance.data.grid.populate_distances()
 
         # Empty the communities and cohorts before the test
         animal_model_instance.communities = {
@@ -1195,59 +1113,178 @@ class TestAnimalModel:
         }
         animal_model_instance.active_cohorts = {}
 
-        # Set up mock cohort with dynamic mass and age values
         cohort = herbivore_cohort_instance
         cohort.age = age
-        cohort.mass_cnp.C = (
-            cohort.functional_group.adult_mass
-            * mass_ratio
-            * cohort.cnp_proportions["C"]
-        )
-        cohort.mass_cnp.N = (
-            cohort.functional_group.adult_mass
-            * mass_ratio
-            * cohort.cnp_proportions["N"]
-        )
-        cohort.mass_cnp.P = (
-            cohort.functional_group.adult_mass
-            * mass_ratio
-            * cohort.cnp_proportions["P"]
-        )
+        # Pin the centroid to a valid cell of the model's data grid so the
+        # out-of-grid centroid guard in migrate_community does not fire.
+        cohort.centroid_key = animal_model_instance.data.grid.cell_id[0]
+        for element in ("C", "N", "P"):
+            setattr(
+                cohort.mass_cnp,
+                element,
+                cohort.functional_group.adult_mass
+                * mass_ratio
+                * cohort.cnp_proportions[element],
+            )
 
-        cohort_id = cohort.id
-        animal_model_instance.active_cohorts[cohort_id] = cohort
+        animal_model_instance.active_cohorts[cohort.id] = cohort
 
         # Mock `is_below_mass_threshold` to simulate starvation
-        is_starving = mass_ratio < 1.0
         mocker.patch.object(
-            cohort,
-            "is_below_mass_threshold",
-            return_value=is_starving,
+            cohort, "is_below_mass_threshold", return_value=mass_ratio < 1.0
         )
 
         # Mock the juvenile migration probability based on the test parameter
         mocker.patch.object(
-            cohort,
-            "migrate_juvenile_probability",
-            return_value=probability_output,
+            cohort, "migrate_juvenile_probability", return_value=probability_output
         )
 
-        # Mock the migrate method
+        # Pin the dispersal distance so the reachable set is deterministic
+        cell_side = sqrt(animal_model_instance.data.grid.cell_area)
+        mocker.patch.object(cohort, "get_dispersal_distance", return_value=cell_side)
+
         mock_migrate = mocker.patch.object(animal_model_instance, "migrate")
 
-        # Call the migrate_community method
-        animal_model_instance.migrate_community()
+        animal_model_instance.migrate_community(timedelta64(30, "D"))
 
-        # Check migration behavior
         if should_migrate:
-            # Assert migrate was called with correct cohort
             mock_migrate.assert_called_once_with(cohort, mocker.ANY)
+
+            expected_destinations = cells_within_distance(
+                animal_model_instance.data.grid,
+                cohort.centroid_key,
+                cell_side,
+            )
+            _, destination = mock_migrate.call_args.args
+            assert destination in expected_destinations
         else:
-            # Assert migrate was NOT called
             mock_migrate.assert_not_called()
 
-        # Assert that starvation check was applied
         cohort.is_below_mass_threshold.assert_called_once()
+
+    def _prime_migrate_cohort(self, model, cohort, mocker, *, starving=False, age=5.0):
+        """Set up a single non-migrating cohort in a fresh model, ready to migrate.
+
+        Populates distances, clears communities, pins the centroid to a valid cell,
+        and neutralises the starvation and juvenile triggers so that any migration
+        observed is attributable to the thermal trigger alone.
+        """
+        from math import sqrt
+
+        model.data.grid.populate_distances()
+
+        model.communities = {cell_id: [] for cell_id in model.communities}
+        model.active_cohorts = {}
+
+        cohort.age = age
+        cohort.centroid_key = model.data.grid.cell_id[0]
+        model.active_cohorts[cohort.id] = cohort
+
+        mocker.patch.object(cohort, "is_below_mass_threshold", return_value=starving)
+        mocker.patch.object(cohort, "migrate_juvenile_probability", return_value=0.0)
+
+        cell_side = sqrt(model.data.grid.cell_area)
+        mocker.patch.object(cohort, "get_dispersal_distance", return_value=cell_side)
+
+    def test_migrate_community_no_op_when_thermal_disabled(
+        self, mocker, animal_model_instance, herbivore_cohort_instance
+    ):
+        """With the cache off, a cold non-starving adult does not migrate.
+
+        This is the critical no-op guard: when thermal_suitability is None, the
+        thermal trigger is inert and dispersal reduces to the pre-thermal behaviour,
+        even for a cohort whose sigma_f_t would otherwise trigger thermal escape.
+        """
+        from numpy import timedelta64
+
+        model = animal_model_instance
+        model.thermal_suitability = None
+
+        cohort = herbivore_cohort_instance
+        self._prime_migrate_cohort(model, cohort, mocker, starving=False, age=5.0)
+
+        # A low activity window that WOULD trigger thermal escape if enabled.
+        cohort.sigma_f_t = 0.0
+
+        mock_migrate = mocker.patch.object(model, "migrate")
+
+        model.migrate_community(timedelta64(30, "D"))
+
+        mock_migrate.assert_not_called()
+
+    def test_migrate_community_thermal_trigger_fires(
+        self, mocker, animal_model_instance, herbivore_cohort_instance
+    ):
+        """A thermally stressed cohort migrates when the toggle is on.
+
+        With the cache present and sigma_f_t well below the threshold, the thermal
+        trigger fires for a cohort that is neither starving nor juvenile, so it
+        migrates where it otherwise would not.
+        """
+        import numpy as np
+        from numpy import timedelta64
+
+        model = animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={
+                "thermal_habitat_selection": True,
+                "thermal_dispersal_threshold": 0.25,
+            }
+        )
+
+        cohort = herbivore_cohort_instance
+        self._prime_migrate_cohort(model, cohort, mocker, starving=False, age=5.0)
+
+        # sigma_f_t = 0 gives a thermal-escape probability of 1.0.
+        cohort.sigma_f_t = 0.0
+
+        n_cells = model.data.grid.n_cells
+        model.thermal_suitability = {
+            cohort.functional_group.name: np.full(n_cells, 0.5)
+        }
+
+        mock_migrate = mocker.patch.object(model, "migrate")
+
+        model.migrate_community(timedelta64(30, "D"))
+
+        mock_migrate.assert_called_once_with(cohort, mocker.ANY)
+
+    def test_migrate_community_thermal_trigger_silent_when_suitable(
+        self, mocker, animal_model_instance, herbivore_cohort_instance
+    ):
+        """A cohort above the stress threshold gains no thermal trigger.
+
+        With sigma_f_t above thermal_dispersal_threshold the thermal condition is
+        false, so a non-starving adult with the toggle on still does not migrate.
+        Guards against the trigger firing for comfortable cohorts.
+        """
+        import numpy as np
+        from numpy import timedelta64
+
+        model = animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={
+                "thermal_habitat_selection": True,
+                "thermal_dispersal_threshold": 0.25,
+            }
+        )
+
+        cohort = herbivore_cohort_instance
+        self._prime_migrate_cohort(model, cohort, mocker, starving=False, age=5.0)
+
+        # Comfortably above the threshold — no thermal stress.
+        cohort.sigma_f_t = 0.9
+
+        n_cells = model.data.grid.n_cells
+        model.thermal_suitability = {
+            cohort.functional_group.name: np.full(n_cells, 0.5)
+        }
+
+        mock_migrate = mocker.patch.object(model, "migrate")
+
+        model.migrate_community(timedelta64(30, "D"))
+
+        mock_migrate.assert_not_called()
 
     @pytest.mark.parametrize(
         "is_cohort_in_model, expected_exception",
@@ -1951,7 +1988,7 @@ class TestAnimalModel:
             "communities",
             "excrement_pools",
             "carcass_pools",
-            "leaf_waste_pools",
+            "herbivory_waste_pools",
         ):
             assert hasattr(animal_model_instance, name), f"Missing {name}"
 
@@ -1967,7 +2004,6 @@ class TestAnimalModel:
         mock_forage_herbivore.assert_called_once_with(
             array_resource_list=["array_resources"],
             animal_list=[],
-            fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
@@ -1975,7 +2011,7 @@ class TestAnimalModel:
             carcass_pool_map=animal_model_instance.carcass_pools,
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
-            herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
+            herbivory_waste_pools=animal_model_instance.herbivory_waste_pools,
             dt=dt,
         )
 
@@ -1994,7 +2030,6 @@ class TestAnimalModel:
         mock_forage_predator.assert_called_once_with(
             array_resource_list=[],
             animal_list=["prey"],
-            fungal_fruit_list=[],
             soil_fungi_list=[],
             pom_list=[],
             bacteria_list=[],
@@ -2002,7 +2037,7 @@ class TestAnimalModel:
             carcass_pool_map=animal_model_instance.carcass_pools,
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
-            herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
+            herbivory_waste_pools=animal_model_instance.herbivory_waste_pools,
             dt=dt,
         )
 
@@ -2722,7 +2757,7 @@ class TestAnimalModel:
         model = prepared_animal_model_instance
         lyr_str = model.layer_structure
 
-        warm = 31.0
+        warm = 23.0
         cold = 5.0
 
         for key in ("air_temperature", "canopy_temperature", "soil_temperature"):
@@ -2759,6 +2794,437 @@ class TestAnimalModel:
 
         if ecto_centred_0 and ecto_centred_1:
             assert ecto_centred_0[0].sigma_f_t > ecto_centred_1[0].sigma_f_t
+
+    def test_build_stratum_climate_returns_per_cell_arrays(
+        self, prepared_animal_model_instance
+    ):
+        """Test that _build_stratum_climate returns one value per cell per stratum."""
+        from dataclasses import fields
+
+        from virtual_ecosystem.models.animal.animal_climate import StratumClimate
+
+        model = prepared_animal_model_instance
+        n_cells = model.data.grid.n_cells
+
+        climate = model._build_stratum_climate()
+
+        assert isinstance(climate, StratumClimate)
+
+        for field in fields(StratumClimate):
+            array = getattr(climate, field.name)
+            assert array.shape == (n_cells,), (
+                f"{field.name} has shape {array.shape}, expected {(n_cells,)}."
+            )
+            assert not np.isnan(array).any(), f"{field.name} contains NaN."
+
+    def test_build_stratum_climate_reads_correct_layers(
+        self, prepared_animal_model_instance
+    ):
+        """Test that each stratum is drawn from its own data variable and layer.
+
+        Distinct values are written to each stratum so that a mis-wired layer index or
+        data variable would surface as a value appearing in the wrong field.
+        """
+        model = prepared_animal_model_instance
+        lyr = model.layer_structure
+
+        model.data["canopy_temperature"].values[lyr.index_filled_canopy, :] = 25.0
+        model.data["air_temperature"].values[lyr.index_surface_scalar, :] = 20.0
+        model.data["soil_temperature"].values[lyr.index_topsoil_scalar, :] = 15.0
+
+        diurnal = model.data["diurnal_temperature_range"].values
+        diurnal[lyr.index_filled_canopy, :] = 8.0
+        diurnal[lyr.index_surface_scalar, :] = 6.0
+        diurnal[lyr.index_topsoil_scalar, :] = 1.0
+
+        climate = model._build_stratum_climate()
+
+        assert np.allclose(climate.canopy_temperature, 25.0)
+        assert np.allclose(climate.ground_temperature, 20.0)
+        assert np.allclose(climate.soil_temperature, 15.0)
+        assert np.allclose(climate.canopy_diurnal_range, 8.0)
+        assert np.allclose(climate.ground_diurnal_range, 6.0)
+        assert np.allclose(climate.soil_diurnal_range, 1.0)
+
+    def test_build_stratum_climate_averages_filled_canopy_layers(
+        self, prepared_animal_model_instance
+    ):
+        """Test that canopy values are the mean across filled canopy layers."""
+        model = prepared_animal_model_instance
+        lyr = model.layer_structure
+
+        canopy = model.data["canopy_temperature"].values
+        filled = np.arange(canopy.shape[0])[lyr.index_filled_canopy]
+
+        if len(filled) < 2:
+            pytest.skip("fixture has fewer than two filled canopy layers")
+
+        canopy[filled, :] = 20.0
+        canopy[filled[0], :] = 30.0
+
+        expected = (30.0 + 20.0 * (len(filled) - 1)) / len(filled)
+
+        climate = model._build_stratum_climate()
+
+        assert np.allclose(climate.canopy_temperature, expected)
+
+    def test_build_stratum_climate_falls_back_when_no_canopy(
+        self, prepared_animal_model_instance
+    ):
+        """Test that an entirely absent canopy falls back to ground values.
+
+        This exercises the branch guarding against NaN propagation into the activity
+        window when no canopy layers are filled anywhere in the grid.
+        """
+        model = prepared_animal_model_instance
+        lyr = model.layer_structure
+
+        model.data["canopy_temperature"].values[lyr.index_filled_canopy, :] = np.nan
+        model.data["diurnal_temperature_range"].values[lyr.index_filled_canopy, :] = (
+            np.nan
+        )
+        model.data["air_temperature"].values[lyr.index_surface_scalar, :] = 20.0
+        model.data["diurnal_temperature_range"].values[lyr.index_surface_scalar, :] = (
+            6.0
+        )
+
+        climate = model._build_stratum_climate()
+
+        assert np.allclose(climate.canopy_temperature, climate.ground_temperature)
+        assert np.allclose(climate.canopy_diurnal_range, climate.ground_diurnal_range)
+        assert np.allclose(climate.canopy_temperature, 20.0)
+        assert np.allclose(climate.canopy_diurnal_range, 6.0)
+
+    def test_build_stratum_climate_falls_back_per_cell(
+        self, prepared_animal_model_instance
+    ):
+        """Test that cells lacking canopy fall back individually to ground values.
+
+        Only cell 0 is stripped of canopy, so the fallback must apply to that cell
+        alone and leave the remaining cells reading their own canopy values.
+        """
+        model = prepared_animal_model_instance
+        lyr = model.layer_structure
+
+        model.data["canopy_temperature"].values[lyr.index_filled_canopy, :] = 25.0
+        model.data["canopy_temperature"].values[lyr.index_filled_canopy, 0] = np.nan
+        model.data["air_temperature"].values[lyr.index_surface_scalar, :] = 20.0
+
+        climate = model._build_stratum_climate()
+
+        assert climate.canopy_temperature[0] == pytest.approx(20.0)
+        assert np.allclose(climate.canopy_temperature[1:], 25.0)
+
+    def test_build_stratum_climate_is_immutable(self, prepared_animal_model_instance):
+        """Test that the returned climate cannot be mutated by its consumers.
+
+        The same instance is shared across every cohort in a timestep, so in-place
+        modification by one consumer would silently corrupt the others.
+        """
+        from dataclasses import FrozenInstanceError
+
+        climate = prepared_animal_model_instance._build_stratum_climate()
+
+        with pytest.raises(FrozenInstanceError):
+            climate.ground_temperature = np.zeros(1)
+
+    def _make_stratum_climate(self, n_cells):
+        """Build a StratumClimate of distinct per-stratum constants for n_cells."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_climate import StratumClimate
+
+        return StratumClimate(
+            canopy_temperature=np.full(n_cells, 28.0),
+            ground_temperature=np.full(n_cells, 24.0),
+            soil_temperature=np.full(n_cells, 20.0),
+            canopy_diurnal_range=np.full(n_cells, 8.0),
+            ground_diurnal_range=np.full(n_cells, 5.0),
+            soil_diurnal_range=np.full(n_cells, 1.0),
+        )
+
+    def test_update_thermal_suitability_none_when_disabled(
+        self, prepared_animal_model_instance
+    ):
+        """Cache stays None when thermal habitat selection is disabled.
+
+        This is the guarantee that the whole thermal system is inert unless
+        explicitly enabled — dispersal then falls through to uniform choice.
+        """
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={"thermal_habitat_selection": False}
+        )
+
+        # Seed a non-None value to prove the method actively resets it.
+        model.thermal_suitability = {"stale": None}
+
+        climate = self._make_stratum_climate(model.data.grid.n_cells)
+        model._update_thermal_suitability(climate)
+
+        assert model.thermal_suitability is None
+
+    def test_update_thermal_suitability_populates_per_functional_group(
+        self, prepared_animal_model_instance
+    ):
+        """When enabled, the cache holds one per-cell array per functional group.
+
+        Keys must match functional group names exactly (they are looked up by
+        fg.name during dispersal), and each value must be a (n_cells,) array in
+        [0, 1].
+        """
+        import numpy as np
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={"thermal_habitat_selection": True}
+        )
+
+        n_cells = model.data.grid.n_cells
+        climate = self._make_stratum_climate(n_cells)
+
+        model._update_thermal_suitability(climate)
+
+        suitability = model.thermal_suitability
+        assert suitability is not None
+
+        expected_names = {fg.name for fg in model.functional_groups}
+        assert set(suitability.keys()) == expected_names
+
+        for name, array in suitability.items():
+            assert array.shape == (n_cells,), (
+                f"{name} has shape {array.shape}, expected {(n_cells,)}."
+            )
+            assert np.all((array >= 0.0) & (array <= 1.0))
+
+    def test_update_thermal_suitability_endotherms_all_ones(
+        self, prepared_animal_model_instance
+    ):
+        """Endothermic functional groups get a suitability of 1.0 in every cell.
+
+        Confirms the endotherm short-circuit propagates through the per-FG build:
+        thermal selection must be inert for them even when the cache is populated.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={"thermal_habitat_selection": True}
+        )
+
+        n_cells = model.data.grid.n_cells
+        climate = self._make_stratum_climate(n_cells)
+
+        model._update_thermal_suitability(climate)
+
+        endotherms = [
+            fg.name
+            for fg in model.functional_groups
+            if fg.metabolic_type == MetabolicType.ENDOTHERMIC
+        ]
+        if not endotherms:
+            pytest.skip("fixture has no endothermic functional groups")
+
+        for name in endotherms:
+            assert np.array_equal(model.thermal_suitability[name], np.ones(n_cells))
+
+    def test_update_thermal_suitability_shared_occupancy_consistent(
+        self, prepared_animal_model_instance
+    ):
+        """Functional groups sharing occupancy and thermal params share suitability.
+
+        stratum_mean_climate depends only on occupancy, so two ectotherm groups with
+        the same vertical occupancy and the same critical temperatures must produce
+        identical per-cell suitability. Guards against a per-FG build accidentally
+        keying the stratum climate on the wrong attribute.
+        """
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={"thermal_habitat_selection": True}
+        )
+
+        climate = self._make_stratum_climate(model.data.grid.n_cells)
+        model._update_thermal_suitability(climate)
+
+        # Group ectotherm FGs by (occupancy, t_opt, t_max_crit, t_min_crit).
+        groups: dict[tuple, list[str]] = {}
+        for fg in model.functional_groups:
+            if fg.metabolic_type != MetabolicType.ECTOTHERMIC:
+                continue
+            key = (fg.vertical_occupancy, fg.t_opt, fg.t_max_crit, fg.t_min_crit)
+            groups.setdefault(key, []).append(fg.name)
+
+        shared = [names for names in groups.values() if len(names) > 1]
+        if not shared:
+            pytest.skip("fixture has no two ectotherm FGs with matching thermal params")
+
+        for names in shared:
+            first = model.thermal_suitability[names[0]]
+            for other in names[1:]:
+                assert np.allclose(model.thermal_suitability[other], first)
+
+    def test_select_destination_uniform_when_no_cache(
+        self, prepared_animal_model_instance, mocker
+    ):
+        """With no suitability cache, destination is drawn from candidate_keys.
+
+        This is the toggle-off fallback path: _select_destination must return a
+        member of the reachable set using the uniform stdlib choice, exactly as
+        pre-thermal dispersal did.
+        """
+        model = prepared_animal_model_instance
+        model.thermal_suitability = None
+
+        cohort = mocker.Mock()
+        candidate_keys = [3, 7, 11, 19]
+
+        for _ in range(50):
+            result = model._select_destination(cohort, candidate_keys)
+            assert result in candidate_keys
+
+    def test_select_destination_weighted_favours_suitable_cells(
+        self, prepared_animal_model_instance, mocker
+    ):
+        """Destinations skew toward high-suitability cells when the cache is present.
+
+        The reachable set spans cells of sharply differing suitability; over many
+        draws the most suitable cell must be chosen far more often than the least.
+        This is the test that exercises the weighted branch — the path that carried
+        the random.choice typo.
+        """
+        import numpy as np
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={
+                "thermal_habitat_selection": True,
+                "thermal_selection_exponent": 2.0,
+                "thermal_suitability_floor": 0.01,
+            }
+        )
+
+        n_cells = model.data.grid.n_cells
+        # Build a suitability array that is high at one cell, low elsewhere.
+        suitability = np.full(n_cells, 0.05)
+        best_cell = 2
+        suitability[best_cell] = 1.0
+
+        cohort = mocker.Mock()
+        cohort.functional_group.name = "test_fg"
+        model.thermal_suitability = {"test_fg": suitability}
+
+        candidate_keys = [0, 1, 2, 3]  # includes best_cell
+
+        np.random.seed(42)
+        counts = {k: 0 for k in candidate_keys}
+        for _ in range(2000):
+            counts[model._select_destination(cohort, candidate_keys)] += 1
+
+        # The high-suitability cell should dominate.
+        assert counts[best_cell] > sum(
+            counts[k] for k in candidate_keys if k != best_cell
+        )
+
+    def test_select_destination_exponent_zero_is_uniform(
+        self, prepared_animal_model_instance, mocker
+    ):
+        """An exponent of zero flattens weights to uniform selection.
+
+        With thermal_selection_exponent = 0 every weight becomes 1 regardless of
+        suitability, so selection is uniform — the documented sensitivity control.
+        """
+        import numpy as np
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={
+                "thermal_habitat_selection": True,
+                "thermal_selection_exponent": 0.0,
+                "thermal_suitability_floor": 0.01,
+            }
+        )
+
+        n_cells = model.data.grid.n_cells
+        suitability = np.linspace(0.01, 1.0, n_cells)
+
+        cohort = mocker.Mock()
+        cohort.functional_group.name = "test_fg"
+        model.thermal_suitability = {"test_fg": suitability}
+
+        candidate_keys = list(range(min(4, n_cells)))
+
+        np.random.seed(0)
+        counts = {k: 0 for k in candidate_keys}
+        for _ in range(4000):
+            counts[model._select_destination(cohort, candidate_keys)] += 1
+
+        # Each candidate should receive roughly an equal share (~1/n).
+        expected = 4000 / len(candidate_keys)
+        for k in candidate_keys:
+            assert counts[k] == pytest.approx(expected, rel=0.2)
+
+    def test_select_destination_floor_handles_all_lethal(
+        self, prepared_animal_model_instance, mocker
+    ):
+        """All-zero suitability still yields a valid draw, thanks to the floor.
+
+        Without the floor, zero weights would sum to zero and the probability
+        normalisation would divide by zero. The floor guarantees the cohort still
+        moves — blindly — when every reachable cell is lethal.
+        """
+        import numpy as np
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={
+                "thermal_habitat_selection": True,
+                "thermal_selection_exponent": 2.0,
+                "thermal_suitability_floor": 0.01,
+            }
+        )
+
+        n_cells = model.data.grid.n_cells
+        suitability = np.zeros(n_cells)  # every cell lethal
+
+        cohort = mocker.Mock()
+        cohort.functional_group.name = "test_fg"
+        model.thermal_suitability = {"test_fg": suitability}
+
+        candidate_keys = [0, 1, 2, 3]
+
+        # Must not raise and must return a valid candidate.
+        result = model._select_destination(cohort, candidate_keys)
+        assert result in candidate_keys
+
+    def test_select_destination_returns_python_int(
+        self, prepared_animal_model_instance, mocker
+    ):
+        """The weighted path returns a plain int, not a numpy integer.
+
+        migrate() and the communities dict are keyed on Python ints; a numpy int
+        from np.random.choice would work by coercion but is worth pinning, since the
+        function explicitly casts.
+        """
+        import numpy as np
+
+        model = prepared_animal_model_instance
+        model.model_constants = model.model_constants.model_copy(
+            update={"thermal_habitat_selection": True}
+        )
+
+        n_cells = model.data.grid.n_cells
+        cohort = mocker.Mock()
+        cohort.functional_group.name = "test_fg"
+        model.thermal_suitability = {"test_fg": np.full(n_cells, 0.5)}
+
+        result = model._select_destination(cohort, [0, 1, 2, 3])
+        assert type(result) is int
 
 
 def test_to_per_day(prepared_animal_model_instance):

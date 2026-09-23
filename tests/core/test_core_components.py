@@ -66,7 +66,7 @@ ALTERNATE_CANOPY = np.array(
                 "reconciled_run_length": np.timedelta64(63115200, "s"),
                 "n_updates": 24,
             },
-            {"max_depth_of_microbial_activity": 0.25},
+            {"microbial_simulation_depth": 0.25},
             id="defaults",
         ),
         pytest.param(
@@ -80,7 +80,7 @@ ALTERNATE_CANOPY = np.array(
             update_interval = "10 minutes"
             run_length = "30 years"
             [core.constants]
-            max_depth_of_microbial_activity = 0.8
+            microbial_simulation_depth = 0.8
             """,
             {
                 "n_canopy_layers": 3,
@@ -99,7 +99,7 @@ ALTERNATE_CANOPY = np.array(
                 "reconciled_run_length": np.timedelta64(946728000, "s"),
                 "n_updates": 1577880,
             },
-            {"max_depth_of_microbial_activity": 0.8},
+            {"microbial_simulation_depth": 0.8},
             id="alternative config",
         ),
     ],
@@ -137,7 +137,13 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
 
 
 @pytest.mark.parametrize(
-    argnames="config_string, max_active_depth, raises, expected_values, expected_log",
+    argnames=[
+        "config_string",
+        "microbial_simulation_depth",
+        "raises",
+        "expected_values",
+        "expected_log",
+    ],
     argvalues=[
         pytest.param(
             "[core]",
@@ -251,8 +257,8 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             (
                 (
                     ERROR,
-                    "Maximum depth of soil layers is less than the maximum depth "
-                    "of microbial activity",
+                    "Maximum depth of soil layers is less than the soil-microbial "
+                    "simulation depth",
                 ),
             ),
             id="soil not deep enough for microbes",
@@ -260,7 +266,12 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
     ],
 )
 def test_LayerStructure_init(
-    caplog, config_string, max_active_depth, raises, expected_values, expected_log
+    caplog,
+    config_string,
+    microbial_simulation_depth,
+    raises,
+    expected_values,
+    expected_log,
 ):
     """Test the creation and error handling of LayerStructure."""
     from virtual_ecosystem.core.config_builder import (
@@ -274,7 +285,9 @@ def test_LayerStructure_init(
 
     with raises:
         layer_structure = LayerStructure(
-            cfg.core.layers, n_cells=9, max_depth_of_microbial_activity=max_active_depth
+            cfg.core.layers,
+            n_cells=9,
+            microbial_simulation_depth=microbial_simulation_depth,
         )
 
     log_check(caplog=caplog, expected_log=expected_log, subset=slice(-1, None, None))
@@ -366,7 +379,7 @@ def test_LayerStructure_set_filled_canopy():
 
     core_cfg = CoreConfiguration()
     layer_structure = LayerStructure(
-        core_cfg.layers, n_cells=9, max_depth_of_microbial_activity=0.25
+        core_cfg.layers, n_cells=9, microbial_simulation_depth=0.25
     )
 
     # Run the set_filled_canopy method to populate the filled layers and update cached

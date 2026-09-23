@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.1
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -182,7 +182,7 @@ interactions.
 
 The dropdown below shows the example version of the animal functional group definitions:
 
-````{dropdown} pft_definitions.csv
+````{dropdown} animal_functional_groups.csv
 ```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/animal_functional_groups.csv
 ```
 ````

@@ -76,6 +76,45 @@ def _parse_command_line_config(config_strings: Sequence[str]) -> dict[str, Any]:
     return config_dict
 
 
+def _parse_cli_paths(cli_paths: Sequence[str]) -> dict[str, Path]:
+    """Parse command-line data input path substitutions.
+
+    This function takes a list of strings containing path substitutions to
+    the ``ve_run_cli`` entry points using the ``-p`` option. Each string should provide
+    a file marker that can be referred to in a configuration file and a data path that
+    should be used for that marker.
+
+    Args:
+        cli_paths: A list of strings containing configuration settings.
+
+    Returns:
+        A dictionary of markers and paths.
+    """
+
+    cli_path_dict: dict[str, Path] = {}
+
+    for path_data in cli_paths:
+        # Try and split on first equals sign (allowing further '=' in path names)
+        try:
+            marker, file = path_data.split("=", 1)
+        except ValueError:
+            raise ValueError(
+                "Incorrect syntax in command line path input: should use "
+                "'marker=path' values."
+            )
+
+        # Check the file exists
+        file_path = Path(file)
+        if not (file_path.exists() and file_path.is_file()):
+            raise ValueError(
+                f"Command line path input does not point to existing file: {file}"
+            )
+
+        cli_path_dict[marker] = file_path
+
+    return cli_path_dict
+
+
 def install_example_directory(install_dir: Path) -> int:
     """Install the example directory to a location.
 
@@ -145,14 +184,29 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     configuration setup, without the need to write a specific configuration file for
     each permutation.
 
-    The resolved complete configuration will then be written to a single consolidated
-    config file in the output path with a default name of
-    `ve_full_model_configuration.toml`. This can be disabled by setting the
-    `core.data_output_options.save_merged_config` option to false. Note that the merged
-    configuration automatically converts all file paths within the merged configurations
-    to absolute file paths - this ties the merged configuration to the file system where
-    the run is executed.
+    The `--data-path` option can be used to dynamically set the location of data paths
+    in the configuration. A file path in the config can be set as a path marker, which
+    must be a string starting with a "$", for example "$CLIMATE_DATA". This option can
+    then be used to substitute different files into that marker for different runs:
+    `--data-path CLIMATE_DATA=/path/to/file.nc`.
 
+    The `--validate-config-only` flag can be used to only run the configuration
+    validation part of the model setup and the exit before running any models.
+
+    The resolved complete configuration will then be written to a single consolidated
+    config file in the output path with a default name of `compiled_configuration.toml`.
+    This can be disabled by setting the
+    `core.data_output_options.save_compiled_configuration` option to false. Note that
+    the merged configuration automatically converts all file paths within the merged
+    configurations to absolute file paths - this ties the merged configuration to the
+    file system where the run is executed.
+
+    The running simulation adds data to a single Zarr store. This format is used because
+    data can easily be appended along the time series of the simulation steps. However
+    the resulting store contains a large number of files and also uses an internal
+    `cell_id` dimension to capture the spatial structure of cells. The `--to-netcdf`
+    file generates an additional single NetCDF file from the Zarr data and converts the
+    data back to using the original XY spatial dimensions.
 
     Args:
         args_list: This is a developer and testing facing argument that is used to
@@ -208,6 +262,23 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     )
 
     parser.add_argument(
+        "--validate-config-only",
+        action="store_true",
+        help="Exit after validating configuration",
+        dest="validate_only",
+    )
+
+    parser.add_argument(
+        "-p",
+        "--data-path",
+        type=str,
+        action="append",
+        help="Set data paths used for input data",
+        dest="cli_paths",
+        default=[],
+    )
+
+    parser.add_argument(
         "--logfile",
         type=Path,
         help="A file path to use for logging a Virtual Ecosystem simulation",
@@ -220,6 +291,13 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         action="count",
         help="Quieten the default progress reporting",
         default=0,
+    )
+
+    parser.add_argument(
+        "-n",
+        "--to-netcdf",
+        action="store_true",
+        help="Postprocess the output data to NetCDF",
     )
 
     args = parser.parse_args(args=args_list)
@@ -253,6 +331,12 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     else:
         cli_config = {}
 
+    # Parse any input data file path substitution
+    if args.cli_paths:
+        cli_paths = _parse_cli_paths(args.cli_paths)
+    else:
+        cli_paths = {}
+
     # Figure out the progress reporting level - the defaults is FULL (3 - 0) and as
     # `-q` is repeatedly applied that decrease down to SILENT (3, 3) with `-qqq`
     progress = Progress(3 - min(3, args.quiet))
@@ -261,8 +345,11 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     ve_run(
         cfg_paths=args.cfg_paths,
         cli_config=cli_config,
+        cli_paths=cli_paths,
+        validate_only=args.validate_only,
         logfile=args.logfile,
         progress=progress,
+        to_netcdf=args.to_netcdf,
     )
 
     return 0

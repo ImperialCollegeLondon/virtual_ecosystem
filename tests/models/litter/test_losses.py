@@ -18,26 +18,76 @@ def test_calculate_litter_losses(
     from virtual_ecosystem.models.litter.losses import calculate_litter_losses
 
     expected_losses = {
-        "above_metabolic_carbon": [0.00921022, 0.00446856, 0.00223770, 0.00214006],
-        "above_structural_carbon": [3.364453e-4, 1.235568e-3, 2.374395e-5, 2.545752e-5],
+        "above_metabolic_carbon": [0.00921295, 0.00447439, 0.00223216, 0.00212283],
+        "above_structural_carbon": [
+            3.36458168e-4,
+            1.23631256e-3,
+            2.37903614e-5,
+            2.57920483e-5,
+        ],
         "woody_carbon": [0.000974, 0.00054363, 0.00319062, 0.00318409],
-        "below_metabolic_carbon": [0.01820252, 0.014805149, 0.002237224, 0.002398703],
-        "below_structural_carbon": [0.000612829, 0.000988361, 4.1361556e-6, 5.6372e-6],
-        "above_metabolic_nitrogen": [0.00126167, 0.00051363, 0.00022155, 0.00021837],
-        "above_structural_nitrogen": [8.971873e-6, 2.86011e-5, 5.18427e-7, 5.071219e-7],
+        "below_metabolic_carbon": [0.02169604, 0.0176682, 0.00267751, 0.00286285],
+        "below_structural_carbon": [
+            7.33622472e-04,
+            1.18398857e-03,
+            5.17543991e-06,
+            6.78947934e-06,
+        ],
+        "above_metabolic_nitrogen": [0.00126205, 0.0005143, 0.00022101, 0.00021661],
+        "above_structural_nitrogen": [
+            8.97219538e-6,
+            2.86183907e-5,
+            5.19452232e-7,
+            5.13773877e-7,
+        ],
         "woody_nitrogen": [1.75495e-5, 8.58815e-6, 6.74550e-5, 5.38763e-5],
-        "below_metabolic_nitrogen": [0.00170117, 0.00131019, 0.00014719, 0.00019344],
-        "below_structural_nitrogen": [1.21352e-5, 1.77763e-5, 5.65822e-8, 9.21111e-8],
-        "above_metabolic_phosphorus": [1.60737e-4, 6.50446e-5, 2.23546e-5, 2.23389e-5],
-        "above_structural_phosphorus": [9.96875e-7, 2.61109e-6, 5.71043e-8, 4.46467e-8],
+        "below_metabolic_nitrogen": [0.00202767, 0.00156356, 0.00017615, 0.00023088],
+        "below_structural_nitrogen": [
+            1.45271225e-05,
+            2.12947449e-05,
+            7.08119215e-08,
+            1.10938735e-07,
+        ],
+        "above_metabolic_phosphorus": [
+            1.60784470e-4,
+            6.51294204e-5,
+            2.22993458e-5,
+            2.21588720e-5,
+        ],
+        "above_structural_phosphorus": [
+            9.96909850e-7,
+            2.61266207e-6,
+            5.72166187e-8,
+            4.52343081e-8,
+        ],
         "woody_phosphorus": [1.75338e-6, 7.12210e-7, 3.76563e-6, 5.31479e-6],
-        "below_metabolic_phosphorus": [5.85855e-5, 3.59960e-5, 7.09779e-6, 5.81645e-6],
-        "below_structural_phosphorus": [1.11322e-6, 1.65944e-6, 5.35009e-9, 8.65663e-9],
-        "above_structural_lignin": [1.682226e-4, 1.235568e-4, 1.662077e-5, 1.782027e-5],
+        "below_metabolic_phosphorus": [
+            6.98295429e-05,
+            4.29569608e-05,
+            8.49464189e-06,
+            6.94192069e-06,
+        ],
+        "below_structural_phosphorus": [
+            1.33265146e-06,
+            1.98787709e-06,
+            6.69440047e-09,
+            1.04261214e-08,
+        ],
+        "above_structural_lignin": [1.682289e-4, 1.236247e-4, 1.665325e-5, 1.805249e-5],
         "woody_lignin": [0.000487, 0.000434904, 0.001116717, 0.0011144315],
-        "below_structural_lignin": [0.0003064145, 0.00024709, 3.1021167e-6, 4.2279e-6],
-        "N_mineralisation_rate": [0.006003, 0.00375757, 0.00087354, 0.00093259],
-        "P_mineralisation_rate": [4.463717e-4, 2.120466e-4, 6.656099e-5, 6.7046827e-5],
+        "below_structural_lignin": [
+            3.66811236e-04,
+            2.95997143e-04,
+            3.88157993e-06,
+            5.09210951e-06,
+        ],
+        "N_mineralisation_rate": [0.00666153, 0.00427272, 0.00093041, 0.00100398],
+        "P_mineralisation_rate": [
+            4.69393910e-04,
+            2.26798263e-04,
+            6.92470563e-05,
+            6.89424851e-05,
+        ],
     }
 
     actual_losses = calculate_litter_losses(
@@ -47,7 +97,7 @@ def test_calculate_litter_losses(
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,
         update_interval=2.0,
-        active_microbe_depth=fixture_core_constants.max_depth_of_microbial_activity,
+        microbial_simulation_depth=fixture_core_constants.microbial_simulation_depth,
     )
 
     # Convert to a dict to check the values
@@ -66,7 +116,7 @@ def test_calculate_carbon_pool_loss(
     """Test that function to calculate total carbon loss from a pool works correctly."""
     from virtual_ecosystem.models.litter.losses import calculate_carbon_pool_loss
 
-    expected_loss = [0.00921022, 0.00446856, 0.00223770, 0.00214006]
+    expected_loss = [0.00921295, 0.00447439, 0.00223216, 0.00212283]
 
     actual_loss = calculate_carbon_pool_loss(
         old_pool_size=post_consumption_pools["above_metabolic"]
@@ -90,7 +140,7 @@ def test_calculate_carbon_pool_loss(
         ),
         pytest.param(
             np.array([0.32449688, 0.15805352, 0.08320238, 0.0776660]),
-            [0.04301677, 0.01755358, 0.00752192, 0.00765043],
+            [0.04309494, 0.01763821, 0.00753933, 0.00755138],
             id="high_loss",
         ),
     ],
@@ -131,7 +181,7 @@ def test_calculate_nutrient_pool_loss(
         ),
         pytest.param(
             np.array([0.50553312, 0.25184648, 0.10319762, 0.117284]),
-            [0.25147699, 0.02575075, 0.07030674, 0.08021992],
+            [0.25147855, 0.02613087, 0.07010142, 0.07864394],
             id="high_loss",
         ),
     ],

@@ -1,5 +1,5 @@
 ---
-name: Feature request
+name: New release
 about: Make a new release of this project
 title: ''
 labels: ''

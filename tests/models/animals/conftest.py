@@ -60,11 +60,6 @@ def animal_data_for_model_instance(fixture_core_components):
         data=leaf_mass, dims=["layers", "cell_id"]
     )
 
-    # Populate the fungal fruiting bodies
-    data["fungal_fruiting_bodies"] = xarray.DataArray(
-        np.full(grid.n_cells, 0.1), dims=["cell_id"]
-    )
-
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
     air_temperature_values = np.full(
         (1, grid.n_cells), 25.0
@@ -87,7 +82,8 @@ def animal_data_for_model_instance(fixture_core_components):
     cell_ids = np.arange(data.grid.n_cells)
     elements = np.array(["C", "N", "P"])
 
-    leaf_mass = DataArray(
+    # Populate plant biomass pools
+    vegetation_biomass = DataArray(
         np.ones((data.grid.n_cells, elements.size, pfts.size)),
         dims=("cell_id", "element", "pft"),
         coords=dict(
@@ -97,12 +93,26 @@ def animal_data_for_model_instance(fixture_core_components):
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
-    data["subcanopy_vegetation_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
-    data["subcanopy_seedbank_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
+    # Populate non- PFT structured ArrayResource pools
+    for pool in ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]:
+        data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
+        data[pool + "_consumed"] = xarray.zeros_like(
+            vegetation_biomass.sel(pft="pioneer").drop_vars("pft")
+        )
+
+    # Populate pft structured ArrayResource pools
+    plant_model_pools = ["foliage_turnover_cnp"]
+    plant_model_pools_consumed = [
+        "canopy_foliage_cnp",
+        "canopy_seed_cnp",
+        "canopy_fruit_cnp",
+        "fallen_seeds_cnp",
+        "fallen_fruit_cnp",
+    ]
+    for pool in plant_model_pools + plant_model_pools_consumed:
+        data[pool] = vegetation_biomass.copy()
+    for pool in plant_model_pools_consumed:
+        data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
 
     litter_pools = DataArray(np.full(data.grid.n_cells, fill_value=1.5), dims="cell_id")
     litter_ratios = DataArray(
@@ -127,6 +137,24 @@ def animal_data_for_model_instance(fixture_core_components):
     data["litter_pool_woody_cnp"] = litter_cnp_template
     data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
     data["litter_pool_below_structural_cnp"] = litter_cnp_template
+
+    # Populate the fungal fruiting bodies
+    data["fungal_fruiting_bodies_cnp"] = litter_cnp_template
+
+    # Populate lignin contents of consumed pools
+    lignin_contents = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+    lignin_pools = [
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "senesced_leaf_lignin",
+        "lignin_above_structural",
+        "lignin_below_structural",
+        "lignin_woody",
+    ]
+    for pool in lignin_pools:
+        data[pool] = lignin_contents
 
     return data
 
@@ -184,6 +212,7 @@ def dummy_animal_data(animal_fixture_core_components):
         data[var] = DataArray(
             np.full((9, 3), value),  # Update to 9 grid cells
             dims=["cell_id", "time_index"],
+            coords={"time_index": np.arange(3)},
         )
 
     # Spatially varying but not vertically structured
@@ -353,12 +382,6 @@ def dummy_animal_data(animal_fixture_core_components):
     data["soil_c_pool_arbuscular_mycorrhiza"] = soil_pools
     data["soil_c_pool_ectomycorrhiza"] = soil_pools
 
-    # Also need to add a pool to track the amount of fungal fruiting bodies
-    data["fungal_fruiting_bodies"] = litter_pools
-    data["production_of_fungal_fruiting_bodies"] = DataArray(
-        np.zeros(data.grid.n_cells), dims="cell_id"
-    )
-
     # Array resource pools
     pfts = np.array(["pioneer", "canopy", "emergent"])
     cell_ids = np.arange(data.grid.n_cells)
@@ -396,25 +419,63 @@ def dummy_animal_data(animal_fixture_core_components):
     data["litter_pool_below_metabolic_cnp"] = litter_cnp_template
     data["litter_pool_below_structural_cnp"] = litter_cnp_template
 
-    leaf_mass = DataArray(
-        np.ones((data.grid.n_cells, elements.size, pfts.size)),
-        dims=("cell_id", "element", "pft"),
+    # Also need to add a pool to track the amount of fungal fruiting bodies
+    data["fungal_fruiting_bodies_cnp"] = litter_cnp_template
+
+    # Populate plant biomass pools
+    vegetation_biomass = DataArray(
+        np.ones((data.grid.n_cells, pfts.size, elements.size)),
+        dims=("cell_id", "pft", "element"),
         coords=dict(
             cell_id=cell_ids,
-            element=elements,
             pft=pfts,
+            element=elements,
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
-    data["subcanopy_vegetation_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
+    # Populate non- PFT structured ArrayResource pools
+    subcanopy_pools = ["subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"]
+    for pool in subcanopy_pools:
+        data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
+        data[pool + "_consumed"] = xarray.zeros_like(
+            vegetation_biomass.sel(pft="pioneer").drop_vars("pft")
+        )
+
+    # Populate pft structured ArrayResource pools
+    plant_model_pools = ["foliage_turnover_cnp"]
+    # Some variables are consumed from so need to be treated separately
+    plant_model_pools_consumed = [
+        "canopy_foliage_cnp",
+        "canopy_seed_cnp",
+        "canopy_fruit_cnp",
+        "fallen_seeds_cnp",
+        "fallen_fruit_cnp",
+    ]
+    for pool in plant_model_pools_consumed + plant_model_pools:
+        data[pool] = vegetation_biomass.copy()
+
+    for pool in plant_model_pools_consumed:
+        data[pool + "_consumed"] = xarray.zeros_like(vegetation_biomass)
+
+    # Populate lignin contents of consumed pools
+    lignin_contents = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
     )
-    data["subcanopy_seedbank_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
+    lignin_pools = [
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "senesced_leaf_lignin",
+        "lignin_above_structural",
+        "lignin_below_structural",
+        "lignin_woody",
+    ]
+    for pool in lignin_pools:
+        data[pool] = lignin_contents
 
     data["diurnal_temperature_range"] = from_template()
+    data["diurnal_temperature_range"][lyr_str.index_filled_canopy] = 8.0
     data["diurnal_temperature_range"][lyr_str.index_surface_scalar] = 10.0
+    data["diurnal_temperature_range"][lyr_str.index_topsoil_scalar] = 1.0
 
     return data
 
@@ -524,12 +585,49 @@ def dummy_animal_exporter():
 
 
 @pytest.fixture
+def dummy_resource_pool_exporter():
+    """Provide a no-op exporter for resource pool data in AnimalModel tests.
+
+    Returns:
+        An object with a ``dump`` method matching the ResourcePoolDataExporter
+        interface but performing no output.
+    """
+
+    class DummyResourcePoolExporter:
+        """No-op stand-in for ResourcePoolDataExporter."""
+
+        def dump(
+            self,
+            carcass_pools,
+            excrement_pools,
+            soil_pools,
+            resource_pools,
+            time,
+            time_index,
+        ):
+            """Ignore export calls in tests that do not check CSV output.
+
+            Args:
+                carcass_pools: Carcass pools keyed by cell id.
+                excrement_pools: Excrement pools keyed by cell id.
+                soil_pools: Soil pools keyed by cell id and pool-type string.
+                resource_pools: Flat list of ResourcePool instances.
+                time: Export timestamp.
+                time_index: Index of update.
+            """
+            return None
+
+    return DummyResourcePoolExporter()
+
+
+@pytest.fixture
 def animal_model_instance(
     dummy_animal_data,
     fixture_core_components,
     functional_group_list_instance,
     microbial_c_n_p_ratios,
     dummy_animal_exporter,
+    dummy_resource_pool_exporter,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
@@ -543,7 +641,8 @@ def animal_model_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
-        exporter=dummy_animal_exporter,
+        animal_cohort_exporter=dummy_animal_exporter,
+        resource_pool_exporter=dummy_resource_pool_exporter,
         model_constants=AnimalConstants(density_scaling_method="madingley"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -557,6 +656,7 @@ def animal_model_damuth_instance(
     functional_group_list_instance,
     microbial_c_n_p_ratios,
     dummy_animal_exporter,
+    dummy_resource_pool_exporter,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
@@ -570,7 +670,8 @@ def animal_model_damuth_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
-        exporter=dummy_animal_exporter,
+        animal_cohort_exporter=dummy_animal_exporter,
+        resource_pool_exporter=dummy_resource_pool_exporter,
         model_constants=AnimalConstants(density_scaling_method="damuth"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -849,6 +950,7 @@ def array_plant_list_instance(animal_data_for_model_instance):
             consumed_array="subcanopy_vegetation_cnp_consumed",
             vertical_occupancy=VerticalOccupancy.GROUND,
             diet_type=DietType.FOLIAGE,
+            lignin_array="subcanopy_vegetation_litter_lignin",
         ),
         data=animal_data_for_model_instance,
     )
@@ -859,6 +961,7 @@ def array_plant_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.1,
             cell_id=0,
         ),
         CellResource(
@@ -866,6 +969,7 @@ def array_plant_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.15,
             cell_id=1,
         ),
     ]
@@ -892,6 +996,7 @@ def array_litter_list_instance(animal_data_for_model_instance):
             consumed_array="litter_consumed_woody_cnp",
             vertical_occupancy=VerticalOccupancy.GROUND,
             diet_type=DietType.DETRITUS,
+            lignin_array="lignin_woody",
             density=True,
         ),
         data=animal_data_for_model_instance,
@@ -903,6 +1008,7 @@ def array_litter_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.3,
             cell_id=0,
         ),
         CellResource(
@@ -910,6 +1016,7 @@ def array_litter_list_instance(animal_data_for_model_instance):
             available_elemental_masses=np.array([1.0, 0.0, 0.0], dtype=float),
             consumed_total_mass=np.zeros(3, dtype=float),
             vertical_occupancy=VerticalOccupancy.GROUND,
+            lignin_proportion=0.5,
             cell_id=1,
         ),
     ]
@@ -983,8 +1090,6 @@ def litter_soil_data_instance(fixture_core_components):
         "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
         "soil_c_pool_arbuscular_mycorrhiza": [0.65, 1.47, 3.92, 9.04],
         "soil_c_pool_ectomycorrhiza": [0.47, 1.32, 4.2, 3.77],
-        "fungal_fruiting_bodies": [0.1, 0.2, 0.3, 0.4],
-        "production_of_fungal_fruiting_bodies": [0.05, 0.04, 0.025, 0.0125],
     }
 
     for var_name, var_values in data_values.items():
@@ -1007,8 +1112,20 @@ def litter_soil_data_instance(fixture_core_components):
         dims=("cell_id", "element"),
         coords=dict(cell_id=cell_ids, element=elements),
     )
+    data["fungal_fruiting_bodies_cnp"] = DataArray(
+        np.stack(
+            [
+                [0.1, 0.2, 0.3, 0.4],
+                [0.02, 0.04, 0.06, 0.08],
+                [0.004, 0.008, 0.012, 0.016],
+            ],
+            axis=1,
+        ),
+        dims=("cell_id", "element"),
+        coords=dict(cell_id=cell_ids, element=elements),
+    )
 
-    leaf_mass = DataArray(
+    vegetation_biomass = DataArray(
         np.ones((data.grid.n_cells, elements.size, pfts.size)),
         dims=("cell_id", "element", "pft"),
         coords=dict(
@@ -1018,12 +1135,36 @@ def litter_soil_data_instance(fixture_core_components):
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 
-    data["subcanopy_vegetation_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
-    data["subcanopy_seedbank_cnp"] = (
-        leaf_mass.sel(pft="pioneer").drop_vars("pft").copy()
-    )
+    # Populate non- PFT structured ArrayResource pools
+    for pool in [
+        "subcanopy_vegetation_cnp",
+        "subcanopy_seedbank_cnp",
+        "subcanopy_seedbank_cnp_consumed",
+        "subcanopy_vegetation_cnp_consumed",
+    ]:
+        data[pool] = vegetation_biomass.sel(pft="pioneer").drop_vars("pft").copy()
+
+    # Populate pft structured ArrayResource pools
+    plant_model_pools = [
+        "canopy_foliage_cnp",
+        "canopy_seed_cnp",
+        "canopy_fruit_cnp",
+        "fallen_seeds_cnp",
+        "fallen_fruit_cnp",
+    ]
+    for pool in plant_model_pools:
+        data[pool] = vegetation_biomass.copy()
+
+    # Populate pft structured consumption pools with empty zeros
+    plant_model_consumption_pools = [
+        "canopy_foliage_cnp_consumed",
+        "canopy_seed_cnp_consumed",
+        "canopy_fruit_cnp_consumed",
+        "fallen_seeds_cnp_consumed",
+        "fallen_fruit_cnp_consumed",
+    ]
+    for pool in plant_model_consumption_pools:
+        data[pool] = xarray.zeros_like(vegetation_biomass)
 
     data["litter_pool_above_metabolic_cnp"] = DataArray(
         np.stack(
@@ -1070,6 +1211,21 @@ def litter_soil_data_instance(fixture_core_components):
         coords=dict(cell_id=cell_ids, element=elements),
     )
 
+    # Populate lignin contents of consumed pools
+    lignin_contents = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+    lignin_pools = [
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "senesced_leaf_lignin",
+        "lignin_above_structural",
+        "lignin_below_structural",
+        "lignin_woody",
+    ]
+    for pool in lignin_pools:
+        data[pool] = lignin_contents
+
     return data
 
 
@@ -1079,13 +1235,23 @@ def herbivory_waste_pool_instance():
     from virtual_ecosystem.models.animal.decay import HerbivoryWaste
 
     # Create an instance of HerbivoryWaste with the valid plant_matter_type
-    herbivory_waste = HerbivoryWaste(plant_matter_type="leaf")
+    herbivory_waste = HerbivoryWaste()
 
     # Manually set the additional attributes
-    herbivory_waste.mass_current = 0.5  # Initial mass in kg
-    herbivory_waste.c_n_ratio = 20.0  # Carbon to Nitrogen ratio [unitless]
-    herbivory_waste.c_p_ratio = 150.0  # Carbon to Phosphorus ratio [unitless]
-    herbivory_waste.lignin_proportion = (
+    herbivory_waste.above_ground_mass_cnp = {
+        "C": 0.5,
+        "N": 0.025,
+        "P": 0.00333,
+    }  # Initial masses in kg
+    herbivory_waste.above_ground_lignin_proportion = (
+        0.25  # Proportion of lignin in the mass [unitless]
+    )
+    herbivory_waste.below_ground_mass_cnp = {
+        "C": 0.15,
+        "N": 0.005,
+        "P": 0.001,
+    }  # Initial masses in kg
+    herbivory_waste.below_ground_lignin_proportion = (
         0.25  # Proportion of lignin in the mass [unitless]
     )
 
@@ -1106,23 +1272,6 @@ def mushroom_instance(litter_soil_data_instance):
         c_n_ratio=25.0,
         c_p_ratio=100.0,
     )
-
-
-@pytest.fixture
-def fungal_fruit_list_instance(litter_soil_data_instance):
-    """Fixture for multiple FungalFruitPool objects across grid cells."""
-    from virtual_ecosystem.models.animal.decay import FungalFruitPool
-
-    return [
-        FungalFruitPool(
-            cell_id=cell_id,
-            data=litter_soil_data_instance,
-            cell_area=100.0,
-            c_n_ratio=25.0,
-            c_p_ratio=100.0,
-        )
-        for cell_id in litter_soil_data_instance.grid.cell_id
-    ]
 
 
 @pytest.fixture
@@ -1152,7 +1301,7 @@ def soil_fungi_instance(litter_soil_data_instance, microbial_cnp_ratios):
         cell_id=0,
         data=litter_soil_data_instance,
         cell_area=litter_soil_data_instance.grid.cell_area,
-        max_depth_microbial_activity=0.2,
+        microbial_simulation_depth=0.2,
         c_n_p_ratios=microbial_cnp_ratios,
     )
 
@@ -1168,7 +1317,7 @@ def soil_fungi_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=litter_soil_data_instance.grid.cell_area,
-            max_depth_microbial_activity=0.2,
+            microbial_simulation_depth=0.2,
             c_n_p_ratios=microbial_cnp_ratios,
         )
         for cell_id in litter_soil_data_instance.grid.cell_id
@@ -1185,7 +1334,7 @@ def pom_instance(litter_soil_data_instance, microbial_cnp_ratios):
         cell_id=0,
         data=litter_soil_data_instance,
         cell_area=litter_soil_data_instance.grid.cell_area,
-        max_depth_microbial_activity=0.2,
+        microbial_simulation_depth=0.2,
         c_n_p_ratios=microbial_cnp_ratios,
     )
 
@@ -1201,7 +1350,7 @@ def pom_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=litter_soil_data_instance.grid.cell_area,
-            max_depth_microbial_activity=0.2,
+            microbial_simulation_depth=0.2,
             c_n_p_ratios=microbial_cnp_ratios,
         )
         for cell_id in litter_soil_data_instance.grid.cell_id
@@ -1218,7 +1367,7 @@ def bacteria_instance(litter_soil_data_instance, microbial_cnp_ratios):
         cell_id=0,
         data=litter_soil_data_instance,
         cell_area=litter_soil_data_instance.grid.cell_area,
-        max_depth_microbial_activity=0.2,
+        microbial_simulation_depth=0.2,
         c_n_p_ratios=microbial_cnp_ratios,
     )
 
@@ -1234,7 +1383,7 @@ def bacteria_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=litter_soil_data_instance.grid.cell_area,
-            max_depth_microbial_activity=0.2,
+            microbial_simulation_depth=0.2,
             c_n_p_ratios=microbial_cnp_ratios,
         )
         for cell_id in litter_soil_data_instance.grid.cell_id

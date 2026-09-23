@@ -4,6 +4,7 @@ from logging import ERROR
 
 import numpy as np
 import pytest
+from xarray import DataArray
 
 from tests.conftest import log_check
 
@@ -17,26 +18,108 @@ def test_determine_all_plant_to_litter_flows(
     from virtual_ecosystem.models.litter.inputs import LitterInputs
 
     expected_inputs = {
-        "leaves_meta_split": [0.8123565, 0.75097557, 0.46460743, 0.14485736],
-        "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
+        "leaf_meta_split": [0.81240302, 0.64019755, 0.42407771, 0.00894268],
+        "root_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
+        "subcanopy_veg_meta_split": [0.82815, 0.57, 0.0, 0.827026],
+        "subcanopy_seed_meta_split": [0.76, 0.32, 0.76081, 0.81028],
+        "herbivore_waste_above_meta_split": [
+            0.7638626,
+            0.7697267,
+            0.6327571,
+            0.6741623,
+        ],
+        "herbivore_waste_below_meta_split": [0.211658, 0.488244, 0.181836, 0.0],
         "woody": [0.0375, 0.0495, 0.0315, 0.0165],
-        "above_metabolic": [0.010979, 0.00090117, 0.00554044, 0.00225977],
-        "above_structural": [0.002536, 0.00029883, 0.00638456, 0.01334023],
-        "below_metabolic": [0.00794333, 0.0039855, 7.5365e-5, 0.005106055],
-        "below_structural": [0.00555667, 0.0065145, 7.4635e-5, 0.007343945],
-        "leaf_mass": [0.013515, 0.0012, 0.011925, 0.0156],
-        "root_mass": [0.0135, 0.0105, 0.00015, 0.01245],
-        "deadwood_mass": [0.0375, 0.0495, 0.0315, 0.0165],
-        "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
+        "above_metabolic": [0.01107071, 0.00109685, 0.00535451, 0.00168052],
+        "above_structural": [0.00255529, 0.00044964, 0.00657293, 0.01469813],
+        "below_metabolic": [0.00794558, 0.00425741, 0.00027294, 0.00510606],
+        "below_structural": [0.005565040, 0.006799504, 0.000963604, 0.007501166],
+        "leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
-        "leaf_nitrogen": [0.00090064935, 3.72256365e-5, 0.00030530780, 0.00032629252],
-        "root_nitrogen": [0.000445545, 0.000230263, 3.464203e-6, 0.000335580],
-        "deadwood_nitrogen": [0.00061779, 0.00085492, 0.00043092, 0.00029946],
-        "leaf_phosphorus": [3.260071e-5, 3.503399e-6, 2.319225e-5, 4.062491e-5],
-        "root_phosphorus": [2.0557332e-5, 2.3302264e-5, 3.4301395e-7, 3.3476741e-5],
-        "deadwood_phosphorus": [4.3782837e-5, 7.3289902e-5, 3.3754822e-5, 1.8564356e-5],
+        "subcanopy_veg_lignin": [0.05, 0.43, 0.84, 0.01],
+        "subcanopy_seed_lignin": [0.24, 0.68, 0.10, 0.014],
+        "herbivore_waste_above_lignin": [0.13, 0.08, 0.27, 0.22],
+        "herbivore_waste_below_lignin": [0.33, 0.089, 0.46, 0.35],
     }
+    # Some expected inputs are triplets so need to be stored as such
+    expected_inputs["leaf_mass"] = DataArray(
+        data=np.stack(
+            [
+                [0.0135, 0.00015, 0.0105, 0.01425],
+                [0.0009, 5.882353e-6, 0.0002436195, 0.000248258],
+                [3.253012e-5, 4.581549e-7, 1.893598e-5, 3.741140e-5],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_inputs["root_mass"] = DataArray(
+        data=np.stack(
+            [
+                [0.0135, 0.0105, 0.00015, 0.01245],
+                [0.000445545, 0.000230263, 3.464203e-6, 0.000335580],
+                [2.0557332e-5, 2.3302264e-5, 3.4301395e-7, 3.3476741e-5],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_inputs["deadwood_mass"] = DataArray(
+        data=np.stack(
+            [
+                [0.0375, 0.0495, 0.0315, 0.0165],
+                [0.00061779, 0.00085492, 0.00043092, 0.00029946],
+                [4.3782837e-5, 7.3289902e-5, 3.3754822e-5, 1.8564356e-5],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_inputs["subcanopy_veg_mass"] = DataArray(
+        data=np.stack(
+            [
+                [0.000109321, 0.000326914, 2.419753e-6, 0.000719259],
+                [4.0691358e-5, 2.1271605e-5, 8.4629630e-8, 7.3580247e-6],
+                [3.2666667e-7, 1.3919753e-6, 1.7549383e-9, 1.5530864e-6],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_inputs["subcanopy_seed_mass"] = DataArray(
+        data=np.stack(
+            [
+                [1.679012e-6, 1.956790e-5, 2.086420e-8, 5.938272e-5],
+                [3.666667e-6, 9.567901e-7, 1.456790e-9, 6.543210e-7],
+                [2.771605e-8, 1.043210e-7, 3.820988e-11, 5.728395e-8],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_inputs["herbivore_waste_above_mass"] = DataArray(
+        data=np.stack(
+            [
+                [1.5e-5, 0.00105, 0.001425, 0.00135],
+                [6.493210e-7, 3.134327e-5, 6.168833e-5, 7.803469e-5],
+                [7.058827e-8, 3.045241e-6, 4.256272e-6, 3.213519e-6],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_inputs["herbivore_waste_below_mass"] = DataArray(
+        data=np.stack(
+            [
+                [1.0617284e-5, 0.0005569136, 0.0010865432, 0.0001572222],
+                [3.64197531e-7, 2.79876543e-6, 1.77043210e-5, 3.28395062e-7],
+                [8.74691358e-9, 1.33919753e-6, 3.62753086e-6, 1.94327160e-6],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     litter_inputs = LitterInputs.create_from_data(
         data=dummy_litter_data, constants=fixture_litter_constants, update_interval=2.0
@@ -78,19 +161,92 @@ def test_combine_input_sources(dummy_litter_data):
     from virtual_ecosystem.models.litter.inputs import combine_input_sources
 
     expected_combined = {
-        "leaf_mass": [0.013515, 0.0012, 0.011925, 0.0156],
-        "root_mass": [0.0135, 0.0105, 0.00015, 0.01245],
-        "deadwood_mass": [0.0375, 0.0495, 0.0315, 0.0165],
-        "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
+        "leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
-        "leaf_nitrogen": [0.00090064935, 3.72256365e-5, 0.00030530780, 0.00032629252],
-        "root_nitrogen": [0.000445545, 0.000230263, 3.464203e-6, 0.000335580],
-        "deadwood_nitrogen": [0.00061779, 0.00085492, 0.00043092, 0.00029946],
-        "leaf_phosphorus": [3.260071e-5, 3.503399e-6, 2.319225e-5, 4.062491e-5],
-        "root_phosphorus": [2.0557332e-5, 2.3302264e-5, 3.4301395e-7, 3.3476741e-5],
-        "deadwood_phosphorus": [4.3782837e-5, 7.3289902e-5, 3.3754822e-5, 1.8564356e-5],
+        "subcanopy_veg_lignin": [0.05, 0.43, 0.84, 0.01],
+        "subcanopy_seed_lignin": [0.24, 0.68, 0.10, 0.014],
+        "herbivore_waste_above_lignin": [0.13, 0.08, 0.27, 0.22],
+        "herbivore_waste_below_lignin": [0.33, 0.089, 0.46, 0.35],
     }
+    # Some expected inputs are triplets so need to be stored as such
+    expected_combined["leaf_mass"] = DataArray(
+        data=np.stack(
+            [
+                [0.0135, 0.00015, 0.0105, 0.01425],
+                [0.0009, 5.882353e-6, 0.0002436195, 0.000248258],
+                [3.253012e-5, 4.581549e-7, 1.893598e-5, 3.741140e-5],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_combined["root_mass"] = DataArray(
+        data=np.stack(
+            [
+                [0.0135, 0.0105, 0.00015, 0.01245],
+                [0.000445545, 0.000230263, 3.464203e-6, 0.000335580],
+                [2.0557332e-5, 2.3302264e-5, 3.4301395e-7, 3.3476741e-5],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_combined["deadwood_mass"] = DataArray(
+        data=np.stack(
+            [
+                [0.0375, 0.0495, 0.0315, 0.0165],
+                [0.00061779, 0.00085492, 0.00043092, 0.00029946],
+                [4.3782837e-5, 7.3289902e-5, 3.3754822e-5, 1.8564356e-5],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_combined["subcanopy_veg_mass"] = DataArray(
+        data=np.stack(
+            [
+                [0.000109321, 0.000326914, 2.419753e-6, 0.000719259],
+                [4.0691358e-5, 2.1271605e-5, 8.4629630e-8, 7.3580247e-6],
+                [3.2666667e-7, 1.3919753e-6, 1.7549383e-9, 1.5530864e-6],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_combined["subcanopy_seed_mass"] = DataArray(
+        data=np.stack(
+            [
+                [1.679012e-6, 1.956790e-5, 2.086420e-8, 5.938272e-5],
+                [3.666667e-6, 9.567901e-7, 1.456790e-9, 6.543210e-7],
+                [2.771605e-8, 1.043210e-7, 3.820988e-11, 5.728395e-8],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_combined["herbivore_waste_above_mass"] = DataArray(
+        data=np.stack(
+            [
+                [1.5e-5, 0.00105, 0.001425, 0.00135],
+                [6.493210e-7, 3.134327e-5, 6.168833e-5, 7.803469e-5],
+                [7.058827e-8, 3.045241e-6, 4.256272e-6, 3.213519e-6],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
+    expected_combined["herbivore_waste_below_mass"] = DataArray(
+        data=np.stack(
+            [
+                [1.0617284e-5, 0.0005569136, 0.0010865432, 0.0001572222],
+                [3.64197531e-7, 2.79876543e-6, 1.77043210e-5, 3.28395062e-7],
+                [8.74691358e-9, 1.33919753e-6, 3.62753086e-6, 1.94327160e-6],
+            ],
+            axis=1,
+        ),
+        coords={"cell_id": dummy_litter_data["cell_id"], "element": ["C", "N", "P"]},
+    )
 
     actual_combined = combine_input_sources(dummy_litter_data, update_interval=2.0)
 
@@ -109,8 +265,17 @@ def test_calculate_metabolic_proportions_of_input(
     )
 
     expected_proportions = {
-        "leaves_meta_split": [0.8123565, 0.75097557, 0.46460743, 0.14485736],
-        "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
+        "leaf_meta_split": [0.81240302, 0.64019755, 0.42407771, 0.00894268],
+        "root_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
+        "subcanopy_veg_meta_split": [0.82815, 0.57, 0.0, 0.827026],
+        "subcanopy_seed_meta_split": [0.76, 0.32, 0.76081, 0.81028],
+        "herbivore_waste_above_meta_split": [
+            0.7638626,
+            0.7697267,
+            0.6327571,
+            0.6741623,
+        ],
+        "herbivore_waste_below_meta_split": [0.211658, 0.488244, 0.181836, 0.0],
     }
 
     actual_proportions = calculate_metabolic_proportions_of_input(
@@ -131,10 +296,10 @@ def test_partion_plant_inputs_between_pools(metabolic_splits, total_litter_input
 
     expected_inputs = {
         "woody": [0.0375, 0.0495, 0.0315, 0.0165],
-        "above_metabolic": [0.010979, 0.00090117, 0.00554044, 0.00225977],
-        "above_structural": [0.002536, 0.00029883, 0.00638456, 0.01334023],
-        "below_metabolic": [0.00794333, 0.0039855, 7.5365e-5, 0.005106055],
-        "below_structural": [0.00555667, 0.0065145, 7.4635e-5, 0.007343945],
+        "above_metabolic": [0.01107071, 0.00109685, 0.00535451, 0.00168052],
+        "above_structural": [0.00255529, 0.00044964, 0.00657293, 0.01469813],
+        "below_metabolic": [0.00794558, 0.00425741, 0.00027294, 0.00510606],
+        "below_structural": [0.005565040, 0.006799504, 0.000963604, 0.007501166],
     }
 
     actual_inputs = partion_plant_inputs_between_pools(
@@ -159,11 +324,12 @@ def test_split_pool_into_metabolic_and_structural_litter(
 
     expected_split = [0.812403025, 0.640197595, 0.424077745, 0.0089426731]
 
+    # Merge foliage turnover across PFTs
+    collapsed_foliage = dummy_litter_data["foliage_turnover_cnp"].sum(dim="pft")
+
     actual_split = split_pool_into_metabolic_and_structural_litter(
-        input_carbon=dummy_litter_data["foliage_turnover_cnp"].sel(element="C"),
+        input_masses=collapsed_foliage,
         lignin_proportion=dummy_litter_data["senesced_leaf_lignin"],
-        input_nitrogen=dummy_litter_data["foliage_turnover_cnp"].sel(element="N"),
-        input_phosphorus=dummy_litter_data["foliage_turnover_cnp"].sel(element="P"),
         max_metabolic_fraction=fixture_litter_constants.max_metabolic_fraction_of_input,
         split_sensitivity_nitrogen=fixture_litter_constants.metabolic_split_nitrogen_sensitivity,
         split_sensitivity_phosphorus=fixture_litter_constants.metabolic_split_phosphorus_sensitivity,
@@ -196,10 +362,8 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
 
     with pytest.raises(ValueError):
         split_pool_into_metabolic_and_structural_litter(
-            input_carbon=dummy_litter_data["foliage_turnover_cnp"].sel(element="C"),
+            input_masses=dummy_litter_data["foliage_turnover_cnp"],
             lignin_proportion=lignin_proportions,
-            input_nitrogen=dummy_litter_data["foliage_turnover_cnp"].sel(element="N"),
-            input_phosphorus=dummy_litter_data["foliage_turnover_cnp"].sel(element="P"),
             max_metabolic_fraction=fixture_litter_constants.max_metabolic_fraction_of_input,
             split_sensitivity_nitrogen=fixture_litter_constants.metabolic_split_nitrogen_sensitivity,
             split_sensitivity_phosphorus=fixture_litter_constants.metabolic_split_phosphorus_sensitivity,
@@ -211,50 +375,6 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
     log_check(caplog, expected_log)
 
 
-def test_merge_input_lignin_proportions(dummy_litter_data):
-    """Test that function to merge lignin proportions works as expected."""
-    from virtual_ecosystem.models.litter.inputs import merge_input_lignin_proportions
-
-    expected_proportions = [0.05008879, 0.10125, 0.29641509, 0.53971154]
-
-    actual_proportions = merge_input_lignin_proportions(
-        turnover_mass=dummy_litter_data["foliage_turnover_cnp"].sel(element="C"),
-        herbivory_waste_mass=dummy_litter_data["herbivory_waste_leaf_cnp"].sel(
-            element="C"
-        ),
-        total_mass=dummy_litter_data["foliage_turnover_cnp"].sel(element="C")
-        + dummy_litter_data["herbivory_waste_leaf_cnp"].sel(element="C"),
-        turnover_lignin_proportion=dummy_litter_data["senesced_leaf_lignin"],
-        herbivory_waste_lignin_proportion=dummy_litter_data[
-            "herbivory_waste_leaf_lignin"
-        ],
-    )
-    assert np.allclose(actual_proportions, expected_proportions)
-
-
-def test_average_nutrient_ratios(dummy_litter_data):
-    """Test that function to average nutrient ratios works as expected."""
-    from virtual_ecosystem.models.litter.inputs import average_nutrient_ratios
-
-    expected_proportions = [15.00583994, 32.23584906, 39.05894298, 47.80986065]
-
-    actual_proportions = average_nutrient_ratios(
-        mass_1=dummy_litter_data["foliage_turnover_cnp"].sel(element="C").to_numpy(),
-        mass_2=dummy_litter_data["herbivory_waste_leaf_cnp"]
-        .sel(element="C")
-        .to_numpy(),
-        nutrient_ratio_1=(
-            dummy_litter_data["foliage_turnover_cnp"].sel(element="C")
-            / dummy_litter_data["foliage_turnover_cnp"].sel(element="N")
-        ),
-        nutrient_ratio_2=(
-            dummy_litter_data["herbivory_waste_leaf_cnp"].sel(element="C")
-            / dummy_litter_data["herbivory_waste_leaf_cnp"].sel(element="N")
-        ),
-    )
-    assert np.allclose(actual_proportions, expected_proportions)
-
-
 def test_calculate_input_chemistries(fixture_litter_constants, litter_inputs):
     """Check that calculation of input chemistries is correct."""
     from dataclasses import asdict
@@ -263,57 +383,57 @@ def test_calculate_input_chemistries(fixture_litter_constants, litter_inputs):
 
     expected_chemistries = {
         "woody_lignin": [0.233, 0.545, 0.612, 0.378],
-        "above_structural_lignin": [0.26693592, 0.40658661, 0.55364065, 0.63113627],
-        "below_structural_lignin": [0.48590258, 0.56412613, 0.54265483, 0.67810978],
+        "above_structural_lignin": [0.26721770, 0.61244846, 0.53808343, 0.57337401],
+        "below_structural_lignin": [0.48580135, 0.54777011, 0.56071798, 0.67123270],
         "woody_nitrogen": [0.00061779, 0.00085492, 0.00043092, 0.00029946],
         "below_metabolic_nitrogen": [
-            0.000390860,
-            0.000173533,
-            2.891455e-6,
-            0.000260613,
+            0.00039106928,
+            0.00017584697,
+            1.22101206e-5,
+            0.00026061304,
         ],
         "below_structural_nitrogen": [
-            5.4684391e-5,
-            5.6729804e-5,
-            5.7268951e-7,
-            7.4966861e-5,
+            5.48399188e-5,
+            5.72148004e-5,
+            8.95840338e-6,
+            7.52953501e-5,
         ],
         "above_metabolic_nitrogen": [
-            0.00086087927,
-            3.49103455e-5,
-            0.00024812256,
-            0.00014962926,
+            0.000903400185,
+            5.401614415e-5,
+            0.000246857091,
+            8.956114055e-5,
         ],
         "above_structural_nitrogen": [
-            3.977028208e-5,
-            2.315269818e-6,
-            5.718511268e-5,
-            0.000176663005,
+            4.16071588e-5,
+            5.43787395e-6,
+            5.85368292e-5,
+            0.00024474387,
         ],
         "woody_phosphorus": [4.3782837e-5, 7.3289902e-5, 3.3754822e-5, 1.8564356e-5],
         "below_metabolic_phosphorus": [
-            1.80342047e-5,
-            1.75613001e-5,
-            2.86302286e-7,
-            2.59981913e-5,
+            1.80392188e-5,
+            1.86684102e-5,
+            2.19564468e-6,
+            2.59981984e-5,
         ],
         "below_structural_phosphorus": [
-            2.5231263e-6,
-            5.7409655e-6,
-            5.6705821e-8,
-            7.4785442e-6,
+            2.526860157e-6,
+            5.973051351e-6,
+            1.774900134e-6,
+            9.421814238e-6,
         ],
         "above_metabolic_phosphorus": [
-            3.11611524e-5,
-            3.28550094e-6,
-            1.88482594e-5,
-            1.86295285e-5,
+            3.150029145e-5,
+            4.567881729e-6,
+            1.870495925e-5,
+            6.090736920e-6,
         ],
         "above_structural_phosphorus": [
-            1.4395607e-6,
-            2.1789590e-7,
-            4.3439814e-6,
-            2.1995354e-5,
+            1.454799508e-6,
+            4.318104657e-7,
+            4.489085880e-6,
+            3.614455241e-5,
         ],
     }
 
@@ -340,8 +460,8 @@ def test_calculate_litter_input_lignin_concentrations(litter_inputs):
     )
 
     expected_woody = [0.233, 0.545, 0.612, 0.378]
-    expected_concs_above_struct = [0.26693592, 0.40658661, 0.55364065, 0.63113627]
-    expected_concs_below_struct = [0.48590258, 0.56412613, 0.54265483, 0.67810978]
+    expected_concs_above_struct = [0.26721770, 0.61244846, 0.53808343, 0.57337401]
+    expected_concs_below_struct = [0.48580135, 0.54777011, 0.56071798, 0.67123270]
 
     actual_concs = calculate_litter_input_lignin_concentrations(
         litter_inputs=litter_inputs,
@@ -367,28 +487,28 @@ def test_calculate_litter_input_nutrient_masses(
     expected_nutrient_masses = {
         "woody_nitrogen": [0.00061779, 0.00085492, 0.00043092, 0.00029946],
         "below_metabolic_nitrogen": [
-            0.000390860,
-            0.000173533,
-            2.891455e-6,
-            0.000260613,
+            0.00039106928,
+            0.00017584697,
+            1.22101206e-5,
+            0.00026061304,
         ],
         "below_structural_nitrogen": [
-            5.4684391e-5,
-            5.6729804e-5,
-            5.7268951e-7,
-            7.4966861e-5,
+            5.48399188e-5,
+            5.72148004e-5,
+            8.95840338e-6,
+            7.52953501e-5,
         ],
         "above_metabolic_nitrogen": [
-            0.00086087927,
-            3.49103455e-5,
-            0.00024812256,
-            0.00014962926,
+            0.000903400185,
+            5.401614415e-5,
+            0.000246857091,
+            8.956114055e-5,
         ],
         "above_structural_nitrogen": [
-            3.977028208e-5,
-            2.315269818e-6,
-            5.718511268e-5,
-            0.000176663005,
+            4.16071588e-5,
+            5.43787395e-6,
+            5.85368292e-5,
+            0.00024474387,
         ],
     }
 
@@ -439,7 +559,7 @@ def test_find_nutrient_split_between_litter_pools(
     actual_n_meta, actual_n_struct = find_nutrient_split_between_litter_pools(
         input_carbon_rate=dummy_litter_data["root_turnover_cnp"].sel(element="C"),
         input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].sel(element="N"),
-        metabolic_split=litter_inputs.roots_meta_split,
+        metabolic_split=litter_inputs.root_meta_split,
         meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
     )
 
@@ -457,12 +577,16 @@ def test_find_nutrient_split_between_litter_pools_bad_input(
     )
 
     # One carbon input is missing
-    input_carbon_rate = np.array([218.7, 0.0, 2.43, 201.69])
+    input_carbon_rate = DataArray([218.7, 0.0, 2.43, 201.69], dims="cell_id")
     # In one case all flow is to metabolic
-    metabolic_split = np.array([0.588394858, 0.379571377, 1.0, 0.410125012])
+    metabolic_split = DataArray(
+        [0.588394858, 0.379571377, 1.0, 0.410125012], dims="cell_id"
+    )
 
-    expected_n_meta = np.array([6.331932287, 0.0, 0.0561200192, 4.22192613])
-    expected_n_struct = np.array([0.8858875316, 0.0, 0.0, 1.214462735])
+    expected_n_meta = DataArray(
+        [6.331932287, 0.0, 0.0561200192, 4.22192613], dims="cell_id"
+    )
+    expected_n_struct = DataArray([0.8858875316, 0.0, 0.0, 1.214462735], dims="cell_id")
 
     actual_n_meta, actual_n_struct = find_nutrient_split_between_litter_pools(
         input_carbon_rate=input_carbon_rate,
@@ -487,9 +611,9 @@ def test_calculate_nutrient_split(
 
     actual_n_meta, actual_n_struct = calculate_nutrient_split(
         carbon_input_meta=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
-        * litter_inputs.roots_meta_split,
+        * litter_inputs.root_meta_split,
         carbon_input_struct=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
-        * (1 - litter_inputs.roots_meta_split),
+        * (1 - litter_inputs.root_meta_split),
         input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
         meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
     )

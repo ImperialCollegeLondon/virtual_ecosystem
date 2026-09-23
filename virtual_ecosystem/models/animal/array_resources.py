@@ -96,6 +96,10 @@ class ArrayResourceDefinition:
     resource to consumers."""
     diet_type: DietType
     """A definition of the diet type that can forage from this resource."""
+    lignin_array: str | None = None
+    """The name of an existing array in the Data object that records the lignin content
+    of the corresponding array resource (providing this is optional as many resources do
+    not contain lignin)."""
     partition_by_pft: bool = False
     """Is the pool array partitioned along the plant functional type axis."""
     density: bool = False
@@ -137,6 +141,10 @@ class ArrayResource:
         """A DietType enum value indicating the dietary availability of the resource to
         consumers."""
 
+        self.lignin_array: str | None = definition.lignin_array
+        """The name of an existing array in the Data object that records the lignin
+        content of the corresponding array resource (providing this is optional as many
+        resources do not contain lignin)."""
         self.partition_by_pft: bool = definition.partition_by_pft
         """Should this resource array be partitioned into separate resource pools by
         PFT."""
@@ -145,17 +153,29 @@ class ArrayResource:
         self.data: Data = data
         """The data instance containing array resources."""
 
-        # Validate the array names
+        # Validate the pool array name
         if self.pool_array not in data:
             raise ValueError(f"Array resource not found: {self.pool_array}")
 
-        if self.consumed_array in data:
-            raise ValueError(
-                f"Resource consumption array already exists: {self.consumed_array}"
-            )
+        # Create the consumption pool array if not handled elsewhere.
+        if self.consumed_array not in data:
+            # Create the consumption array in data
+            self.data[self.consumed_array] = xr.zeros_like(self.data[self.pool_array])
+            return
 
-        # Create the consumption array in data
-        self.data[self.consumed_array] = xr.zeros_like(self.data[self.pool_array])
+        # Otherwise, since the consumption pool exists in data, double check the array
+        # dimensions are congruent. Using xr.equal with xr.zeros_like here to test the
+        # equality of the dimension coordinates without asserting that the values are
+        # equal.
+        if self.consumed_array in data and not (
+            xr.zeros_like(data[self.pool_array]).equals(
+                xr.zeros_like(data[self.consumed_array])
+            )
+        ):
+            raise ValueError(
+                f"Resource consumption array dimensions ({self.consumed_array}) "
+                f"do not match resource pool array ({self.pool_array})."
+            )
 
     def get_pools(self, data: Data) -> list[ResourcePool]:
         """Return a list of resource pools from an ArrayResource.
@@ -168,9 +188,17 @@ class ArrayResource:
             data: A data object containing resource arrays.
         """
         if self.partition_by_pft:
+            # Check the pool array has PFT coordinates
+            pfts = data[self.pool_array].coords.get("pft")
+            if pfts is None:
+                raise ValueError(
+                    f"ArrayResource for {self.pool_array} cannot be partitioned by PFT."
+                )
+
+            # Return a resource for each PFT
             return [
                 ResourcePool(data=data, resource=self, pft=pft, density=self.density)
-                for pft in data["pft"].to_numpy()
+                for pft in pfts.to_numpy()
             ]
 
         return [ResourcePool(data=data, resource=self, pft=None, density=self.density)]
@@ -182,12 +210,54 @@ ARRAY_RESOURCES = [
         consumed_array="subcanopy_vegetation_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.FOLIAGE,
+        # TODO - Currently subcanopy lignin is just a constant, so using this array
+        # works, if lignin becomes more dynamic, this will have to be revisited
+        lignin_array="subcanopy_vegetation_litter_lignin",
     ),
     ArrayResourceDefinition(
         pool_array="subcanopy_seedbank_cnp",
         consumed_array="subcanopy_seedbank_cnp_consumed",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.SEEDS,
+        # TODO - Currently subcanopy lignin is just a constant, so using this array
+        # works, if lignin becomes more dynamic, this will have to be revisited
+        lignin_array="subcanopy_seedbank_litter_lignin",
+    ),
+    ArrayResourceDefinition(
+        pool_array="canopy_foliage_cnp",
+        consumed_array="canopy_foliage_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.CANOPY,
+        diet_type=DietType.FOLIAGE,
+        partition_by_pft=True,
+        lignin_array="senesced_leaf_lignin",
+    ),
+    ArrayResourceDefinition(
+        pool_array="canopy_seed_cnp",
+        consumed_array="canopy_seed_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.CANOPY,
+        diet_type=DietType.SEEDS,
+        partition_by_pft=True,
+    ),
+    ArrayResourceDefinition(
+        pool_array="canopy_fruit_cnp",
+        consumed_array="canopy_fruit_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.CANOPY,
+        diet_type=DietType.FRUIT,
+        partition_by_pft=True,
+    ),
+    ArrayResourceDefinition(
+        pool_array="fallen_seeds_cnp",
+        consumed_array="fallen_seeds_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.GROUND,
+        diet_type=DietType.SEEDS,
+        partition_by_pft=True,
+    ),
+    ArrayResourceDefinition(
+        pool_array="fallen_fruit_cnp",
+        consumed_array="fallen_fruit_cnp_consumed",
+        vertical_occupancy=VerticalOccupancy.GROUND,
+        diet_type=DietType.FRUIT,
+        partition_by_pft=True,
     ),
     ArrayResourceDefinition(
         pool_array="litter_pool_above_metabolic_cnp",
@@ -201,6 +271,7 @@ ARRAY_RESOURCES = [
         consumed_array="litter_consumed_above_structural_cnp",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.DETRITUS,
+        lignin_array="lignin_above_structural",
         density=True,
     ),
     ArrayResourceDefinition(
@@ -208,6 +279,7 @@ ARRAY_RESOURCES = [
         consumed_array="litter_consumed_woody_cnp",
         vertical_occupancy=VerticalOccupancy.GROUND,
         diet_type=DietType.DETRITUS,
+        lignin_array="lignin_woody",
         density=True,
     ),
     ArrayResourceDefinition(
@@ -222,6 +294,14 @@ ARRAY_RESOURCES = [
         consumed_array="litter_consumed_below_structural_cnp",
         vertical_occupancy=VerticalOccupancy.SOIL,
         diet_type=DietType.DETRITUS,
+        lignin_array="lignin_below_structural",
+        density=True,
+    ),
+    ArrayResourceDefinition(
+        pool_array="fungal_fruiting_bodies_cnp",
+        consumed_array="fungal_fruiting_bodies_consumed_cnp",
+        vertical_occupancy=VerticalOccupancy.SOIL | VerticalOccupancy.GROUND,
+        diet_type=DietType.MUSHROOMS,
         density=True,
     ),
 ]
@@ -266,6 +346,8 @@ class ResourcePool:
         """An array of biomasses of individual elements by cell_id."""
         self.consumed_mass: NDArray[np.floating]
         """An array of total consumed biomass by cell_id."""
+        self.lignin_proportion: NDArray[np.floating] | None = None
+        """An array of lignin proportions by cell_id (optional)."""
 
         # Populate the initial state of the resources.
         self.set_resources()
@@ -277,12 +359,14 @@ class ResourcePool:
         the local array tracking consumed total biomass.
         """
 
-        # Needs to collapse down to a single mass and element ratio per cell and to
-        # convert to mass units in the density case
-        if self.density:
-            mass_data = self.data[self.resource.pool_array] * self.data.grid.cell_area
+        # Needs to collapse down to a single mass and element ratio per cell
+        mass_data = self.data[self.resource.pool_array]
+
+        # If a lignin array is provided save it it should be populated
+        if self.resource.lignin_array:
+            self.lignin_proportion = self.data[self.resource.lignin_array].to_numpy()
         else:
-            mass_data = self.data[self.resource.pool_array]
+            self.lignin_proportion = None
 
         # Reduce to the PFT if needed
         # TODO - think about indexing here with a more general solution.
@@ -290,7 +374,11 @@ class ResourcePool:
             mass_data = mass_data.sel(pft=self.pft)
 
         # Store elemental biomasses per cell values into array attributes
-        self.elemental_masses = mass_data.to_numpy()
+        if self.density:
+            # in the density case need to convert to mass units
+            self.elemental_masses = mass_data.to_numpy() * self.data.grid.cell_area
+        else:
+            self.elemental_masses = mass_data.to_numpy()
 
         # Create a per cell array to track _total_ consumed biomass
         self.consumed_total_mass = np.zeros(self.data.grid.n_cells)
@@ -308,7 +396,7 @@ class ResourcePool:
         if self.pft is None:
             self.data[self.resource.consumed_array][:] = consumed_elemental_masses
         else:
-            self.data[self.resource.consumed_array].loc[:, :, self.pft] = (
+            self.data[self.resource.consumed_array].loc[:, self.pft, :] = (
                 consumed_elemental_masses
             )
 
@@ -344,6 +432,9 @@ class ResourcePool:
             available_elemental_masses=self.elemental_masses[cell_id],
             consumed_total_mass=self.consumed_total_mass,
             vertical_occupancy=self.resource.vertical_occupancy,
+            lignin_proportion=self.lignin_proportion[cell_id]
+            if self.lignin_proportion is not None
+            else 0.0,
             cell_id=cell_id,
         )
 
@@ -370,6 +461,8 @@ class CellResource(Resource):
         vertical_occupancy: A VerticalOccupancy enum value indicating the vertical
             availability of the resource to consumers.
         cell_id: The cell_id being targeted by this resource.
+        lignin_proportion: The lignin proportion of the array resource
+            [kg{lignin C} kg{C}^-1]
         consumed_total_mass: A reference to the spatially structured array of consumed
             total biomass in the parent ResourcePool.
     """
@@ -380,6 +473,7 @@ class CellResource(Resource):
         available_elemental_masses: NDArray[np.floating],
         consumed_total_mass: NDArray[np.floating],
         vertical_occupancy: VerticalOccupancy,
+        lignin_proportion: float,
         cell_id: int,
     ):
         self.resource = resource
@@ -388,6 +482,7 @@ class CellResource(Resource):
         self.elemental_mass_ratios = available_elemental_masses / self._mass_current
         self.consumed_total_mass = consumed_total_mass
         self.vertical_occupancy = vertical_occupancy
+        self.lignin_proportion = lignin_proportion
         self.cell_id = cell_id
 
     @property
@@ -397,7 +492,13 @@ class CellResource(Resource):
         return self._mass_current
 
     def get_eaten(self, consumed_mass, consumer):
-        """The get_eaten method for the PlantResource."""
+        """The get_eaten method for the PlantResource.
+
+        Returns:
+            A tuple where the first entry is the amount of CNP the animal ingests, the
+            second entry is the amount animal losses to mechanical loss, and the third
+            entry is the lignin proportion of the resource pool.
+        """
 
         # Constrain by available mass.
         actual = min(self._mass_current, consumed_mass)
@@ -405,7 +506,7 @@ class CellResource(Resource):
         # Handle zero or invalid request fast.
         if actual <= 0:
             zero = dict(C=0, N=0, P=0)
-            return zero, zero
+            return zero, zero, 0.0
 
         # Remove from the pool (this also refreshes CNP split).
         self._mass_current -= actual
@@ -422,4 +523,4 @@ class CellResource(Resource):
         consumed_cnp = dict(zip(["C", "N", "P"], self.elemental_mass_ratios * ingested))
         waste_cnp = dict(zip(["C", "N", "P"], self.elemental_mass_ratios * waste))
 
-        return consumed_cnp, waste_cnp
+        return (consumed_cnp, waste_cnp, self.lignin_proportion)

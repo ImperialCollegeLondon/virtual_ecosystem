@@ -7,7 +7,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.1
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -171,7 +171,7 @@ GitHub.
 
 In summary:
 
-- We only commit notebooks in MyST Markdown format
+- We _generally_ only commit notebooks in MyST Markdown format
 - Notebooks should use the `python3` kernel.
 - GitHub will render the markdown and code cells correctly but none of the executed
   outputs will be shown.
@@ -182,6 +182,14 @@ In summary:
   documentation.
 - The code in notebooks should not take a long time to run - these pages have to be
   built every time the documentation is built.
+
+The exception to using MyST is where the execution time of a notebook is long - for
+example when running models. This can substantially increase the build time of
+documentation (both locally and on ReadTheDocs) and so it is sometimes preferable to use
+`.ipynb` outputs because they internally cache the outputs. Although there is a caching
+mode for the `mystnb` execution that runs notebooks (`execution_mode = cache`), the
+caching is done using a database pointing to `ipynb` files containing the outputs, so
+is very similar to simply saving `ipynb` in the first place.
 
 ## Notebook quality checking
 

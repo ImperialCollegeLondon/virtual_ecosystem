@@ -12,7 +12,6 @@ from scipy.special import expit
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
-from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.soil.model_config import SoilConstants
 
 
@@ -95,9 +94,10 @@ def calculate_temperature_effect_on_microbes(
     handle these conversions in general.
 
     Args:
-        soil_temperature: The temperature of the soil [C]
+        soil_temperature: The temperature of the soil [Celsius]
         activation_energy: Energy of activation [J mol^-1]
-        reference_temperature: The reference temperature of the Arrhenius equation [C]
+        reference_temperature: The reference temperature of the Arrhenius equation
+            [Celsius]
 
     Returns:
         A multiplicative factor capturing the effect of temperature on microbial rates
@@ -125,8 +125,15 @@ def calculate_water_potential_impact_on_microbes(
 ) -> NDArray[np.floating]:
     """Calculate the effect that soil water potential has on microbial rates.
 
-    This function only returns valid output for soil water potentials that are less than
-    the optimal water potential.
+    This function produces values of one (i.e. no suppression due to soil water) when
+    soil water potentials that are greater than the optimal water potential. Below the
+    water potential at which microbial activity ceases suppression is (by definition)
+    total, so values of zero are produced.
+
+    The microbial rates effected by the function can be explicit rates (used in the soil
+    model), or implicit rates (i.e. the decay rates of below ground litter pools). In
+    both cases the same functional response is used (which is taken from
+    :cite:t:`moyano_responses_2013`).
 
     Args:
         water_potential: Soil water potential [kPa]
@@ -141,20 +148,18 @@ def calculate_water_potential_impact_on_microbes(
         decomposition [unitless]
     """
 
-    # If the water potential is greater than the optimal then the function produces NaNs
-    # so the simulation should be interrupted
-    if np.any(water_potential > water_potential_opt):
-        err = ValueError("Water potential greater than minimum value")
-        LOGGER.critical(err)
-        raise err
-
     # Calculate how much moisture suppresses microbial activity
     suppression = (
         (np.log10(-water_potential) - np.log10(-water_potential_opt))
         / (np.log10(-water_potential_halt) - np.log10(-water_potential_opt))
     ) ** response_curvature
 
-    return 1 - suppression
+    # Above optimum no suppression, and below halting threshold suppression is total
+    return np.where(
+        water_potential > water_potential_opt,
+        1,
+        (np.where(water_potential < water_potential_halt, 0, 1 - suppression)),
+    )
 
 
 def calculate_pH_suitability(
@@ -182,18 +187,6 @@ def calculate_pH_suitability(
     Returns:
         A multiplicative factor capturing the effect of pH on microbial rates
     """
-
-    # TODO - This check is necessary to prevent nonsensical output being generated,
-    # however it could be done when constants are loaded, rather than for every function
-    # call
-    if (
-        maximum_pH <= upper_optimum_pH
-        or upper_optimum_pH <= lower_optimum_pH
-        or lower_optimum_pH <= minimum_pH
-    ):
-        to_raise = ValueError("At least one pH threshold has an invalid value!")
-        LOGGER.error(to_raise)
-        raise to_raise
 
     pH_factors = np.full(len(soil_pH), np.nan)
 
@@ -255,10 +248,10 @@ def calculate_nitrification_temperature_factor(
     Form of this function is taken from :cite:t:`xu-ri_terrestrial_2008`.
 
     Args:
-        soil_temp: Temperature of the relevant segment of soil [C]
-        optimum_temp: Temperature at which nitrification is maximised [K]
+        soil_temp: Temperature of the relevant segment of soil [Celsius]
+        optimum_temp: Temperature at which nitrification is maximised [Kelvin]
         max_temp: Maximum temperature for which this expression still gives a meaningful
-            result [K]
+            result [Kelvin]
         thermal_sensitivity: Sensitivity of the factor to changes in temperature
             [unitless]
 
@@ -311,11 +304,13 @@ def calculate_denitrification_temperature_factor(
     :cite:t:`xu-ri_terrestrial_2008`.
 
     Args:
-        soil_temp: Temperature of the relevant segment of soil [C]
+        soil_temp: Temperature of the relevant segment of soil [Celsius]
         factor_at_infinity: Value of temperature factor at infinite temperature
             [unitless]
-        minimum_temp: Minimum temperature at which denitrification can still happen [K]
-        thermal_sensitivity: Sensitivity of the factor to changes in temperature [K]
+        minimum_temp: Minimum temperature at which denitrification can still happen
+            [Kelvin]
+        thermal_sensitivity: Sensitivity of the factor to changes in temperature
+            [Kelvin]
 
     Returns:
         A factor capturing the impact of soil temperature on the denitrification rate
@@ -353,19 +348,20 @@ def calculate_symbiotic_nitrogen_fixation_carbon_cost(
     Kelvin units so this is the only function in the soil model to use Celsius units.
 
     Args:
-        soil_temp: Temperature of the relevant soil zone [C]
-        cost_at_zero_celsius: The cost nitrogen fixation at zero Celsius [kg C kg N^-1]
+        soil_temp: Temperature of the relevant soil zone [Celsius]
+        cost_at_zero_celsius: The cost nitrogen fixation at zero Celsius
+            [kg{C} kg{N}^-1]
         infinite_temp_cost_offset: The difference between the nitrogen fixation cost at
             zero Celsius and the cost that it tends towards at very high temperatures
-            [kg C kg N^-1]
+            [kg{C} kg{N}^-1]
         thermal_sensitivity: Sensitivity of nitrogen fixation cost to changes in
-            temperature [C^-1]
+            temperature [Celsius^-1]
         cost_equality_temp: Temperature (positive) at which the nitrogen fixation cost
-            is the same as it is at zero Celsius [C]
+            is the same as it is at zero Celsius [Celsius]
 
     Returns:
         The carbon cost that plants have to pay their microbial symbionts to fix per
-        unit of nitrogen fixed [kg C kg N^-1]
+        unit of nitrogen fixed [kg{C} kg{N}^-1]
     """
 
     return np.where(
@@ -400,7 +396,7 @@ def calculate_solute_removal_by_soil_water(
     to soil moisture in mm.
 
     Args:
-        solute_density: The density of the solute in the soil [kg solute m^-3]
+        solute_density: The density of the solute in the soil [kg{solute} m^-3]
         exit_rate: Rate at which water exits the microbially active portion of the soil
             [mm day^-1]
         soil_moisture: Volume of water contained in topsoil layer [mm]
@@ -409,10 +405,14 @@ def calculate_solute_removal_by_soil_water(
 
     Returns:
         The rate at which the solute in question is removed from the soil by the flow of
-        water [kg solute m^-3 day^-1]
+        water [kg{solute} m^-3 day^-1]
     """
 
-    return solubility_coefficient * solute_density * exit_rate / soil_moisture
+    return np.where(
+        solute_density >= 0,
+        solubility_coefficient * solute_density * exit_rate / soil_moisture,
+        0,
+    )
 
 
 def calculate_carbon_use_efficiency(
@@ -426,15 +426,13 @@ def calculate_carbon_use_efficiency(
     We model the carbon use efficiency using a logistic function. This is to ensure that
     carbon use efficiency values remain bounded between zero and one.
 
-    TODO - This should be adapted to use an Arrhenius function at some point.
-
     Args:
-        soil_temp: soil temperature for each soil grid cell [degrees C]
+        soil_temp: soil temperature for each soil grid cell [Celsius]
         reference_cue_logit: Logit of the carbon use efficiency at reference temp
             [unitless]
-        cue_reference_temp: Reference temperature [degrees C]
+        cue_reference_temp: Reference temperature [Celsius]
         logit_cue_with_temp: Rate of change in the logit of carbon use efficiency with
-            increasing temperature [degree C^-1]
+            increasing temperature [Celsius^-1]
 
     Returns:
         The carbon use efficiency (CUE) of the microbial community
@@ -445,24 +443,26 @@ def calculate_carbon_use_efficiency(
     )
 
 
-def find_total_soil_moisture_for_microbially_active_depth(
+def find_total_soil_moisture_for_simulation_depth(
     soil_moistures: DataArray,
     layer_structure: LayerStructure,
 ) -> NDArray[np.floating]:
-    """Find total soil moisture for the microbially active depth.
+    """Find total soil moisture for the simulated zone.
 
-    The proportion of each soil layer that lies within the microbially active zone is
-    first found. The soil moisture for each layer is then multiplied by this proportion
-    and summed, to find the total soil moisture in the microbially active zone.
+    The proportion of each soil layer that lies within the zone simulated in the
+    soil-microbial model is first found. The soil moisture for each layer is then
+    multiplied by this proportion and summed, to find the total soil moisture in the
+    microbially active zone.
 
     Args:
         soil_moistures: Soil moistures across all soil layers [mm]
         layer_structure: The LayerStructure instance for the simulation. From this we
            use the thickness of each layer, as well as `soil_layer_active_thickness`
-           which is how much of each layer lies within the microbially active zone
+           which is how much of each layer lies within the soil-microbial simulation
+           zone
 
     Returns:
-        The total soil moisture in the microbially active depth [mm]
+        The total soil moisture for the biologically active topsoil [mm]
     """
 
     # Find the fraction of each layer that lies within the microbially active zone

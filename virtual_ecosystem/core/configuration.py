@@ -25,6 +25,7 @@ from pydantic import (
     DirectoryPath,
     Field,
     FilePath,
+    ValidationInfo,
     model_validator,
 )
 from pydantic._internal._model_construction import ModelMetaclass
@@ -41,17 +42,37 @@ RST_TO_MD = [
 """Tags to replace when converting RST descriptions of fields to Markdown."""
 
 
-def placeholder_validator(path: str) -> str:
-    """Check for path placeholders.
+def placeholder_validator(path: str, info: ValidationInfo) -> str:
+    """Check for path placeholders and handle path substutition.
 
     This custom validator rejects ``<FILEPATH_PLACEHOLDER>`` and
-    ``<DIRPATH_PLACEHOLDER>``  values when loading file paths.
+    ``<DIRPATH_PLACEHOLDER>``  values when loading file paths. It also looks for file or
+    directory pathways defined using markers ('$MARKER_NAME') and substitutes in paths
+    defined through the ``cli_paths`` argument to ``ve_run``. When ``cli_paths`` are
+    provided, the ``info.context`` dictionary passed down to this validator should
+    contain a ``cli_paths`` dictionary mapping marker names to paths.
 
     Args:
         path: A field path value to validate.
+        info: A ValidationInfo instance providing context.
     """
     if path in ("<FILEPATH_PLACEHOLDER>", "<DIRPATH_PLACEHOLDER>"):
         raise ValueError("Path placeholder value in configuration.")
+
+    if str(path).startswith("$"):
+        # Get the path marker to be used with subsitition
+        marker = path[1:]
+
+        # Is the marker defined in the validation context?
+        if info.context is not None and "cli_paths" in info.context:
+            context_path = info.context["cli_paths"].get(marker)
+        else:
+            context_path = None
+
+        if context_path is None:
+            raise ValueError(f"Undefined path marker: {path!s}")
+
+        path = context_path
 
     return path
 

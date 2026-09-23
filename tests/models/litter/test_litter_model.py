@@ -1,6 +1,6 @@
 """Test module for litter_model.py."""
 
-from logging import DEBUG, ERROR, INFO
+from logging import ERROR, INFO
 
 import numpy as np
 import pytest
@@ -9,28 +9,15 @@ from xarray import DataArray
 from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import InitialisationError
 
-
-def litter_required_for_init():
-    """Helper function to simplify expected log messages."""
-    from virtual_ecosystem.models.litter.litter_model import LitterModel
-
-    return LitterModel.vars_required_for_init
-
-
 # Define expected init log messages for all data present and no data present
-LITTER_INIT_CHECKS = tuple(
-    (DEBUG, f"litter model: required var '{v}' checked")
-    for v in litter_required_for_init()
-)
+LITTER_INIT_CHECKS = ((INFO, "litter model: required initial data variables checked"),)
 
-LITTER_ERROR_CHECKS = tuple(
+LITTER_ERROR_CHECKS = (
     (
-        *(
-            (ERROR, f"litter model: init data missing required var '{v}'")
-            for v in litter_required_for_init()
-        ),
-        (ERROR, "litter model: error checking vars_required_for_init, see log."),
-    )
+        ERROR,
+        "litter model: input data is missing required initialisation variables:",
+    ),
+    (ERROR, "litter model: Problems with initial model data: check log."),
 )
 
 
@@ -81,8 +68,9 @@ def test_litter_model_initialization_no_data(
             model_constants=fixture_litter_constants,
         )
 
-    # Final check that expected logging entries are produced
-    log_check(caplog, expected_log=LITTER_ERROR_CHECKS)
+    # Final check that expected logging entries are produced, do not match list of
+    # missing variables.
+    log_check(caplog, expected_log=LITTER_ERROR_CHECKS, match_message_start=False)
 
 
 @pytest.mark.parametrize(
@@ -203,17 +191,17 @@ def test_update(fixture_litter_model, dummy_litter_data):
     expected_output = {
         "litter_pool_above_metabolic_cnp": np.stack(
             [
-                [0.31274778, 0.14733378, 0.07884319, 0.07237949],
-                [0.04155601, 0.01679779, 0.00720536, 0.00722372],
-                [0.0051371875, 0.0021249325, 0.0007146426, 0.0007456092],
+                [0.31292847, 0.1477193, 0.07847686, 0.0712382],
+                [0.04164068, 0.01683533, 0.00720338, 0.00710534],
+                [0.00513782, 0.00212742, 0.00071441, 0.00072071],
             ],
             axis=1,
         ),
         "litter_pool_above_structural_cnp": np.stack(
             [
-                [0.50473556, 0.24936209, 0.10274537, 0.11665499],
-                [0.01340387, 0.00576308, 0.00207896, 0.00214561],
-                [0.0014833637, 0.0005261425, 0.0002250811, 0.0002017854],
+                [0.50477412, 0.24966296, 0.10312207, 0.11937046],
+                [0.01340754, 0.0057693, 0.00208167, 0.00228176],
+                [0.00148339, 0.00052657, 0.00022537, 0.00023009],
             ],
             axis=1,
         ),
@@ -227,28 +215,28 @@ def test_update(fixture_litter_model, dummy_litter_data):
         ),
         "litter_pool_below_metabolic_cnp": np.stack(
             [
-                [0.39768414, 0.36316585, 0.06791351, 0.07781341],
-                [0.036463742, 0.031780242, 0.004463859, 0.005972943],
-                [0.00126489842, 0.00089871328, 0.00021555604, 0.00021591806],
+                [0.394195110, 0.360846619, 6.78683678e-2, 7.73492666e-2],
+                [3.61376291e-2, 3.15314967e-2, 4.45356676e-3, 5.93552033e-3],
+                [1.25366441e-3, 8.93966587e-4, 2.17977846e-4, 2.14792580e-4],
             ],
             axis=1,
         ),
         "litter_pool_below_structural_cnp": np.stack(
             [
-                [0.6105005, 0.32204064, 0.02014513, 0.03468225],
-                [0.01197838, 0.00567122, 0.00027473, 0.00047664],
-                [0.0010938513, 0.0005303060, 2.5977932e-5, 4.5660957e-5],
+                [0.610396463, 0.322415022, 2.19220318e-2, 3.49955399e-2],
+                [1.19762954e-2, 5.66867087e-3, 2.91491989e-4, 4.77275553e-4],
+                [1.09364254e-3, 5.30437838e-4, 2.94129841e-5, 4.95457779e-5],
             ],
             axis=1,
         ),
-        "lignin_above_structural": [0.49765798, 0.10073481, 0.68181057, 0.68425001],
+        "lignin_above_structural": [0.4976432, 0.10184581, 0.6793591, 0.668817],
         "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
-        "lignin_below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
+        "lignin_below_structural": [0.49974109, 0.26255952, 0.73335986, 0.71623308],
         "litter_mineralisation_rate_cnp": np.stack(
             [
-                [0.0266645, 0.02019299, 0.00756695, 0.00762047],
-                [0.006003, 0.00375757, 0.00087354, 0.00093259],
-                [4.46372e-4, 2.12047e-4, 6.6561e-5, 6.70468e-5],
+                [2.99198581e-2, 2.29518518e-2, 7.95921530e-3, 8.02408774e-3],
+                [6.66152878e-3, 4.27272441e-3, 9.30408434e-4, 1.00398052e-3],
+                [4.69393910e-4, 2.26798263e-4, 6.92470563e-5, 6.89424851e-5],
             ],
             axis=1,
         ),

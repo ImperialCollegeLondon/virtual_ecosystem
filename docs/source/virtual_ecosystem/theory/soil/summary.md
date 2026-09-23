@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.1
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -53,6 +53,17 @@ community](./microbial_representation.md), which is the main driver of decomposi
 soils. Explicitly represented microbes presents major data challenges, as soils are
 generally poorly characterised compared to the other constituent parts of terrestrial
 ecosystems.
+
+:::{important}
+
+The soil model is a topsoil model, and does not represent subsoil processes. Our
+justification for doing this is that the topsoil is far more microbially active, so the
+majority of changes in total soil carbon storage are due to changes in this layer. While
+changes in subsoil absolutely do affect total soil carbon storage, we did not believe
+that the size of the effect would justify the the additional modelling complexity it
+would entail.
+
+:::
 
 Most processes in the soil are affected by both the environmental temperature and the
 soil moisture. Our model includes various response functions that capture these known

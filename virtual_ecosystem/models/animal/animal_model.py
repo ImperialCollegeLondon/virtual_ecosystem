@@ -23,14 +23,16 @@ from __future__ import annotations
 
 import uuid
 from itertools import chain
-from math import ceil, sqrt
+from math import ceil
 from random import choice
 from typing import Any, cast
 
 from numpy import (
     array,
+    asarray,
     float32,
     isnan,
+    maximum,
     nanmean,
     random,
     stack,
@@ -47,6 +49,7 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration
+from virtual_ecosystem.models.animal.animal_climate import StratumClimate
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import (
     DevelopmentType,
@@ -63,11 +66,13 @@ from virtual_ecosystem.models.animal.cnp import CNP, find_microbial_stoichiometr
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
-    FungalFruitPool,
     HerbivoryWaste,
     SoilPool,
 )
-from virtual_ecosystem.models.animal.exporter import AnimalCohortDataExporter
+from virtual_ecosystem.models.animal.exporter import (
+    AnimalCohortDataExporter,
+    ResourcePoolDataExporter,
+)
 from virtual_ecosystem.models.animal.functional_group import (
     FunctionalGroup,
     get_functional_group_by_name,
@@ -79,9 +84,13 @@ from virtual_ecosystem.models.animal.model_config import (
 )
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
-    damuths_law,
-    madingley_individuals_density,
+    biomass_density_to_individuals,
+    cells_within_distance,
+    heterotroph_normalization_factor,
     prey_group_selection,
+    raw_biomass_density_kg_m2,
+    stratum_mean_climate,
+    thermal_suitability,
 )
 
 
@@ -89,17 +98,40 @@ class AnimalModel(
     BaseModel,
     model_name="animal",
     model_update_bounds=("1 day", "1 month"),
-    vars_required_for_init=("fungal_fruiting_bodies",),
+    vars_required_for_init=(
+        "subcanopy_vegetation_cnp",
+        "subcanopy_seedbank_cnp",
+        "canopy_foliage_cnp",
+        "canopy_seed_cnp",
+        "canopy_fruit_cnp",
+        "fallen_seeds_cnp",
+        "fallen_fruit_cnp",
+        "litter_pool_above_metabolic_cnp",
+        "litter_pool_above_structural_cnp",
+        "litter_pool_woody_cnp",
+        "litter_pool_below_metabolic_cnp",
+        "litter_pool_below_structural_cnp",
+        "fungal_fruiting_bodies_cnp",
+        "subcanopy_vegetation_cnp_consumed",
+        "subcanopy_seedbank_cnp_consumed",
+        "canopy_foliage_cnp_consumed",
+        "canopy_seed_cnp_consumed",
+        "canopy_fruit_cnp_consumed",
+        "fallen_seeds_cnp_consumed",
+        "fallen_fruit_cnp_consumed",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_litter_lignin",
+        "senesced_leaf_lignin",
+    ),
     vars_populated_by_init=(
         "total_animal_respiration",
         "population_densities",
-        "subcanopy_vegetation_cnp_consumed",
-        "subcanopy_seedbank_cnp_consumed",
         "litter_consumed_above_metabolic_cnp",
         "litter_consumed_above_structural_cnp",
         "litter_consumed_woody_cnp",
         "litter_consumed_below_metabolic_cnp",
         "litter_consumed_below_structural_cnp",
+        "fungal_fruiting_bodies_consumed_cnp",
     ),
     vars_required_for_update=(
         "canopy_temperature",
@@ -111,45 +143,56 @@ class AnimalModel(
         "litter_pool_woody_cnp",
         "litter_pool_below_metabolic_cnp",
         "litter_pool_below_structural_cnp",
-        "production_of_fungal_fruiting_bodies",
+        "fungal_fruiting_bodies_cnp",
         "soil_cnp_pool_pom",
         "soil_c_pool_bacteria",
         "soil_c_pool_saprotrophic_fungi",
         "soil_c_pool_arbuscular_mycorrhiza",
         "soil_c_pool_ectomycorrhiza",
+        "subcanopy_vegetation_cnp",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_seedbank_cnp",
+        "subcanopy_seedbank_litter_lignin",
     ),
     vars_populated_by_first_update=(
         "decomposed_excrement_cnp",
         "decomposed_carcasses_cnp",
-        "herbivory_waste_leaf_cnp",
-        "herbivory_waste_leaf_lignin",
+        "herbivory_waste_above_cnp",
+        "herbivory_waste_above_lignin",
+        "herbivory_waste_below_cnp",
+        "herbivory_waste_below_lignin",
         "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
-        "decay_of_fungal_fruiting_bodies",
     ),
     vars_updated=(
         "decomposed_excrement_cnp",
         "decomposed_carcasses_cnp",
-        "herbivory_waste_leaf_cnp",
-        "herbivory_waste_leaf_lignin",
+        "herbivory_waste_above_cnp",
+        "herbivory_waste_above_lignin",
+        "herbivory_waste_below_cnp",
+        "herbivory_waste_below_lignin",
         "total_animal_respiration",
         "litter_consumed_above_metabolic_cnp",
         "litter_consumed_above_structural_cnp",
         "litter_consumed_woody_cnp",
         "litter_consumed_below_metabolic_cnp",
         "litter_consumed_below_structural_cnp",
+        "fungal_fruiting_bodies_consumed_cnp",
         "animal_pom_consumption_cnp",
         "animal_bacteria_consumption",
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
-        "fungal_fruiting_bodies",
-        "decay_of_fungal_fruiting_bodies",
         "subcanopy_vegetation_cnp_consumed",
         "subcanopy_seedbank_cnp_consumed",
+        "canopy_foliage_cnp_consumed",
+        "canopy_seed_cnp_consumed",
+        "canopy_fruit_cnp_consumed",
+        "fallen_seeds_cnp_consumed",
+        "fallen_fruit_cnp_consumed",
     ),
 ):
     """A class describing the animal model.
@@ -160,7 +203,8 @@ class AnimalModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        exporter: The export system for animal cohort data.
+        animal_cohort_exporter: The export system for animal cohort data.
+        resource_pool_exporter: The export system for resource pools.
         density_scaling_method: Which density scaling equation to use in initialization.
         functional_groups: The list of animal functional groups present in the
             simulation.
@@ -177,7 +221,8 @@ class AnimalModel(
         self,
         data: Data,
         core_components: CoreComponents,
-        exporter: AnimalCohortDataExporter,
+        animal_cohort_exporter: AnimalCohortDataExporter,
+        resource_pool_exporter: ResourcePoolDataExporter,
         functional_groups: list[FunctionalGroup],
         microbial_c_n_p_ratios: dict[str, dict[str, float]],
         model_constants: AnimalConstants = AnimalConstants(),
@@ -214,8 +259,8 @@ class AnimalModel(
         """The excrement pools in the model with associated grid cell ids."""
         self.carcass_pools: dict[int, list[CarcassPool]]
         """The carcass pools in the model with associated grid cell ids."""
-        self.leaf_waste_pools: dict[int, HerbivoryWaste]
-        """A pool for leaves removed by herbivory but not actually consumed."""
+        self.herbivory_waste_pools: dict[int, HerbivoryWaste]
+        """Pool for plant biomass removed by herbivory but not actually consumed."""
         self.microbial_c_n_p_ratios: dict[str, dict[str, float]]
         """The CNP ratios of the different microbial functional groups."""
         # TODO: make the following two modifiable
@@ -225,12 +270,12 @@ class AnimalModel(
         """The minimum number of individuals to initialize a cohort at init."""
         self.soil_pools: dict[int, dict[str, SoilPool]]
         """The animal consumable soil pools with associated grid cell ids."""
-        self.fungal_fruiting_bodies: dict[int, FungalFruitPool]
-        """The pools of fungal fruiting bodies with associated grid cell ids."""
 
         # Set the exporter - this is always set _regardless_ of the static mode.
-        self.exporter: AnimalCohortDataExporter = exporter
+        self.animal_cohort_exporter: AnimalCohortDataExporter = animal_cohort_exporter
         """Exporter for animal cohort data."""
+        self.resource_pool_exporter: ResourcePoolDataExporter = resource_pool_exporter
+        """Exporter for resource pools."""
 
         # Run the setup if the model is not in deep static mode
         if self._run_setup:
@@ -264,15 +309,17 @@ class AnimalModel(
         # Which density scaling equations are used, "damuth" or "madingley"
         self.density_scaling_method = self.model_constants.density_scaling_method
 
+        # total heterotroph biomass, for normalizing densities
+        self.total_heterotroph_biomass_density_kg_m2 = (
+            self.model_constants.total_heterotroph_biomass_density_kg_m2
+        )
+
         # Store update interval as a number of days.
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
         self.update_interval_in_days = days_as_float
 
         # Convert pint update_interval to timedelta64 once during initialization.
         self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
-
-        # Determine grid square adjacency
-        self._setup_grid_neighbours()
 
         self.functional_groups = functional_groups
 
@@ -313,10 +360,17 @@ class AnimalModel(
             for cell_id in self.data.grid.cell_id
         }
 
-        self.leaf_waste_pools = {
-            cell_id: HerbivoryWaste(plant_matter_type="leaf")
-            for cell_id in self.data.grid.cell_id
+        self.herbivory_waste_pools = {
+            cell_id: HerbivoryWaste() for cell_id in self.data.grid.cell_id
         }
+
+        self.thermal_suitability: dict[str, NDArray] | None = None
+        """Per-functional-group, per-cell thermal suitability for the current timestep.
+
+        Keyed by functional group name, each value a ``(n_cells,)`` array in [0, 1].
+        ``None`` whenever thermal habitat selection is disabled or the climate pass has
+        not yet run, in which case dispersal falls back to uniform destination choice.
+        """
 
         self.active_cohorts = {}
         self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
@@ -332,14 +386,22 @@ class AnimalModel(
         # are populated
         self.microbial_c_n_p_ratios = microbial_c_n_p_ratios
         self.soil_pools = self.populate_soil_pools()
-        self.fungal_fruiting_bodies = self.populate_fungal_fruiting_bodies()
 
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
         animal cohorts."""
 
-        self.exporter.dump(
+        self.animal_cohort_exporter.dump(
             cohorts=self.active_cohorts.values(),
+            time=self.model_timing.start_time,
+            time_index=0,
+        )
+
+        self.resource_pool_exporter.dump(
+            carcass_pools=self.carcass_pools,
+            excrement_pools=self.excrement_pools,
+            soil_pools=self.soil_pools,
+            resource_pools=self.array_resource_pools,
             time=self.model_timing.start_time,
             time_index=0,
         )
@@ -422,9 +484,14 @@ class AnimalModel(
         # Find microbial stoichiometries based on the config
         microbial_c_n_p_ratios = find_microbial_stoichiometries(config=configuration)
 
-        exporter = AnimalCohortDataExporter.from_config(
+        animal_cohort_exporter = AnimalCohortDataExporter.from_config(
             output_directory=core_configuration.data_output_options.out_path,
             config=model_configuration.cohort_data_export,
+        )
+
+        resource_pool_exporter = ResourcePoolDataExporter.from_config(
+            output_directory=core_configuration.data_output_options.out_path,
+            config=model_configuration.resource_pool_export,
         )
 
         LOGGER.info(
@@ -439,7 +506,8 @@ class AnimalModel(
             functional_groups=functional_groups,
             model_constants=model_configuration.constants,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
-            exporter=exporter,
+            animal_cohort_exporter=animal_cohort_exporter,
+            resource_pool_exporter=resource_pool_exporter,
         )
 
     def spinup(self) -> None:
@@ -460,14 +528,11 @@ class AnimalModel(
         # TODO: merge problems as community looping is not internal to comm methods
         # TODO: These pools are populated but nothing actually gets done with them at
         # the moment, this will have to change when scavenging gets introduced
+        # TODO: the exporter runs AFTER migration events. This creates a mismatch.
 
         # The soil pools have to be populated again to reflect the changes that will
         # have happened in the last time step for those models
         self.soil_pools = self.populate_soil_pools()
-
-        # The fungal fruiting bodies need to be updated based on input from soil fungi
-        # and the rate of decay
-        fruiting_bodies_decay = self.update_fungal_fruiting_bodies()
 
         # Populate the array resource pools
         for pool in self.array_resource_pools:
@@ -476,12 +541,12 @@ class AnimalModel(
         self.reset_trophic_records()
         self.update_activity_windows_community()
         self.forage_community(self.update_interval_timedelta)
-        self.migrate_community()
         self.birth_community()
         self.metamorphose_community()
-        self.migrate_external_community()
         self.metabolize_community(self.update_interval_timedelta)
         self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
+        self.migrate_community(self.update_interval_timedelta)
+        self.migrate_external_community()
         self.update_community_bookkeeping(self.update_interval_timedelta)
         self.update_cohort_bookkeeping(self.update_interval_timedelta)
 
@@ -491,17 +556,8 @@ class AnimalModel(
         soil_consumption = self.calculate_total_soil_consumption(self.soil_pools)
         litter_additions = self.calculate_litter_additions_from_herbivory()
 
-        # Now that animal consumption has finished, the data object can be updated to
-        # reflect the new size of the fungal fruiting body pools
-        self.update_fungal_fruiting_bodies_in_data()
-
         # Update the data object with the changes to soil and litter pools
-        self.data.add_from_dict(
-            fruiting_bodies_decay
-            | additions_to_soil
-            | soil_consumption
-            | litter_additions
-        )
+        self.data.add_from_dict(additions_to_soil | soil_consumption | litter_additions)
 
         # Export the consumed masses from the array resource pools
         for pool in self.array_resource_pools:
@@ -511,24 +567,26 @@ class AnimalModel(
         self.update_population_densities()
 
         # Dump the cohort data to CSV
-        self.exporter.dump(
+        self.animal_cohort_exporter.dump(
             cohorts=self.active_cohorts.values(),
             time=self.model_timing.update_datestamps[time_index],
             time_index=time_index,
         )
 
-    def _setup_grid_neighbours(self) -> None:
-        """Set up grid neighbours for the model.
-
-        Currently, this is redundant with the set_neighbours method of grid.
-        This will become a more complex animal specific implementation to manage
-        functional group specific adjacency.
-
-        """
-        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
+        self.resource_pool_exporter.dump(
+            carcass_pools=self.carcass_pools,
+            excrement_pools=self.excrement_pools,
+            soil_pools=self.soil_pools,
+            resource_pools=self.array_resource_pools,
+            time=self.model_timing.update_datestamps[time_index],
+            time_index=time_index,
+        )
 
     def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
         """Initializes the animal communities.
+
+        TODO: Review relationship between birth mass initialization and adult mass in
+        heterotroph biomass normalization
 
         Args:
             functional_groups: The list of functional groups that will populate the
@@ -537,47 +595,28 @@ class AnimalModel(
         """
 
         self.communities = {cell_id: [] for cell_id in self.data.grid.cell_id}
+        total_area_m2 = self.data.grid.n_cells * self.data.grid.cell_area
+        target = self.total_heterotroph_biomass_density_kg_m2
+        method = self.density_scaling_method
 
+        factor = heterotroph_normalization_factor(functional_groups, target, method)
         for fg in functional_groups:
-            total_individuals = self._estimate_total_individuals(fg)
+            total_individuals = biomass_density_to_individuals(
+                raw_biomass_density_kg_m2(fg, method) * factor,
+                fg.adult_mass,
+                total_area_m2,
+            )
             cohort_sizes = self._distribute_individuals_to_cohorts(total_individuals)
             cohort_locations = self._assign_cohort_locations(len(cohort_sizes))
 
             for size, cell_id in zip(cohort_sizes, cohort_locations):
                 self.create_new_cohort(
                     functional_group=fg,
-                    mass=fg.adult_mass,
+                    mass=fg.birth_mass,
                     age=0.0,
                     individuals=size,
                     centroid_key=cell_id,
                 )
-
-    def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
-        """Estimates the total number of individuals of a functional group."""
-        total_area = self.data.grid.n_cells * self.data.grid.cell_area
-
-        density_override = functional_group.density_individuals_m2
-        if density_override is not None and not isnan(density_override):
-            # User-provided empirical density overrides scaling laws
-            return int(density_override * total_area)
-
-        # No empirical density → use selected scaling method
-        if self.density_scaling_method == "damuth":
-            density = damuths_law(
-                functional_group.adult_mass,
-                functional_group.population_density_terms,
-            )
-        elif self.density_scaling_method == "madingley":
-            density = madingley_individuals_density(
-                functional_group.adult_mass,
-                functional_group.population_density_terms,
-            )
-        else:
-            raise ValueError(
-                f"Unsupported density scaling method: {self.density_scaling_method}"
-            )
-
-        return ceil(density * total_area)
 
     def _distribute_individuals_to_cohorts(self, total_individuals: int) -> list[int]:
         """Distribute individuals into cohorts respecting minimum size.
@@ -680,29 +719,11 @@ class AnimalModel(
                     cell_id=cell_id,
                     data=self.data,
                     cell_area=self.data.grid.cell_area,  # OK while area is uniform
-                    max_depth_microbial_activity=self.core_constants.max_depth_of_microbial_activity,
+                    microbial_simulation_depth=self.core_constants.microbial_simulation_depth,
                     c_n_p_ratios=self.microbial_c_n_p_ratios,
                 )
                 for som_type in soil_organic_matter_types
             }
-            for cell_id in self.data.grid.cell_id
-        }
-
-    def populate_fungal_fruiting_bodies(self) -> dict[int, FungalFruitPool]:
-        """Populate the fungal fruiting body pools for animal consumption.
-
-        Returns:
-            A dictionary with a fungal fruiting body pool for each cell ID.
-        """
-
-        return {
-            cell_id: FungalFruitPool(
-                cell_id=cell_id,
-                data=self.data,
-                cell_area=self.data.grid.cell_area,  # OK while area is uniform
-                c_n_ratio=self.core_constants.fungal_fruiting_bodies_c_n_ratio,
-                c_p_ratio=self.core_constants.fungal_fruiting_bodies_c_p_ratio,
-            )
             for cell_id in self.data.grid.cell_id
         }
 
@@ -780,7 +801,7 @@ class AnimalModel(
         pom_final_stock = array(
             [
                 soil_pools[cid]["pom"].mass_current
-                / (area * self.core_constants.max_depth_of_microbial_activity)
+                / (area * self.core_constants.microbial_simulation_depth)
                 for cid in cell_ids
             ]
         )
@@ -802,7 +823,7 @@ class AnimalModel(
         bacteria_final_stock = array(
             [
                 soil_pools[cid]["bacteria"].mass_current
-                / (area * self.core_constants.max_depth_of_microbial_activity)
+                / (area * self.core_constants.microbial_simulation_depth)
                 for cid in cell_ids
             ]
         )
@@ -834,7 +855,7 @@ class AnimalModel(
         fungi_final_stock = array(
             [
                 soil_pools[cid]["fungi"].mass_current
-                / (area * self.core_constants.max_depth_of_microbial_activity)
+                / (area * self.core_constants.microbial_simulation_depth)
                 for cid in cell_ids
             ]
         )
@@ -881,22 +902,22 @@ class AnimalModel(
     def calculate_litter_additions_from_herbivory(self) -> dict[str, DataArray]:
         """Calculate additions to litter due to herbivory mechanical inefficiencies.
 
-        TODO - At present the only type of herbivory this works for is leaf herbivory,
-        that should be changed once herbivory as a whole is fleshed out.
-
         Returns:
-            A dictionary containing details of the leaf litter addition due to herbivory
-            this comprises of the masses of carbon, nitrogen and phosphorus added [kg],
-            and the proportion of input carbon that is lignin [unitless].
+            A dictionary containing details of additions to the above and below ground
+            litter due to herbivory. This comprises of the masses of carbon, nitrogen
+            and phosphorus added [kg], and the proportion of input carbon that is lignin
+            [unitless].
         """
 
         nutrients = ["C", "N", "P"]
 
-        leaf_cnp = stack(
+        above_cnp = stack(
             [
                 array(
                     [
-                        self.leaf_waste_pools[cell_id].mass_cnp[nutrient]
+                        self.herbivory_waste_pools[cell_id].above_ground_mass_cnp[
+                            nutrient
+                        ]
                         for cell_id in self.data.grid.cell_id
                     ]
                 )
@@ -905,69 +926,54 @@ class AnimalModel(
             axis=1,
         )
 
-        leaf_lignin = [
-            self.leaf_waste_pools[cell_id].lignin_proportion
+        above_lignin = [
+            self.herbivory_waste_pools[cell_id].above_ground_lignin_proportion
+            for cell_id in self.data.grid.cell_id
+        ]
+
+        below_cnp = stack(
+            [
+                array(
+                    [
+                        self.herbivory_waste_pools[cell_id].below_ground_mass_cnp[
+                            nutrient
+                        ]
+                        for cell_id in self.data.grid.cell_id
+                    ]
+                )
+                for nutrient in nutrients
+            ],
+            axis=1,
+        )
+
+        below_lignin = [
+            self.herbivory_waste_pools[cell_id].below_ground_lignin_proportion
             for cell_id in self.data.grid.cell_id
         ]
 
         # Reset all of the herbivory waste pools to zero
-        for waste in self.leaf_waste_pools.values():
-            waste.mass_cnp["C"] = 0.0
-            waste.mass_cnp["N"] = 0.0
-            waste.mass_cnp["P"] = 0.0
+        for waste in self.herbivory_waste_pools.values():
+            waste.above_ground_lignin_proportion = 0.0
+            waste.below_ground_lignin_proportion = 0.0
+            for nutrient in nutrients:
+                waste.above_ground_mass_cnp[nutrient] = 0.0
+                waste.below_ground_mass_cnp[nutrient] = 0.0
 
         return {
-            "herbivory_waste_leaf_cnp": DataArray(
-                data=leaf_cnp,
+            "herbivory_waste_above_cnp": DataArray(
+                data=above_cnp,
                 coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
-            "herbivory_waste_leaf_lignin": DataArray(
-                array(leaf_lignin), dims="cell_id"
+            "herbivory_waste_above_lignin": DataArray(
+                array(above_lignin), dims="cell_id"
             ),
-        }
-
-    def update_fungal_fruiting_bodies(self) -> dict[str, DataArray]:
-        """Update fungal fruiting bodies pools due to fungal production and decay.
-
-        This method first updates the fungal fruiting body pools with the new biomass
-        supplied from the soil model. The total decay of the fungal fruiting bodies is
-        then calculated and subtracted from the pools. This ordering means that we are
-        prioritising decay over before animal consumption, which is consistent with the
-        assumptions we made for excrement and carcass decay.
-
-        Returns:
-            The rate at which fungal fruiting bodies decay back into the soil [kg m^-2
-            day^-1].
-        """
-
-        for cell_id, fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.items():
-            production = (
-                self.data["production_of_fungal_fruiting_bodies"]
-                .isel(cell_id=cell_id)
-                .item()
-                * self.grid.cell_area
-                * self.update_interval_in_days
-            )
-            fungal_fruiting_bodies_pool.mass_cnp.update(
-                C=+production,
-                N=+production / fungal_fruiting_bodies_pool.c_n_ratio,
-                P=+production / fungal_fruiting_bodies_pool.c_p_ratio,
-            )
-
-        total_decay = [
-            fungal_fruiting_bodies_pool.apply_decay(
-                decay_constant=self.core_constants.fungal_fruiting_bodies_decay_rate,
-                time_period=self.update_interval_in_days,
-            )
-            for fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.values()
-        ]
-
-        return {
-            "decay_of_fungal_fruiting_bodies": DataArray(
-                array(total_decay)
-                / (self.grid.cell_area * self.update_interval_in_days),
-                dims="cell_id",
-            )
+            "herbivory_waste_below_cnp": DataArray(
+                data=below_cnp,
+                coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
+            ),
+            "herbivory_waste_below_lignin": DataArray(
+                array(below_lignin), dims="cell_id"
+            ),
         }
 
     def calculate_soil_additions(self) -> dict[str, DataArray]:
@@ -1031,19 +1037,6 @@ class AnimalModel(
                 coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
             ),
         }
-
-    def update_fungal_fruiting_bodies_in_data(self) -> None:
-        """Method to update the fungal fruiting bodies in the data object.
-
-        This update is based on the current state of the animal model FungalFruitPools.
-        This method is run after the additions due to new fungal fruiting body
-        production and removals due to decay and animal consumption have been made.
-        """
-
-        for cell_id, fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.items():
-            self.data["fungal_fruiting_bodies"].loc[{"cell_id": cell_id}] = (
-                fungal_fruiting_bodies_pool.mass_cnp["C"] / self.data.grid.cell_area
-            )
 
     def to_per_day(self, change: NDArray[float32]) -> NDArray[float32]:
         """Method to convert a change caused by the animal model into a per day rate.
@@ -1160,35 +1153,68 @@ class AnimalModel(
         self.abandon_communities(migrant)
         self.update_community_occupancy(migrant, destination_centroid)
 
-    def migrate_community(self) -> None:
+    def migrate_community(self, dt: timedelta64) -> None:
         """This handles migrating all cohorts with a centroid in the community.
 
-        This migration method initiates migration for two reasons:
+        This migration method initiates migration for three reasons:
         1) The cohort is starving and needs to move for a chance at resource access
         2) An initial migration event immediately after birth.
+        3) Thermal escape with a suitability-weighted destination when the toggle is on.
 
-        TODO: MGO - migrate distance mod for larger territories?
+        The destination is drawn uniformly from the cells the cohort can actually
+        reach within its mass-scaled dispersal distance, rather than from the
+        immediately adjacent cells alone. Cohorts too slow to clear a single cell
+        still move one cell when dispersal is triggered, as the dispersal probability
+        already scales with distance.
 
-
+        Args:
+            dt: The time passed in the timestep.
         """
+
+        if any(
+            c.centroid_key >= self.data.grid.n_cells
+            for c in self.active_cohorts.values()
+        ):
+            raise ValueError("cohort centroid outside self.data.grid — grid mismatch")
+
+        dt_days = float(dt / timedelta64(1, "D"))
+
         for cohort in self.active_cohorts.values():
             is_starving = cohort.is_below_mass_threshold(
+                # check to see if the cohort is hungry enough to migrate
                 self.model_constants.dispersal_mass_threshold
             )
             is_juvenile_and_migrate = (
+                # check for juvenile migration
                 cohort.age == 0.0
-                and random.random() <= cohort.migrate_juvenile_probability()
+                and random.random() <= cohort.migrate_juvenile_probability(dt_days)
+                # probability based on proportion of cohort that could make it to the
+                # new cell
             )
-            migrate = is_starving or is_juvenile_and_migrate
+
+            is_thermally_stressed = (
+                self.thermal_suitability is not None
+                and cohort.sigma_f_t < self.model_constants.thermal_dispersal_threshold
+                and random.random()
+                <= 1.0
+                - (cohort.sigma_f_t / self.model_constants.thermal_dispersal_threshold)
+            )
+            migrate = is_starving or is_juvenile_and_migrate or is_thermally_stressed
 
             if not migrate:
                 continue
 
-            # Get the list of neighbors for the current cohort's cell
-            neighbour_keys = self.data.grid.neighbours[cohort.centroid_key]
+            candidate_keys = cells_within_distance(
+                # find all the grid cells within migrating distance
+                self.data.grid,
+                cohort.centroid_key,
+                cohort.get_dispersal_distance(dt_days),
+            )
 
-            destination_key = choice(neighbour_keys)
-            self.migrate(cohort, destination_key)
+            if not candidate_keys:
+                continue
+
+            self.migrate(cohort, self._select_destination(cohort, candidate_keys))
 
     def remove_dead_cohort(self, cohort: AnimalCohort) -> None:
         """Removes an AnimalCohort from the model's cohorts and relevant communities.
@@ -1463,7 +1489,6 @@ class AnimalModel(
             # Build resource collections based on diet flags
             array_resource_list: list[CellResource] = []
             prey_list: list[AnimalCohort] = []
-            fungal_fruit_list: list[Resource] = []
             soil_fungi_list: list[Resource] = []
             pom_list: list[Resource] = []
             bacteria_list: list[Resource] = []
@@ -1508,12 +1533,6 @@ class AnimalModel(
                     prey_diet=prey_flags,
                 )
 
-            # Fruiting-body fungivory
-            if diet & DietType.MUSHROOMS:
-                fungal_fruit_list = cohort.get_fungal_fruit_pools(
-                    self.fungal_fruiting_bodies
-                )
-
             # Soil fungi
             if diet & DietType.FUNGI:
                 soil_fungi_list = cohort.get_soil_fungi_pools(self.soil_pools)
@@ -1540,7 +1559,6 @@ class AnimalModel(
             cohort.forage_cohort(
                 array_resource_list=array_resource_list,
                 animal_list=prey_list,
-                fungal_fruit_list=fungal_fruit_list,
                 soil_fungi_list=soil_fungi_list,
                 pom_list=pom_list,
                 bacteria_list=bacteria_list,
@@ -1548,7 +1566,7 @@ class AnimalModel(
                 carcass_pool_map=carcass_pool_map,  # for prey remains
                 scavenge_carcass_pools=scavenge_carcass_pools,
                 scavenge_excrement_pools=scavenge_waste_pools,
-                herbivory_waste_pools=self.leaf_waste_pools,
+                herbivory_waste_pools=self.herbivory_waste_pools,
                 dt=dt,
             )
 
@@ -1850,20 +1868,49 @@ class AnimalModel(
         """Update the activity window fraction for all cohorts in all communities.
 
         Per-stratum temperatures and diurnal ranges are pre-computed once per
-        timestep as per-cell means, then
-        :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_mean_territory_climate`
-        derives the climate experienced by each cohort based on its vertical
-        occupancy. Both variables are averaged across all territory cells.
-
-        Where a cell has no filled canopy layers, canopy temperature and diurnal
-        range fall back to the corresponding ground values to avoid NaN propagation.
+        timestep as per-cell means by _build_stratum_climate, then
+        AnimalCohort.get_mean_territory_climate derives the climate experienced by each
+        cohort based on its vertical occupancy. Both variables are averaged across all
+        territory cells.
 
         Note:
-            Annual mean temperature and annual temperature SD are currently
-            placeholder constants from
-            :attr:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
-            and should be replaced once the abiotic model exposes those fields.
+            Annual values are per-functional-group reference values resolved once at
+            FunctionalGroup construction by averaging placeholder per-stratum terms.
         """
+
+        climate = self._build_stratum_climate()
+        self._update_thermal_suitability(climate)
+
+        for cohort in self.active_cohorts.values():
+            temperature, diurnal_range = cohort.get_mean_territory_climate(
+                climate.canopy_temperature,
+                climate.ground_temperature,
+                climate.soil_temperature,
+                climate.canopy_diurnal_range,
+                climate.ground_diurnal_range,
+                climate.soil_diurnal_range,
+            )
+
+            cohort.update_activity_window(
+                temperature=temperature,
+                diurnal_temp_range=diurnal_range,
+                annual_mean_temp=cohort.functional_group.reference_annual_mean_temp,
+                annual_temp_sd=cohort.functional_group.reference_annual_temp_sd,
+            )
+
+    def _build_stratum_climate(self) -> StratumClimate:
+        """Resolve the abiotic model's layered outputs into per-cell stratum climate.
+
+        Canopy values are the mean across filled canopy layers; ground and soil values
+        are taken from the surface and topsoil layers respectively. Where a cell has no
+        filled canopy layers, canopy temperature and diurnal range fall back to the
+        corresponding ground values to avoid NaN propagation.
+
+        Returns:
+            A :class:`~virtual_ecosystem.models.animal.climate.StratumClimate` holding
+            six per-cell arrays of shape ``(n_cells,)``.
+        """
+
         lyr = self.layer_structure
 
         canopy_temp = nanmean(
@@ -1895,19 +1942,71 @@ class AnimalModel(
                 isnan(canopy_diurnal), ground_diurnal, canopy_diurnal
             )
 
-        for cohort in self.active_cohorts.values():
-            temperature, diurnal_range = cohort.get_mean_territory_climate(
-                canopy_temp,
-                ground_temp,
-                soil_temp,
-                canopy_diurnal,
-                ground_diurnal,
-                soil_diurnal,
-            )
+        return StratumClimate(
+            canopy_temperature=canopy_temp,
+            ground_temperature=ground_temp,
+            soil_temperature=soil_temp,
+            canopy_diurnal_range=canopy_diurnal,
+            ground_diurnal_range=ground_diurnal,
+            soil_diurnal_range=soil_diurnal,
+        )
 
-            cohort.update_activity_window(
+    def _update_thermal_suitability(self, climate: StratumClimate) -> None:
+        """Rebuild the per-functional-group thermal suitability grid.
+
+        Computes, for each functional group, the per-cell activity window it would
+        experience given the current stratum climate. The result is cached on
+        :attr:`thermal_suitability` and consumed by dispersal.
+
+        Leaves :attr:`thermal_suitability` as ``None`` when thermal habitat selection
+        is disabled, so that dispersal falls through to uniform destination choice.
+
+        Args:
+            climate: Per-cell, per-stratum climate for the current timestep, as built
+                by :meth:`_build_stratum_climate`.
+        """
+
+        if not self.model_constants.thermal_habitat_selection:
+            self.thermal_suitability = None
+            return
+
+        self.thermal_suitability = {
+            fg.name: thermal_suitability(
+                metabolic_type=fg.metabolic_type,
                 temperature=temperature,
-                diurnal_temp_range=diurnal_range,
-                annual_mean_temp=cohort.constants.placeholder_annual_mean_temp,
-                annual_temp_sd=cohort.constants.placeholder_annual_temp_sd,
+                diurnal_temp_range=diurnal,
+                annual_mean_temp=fg.reference_annual_mean_temp,
+                annual_temp_sd=fg.reference_annual_temp_sd,
+                t_opt=fg.t_opt,
+                t_max_crit=fg.t_max_crit,
+                t_min_crit=fg.t_min_crit,
+                constants=self.model_constants,
             )
+            for fg in self.functional_groups
+            for temperature, diurnal in [
+                stratum_mean_climate(fg.vertical_occupancy, climate)
+            ]
+        }
+
+    def _select_destination(
+        self, cohort: AnimalCohort, candidate_keys: list[int]
+    ) -> int:
+        """Pick a destination cell from the reachable set.
+
+        Uniform when thermal habitat selection is off; otherwise weighted by each
+        reachable cell's suitability for the cohort's functional group, raised to
+        ``thermal_selection_exponent`` and floored at ``thermal_suitability_floor`` so
+        the distribution stays valid even where every reachable cell is lethal.
+        """
+        if self.thermal_suitability is None:
+            return choice(candidate_keys)
+
+        keys = asarray(candidate_keys)
+        weights = (
+            maximum(
+                self.thermal_suitability[cohort.functional_group.name][keys],
+                self.model_constants.thermal_suitability_floor,
+            )
+            ** self.model_constants.thermal_selection_exponent
+        )
+        return int(random.choice(keys, p=weights / weights.sum()))

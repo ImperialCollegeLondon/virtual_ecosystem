@@ -40,17 +40,17 @@ def test_proof_of_concept_workflow():
 
     # Define variables containing CNP masses in 20:2:1 ratio for a leaf mass resource
     # with 3 PFTs and a subcanopy vegetation mass with only cell id.
-    pfts = np.array(["pioneer", "canopy", "emergent"])
     cell_ids = np.arange(data.grid.n_cells)
+    pfts = np.array(["pioneer", "canopy", "emergent"])
     elements = np.array(["C", "N", "P"])
 
     leaf_mass = DataArray(
-        np.ones((data.grid.n_cells, elements.size, pfts.size)),
-        dims=("cell_id", "element", "pft"),
+        np.ones((data.grid.n_cells, pfts.size, elements.size)),
+        dims=("cell_id", "pft", "element"),
         coords=dict(
             cell_id=cell_ids,
-            element=elements,
             pft=pfts,
+            element=elements,
         ),
     ) * DataArray([20, 2, 1], dims="element", coords=dict(element=elements))
 

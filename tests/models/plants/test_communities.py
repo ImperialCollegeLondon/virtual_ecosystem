@@ -88,9 +88,11 @@ from tests.conftest import log_check
     ],
 )
 def test_PlantCommunities__init__(
-    caplog, flora, cohort_data, raises, exp_log, exp_n_cohorts
+    caplog, fixture_flora, cohort_data, raises, exp_log, exp_n_cohorts
 ):
     """Test the data handling of the PlantCommunities __init__."""
+
+    from pyrealm.demography.cohorts import cohort_id_generator
 
     from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.models.plants.communities import PlantCommunities
@@ -101,7 +103,12 @@ def test_PlantCommunities__init__(
     caplog.clear()
 
     with raises:
-        plants_obj = PlantCommunities(cohort_data=cohort_data, flora=flora, grid=grid)
+        plants_obj = PlantCommunities(
+            cohort_data=cohort_data,
+            flora=fixture_flora,
+            grid=grid,
+            cohort_id_generator=cohort_id_generator(),
+        )
 
         if isinstance(raises, does_not_raise):
             # Check the expected contents of plants_obj
@@ -109,6 +116,6 @@ def test_PlantCommunities__init__(
             cids = {0, 1, 2, 3}
             assert set(plants_obj.keys()) == cids
             for cid in cids:
-                assert plants_obj[cid].cohorts.n_cohorts == exp_n_cohorts[cid]
+                assert len(plants_obj[cid].cohorts) == exp_n_cohorts[cid]
 
     log_check(caplog, expected_log=exp_log)

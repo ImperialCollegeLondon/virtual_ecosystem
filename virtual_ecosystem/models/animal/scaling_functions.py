@@ -2,21 +2,22 @@
 scaling equations" (relationships between body-mass and a trait) required by the broader
 :mod:`~virtual_ecosystem.models.animal` module
 
-To Do:
-- streamline units of scaling functions [kg]->[kg] etc
-
 """  # noqa: D205, D415
 
 from collections.abc import Sequence
-from math import asin, exp, log, pi
+from math import asin, ceil, exp, isnan, log, pi
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy.special import expit
 
+from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.model_config import CoreConstants
+from virtual_ecosystem.models.animal.animal_climate import StratumClimate
 from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     MetabolicType,
+    VerticalOccupancy,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 from virtual_ecosystem.models.animal.model_config import AnimalConstants
@@ -45,33 +46,129 @@ def damuths_law(mass: float, terms: tuple) -> float:
     return individual_density_m2
 
 
-def madingley_individuals_density(adult_mass: float, terms: tuple) -> float:
-    """Estimate individual density from adult mass using Madingley biomass scaling.
+def raw_biomass_density_kg_m2(
+    functional_group: FunctionalGroup,
+    density_scaling_method: str,
+) -> float:
+    """Raw biomass density for a functional group before normalization.
 
-    This converts biomass density scaling into individual density scaling by dividing
-    biomass density by adult body mass.
+    For functional groups with an empirical density override
+    (``density_individuals_m2`` set in the CSV), biomass density is derived
+    directly from that empirical value. For all other functional groups the
+    appropriate allometric scaling law is used.
 
-        Biomass Density = B * Mass^A
-        Individuals Density = Biomass Density / Mass = B * Mass^(A - 1)
+    The returned value is in kg m⁻² and represents the functional group's
+    contribution to the heterotroph biomass budget before the cross-group
+    normalization factor is applied.
 
     Args:
-        adult_mass: Adult body mass of the cohort (kg).
-        terms: A tuple (A, B) with exponent and scalar for the biomass scaling law.
+        functional_group: The functional group to evaluate.
+        density_scaling_method: The allometric scaling method to use for groups
+            without an empirical density override. Must be ``"madingley"`` or
+            ``"damuth"``.
 
     Returns:
-        Estimated individual density (individuals/m²).
+        Raw biomass density [kg m⁻²].
+
+    Raises:
+        ValueError: If ``density_scaling_method`` is not recognised.
     """
-    exponent, scalar = terms
+    override = functional_group.density_individuals_m2
+    if override is not None and not isnan(override):
+        # Empirical path: individuals/m² x kg/individual → kg/m²
+        return override * functional_group.adult_mass
 
-    mass_g = adult_mass * 1000
+    terms = functional_group.population_density_terms
 
-    biomass_density_g_km2 = scalar * mass_g**exponent
+    if density_scaling_method == "madingley":
+        exponent, scalar = terms
+        mass_g = functional_group.adult_mass * 1000.0
+        biomass_density_g_km2 = scalar * mass_g**exponent
+        return biomass_density_g_km2 / 1e9  # g/km² → kg/m²
 
-    individual_density_km2 = biomass_density_g_km2 / mass_g
+    if density_scaling_method == "damuth":
+        # TODO: Damuth terms are calibrated for individual density so the biomass
+        # density derived here is approximate. Revisit when Damuth is a primary
+        # scaling method.
+        return (
+            damuths_law(functional_group.adult_mass, terms)
+            * functional_group.adult_mass
+        )
 
-    individual_density_m2 = individual_density_km2 / 1e6
+    raise ValueError(
+        f"Unrecognised density_scaling_method: {density_scaling_method!r}. "
+        "Expected 'madingley' or 'damuth'."
+    )
 
-    return individual_density_m2
+
+def heterotroph_normalization_factor(
+    functional_groups: list[FunctionalGroup],
+    target_biomass_density_kg_m2: float,
+    density_scaling_method: str,
+) -> float:
+    """Normalization factor scaling all functional groups to a fixed biomass budget.
+
+    In Madingley, total heterotroph biomass density is constrained to a target
+    value regardless of how many functional groups are defined. This function
+    computes the single multiplicative factor applied uniformly to every functional
+    group's raw individual count so that the sum of normalized biomass densities
+    equals ``target_biomass_density_kg_m2``.
+
+    Each functional group's share of the budget is proportional to its raw biomass
+    density, whether derived from an empirical override or an allometric scaling
+    law. The same factor is applied to all groups.
+
+    Args:
+        functional_groups: All functional groups in the simulation.
+        target_biomass_density_kg_m2: Target total heterotroph biomass density
+            [kg m⁻²].
+        density_scaling_method: Allometric scaling method (``"madingley"`` or
+            ``"damuth"``).
+
+    Returns:
+        Normalization factor (dimensionless).
+
+    Raises:
+        ValueError: If the sum of raw biomass densities across all functional
+            groups is zero, indicating a degenerate configuration.
+    """
+    total_raw = sum(
+        raw_biomass_density_kg_m2(fg, density_scaling_method)
+        for fg in functional_groups
+    )
+    if total_raw == 0.0:
+        raise ValueError(
+            "Sum of raw biomass densities across all functional groups is zero. "
+            "Check that adult_mass and density parameters are correctly set."
+        )
+    return target_biomass_density_kg_m2 / total_raw
+
+
+def biomass_density_to_individuals(
+    biomass_density_kg_m2: float,
+    adult_mass_kg: float,
+    total_area_m2: float,
+) -> int:
+    """Convert a biomass density to a total individual count.
+
+    A scaling-law-agnostic conversion used after the heterotroph normalization
+    factor has been applied. Dividing normalized biomass density by adult mass
+    gives individual density; multiplying by total area gives the headcount.
+
+    Args:
+        biomass_density_kg_m2: Biomass density [kg m⁻²].
+        adult_mass_kg: Adult body mass of the functional group [kg].
+        total_area_m2: Total simulation area [m²].
+
+    Returns:
+        Total number of individuals, rounded up to the nearest integer.
+
+    Raises:
+        ValueError: If ``adult_mass_kg`` is not positive.
+    """
+    if adult_mass_kg <= 0.0:
+        raise ValueError(f"adult_mass_kg must be positive, got {adult_mass_kg}.")
+    return ceil(biomass_density_kg_m2 / adult_mass_kg * total_area_m2)
 
 
 def metabolic_rate(
@@ -118,13 +215,13 @@ def metabolic_rate(
     mass_g = mass * 1000  # convert kg to g
 
     if metabolic_type == MetabolicType.ENDOTHERMIC:
-        Ib, bf = terms["basal"]
-        If, bb = terms["field"]
+        Ib, bb = terms["basal"]
+        If, bf = terms["field"]
         Tk = 310.0  # fixed body temperature for endotherms [K]
     elif metabolic_type == MetabolicType.ECTOTHERMIC:
-        Ib, bf = terms["basal"]
-        If, bb = terms["field"]
-        Tk = temperature + 274.15  # body temperature equals ambient [K]
+        Ib, bb = terms["basal"]
+        If, bf = terms["field"]
+        Tk = temperature + 273.15  # body temperature equals ambient [K]
     else:
         raise ValueError(f"Invalid metabolic type: {metabolic_type}")
 
@@ -194,7 +291,7 @@ def prey_group_selection(
     if diet_type & DietType.DETRITUS:
         result["litter"] = (0.0, 0.0)
     if diet_type & DietType.MUSHROOMS:
-        # mushroom pool
+        # mushroom/truffle pool
         result["fungal_fruiting_bodies"] = (0.0, 0.0)
     if diet_type & DietType.FUNGI:
         # Soil fungi pool
@@ -297,70 +394,94 @@ def starvation_mortality(
 def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
     """Effective rate at which an individual herbivore searches its environment.
 
-    This is linear scaling of herbivore search times with current body mass.
+    Linear scaling of herbivore search rate with current body mass (Madingley).
+    The native Madingley constant ``alpha_0_herb`` is in ha day^-1 g^-1, so the
+    kg body mass is converted to grams before applying it; the returned search
+    rate is therefore in native ha/day. Area is not converted here -- it enters
+    the functional response in ``k_i_k``, where ``A_cell`` is the normaliser.
 
     TODO: Update name
 
-    Madingley
-
     Args:
-        alpha_0_herb: Effective rate per unit body mass at which a herbivore searches
-          its environment in m2/(day*g).
-        mass: The current body mass of the foraging herbivore in g.
+        alpha_0_herb: Native Madingley effective search rate per unit body mass
+            [ha day^-1 g^-1], value 1e-11.
+        mass: Current body mass of the foraging herbivore [kg].
 
     Returns:
-        A float of the effective search rate in [m2/day].
-
+        Effective search rate [ha/day].
     """
-
-    return alpha_0_herb * mass
+    mass_g = mass * 1000.0  # kg -> g, native Madingley unit for alpha_0_herb
+    return alpha_0_herb * mass_g
 
 
 def k_i_k(alpha_i_k: float, B_k_t: float, A_cell: float) -> float:
-    """The potential biomass (g) of plant k eaten by cohort i, per day.
+    """Potential biomass of plant k eaten by one herbivore per day.
 
-    TODO: update name
+    TODO: check madingley code implementation is the same as the paper
 
-    Madingley
+    This is Madingley's Holling Type III herbivory response (Harfoot et al. 2014,
+    eq. 30): ``K_i,k = alpha_i,k * (phi_herb,f * B_k,t / A_cell)**2``. Squaring the
+    stock biomass density (``B_k,t / A_cell``) is the Type III density-squared
+    encounter term, saturated downstream by the ``1 + sum(K_i,l . H_i,l)`` handling
+    denominator. ``phi_herb,f`` is the proportion of stock k experienced by the
+    cohort; it is 1.0 in our system because each cohort experiences the whole
+    available pool, so it does not appear below.
+
+    Madingley parameterises ``alpha_i,k`` as a linear area-swept-per-day search rate
+    [ha/day], so applying it to the squared density leaves one factor of area
+    uncancelled: the published form is empirical and not dimensionally homogeneous as
+    written, and the residual is absorbed by calibration at native units rather than by
+    the constants' formal dimensions. The interpreted unit, biomass per day per
+    herbivore, is realised in ``F_i_k``, where ``N_i,t`` scales to the whole herbivore
+    cohort and one factor of ``B_k,t`` cancels algebraically against the ``1/B_k,t``
+    divisor. That leaves the fraction eaten per day rising with stock biomass, so total
+    consumption scales with ``B_k,t**2`` before saturation -- the Type III signature.
+
+    Biomass is native grams and cell area native hectares, so the kg biomass and m^2
+    area are converted here, at the point they enter the equation.
+
+    TODO: Update name
 
     Args:
-        alpha_i_k: Effective rate at which an individual herbivore searches its
-          environment.
-        B_k_t: Plant resource bool biomass.
-        A_cell: The area of one cell [standard = 1 ha]
+        alpha_i_k: Herbivore search rate [ha/day].
+        B_k_t: Plant resource biomass [kg].
+        A_cell: Area of one cell [m^2].
 
     Returns:
-        A float of The potential biomass (g) of plant k eating by cohort i, per day
-        [g/day]
-
+        Potential biomass eaten by one herbivore per day [g/day].
     """
 
-    return alpha_i_k * ((B_k_t) / A_cell) ** 2
+    B_k_t_g = B_k_t * 1000.0  # kg -> g
+    A_cell_ha = A_cell / 10000.0  # m^2 -> ha
+    return alpha_i_k * (B_k_t_g / A_cell_ha) ** 2
 
 
 def H_i_k(h_herb_0: float, M_ref: float, M_i_t: float, b_herb: float) -> float:
-    """Handling time of plant resource k by cohort i.
+    """Handling time for a herbivore of cohort i to handle 1 g of plant resource k.
 
-    Time (days) for an individual of cohort i to handle 1 gram of plant resource.
+    ``H_i,k = h_herb_0 * (M_ref / M_i_t)^b_herb`` in native Madingley units. The
+    ratio M_ref/M_i_t only cancels its unit if both masses match, so the kg
+    herbivore mass is converted to grams to sit against the native gram M_ref --
+    this is the fractional-power term, safe because b_herb acts on a dimensionless
+    ratio. M_ref stays in its native grams.
+
+    (Madingley)
 
     TODO: update name
 
-    Madingley
-
     Args:
-        h_herb_0: Time in days that it would take a herbivore of mass = M_ref to handle
-          1g of autotroph mass.
-        M_ref: Reference body mass.
-        M_i_t: Current herbivore mass
-        b_herb: Exponent of the power-law function relating the handling time of
-          autotroph matter to herbivore mass
+        h_herb_0: Native time for a reference-mass herbivore to handle 1 g of
+            autotroph mass [days].
+        M_ref: Native herbivore reference mass [g].
+        M_i_t: Current herbivore mass [kg].
+        b_herb: Exponent of the power-law relating handling time of autotroph
+            matter to herbivore mass [-].
 
     Returns:
-        A float of the handling time (days).
-
+        Handling time to handle 1 g of plant resource [days].
     """
-
-    return h_herb_0 * (M_ref / M_i_t) ** b_herb
+    M_i_t_g = M_i_t * 1000.0  # kg -> g, to match native gram M_ref in ratio
+    return h_herb_0 * (M_ref / M_i_t_g) ** b_herb
 
 
 def theta_opt_i(
@@ -421,100 +542,168 @@ def w_bar_i_j(
 def alpha_i_j(alpha_0_pred: float, mass: float, w_bar_i_j: float) -> float:
     """Rate at which an individual predator searches its environment and kills prey.
 
-    This is linear scaling of herbivore search times with current body mass.
+    Linear scaling of predator search rate with current body mass (Madingley),
+    weighted by capture success. The native constant ``alpha_0_pred`` is in
+    ha day^-1 g^-1, so the kg body mass is converted to grams before applying it;
+    the returned rate is native ha/day. Area is not converted here -- it enters the
+    functional response in ``k_i_j``.
 
-    TODO: update name
-
-    Madingley
-
+    TODO: Update name
 
     Args:
-        alpha_0_pred: Constant describing effective rate per unit body mass at which any
-          predator searches its environment in m2/(day*g).
-        mass: The current body mass of the foraging herbivore.
-        w_bar_i_j: The probability of successfully capturing a prey item.
+        alpha_0_pred: Native Madingley search rate per unit body mass
+            [ha day^-1 g^-1], value 1e-6.
+        mass: Current body mass of the foraging predator [kg].
+        w_bar_i_j: Probability of successfully capturing a prey item [0-1].
 
     Returns:
-        A float of the effective search rate in [m2/day]
-
+        Effective search-and-kill rate [ha/day].
     """
-
-    return alpha_0_pred * mass * w_bar_i_j
+    mass_g = mass * 1000.0  # kg -> g, native Madingley unit for alpha_0_pred
+    return alpha_0_pred * mass_g * w_bar_i_j
 
 
 def k_i_j(
-    alpha_i_j: float, N_i_t: float, intersection_area: float, theta_i_j: float
+    alpha_i_j: float, N_j_t: float, intersection_area: float, theta_i_j: float
 ) -> float:
-    """Potential number of prey items eaten off j by i.
+    """Potential number of prey eaten from cohort j by one predator per day.
 
-    TODO: update name
+    TODO: check madingley code to ensure their paper form is the same as their code
 
-    Madingley
+    This is Madingley's Holling Type III predation response (Harfoot et al. 2014,
+    eq. 34): ``K_i,j = alpha_i,j * (N_j,t / A_cell) * Theta_i,j``. The product of the
+    focal prey density (``N_j,t / A_cell``) and the bin density (``Theta_i,j``) is the
+    Type III density-squared encounter term, saturated downstream by the
+    ``1 + sum(K_i,m . H_i,m)`` handling denominator.
+
+    Madingley parameterises ``alpha_i,j`` as a linear area-swept-per-day search rate
+    [ha/day], so applying it to the squared density leaves one factor of area
+    uncancelled: the published form is empirical and not dimensionally homogeneous as
+    written, and the residual is absorbed by calibration at native units rather than by
+    the constants' formal dimensions. The interpreted unit, prey per predator per day,
+    is realised in ``F_i_j_individual``, where ``N_i,t`` scales to the whole predator
+    cohort and the prey count ``N_j,t`` cancels algebraically.
+
+    ``alpha_i_j`` arrives in ha/day and ``theta_i_j`` is already a native ha density
+    (from ``_build_prey_bin_densities``), so the m^2 intersection is converted to ha
+    here to match. ``N_j_t`` is the prey cohort abundance and is not converted.
 
     Args:
-        alpha_i_j: Rate at which an individual predator searches its environment and
-            kills prey in m2/(day*g).
-        N_i_t: Number of consumer individuals.
-        intersection_area: The overlapping area between predator and prey territories
-          in m2.
-        theta_i_j: The cumulative density of organisms with a mass lying within the
-            same predator specific mass bin.
+        alpha_i_j: Predator search-and-kill rate [ha/day].
+        N_j_t: Abundance of the target prey cohort j [individuals].
+        intersection_area: Overlap between predator and prey territories [m^2].
+        theta_i_j: Cumulative prey density in j's mass bin [individuals/ha].
 
     Returns:
-        Potential number of prey items eaten off j by i [integer number of individuals]
+        Potential number of prey eaten by one predator [prey . predator^-1 . day^-1].
     """
-    return alpha_i_j * (N_i_t / intersection_area) * theta_i_j
+
+    intersection_area_ha = intersection_area / 10000.0  # m^2 -> ha
+    return alpha_i_j * (N_j_t / intersection_area_ha) * theta_i_j
 
 
 def H_i_j(
     h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float, prey_mass: float
 ) -> float:
-    """Handling time of prey cohort j by cohort i.
+    """Handling time of one prey individual of cohort j by cohort i.
 
-    Time (days) for an individual of cohort i to handle 1 individual of cohort j.
+    ``H_i,j = h_pred_0 * (M_ref / M_i_t)^b_pred * prey_mass`` in native units. The
+    ratio M_ref/M_i_t only cancels its unit if both masses match, so the kg predator
+    mass is converted to grams to sit against the native gram M_ref -- this is the
+    fractional-power term, safe because b_pred acts on a dimensionless ratio.
+    prey_mass is a power-1 factor in native grams, so it converts by a clean kg -> g.
 
-    TODO: update name
-
-    Madingley
+    TODO: Update name
 
     Args:
-        h_pred_0: Time that it would take a predator of body mass equal to the reference
-          mass, to handle a prey individual of body mass equal to one gram.
-        M_ref: Reference body mass.
-        M_i_t: Current predator mass.
-        b_pred: Exponent of the power-law function relating the handling time of
-          prey to predator mass.
-        prey_mass: the mass of prey being handled.
+        h_pred_0: Native time for a reference-mass predator to handle a 1 g prey
+            individual [days], default value 0.5.
+        M_ref: Native predator reference mass [g].
+        M_i_t: Current predator mass [kg].
+        b_pred: Exponent of the handling-time power law [-].
+        prey_mass: Mass of the prey individual being handled [kg].
 
     Returns:
-        A float of the handling time (days).
-
+        Handling time for one prey individual [days].
     """
+    M_i_t_g = M_i_t * 1000.0  # kg -> g, to match native gram M_ref in ratio
+    prey_mass_g = prey_mass * 1000.0  # kg -> g, native linear handling factor
+    return h_pred_0 * (M_ref / M_i_t_g) ** b_pred * prey_mass_g
 
-    return h_pred_0 * ((M_ref / M_i_t) ** b_pred) * prey_mass
 
-
-def juvenile_dispersal_speed(
-    current_mass: float, V_disp: float, M_disp_ref: float, o_disp: float
+def dispersal_distance(
+    current_mass: float,
+    V_disp: float,
+    M_disp_ref: float,
+    o_disp: float,
+    dt_days: float,
 ) -> float:
-    """Dispersal speed of cohorts during diffusive natal dispersal event [km/month].
+    """Distance a cohort can travel in a single timestep [m].
 
-    Madingley
+    Madingley eq. (diffusive natal dispersal). ``V_disp`` is the dispersal speed of
+    an individual of reference body mass, expressed in the Madingley-native units of
+    km/month, and ``M_disp_ref`` is that reference mass in grams. ``current_mass`` is
+    supplied in kg and is converted to grams at the point it enters the mass ratio,
+    and the km/month speed is converted to metres over the model timestep.
 
     Args:
-        current_mass: The mass of an individual of the cohort during the current time
-            step [kg].
-        V_disp: Diffusive dispersal speed on an individual with reference body-mass.
-        M_disp_ref: A reference body-mass.
-        o_disp: The power-law exponent for the mass-dispersal speed scaling
-          relationship.
+        current_mass: Mass of an individual of the cohort in the current timestep [kg].
+        V_disp: Dispersal speed of an individual of mass ``M_disp_ref`` [km/month].
+        M_disp_ref: Reference body mass for the dispersal speed scaling [g].
+        o_disp: Power-law exponent for the mass-dispersal speed scaling relationship.
+        dt_days: Length of the model timestep [days].
 
     Returns:
-        The dispersal speed of a juvenile cohort in km/month.
-
+        The distance the cohort can travel over the timestep [m].
     """
 
-    return V_disp * (current_mass / M_disp_ref) ** o_disp
+    # mass_g -> current_mass * 1000.0  kg -> g, to match the native gram M_disp_ref
+    speed_km_month = V_disp * ((current_mass * 1000.0) / M_disp_ref) ** o_disp
+
+    # km/month -> m/timestep: 1000 m per km, Madingley month taken as 30 days.
+    return speed_km_month * 1000.0 * (dt_days / 30.0)
+
+
+def cells_within_distance(
+    grid: Grid,
+    centroid_key: int,
+    distance_m: float,
+) -> list[int]:
+    """Grid cells whose centroids lie within a travel distance of a centroid.
+
+    Reachability is Euclidean centroid-to-centroid, read directly from the grid's
+    pre-populated distance matrix (see
+    :meth:`~virtual_ecosystem.core.grid.Grid.populate_distances`), using the same
+    ``<=`` metric as :meth:`~virtual_ecosystem.core.grid.Grid.set_neighbours`.
+
+    The distance is clamped to a minimum of one cell side so that a triggered dispersal
+    always has at least the orthogonal neighbours available, even for a cohort too slow
+    to clear a single cell.
+
+    Args:
+        grid: The simulation grid, with its distance matrix already populated.
+        centroid_key: The grid cell key anchoring the move.
+        distance_m: The distance the cohort can travel this timestep [m].
+
+    Returns:
+        The keys of all in-bounds cells within reach, excluding the centroid itself.
+    """
+
+    if grid._distances is None:
+        raise ValueError(
+            "grid distance matrix not populated;call grid.populate_distances() at setup"
+        )
+
+    # Clamp to at least one cell side. Uses <= below, matching set_neighbours, so the
+    # orthogonal neighbours at exactly sqrt(cell_area) are retained.
+    distance_m = max(
+        distance_m, np.sqrt(grid.cell_area) + 0.001
+    )  # 1 mm greater to avoid floating point issues
+
+    reachable = np.where(grid._distances[centroid_key, :] <= distance_m)[0].tolist()
+    reachable.remove(centroid_key)
+
+    return reachable
 
 
 def territory_size(
@@ -833,3 +1022,122 @@ def activity_window(
     p_below = p_below_t_min(temperature, diurnal_temp_range, t_min_val)
 
     return max(0.0, 1.0 - (p_above + p_below))
+
+
+def stratum_mean_climate(
+    vertical_occupancy: VerticalOccupancy,
+    climate: StratumClimate,
+) -> tuple[NDArray, NDArray]:
+    """Per-cell mean temperature and diurnal range over occupied strata.
+
+    The whole-grid analogue of
+    :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_stratum_climate`:
+    it averages the climate of the strata a functional group occupies, but for every
+    cell at once and independent of any cohort, so it can be computed a single time per
+    functional group per timestep.
+
+    The stratum-to-array mapping matches ``get_stratum_climate``:
+
+    * ``CANOPY`` — mean of filled canopy layer values.
+    * ``GROUND`` — surface layer value.
+    * ``SOIL``   — topsoil layer value.
+
+    TODO: this duplicates the stratum-selection logic in
+    :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_stratum_climate`.
+    Unify the two once that method is refactored to take a ``StratumClimate``.
+
+    Args:
+        vertical_occupancy: The strata the functional group occupies.
+        climate: Per-cell, per-stratum climate for the current timestep.
+
+    Returns:
+        Two ``(n_cells,)`` arrays: the mean temperature and mean diurnal range across
+        the occupied strata, cell by cell.
+
+    Raises:
+        ValueError: If ``vertical_occupancy`` contains no recognised strata.
+    """
+
+    temps: list[NDArray] = []
+    diurnal: list[NDArray] = []
+
+    if vertical_occupancy & VerticalOccupancy.CANOPY:
+        temps.append(climate.canopy_temperature)
+        diurnal.append(climate.canopy_diurnal_range)
+
+    if vertical_occupancy & VerticalOccupancy.GROUND:
+        temps.append(climate.ground_temperature)
+        diurnal.append(climate.ground_diurnal_range)
+
+    if vertical_occupancy & VerticalOccupancy.SOIL:
+        temps.append(climate.soil_temperature)
+        diurnal.append(climate.soil_diurnal_range)
+
+    if not temps:
+        raise ValueError(
+            f"No recognised vertical occupancy flags in: {vertical_occupancy}"
+        )
+
+    return np.mean(temps, axis=0), np.mean(diurnal, axis=0)
+
+
+def thermal_suitability(
+    metabolic_type: MetabolicType,
+    temperature: NDArray,
+    diurnal_temp_range: NDArray,
+    annual_mean_temp: float,
+    annual_temp_sd: float,
+    t_opt: float | None = None,
+    t_max_crit: float | None = None,
+    t_min_crit: float | None = None,
+    constants: AnimalConstants = AnimalConstants(),
+) -> NDArray:
+    """Per-cell habitat suitability for a functional group, in [0, 1].
+
+    The per-cell analogue of ``sigma_f_t``: the activity window fraction a cohort of
+    this functional group would experience in each cell, given the current per-cell
+    stratum climate. Suitability depends only on the functional group and the cell, so
+    it is computed once per functional group and cached for all cohorts of that group.
+
+    Delegates to :func:`activity_window` cell by cell rather than re-deriving the
+    thermal maths, so the two cannot drift. Endotherms return 1.0 in every cell, which
+    makes thermal habitat selection inert for them by construction.
+
+    Args:
+        metabolic_type: Whether the functional group is endothermic or ectothermic.
+        temperature: Per-cell mean temperature over occupied strata [°C],
+            shape ``(n_cells,)``.
+        diurnal_temp_range: Per-cell mean diurnal range over occupied strata [°C],
+            shape ``(n_cells,)``.
+        annual_mean_temp: Annual mean ambient temperature [°C].
+        annual_temp_sd: Standard deviation of monthly temperatures across the
+            climatological year [°C].
+        t_opt: Optional optimal activity temperature [°C]. See :func:`activity_window`.
+        t_max_crit: Optional upper critical temperature [°C]. See ``t_opt``.
+        t_min_crit: Optional lower critical temperature [°C]. See ``t_opt``.
+        constants: Animal constants supplying the activity window parameters, used only
+            when ``t_opt``, ``t_max_crit``, and ``t_min_crit`` are not all provided.
+
+    Returns:
+        A ``(n_cells,)`` array of suitability values in [0, 1].
+    """
+
+    if metabolic_type == MetabolicType.ENDOTHERMIC:
+        return np.ones(temperature.shape)
+
+    return np.array(
+        [
+            activity_window(
+                metabolic_type=metabolic_type,
+                temperature=float(t),
+                diurnal_temp_range=float(d),
+                annual_mean_temp=annual_mean_temp,
+                annual_temp_sd=annual_temp_sd,
+                t_opt=t_opt,
+                t_max_crit=t_max_crit,
+                t_min_crit=t_min_crit,
+                constants=constants,
+            )
+            for t, d in zip(temperature, diurnal_temp_range)
+        ]
+    )

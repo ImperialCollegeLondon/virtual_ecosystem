@@ -33,41 +33,42 @@ class MicrobialGroupConstants:
     """Maximum rate at the reference temperature of labile carbon uptake [day^-1]."""
 
     activation_energy_uptake_rate: float
-    """Activation energy for nutrient uptake [J K^-1]."""
+    """Activation energy for nutrient uptake [J Kelvin^-1]."""
 
     half_sat_labile_C_uptake: float
-    """Half saturation constant for uptake of labile carbon (LMWC) [kg C m^-3]."""
+    """Half saturation constant for uptake of labile carbon (LMWC) [kg{C} m^-3]."""
 
     activation_energy_uptake_saturation: float
-    """Activation energy for nutrient uptake saturation constants [J K^-1]."""
+    """Activation energy for nutrient uptake saturation constants [J Kelvin^-1]."""
 
     max_uptake_rate_ammonium: float
     """Maximum possible rate for ammonium uptake [day^-1]."""
 
     half_sat_ammonium_uptake: float
-    """Half saturation constant for uptake of ammonium [kg N m^-3]."""
+    """Half saturation constant for uptake of ammonium [kg{N} m^-3]."""
 
     max_uptake_rate_nitrate: float
     """Maximum possible rate for nitrate uptake [day^-1]."""
 
     half_sat_nitrate_uptake: float
-    """Half saturation constant for uptake of nitrate [kg N m^-3]."""
+    """Half saturation constant for uptake of nitrate [kg{N} m^-3]."""
 
     max_uptake_rate_labile_p: float
     """Maximum possible rate for labile inorganic phosphorus uptake [day^-1]."""
 
     half_sat_labile_p_uptake: float
-    """Half saturation constant for uptake of labile inorganic phosphorus [kg P m^-3].
+    """Half saturation constant for uptake of labile inorganic phosphorus [kg{P} m^-3].
     """
 
     turnover_rate: float
     """Microbial maintenance turnover rate at reference temperature [day^-1]."""
 
     activation_energy_turnover: float
-    """Activation energy for microbial maintenance turnover rate [J K^-1]."""
+    """Activation energy for microbial maintenance turnover rate [J Kelvin^-1]."""
 
     reference_temperature: float
-    """The reference temperature that turnover and uptake rates were measured at [C].
+    """The reference temperature that turnover and uptake rates were measured at
+    [Celsius].
     """
 
     c_n_ratio: float
@@ -81,7 +82,7 @@ class MicrobialGroupConstants:
     
     The keys are the substrates for which enzymes are produced, and the values are the
     allocation to enzyme production. This allocation is expressed as a fraction of the
-    (gross) cellular biomass growth.
+    (gross) cellular biomass growth [unitless].
     """
 
     reproductive_allocation: float
@@ -93,19 +94,21 @@ class MicrobialGroupConstants:
     """
 
     symbiote_nitrogen_uptake_fraction: float
-    """Fraction of nitrogen uptake that is supplied to symbiotic (plant) partners.
+    """Fraction of nitrogen uptake that is supplied to symbiotic (plant) partners.    
+    [unitless]. 
     
-    [unitless]. This should only have a non-zero value for mycorrhizal fungi.
+    This should only have a non-zero value for mycorrhizal fungi.
     """
 
     symbiote_phosphorus_uptake_fraction: float
-    """Fraction of phosphorus uptake that is supplied to symbiotic (plant) partners.
+    """Fraction of phosphorus uptake that is supplied to symbiotic (plant) partners.    
+    [unitless]. 
     
-    [unitless]. This should only have a non-zero value for mycorrhizal fungi.
+    This should only have a non-zero value for mycorrhizal fungi.
     """
 
     synthesis_nutrient_ratios: dict[str, float]
-    """Average carbon to nutrient ratios for the total synthesised biomass.
+    """Average carbon to nutrient ratios for the total synthesised biomass [unitless].
     
     Microbes have to synthesis both cellular biomass and extracellular enzymes. We
     assume that this occurs in fixed unvarying proportion. This attribute stores the
@@ -135,8 +138,6 @@ class MicrobialGroupConstants:
                 c_p_ratio=group_config.c_p_ratio,
                 enzyme_production=group_config.enzyme_production,
                 reproductive_allocation=group_config.reproductive_allocation,
-                c_n_ratio_fruiting_bodies=core_constants.fungal_fruiting_bodies_c_n_ratio,
-                c_p_ratio_fruiting_bodies=core_constants.fungal_fruiting_bodies_c_p_ratio,
                 enzyme_classes=enzyme_classes,
             ),
         )
@@ -157,8 +158,6 @@ def calculate_new_biomass_average_nutrient_ratios(
     c_p_ratio: float,
     enzyme_production: dict[str, float],
     reproductive_allocation: float,
-    c_n_ratio_fruiting_bodies: float,
-    c_p_ratio_fruiting_bodies: float,
     enzyme_classes: dict[str, SoilEnzymeClass],
 ) -> dict[str, float]:
     """Calculate average carbon nutrient ratios of the newly synthesised biomass.
@@ -183,8 +182,6 @@ def calculate_new_biomass_average_nutrient_ratios(
             cellular synthesis)
         reproductive_allocation: Allocation of new biomass synthesis to reproductive
             structures (relative to cellular synthesis).
-        c_n_ratio_fruiting_bodies: Carbon to nitrogen ratio of fungal fruiting bodies.
-        c_p_ratio_fruiting_bodies: Carbon to phosphorus ratio of fungal fruiting bodies.
         enzyme_classes: Details of the enzyme classes used by the soil model.
     """
 
@@ -202,17 +199,9 @@ def calculate_new_biomass_average_nutrient_ratios(
 
     return {
         "nitrogen": total_carbon_gain
-        / (
-            (1 / c_n_ratio)
-            + enzyme_c_n_inverse
-            + (reproductive_allocation / c_n_ratio_fruiting_bodies)
-        ),
+        / (((1 + reproductive_allocation) / c_n_ratio) + enzyme_c_n_inverse),
         "phosphorus": total_carbon_gain
-        / (
-            (1 / c_p_ratio)
-            + enzyme_c_p_inverse
-            + (reproductive_allocation / c_p_ratio_fruiting_bodies)
-        ),
+        / (((1 + reproductive_allocation) / c_p_ratio) + enzyme_c_p_inverse),
     }
 
 
@@ -247,13 +236,13 @@ class CarbonSupply:
     """Rate of carbon supply to each of the plant symbiotic microbial groups."""
 
     nitrogen_fixers: NDArray[np.floating]
-    """Carbon supply to the nitrogen fixing bacteria [kg C m^-3 day^-1]."""
+    """Carbon supply to the nitrogen fixing bacteria [kg{C} m^-3 day^-1]."""
 
     ectomycorrhiza: NDArray[np.floating]
-    """Carbon supply to ectomycorrhizal fungi [kg C m^-3 day^-1]."""
+    """Carbon supply to ectomycorrhizal fungi [kg{C} m^-3 day^-1]."""
 
     arbuscular_mycorrhiza: NDArray[np.floating]
-    """Carbon supply to arbuscular mycorrhizal fungi [kg C m^-3 day^-1]."""
+    """Carbon supply to arbuscular mycorrhizal fungi [kg{C} m^-3 day^-1]."""
 
 
 def calculate_symbiotic_carbon_supply(
@@ -268,14 +257,14 @@ def calculate_symbiotic_carbon_supply(
 
     Args:
         total_plant_supply: Total supply of carbon from the plant to symbiotic microbial
-            partners [kg C m^-3 day^-1]
+            partners [kg{C} m^-3 day^-1]
         nitrogen_fixer_fraction: Fraction of carbon supplied by plants to symbiotes that
             goes to nitrogen fixers [unitless]
         ectomycorrhiza_fraction: Fraction of plant carbon supply to mycorrhizal fungi
             that goes to ectomycorrhiza [unitless]
 
     Returns:
-        The carbon supply to each symbiotic microbial partner [kg C m^-3 day^-1]
+        The carbon supply to each symbiotic microbial partner [kg{C} m^-3 day^-1]
     """
 
     n_fixer_supply = total_plant_supply * nitrogen_fixer_fraction

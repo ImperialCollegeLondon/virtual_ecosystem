@@ -26,6 +26,9 @@ class AbioticSharedConstants(Configuration):
     to 0.98 depending on soil texture, moisture, and surface roughness. Value taken
     from :cite:t:`molders_plant_2005`."""
 
+    measurement_height: float = 1.5
+    """Height below canopy at which atmospheric variables are measured, [m]."""
+
 
 class AbioticSimpleConstants(AbioticSharedConstants):
     """Dataclass to store all constants for the `abiotic_simple` model."""
@@ -49,14 +52,14 @@ class AbioticSimpleBounds(Configuration):
     leaf area index from :cite:t:`hardwick_relationship_2015`.
     """
 
-    relative_humidity: tuple[float, float, float] = (0.0, 100.0, 5.4)
+    relative_humidity: tuple[float, float, float] = (0.001, 99.999, 5.4)
     """Bounds and gradient for relative humidity, dimensionless.
 
     Gradient for linear regression to calculate relative humidity as a function of
     leaf area index from :cite:t:`hardwick_relationship_2015`.
     """
 
-    vapour_pressure_deficit: tuple[float, float, float] = (0.0, 10.0, -252.24)
+    vapour_pressure_deficit: tuple[float, float, float] = (0.001, 10.0, -252.24)
     """Bounds and gradient for vapour pressure deficit, [kPa].
     
     Gradient for linear regression to calculate vapour pressure deficit as a function of

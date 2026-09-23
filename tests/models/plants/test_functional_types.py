@@ -3,14 +3,14 @@
 This module tests the functionality of the plant functional types submodule.
 """
 
-from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
+import pandas as pd
 
 
 def test_get_flora_from_config(fixture_configuration):
     """Testing the pyrealm flora loading mechanism.
 
-    This tests the loader in two different configurations (data in TOML, data in CSV)
-    and checks the loader fails if both are present.
+    Checks that VEFlora (an extended pyrealm Flora class) loads from CSV and populates
+    the required extra fields.
     """
 
     from pyrealm.demography.flora import Flora
@@ -18,8 +18,16 @@ def test_get_flora_from_config(fixture_configuration):
     from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
     # Initial fixture_config uses PFT definitions in the file
-    flora, extra_traits = get_flora_from_config(config=fixture_configuration.plants)
+    flora = get_flora_from_config(config=fixture_configuration.plants)
 
     assert isinstance(flora, Flora)
-    assert flora.n_pfts == 2
-    assert isinstance(extra_traits, ExtraTraitsPFT)
+
+    # Check one of the extended properties is present
+    assert "stem_c_n_ratio" in flora.columns
+
+    # Check the reference values have been copied across
+    assert flora.lai.equals(flora.lai_base)
+    assert flora.tau_f.equals(flora.tau_f_base)
+
+    # Check the fruit flesh fraction has been populated
+    assert flora.fruit_flesh_fraction.equals(pd.Series((5 / 6, 3 / 4)))

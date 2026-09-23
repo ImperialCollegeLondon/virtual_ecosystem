@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.1
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -59,7 +59,7 @@ Mortality and reproduction have not yet been implemented.
 ## Required array variables
 
 In addition to the [definition of the plant
-communities](../../using_the_ve/model_details/plants/pft_configuration.md), the plants
+communities](../../using_the_ve/model_details/plants/overview.md), the plants
 model needs some additional array data to be set. These provide values that can be
 easily structured as arrays by grid cell id and by plant functional type name:
 

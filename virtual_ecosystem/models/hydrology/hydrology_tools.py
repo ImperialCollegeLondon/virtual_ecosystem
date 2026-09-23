@@ -2,7 +2,7 @@
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.core.hygro import calc_specific_heat
+from pyrealm.core.hygro import calculate_specific_heat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -70,8 +70,8 @@ def initialise_atmosphere_for_hydrology(
     )
 
     # Extract air temperature and pressure
-    air_temp = data["air_temperature_ref"].isel(time_index=0).to_numpy()
-    air_pressure = data["atmospheric_pressure_ref"].isel(time_index=0).to_numpy()
+    air_temp = data.get_time_slice("air_temperature_ref", 0).to_numpy()
+    air_pressure = data.get_time_slice("atmospheric_pressure_ref", 0).to_numpy()
 
     # Density of air
     density_air = abiotic_tools.calculate_air_density(
@@ -85,7 +85,7 @@ def initialise_atmosphere_for_hydrology(
     output["density_air"] = density_air_layer
 
     # Specific heat of air
-    specific_heat_air = calc_specific_heat(tc=air_temp)
+    specific_heat_air = calculate_specific_heat(tc=air_temp)
     specific_heat_air_layer = layer_structure.from_template()
     specific_heat_air_layer[layer_structure.index_filled_atmosphere] = specific_heat_air
     output["specific_heat_air"] = specific_heat_air_layer / 1000.0
@@ -109,7 +109,7 @@ def setup_hydrology_input_current_timestep(
     data: Data,
     time_index: int,
     days: int,
-    seed: None | int,
+    seed: int | None,
     layer_structure: LayerStructure,
     soil_layer_thickness_mm: NDArray[np.floating],
     soil_moisture_saturation: float | NDArray[np.floating],
@@ -146,6 +146,7 @@ def setup_hydrology_input_current_timestep(
     * top_soil_moisture_saturation
     * top_soil_moisture_residual
     * groundwater_storage
+    * condensation
 
     Args:
         data: Data object that contains inputs from the microclimate model, the plant
@@ -173,7 +174,7 @@ def setup_hydrology_input_current_timestep(
 
     # Get atmospheric variables
     # Generate daily rainfall, [mm]
-    input_rainfall = data["precipitation"].isel(time_index=time_index).to_numpy()
+    input_rainfall = data.get_time_slice("precipitation", time_index).to_numpy()
     output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
         total_monthly_rainfall=input_rainfall,
         num_days=days,
@@ -217,6 +218,8 @@ def setup_hydrology_input_current_timestep(
     # Get ground water level
     output["groundwater_storage"] = data["groundwater_storage"].to_numpy()
 
+    # Get condensation from abiotic model
+    output["condensation"] = np.nansum(data["condensation"].to_numpy(), axis=0) / days
     return output
 
 

@@ -6,7 +6,7 @@ from xarray import DataArray
 
 
 def test_initialise_atmosphere_for_hydrology(
-    dummy_climate_data_varying_canopy,
+    dummy_climate_data,
     fixture_core_components,
     fixture_hydrology_constants,
     fixture_abiotic_constants,
@@ -18,7 +18,7 @@ def test_initialise_atmosphere_for_hydrology(
         initialise_atmosphere_for_hydrology,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     layer_structure = fixture_core_components.layer_structure
     output = initialise_atmosphere_for_hydrology(
         data=data,
@@ -62,7 +62,7 @@ def test_initialise_atmosphere_for_hydrology(
 
 
 def test_setup_hydrology_input_current_timestep(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data, fixture_core_components
 ):
     """Test that correct values are selected for current time step."""
 
@@ -70,7 +70,7 @@ def test_setup_hydrology_input_current_timestep(
         setup_hydrology_input_current_timestep,
     )
 
-    data = dummy_climate_data_varying_canopy
+    data = dummy_climate_data
     lyr_strct = fixture_core_components.layer_structure
     result = setup_hydrology_input_current_timestep(
         data=data,
@@ -100,6 +100,7 @@ def test_setup_hydrology_input_current_timestep(
         "top_soil_moisture_residual",
         "groundwater_storage",
         "current_soil_moisture",
+        "condensation",
     ]
 
     assert set(result.keys()) == set(var_list)
@@ -107,7 +108,7 @@ def test_setup_hydrology_input_current_timestep(
     # check if climate values are selected correctly
     np.testing.assert_allclose(
         np.sum(result["current_precipitation"], axis=1),
-        (data["precipitation"].isel(time_index=0)).to_numpy(),
+        (data.get_time_slice("precipitation", 0)).to_numpy(),
     )
     # Get the surface layer index as an integer to extract a 1D slice
     surface_idx = lyr_strct.index_surface_scalar
@@ -123,11 +124,11 @@ def test_setup_hydrology_input_current_timestep(
     # on axis 1, so need to extract from the second axis
     np.testing.assert_allclose(
         result["surface_pressure"],
-        data["atmospheric_pressure_ref"][:, 0].to_numpy(),
+        data["atmospheric_pressure"][surface_idx],
     )
     np.testing.assert_allclose(
         result["current_soil_moisture"],
-        DataArray(np.tile([[5], [500]], fixture_core_components.grid.n_cells)),
+        data["soil_moisture"][lyr_strct.index_all_soil],
     )
 
 

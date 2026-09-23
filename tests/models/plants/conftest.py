@@ -7,23 +7,11 @@ from xarray import DataArray
 
 
 @pytest.fixture
-def flora(fixture_configuration):
+def fixture_flora(fixture_configuration):
     """Construct a minimal Flora object."""
     from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
-    flora, _ = get_flora_from_config(config=fixture_configuration.plants)
-
-    return flora
-
-
-@pytest.fixture
-def extra_pft_traits(fixture_configuration):
-    """Construct a minimal Flora object."""
-    from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
-
-    _, extra_pft_traits = get_flora_from_config(config=fixture_configuration.plants)
-
-    return extra_pft_traits
+    return get_flora_from_config(config=fixture_configuration.plants)
 
 
 @pytest.fixture
@@ -36,7 +24,7 @@ def fixture_pyrealm_constants():
 
 
 @pytest.fixture
-def fixture_exporter(tmpdir, fixture_configuration):
+def fixture_exporter(tmp_path, fixture_configuration):
     """Construct a minimal CommunityDataExporter object.
 
     This exporter uses the default exporter settings that do not output plant community
@@ -50,17 +38,22 @@ def fixture_exporter(tmpdir, fixture_configuration):
         "plants", PlantsConfiguration
     )
     exporter = CommunityDataExporter.from_config(
-        output_directory=tmpdir, config=plants_config.community_data_export
+        output_directory=tmp_path, config=plants_config.community_data_export
     )
 
     return exporter
 
 
 @pytest.fixture
-def plants_cohort_data():
-    """Construct a simple initial cohort dataframe."""
+def plants_cohort_data(tricky_plant_cohorts):
+    """Construct a simple initial cohort dataframe.
 
-    return pd.DataFrame(
+    The tricky plant cohorts switch can be passed down through tests to switch from
+    a normal set of cohorts and a set with edge cases (no cohorts at all, empty cohorts,
+    only one of 2 PFTs.)
+    """
+
+    data = pd.DataFrame(
         {
             "plant_cohorts_cell_id": [0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
             "plant_cohorts_n": [400, 100, 100, 300, 100, 200, 100, 100, 100, 100],
@@ -80,9 +73,26 @@ def plants_cohort_data():
         }
     )
 
+    if tricky_plant_cohorts:
+        data = pd.DataFrame(
+            {
+                "plant_cohorts_cell_id": [1, 2, 3, 3],
+                "plant_cohorts_n": [0, 1, 1, 1],
+                "plant_cohorts_pft": [
+                    "broadleaf",
+                    "broadleaf",
+                    "broadleaf",
+                    "broadleaf",
+                ],
+                "plant_cohorts_dbh": [1.0, 1.0, 1.0, 0.1],
+            }
+        )
+
+    return data
+
 
 @pytest.fixture
-def plants_data(fixture_core_components, flora):
+def plants_data(fixture_core_components, fixture_flora):
     """Construct a minimal data object for the plant model."""
     from virtual_ecosystem.core.data import Data
 
@@ -90,10 +100,12 @@ def plants_data(fixture_core_components, flora):
     n_cells = fixture_core_components.grid.n_cells
 
     data["plant_pft_propagules"] = DataArray(
-        data=np.full((n_cells, flora.n_pfts), fill_value=100, dtype=np.int_),
+        data=np.full(
+            (n_cells, len(fixture_flora.pft_name)), fill_value=100, dtype=np.int_
+        ),
         coords={
             "cell_id": fixture_core_components.grid.cell_id,
-            "pft": flora.name,
+            "pft": list(fixture_flora.pft_name),
         },
     )
 
@@ -126,9 +138,9 @@ def plants_data(fixture_core_components, flora):
     data["ectomycorrhizal_p_supply"] = DataArray(np.array([1.32e-4] * n_cells))
     data["arbuscular_mycorrhizal_p_supply"] = DataArray(np.array([2.34e-4] * n_cells))
 
-    # TODO - This elevation data is created so that the PlantsModel.calculate_turnover
-    # function works in testing. Once that function has been replaced with something
-    # more realistic this should be deleted
+    # TODO - This elevation data is created so that the
+    # PlantsModel.populate_lignin_proportions function works in testing. Once that
+    # function has been replaced with something more realistic this should be deleted
     data["elevation"] = DataArray(
         data=np.full((n_cells), fill_value=437.5),
         coords={
@@ -143,17 +155,20 @@ def plants_data(fixture_core_components, flora):
         fixture_core_components.grid.n_cells,
     )
 
-    # Setup the layers
+    # Setup the layers - note that these values are written to all layers and in reality
+    # should only fill _some_ of the layers, but that doesn't matter for the context of
+    # the tests.
     forcing_vars = (
         ("air_temperature", 20),
         ("vapour_pressure_deficit", 1000),
         ("atmospheric_pressure", 101325),
         ("atmospheric_co2", 400),
+        ("soil_moisture", 300),
     )
 
     for var, value in forcing_vars:
         data[var] = DataArray(
-            data=np.full(layer_shape, fill_value=value),
+            data=np.full(layer_shape, fill_value=value, dtype=np.float64),
             dims=("layers", "cell_id"),
             coords={
                 "layers": np.arange(len(layer_roles)),
@@ -170,7 +185,7 @@ def fixture_canopy_layer_data(
     plants_cohort_data,
     plants_data,
     fixture_plants_constants,
-    flora,
+    fixture_flora,
     fixture_core_components,
 ):
     """Shared canopy layer data.
@@ -188,28 +203,43 @@ def fixture_canopy_layer_data(
     """
 
     from pyrealm.demography.canopy import Canopy
-    from pyrealm.demography.community import Cohorts, Community
+    from pyrealm.demography.cohorts import cohort_id_generator, create_cohorts
 
-    # Package the community data up into cell groups
-    cells = plants_cohort_data.groupby("plant_cohorts_cell_id")
+    from virtual_ecosystem.models.plants.communities import Community
 
     # Build the pyrealm community for each cell
-    communities = [
-        Community(
-            flora=flora,
-            cell_area=fixture_core_components.grid.cell_area,
-            cell_id=int(cell_id),
-            cohorts=Cohorts(
-                dbh_values=cell_data["plant_cohorts_dbh"].to_numpy(),
-                n_individuals=cell_data["plant_cohorts_n"].to_numpy(),
-                pft_names=cell_data["plant_cohorts_pft"].to_numpy(),
-            ),
-        )
-        for cell_id, cell_data in cells
-    ]
+    cid_gen = cohort_id_generator()
 
-    # Fit the PPA solution for each cell
-    canopies = [Canopy(cmnty, fit_ppa=True) for cmnty in communities]
+    communities = []
+    for cell_id in fixture_core_components.grid.cell_id:
+        chrts = plants_cohort_data[plants_cohort_data.plant_cohorts_cell_id == cell_id]
+        communities.append(
+            Community(
+                flora=fixture_flora,
+                cell_area=fixture_core_components.grid.cell_area,
+                cell_id=int(cell_id),
+                cohorts=create_cohorts(
+                    flora=fixture_flora,
+                    cid_generator=cid_gen,
+                    dbh_value=chrts["plant_cohorts_dbh"].to_numpy(),
+                    n_individuals=chrts["plant_cohorts_n"].to_numpy(),
+                    pft_name=chrts["plant_cohorts_pft"].to_numpy(),
+                ),
+            )
+        )
+
+    # Fit the PPA solution for each cell, handling communities with no cohorts as None
+    canopies = [
+        Canopy(
+            cohorts=cmnty.cohorts,
+            allometry=cmnty.stem_allometry,
+            canopy_area=cmnty.cell_area,
+            fit_ppa=True,
+        )
+        if len(cmnty.cohorts)
+        else None
+        for cmnty in communities
+    ]
 
     # Extract direct pyrealm canopy data for different variable test cases.
     lyr_struct = fixture_core_components.layer_structure
@@ -231,15 +261,24 @@ def fixture_canopy_layer_data(
 
     # Fill in the plant canopy data
     for idx, (cmty, cnpy) in enumerate(zip(communities, canopies)):
-        # Heights - need to add top of canopy and reference height and remove the zero
-        #           that is always included in pyrealm list of heights.
-        heights = np.concat(
-            [
-                [cnpy.max_stem_height + lyr_struct.above_canopy_height_offset],
-                [cnpy.max_stem_height],
-                cnpy.heights[:-1, 0],
-            ]
-        )
+        if cnpy is None:
+            # Set canopy top at 2m up.
+            expected["layer_heights_full"][1][0, idx] = 2
+            expected["layer_heights_canopy"][1][0, idx] = 2
+            continue
+
+        if cnpy.heights.size:
+            # Heights - need to add top of canopy and reference height and remove the
+            #           zero that is always included in pyrealm list of heights.
+            heights = np.concat(
+                [
+                    [cnpy.max_stem_height + lyr_struct.above_canopy_height_offset],
+                    [cnpy.max_stem_height],
+                    cnpy.heights[:-1,],
+                ]
+            )
+        else:
+            heights = np.array([2])
 
         cnpy_height_idx = np.arange(0, heights.size)
         expected["layer_heights_full"][1][cnpy_height_idx, idx] = heights
@@ -264,9 +303,9 @@ def fixture_canopy_layer_data(
         # TODO - maybe pyrealm should provide stem_leaf_mass?
         expected["layer_leaf_mass"][1][cnpy_idx, idx] = (
             cnpy.cohort_data.stem_leaf_area
-            * (1 / cmty.stem_traits.sla)
-            * cmty.stem_traits.lai
-            * cmty.cohorts.n_individuals
+            * (1 / cmty.cohorts.sla.to_numpy())
+            * cmty.cohorts.lai.to_numpy()
+            * cmty.cohorts.n_individuals.to_numpy()
         ).sum(axis=1)
 
     # Fill soil and surface layer depths
@@ -285,6 +324,7 @@ def fixture_canopy_layer_data(
     subcanopy_vegetation_lai = (
         plants_data["subcanopy_vegetation_biomass"]
         * fixture_plants_constants.subcanopy_specific_leaf_area
+        * fixture_plants_constants.subcanopy_leaf_fraction
     )
     subcanopy_transmission = np.exp(
         -fixture_plants_constants.subcanopy_extinction_coef * subcanopy_vegetation_lai
@@ -301,7 +341,7 @@ def fixture_canopy_layer_data(
 
     # Shortwave radiation is the fraction of canopy top DSR that is absorbed by each
     # layer plus what reaches the ground
-    dsr_t0 = plants_data["downward_shortwave_radiation"][:, 0].drop_vars("time_index")
+    dsr_t0 = plants_data["downward_shortwave_radiation"].drop_vars("time_index")
     dsr_by_layer = expected["layer_fapar_full"][1] * dsr_t0
     ground_incident_dsr = dsr_t0 - dsr_by_layer.sum(axis=0)
     dsr_by_layer[lyr_struct.index_topsoil] = ground_incident_dsr
@@ -314,9 +354,8 @@ def fixture_canopy_layer_data(
 @pytest.fixture
 def fxt_plants_model(
     plants_data,
-    flora,
+    fixture_flora,
     plants_cohort_data,
-    extra_pft_traits,
     fixture_core_components,
     fixture_plants_constants,
     fixture_exporter,
@@ -330,9 +369,8 @@ def fxt_plants_model(
     return PlantsModel(
         data=plants_data,
         core_components=fixture_core_components,
-        flora=flora,
+        flora=fixture_flora,
         cohort_data=plants_cohort_data,
-        extra_pft_traits=extra_pft_traits,
         exporter=fixture_exporter,
         model_constants=fixture_plants_constants,
     )

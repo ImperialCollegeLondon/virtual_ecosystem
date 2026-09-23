@@ -39,48 +39,6 @@ def test_damuths_law_computes_expected_value(mass, terms):
 
 
 @pytest.mark.parametrize(
-    "mass, terms, expected_behavior",
-    [
-        # Normal test cases
-        (100000.0, (0.6, 300000.0), "compute"),  # very large mass
-        (0.07, (0.6, 300000.0), "compute"),  # very small mass
-        (1.0, (0.6, 300000.0), "compute"),  # unit mass
-        (15.5, (0.6, 300000.0), "compute"),  # medium mass
-        (0.001, (0.6, 300000.0), "compute"),  # tiny mass
-    ],
-    ids=[
-        "very_large_mass",
-        "very_small_mass",
-        "unit_mass",
-        "medium_mass",
-        "tiny_mass",
-    ],
-)
-def test_madingley_individuals_density_value(mass, terms, expected_behavior):
-    """Test madingley_individuals_density with normal and edge case inputs."""
-    from virtual_ecosystem.models.animal.scaling_functions import (
-        madingley_individuals_density,
-    )
-
-    exponent, scalar = terms
-
-    if expected_behavior == "compute":
-        # Expected calculation
-        mass_g = mass * 1000
-        expected_km2 = scalar * mass_g ** (exponent - 1)
-        expected_m2 = expected_km2 / 1e6
-
-        actual = madingley_individuals_density(mass, terms)
-        assert actual == pytest.approx(expected_m2), (
-            f"Expected {expected_m2} for mass {mass} and terms {terms}, got {actual}"
-        )
-
-    elif expected_behavior == "error":
-        with pytest.raises(ValueError):
-            madingley_individuals_density(mass, terms)
-
-
-@pytest.mark.parametrize(
     "mass, temperature, terms, metabolic_type, sigma_f_t, met_rate",
     [
         # Symmetric terms (basal == field) — sigma does not affect output
@@ -466,16 +424,15 @@ def test_starvation_mortality(
 @pytest.mark.parametrize(
     "alpha_0_herb, mass, expected_search_rate",
     [
-        pytest.param(0.1, 1.0, 0.1, id="base_rate"),
-        pytest.param(0.2, 5.0, 1.0, id="increased_rate"),
-        pytest.param(0.05, 10.0, 0.5, id="decreased_rate"),
+        pytest.param(0.1, 1.0, 100.0, id="base_rate"),
+        pytest.param(0.2, 5.0, 1000.0, id="increased_rate"),
+        pytest.param(0.05, 10.0, 500.0, id="decreased_rate"),
         pytest.param(0.0, 10.0, 0.0, id="zero_rate"),
         pytest.param(0.1, 0.0, 0.0, id="zero_mass"),
     ],
 )
 def test_alpha_i_k(alpha_0_herb, mass, expected_search_rate):
-    """Testing effective search rate calculation for various herbivore body masses."""
-
+    """Test herbivore search rate; mass [kg] is converted to native grams (x1000)."""
     from virtual_ecosystem.models.animal.scaling_functions import alpha_i_k
 
     calculated_search_rate = alpha_i_k(alpha_0_herb, mass)
@@ -485,16 +442,16 @@ def test_alpha_i_k(alpha_0_herb, mass, expected_search_rate):
 @pytest.mark.parametrize(
     "alpha_i_k, B_k_t, A_cell, expected_biomass",
     [
-        pytest.param(0.1, 1000, 1, 100000.0, id="standard_scenario"),
-        pytest.param(0.2, 1000, 1, 200000.0, id="increased_search_rate"),
-        pytest.param(0.1, 2000, 1, 400000.0, id="increased_plant_biomass"),
-        pytest.param(0.1, 1000, 2, 25000.0, id="increased_cell_area"),
+        pytest.param(0.1, 1000, 1, 1e19, id="standard_scenario"),
+        pytest.param(0.2, 1000, 1, 2e19, id="increased_search_rate"),
+        pytest.param(0.1, 2000, 1, 4e19, id="increased_plant_biomass"),
+        pytest.param(0.1, 1000, 2, 2.5e18, id="increased_cell_area"),
         pytest.param(0, 1000, 1, 0.0, id="zero_search_rate"),
         pytest.param(0.1, 0, 1, 0.0, id="zero_plant_biomass"),
     ],
 )
 def test_k_i_k(alpha_i_k, B_k_t, A_cell, expected_biomass):
-    """Testing the potential biomass eaten calculation for various scenarios."""
+    """Test potential biomass eaten; B_k_t [kg] -> g and A_cell [m^2] -> ha inside."""
     from virtual_ecosystem.models.animal.scaling_functions import k_i_k
 
     calculated_biomass = k_i_k(alpha_i_k, B_k_t, A_cell)
@@ -504,14 +461,16 @@ def test_k_i_k(alpha_i_k, B_k_t, A_cell, expected_biomass):
 @pytest.mark.parametrize(
     "h_herb_0, M_ref, M_i_t, b_herb, expected_handling_time, expect_exception",
     [
-        pytest.param(1.0, 10.0, 10.0, 0.75, 1.0, False, id="M_ref_equals_M_i_t"),
-        pytest.param(1.0, 10.0, 5.0, 0.75, 1.6817928, False, id="M_i_t_half_of_M_ref"),
+        pytest.param(1.0, 10.0, 0.01, 0.75, 1.0, False, id="M_ref_equals_M_i_t"),
         pytest.param(
-            1.0, 10.0, 20.0, 0.75, 0.5946035, False, id="M_i_t_double_of_M_ref"
+            1.0, 10.0, 0.005, 0.75, 1.681792830507429, False, id="M_i_t_half_of_M_ref"
         ),
-        pytest.param(2.0, 10.0, 10.0, 0.75, 2.0, False, id="increased_h_herb_0"),
-        pytest.param(1.0, 10.0, 10.0, 1.0, 1.0, False, id="increased_b_herb"),
-        pytest.param(1.0, 10.0, 10.0, 0.0, 1.0, False, id="b_herb_zero"),
+        pytest.param(
+            1.0, 10.0, 0.02, 0.75, 0.5946035575013605, False, id="M_i_t_double_of_M_ref"
+        ),
+        pytest.param(2.0, 10.0, 0.01, 0.75, 2.0, False, id="increased_h_herb_0"),
+        pytest.param(1.0, 10.0, 0.01, 1.0, 1.0, False, id="increased_b_herb"),
+        pytest.param(1.0, 10.0, 0.01, 0.0, 1.0, False, id="b_herb_zero"),
         pytest.param(
             1.0, 10.0, 0.0, 0.75, None, True, id="M_i_t_zero_expect_exception"
         ),
@@ -520,7 +479,13 @@ def test_k_i_k(alpha_i_k, B_k_t, A_cell, expected_biomass):
 def test_H_i_k(
     h_herb_0, M_ref, M_i_t, b_herb, expected_handling_time, expect_exception
 ):
-    """Testing the handling time calculation for various herbivore masses."""
+    """Test herbivory handling time across reference/current mass ratios.
+
+    ``M_ref`` is a native reference mass in grams and ``M_i_t`` is the current
+    herbivore mass in kg, which ``H_i_k`` converts to grams internally. Inputs are
+    chosen so ``M_i_t`` in grams equals, halves, or doubles ``M_ref``, isolating the
+    power-law ratio. Zero current mass raises ``ZeroDivisionError``.
+    """
     from virtual_ecosystem.models.animal.scaling_functions import H_i_k
 
     if expect_exception:
@@ -599,16 +564,16 @@ def test_w_bar_i_j(
 @pytest.mark.parametrize(
     "alpha_0_pred, mass, w_bar_i_j, expected_search_rate",
     [
-        pytest.param(0.1, 10.0, 0.5, 0.5, id="basic_scenario"),
-        pytest.param(0.2, 5.0, 0.75, 0.75, id="different_values"),
+        pytest.param(0.1, 10.0, 0.5, 500.0, id="basic_scenario"),
+        pytest.param(0.2, 5.0, 0.75, 750.0, id="different_values"),
         pytest.param(0.0, 10.0, 0.5, 0.0, id="zero_alpha_0_pred"),
         pytest.param(0.1, 0.0, 0.5, 0.0, id="zero_mass"),
         pytest.param(0.1, 10.0, 0.0, 0.0, id="zero_w_bar_i_j"),
-        pytest.param(0.1, 10.0, 1.0, 1.0, id="w_bar_i_j_is_1"),
+        pytest.param(0.1, 10.0, 1.0, 1000.0, id="w_bar_i_j_is_1"),
     ],
 )
 def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
-    """Testing the effective search rate calculation for various inputs."""
+    """Test predator search rate; mass [kg] is converted to native grams (x1000)."""
     from virtual_ecosystem.models.animal.scaling_functions import alpha_i_j
 
     calculated_search_rate = alpha_i_j(alpha_0_pred, mass, w_bar_i_j)
@@ -616,51 +581,61 @@ def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
 
 
 @pytest.mark.parametrize(
-    "alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output",
+    "alpha_i_j, N_j_t, intersection_area, theta_i_j, expected_output",
     [
-        pytest.param(0.1, 100, 1.0, 0.5, 5.0, id="basic_scenario"),
-        pytest.param(0.2, 50, 2.0, 0.75, 3.75, id="varied_parameters"),
+        pytest.param(0.1, 100, 1.0, 0.5, 50000.0, id="basic_scenario"),
+        pytest.param(0.2, 50, 2.0, 0.75, 37500.0, id="varied_parameters"),
         pytest.param(0.0, 100, 1.0, 0.5, 0.0, id="zero_search_rate"),
-        pytest.param(0.1, 0, 1.0, 0.5, 0.0, id="zero_predator_population"),
+        pytest.param(0.1, 0, 1.0, 0.5, 0.0, id="zero_prey_population"),
         pytest.param(
-            0.1, 100, 0.0, 0.5, float("inf"), id="zero_cell_area_expect_inf_or_error"
+            0.1, 100, 0.0, 0.5, float("inf"), id="zero_area_expect_inf_or_error"
         ),
         pytest.param(0.1, 100, 1.0, 0.0, 0.0, id="zero_theta_i_j"),
     ],
 )
-def test_k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output):
-    """Testing the calculation of potential prey items eaten."""
+def test_k_i_j(alpha_i_j, N_j_t, intersection_area, theta_i_j, expected_output):
+    """Test potential prey eaten; intersection_area [m^2] -> ha inside k_i_j."""
     from virtual_ecosystem.models.animal.scaling_functions import k_i_j
 
-    # Handle special case where division by zero might occur
-    if A_cell == 0:
+    if intersection_area == 0:
         with pytest.raises(ZeroDivisionError):
-            k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j)
+            k_i_j(alpha_i_j, N_j_t, intersection_area, theta_i_j)
     else:
-        calculated_output = k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j)
+        calculated_output = k_i_j(alpha_i_j, N_j_t, intersection_area, theta_i_j)
         assert calculated_output == pytest.approx(expected_output, rel=1e-6)
 
 
 @pytest.mark.parametrize(
     "h_pred_0, M_ref, M_i_t, b_pred, prey_mass, expected_handling_time",
     [
-        pytest.param(1.0, 10.0, 10.0, 0.75, 1.0, 1.0, id="basic_scenario"),
-        pytest.param(1.0, 10.0, 5.0, 0.75, 1.0, 1.6817928, id="M_i_t_half_of_M_ref"),
-        pytest.param(1.0, 10.0, 20.0, 0.75, 1.0, 0.5946036, id="M_i_t_double_of_M_ref"),
-        pytest.param(2.0, 10.0, 10.0, 0.75, 1.0, 2.0, id="increased_h_pred_0"),
-        pytest.param(1.0, 10.0, 10.0, 1.0, 1.0, 1.0, id="increased_b_pred"),
+        pytest.param(1.0, 10.0, 0.01, 0.75, 0.001, 1.0, id="basic_scenario"),
         pytest.param(
-            1.0, 10.0, 10.0, 0.75, 5.0, 5.0, id="larger_prey_mass_scales_linearly"
+            1.0, 10.0, 0.005, 0.75, 0.001, 1.681792830507429, id="M_i_t_half_of_M_ref"
         ),
-        pytest.param(1.0, 10.0, 10.0, 0.75, 0.0, 0.0, id="zero_prey_mass_returns_zero"),
-        pytest.param(1.0, 0.0, 10.0, 0.75, 1.0, 0.0, id="zero_M_ref_leads_to_zero"),
         pytest.param(
-            1.0, 10.0, 0.0, 0.75, 1.0, float("inf"), id="zero_M_i_t_expect_inf"
+            1.0, 10.0, 0.02, 0.75, 0.001, 0.5946035575013605, id="M_i_t_double_of_M_ref"
+        ),
+        pytest.param(2.0, 10.0, 0.01, 0.75, 0.001, 2.0, id="increased_h_pred_0"),
+        pytest.param(1.0, 10.0, 0.01, 1.0, 0.001, 1.0, id="increased_b_pred"),
+        pytest.param(
+            1.0, 10.0, 0.01, 0.75, 0.005, 5.0, id="larger_prey_mass_scales_linearly"
+        ),
+        pytest.param(1.0, 10.0, 0.01, 0.75, 0.0, 0.0, id="zero_prey_mass_returns_zero"),
+        pytest.param(1.0, 0.0, 0.01, 0.75, 0.001, 0.0, id="zero_M_ref_leads_to_zero"),
+        pytest.param(
+            1.0, 10.0, 0.0, 0.75, 0.001, float("inf"), id="zero_M_i_t_expect_inf"
         ),
     ],
 )
 def test_H_i_j(h_pred_0, M_ref, M_i_t, b_pred, prey_mass, expected_handling_time):
-    """Test handling time calculation for various predator mass and prey mass inputs."""
+    """Test predation handling time across predator mass ratios and prey masses.
+
+    ``M_ref`` is a native reference mass in grams; ``M_i_t`` (predator) and
+    ``prey_mass`` are in kg, both converted to grams inside ``H_i_j``. Predator
+    inputs isolate the power-law ratio (M_i_t in grams equal/half/double M_ref) and
+    ``prey_mass`` enters linearly, so 0.001 kg -> 1 g gives a unit prey factor and
+    0.005 kg -> 5 g scales it fivefold. Zero predator mass raises ``ZeroDivisionError``.
+    """
     from virtual_ecosystem.models.animal.scaling_functions import H_i_j
 
     if M_i_t == 0:
@@ -672,31 +647,107 @@ def test_H_i_j(h_pred_0, M_ref, M_i_t, b_pred, prey_mass, expected_handling_time
 
 
 @pytest.mark.parametrize(
-    "current_mass, V_disp, M_disp_ref, o_disp, expected_speed",
+    "current_mass, V_disp, M_disp_ref, o_disp, dt_days, expected_distance",
     [
-        pytest.param(1.0, 10.0, 1.0, 1.0, 10.0, id="reference_mass"),
-        pytest.param(0.5, 10.0, 1.0, 1.0, 5.0, id="half_reference_mass"),
-        pytest.param(2.0, 10.0, 1.0, 1.0, 20.0, id="double_reference_mass"),
-        pytest.param(1.0, 20.0, 1.0, 1.0, 20.0, id="double_speed"),
-        pytest.param(1.0, 10.0, 1.0, 0.5, 10.0, id="sqrt_scaling"),
-        pytest.param(
-            4.0, 10.0, 2.0, 0.5, 14.142135, id="sqrt_scaling_with_different_ref"
-        ),
-        pytest.param(0.0, 10.0, 1.0, 1.0, 0.0, id="zero_mass"),
+        pytest.param(0.001, 10.0, 1.0, 1.0, 30.0, 10_000.0, id="reference_mass"),
+        pytest.param(0.002, 10.0, 1.0, 1.0, 30.0, 20_000.0, id="double_reference_mass"),
+        pytest.param(0.0005, 10.0, 1.0, 1.0, 30.0, 5_000.0, id="half_reference_mass"),
+        pytest.param(0.001, 20.0, 1.0, 1.0, 30.0, 20_000.0, id="double_speed"),
+        pytest.param(0.004, 10.0, 1.0, 0.5, 30.0, 20_000.0, id="sqrt_scaling"),
+        pytest.param(0.001, 10.0, 1.0, 1.0, 15.0, 5_000.0, id="half_timestep"),
+        pytest.param(0.001, 10.0, 1.0, 1.0, 0.0, 0.0, id="zero_timestep"),
+        pytest.param(0.0, 10.0, 1.0, 1.0, 30.0, 0.0, id="zero_mass"),
+        pytest.param(0.001, 0.0, 1.0, 1.0, 30.0, 0.0, id="zero_speed"),
+        pytest.param(1.0, 1.0, 1.0, 1.0, 30.0, 1_000_000.0, id="kg_to_g_conversion"),
     ],
 )
-def test_juvenile_dispersal_speed(
-    current_mass, V_disp, M_disp_ref, o_disp, expected_speed
+def test_dispersal_distance(
+    current_mass, V_disp, M_disp_ref, o_disp, dt_days, expected_distance
 ):
-    """Testing the juvenile dispersal speed calculation for various scenarios."""
-    from virtual_ecosystem.models.animal.scaling_functions import (
-        juvenile_dispersal_speed,
+    """Testing the dispersal distance calculation for various scenarios.
+
+    The ``kg_to_g_conversion`` case is the guard against the historic unit bug: a 1 kg
+    animal against a 1 g reference mass has a mass ratio of 1000, not 1, and so travels
+    1000 km/month rather than 1 km/month.
+    """
+    from virtual_ecosystem.models.animal.scaling_functions import dispersal_distance
+
+    calculated_distance = dispersal_distance(
+        current_mass, V_disp, M_disp_ref, o_disp, dt_days
     )
 
-    calculated_speed = juvenile_dispersal_speed(
-        current_mass, V_disp, M_disp_ref, o_disp
-    )
-    assert calculated_speed == pytest.approx(expected_speed, rel=1e-6)
+    assert calculated_distance == pytest.approx(expected_distance, rel=1e-6)
+
+
+@pytest.mark.parametrize(
+    "centroid_key, distance_m, expected_keys",
+    [
+        pytest.param(
+            12,
+            1.0,
+            [7, 11, 13, 17],
+            id="below_one_cell_clamps_to_orthogonal_neighbours",
+        ),
+        pytest.param(
+            12, 10.0, [7, 11, 13, 17], id="exactly_one_cell_excludes_diagonals"
+        ),
+        pytest.param(
+            12,
+            14.2,
+            [6, 7, 8, 11, 13, 16, 17, 18],
+            id="beyond_root_two_includes_diagonals",
+        ),
+        pytest.param(
+            12,
+            20.0,
+            [2, 6, 7, 8, 10, 11, 13, 14, 16, 17, 18, 22],
+            id="two_cells_excludes_knight_offsets",
+        ),
+        pytest.param(0, 10.0, [1, 5], id="corner_centroid_is_clipped_not_wrapped"),
+        pytest.param(10, 10.0, [5, 11, 15], id="edge_centroid_is_clipped_not_wrapped"),
+    ],
+)
+def test_cells_within_distance(centroid_key, distance_m, expected_keys):
+    """Test the Euclidean reachability set on a 5x5 grid of 10 m cells.
+
+    A diagonal neighbour lies sqrt(2) ~ 14.14 m away, so it enters the set only once
+    the travel distance clears that, distinguishing this Euclidean disc from the
+    Manhattan diamond and the Chebyshev square. The ``two_cells`` case additionally
+    checks that offsets such as (1, 2), at sqrt(5) ~ 22.4 m, are excluded at a 20 m
+    radius even though they are only two orthogonal steps away.
+
+    The ``below_one_cell`` case exercises the clamp: a sub-cell travel distance is
+    raised to one cell side so the four orthogonal neighbours (whose centres sit at
+    exactly 10 m) remain reachable under the ``<=`` boundary.
+    """
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.scaling_functions import cells_within_distance
+
+    grid = Grid(grid_type="square", cell_area=100.0, cell_nx=5, cell_ny=5)
+    grid.populate_distances()
+
+    reachable = cells_within_distance(grid, centroid_key, distance_m)
+
+    assert sorted(reachable) == expected_keys
+    assert centroid_key not in reachable
+    assert len(reachable) == len(set(reachable))
+
+
+def test_cells_within_distance_requires_populated_matrix():
+    """cells_within_distance raises if the grid distance matrix is not populated.
+
+    The function reads ``grid._distances`` directly for speed and so depends on
+    ``populate_distances`` having been called at model setup; absent that, it should
+    fail with a clear message rather than a NoneType subscripting error.
+    """
+
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.scaling_functions import cells_within_distance
+
+    grid = Grid(grid_type="square", cell_area=100.0, cell_nx=5, cell_ny=5)
+
+    with pytest.raises(ValueError, match="not populated"):
+        cells_within_distance(grid, centroid_key=12, distance_m=10.0)
 
 
 @pytest.mark.parametrize(
@@ -917,3 +968,686 @@ def test_activity_window(
         t_min_crit=t_min_crit,
     )
     assert result == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    "occupancy, expected_temp, expected_diurnal",
+    [
+        pytest.param("CANOPY", 30.0, 10.0, id="canopy_only"),
+        pytest.param("GROUND", 20.0, 6.0, id="ground_only"),
+        pytest.param("SOIL", 15.0, 1.0, id="soil_only"),
+        pytest.param("GROUND|SOIL", 17.5, 3.5, id="ground_soil_mean"),
+        pytest.param("CANOPY|SOIL", 22.5, 5.5, id="canopy_soil_mean"),
+        pytest.param("CANOPY|GROUND", 25.0, 8.0, id="canopy_ground_mean"),
+        pytest.param("CANOPY|GROUND|SOIL", 65.0 / 3.0, 17.0 / 3.0, id="all_three_mean"),
+    ],
+)
+def test_stratum_mean_climate(occupancy, expected_temp, expected_diurnal):
+    """Test that each occupancy pattern averages the correct strata, cell by cell.
+
+    Each stratum is given a distinct constant so a mis-selected stratum or a wrong
+    mean surfaces as a wrong value. Combined occupancies must return the arithmetic
+    mean of their constituent strata:
+
+    * ground+soil temperature: mean(20, 15) = 17.5
+    * canopy+soil temperature: mean(30, 15) = 22.5
+    * canopy+ground temperature: mean(30, 20) = 25.0
+    * all three temperature: mean(30, 20, 15) = 65/3
+    """
+    from functools import reduce
+    from operator import or_
+
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_climate import StratumClimate
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.scaling_functions import stratum_mean_climate
+
+    n_cells = 4
+    climate = StratumClimate(
+        canopy_temperature=np.full(n_cells, 30.0),
+        ground_temperature=np.full(n_cells, 20.0),
+        soil_temperature=np.full(n_cells, 15.0),
+        canopy_diurnal_range=np.full(n_cells, 10.0),
+        ground_diurnal_range=np.full(n_cells, 6.0),
+        soil_diurnal_range=np.full(n_cells, 1.0),
+    )
+
+    flags = reduce(or_, (VerticalOccupancy[name] for name in occupancy.split("|")))
+
+    temperature, diurnal = stratum_mean_climate(flags, climate)
+
+    assert temperature.shape == (n_cells,)
+    assert diurnal.shape == (n_cells,)
+    assert np.allclose(temperature, expected_temp)
+    assert np.allclose(diurnal, expected_diurnal)
+
+
+def test_stratum_mean_climate_preserves_per_cell_variation():
+    """Test that averaging is per cell, not collapsed to a scalar.
+
+    Cells are given distinct values within a stratum so that a cell-wise mean is
+    distinguishable from a whole-array mean.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_climate import StratumClimate
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.scaling_functions import stratum_mean_climate
+
+    ground = np.array([10.0, 20.0, 30.0, 40.0])
+    soil = np.array([20.0, 20.0, 20.0, 20.0])
+
+    climate = StratumClimate(
+        canopy_temperature=np.zeros(4),
+        ground_temperature=ground,
+        soil_temperature=soil,
+        canopy_diurnal_range=np.zeros(4),
+        ground_diurnal_range=np.full(4, 4.0),
+        soil_diurnal_range=np.full(4, 2.0),
+    )
+
+    temperature, diurnal = stratum_mean_climate(
+        VerticalOccupancy.GROUND | VerticalOccupancy.SOIL, climate
+    )
+
+    assert np.allclose(temperature, [15.0, 20.0, 25.0, 30.0])
+    assert np.allclose(diurnal, 3.0)
+
+
+def test_stratum_mean_climate_raises_on_empty_occupancy():
+    """Test that an occupancy with no recognised strata raises ValueError.
+
+    An empty flag reaches none of the stratum branches, leaving nothing to average,
+    which the function guards against rather than returning an empty mean.
+    """
+
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_climate import StratumClimate
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.scaling_functions import stratum_mean_climate
+
+    climate = StratumClimate(
+        canopy_temperature=np.zeros(2),
+        ground_temperature=np.zeros(2),
+        soil_temperature=np.zeros(2),
+        canopy_diurnal_range=np.zeros(2),
+        ground_diurnal_range=np.zeros(2),
+        soil_diurnal_range=np.zeros(2),
+    )
+
+    empty = VerticalOccupancy(0)
+
+    with pytest.raises(ValueError, match="No recognised vertical occupancy"):
+        stratum_mean_climate(empty, climate)
+
+
+def test_thermal_suitability_endotherm_all_ones():
+    """Endotherms are active in every cell regardless of temperature.
+
+    The endotherm branch short-circuits before any per-cell evaluation, so even
+    lethal temperatures must return 1.0 everywhere — thermal habitat selection is
+    inert for endotherms by construction.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_suitability
+
+    temperature = np.array([-40.0, 25.0, 80.0])
+    diurnal = np.array([5.0, 5.0, 5.0])
+
+    result = thermal_suitability(
+        metabolic_type=MetabolicType.ENDOTHERMIC,
+        temperature=temperature,
+        diurnal_temp_range=diurnal,
+        annual_mean_temp=21.5,
+        annual_temp_sd=1.0,
+        t_opt=25.0,
+        t_max_crit=40.0,
+        t_min_crit=5.0,
+    )
+
+    assert result.shape == temperature.shape
+    assert np.array_equal(result, np.ones(3))
+
+
+def test_thermal_suitability_ectotherm_lethal_and_optimal():
+    """Ectotherm suitability is ~0 in lethal cells and ~1 at the optimum.
+
+    A cell well above t_max_crit spends effectively the whole diurnal cycle beyond
+    tolerance (suitability -> 0); a cell sitting at t_opt with a small diurnal range
+    stays within tolerance the whole cycle (suitability -> 1).
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_suitability
+
+    # cell 0: far above t_max_crit; cell 1: at t_opt with a narrow range
+    temperature = np.array([100.0, 25.0])
+    diurnal = np.array([2.0, 2.0])
+
+    result = thermal_suitability(
+        metabolic_type=MetabolicType.ECTOTHERMIC,
+        temperature=temperature,
+        diurnal_temp_range=diurnal,
+        annual_mean_temp=21.5,
+        annual_temp_sd=1.0,
+        t_opt=25.0,
+        t_max_crit=40.0,
+        t_min_crit=5.0,
+    )
+
+    assert result.shape == temperature.shape
+    assert result[0] == pytest.approx(0.0, abs=1e-9)
+    assert result[1] == pytest.approx(1.0, abs=1e-9)
+
+
+def test_thermal_suitability_is_per_cell():
+    """Suitability varies cell by cell along a temperature gradient.
+
+    A monotonic climb from optimal into lethal temperatures must produce a
+    (weakly) monotonic decline in suitability, confirming the result is a genuine
+    per-cell mapping rather than a single value broadcast across the array.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_suitability
+
+    temperature = np.array([25.0, 35.0, 45.0, 60.0])
+    diurnal = np.full(4, 6.0)
+
+    result = thermal_suitability(
+        metabolic_type=MetabolicType.ECTOTHERMIC,
+        temperature=temperature,
+        diurnal_temp_range=diurnal,
+        annual_mean_temp=21.5,
+        annual_temp_sd=1.0,
+        t_opt=25.0,
+        t_max_crit=40.0,
+        t_min_crit=5.0,
+    )
+
+    assert result.shape == temperature.shape
+    # not all equal — genuinely per-cell
+    assert len(np.unique(result)) > 1
+    # warmer cells are no more suitable than cooler ones as we climb past t_opt
+    assert np.all(np.diff(result) <= 1e-9)
+    assert np.all((result >= 0.0) & (result <= 1.0))
+
+
+def test_thermal_suitability_matches_activity_window_per_cell():
+    """Each element equals activity_window evaluated on that cell's climate.
+
+    thermal_suitability is a per-cell wrapper over activity_window; this pins that
+    contract so the two cannot silently diverge (e.g. via a future re-vectorisation).
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        activity_window,
+        thermal_suitability,
+    )
+
+    temperature = np.array([18.0, 26.0, 33.0])
+    diurnal = np.array([4.0, 6.0, 8.0])
+
+    kwargs = dict(
+        annual_mean_temp=21.5,
+        annual_temp_sd=1.0,
+        t_opt=25.0,
+        t_max_crit=40.0,
+        t_min_crit=5.0,
+    )
+
+    result = thermal_suitability(
+        metabolic_type=MetabolicType.ECTOTHERMIC,
+        temperature=temperature,
+        diurnal_temp_range=diurnal,
+        **kwargs,
+    )
+
+    expected = np.array(
+        [
+            activity_window(
+                metabolic_type=MetabolicType.ECTOTHERMIC,
+                temperature=float(t),
+                diurnal_temp_range=float(d),
+                **kwargs,
+            )
+            for t, d in zip(temperature, diurnal)
+        ]
+    )
+
+    assert np.allclose(result, expected)
+
+
+def test_thermal_suitability_preserves_shape_single_cell():
+    """A single-cell array returns a single-element array, not a scalar.
+
+    Guards the shape contract at the edge case that most easily degrades to a
+    0-d result, since downstream indexing (suitability[fg][candidate_keys]) relies
+    on a 1-D array.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_suitability
+
+    result = thermal_suitability(
+        metabolic_type=MetabolicType.ECTOTHERMIC,
+        temperature=np.array([25.0]),
+        diurnal_temp_range=np.array([5.0]),
+        annual_mean_temp=21.5,
+        annual_temp_sd=1.0,
+        t_opt=25.0,
+        t_max_crit=40.0,
+        t_min_crit=5.0,
+    )
+
+    assert result.shape == (1,)
+    assert 0.0 <= result[0] <= 1.0
+
+
+class TestRawBiomassDensityKgM2:
+    """Tests for raw_biomass_density_kg_m2."""
+
+    def test_madingley_path_correct_value(self, herbivore_functional_group_instance):
+        """Madingley path returns scalar * mass_g^exponent / 1e9 [kg m⁻²]."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            raw_biomass_density_kg_m2,
+        )
+
+        fg = herbivore_functional_group_instance
+        exponent, scalar = fg.population_density_terms
+        mass_g = fg.adult_mass * 1000.0
+        expected = scalar * mass_g**exponent / 1e9
+        assert raw_biomass_density_kg_m2(fg, "madingley") == pytest.approx(expected)
+
+    def test_empirical_path_correct_value(self, constants_instance):
+        """Empirical path returns density_individuals_m2 * adult_mass [kg m⁻²]."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            raw_biomass_density_kg_m2,
+        )
+
+        density_m2 = 0.005
+        adult_mass_kg = 10.0
+        fg = FunctionalGroup(
+            name="empirical_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="empirical_fg",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=adult_mass_kg,
+            density_individuals_m2=density_m2,
+            constants=constants_instance,
+        )
+        assert raw_biomass_density_kg_m2(fg, "madingley") == pytest.approx(
+            density_m2 * adult_mass_kg
+        )
+
+    def test_empirical_path_takes_precedence_over_allometric(self, constants_instance):
+        """Empirical override is used when allometric terms are present on the FG."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            raw_biomass_density_kg_m2,
+        )
+
+        density_m2 = 0.005
+        adult_mass_kg = 10.0
+        fg = FunctionalGroup(
+            name="empirical_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="empirical_fg",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=adult_mass_kg,
+            density_individuals_m2=density_m2,
+            constants=constants_instance,
+        )
+        result = raw_biomass_density_kg_m2(fg, "madingley")
+
+        assert result == pytest.approx(density_m2 * adult_mass_kg)
+
+        # Confirm the allometric result is genuinely different, so the test
+        # does not pass vacuously.
+        exponent, scalar = fg.population_density_terms
+        mass_g = adult_mass_kg * 1000.0
+        allometric = scalar * mass_g**exponent / 1e9
+        assert result != pytest.approx(allometric)
+
+    def test_damuth_path_returns_positive_float(self):
+        """Damuth path returns a positive float."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.model_config import AnimalConstants
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            raw_biomass_density_kg_m2,
+        )
+
+        damuth_constants = AnimalConstants(density_scaling_method="damuth")
+        fg = FunctionalGroup(
+            name="damuth_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="damuth_fg",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=10.0,
+            constants=damuth_constants,
+        )
+        result = raw_biomass_density_kg_m2(fg, "damuth")
+        assert isinstance(result, float)
+        assert result > 0.0
+
+    def test_unrecognised_method_raises_value_error(
+        self, herbivore_functional_group_instance
+    ):
+        """Unrecognised density_scaling_method raises ValueError."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            raw_biomass_density_kg_m2,
+        )
+
+        with pytest.raises(ValueError, match="Unrecognised density_scaling_method"):
+            raw_biomass_density_kg_m2(
+                herbivore_functional_group_instance, "not_a_method"
+            )
+
+
+class TestHeterotrophNormalizationFactor:
+    """Tests for heterotroph_normalization_factor."""
+
+    def test_single_fg_gets_full_budget(self, herbivore_functional_group_instance):
+        """A single FG receives the entire budget: factor = target / raw_biomass."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        fg = herbivore_functional_group_instance
+        target = 0.151
+        expected = target / raw_biomass_density_kg_m2(fg, "madingley")
+        assert heterotroph_normalization_factor(
+            [fg], target, "madingley"
+        ) == pytest.approx(expected)
+
+    def test_factor_correct_for_multiple_fgs(self, functional_group_list_instance):
+        """Factor equals target divided by the sum of all raw biomass densities."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        fgs = functional_group_list_instance
+        target = 0.151
+        total_raw = sum(raw_biomass_density_kg_m2(fg, "madingley") for fg in fgs)
+        expected = target / total_raw
+        assert heterotroph_normalization_factor(
+            fgs, target, "madingley"
+        ) == pytest.approx(expected)
+
+    def test_equal_mass_fgs_share_budget_evenly(
+        self, herbivore_functional_group_instance
+    ):
+        """Two identical FGs each receive half the budget: factor = target / (2 * B)."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        fg = herbivore_functional_group_instance
+        target = 0.151
+        single_raw = raw_biomass_density_kg_m2(fg, "madingley")
+        factor = heterotroph_normalization_factor([fg, fg], target, "madingley")
+        assert factor == pytest.approx(target / (2.0 * single_raw))
+
+    def test_empirical_fgs_contribute_to_budget(
+        self, herbivore_functional_group_instance, constants_instance
+    ):
+        """Empirical FGs participate in the budget alongside allometric FGs."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        empirical_fg = FunctionalGroup(
+            name="empirical_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="empirical_fg",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=10.0,
+            density_individuals_m2=0.005,
+            constants=constants_instance,
+        )
+        fgs = [herbivore_functional_group_instance, empirical_fg]
+        target = 0.151
+        total_raw = sum(raw_biomass_density_kg_m2(fg, "madingley") for fg in fgs)
+        assert heterotroph_normalization_factor(
+            fgs, target, "madingley"
+        ) == pytest.approx(target / total_raw)
+
+    def test_all_empirical_fgs_normalizes_correctly(self, constants_instance):
+        """All-empirical FGs still produce the correct normalization factor."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        fg1 = FunctionalGroup(
+            name="empirical_fg1",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="empirical_fg1",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=10.0,
+            density_individuals_m2=0.005,
+            constants=constants_instance,
+        )
+        fg2 = FunctionalGroup(
+            name="empirical_fg2",
+            taxa="mammal",
+            diet="carnivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="empirical_fg2",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=50.0,
+            density_individuals_m2=0.001,
+            constants=constants_instance,
+        )
+        fgs = [fg1, fg2]
+        target = 0.151
+        total_raw = sum(raw_biomass_density_kg_m2(fg, "madingley") for fg in fgs)
+        assert heterotroph_normalization_factor(
+            fgs, target, "madingley"
+        ) == pytest.approx(target / total_raw)
+
+    def test_zero_total_biomass_raises_value_error(self, constants_instance):
+        """Zero sum of raw biomass densities raises ValueError."""
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            heterotroph_normalization_factor,
+        )
+
+        zero_fg = FunctionalGroup(
+            name="zero_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="zero_fg",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=0.01,
+            adult_mass=0.1,
+            density_individuals_m2=0.0,
+            constants=constants_instance,
+        )
+        with pytest.raises(ValueError, match="zero"):
+            heterotroph_normalization_factor([zero_fg], 0.151, "madingley")
+
+
+class TestBiomassDensityToIndividuals:
+    """Tests for biomass_density_to_individuals."""
+
+    def test_correct_individual_count(self):
+        """Returns the correct individual count for known inputs."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            biomass_density_to_individuals,
+        )
+
+        # 0.01 kg/m² ÷ 10 kg/individual x 1000 m² = 1.0 individual → ceil = 1
+        assert (
+            biomass_density_to_individuals(
+                biomass_density_kg_m2=0.01,
+                adult_mass_kg=10.0,
+                total_area_m2=1000.0,
+            )
+            == 1
+        )
+
+    def test_ceil_rounds_fractional_result_up(self):
+        """A fractional individual count is rounded up, not truncated."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            biomass_density_to_individuals,
+        )
+
+        # 0.015 kg/m² ÷ 10 kg/individual x 1000 m² = 1.5 individuals → ceil = 2
+        assert (
+            biomass_density_to_individuals(
+                biomass_density_kg_m2=0.015,
+                adult_mass_kg=10.0,
+                total_area_m2=1000.0,
+            )
+            == 2
+        )
+
+    def test_very_small_biomass_returns_at_least_one(self):
+        """Any positive biomass density produces at least one individual."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            biomass_density_to_individuals,
+        )
+
+        assert (
+            biomass_density_to_individuals(
+                biomass_density_kg_m2=1e-12,
+                adult_mass_kg=1000.0,
+                total_area_m2=1.0,
+            )
+            == 1
+        )
+
+    def test_zero_or_negative_adult_mass_raises_value_error(self):
+        """adult_mass_kg <= 0 raises ValueError."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            biomass_density_to_individuals,
+        )
+
+        with pytest.raises(ValueError, match="adult_mass_kg"):
+            biomass_density_to_individuals(
+                biomass_density_kg_m2=0.1,
+                adult_mass_kg=0.0,
+                total_area_m2=1000.0,
+            )
+
+        with pytest.raises(ValueError, match="adult_mass_kg"):
+            biomass_density_to_individuals(
+                biomass_density_kg_m2=0.1,
+                adult_mass_kg=-5.0,
+                total_area_m2=1000.0,
+            )
+
+
+class TestHeterotrophNormalizationSystem:
+    """Integration tests verifying the three normalization functions compose correctly.
+
+    These tests confirm the core invariant of the system: total heterotroph biomass
+    density after normalization approximates the target regardless of how many
+    functional groups are defined. The small positive bias from ceiling rounding
+    in biomass_density_to_individuals is bounded by a 5% relative tolerance.
+    """
+
+    @pytest.mark.parametrize("n_fgs", [1, 3, 10])
+    def test_budget_invariant_holds_for_n_identical_fgs(
+        self, n_fgs, herbivore_functional_group_instance
+    ):
+        """Total biomass density after normalization approximates target for any N."""
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            biomass_density_to_individuals,
+            heterotroph_normalization_factor,
+            raw_biomass_density_kg_m2,
+        )
+
+        target = 0.151
+        total_area_m2 = 100_000.0
+        fgs = [herbivore_functional_group_instance] * n_fgs
+        factor = heterotroph_normalization_factor(fgs, target, "madingley")
+
+        total_biomass_kg = sum(
+            biomass_density_to_individuals(
+                raw_biomass_density_kg_m2(fg, "madingley") * factor,
+                fg.adult_mass,
+                total_area_m2,
+            )
+            * fg.adult_mass
+            for fg in fgs
+        )
+        actual_density = total_biomass_kg / total_area_m2
+
+        assert actual_density == pytest.approx(target, rel=0.05)

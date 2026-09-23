@@ -1,7 +1,8 @@
 r"""The ``models.abiotic_simple.microclimate_simple`` module uses linear regressions
 from :cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018` to predict
-atmospheric temperature, relative humidity, and vapour pressure deficit at ground level
-(1.5 m) given the above canopy conditions and leaf area index of intervening canopy. A
+atmospheric temperature, relative humidity, and vapour pressure deficit at measurement
+height (default 1.5 m) given the above canopy conditions and leaf area index of
+intervening canopy. A
 within canopy profile is then interpolated using an exponential curve between the above
 canopy observation and ground level prediction. The same method is applied to derive a
 vertical wind profile within the canopy, except that we use a logarithmic interpolation.
@@ -16,7 +17,7 @@ TODO change temperatures to Kelvin
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from pyrealm.core.hygro import calc_vp_sat
+from pyrealm.core.hygro import calculate_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -46,7 +47,7 @@ def run_simple_microclimate(
     to derive vertical profiles of these variables from external climate data such as
     regional climate models or satellite observations. Note that these sources provide
     data at different heights and with different underlying assumptions which lead to
-    different biases in the model output. For below canopy values (1.5 m),
+    different biases in the model output. For below canopy values (default is 1.5 m),
     the implementation is based on :cite:t:`hardwick_relationship_2015` as
 
     :math:`y = m * LAI + c`
@@ -59,8 +60,8 @@ def run_simple_microclimate(
     The values for all atmospheric layers as defined by 'layer_heights' in the Virtual
     Ecosystem (including canopy layers and surface layer) are calculated by exponential
     (for atmospheric temperature, relative humidity, vapour pressure deficit) or
-    logarithmic (for wind speed) regression
-    and interpolation between the input at the top of the canopy and the 1.5 m values.
+    logarithmic (for wind speed) regression and interpolation between the input at the
+    top of the canopy and the measurement height values.
 
     Soil temperature is interpolated between the surface layer and the temperature at
     1 m depth which which approximately equals the mean annual temperature, i.e. can
@@ -125,22 +126,31 @@ def run_simple_microclimate(
         lower, upper, gradient = getattr(bounds, var)
 
         output[var] = exp_interpolation(
-            reference_data=data[var + "_ref"].isel(time_index=time_index).to_numpy(),
+            reference_data=data.get_time_slice(var + "_ref", time_index).to_numpy(),
             leaf_area_index_sum=leaf_area_index_sum,
             layer_structure=layer_structure,
             layer_heights=data["layer_heights"].to_numpy(),
+            measurement_height=constants.measurement_height,
             upper_bound=upper,
             lower_bound=lower,
             gradient=gradient,
         ).rename(var)
 
     # Interpolate wind profiles
+    # The reference wind speed is positive or negative depending on the wind direction.
+    # Since we do not take direction into account, and to ensure correct computation of
+    # wind profiles, the wind speed should be always positive going into the equations.
     lower_wind, upper_wind, gradient_wind = getattr(bounds, "wind_speed")
+    reference_wind_speed = np.abs(
+        data.get_time_slice("wind_speed_ref", time_index).to_numpy()
+    )
+
     output["wind_speed"] = log_interpolation(
-        reference_data=data["wind_speed_ref"].isel(time_index=time_index).to_numpy(),
+        reference_data=reference_wind_speed,
         leaf_area_index_sum=leaf_area_index_sum,
         layer_structure=layer_structure,
         layer_heights=data["layer_heights"].to_numpy(),
+        measurement_height=constants.measurement_height,
         upper_bound=upper_wind,
         lower_bound=lower_wind,
         gradient=gradient_wind,
@@ -159,7 +169,7 @@ def run_simple_microclimate(
     output["atmospheric_pressure"] = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
         mask_variable=output["air_temperature"],
-        variable_name=data["atmospheric_pressure_ref"],
+        variable_name=data.get_time_series("atmospheric_pressure_ref"),
         time_index=time_index,
     )
 
@@ -167,7 +177,7 @@ def run_simple_microclimate(
     output["atmospheric_co2"] = abiotic_tools.update_profile_from_reference(
         layer_structure=layer_structure,
         mask_variable=output["air_temperature"],
-        variable_name=data["atmospheric_co2_ref"],
+        variable_name=data.get_time_series("atmospheric_co2_ref"),
         time_index=time_index,
     )
 
@@ -178,8 +188,8 @@ def run_simple_microclimate(
         surface_temperature=output["air_temperature"].isel(
             layers=layer_structure.index_surface
         ),
-        mean_annual_temperature=data["mean_annual_temperature"].isel(
-            time_index=time_index
+        mean_annual_temperature=data.get_time_slice(
+            "mean_annual_temperature", time_index
         ),
         layer_structure=layer_structure,
         upper_bound=upper,
@@ -187,17 +197,22 @@ def run_simple_microclimate(
     )
 
     # Initialise canopy and understorey temperature, [C]
-    canopy_temperature = layer_structure.from_template()
-    canopy_temperature[layer_structure.index_filled_canopy] = output["air_temperature"][
-        layer_structure.index_filled_canopy
-    ]
-    canopy_temperature[layer_structure.index_surface_scalar] = output[
-        "air_temperature"
-    ][layer_structure.index_surface_scalar]
+    output["canopy_temperature"] = output["air_temperature"].copy()
+
+    # Initialise diurnal temperature range, [C]
+    layer_values = data.get_time_slice("diurnal_temperature_range_ref", time_index)
+
+    valid_mask = (
+        output["air_temperature"].notnull() | output["soil_temperature"].notnull()
+    )
+
+    output["diurnal_temperature_range"] = layer_values.broadcast_like(valid_mask).where(
+        valid_mask
+    )
 
     # Calculate net radiation, [W m-2].
     canopy_longwave_emission = energy_balance.calculate_longwave_emission(
-        temperature=canopy_temperature.to_numpy(),
+        temperature=output["canopy_temperature"].to_numpy(),
         emissivity=constants.leaf_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
@@ -237,6 +252,7 @@ def log_interpolation(
     leaf_area_index_sum: NDArray[np.floating],
     layer_structure: LayerStructure,
     layer_heights: NDArray[np.floating],
+    measurement_height: float,
     upper_bound: float,
     lower_bound: float,
     gradient: float,
@@ -248,6 +264,7 @@ def log_interpolation(
         leaf_area_index_sum: Leaf area index summed over all canopy layers, [m m-1]
         layer_structure: The LayerStructure instance for the simulation.
         layer_heights: Vertical layer heights, [m]
+        measurement_height: Height at which to interpolate the variable, [m]
         lower_bound: Minimum allowed value, used to constrain log interpolation. Note
             that currently no conservation of water and energy!
         upper_bound: Maximum allowed value, used to constrain log interpolation.
@@ -257,7 +274,7 @@ def log_interpolation(
         vertical logarithmic profile of provided variable
     """
 
-    # Calculate microclimatic variable at 1.5 m as function of leaf area index
+    # Calculate microclimatic variable at measurement height as function of LAI
     lai_regression = leaf_area_index_sum * gradient + reference_data
 
     # Avoid invalid heights
@@ -267,8 +284,10 @@ def log_interpolation(
     reference_height = positive_layer_heights[layer_structure.index_above]
 
     # Calculate per cell slope and intercept for logarithmic within-canopy profile
-    slope = (reference_data - lai_regression) / (np.log(reference_height) - np.log(1.5))
-    intercept = lai_regression - slope * np.log(1.5)
+    slope = (reference_data - lai_regression) / (
+        np.log(reference_height) - np.log(measurement_height)
+    )
+    intercept = lai_regression - slope * np.log(measurement_height)
 
     # Calculate the values within cells by layer
     layer_values = np.log(positive_layer_heights) * slope + intercept
@@ -285,6 +304,7 @@ def exp_interpolation(
     leaf_area_index_sum: NDArray[np.floating],
     layer_structure: LayerStructure,
     layer_heights: NDArray[np.floating],
+    measurement_height: float,
     upper_bound: float,
     lower_bound: float,
     gradient: float,
@@ -296,6 +316,7 @@ def exp_interpolation(
         leaf_area_index_sum: Leaf area index summed over all canopy layers, [m m-1]
         layer_structure: The LayerStructure instance for the simulation.
         layer_heights: Vertical layer heights, [m]
+        measurement_height: Height at which to interpolate the variable, [m]
         lower_bound: Minimum allowed value, used to constrain exp interpolation. Note
             that currently no conservation of water and energy!
         upper_bound: Maximum allowed value, used to constrain exp interpolation.
@@ -305,7 +326,7 @@ def exp_interpolation(
         vertical exponential profile of provided variable
     """
 
-    # Value at 1.5 m from LAI regression
+    # Value at measurement height from LAI regression
     lai_regression = leaf_area_index_sum * gradient + reference_data
 
     # Avoid invalid heights
@@ -314,9 +335,9 @@ def exp_interpolation(
     # Top height
     reference_height = positive_layer_heights[layer_structure.index_above]
 
-    # Normalized vertical coordinate: 0 at canopy top, 1 at 1.5 m
+    # Normalized vertical coordinate: 0 at canopy top, 1 at measurement height
     relative_canopy_depth = (reference_height - positive_layer_heights) / (
-        reference_height - 1.5
+        reference_height - measurement_height
     )
 
     # Normalized exponential profile
@@ -355,8 +376,8 @@ def calculate_vapour_pressure_deficit(
     """
 
     output = {}
-    saturation_vapour_pressure_numpy = calc_vp_sat(
-        ta=temperature.to_numpy(),
+    saturation_vapour_pressure_numpy = calculate_vp_sat(
+        tc=temperature.to_numpy(),
         core_const=pyrealm_core_constants,
     )
     saturation_vapour_pressure = saturation_vapour_pressure_numpy
@@ -397,7 +418,10 @@ def interpolate_soil_temperature(
     surface_layer = layer_heights[layer_structure.index_surface].to_numpy()
     soil_depths = layer_heights[layer_structure.index_all_soil].to_numpy()
     interpolation_heights = np.concatenate(
-        [surface_layer, -1 * soil_depths + surface_layer]
+        [
+            surface_layer,
+            -1 * soil_depths + surface_layer,
+        ]
     )
 
     # Calculate per cell slope and intercept for logarithmic soil temperature profile

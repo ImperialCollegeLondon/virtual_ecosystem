@@ -9,13 +9,13 @@ class LitterConstants(Configuration):
     """Dataclass to store all constants for the `litter` model."""
 
     litter_decomp_reference_temp: float = 40.0
-    """Reference temperature for litter decomposition [C].
+    """Reference temperature for litter decomposition [Celsius].
 
     Value is taken from :cite:t:`kirschbaum_modelling_2002`.
     """
 
     litter_decomp_offset_temp: float = 31.79
-    """Offset temperature for litter decomposition [C].
+    """Offset temperature for litter decomposition [Celsius].
 
     Value is taken from :cite:t:`kirschbaum_modelling_2002`.
     """

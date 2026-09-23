@@ -5,19 +5,25 @@ on:
     types: [published]
 
 jobs:
-  # First, run the standard test suite - for this to work correctly, the workflow needs
+  # First, run the standard CI checks - for this to work correctly, the workflow needs
   # to inherit the organisation secrets used to authenticate to CodeCov.
   # https://github.com/actions/runner/issues/1413
-  test:
+  ci_checks:
     uses: ./.github/workflows/ci.yml
+    secrets: inherit
+  
+  # Then if the standard CI checks pass run the integration tests
+  integration_tests:
+    uses: ./.github/workflows/integration_tests.yml
+    needs: ci_checks
     secrets: inherit
 
   # Next, build the package wheel and source releases and add them to the release assets
   build-wheel:
-    needs: test
+    needs: integration_tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Build the package - this could use `poetry build` directly but pyproject.toml 
       # already has the build-system configured to use poetry so `pip` should pick that

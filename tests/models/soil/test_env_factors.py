@@ -107,21 +107,24 @@ def test_calculate_water_potential_impact_on_microbes(
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_soil_water_potential_too_high(dummy_carbon_data, fixture_soil_constants):
-    """Test that too high soil water potential results in an error."""
+def test_soil_water_potential_extreme_values(fixture_soil_constants):
+    """Test that very high and low soil water potentials are handled sensibly."""
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_water_potential_impact_on_microbes,
     )
 
-    water_potentials = np.array([-2.0, -10.0, -250.0, -10000.0])
+    expected_factor = [1.0, 0.94414168, 0.62176357, 0.0]
 
-    with pytest.raises(ValueError):
-        calculate_water_potential_impact_on_microbes(
-            water_potential=water_potentials,
-            water_potential_halt=fixture_soil_constants.soil_microbe_water_potential_halt,
-            water_potential_opt=fixture_soil_constants.soil_microbe_water_potential_optimum,
-            response_curvature=fixture_soil_constants.microbial_water_response_curvature,
-        )
+    water_potentials = np.array([-2.0, -10.0, -250.0, -20000.0])
+
+    actual_factor = calculate_water_potential_impact_on_microbes(
+        water_potential=water_potentials,
+        water_potential_halt=fixture_soil_constants.soil_microbe_water_potential_halt,
+        water_potential_opt=fixture_soil_constants.soil_microbe_water_potential_optimum,
+        response_curvature=fixture_soil_constants.microbial_water_response_curvature,
+    )
+
+    assert np.allclose(actual_factor, expected_factor)
 
 
 def test_calculate_pH_suitability(fixture_soil_constants):
@@ -140,48 +143,6 @@ def test_calculate_pH_suitability(fixture_soil_constants):
     )
 
     assert np.allclose(expected_inhib, actual_inhib)
-
-
-@pytest.mark.parametrize(
-    argnames=["params"],
-    argvalues=[
-        pytest.param(
-            {
-                "maximum_pH": 7.0,
-                "minimum_pH": 2.5,
-                "lower_optimum_pH": 4.5,
-                "upper_optimum_pH": 7.5,
-            },
-            id="maximum_pH too low",
-        ),
-        pytest.param(
-            {
-                "maximum_pH": 11.0,
-                "minimum_pH": 2.5,
-                "lower_optimum_pH": 1.5,
-                "upper_optimum_pH": 7.5,
-            },
-            id="lower_optimum_pH too low",
-        ),
-        pytest.param(
-            {
-                "maximum_pH": 11.0,
-                "minimum_pH": 2.5,
-                "lower_optimum_pH": 4.5,
-                "upper_optimum_pH": 3.5,
-            },
-            id="upper_optimum_pH too low",
-        ),
-    ],
-)
-def test_calculate_pH_suitability_errors(params):
-    """Test that calculation of pH suitability generates errors if constants are bad."""
-    from virtual_ecosystem.models.soil.env_factors import calculate_pH_suitability
-
-    pH_values = np.array([3.0, 7.5, 9.0, 5.7, 2.0, 11.5])
-
-    with pytest.raises(ValueError):
-        calculate_pH_suitability(soil_pH=pH_values, **params)
 
 
 def test_calculate_clay_impact_on_enzyme_saturation(
@@ -376,7 +337,7 @@ def test_calculate_carbon_use_efficiency(averaged_soil_temp, fixture_soil_consta
         calculate_carbon_use_efficiency,
     )
 
-    expected_cues = [0.46920255, 0.45708189, 0.44501183, 0.51790586]
+    expected_cues = [0.37965802, 0.3569791, 0.33492348, 0.47477144]
 
     actual_cues = calculate_carbon_use_efficiency(
         soil_temp=averaged_soil_temp,
@@ -412,6 +373,31 @@ def test_calculate_solute_removal_by_soil_water(
     assert np.allclose(expected_rate, actual_rate)
 
 
+def test_calculate_solute_removal_by_soil_water_negative_concentrations(
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
+):
+    """Check solute removal rates handle negative values correctly."""
+
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_solute_removal_by_soil_water,
+    )
+
+    lmwc_values = np.array([0.05, -0.02, -0.1, 0.005])
+    expected_rate = [1.07473723e-6, 0.0, 0.0, 5.25567712e-5]
+    exit_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])
+
+    actual_rate = calculate_solute_removal_by_soil_water(
+        solute_density=lmwc_values,
+        exit_rate=exit_flow_per_day,
+        soil_moisture=dummy_carbon_data["soil_moisture"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        solubility_coefficient=fixture_soil_constants.solubility_coefficient_lmwc,
+    )
+
+    assert np.allclose(expected_rate, actual_rate)
+
+
 @pytest.mark.parametrize(
     "increased_depth,expected_soil_moisture",
     [
@@ -427,21 +413,21 @@ def test_calculate_solute_removal_by_soil_water(
         ),
     ],
 )
-def test_find_total_soil_moisture_for_microbially_active_depth(
+def test_find_total_soil_moisture_for_simulation_depth(
     dummy_carbon_data, fixture_core_components, increased_depth, expected_soil_moisture
 ):
     """Test that finding the total soil moisture works as expected."""
     from virtual_ecosystem.models.soil.env_factors import (
-        find_total_soil_moisture_for_microbially_active_depth,
+        find_total_soil_moisture_for_simulation_depth,
     )
 
     if increased_depth:
         fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
             [0.5, 0.25]
         )
-        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
+        fixture_core_components.layer_structure.microbial_simulation_depth = 0.75
 
-    actual_soil_moisture = find_total_soil_moisture_for_microbially_active_depth(
+    actual_soil_moisture = find_total_soil_moisture_for_simulation_depth(
         soil_moistures=dummy_carbon_data["soil_moisture"],
         layer_structure=fixture_core_components.layer_structure,
     )
@@ -474,7 +460,7 @@ def test_find_water_outflow_rates(
         fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
             [0.5, 0.20]
         )
-        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.70
+        fixture_core_components.layer_structure.microbial_simulation_depth = 0.70
 
     actual_vertical_flow = find_water_outflow_rates(
         vertical_flow=dummy_carbon_data["vertical_flow"].to_numpy(),

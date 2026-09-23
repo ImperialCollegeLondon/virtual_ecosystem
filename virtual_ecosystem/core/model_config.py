@@ -9,7 +9,6 @@ from functools import cached_property
 from pathlib import Path
 from typing import ClassVar
 
-import numpy as np
 from pint import DimensionalityError, Quantity, UndefinedUnitError
 from pydantic import (
     ConfigDict,
@@ -39,10 +38,10 @@ class CoreConstants(Configuration):
 
     Example:
         >>> consts = CoreConstants()
-        >>> consts.max_depth_of_microbial_activity
+        >>> consts.microbial_simulation_depth
         0.25
-        >>> consts = CoreConstants(max_depth_of_microbial_activity=0.75)
-        >>> consts.max_depth_of_microbial_activity
+        >>> consts = CoreConstants(microbial_simulation_depth=0.75)
+        >>> consts.microbial_simulation_depth
         0.75
     """
 
@@ -76,12 +75,13 @@ class CoreConstants(Configuration):
     The von Karman's constant describes the logarithmic velocity profile of a turbulent
     fluid near a no-slip boundary."""
 
-    max_depth_of_microbial_activity: float = 0.25
-    """Maximum depth of microbial activity in the soil layers [m].
+    microbial_simulation_depth: float = 0.25
+    """Depth to which soil-microbial simulation extents [m].
 
-    The soil model needs to identify which of the configured soil layers are
-    sufficiently close to the surface to contain significant microbial activity that
-    drives nutrient processes. The default value is taken from
+    As the soil-microbial model is a topsoil model the maximum soil depth included in
+    the simulation needs to be set. This is then used to identify which of the
+    configured soil layers are sufficiently close to the surface to be included in the
+    calculations of the soil-microbial model. The default value is taken from
     :cite:t:`fatichi_mechanistic_2019`. No empirical source is provided for this value.
     """
 
@@ -103,6 +103,9 @@ class CoreConstants(Configuration):
 
     seconds_to_hour: float = 3600.0
     """Factor to convert variable unit from seconds to hours."""
+
+    seconds_to_minute: float = 60.0
+    """Factor to convert variable unit from seconds to minutes."""
 
     hours_per_day: int = 24
     """Number of hours per day."""
@@ -130,28 +133,8 @@ class CoreConstants(Configuration):
     density_water: float = 1000.0
     """Density of water, [kg m-3]."""
 
-    fungal_fruiting_bodies_c_n_ratio: float = 10.0
-    """Carbon to nitrogen ratio of fungal fruiting bodies, [unitless].
-    
-    This constant is stored in the CoreConsts as it is used by both the animal model
-    (to work out consumption flows) and the soil model (to work out production rates).
-    The current default value is very much a guess.
-    """
-
-    fungal_fruiting_bodies_c_p_ratio: float = 75.0
-    """Carbon to phosphorus ratio of fungal fruiting bodies, [unitless].
-    
-    This constant is stored in the CoreConsts as it is used by both the animal model (to
-    work out consumption flows) and the soil model (to work out production rates). The
-    current default value is very much a guess.
-    """
-
-    fungal_fruiting_bodies_decay_rate: float = np.log(2) / 50.0
-    """Rate constant for the decay of fungal fruiting bodies, [day^-1].
-    
-    This is calculated based on the assumption that fungal fruiting bodies decay with a
-    half-life of 50 days. This estimate should be improved based on empirical data.
-    """
+    specific_heat_capacity_water: float = 4180.0
+    """Specific heat capacity of water, [J kg-1 K-1]."""
 
     air_volumetric_heat_capacity: float = 1200.0
     """Volumetric heat capacity of air at constant pressure, [J m-3 K-1].
@@ -246,26 +229,17 @@ class DataOutputConfiguration(Configuration):
     validation.
     """
 
-    save_initial_state: bool = False
-    "Whether the initial state should be saved"
-    save_continuous_data: bool = True
-    "Whether continuous data should be saved"
-    save_final_state: bool = True
-    "Whether the final state should be saved"
-    save_merged_config: bool = True
-    "Whether to save a merged TOML file containing all config options"
     out_path: DIRPATH_PLACEHOLDER = Path("<DIRPATH_PLACEHOLDER>")
     "Directory path for output files"
-    out_initial_file_name: str = "initial_state.nc"
-    """File name for initial state output file"""
-    out_folder_continuous: str = "."
-    "Folder to save states of simulation with time to"
-    out_continuous_file_name: str = "all_continuous_data.nc"
-    """Name of file to save combined continuous data to"""
-    out_final_file_name: str = "final_state.nc"
-    """File name for final state output file"""
-    out_merge_file_name: str = "ve_full_model_configuration.toml"
-    """Name for TOML file containing merged configs"""
+    output_data_file_name: str = "model_data.zarr"
+    "The output file name for the model data."
+    save_compiled_configuration: bool = True
+    "Whether to save a TOML file containing the compiled configuration for a model"
+    compiled_configuration_file_name: str = "compiled_configuration.toml"
+    "The output file name for the compiled configuration TOML file."
+    variables_to_save: tuple[str, ...] = tuple()
+    """A list of output variables to save from the model. If this list is empty then all
+    variables will be saved."""
 
 
 class LayersConfiguration(Configuration):

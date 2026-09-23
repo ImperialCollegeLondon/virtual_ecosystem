@@ -18,6 +18,7 @@ reported as one.
 from __future__ import annotations
 
 from itertools import product
+from math import exp
 from typing import Any
 
 import numpy as np
@@ -36,8 +37,7 @@ from virtual_ecosystem.models.hydrology.model_config import (
     HydrologyConfiguration,
 )
 from virtual_ecosystem.models.litter.env_factors import (
-    average_temperature_over_microbially_active_layers,
-    average_water_potential_over_microbially_active_layers,
+    average_abiotic_environment_over_microbially_active_layers,
 )
 from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
@@ -73,6 +73,7 @@ class SoilModel(
         "soil_c_pool_saprotrophic_fungi",
         "soil_c_pool_arbuscular_mycorrhiza",
         "soil_c_pool_ectomycorrhiza",
+        "fungal_fruiting_bodies_cnp",
         "soil_enzyme_pom_bacteria",
         "soil_enzyme_maom_bacteria",
         "soil_enzyme_pom_fungi",
@@ -96,7 +97,6 @@ class SoilModel(
         "arbuscular_mycorrhizal_p_supply",
         "ectomycorrhizal_n_supply",
         "ectomycorrhizal_p_supply",
-        "production_of_fungal_fruiting_bodies",
     ),
     vars_required_for_update=(
         "soil_cnp_pool_maom",
@@ -107,6 +107,7 @@ class SoilModel(
         "soil_c_pool_saprotrophic_fungi",
         "soil_c_pool_arbuscular_mycorrhiza",
         "soil_c_pool_ectomycorrhiza",
+        "fungal_fruiting_bodies_cnp",
         "soil_enzyme_pom_bacteria",
         "soil_enzyme_maom_bacteria",
         "soil_enzyme_pom_fungi",
@@ -137,9 +138,10 @@ class SoilModel(
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
-        "decay_of_fungal_fruiting_bodies",
+        "fungal_fruiting_bodies_consumed_cnp",
         "decomposed_excrement_cnp",
         "decomposed_carcasses_cnp",
+        "fallen_fruit_decay_cnp",
     ),
     vars_updated=(
         "soil_cnp_pool_maom",
@@ -150,6 +152,7 @@ class SoilModel(
         "soil_c_pool_saprotrophic_fungi",
         "soil_c_pool_arbuscular_mycorrhiza",
         "soil_c_pool_ectomycorrhiza",
+        "fungal_fruiting_bodies_cnp",
         "soil_enzyme_pom_bacteria",
         "soil_enzyme_maom_bacteria",
         "soil_enzyme_pom_fungi",
@@ -166,7 +169,6 @@ class SoilModel(
         "arbuscular_mycorrhizal_p_supply",
         "ectomycorrhizal_n_supply",
         "ectomycorrhizal_p_supply",
-        "production_of_fungal_fruiting_bodies",
     ),
     # TODO - If anything gets added to this section the implementation docs will need to
     # be updated
@@ -213,7 +215,7 @@ class SoilModel(
         """Set of constants for the soil model."""
 
         self.refreshed_variables = [
-            "new_fungal_fruiting_body_production",
+            "cnp_fungal_fruiting_body_production",
             "new_amf_n_supply",
             "new_amf_p_supply",
             "new_emf_n_supply",
@@ -268,15 +270,6 @@ class SoilModel(
         # Add these limits to the data object
         self.data.add_from_dict(initial_symbiotic_supply)
 
-        # The initial production of fungal fruiting bodies is set to zero, because the
-        # initial density estimate implicitly contains the initial production
-        fungal_fruiting_body_production = {
-            "production_of_fungal_fruiting_bodies": DataArray(
-                np.zeros(self.data.grid.n_cells), dims="cell_id"
-            )
-        }
-        self.data.add_from_dict(fungal_fruiting_body_production)
-
         # Check that soil pool data is appropriately bounded
         if not self._all_pools_positive():
             to_raise = InitialisationError(
@@ -302,7 +295,6 @@ class SoilModel(
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
             configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
-            config: A validated Virtual Ecosystem model configuration object.
         """
 
         # Extract the required subconfigurations from the compiled configuration.
@@ -354,8 +346,33 @@ class SoilModel(
             **kwargs: Further arguments to the update method.
         """
 
+        # Find fungal fruit pool size after animal consumption and calculate the decay
+        # of the remainder
+        post_consumption_fungal_fruit = (
+            self.data["fungal_fruiting_bodies_cnp"]
+            - self.data["fungal_fruiting_bodies_consumed_cnp"]
+        )
+        fungal_fruit_decay = self.calculate_fungal_fruiting_body_decay(
+            fungal_fruit_cnp=post_consumption_fungal_fruit,
+        )
+
+        # Update the fungal fruit based on animal consumption and decay
+        new_fungal_fruit = {
+            "fungal_fruiting_bodies_cnp": post_consumption_fungal_fruit
+            - fungal_fruit_decay
+        }
+        self.data.add_from_dict(new_fungal_fruit)
+
+        # Find the fungal fruit decay into a rate per volume of topsoil
+        fungal_fruit_decay_rate = fungal_fruit_decay / (
+            self.model_timing.update_interval_quantity.to("day").magnitude
+            * self.core_constants.microbial_simulation_depth
+        )
+
         # Find carbon pool updates by integration
-        updated_soil_pools = self.integrate()
+        updated_soil_pools = self.integrate(
+            fungal_fruit_decay_rate=fungal_fruit_decay_rate
+        )
 
         # Update carbon pools (attributes and data object) n.b. this also updates the
         # data object automatically. Refreshed variables have to be excluded from this
@@ -367,10 +384,14 @@ class SoilModel(
             }
         )
 
-        fruiting_body_production_rate = self.convert_fruiting_body_production_to_rate(
-            total_production=updated_soil_pools["new_fungal_fruiting_body_production"]
-        )
-        self.data.add_from_dict(fruiting_body_production_rate)
+        new_fungal_fruiting_bodies = {
+            "fungal_fruiting_bodies_cnp": self.data["fungal_fruiting_bodies_cnp"]
+            + (
+                updated_soil_pools["cnp_fungal_fruiting_body_production"]
+                / self.core_constants.microbial_simulation_depth
+            )
+        }
+        self.data.add_from_dict(new_fungal_fruiting_bodies)
 
         # Calculate dissolved amounts of each inorganic nutrients
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
@@ -403,7 +424,7 @@ class SoilModel(
 
         return all_positive
 
-    def integrate(self) -> dict[str, DataArray]:
+    def integrate(self, fungal_fruit_decay_rate: DataArray) -> dict[str, DataArray]:
         """Integrate the soil model.
 
         For now a single integration will be used to advance the entire soil module.
@@ -412,6 +433,12 @@ class SoilModel(
 
         This function unpacks the variables that are to be integrated into a single
         numpy array suitable for integration.
+
+        Args:
+            fungal_fruit_decay_rate: Fungal fruit decay is calculated outside the
+                integration loop, so they decay rate (into :term:`LMWC`) has to be added
+                externally into the integration. This decay has a carbon, nitrogen and
+                phosphorus component [kg{nutrient} m^-3 day^-1]
 
         Returns:
             A data array containing the new pool values (i.e. the values at the final
@@ -429,18 +456,32 @@ class SoilModel(
         update_time = self.model_timing.update_interval_quantity.to("days").magnitude
         t_span = (0.0, update_time)
 
+        # Some variables are updated by the model but not as part of the integration.
+        # These are the fungal fruiting bodies + everything populated by the init
+        var_updated_outside_integration = ["fungal_fruiting_bodies_cnp"] + [
+            name
+            for name in map(str, self.data.data.keys())
+            if name in self.vars_populated_by_init
+        ]
+
         # Find all variables that get updated, and then subset this into singlets and
         # biomass triplets
         updated_variable_names = [
             name
             for name in map(str, self.data.data.keys())
-            if name in self.vars_updated and name not in self.vars_populated_by_init
+            if name in self.vars_updated and name not in var_updated_outside_integration
         ]
         updated_biomass_triplets = [
             name for name in updated_variable_names if name.startswith("soil_cnp_")
         ]
         updated_singlets = [
             name for name in updated_variable_names if not name.startswith("soil_cnp_")
+        ]
+        refreshed_biomass_triplets = [
+            name for name in self.refreshed_variables if name.startswith("cnp_")
+        ]
+        refreshed_singlets = [
+            name for name in self.refreshed_variables if not name.startswith("cnp_")
         ]
 
         elements = {"C": "carbon", "N": "nitrogen", "P": "phosphorus"}
@@ -459,7 +500,12 @@ class SoilModel(
                 np.concatenate(
                     [self.data[name].to_numpy() for name in updated_singlets]
                 ),
-                np.zeros(len(self.refreshed_variables) * self.data.grid.n_cells),
+                np.zeros(
+                    len(refreshed_biomass_triplets)
+                    * len(elements.keys())
+                    * self.data.grid.n_cells
+                ),
+                np.zeros(len(refreshed_singlets) * self.data.grid.n_cells),
             )
         )
 
@@ -471,7 +517,12 @@ class SoilModel(
                 for name in updated_biomass_triplets
             },
             **{name: np.array([]) for name in updated_singlets},
-            **{name: np.array([]) for name in self.refreshed_variables},
+            **{
+                f"{name}_{element}": np.array([])
+                for element in elements.values()
+                for name in refreshed_biomass_triplets
+            },
+            **{name: np.array([]) for name in refreshed_singlets},
         }
 
         # Check if any values used by the soil model integration have invalid values
@@ -507,6 +558,7 @@ class SoilModel(
                 self.soil_moisture_saturation,
                 self.soil_moisture_residual,
                 self.layer_structure.soil_layer_thickness[0],
+                fungal_fruit_decay_rate,
             ),
         )
 
@@ -527,7 +579,7 @@ class SoilModel(
         new_soil_pools = {
             str(pool): DataArray(output.y[slc, -1], dims="cell_id")
             for slc, pool in zip(slices, delta_pools_ordered.keys())
-            if not pool.startswith("soil_cnp_")
+            if not pool.startswith("soil_cnp_") and not pool.startswith("cnp_")
         }
 
         # The slices associated with triplet pools first have to be extracted and
@@ -535,7 +587,7 @@ class SoilModel(
         triplet_slices = {
             str(pool): output.y[slc, -1]
             for slc, pool in zip(slices, delta_pools_ordered.keys())
-            if pool.startswith("soil_cnp_")
+            if pool.startswith("soil_cnp_") or pool.startswith("cnp_")
         }
         triplet_pools = {
             var: DataArray(
@@ -550,7 +602,7 @@ class SoilModel(
                 dims=("cell_id", "element"),
                 coords=dict(element=np.array(["C", "N", "P"])),
             )
-            for var in updated_biomass_triplets
+            for var in updated_biomass_triplets + refreshed_biomass_triplets
         }
 
         return new_soil_pools | triplet_pools
@@ -580,30 +632,6 @@ class SoilModel(
 
         return bool(~np.all(np.isfinite(subset)))
 
-    def convert_fruiting_body_production_to_rate(
-        self, total_production: DataArray
-    ) -> dict[str, DataArray]:
-        """Convert total fungal fruiting body production into a rate are being produced.
-
-        The soil model integration provides a total mass produced (per soil volume) over
-        the integration time period. This method converts this into a rate, and into per
-        area rather than soil volume terms.
-
-        Args:
-            total_production: The total production of fungal fruiting bodies over the
-                integration time period, per volume of soil [kg C m^-3]
-
-        Returns:
-            A data array containing the rate at which fungal fruiting bodies are
-            produced per unit area [kg C m^-2 day^-1].
-        """
-
-        return {
-            "production_of_fungal_fruiting_bodies": total_production
-            * self.core_constants.max_depth_of_microbial_activity
-            / self.model_timing.update_interval_quantity.to("days").magnitude
-        }
-
     def calculate_dissolved_nutrient_concentrations(self) -> dict[str, DataArray]:
         """Calculate the amount of each inorganic nutrient that is in dissolved form.
 
@@ -614,8 +642,8 @@ class SoilModel(
         it is assumed dissolved nutrient concentrations are taken to be zero.
 
         Returns:
-            A data array containing the size of each dissolved nutrient pool [kg
-            nutrient m^-3].
+            A data array containing the size of each dissolved nutrient pool
+            [kg{nutrient} m^-3].
         """
 
         return {
@@ -660,7 +688,7 @@ class SoilModel(
         return {
             f"{full}_{nut}_supply": updated_soil_pools[f"new_{abbr}_{nut}_supply"]
             * self.grid.cell_area
-            * self.core_constants.max_depth_of_microbial_activity
+            * self.core_constants.microbial_simulation_depth
             for nut, (abbr, full) in var_combinations
         }
 
@@ -683,14 +711,14 @@ class SoilModel(
         if isinstance(output_rate, float):
             return np.array(
                 output_rate
-                * self.core_constants.max_depth_of_microbial_activity
+                * self.core_constants.microbial_simulation_depth
                 * self.grid.cell_area
                 * self.model_timing.update_interval_quantity.to("days").magnitude
             )
         else:
             return (
                 output_rate
-                * self.core_constants.max_depth_of_microbial_activity
+                * self.core_constants.microbial_simulation_depth
                 * self.grid.cell_area
                 * self.model_timing.update_interval_quantity.to("days").magnitude
             )
@@ -714,17 +742,18 @@ class SoilModel(
 
         # Average soil temperature and water potential over the microbially active
         # layers, and then use to calculate the environmental factors
-        averaged_soil_temperature = average_temperature_over_microbially_active_layers(
-            soil_temperatures=self.data["soil_temperature"],
-            surface_temperature=self.data["air_temperature"][
-                self.layer_structure.index_surface_scalar
-            ].to_numpy(),
-            layer_structure=self.layer_structure,
+        averaged_soil_temperature = (
+            average_abiotic_environment_over_microbially_active_layers(
+                environmental_variable=self.data["soil_temperature"],
+                layer_structure=self.layer_structure,
+            )
         )
 
-        soil_water_potential = average_water_potential_over_microbially_active_layers(
-            water_potentials=self.data["matric_potential"],
-            layer_structure=self.layer_structure,
+        soil_water_potential = (
+            average_abiotic_environment_over_microbially_active_layers(
+                environmental_variable=self.data["matric_potential"],
+                layer_structure=self.layer_structure,
+            )
         )
 
         env_factors = calculate_environmental_effect_factors(
@@ -763,28 +792,46 @@ class SoilModel(
             env_factors=env_factors,
         )
 
-        return {
-            "ectomycorrhizal_n_supply": where(
-                DataArray(initial_ecto_n) >= 0.0,
-                self.to_total_mass(initial_ecto_n),
-                0.0,
-            ),
-            "ectomycorrhizal_p_supply": where(
-                DataArray(initial_ecto_p) >= 0.0,
-                self.to_total_mass(initial_ecto_p),
-                0.0,
-            ),
-            "arbuscular_mycorrhizal_n_supply": where(
-                DataArray(initial_arbuscular_n) >= 0.0,
-                self.to_total_mass(initial_arbuscular_n),
-                0.0,
-            ),
-            "arbuscular_mycorrhizal_p_supply": where(
-                DataArray(initial_arbuscular_p) >= 0.0,
-                self.to_total_mass(initial_arbuscular_p),
-                0.0,
-            ),
-        }
+        # TODO - this could just write to self.data rather than returning a dict
+        var_dict = {}
+        for var_name, var in (
+            ("ectomycorrhizal_n_supply", initial_ecto_n),
+            ("ectomycorrhizal_p_supply", initial_ecto_p),
+            ("arbuscular_mycorrhizal_n_supply", initial_arbuscular_n),
+            ("arbuscular_mycorrhizal_p_supply", initial_arbuscular_p),
+        ):
+            var_dict[var_name] = DataArray(
+                where(var >= 0.0, self.to_total_mass(var), 0),
+                coords={"cell_id": self.grid.cell_id},
+            )
+
+        return var_dict
+
+    def calculate_fungal_fruiting_body_decay(
+        self,
+        fungal_fruit_cnp: DataArray,
+    ) -> DataArray:
+        """Calculate exponential decay of fungal fruiting bodies.
+
+        Args:
+            fungal_fruit_cnp: Density (in CNP terms) of fungal fruiting bodies
+                [kg{nutrient} m^-2]
+
+        Returns:
+            The total mass of fungal fruiting bodies that has decayed
+            [kg{nutrient} m^-2]
+        """
+
+        # Calculate total decay (the decay of each nutrient should be proportional)
+        total_decay = (
+            1
+            - exp(
+                -self.model_constants.fungal_fruiting_bodies_decay_rate
+                * self.model_timing.update_interval_quantity.to("day").magnitude
+            )
+        ) * fungal_fruit_cnp
+
+        return total_decay
 
 
 def estimate_past_mycorrhizal_supply(
@@ -810,16 +857,16 @@ def estimate_past_mycorrhizal_supply(
 
     Args:
         soil_c_pool_lmwc: The amount of carbon in the labile mineral associated organic
-            matter pool [kg C m^-3]
+            matter pool [kg{C} m^-3]
         soil_n_pool_don: The amount of nitrogen in the dissolved organic nitrogen pool
-            [kg N m^-3]
-        soil_n_pool_ammonium: Size of the soil ammonium pool [kg N m^-3]
-        soil_n_pool_nitrate: Size of the soil nitrate pool [kg N m^-3]
+            [kg{N} m^-3]
+        soil_n_pool_ammonium: Size of the soil ammonium pool [kg{N} m^-3]
+        soil_n_pool_nitrate: Size of the soil nitrate pool [kg{N} m^-3]
         soil_p_pool_dop: The amount of phosphorus in the dissolved organic phosphorus
-            pool [kg P m^-3]
-        soil_p_pool_labile: Size of the labile phosphorus pool [kg P m^-3]
-        microbe_pool_size: Size of the microbial pool of interest [kg C m^-3]
-        soil_temp: Soil temperature [degrees C]
+            pool [kg{P} m^-3]
+        soil_p_pool_labile: Size of the labile phosphorus pool [kg{P} m^-3]
+        microbe_pool_size: Size of the microbial pool of interest [kg{C} m^-3]
+        soil_temp: Soil temperature [Celsius]
         microbial_group: Constants associated with the microbial group of interest.
         env_factors: Data class containing the various factors through which the
             environment effects soil cycling rates.
@@ -874,6 +921,7 @@ def construct_full_soil_model(
     soil_moisture_saturation: float,
     soil_moisture_residual: float,
     top_soil_layer_thickness: float,
+    fungal_fruit_decay_rate: DataArray,
 ) -> NDArray[np.floating]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
@@ -897,6 +945,10 @@ def construct_full_soil_model(
         soil_moisture_residual: :term:`soil moisture residual`, i.e. the minimum
             (volumetric) moisture the soil can hold [unitless].
         top_soil_layer_thickness: Thickness of the topsoil layer [m].
+        fungal_fruit_decay_rate: Fungal fruit decay is calculated outside the
+            integration loop, so they decay rate (into :term:`LMWC`) has to be added
+            externally into the integration. This decay has a carbon, nitrogen and
+            phosphorus component [kg{nutrient} m^-3 day^-1]
 
     Returns:
         The rate of change for each soil pool
@@ -917,6 +969,7 @@ def construct_full_soil_model(
         functional_groups=functional_groups,
         enzyme_classes=enzyme_classes,
         core_constants=core_constants,
+        fungal_fruiting_body_decay=fungal_fruit_decay_rate,
     )
 
     return soil_pools.calculate_all_pool_updates(
