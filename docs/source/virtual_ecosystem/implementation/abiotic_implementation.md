@@ -707,7 +707,7 @@ The **snow mass balance** will be introduced in the `hydrology` model at the sta
 the daily loop. The first step is to partition total precipitation ($P$, $\mathrm{mm}$)
 into rainfall ($P_{r}$) and snow ($P_{s}$)
 
-$$P_{s} = f_{s} P, \quad P_{r} = (1-f_{S})P$$
+$$P_{s} = f_{s} P, \qquad  P_{r} = (1-f_{S})P$$
 
 where $f_{s}$ is the fraction of snow, expressed as a function of air temperature
 ($T_{a}$):
@@ -853,7 +853,7 @@ formulations described [above](#turbulence-and-wind).
 Where snow depth meets or exceeds vegetation height, the surface is treated as bare
 snow, with:
 
-$$d=0, \quad z_{m}=0.002 \exp(\Psi_{h})$$
+$$d=0, \qquad z_{m}=0.002 \exp(\Psi_{h})$$
 
 where $\Psi_{h}$ is a diabatic correction coefficient for momentum. The aerodynamic
 resistance to heat transfer ($r_{a}​, \mathrm{s\,m^{-1}}$) is then
