@@ -360,7 +360,7 @@ class PlantsModel(
         # turnover foliage/roots etc and are included in equations as the reciprocal of
         # the values. So rescaling them to shorter timescales requires that we
         # _increase_ the values proportionally to the reduced time between updates.
-        for turnover_rate in ["tau_f", "tau_r", "tau_rt", "tau_f_base"]:
+        for turnover_rate in ["tau_f", "tau_r", "tau_rt", "tau_f_base", "tau_b"]:
             setattr(
                 self.flora,
                 turnover_rate,
