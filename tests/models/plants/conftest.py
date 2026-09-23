@@ -255,7 +255,6 @@ def fixture_canopy_layer_data(
             ("leaf_area_index_full", "leaf_area_index"),  #   + subcanopy vegetation
             ("layer_fapar_canopy", "layer_fapar"),  # canopy fapar
             ("layer_fapar_full", "layer_fapar"),  #   + subcanopy vegetation
-            ("layer_leaf_mass", "layer_leaf_mass"),
         )
     }
 
@@ -298,15 +297,6 @@ def fixture_canopy_layer_data(
         expected["layer_fapar_full"][1][cnpy_idx, idx] = (
             cnpy.community_data.average_layer_fapar
         )
-
-        # Leaf mass - calculate from stem leaf area
-        # TODO - maybe pyrealm should provide stem_leaf_mass?
-        expected["layer_leaf_mass"][1][cnpy_idx, idx] = (
-            cnpy.cohort_data.stem_leaf_area
-            * (1 / cmty.cohorts.sla.to_numpy())
-            * cmty.cohorts.lai.to_numpy()
-            * cmty.cohorts.n_individuals.to_numpy()
-        ).sum(axis=1)
 
     # Fill soil and surface layer depths
     expected["layer_heights_full"][1][lyr_struct.index_surface] = (

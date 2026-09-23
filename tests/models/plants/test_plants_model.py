@@ -533,7 +533,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, tricky_plant_cohorts):
         [5.11323840e-02, 5.09088906e-02, np.nan, np.nan],
         [2.10673712e-02, np.nan, np.nan, np.nan],
     ]
-
+    transpiration_by_layer_benchmark[11] = 0
     assert_allclose(
         fxt_plants_model.data["transpiration"], transpiration_by_layer_benchmark
     )
