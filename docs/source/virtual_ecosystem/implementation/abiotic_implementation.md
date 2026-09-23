@@ -681,7 +681,7 @@ Workflow:
 
 Hydrology model runs snow mass balance:
 
-* Partition precipitation in $P_{r}$​ and $P_{s}$
+* Partition precipitation into $P_{r}$​ and $P_{s}$
 * Update snow mass balance $\Delta S$
 * Update snow density $\rho_{s}$​ and depth $D_{s}$
 * Calculate melt $M$ and rain-on-snow melt $M_{r}$​
@@ -707,7 +707,7 @@ The **snow mass balance** will be introduced in the `hydrology` model at the sta
 the daily loop. The first step is to partition total precipitation ($P$, $\mathrm{mm}$)
 into rainfall ($P_{r}$) and snow ($P_{s}$)
 
-$$P_{s} = f_{s} P, P_{r} = (1-f_{S})P$$
+$$P_{s} = f_{s} P, \quad P_{r} = (1-f_{S})P$$
 
 where $f_{s}$ is the fraction of snow, expressed as a function of air temperature
 ($T_{a}$):
@@ -750,7 +750,7 @@ Melt is calculated from the energy available to warm the snowpack to $0\,^{\circ
 expressed as a fraction of the latent heat required for phase change.
 Temperature-driven melt is calculated as:
 
-$$M = min \left(S, \frac{c_{ice} max(T_{s}, 0)}{L_{f}} S \right)$$
+$$M = \min \left(S, \frac{c_{ice} \max(T_{s}, 0)}{L_{f}} S \right)$$
 
 where $c_{ice}$ ($\mathrm{J\,kg^{-1}, K^{-1}}$) is the heat capacity of ice, and $L_{f}$
 ($\mathrm{J\,kg^{-1}}$) is the latent heat of fusion of ice. The $⁡min$ operator ensures
@@ -823,7 +823,7 @@ to be a boolean indicator implemented.
 metamorphism and deposition of debris. Snow albedo is expressed as a function of snow
 age ($t_{s}$, here in days):
 
-$$\alpha_{s} = \frac{-9.8740 ln(t_{s}) + 78.3434}{100}$$
+$$\alpha_{s} = \frac{-9.8740 \ln(t_{s}) + 78.3434}{100}$$
 
 following regressions derived from {cite:t}`anderson_apoint_1976`. Fresh snow is highly
 reflective ($\alpha_{s} = 0.8-0.9$), and albedo decreases progressively with age. This has
@@ -853,7 +853,7 @@ formulations described [above](#turbulence-and-wind).
 Where snow depth meets or exceeds vegetation height, the surface is treated as bare
 snow, with:
 
-$$d=0, z_{m}=0.002 \exp(\Psi_{h})$$
+$$d=0, \quad z_{m}=0.002 \exp(\Psi_{h})$$
 
 where $\Psi_{h}$ is a diabatic correction coefficient for momentum. The aerodynamic
 resistance to heat transfer ($r_{a}​, \mathrm{s\,m^{-1}}$) is then
