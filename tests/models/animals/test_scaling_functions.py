@@ -1777,6 +1777,35 @@ def test_thermal_territory_grows_up_gradient() -> None:
     assert result == [12, 13, 14, 9]
 
 
+def test_thermal_territory_2_grows_up_gradient() -> None:
+    """Territory growth follows an eastward suitability gradient.
+
+    Suitability increases with column index, so from a central centroid the
+    territory must extend east rather than expanding evenly. The expected cells are
+    derived by hand from the frontier ordering rather than from the implementation:
+
+    * claim centroid 12 (row 2, col 2); frontier holds keys 7, 17 (0.2), 11 (0.1),
+      13 (0.3)
+    * pop 13 as the most suitable; it contributes keys 8, 18 (0.3) and 14 (0.4)
+    * pop 14; it contributes keys 9 and 19 (0.4)
+    * pop 9, which ties with 19 on suitability but was pushed first
+    """
+    import numpy as np
+
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_territory_2
+
+    g = Grid(cell_nx=5, cell_ny=5)
+    g.set_neighbours(distance=100)
+
+    # suitability rises with column: 0.0, 0.1, 0.2, 0.3, 0.4 across each row
+    suitability = np.tile(np.arange(5) / 10.0, 5)
+
+    result = thermal_territory_2(12, 4, g, suitability)
+
+    assert result == [12, 13, 14, 9]
+
+
 def test_thermal_territory_prefers_suitable_cells_over_bfs() -> None:
     """A suitability-aware territory is thermally better than a breadth-first one.
 
