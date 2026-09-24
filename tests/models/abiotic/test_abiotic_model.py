@@ -373,7 +373,7 @@ def test_setup_and_update_abiotic_model_below_zero(
     model = AbioticModel(
         data=fixture_abiotic_init_data_cold,
         core_components=fixture_core_components,
-        latitude=0.0,
+        latitude=50.0,
     )
 
     # Test that soil temperature was created correctly
@@ -398,8 +398,8 @@ def test_setup_and_update_abiotic_model_below_zero(
     expected_soil_temp = lyr_strct.from_template()
     expected_soil_temp[lyr_strct.index_all_soil] = np.array(
         [
-            [-9.638771, -9.23536, -8.597241, -7.901912],
-            [-2.648695, -1.760142, -0.85066, 0.106696],
+            [-9.633594, -9.217643, -8.595394, -7.902851],
+            [-2.648394, -1.759237, -0.850561, 0.106648],
         ]
     )
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp)
