@@ -1651,3 +1651,226 @@ class TestHeterotrophNormalizationSystem:
         actual_density = total_biomass_kg / total_area_m2
 
         assert actual_density == pytest.approx(target, rel=0.05)
+
+
+def _is_contiguous(territory: list[int], cell_nx: int, cell_ny: int) -> bool:
+    """Check that every cell in a territory is 4-adjacent to another cell in it.
+
+    Args:
+        territory: The grid cell keys making up the territory.
+        cell_nx: Number of cells along the x-axis.
+        cell_ny: Number of cells along the y-axis.
+
+    Returns:
+        True when the territory forms a single orthogonally connected region.
+    """
+
+    cells = set(territory)
+    if len(cells) < 2:
+        return True
+
+    for key in cells:
+        row, col = divmod(key, cell_nx)
+        neighbours = [
+            (row - 1, col),
+            (row + 1, col),
+            (row, col - 1),
+            (row, col + 1),
+        ]
+        if not any(
+            0 <= r < cell_ny and 0 <= c < cell_nx and (r * cell_nx + c) in cells
+            for r, c in neighbours
+        ):
+            return False
+
+    return True
+
+
+@pytest.mark.parametrize(
+    "centroid_key, target",
+    [
+        pytest.param(12, 1, id="single_cell"),
+        pytest.param(12, 5, id="small_territory"),
+        pytest.param(12, 13, id="large_territory"),
+        pytest.param(0, 6, id="corner_centroid"),
+        pytest.param(10, 6, id="edge_centroid"),
+    ],
+)
+def test_thermal_territory_none_matches_bfs(centroid_key: int, target: int) -> None:
+    """Passing no suitability reproduces breadth-first territory growth exactly.
+
+    The short-circuit for ``suitability=None`` delegates straight to
+    :func:`bfs_territory`, so the two must be identical for every centroid and
+    target, including at the grid edges and corners.
+    """
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        bfs_territory,
+        thermal_territory,
+    )
+
+    expected = bfs_territory(centroid_key, target, 5, 5)
+    result = thermal_territory(centroid_key, target, 5, 5, None)
+
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "centroid_key, target",
+    [
+        pytest.param(12, 0, id="zero_target"),
+        pytest.param(12, 1, id="single_cell"),
+        pytest.param(12, 5, id="small_territory"),
+        pytest.param(12, 13, id="large_territory"),
+        pytest.param(12, 25, id="whole_grid"),
+        pytest.param(0, 6, id="corner_centroid"),
+        pytest.param(10, 6, id="edge_centroid"),
+    ],
+)
+def test_thermal_territory_uniform_matches_bfs(centroid_key: int, target: int) -> None:
+    """Uniform suitability reproduces breadth-first territory growth exactly.
+
+    This is the key regression guard on the priority queue itself: with all cells
+    equally suitable, the monotonic tiebreak makes the heap pop in insertion order,
+    degenerating to FIFO. Any divergence means the frontier ordering or the
+    claim-on-pop logic has broken, independently of the None short-circuit.
+
+    The ``zero_target`` case pins the degenerate behaviour, where both functions
+    return the centroid alone.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        bfs_territory,
+        thermal_territory,
+    )
+
+    uniform = np.full(25, 0.5)
+
+    expected = bfs_territory(centroid_key, target, 5, 5)
+    result = thermal_territory(centroid_key, target, 5, 5, uniform)
+
+    assert result == expected
+
+
+def test_thermal_territory_grows_up_gradient() -> None:
+    """Territory growth follows an eastward suitability gradient.
+
+    Suitability increases with column index, so from a central centroid the
+    territory must extend east rather than expanding evenly. The expected cells are
+    derived by hand from the frontier ordering rather than from the implementation:
+
+    * claim centroid 12 (row 2, col 2); frontier holds keys 7, 17 (0.2), 11 (0.1),
+      13 (0.3)
+    * pop 13 as the most suitable; it contributes keys 8, 18 (0.3) and 14 (0.4)
+    * pop 14; it contributes keys 9 and 19 (0.4)
+    * pop 9, which ties with 19 on suitability but was pushed first
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_territory
+
+    # suitability rises with column: 0.0, 0.1, 0.2, 0.3, 0.4 across each row
+    suitability = np.tile(np.arange(5) / 10.0, 5)
+
+    result = thermal_territory(12, 4, 5, 5, suitability)
+
+    assert result == [12, 13, 14, 9]
+
+
+def test_thermal_territory_prefers_suitable_cells_over_bfs() -> None:
+    """A suitability-aware territory is thermally better than a breadth-first one.
+
+    Compared cell for cell against :func:`bfs_territory` from the same centroid and
+    with the same target, greedy growth must yield a territory whose mean
+    suitability is strictly higher when suitability varies across the neighbourhood.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        bfs_territory,
+        thermal_territory,
+    )
+
+    suitability = np.tile(np.arange(5) / 10.0, 5)
+
+    thermal = thermal_territory(12, 6, 5, 5, suitability)
+    breadth_first = bfs_territory(12, 6, 5, 5)
+
+    assert suitability[thermal].mean() > suitability[breadth_first].mean()
+
+
+@pytest.mark.parametrize(
+    "centroid_key, target",
+    [
+        pytest.param(12, 4, id="central"),
+        pytest.param(12, 10, id="central_large"),
+        pytest.param(0, 6, id="corner"),
+        pytest.param(24, 6, id="far_corner"),
+        pytest.param(10, 6, id="edge"),
+    ],
+)
+def test_thermal_territory_structural_invariants(
+    centroid_key: int, target: int
+) -> None:
+    """Territories are contiguous, centroid-anchored, in bounds and the right size.
+
+    These hold regardless of the suitability surface: greedy growth must never
+    produce a disconnected territory, drop the centroid, wrap around a grid edge,
+    or claim a cell twice.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_territory
+
+    rng = np.random.default_rng(7)
+    suitability = rng.random(25)
+
+    result = thermal_territory(centroid_key, target, 5, 5, suitability)
+
+    assert result[0] == centroid_key
+    assert len(result) == target
+    assert len(result) == len(set(result))
+    assert all(0 <= key < 25 for key in result)
+    assert _is_contiguous(result, 5, 5)
+
+
+def test_thermal_territory_invariant_under_monotonic_transform() -> None:
+    """Growth depends on the ordering of suitability, not its magnitudes.
+
+    Selection is greedy, so any strictly increasing transform of the suitability
+    surface leaves the cell ordering and therefore the territory unchanged. This is
+    why the dispersal exponent and floor constants are not applied to territory
+    construction.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_territory
+
+    rng = np.random.default_rng(11)
+    suitability = rng.random(25)
+
+    plain = thermal_territory(12, 8, 5, 5, suitability)
+    transformed = thermal_territory(12, 8, 5, 5, suitability**3)
+
+    assert plain == transformed
+
+
+def test_thermal_territory_all_lethal_still_grows() -> None:
+    """A territory is still built when every cell is entirely unsuitable.
+
+    Zero suitability everywhere is a valid surface, not an error: the cohort has to
+    occupy somewhere. With no ordering signal the result degenerates to
+    breadth-first growth.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        bfs_territory,
+        thermal_territory,
+    )
+
+    lethal = np.zeros(25)
+
+    result = thermal_territory(12, 6, 5, 5, lethal)
+
+    assert result == bfs_territory(12, 6, 5, 5)
