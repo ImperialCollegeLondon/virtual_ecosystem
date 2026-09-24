@@ -25,7 +25,6 @@ def test_initialise_canopy_layers(plants_data, fixture_core_components):
         "layer_heights",
         "leaf_area_index",
         "layer_fapar",
-        "layer_leaf_mass",
         "shortwave_absorption",
     )
 

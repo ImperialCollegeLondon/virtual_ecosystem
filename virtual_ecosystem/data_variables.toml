@@ -992,7 +992,6 @@ name = "plant_reproductive_tissue_turnover"
 unit = "kg C"
 variable_type = "float"
 
-
 [[variable]]
 axis = ["spatial"]
 description = "Biomasses (CNP) of plant fruit tissue turnover"
@@ -1103,13 +1102,6 @@ axis = ["spatial"]
 description = "The fraction of absorbed photosynthetically active radiation (f_APAR) in each model layer."
 name = "layer_fapar"
 unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "The leaf mass within each canopy layer."
-name = "layer_leaf_mass"
-unit = "kg"
 variable_type = "float"
 
 [[variable]]

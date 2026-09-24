@@ -20,23 +20,6 @@ def data_instance():
 
 
 @pytest.fixture
-def plant_data_instance():
-    """Fixture returning a simple data instance containing plant resource data."""
-    from virtual_ecosystem.core.data import Data
-    from virtual_ecosystem.core.grid import Grid
-
-    # Populate data with a layers x cell id layer_leaf_mass array
-    data = Data(grid=Grid(cell_nx=3, cell_ny=3))
-    leaf_mass = np.full((15, 9), fill_value=np.nan)
-    leaf_mass[1:4, :] = 10000
-    data["layer_leaf_mass"] = xarray.DataArray(
-        data=leaf_mass, dims=["layers", "cell_id"]
-    )
-
-    return data
-
-
-@pytest.fixture
 def animal_data_for_model_instance(fixture_core_components):
     """Fixture returning a combination of plant and air temperature data."""
 
@@ -50,15 +33,6 @@ def animal_data_for_model_instance(fixture_core_components):
         cell_ny=3,
     )
     data = Data(grid)
-
-    leaf_mass = np.full(
-        (fixture_core_components.layer_structure.n_layers, grid.n_cells),
-        fill_value=np.nan,
-    )
-    leaf_mass[1:4, :] = 10000
-    data["layer_leaf_mass"] = xarray.DataArray(
-        data=leaf_mass, dims=["layers", "cell_id"]
-    )
 
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
     air_temperature_values = np.full(
@@ -285,7 +259,13 @@ def dummy_animal_data(animal_fixture_core_components):
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
-        [32.0, 30.0, 20.0, 10.0, lyr_str.surface_layer_height]
+        [
+            32.0,
+            30.0,
+            20.0,
+            10.0,
+            lyr_str.surface_layer_height,
+        ]
     )[:, None]
 
     data["layer_heights"][lyr_str.index_all_soil] = lyr_str.soil_layer_depths[:, None]
@@ -300,7 +280,13 @@ def dummy_animal_data(animal_fixture_core_components):
 
     data["air_temperature"] = from_template()
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+        [
+            30.0,
+            29.844995,
+            28.87117,
+            27.206405,
+            16.145945,
+        ]
     )[:, None]
 
     data["soil_temperature"] = from_template()
@@ -308,7 +294,13 @@ def dummy_animal_data(animal_fixture_core_components):
 
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
-        [90.0, 90.341644, 92.488034, 96.157312, 100]
+        [
+            90.0,
+            90.341644,
+            92.488034,
+            96.157312,
+            100,
+        ]
     )[:, None]
 
     data["absorbed_radiation"] = from_template()
@@ -330,12 +322,24 @@ def dummy_animal_data(animal_fixture_core_components):
 
     data["attenuation_coefficient"] = from_template()
     data["attenuation_coefficient"][lyr_str.index_filled_atmosphere] = np.array(
-        [13.0, 13.0, 13.0, 13.0, 2.0]
+        [
+            13.0,
+            13.0,
+            13.0,
+            13.0,
+            2.0,
+        ]
     )[:, None]
 
     data["relative_turbulence_intensity"] = from_template()
     data["relative_turbulence_intensity"][lyr_str.index_filled_atmosphere] = np.array(
-        [17.64, 16.56, 11.16, 5.76, 0.414]
+        [
+            17.64,
+            16.56,
+            11.16,
+            5.76,
+            0.414,
+        ]
     )[:, None]
 
     data["latent_heat_vapourisation"] = from_template()
@@ -494,15 +498,6 @@ def animal_data_for_cohorts_instance(fixture_core_components):
         cell_ny=3,
     )
     data = Data(grid)
-
-    leaf_mass = np.full(
-        (fixture_core_components.layer_structure.n_layers, grid.n_cells),
-        fill_value=np.nan,
-    )
-    leaf_mass[1:4, :] = 10000
-    data["layer_leaf_mass"] = xarray.DataArray(
-        data=leaf_mass, dims=["layers", "cell_id"]
-    )
 
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
     air_temperature_values = np.full(
