@@ -1274,7 +1274,7 @@ def dummy_cold_climate_data(fixture_core_components):
     - ``downward_longwave_radiation``: 200-220 W m-2 (was 385-400 W m-2) — cold sky
     - ``relative_humidity_ref``: 70-85 % (was 60-90 %) — dry cold air
     - ``air_temperature`` profiles: -2 to -8 °C across layers
-    - ``canopy_temperature``: -1 to +2 °C - bare branches, slightly above air temp
+    - ``canopy_temperature``: +1 to +2 °C - bare branches, slightly above air temp
       due to solar absorption; above zero to reflect daytime solar warming of dark bark
     - ``leaf_area_index``: 0.05-0.3 — bare deciduous canopy (stems and branches only)
     - ``transpiration``, ``canopy_evaporation``, ``stomatal_conductance``: near zero —
