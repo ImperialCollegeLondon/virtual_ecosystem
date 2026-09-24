@@ -363,7 +363,13 @@ def test_setup_and_update_abiotic_model_below_zero(
     dummy_cold_climate_data,
     fixture_core_components,
 ):
-    """Test that abiotic model returns below zero values."""
+    """Test that abiotic model returns below zero values with below zero inputs.
+
+    The standard dummy data is designed for tropical regions that never experience
+    freezing temperatures. This test uses a modified set of dummy data that is designed
+    to represent a cold climate with below zero temperatures and reduced vegetation.
+
+    """
 
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
