@@ -701,6 +701,17 @@ infiltration and runoff, soil evaporation, and plant uptake when soils are froze
 This part will be described in more detail in
 [M2.1.1](https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/1715).
 
+```{admonition} Warm climate behaviour
+No configuration flags are required to enable or disable snow processes. Instead, snow
+dynamics emerge naturally from air temperature: when temperatures remain above freezing,
+the snowfall fraction $f_{s}=0$, no snow water equivalent accumulates ($S=0$), and snow
+depth $D_{s}=0$ throughout. Under these conditions, all snow-related terms disappear
+from the energy balance and hydrology equations, and the model behaviour is identical to
+the pre-snow implementation. Snow processes activate automatically whenever subfreezing
+temperatures occur, and are entirely absent in warm-climate simulations without any code
+changes or configuration.
+```
+
 ### Snow mass balance
 
 The **snow mass balance** will be introduced in the `hydrology` model at the start of
