@@ -931,13 +931,6 @@ variable_type = "integer"
 
 [[variable]]
 axis = ["spatial"]
-description = "Plant reproductive tissue non-propagule turnover since last update"
-name = "fallen_non_propagule_c_mass"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Proportion of stem carbon that is lignin carbon"
 name = "stem_lignin"
 unit = "unitless"

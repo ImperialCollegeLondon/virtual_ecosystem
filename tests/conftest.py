@@ -467,7 +467,6 @@ def dummy_litter_data(fixture_core_components):
         "lignin_above_structural": [0.5, 0.1, 0.7, 0.7],
         "lignin_woody": [0.5, 0.8, 0.35, 0.35],
         "lignin_below_structural": [0.5, 0.25, 0.75, 0.75],
-        "fallen_non_propagule_c_mass": [0.003, 0.0075, 0.00255, 0.00375],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
