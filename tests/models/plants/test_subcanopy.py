@@ -1,5 +1,6 @@
 """Test the virtual_ecosystem.models.plants.subcanopy module."""
 
+from contextlib import nullcontext as does_not_raise
 from types import SimpleNamespace
 
 import numpy as np
@@ -8,118 +9,101 @@ import xarray as xr
 from numpy.testing import assert_allclose
 
 
-def test_Nutrient(fixture_plants_constants):
-    """Simple test of nutrient constructor and factory method."""
-    from virtual_ecosystem.models.plants.subcanopy import Nutrient
+@pytest.mark.parametrize(
+    argnames="initial_masses, outcome",
+    argvalues=(
+        pytest.param(
+            np.broadcast_to([[1, np.nan, np.nan]], (5, 3)),
+            does_not_raise(),
+            id="only_carbon",
+        ),
+        pytest.param(
+            np.broadcast_to([[1, 0.1, 0.01]], (5, 3)),
+            does_not_raise(),
+            id="all_provided",
+        ),
+        pytest.param(
+            np.broadcast_to([[1, 0.1, np.nan]], (5, 3)),
+            pytest.raises(ValueError),
+            id="partial",
+        ),
+    ),
+)
+def test_SubcanopyBiomass__init__(initial_masses, outcome):
+    """Simple test of SubcanopyBiomass__init__.
 
-    elemental_masses = np.arange(0.1, 2.0, 0.1)
-    nutrient_one = Nutrient(
-        "n",
-        ideal_ratio=fixture_plants_constants.subcanopy_seedbank_c_n_ratio,
-        masses=elemental_masses,
-    )
+    Check the method handles np.nan in inputs correctly.
+    """
+    from virtual_ecosystem.models.plants.subcanopy import SubcanopyBiomass
 
-    nutrient_two = Nutrient.from_constants(
-        tissue_name="subcanopy_vegetation",
-        element="n",
-        constants=fixture_plants_constants,
-        masses=elemental_masses
-        * fixture_plants_constants.subcanopy_vegetation_c_n_ratio,
-    )
+    with outcome:
+        tissue = SubcanopyBiomass(
+            initial_masses=initial_masses, ideal_ratios=(1, 10, 100), var_name="var"
+        )
 
-    assert_allclose(nutrient_one.masses, nutrient_two.masses)
+        # Check the auto calculation from ideal ratios
+        assert np.allclose(
+            tissue.elemental_masses, np.broadcast_to([[1, 0.1, 0.01]], (5, 3))
+        )
 
 
-def test_SubcanopyBiomass(fixture_plants_constants):
-    """Test the simple SubcanopyBiomass class and methods."""
-    from virtual_ecosystem.models.plants.subcanopy import Nutrient, SubcanopyBiomass
+def test_SubcanopyBiomass_methods(fixture_plants_constants):
+    """Test the SubcanopyBiomass class and methods."""
+    from virtual_ecosystem.models.plants.subcanopy import SubcanopyBiomass
 
     n_cells = 20
-    carbon_mass = np.arange(n_cells) + 1.0
+    carbon_mass = (np.arange(n_cells) + 1.0)[:, None]
+    ideal_ratios = np.array(
+        [
+            1,
+            fixture_plants_constants.subcanopy_vegetation_c_n_ratio,
+            fixture_plants_constants.subcanopy_vegetation_c_p_ratio,
+        ]
+    )
 
-    cn_ratio = fixture_plants_constants.subcanopy_vegetation_c_n_ratio
-    cp_ratio = fixture_plants_constants.subcanopy_vegetation_c_p_ratio
+    # Complete mass at ideal ratios
+    initial_mass = carbon_mass / ideal_ratios
 
     # Direct construction
     stoich_one = SubcanopyBiomass(
-        carbon_mass=carbon_mass.copy(),
-        nutrients={
-            "n": Nutrient(
-                name="n", ideal_ratio=cn_ratio, masses=carbon_mass / cn_ratio
-            ),
-            "p": Nutrient(
-                name="p", ideal_ratio=cp_ratio, masses=carbon_mass / cp_ratio
-            ),
-        },
+        initial_masses=initial_mass.copy(), ideal_ratios=ideal_ratios, var_name="var"
     )
-
-    # Test the cn_ratio and cp_ratio properties
-    assert_allclose(stoich_one.c_x_ratio("n"), np.full(n_cells, cn_ratio))
-    assert_allclose(stoich_one.c_x_ratio("p"), np.full(n_cells, cp_ratio))
 
     # Test mass removal method and maintenance of ratios
     stoich_two = stoich_one.remove_mass_fraction(mass_fraction=0.25)
 
-    assert_allclose(stoich_one.carbon_mass, carbon_mass * 0.75)
-    assert_allclose(stoich_two.carbon_mass, carbon_mass * 0.25)
-
-    assert_allclose(stoich_one.c_x_ratio("n"), np.full(n_cells, cn_ratio))
-    assert_allclose(stoich_one.c_x_ratio("p"), np.full(n_cells, cp_ratio))
+    assert_allclose(stoich_one.elemental_masses, initial_mass * 0.75)
+    assert_allclose(stoich_two.elemental_masses, initial_mass * 0.25)
 
     # Test addition method
     stoich_one.add_mass(stoich_two)
 
-    assert_allclose(stoich_one.carbon_mass, carbon_mass)
-    assert_allclose(stoich_one.c_x_ratio("n"), np.full(n_cells, cn_ratio))
-    assert_allclose(stoich_one.c_x_ratio("p"), np.full(n_cells, cp_ratio))
+    assert_allclose(stoich_one.elemental_masses, initial_mass)
 
-    # Test ratio calculations by adding pure carbon
+    # Test excess nutrient extraction - values for N and P give ideal ratios at mass 10
+    # but  excess for smaller masses and deficit for larger masses
+    variable_ratios = np.concatenate(
+        [carbon_mass, np.full_like(carbon_mass, 0.5), np.full_like(carbon_mass, 0.2)],
+        axis=1,
+    )
     stoich_three = SubcanopyBiomass(
-        carbon_mass=carbon_mass.copy(),
-        nutrients={
-            "n": Nutrient(name="n", ideal_ratio=cn_ratio, masses=np.zeros(n_cells)),
-            "p": Nutrient(name="p", ideal_ratio=cp_ratio, masses=np.zeros(n_cells)),
-        },
+        initial_masses=variable_ratios, ideal_ratios=ideal_ratios, var_name="var"
     )
 
-    stoich_one.add_mass(stoich_three)
+    # Remove excess - result should be the difference between variable and ideal, where
+    # that difference is positive
+    excess = stoich_three.get_excess_nutrients()
 
-    # Carbon masses double and ratios also double.
-    assert_allclose(stoich_one.carbon_mass, carbon_mass * 2)
-    assert_allclose(stoich_one.c_x_ratio("n"), np.full(n_cells, cn_ratio * 2))
-    assert_allclose(stoich_one.c_x_ratio("p"), np.full(n_cells, cp_ratio * 2))
-
-    # Test excess nutrient method - values for N and P give ideal ratios at mass 10 but
-    # excess for smaller masses and deficit for larger masses
-    stoich_varying_ratios = SubcanopyBiomass(
-        carbon_mass=carbon_mass.copy(),
-        nutrients={
-            "n": Nutrient(name="n", ideal_ratio=cn_ratio, masses=np.full(n_cells, 0.5)),
-            "p": Nutrient(name="p", ideal_ratio=cp_ratio, masses=np.full(n_cells, 0.2)),
-        },
+    np.allclose(
+        excess.elemental_masses,
+        np.clip(variable_ratios - initial_mass, a_min=0, a_max=None),
     )
 
-    excess_n_p = stoich_varying_ratios.get_excess_nutrients()
-
-    # Check masses in excess
-    assert_allclose(
-        excess_n_p["n"].masses,
-        np.where(carbon_mass > 10, 0, 0.5 - (carbon_mass / cn_ratio)),
-    )
-    assert_allclose(
-        excess_n_p["p"].masses,
-        np.where(carbon_mass > 10, 0, 0.2 - (carbon_mass / cp_ratio)),
-    )
-
-    # Check ratios in sources
-    assert_allclose(stoich_varying_ratios.carbon_mass, carbon_mass)
-    assert_allclose(
-        stoich_varying_ratios.c_x_ratio("n"),
-        np.where(carbon_mass <= 10, cn_ratio, (carbon_mass / 0.5)),
-    )
-    assert_allclose(
-        stoich_varying_ratios.c_x_ratio("p"),
-        np.where(carbon_mass <= 10, cp_ratio, (carbon_mass / 0.2)),
+    # Remove excess again - should now be zero
+    excess = stoich_three.get_excess_nutrients()
+    np.allclose(
+        excess.elemental_masses,
+        np.zeros_like(excess.elemental_masses),
     )
 
 
@@ -155,9 +139,9 @@ def test_subcanopy_vegetation_dynamics(
 
     from virtual_ecosystem.models.plants.subcanopy import Subcanopy
 
-    # Update data from scenario
-    plants_data["subcanopy_vegetation_biomass"][:] = veg_biomass
-    plants_data["subcanopy_seedbank_biomass"][:] = seedbank_biomass
+    # Update carbon mass data from scenario
+    plants_data["subcanopy_vegetation_cnp"][:, 0] = veg_biomass
+    plants_data["subcanopy_seedbank_cnp"][:, 0] = seedbank_biomass
 
     template = fixture_core_components.layer_structure.from_template()
     template[:] = 0
@@ -185,12 +169,15 @@ def test_subcanopy_vegetation_dynamics(
     )
 
     # Test initialisation sets the biomasses
-    assert_allclose(subcanopy.vegetation_biomass.carbon_mass, veg_biomass)
-    assert_allclose(subcanopy.seedbank_biomass.carbon_mass, seedbank_biomass)
+    assert_allclose(
+        subcanopy.subcanopy_vegetation_cnp.elemental_masses[:, 0], veg_biomass
+    )
+    assert_allclose(
+        subcanopy.subcanopy_seedbank_cnp.elemental_masses[:, 0], seedbank_biomass
+    )
 
     # Set the subcanopy shortwave absorption - don't need finesse here - either
     # vegetation present or not
-
     subcanopy.set_light_capture(below_canopy_light_fraction=np.ones(4))
 
     # Run the GPP estimation with a simple fake of the P Model structure.
@@ -206,14 +193,14 @@ def test_subcanopy_vegetation_dynamics(
 
     subcanopy.calculate_dynamics()
 
-    # Assert that biomasses are either equal to zero or greater.
+    # Assert that biomasses have been written and are either equal to zero or greater.
     assert np.all(
         veg_comparator(
-            plants_data["subcanopy_vegetation_biomass"].to_numpy(), np.zeros(4)
+            plants_data["subcanopy_vegetation_cnp"].to_numpy(), np.zeros((4, 3))
         )
     )
     assert np.all(
         seedbank_comparator(
-            plants_data["subcanopy_seedbank_biomass"].to_numpy(), np.zeros(4)
+            plants_data["subcanopy_seedbank_cnp"].to_numpy(), np.zeros((4, 3))
         )
     )

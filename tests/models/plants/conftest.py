@@ -119,14 +119,20 @@ def plants_data(fixture_core_components, fixture_flora):
         },
     )
 
-    # Subcanopy vegetation masses kg C m2
-    data["subcanopy_vegetation_biomass"] = DataArray(
-        data=np.array([0.07] * n_cells),
-        coords={"cell_id": fixture_core_components.grid.cell_id},
+    # Subcanopy vegetation masses kg m-2, set up with np.nan values in elements to
+    # create from ideal values
+    subcanopy_masses = np.full((n_cells, 3), np.nan)
+    subcanopy_masses[:, 0] = 0.07
+    cell_stoich_coords = {
+        "cell_id": fixture_core_components.grid.cell_id,
+        "element": ["C", "N", "P"],
+    }
+
+    data["subcanopy_vegetation_cnp"] = DataArray(
+        data=subcanopy_masses.copy(), coords=cell_stoich_coords
     )
-    data["subcanopy_seedbank_biomass"] = DataArray(
-        data=np.array([0.07] * n_cells),
-        coords={"cell_id": fixture_core_components.grid.cell_id},
+    data["subcanopy_seedbank_cnp"] = DataArray(
+        data=subcanopy_masses.copy(), coords=cell_stoich_coords
     )
 
     # Adding soil variables
@@ -312,7 +318,7 @@ def fixture_canopy_layer_data(
 
     # - Beer Lambert transmission from subcanopy vegetation
     subcanopy_vegetation_lai = (
-        plants_data["subcanopy_vegetation_biomass"]
+        plants_data["subcanopy_vegetation_cnp"].sel(element="C")
         * fixture_plants_constants.subcanopy_specific_leaf_area
         * fixture_plants_constants.subcanopy_leaf_fraction
     )
