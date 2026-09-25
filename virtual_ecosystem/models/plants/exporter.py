@@ -18,6 +18,7 @@ from typing import ClassVar, Literal
 import numpy as np
 import pandas as pd
 from pyrealm.demography.canopy import Canopy, CohortCanopyData, CommunityCanopyData
+from pyrealm.demography.core import ToDataFrameMixin
 from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllometry
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
@@ -54,6 +55,12 @@ class CommunityDataExporter:
     shortcut for including all available attributes, the keyword "ALL" can be provided
     as a string instead of a set of attribute names.
 
+    The ``stem_allometry_cls``, ``stem_allocation_cls`` and ``growth_increments_cls``
+    arguments allow this exporter to be reused by growth forms other than the default
+    tree T Model, such as ``virtual_ecosystem.models.palms.palms``, by determining
+    which cohort attributes are available and how placeholder (pre-update) cohort data
+    is structured.
+
     Args:
         output_directory: The output directory for the files
         cohort_attributes: An set of cohort attributes to export or the ALL keyword.
@@ -62,6 +69,13 @@ class CommunityDataExporter:
         stem_canopy_attributes: An set of stem canopy attributes to export or the ALL
             keyword.
         float_format: A float format string used when writing numeric data.
+        stem_allometry_cls: The stem allometry class used by the calling model,
+            providing the ``_array_attrs`` used to validate exportable cohort
+            attributes.
+        stem_allocation_cls: The stem allocation class used by the calling model, as
+            above.
+        growth_increments_cls: The growth increments class used by the calling model,
+            as above.
     """
 
     _output_files: ClassVar[dict[str, str]] = dict(
@@ -101,7 +115,16 @@ class CommunityDataExporter:
         community_canopy_attributes: ALL | set[str] = set(),
         stem_canopy_attributes: ALL | set[str] = set(),
         float_format: str = "%0.5f",
+        stem_allometry_cls: type[ToDataFrameMixin] = StemAllometry,
+        stem_allocation_cls: type[ToDataFrameMixin] = StemAllocation,
+        growth_increments_cls: type[ToDataFrameMixin] = GrowthIncrements,
     ) -> None:
+        # Store the growth-form classes used to determine available cohort attributes
+        # and placeholder (pre-update) cohort data structure.
+        self._stem_allometry_cls = stem_allometry_cls
+        self._stem_allocation_cls = stem_allocation_cls
+        self._growth_increments_cls = growth_increments_cls
+
         # Store the argument values
         self.output_directory: Path = output_directory
         """The directory in which to save plant community data."""
@@ -148,9 +171,9 @@ class CommunityDataExporter:
                     # Biomass attributes
                     *biomass_attributes,
                     # Other inputs have defined _array_attrs
-                    *StemAllometry._array_attrs,
-                    *StemAllocation._array_attrs,
-                    *GrowthIncrements._array_attrs,
+                    *stem_allometry_cls._array_attrs,
+                    *stem_allocation_cls._array_attrs,
+                    *growth_increments_cls._array_attrs,
                 ]
             ),
             "community_canopy_attributes": set(
@@ -258,7 +281,12 @@ class CommunityDataExporter:
 
     @classmethod
     def from_config(
-        cls, output_directory: Path, config: PlantsExportConfig
+        cls,
+        output_directory: Path,
+        config: PlantsExportConfig,
+        stem_allometry_cls: type[ToDataFrameMixin] = StemAllometry,
+        stem_allocation_cls: type[ToDataFrameMixin] = StemAllocation,
+        growth_increments_cls: type[ToDataFrameMixin] = GrowthIncrements,
     ) -> CommunityDataExporter:
         """Factory class to create a CommunityDataExporter from configuration data.
 
@@ -269,7 +297,10 @@ class CommunityDataExporter:
         Args:
             output_directory: The path to the output directory for the files
             config: An instance of ``PlantsExportConfig``
-
+            stem_allometry_cls: The stem allometry class used by the calling model.
+            stem_allocation_cls: The stem allocation class used by the calling model.
+            growth_increments_cls: The growth increments class used by the calling
+                model.
         """
 
         # Convert lists to sets and get the instance
@@ -284,6 +315,9 @@ class CommunityDataExporter:
             stem_canopy_attributes="ALL"
             if config.stem_canopy_attributes == "ALL"
             else set(config.stem_canopy_attributes),
+            stem_allometry_cls=stem_allometry_cls,
+            stem_allocation_cls=stem_allocation_cls,
+            growth_increments_cls=growth_increments_cls,
         )
 
     def dump(
@@ -375,7 +409,7 @@ class CommunityDataExporter:
             else:
                 # Empty dataframe of NaN values
                 allocation = pd.DataFrame(
-                    columns=StemAllocation._array_attrs,
+                    columns=self._stem_allocation_cls._array_attrs,
                     index=np.arange(len(community.cohorts)),
                 )
 
@@ -384,7 +418,7 @@ class CommunityDataExporter:
             else:
                 # Empty dataframe of NaN values
                 increments = pd.DataFrame(
-                    columns=GrowthIncrements._array_attrs,
+                    columns=self._growth_increments_cls._array_attrs,
                     index=np.arange(len(community.cohorts)),
                 )
 
