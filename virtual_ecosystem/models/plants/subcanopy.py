@@ -1,29 +1,25 @@
-"""The subcanopy module provides a representation of subcanopy biomass as two pools. The
-first is a pool of subcanopy vegetation, implemented as layer of pure leaf tissue in the
-surface layer of the model vertical structure. The second is a pool of subcanopy
-seedbank biomass.
+"""The subcanopy module provides a representation of subcanopy biomass pools:
 
-Both pools use a simplified stiochiometric system: this is defined independently of the
-:mod:`virtual_ecosystem.models.plants.biomasses` module, as that class explicitly
+* Subcanopy vegetation biomass,
+* Subcanopy seedbank biomass,
+* Subcanopy vegetation litter biomass,
+* Subcanopy seedbank litter biomass,
+
+All these pools use a stoichiometric representation of biomasses as n_cells by
+n_elements array. This system is similar to the
+:mod:`virtual_ecosystem.models.plants.biomasses` module, but that class explicitly
 handles communities of cohorts with multiple tissue types. The subcanopy has much
-simpler structure with two stoichiometric masses per grid cell and so the dynamics are
-more easily handled by a separate implementation.
+simpler representation with only four simple pools and so the dynamics are more easily
+handled by a separate implementation.
 
 The module implements the following classes:
 
-* The :class:`Nutrient` class provides a representation of nutrient masses per grid
-  cell.
-* The :class:`SubcanopyBiomass` class then tracks the carbon mass and an associated set
-  of nutrient masses for a given pool.
+* The :class:`SubcanopyBiomass` class tracks the elemental masses within a pool and
+  provides methods to add and remove biomasses and extract surplus nutrients.
 * The :class:`Subcanopy` then maintains subcanopy biomass pools for the vegetation and
   seedbank and provides methods to update the light gathering and ecological dynamics of
-  the subcanopy at each update step.
-
-TODO - lot more overlap between the SubcanopyBiomass and Biomasses classes than there
-       used to be with the old stoichiometry module - can we replace the code here with
-       a new tissue? The problem is the lack of a community object to initialise.
-
-"""  # noqa:  D205
+  the subcanopy pools at each update step.
+"""  # noqa: D415
 
 from __future__ import annotations
 
@@ -42,19 +38,18 @@ from virtual_ecosystem.models.plants.model_config import PlantsConstants
 
 
 class SubcanopyBiomass:
-    """Stoichiometry representation of tissue biomasses for the subcanopy.
+    """Stoichiometry representation of tissue biomass pools for the subcanopy.
 
-    This class holds the current elemental masses for a subcanopy tissue (vegetative or
-    seedbank) along with the ideal C/X ratios.
+    This class holds the current elemental masses for a subcanopy tissue pool.
 
-    * The elemental biomasses are held as an xarray DataArray with a column for each
+    * The elemental biomasses are held as a numpy array with a column for each
       element and a row for each cell id. Carbon masses are always in the first column,
       followed by the nutrient elements given in the the ``elements`` class attribute.
       The initial biomasses are set from provided data.
 
     * The ideal ratios are held as numpy arrays, with the same shape as the biomasses
       and are expressed as C/x ratios. The first column of these arrays should always be
-      one and therefore C/C and is always equal to one.
+      one and therefore C/C and should therefore always be set as one.
 
     The class provides methods to add and remove biomasses and to extract excess
     nutrients from tissues.

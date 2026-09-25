@@ -37,20 +37,37 @@ and new vegetative biomass sprouts from the reproductive biomass pool.
 
 ## Array definitions
 
-Both these variables are defined as array variables with spatial (`x` and `y`)
-dimensions and should be provided in a NetCDF file. The code below shows the expected
-data structure:
+The array for each pool provides initial biomasses in [kg m-2] of carbon, nitrogen and
+phosphorous for each cell. The variable array structure therefore needs to provide both
+spatial (`x` and `y`) dimensions and an elements dimension and should be provided in a
+NetCDF file. You can supply only the carbon masses - in which case the pool biomasses
+for N and P  will be initialised from the [configured subcanopy ideal nutrient
+ratios](./plants_config.md#plants-constants) - or you can provide all the biomasses to
+set different starting masses and ratios. If you are only providing carbon masses, the
+biomasses for the other elements must still be included in the array and as `np.nan`
+values.
+
+The code below create an example of the expected data structure:
 
 ```{code-cell} ipython3
 import numpy as np
 import xarray as xr
 
+carbon = np.full((10, 10, 1), 1)
+nitrogen = np.full((10, 10, 1), 0.05)  # C/N ratio of 20
+phosphorous = np.full((10, 10, 1), 0.01)  # C/P ratio of 100
+
+# If both nitrogen and phosphorous were defined using:
+#   np.full((10, 10, 1), np.nan)
+# then the resulting pool would initialise with N and P biomasses at the ideal ratios
+
 subcanopy_vegetation_biomass = xr.DataArray(
-    np.ones((10, 10)),
-    dims=["x", "y"],
+    np.concatenate([carbon, nitrogen, phosphorous], axis=2),
+    dims=["x", "y", "element"],
     coords={
         "x": np.arange(50, 1000, 100),
         "y": np.arange(50, 1000, 100),
+        "element": np.array(["C", "N", "P"]),
     },
 )
 
