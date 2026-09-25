@@ -27,7 +27,7 @@ TODO - lot more overlap between the SubcanopyBiomass and Biomasses classes than 
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 from numpy.typing import NDArray
@@ -41,176 +41,134 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.plants.model_config import PlantsConstants
 
 
-@dataclass
-class Nutrient:
-    """Dataclass for subcanopy elemental nutrient details.
+class SubcanopyBiomass:
+    """Stoichiometry representation of tissue biomasses for the subcanopy.
+
+    This class holds the current elemental masses for a subcanopy tissue (vegetative or
+    seedbank) along with the ideal C/X ratios.
+
+    * The elemental biomasses are held as an xarray DataArray with a column for each
+      element and a row for each cell id. Carbon masses are always in the first column,
+      followed by the nutrient elements given in the the ``elements`` class attribute.
+      The initial biomasses are set from provided data.
+
+    * The ideal ratios are held as numpy arrays, with the same shape as the biomasses
+      and are expressed as C/x ratios. The first column of these arrays should always be
+      one and therefore C/C and is always equal to one.
+
+    The class provides methods to add and remove biomasses and to extract excess
+    nutrients from tissues.
 
     Args:
-        name: The elemental nutrient name
-        ideal_ratio: The ideal ratio for subcanopy tissue of the nutrient
-        values: An array of per-grid-cell values
+        initial_masses: The initial set of elemental biomasses.
+        ideal_ratios: The ideal stochiometric ratios for the tissue.
+        var_name: The variable name used for the tissue in the data object.
     """
 
-    name: str
-    ideal_ratio: float
-    masses: NDArray[np.floating]
-
-    @classmethod
-    def from_constants(
-        cls,
-        tissue_name: str,
-        element: str,
-        constants: PlantsConstants,
-        masses: NDArray[np.floating],
-    ) -> Nutrient:
-        """Factory method for Nutrient instances from the ideal ratio in constants.
-
-        Args:
-            tissue_name: The tissue name used in the plant constants
-            element: The element name
-            constants: A PlantConstants instance
-            masses: The carbon biomasses of cells for the tissue.
-        """
-
-        ideal_ratio = getattr(constants, f"{tissue_name}_c_{element}_ratio")
-        return cls(name=element, ideal_ratio=ideal_ratio, masses=masses / ideal_ratio)
-
-
-type SubcanopyNutrients = dict[str, Nutrient]
-"""A type to indicate a dictionary of Nutrient instances."""
-
-
-class SubcanopyBiomass:
-    """A stochiometric biomass class for Subcanopy vegetation.
-
-    The class tracks the carbon and elemental nutrient masses across an array of grid
-    cells and provides properties to report the nutrient ratios. It also provides
-    methods to add and remove masses from the class and to remove excess nutrients above
-    ideal ratios.
-    """
+    elements: ClassVar[tuple[str, ...]] = ("N", "P")
+    """A tuple giving the nutrient elements included in the biomasses."""
 
     def __init__(
         self,
-        carbon_mass: NDArray[np.floating],
-        nutrients: SubcanopyNutrients,
-    ) -> None:
-        # Store Init arguments
-        self.carbon_mass: NDArray[np.floating] = carbon_mass
-        self.nutrients: SubcanopyNutrients = nutrients
+        initial_masses: NDArray[np.floating],
+        ideal_ratios: NDArray[np.floating],
+        var_name: str,
+    ):
 
-    def __repr__(self) -> str:
-        """Simple representation of class."""
-        return f"SubcanopyBiomass(carbon={self.carbon_mass})"
+        # TODO - check shapes needs n_cells.
 
-    @classmethod
-    def from_constants(
-        cls,
-        tissue_name: str,
-        elements: tuple[str, ...],
-        constants: PlantsConstants,
-        masses: NDArray[np.floating],
-    ) -> SubcanopyBiomass:
-        """Factory method to generate a SubcanopyBiomass object from constants.
+        # Handle initial mass NaN setup
+        nan_masses = np.isnan(initial_masses)
 
-        The returned instance uses the provided carbon masses and initialises the named
-        element masses at the ideal ratios set in the constants.
-        """
+        # Carbon values all filled
+        if np.any(nan_masses[:, 0]):
+            raise ValueError("NaN values in carbon masses in subcanopy tissue.")
 
-        nutrients = {
-            elem: Nutrient.from_constants(
-                tissue_name=tissue_name,
-                element=elem,
-                constants=constants,
-                masses=masses,
+        # Are all nutrient values missing
+        nutrients_all_nan = np.all(nan_masses[:, 1:])
+
+        # Catch partial data case
+        if np.any(nan_masses) and not nutrients_all_nan:
+            raise ValueError(
+                f"Incomplete elemental nutrient masses in {var_name}: "
+                "either provide all values or none to use ideal ratios. "
             )
-            for elem in elements
-        }
 
-        return cls(carbon_mass=masses, nutrients=nutrients)
+        # If no nutrient data provided, then fill in using ideal ratios
+        if nutrients_all_nan:
+            initial_masses = initial_masses[:, [0]] / ideal_ratios
 
-    def c_x_ratio(self, nutrient: str) -> NDArray[np.floating]:
-        """Return the current CN ratio for the biomass."""
-        return self.carbon_mass / self.nutrients[nutrient].masses
+        self.elemental_masses: NDArray[np.floating] = initial_masses
+        """An 2D array of subcanopy tissue elemental masses across cells."""
+
+        self.ideal_ratios: NDArray[np.floating] = ideal_ratios
+        """Ideal elemental ratios for the subcanopy tissue."""
+
+        self.var_name: str = var_name
+        """Variable name used for these masses in the data object."""
 
     def remove_mass_fraction(
         self, mass_fraction: float | NDArray[np.floating]
     ) -> SubcanopyBiomass:
         """Remove a proportion of the biomass.
 
-        This function returns a new SubcanopyBiomass object containing the
-        requested fraction of the carbon biomass. The removed carbon biomass is removed
-        from the parent instance. The nitrogen and phosphorous masses are split using
-        the same fraction to maintain the same CN and CP ratios.
+        This function removes a requested fraction of the biomass from a parent instance
+        and returns a new SubcanopyBiomass object containing that biomass. The elemental
+        ratios are maintained.
 
         Args:
             mass_fraction: The proportion of mass to remove from each cell in the
-                instance.
+                instancem, either as a single value or an array of per cells values
         """
 
-        # Calculate extracted carbon and nutrient masses
-        carbon_out = self.carbon_mass * mass_fraction
+        # Rotate per cell array into a column vector
+        if isinstance(mass_fraction, np.ndarray):
+            mass_fraction = mass_fraction[:, None]
 
-        nutrients_out = {
-            nm: Nutrient(
-                name=nm,
-                ideal_ratio=nutr.ideal_ratio,
-                masses=nutr.masses * mass_fraction,
-            )
-            for nm, nutr in self.nutrients.items()
-        }
+        # Extract biomasses
+        biomass_loss = self.elemental_masses * mass_fraction
+        self.elemental_masses -= biomass_loss
 
-        # Remove masses from self
-        self.carbon_mass -= carbon_out
-        for nm in self.nutrients:
-            self.nutrients[nm].masses -= nutrients_out[nm].masses
+        # Return extracted biomasses
+        return SubcanopyBiomass(
+            initial_masses=biomass_loss,
+            ideal_ratios=self.ideal_ratios,
+            var_name=self.var_name,
+        )
 
-        return SubcanopyBiomass(carbon_mass=carbon_out, nutrients=nutrients_out)
-
-    def add_mass(self, source: SubcanopyBiomass | SubcanopyNutrients):
+    def add_mass(self, source: SubcanopyBiomass):
         """Add biomass to a SubcanopyBiomass instance.
 
-        The method adds carbon and nutrient biomasses (source is of type
-        ``SubcanopyBiomass``) or just nutrient biomasses (source is of type
-        ``SubcanopyNutrients``) to the calling instance.
+        The method adds carbon and nutrient biomasses to the calling instance.
 
         Args:
-            source: The source ``SubcanopyBiomass`` or ``SubcanopyNutrients``
-            instance.
+            source: The source biomass instance.
         """
 
-        # Add the carbon biomass and then drop down to just the nutrients
-        if isinstance(source, SubcanopyBiomass):
-            self.carbon_mass += source.carbon_mass
-            source = source.nutrients
+        self.elemental_masses += source.elemental_masses
 
-        for nm in source:
-            self.nutrients[nm].masses += source[nm].masses
-
-    def get_excess_nutrients(self) -> SubcanopyNutrients:
+    def get_excess_nutrients(self) -> SubcanopyBiomass:
         """Extract excess nutrients.
 
-        This method calculates the excess nitrogen and phosphorous biomass in a
-        SubcanopyBiomass instance, given the provided ideal ratios. The method
-        returns a SubcanopyNutrients instance containing excess nutrient masses: these
-        will be be zero where the source biomass in a cell is at or below the ideal
-        ratio.
+        This method removes excess nutrient element biomass from a SubcanopyBiomass
+        instance, given the provided ideal ratios. The method returns another
+        SubcanopyBiomass instance containing zero carbon mass but including excess
+        nutrient masses: these will also be zero where the source biomass in a cell is
+        at or below the ideal ratio.
         """
 
-        # Subcanopy nutrients dictionary to return excesses
-        excess_nutrients: SubcanopyNutrients = {}
-
-        for nm, nutr in self.nutrients.items():
-            # Calculate the excess for each nutrient, remove it from the instance mass
-            # and add a corresponding Nutrient to the return value.
-            excess = np.maximum(nutr.masses - (self.carbon_mass / nutr.ideal_ratio), 0)
-
-            nutr.masses -= excess
-            excess_nutrients[nm] = Nutrient(
-                name=nm,
-                ideal_ratio=nutr.ideal_ratio,
-                masses=excess,
-            )
-        return excess_nutrients
+        excess = np.clip(
+            a=self.elemental_masses
+            - (self.elemental_masses[:, [0]] / self.ideal_ratios),
+            a_min=0,
+            a_max=None,
+        )
+        self.elemental_masses -= excess
+        return SubcanopyBiomass(
+            initial_masses=excess,
+            ideal_ratios=self.ideal_ratios,
+            var_name=self.var_name,
+        )
 
 
 class Subcanopy:
@@ -260,62 +218,52 @@ class Subcanopy:
         self.layer_index: int = layer_index
         """The layer index of the subcanopy."""
         self.data_object_template: DataArray = data_object_template
-        """A template for arrays with vertical layers and cell id."""
-
-        # TODO: Currently initialising from constants using ideal ratios but should load
-        #       nutrient masses from init data. See:
-        #       https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/1334
+        """A template for arrays of stochiometric element masses across cell id."""
 
         # Stochiometry of vegetation and seedbank
-        self.vegetation_biomass: SubcanopyBiomass = SubcanopyBiomass.from_constants(
-            masses=data["subcanopy_vegetation_biomass"].to_numpy(),
-            elements=self.elements,
-            tissue_name="subcanopy_vegetation",
-            constants=self.model_constants,
+        self.subcanopy_vegetation_cnp: SubcanopyBiomass = SubcanopyBiomass(
+            initial_masses=data["subcanopy_vegetation_cnp"].to_numpy(),
+            ideal_ratios=np.array(
+                [
+                    1,
+                    model_constants.subcanopy_vegetation_c_n_ratio,
+                    model_constants.subcanopy_vegetation_c_p_ratio,
+                ]
+            ),
+            var_name="subcanopy_vegetation_cnp",
         )
-        """The vegetative biomass of the subcanopy."""
+        """The stoichiometric vegetative biomasses in the subcanopy [kg m-2]."""
 
-        self.seedbank_biomass: SubcanopyBiomass = SubcanopyBiomass.from_constants(
-            masses=data["subcanopy_seedbank_biomass"].to_numpy(),
-            elements=self.elements,
-            tissue_name="subcanopy_seedbank",
-            constants=self.model_constants,
+        self.subcanopy_seedbank_cnp: SubcanopyBiomass = SubcanopyBiomass(
+            initial_masses=data["subcanopy_seedbank_cnp"].to_numpy(),
+            ideal_ratios=np.array(
+                [
+                    1,
+                    model_constants.subcanopy_seedbank_c_n_ratio,
+                    model_constants.subcanopy_seedbank_c_p_ratio,
+                ]
+            ),
+            var_name="subcanopy_seedbank_cnp",
         )
-        """Reproductive biomass in the subcanopy."""
+        """The stoichiometric reproductive biomasses in the subcanopy [kg m-2]."""
 
-        # Write the initial values to data. This currently:
-        #
-        # * Assumes no initial litter from either pool
-        # * Duplicates code used in the update method (calculate_dynamics)
-        # * Uses a meaningless "ideal" ratio for litter
-        #
-        # But - both of those should be fixed in a more general refactor of this module
-        # to use the CNP array structure. That will likely change a lot of this code, so
-        # not currently adding a SubcanopyBiomass.to_data() method etc etc.
-        empty_litter = np.zeros_like(self.seedbank_biomass.carbon_mass)
-        initial_litter = SubcanopyBiomass(
-            carbon_mass=empty_litter.copy(),
-            nutrients={
-                "n": Nutrient(name="n", ideal_ratio=0, masses=empty_litter.copy()),
-                "p": Nutrient(name="p", ideal_ratio=0, masses=empty_litter.copy()),
-            },
+        # Initialise the litter pools - the ideal ratios are meaningless here.
+        empty_litter = np.zeros_like(self.subcanopy_vegetation_cnp.elemental_masses)
+        self.subcanopy_seedbank_litter_cnp: SubcanopyBiomass = SubcanopyBiomass(
+            initial_masses=empty_litter.copy(),
+            ideal_ratios=np.array([1, 1, 1]),
+            var_name="subcanopy_seedbank_litter_cnp",
         )
+        """Stoichiometric additions to the subcanopy seedbank litter pool [kg m-2]"""
 
-        # Write biomasses to Data
-        biomasses: dict[str, SubcanopyBiomass] = {
-            "subcanopy_vegetation": self.vegetation_biomass,
-            "subcanopy_seedbank": self.seedbank_biomass,
-            "subcanopy_vegetation_litter": initial_litter,
-            "subcanopy_seedbank_litter": initial_litter,
-        }
+        self.subcanopy_vegetation_litter_cnp: SubcanopyBiomass = SubcanopyBiomass(
+            initial_masses=empty_litter.copy(),
+            ideal_ratios=np.array([1, 1, 1]),
+            var_name="subcanopy_vegetation_litter_cnp",
+        )
+        """Stoichiometric additions to the subcanopy vegetation litter pool [kg m-2]"""
 
-        for var, biomass in biomasses.items():
-            biomass_array = self.data_object_template.copy()
-            biomass_array.loc[:, "C"] = biomass.carbon_mass
-            for elem in self.elements:
-                biomass_array.loc[:, elem.upper()] = biomass.nutrients[elem].masses
-
-            self.data[f"{var}_cnp"] = biomass_array
+        self.write_biomasses_pools_to_data()
 
         # Type other attributes not populated at __init__
         self.lai: NDArray[np.floating]
@@ -328,6 +276,18 @@ class Subcanopy:
         """Total transpiration of the subcanopy for a model step."""
         self.subcanopy_gpp: NDArray[np.floating]
         """Total GPP of the subcanopy for a model step."""
+
+    def write_biomasses_pools_to_data(self):
+        """Exports the subcanopy biomass pools to the data object."""
+        for biomass_pool in [
+            "subcanopy_vegetation_cnp",
+            "subcanopy_seedbank_cnp",
+            "subcanopy_seedbank_litter_cnp",
+            "subcanopy_vegetation_litter_cnp",
+        ]:
+            self.data[biomass_pool] = self.data_object_template.copy(
+                data=getattr(self, biomass_pool).elemental_masses
+            )
 
     def estimate_gpp(
         self,
@@ -412,15 +372,19 @@ class Subcanopy:
             calculate an average biomass to spread turnover through the update period.
         """
 
-        # Apply turnover for this update
-        vegetation_turnover = self.vegetation_biomass.remove_mass_fraction(
-            self.model_constants.subcanopy_vegetation_turnover
-            / self.model_timing.updates_per_year
+        # Recreate new litter pools with turnover for this timestep
+        self.subcanopy_vegetation_litter_cnp = (
+            self.subcanopy_vegetation_cnp.remove_mass_fraction(
+                self.model_constants.subcanopy_vegetation_turnover
+                / self.model_timing.updates_per_year
+            )
         )
 
-        seedbank_turnover = self.seedbank_biomass.remove_mass_fraction(
-            self.model_constants.subcanopy_seedbank_turnover
-            / self.model_timing.updates_per_year
+        self.subcanopy_seedbank_litter_cnp = (
+            self.subcanopy_seedbank_cnp.remove_mass_fraction(
+                self.model_constants.subcanopy_seedbank_turnover
+                / self.model_timing.updates_per_year
+            )
         )
 
         # Calculate NPP, converting µg C m-2 to  kg C m-2
@@ -454,47 +418,33 @@ class Subcanopy:
 
         # Assimilate the gained masses into the vegetation first to update the
         # nutrient masses that are available for allocation to seedbank
-
-        # TODO: Note that this section does not cleanly handle additional elements.
-        self.vegetation_biomass.add_mass(
-            SubcanopyBiomass(
-                carbon_mass=subcanopy_npp,
-                nutrients={
-                    "n": Nutrient(
-                        name="n",
-                        ideal_ratio=self.model_constants.subcanopy_vegetation_c_n_ratio,
-                        masses=ammonium_uptake_kg + nitrate_uptake_kg,
-                    ),
-                    "p": Nutrient(
-                        name="p",
-                        ideal_ratio=self.model_constants.subcanopy_vegetation_c_p_ratio,
-                        masses=phosphorus_uptake_kg,
-                    ),
-                },
-            )
+        nutrient_uptake = np.hstack(
+            [
+                subcanopy_npp[:, None],
+                (ammonium_uptake_kg + nitrate_uptake_kg)[:, None],
+                phosphorus_uptake_kg[:, None],
+            ]
         )
+
+        self.subcanopy_vegetation_cnp.elemental_masses += nutrient_uptake
 
         # Extract the new carbon allocation for the seedbank using those new nutrient
         # ratios, catching cells with no vegetation biomass
         seedbank_carbon_fraction: NDArray[np.floating] = np.where(
-            self.vegetation_biomass.carbon_mass > 0,
-            subcanopy_npp
-            * self.model_constants.subcanopy_reproductive_allocation
-            / self.vegetation_biomass.carbon_mass,
+            self.subcanopy_vegetation_cnp.elemental_masses[:, 0] > 0,
+            (subcanopy_npp / self.subcanopy_vegetation_cnp.elemental_masses[:, 0])
+            * self.model_constants.subcanopy_reproductive_allocation,
             0,
         )
-
-        seedbank_allocation = self.vegetation_biomass.remove_mass_fraction(
+        seedbank_allocation = self.subcanopy_vegetation_cnp.remove_mass_fraction(
             mass_fraction=seedbank_carbon_fraction
         )
 
         # Extract seedbank provisioning using excess nutrients in vegetative biomass
-        # TODO - how do these nutrients make it to the seedbank if there are excess
-        #        nutrients but no carbon?
-        seedbank_extra_nutrients = self.vegetation_biomass.get_excess_nutrients()
+        seedbank_extra_nutrients = self.subcanopy_vegetation_cnp.get_excess_nutrients()
 
         # Get the new sprouted biomass from the seedbank during the time period
-        sprouting_biomass = self.seedbank_biomass.remove_mass_fraction(
+        sprouting_biomass = self.subcanopy_seedbank_cnp.remove_mass_fraction(
             self.model_constants.subcanopy_sprout_rate
             / self.model_timing.updates_per_year
         )
@@ -505,34 +455,15 @@ class Subcanopy:
         )
 
         # Now allocate new biomasses to pools
-        self.seedbank_biomass.add_mass(seedbank_allocation)
-        self.seedbank_biomass.add_mass(seedbank_extra_nutrients)
-        self.vegetation_biomass.add_mass(sprouting_biomass)
-        seedbank_turnover.add_mass(sprouting_yield_losses)
+        self.subcanopy_seedbank_cnp.add_mass(seedbank_allocation)
+        self.subcanopy_seedbank_cnp.add_mass(seedbank_extra_nutrients)
+        self.subcanopy_vegetation_cnp.add_mass(sprouting_biomass)
+        self.subcanopy_seedbank_litter_cnp.add_mass(sprouting_yield_losses)
 
-        # Insert DataArrays with new values - could simply overwrite data but these
-        # variables are created in the first update, so easier to just write afresh.
+        # Write biomass pool and nutrient uptake data to
+        self.write_biomasses_pools_to_data()
+
         coords = {"cell_id": self.data["cell_id"].data}
-
-        # Write biomasses to Data
-        biomasses: dict[str, SubcanopyBiomass] = {
-            "subcanopy_vegetation": self.vegetation_biomass,
-            "subcanopy_seedbank": self.seedbank_biomass,
-            "subcanopy_vegetation_litter": vegetation_turnover,
-            "subcanopy_seedbank_litter": seedbank_turnover,
-        }
-
-        for var, biomass in biomasses.items():
-            self.data[f"{var}_cnp"] = self.data_object_template.copy()
-
-            self.data[f"{var}_cnp"].loc[:, "C"] = biomass.carbon_mass
-
-            for elem in self.elements:
-                self.data[f"{var}_cnp"].loc[:, elem.upper()] = biomass.nutrients[
-                    elem
-                ].masses
-
-        # Write nutrient uptakes
         for name, values in (
             ("subcanopy_ammonium_uptake", ammonium_uptake_kg),
             ("subcanopy_nitrate_uptake", nitrate_uptake_kg),
@@ -581,7 +512,7 @@ class Subcanopy:
         # account for the area occupied by the biomass. This code accounts for the
         # structural fraction of the subcanopy and caps the resulting LAI.
         self.lai = np.clip(
-            self.data["subcanopy_vegetation_biomass"].to_numpy()
+            self.subcanopy_vegetation_cnp.elemental_masses[:, 0]  # carbon mass
             * self.model_constants.subcanopy_specific_leaf_area
             * self.model_constants.subcanopy_leaf_fraction,
             a_min=0,

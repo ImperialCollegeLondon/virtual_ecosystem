@@ -47,16 +47,17 @@ data["plant_pft_propagules"] = DataArray(
     },
 )
 
-# Subcanopy vegetation
-# Spatio-temporal data
-data["subcanopy_vegetation_biomass"] = DataArray(
-    data=np.full((n_cells,), fill_value=0.07),
-    coords={"cell_id": cell_id},
-)
+# Subcanopy vegetation stoichiometric biomasses using np.nan to calculate N and P from
+# ideal ratios.
+subcanopy_masses = np.full((n_cells, 3), np.nan)
+subcanopy_masses[:, 0] = 0.07
+cell_stoich_coords = {"cell_id": n_cells, "element": ["C", "N", "P"]}
 
-data["subcanopy_seedbank_biomass"] = DataArray(
-    data=np.full((n_cells,), fill_value=0.07),
-    coords={"cell_id": cell_id},
+data["subcanopy_vegetation_cnp"] = DataArray(
+    data=subcanopy_masses.copy(), coords=cell_stoich_coords
+)
+data["subcanopy_seedbank_cnp"] = DataArray(
+    data=subcanopy_masses.copy(), coords=cell_stoich_coords
 )
 
 # Spatio-temporal data

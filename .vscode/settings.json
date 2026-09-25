@@ -21,4 +21,5 @@
         "editor.defaultFormatter": "charliermarsh.ruff"
     },
     "python-envs.defaultEnvManager": "ms-python.python:system",
+    "git.ignoreLimitWarning": true,
 }
