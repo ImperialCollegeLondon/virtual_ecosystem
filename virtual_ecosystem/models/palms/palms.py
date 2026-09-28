@@ -39,7 +39,7 @@ def calculate_crown_areas(
 ) -> NDArray[np.floating]:
     r"""Calculate palm crown area using empirical relation.
 
-    The palm crown area (:math:`A_{c}`) can be calculated from individual stem 
+    The palm crown area (:math:`A_{c}`) can be calculated from individual stem
     heights (:math:`H`), along with the palm-specific allometric scaling
     constants (:math:`a` and :math:`b`) assuming a logarithmic relationship
     (:cite:`korom_relationships_2016`):
