@@ -421,6 +421,11 @@ class HydrologyModel(
 
         * interception, [mm]
         * canopy_evaporation, [mm]
+        * snowfall, [mm]
+        * snow_water_equivalent, [mm]
+        * temperature_driven_snowmelt, [mm]
+        * rain_driven_snowmelt, [mm]
+        * sublimation_snow, [mm]
         * precipitation_surface, [mm]
         * soil_moisture, [mm]
         * matric_potential, [kPa]
@@ -604,7 +609,7 @@ class HydrologyModel(
             )
 
             # Snow routine
-            # TODO: This will be implemented in small steps as part of #1696
+            # NOTE: This will be implemented in small steps as part of #1696
             daily_lists["snowfall"].append(hydro_input["current_snowfall"][:, day])
 
             snow_water_equivalent = above_ground.update_snow_water_equivalent(
@@ -621,6 +626,7 @@ class HydrologyModel(
                 ),  # TODO: implement rain-driven snowmelt
             )
             daily_lists["snow_water_equivalent"].append(snow_water_equivalent)
+
             # Precipitation, condensation,  and not-evaporated intercept that reaches
             # the surface per day, [mm]
             incoming_water = (
