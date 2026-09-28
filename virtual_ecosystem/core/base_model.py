@@ -117,7 +117,7 @@ from virtual_ecosystem.core.core_components import (
     ModelTiming,
 )
 from virtual_ecosystem.core.data import Data, Grid
-from virtual_ecosystem.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 
@@ -716,16 +716,17 @@ class BaseModel(ABC):
         return f"A {self.model_name} model instance"
 
     def check_init_data(self) -> None:
-        """Check the init data contains the required variables.
+        """Check the initialisation data contains the required variables.
 
         This method is used to check that the set of variables defined in the
         :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init`
         class attribute are present in the :attr:`~virtual_ecosystem.core.data.Data`
-        instance used to create a new instance of the class.
+        instance used to initialise a new instance of the class.
 
         Raises:
-            ValueError: If the Data instance does not contain all the required variables
-                or if those variables do not map onto the required axes.
+            InitialisationError: If the Data instance does not contain all the required
+                variables to initialise the model or if those variables do not map onto
+                the required axes.
         """
 
         # Canary variable for failed checks
@@ -739,7 +740,7 @@ class BaseModel(ABC):
 
         if missing_vars:
             init_data_ok = False
-            error = ValueError(
+            error = InitialisationError(
                 f"{self.model_name} model: input data is missing required "
                 f"initialisation variables: {','.join(missing_vars)}"
             )
@@ -767,7 +768,7 @@ class BaseModel(ABC):
 
         # Raise if any problems found
         if not init_data_ok:
-            error = ValueError(
+            error = InitialisationError(
                 f"{self.model_name} model: Problems with initial model data: check log."
             )
             LOGGER.error(error)
