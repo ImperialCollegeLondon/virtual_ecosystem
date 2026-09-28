@@ -118,6 +118,8 @@ def setup_hydrology_input_current_timestep(
     p_wet_dry: float,
     shape_parameter: float,
     scale_parameter: float,
+    t_snow: float,
+    t_rain: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
 
@@ -141,6 +143,7 @@ def setup_hydrology_input_current_timestep(
 
     * leaf_area_index_sum
     * current_precipitation
+    * current_snowfall
     * current_transpiration
     * current_soil_moisture
     * top_soil_moisture_saturation
@@ -160,6 +163,8 @@ def setup_hydrology_input_current_timestep(
         soil_moisture_residual: Soil moisture residual, unitless
         p_wet_wet: Probability a wet day follows a wet day.
         p_wet_dry: Probability a wet day follows a dry day.
+        t_snow: Temperature below which all precipitation falls as snow, [°C]
+        t_rain: Temperature above which all precipitation falls as rain, [°C]
         shape_parameter: Shape parameter of the Gamma distribution controlling
             rainfall variability.
         scale_parameter: Scale parameter of the Gamma distribution controlling
@@ -185,6 +190,19 @@ def setup_hydrology_input_current_timestep(
         seed=seed,
     )
 
+    # Get daily snowfall, [mm]
+    air_temperature_ref = data.get_time_slice(
+        "air_temperature_ref", time_index
+    ).to_numpy()
+
+    output["current_precipitation"], output["current_snowfall"] = (
+        partition_precipitation(
+            precipitation=output["current_precipitation"],
+            air_temperature=air_temperature_ref[:, np.newaxis],
+            t_snow=t_snow,
+            t_rain=t_rain,
+        )
+    )
     # named 'surface_...' for now TODO needs to be replaced with 2m above ground
     # We explicitly get a scalar index for the surface layer to extract the values as a
     # 1D array of grid cells and not a 2D array with a singleton layer dimension.
@@ -221,6 +239,39 @@ def setup_hydrology_input_current_timestep(
     # Get condensation from abiotic model
     output["condensation"] = np.nansum(data["condensation"].to_numpy(), axis=0) / days
     return output
+
+
+def partition_precipitation(
+    precipitation: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    t_snow: float,
+    t_rain: float,
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    """Partition precipitation into rainfall and snowfall fractions.
+
+    Uses a linear transition between snow-only and rain-only thresholds
+    following Jennings et al. (2018).
+
+    Args:
+        precipitation: Daily precipitation, [mm]
+        air_temperature: Air temperature, [°C]
+        t_snow: Temperature below which all precipitation falls as snow, [°C]
+        t_rain: Temperature above which all precipitation falls as rain, [°C]
+
+    Returns:
+        Tuple of (rainfall, snowfall), both shape (n_cells, days), [mm]
+    """
+    # Snow fraction: 1 below t_snow, 0 above t_rain, linear between
+    f_snow = np.clip(
+        (t_rain - air_temperature) / (t_rain - t_snow),
+        0.0,
+        1.0,
+    )
+
+    snowfall = f_snow * precipitation
+    rainfall = (1.0 - f_snow) * precipitation
+
+    return rainfall, snowfall
 
 
 def initialise_soil_moisture_mm(

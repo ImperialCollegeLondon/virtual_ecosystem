@@ -61,6 +61,171 @@ def test_initialise_atmosphere_for_hydrology(
     assert np.all(ra_canopy[valid_canopy] == 12.1)
 
 
+@pytest.mark.parametrize(
+    "air_temperature, precipitation, t_snow, t_rain, "
+    "expected_rainfall, expected_snowfall, atol",
+    [
+        pytest.param(
+            5.0,
+            10.0,
+            0.0,
+            2.0,
+            10.0,
+            0.0,
+            1e-10,
+            id="all_rain",
+        ),
+        pytest.param(
+            -5.0,
+            10.0,
+            0.0,
+            2.0,
+            0.0,
+            10.0,
+            1e-10,
+            id="all_snow",
+        ),
+        pytest.param(
+            1.0,
+            10.0,
+            0.0,
+            2.0,
+            5.0,
+            5.0,
+            1e-6,
+            id="mixed_phase",
+        ),
+        pytest.param(
+            0.0,
+            10.0,
+            0.0,
+            2.0,
+            0.0,
+            10.0,
+            1e-10,
+            id="at_t_snow",
+        ),
+        pytest.param(
+            2.0,
+            10.0,
+            0.0,
+            2.0,
+            10.0,
+            0.0,
+            1e-10,
+            id="at_t_rain",
+        ),
+        pytest.param(
+            -5.0,
+            0.0,
+            0.0,
+            2.0,
+            0.0,
+            0.0,
+            1e-10,
+            id="zero_precip",
+        ),
+        pytest.param(
+            30.0,
+            15.0,
+            0.0,
+            2.0,
+            15.0,
+            0.0,
+            1e-10,
+            id="warm_climate",
+        ),
+        pytest.param(
+            1.0,
+            10.0,
+            -2.0,
+            4.0,
+            5.0,
+            5.0,
+            1e-6,
+            id="custom_thresholds",
+        ),
+    ],
+)
+def test_partition_precipitation(
+    air_temperature,
+    precipitation,
+    t_snow,
+    t_rain,
+    expected_rainfall,
+    expected_snowfall,
+    atol,
+):
+    """Test precipitation partitioning into rainfall and snowfall."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        partition_precipitation,
+    )
+
+    # Shape inputs as (n_cells=1, days=1) to match function signature
+    precip_arr = np.array([[precipitation]], dtype=float)
+    temp_arr = np.array([[air_temperature]], dtype=float)
+
+    rainfall, snowfall = partition_precipitation(
+        precipitation=precip_arr,
+        air_temperature=temp_arr,
+        t_snow=t_snow,
+        t_rain=t_rain,
+    )
+
+    # Check rainfall and snowfall values
+    np.testing.assert_allclose(rainfall, [[expected_rainfall]], atol=atol)
+    np.testing.assert_allclose(snowfall, [[expected_snowfall]], atol=atol)
+
+    # Mass conservation: rainfall + snowfall == total precipitation in all cases
+    np.testing.assert_allclose(rainfall + snowfall, precip_arr, atol=1e-10)
+
+    # Warm climate regression: snowfall must be exactly zero, not just approximately
+    if air_temperature >= t_rain:
+        assert np.all(snowfall == 0.0), (
+            f"Expected snowfall to be exactly zero for T={air_temperature}°C "
+            f">= t_rain={t_rain}°C, but got {snowfall}"
+        )
+
+
+def test_partition_precipitation_linearity():
+    """Snow fraction decreases linearly with temperature between thresholds."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        partition_precipitation,
+    )
+
+    t_snow, t_rain = 0.0, 2.0
+    precipitation = 10.0
+
+    temperatures = np.array([-0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5])
+    precip_arr = np.repeat(precipitation, 7)
+
+    rainfall, snowfall = partition_precipitation(
+        precipitation=precip_arr,
+        air_temperature=temperatures,
+        t_snow=t_snow,
+        t_rain=t_rain,
+    )
+
+    snow_fractions = snowfall / precipitation
+    rain_fractions = rainfall / precipitation
+
+    assert np.all(snow_fractions + rain_fractions == 1.0), (
+        "Snow and rain fractions do not sum to 1.0"
+    )
+
+    # Expected: linear decrease from 1 at t_snow to 0 at t_rain
+    expected_fractions = np.array([1.0, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0])
+
+    np.testing.assert_allclose(
+        snow_fractions,
+        expected_fractions,
+        atol=1e-10,
+        err_msg="Snow fraction is not linear between t_snow and t_rain",
+    )
+
+
 def test_setup_hydrology_input_current_timestep(
     dummy_climate_data, fixture_core_components
 ):
@@ -83,6 +248,8 @@ def test_setup_hydrology_input_current_timestep(
         soil_moisture_residual=0.1,
         p_wet_wet=0.6,
         p_wet_dry=0.3,
+        t_snow=0.0,
+        t_rain=2.0,
         shape_parameter=1.5,
         scale_parameter=1.0,
     )
@@ -101,6 +268,7 @@ def test_setup_hydrology_input_current_timestep(
         "groundwater_storage",
         "current_soil_moisture",
         "condensation",
+        "current_snowfall",
     ]
 
     assert set(result.keys()) == set(var_list)

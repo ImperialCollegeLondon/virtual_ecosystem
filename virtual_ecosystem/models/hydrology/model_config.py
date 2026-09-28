@@ -174,6 +174,26 @@ class HydrologyConstants(Configuration):
     stormflow_coefficient: float = 0.05
     """Sormflow coefficient for lateral subsurface stormflow calculation."""
 
+    t_snow: float = 0.0
+    """Temperature below which all precipitation falls as snow, [°C]
+    
+    Value of 0°C is used as a threshold for snow formation, meaning that when the air
+    temperature is at or below this point, precipitation is assumed to fall as snow
+    rather than rain. This threshold is based on the freezing point of water, which is
+    0°C under standard atmospheric conditions. Value from
+    :cite:t:`jennings_aerodynamic_2018`."""
+
+    t_rain: float = 2.0
+    """Temperature above which all precipitation falls as rain, [°C]
+    
+    Value of 2°C is used as a threshold for rain formation, meaning that when the air
+    temperature is at or above this point, precipitation is assumed to fall as rain
+    rather than snow. This threshold is slightly above the freezing point of water to
+    account for the fact that snow can still occur at temperatures slightly above 0°C
+    due to factors such as supercooling and local atmospheric conditions. Value from
+    :cite:t:`jennings_aerodynamic_2018`.
+    """
+
 
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration class for the hydrology model."""
