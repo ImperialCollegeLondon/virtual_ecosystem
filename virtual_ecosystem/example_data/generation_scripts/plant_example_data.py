@@ -11,9 +11,12 @@ from pandas import DataFrame
 from xarray import DataArray, Dataset
 
 from virtual_ecosystem.example_data.generation_scripts.common import (
+    cell_displacements,
     cell_id,
     n_cells,
     n_dates,
+    nx,
+    ny,
     time,
     time_index,
 )
@@ -39,19 +42,20 @@ cohort_data.to_csv("../data/example_plant_cohorts.csv", index=False)
 data = Dataset()
 
 # PFT propagules
+xy_coords = dict(x=cell_displacements, y=cell_displacements)
 data["plant_pft_propagules"] = DataArray(
-    data=np.full((n_cells, 2), fill_value=100, dtype=np.int_),
+    data=np.full((nx, ny, 2), fill_value=100, dtype=np.int_),
     coords={
-        "cell_id": cell_id,
+        **xy_coords,
         "pft": np.array(["broadleaf", "shrub"]),
     },
 )
 
-# Subcanopy vegetation stoichiometric biomasses using np.nan to calculate N and P from
-# ideal ratios.
-subcanopy_masses = np.full((n_cells, 3), np.nan)
-subcanopy_masses[:, 0] = 0.07
-cell_stoich_coords = {"cell_id": n_cells, "element": ["C", "N", "P"]}
+# Subcanopy vegetation stoichiometric biomasses using np.nan for N and P slices so that
+# initial N and P are calculated at ideal ratios.
+subcanopy_masses = np.full((nx, ny, 3), np.nan)
+subcanopy_masses[:, :, 0] = 0.07
+cell_stoich_coords = {**xy_coords, "element": ["C", "N", "P"]}
 
 data["subcanopy_vegetation_cnp"] = DataArray(
     data=subcanopy_masses.copy(), coords=cell_stoich_coords
@@ -62,10 +66,9 @@ data["subcanopy_seedbank_cnp"] = DataArray(
 
 # Spatio-temporal data
 data["downward_shortwave_radiation"] = DataArray(
-    data=np.full((n_cells, n_dates), fill_value=2040),
-    coords={"cell_id": cell_id, "time_index": time_index},
+    data=np.full((nx, ny, n_dates), fill_value=2040),
+    coords={**xy_coords, "time_index": time_index},
 )
-
 
 data["time"] = DataArray(time, coords={"time_index": time_index})
 

@@ -81,7 +81,7 @@ def test_SubcanopyBiomass_methods(fixture_plants_constants):
     assert_allclose(stoich_one.elemental_masses, initial_mass)
 
     # Test excess nutrient extraction - values for N and P give ideal ratios at mass 10
-    # but  excess for smaller masses and deficit for larger masses
+    # but excess for smaller masses and deficit for larger masses
     variable_ratios = np.concatenate(
         [carbon_mass, np.full_like(carbon_mass, 0.5), np.full_like(carbon_mass, 0.2)],
         axis=1,

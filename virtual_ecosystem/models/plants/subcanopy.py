@@ -113,7 +113,7 @@ class SubcanopyBiomass:
 
         Args:
             mass_fraction: The proportion of mass to remove from each cell in the
-                instancem, either as a single value or an array of per cells values
+                instance, either as a single value or an array of per cells values
         """
 
         # Rotate per cell array into a column vector

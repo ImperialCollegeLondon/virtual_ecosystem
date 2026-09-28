@@ -41,13 +41,13 @@ The array for each pool provides initial biomasses in [kg m-2] of carbon, nitrog
 phosphorous for each cell. The variable array structure therefore needs to provide both
 spatial (`x` and `y`) dimensions and an elements dimension and should be provided in a
 NetCDF file. You can supply only the carbon masses - in which case the pool biomasses
-for N and P  will be initialised from the [configured subcanopy ideal nutrient
+for N and P will be initialised from the [configured subcanopy ideal nutrient
 ratios](./plants_config.md#plants-constants) - or you can provide all the biomasses to
 set different starting masses and ratios. If you are only providing carbon masses, the
 biomasses for the other elements must still be included in the array and as `np.nan`
 values.
 
-The code below create an example of the expected data structure:
+The code below creates an example of the expected data structure:
 
 ```{code-cell} ipython3
 import numpy as np
@@ -61,7 +61,7 @@ phosphorous = np.full((10, 10, 1), 0.01)  # C/P ratio of 100
 #   np.full((10, 10, 1), np.nan)
 # then the resulting pool would initialise with N and P biomasses at the ideal ratios
 
-subcanopy_vegetation_biomass = xr.DataArray(
+subcanopy_vegetation_biomass_cnp = xr.DataArray(
     np.concatenate([carbon, nitrogen, phosphorous], axis=2),
     dims=["x", "y", "element"],
     coords={
@@ -71,7 +71,7 @@ subcanopy_vegetation_biomass = xr.DataArray(
     },
 )
 
-subcanopy_vegetation_biomass
+subcanopy_vegetation_biomass_cnp
 ```
 
 ## Data source configuration
