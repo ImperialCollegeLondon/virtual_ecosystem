@@ -1,7 +1,7 @@
 """The ``palms`` module is a local analogue of :mod:`pyrealm.demography.tmodel`,
 providing scaling relationships for the palm growth form using the plant functional
 type traits defined in :mod:`~virtual_ecosystem.models.plants.functional_types`
-(including the palm-specific height-crown area scaling parameters ``palm_a`` and
+(including the palm-specific height-crown diameter scaling parameters ``palm_a`` and
 ``palm_b`` and the living stem tissue fraction ``palm_stem_resp_fraction`` used to
 calculate stem respiration) and the palm cohort inputs (diameter at breast height
 and stem height) to define stem geometry, masses, respiration and growth given net
@@ -66,16 +66,17 @@ def calculate_crown_fractions(
     r"""Calculate palm crown fraction.
 
     The crown fraction (:math:`f_{c}`) is the fraction of the stem height
-    occupied by the crown, calculated from individual stem heights and height-crown
-    diameter scaling parameters (:math:`a` and :math:`b`):
+    occupied by the crown, calculated from individual stem heights and crown
+    diameter (assuming a roughly-spherical crown model), using the
+    height-crown diameter scaling parameters (:math:`a` and :math:`b`):
 
     .. math::
 
         f_{c} =\frac{1}{H b} \ln\left(\frac{H}{a}\right)
 
     Args:
-        palm_a: Initial palm height to crown diameter ratio
-        palm_b: Palm-specific allometric constant b
+        palm_a: Theoretical palm height where crown diameter = 0
+        palm_b: Palm crown-height scaling constant
         stem_height: Stem height of individuals
     """
 
@@ -596,8 +597,8 @@ def calculate_growth_increments(
         turnover: Fine root and foliage turnover cost of individuals
         dbh: Diameter at breast height of individuals
         stem_height: Stem height of individuals
-        palm_a: Initial height to crown diameter ratio of the palm PFT
-        palm_b: Palm-specific allometric constant b of the PFT
+        palm_a: Theoretical palm height where crown diameter = 0
+        palm_b: Palm crown-height scaling constant
     """
 
     # Rates of change in stem and foliage + fine root mass
