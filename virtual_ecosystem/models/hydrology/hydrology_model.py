@@ -118,6 +118,7 @@ class HydrologyModel(
         "latent_heat_vapourisation",
         "density_air",
         "condensation",
+        "snowfall",
         "snow_water_equivalent",
         "temperature_driven_snowmelt",
         "rain_driven_snowmelt",
@@ -138,8 +139,6 @@ class HydrologyModel(
         "river_discharge_rate",
         "total_runoff",
         "canopy_evaporation",
-        "snowfall",
-        "snowfall",
     ),
 ):
     """A class describing the hydrology model.
@@ -280,6 +279,7 @@ class HydrologyModel(
 
         # Initialise snow variables, [mm]
         for snow_var in [
+            "snowfall",
             "snow_water_equivalent",
             "temperature_driven_snowmelt",
             "rain_driven_snowmelt",
