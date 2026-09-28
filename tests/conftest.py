@@ -1249,3 +1249,466 @@ def fixture_state_inputs(dummy_climate_data) -> dict[str, NDArray[np.floating]]:
         "ventilation_rate": data["ventilation_rate"].to_numpy(),
         "longwave_emission": data["longwave_emission"].to_numpy(),
     }
+
+
+@pytest.fixture
+def dummy_cold_climate_data(fixture_core_components):
+    """Create a coherent dummy cold-climate dataset with distinct conditions by cell.
+
+    This fixture is a cold-climate variant of ``dummy_climate_data``, designed to
+    produce sub-zero air temperatures throughout the canopy and at the surface. All
+    forcing variables are set to internally consistent winter continental values so
+    that the diurnal cycle generator and energy balance solver do not receive
+    contradictory warm/cold inputs.
+
+    Cell scenarios (same canopy structure as ``dummy_climate_data``):
+    - cell 0: dense, tall, wet canopy (3 canopy layers + vegetated surface)
+    - cell 1: moderate canopy (2 canopy layers + vegetated surface)
+    - cell 2: sparse canopy (1 canopy layer + vegetated surface)
+    - cell 3: exposed surface (0 canopy layers + vegetated surface)
+
+    Key cold-climate changes relative to ``dummy_climate_data``:
+    - ``air_temperature_ref``: -5 to -2 °C (was 23-26 °C)
+    - ``diurnal_temperature_range_ref``: 3-5 °C (was 6-11 °C) — narrow winter range
+    - ``downward_shortwave_radiation``: 20-50 W m-2 (was 220-280 W m-2) — low winter sun
+    - ``downward_longwave_radiation``: 200-220 W m-2 (was 385-400 W m-2) — cold sky
+    - ``relative_humidity_ref``: 70-85 % (was 60-90 %) — dry cold air
+    - ``air_temperature`` profiles: -2 to -8 °C across layers
+    - ``canopy_temperature``: +1 to +2 °C - bare branches, slightly above air temp
+      due to solar absorption; above zero to reflect daytime solar warming of dark bark
+    - ``leaf_area_index``: 0.05-0.3 — bare deciduous canopy (stems and branches only)
+    - ``transpiration``, ``canopy_evaporation``, ``stomatal_conductance``: near zero —
+      dormant vegetation, no active gas exchange
+    - ``soil_temperature``: -1 to 2 °C (near-surface frozen, deeper layers above zero)
+    - ``shortwave_absorption``: scaled down proportionally to low incoming radiation
+    - ``absorbed_longwave_radiation``: scaled down proportionally to cold surfaces
+    - ``longwave_emission``: recalculated for sub-zero surface temperatures
+    - ``vapour_pressure`` and ``vapour_pressure_deficit``: consistent with cold dry air
+    - ``latent_heat_vapourisation``: slightly higher at cold temperatures(~2500 kJ kg-1)
+    """
+
+    from virtual_ecosystem.core.data import Data
+
+    data = Data(fixture_core_components.grid)
+    lyr_str = fixture_core_components.layer_structure
+    from_template = lyr_str.from_template
+
+    n_cells = fixture_core_components.grid.n_cells
+    time_steps = 3
+
+    if n_cells != 4:
+        raise ValueError("This fixture expects exactly 4 grid cells.")
+
+    canopy_pos = np.flatnonzero(lyr_str.index_filled_canopy)
+    soil_pos = np.flatnonzero(lyr_str.index_all_soil)
+    flux_pos = np.flatnonzero(lyr_str.index_flux_layers)
+    above_pos = lyr_str.index_above_scalar
+    surface_pos = lyr_str.index_surface_scalar
+    topsoil_pos = lyr_str.index_topsoil_scalar
+
+    if flux_pos.size < 2:
+        raise ValueError(
+            "This fixture expects at least surface and topsoil flux layers."
+        )
+
+    # ------------------------------------------------------------------
+    # Helper functions
+    # ------------------------------------------------------------------
+    def empty_layer_array() -> np.ndarray:
+        return np.full((lyr_str.n_layers, n_cells), np.nan, dtype=float)
+
+    def set_cellscalar(var: str, values: list[float] | NDArray[np.floating]) -> None:
+        data[var] = DataArray(np.asarray(values, dtype=float), dims=["cell_id"])
+
+    def set_atmosphere_variable(
+        var: str,
+        profiles_by_cell: list[list[float]],
+    ) -> None:
+        arr = empty_layer_array()
+        for cell, scenario in enumerate(cell_scenarios):
+            n_can = scenario["canopy_layers"]
+            values = profiles_by_cell[cell]
+            arr[above_pos, cell] = values[0]
+            if n_can > 0:
+                arr[canopy_pos[:n_can], cell] = values[1 : 1 + n_can]
+            arr[surface_pos, cell] = values[1 + len(canopy_pos)]
+        data[var] = from_template()
+        data[var][:, :] = arr
+
+    def set_flux_variable(
+        var: str,
+        profiles_by_cell: list[list[float]],
+    ) -> None:
+        arr = empty_layer_array()
+        n_canopy_slots = len(canopy_pos)
+        for cell, scenario in enumerate(cell_scenarios):
+            n_can = scenario["canopy_layers"]
+            values = profiles_by_cell[cell]
+            if n_can > 0:
+                arr[canopy_pos[:n_can], cell] = values[:n_can]
+            arr[surface_pos, cell] = values[n_canopy_slots]
+            arr[topsoil_pos, cell] = values[n_canopy_slots + 1]
+        data[var] = from_template()
+        data[var][:, :] = arr
+
+    def set_canopy_surface_variable(
+        var: str,
+        canopy_profiles: list[list[float]],
+        surface_values: list[float],
+    ) -> None:
+        arr = empty_layer_array()
+        for cell, scenario in enumerate(cell_scenarios):
+            n_can = scenario["canopy_layers"]
+            if n_can > 0:
+                arr[canopy_pos[:n_can], cell] = canopy_profiles[cell][:n_can]
+            arr[surface_pos, cell] = surface_values[cell]
+        data[var] = from_template()
+        data[var][:, :] = arr
+
+    def set_soil_variable(
+        var: str,
+        soil_profiles: list[list[float]],
+    ) -> None:
+        arr = empty_layer_array()
+        for cell in range(n_cells):
+            arr[soil_pos, cell] = soil_profiles[cell]
+        data[var] = from_template()
+        data[var][:, :] = arr
+
+    # ------------------------------------------------------------------
+    # Cell scenarios
+    # ------------------------------------------------------------------
+    cell_scenarios = [
+        {"name": "dense_canopy", "canopy_layers": 3},
+        {"name": "moderate_canopy", "canopy_layers": 2},
+        {"name": "sparse_canopy", "canopy_layers": 1},
+        {"name": "exposed_surface", "canopy_layers": 0},
+    ]
+
+    # ------------------------------------------------------------------
+    # Time-varying reference meteorology / forcing
+    # CHANGED: cold-climate values throughout
+    # ------------------------------------------------------------------
+    reference_fields = {
+        # Sub-zero reference temperatures: -5 to -2 °C across cells
+        "air_temperature_ref": [-5.0, -4.0, -3.0, -2.0],
+        # Low winter wind speeds
+        "wind_speed_ref": [-0.3, 0.5, 0.8, 1.2],
+        # Moderately dry cold air
+        "relative_humidity_ref": [85.0, 80.0, 75.0, 70.0],
+        # Low VPD consistent with cold dry air (sat. VP at -5°C ≈ 0.40 kPa)
+        "vapour_pressure_deficit_ref": [0.03, 0.05, 0.07, 0.10],
+        # Vapour pressure consistent with cold air (sat. VP at -5°C ≈ 0.40 kPa)
+        "vapour_pressure_ref": [0.34, 0.32, 0.30, 0.28],
+        # Atmospheric pressure unchanged — not temperature-sensitive at this scale
+        "atmospheric_pressure_ref": [96.0, 95.8, 95.5, 95.2],
+        "atmospheric_co2_ref": [400.0, 401.0, 402.0, 403.0],
+        # Low winter precipitation (snow-dominated)
+        "precipitation": [20.0, 15.0, 10.0, 8.0],
+        # Low winter shortwave — short days, low sun angle
+        "downward_shortwave_radiation": [20.0, 30.0, 40.0, 50.0],
+        # Cold sky longwave — significantly reduced relative to warm climate
+        "downward_longwave_radiation": [200.0, 205.0, 210.0, 215.0],
+        # Mean annual temperature consistent with continental cold climate
+        "mean_annual_temperature": [-2.0, -1.0, 0.0, 1.0],
+        # Narrow diurnal range typical of winter continental conditions
+        # CRITICAL: must be small to avoid extreme canopy temperature offsets
+        "diurnal_temperature_range_ref": [3.0, 3.5, 4.0, 5.0],
+    }
+    for var, values in reference_fields.items():
+        data[var] = DataArray(
+            np.repeat(np.asarray(values, dtype=float)[:, None], time_steps, axis=1),
+            dims=["cell_id", "time_index"],
+            coords={"time_index": np.arange(time_steps)},
+        )
+
+    # ------------------------------------------------------------------
+    # Cell-based scalar variables
+    # CHANGED: fluxes and resistances scaled for cold, low-energy conditions
+    # ------------------------------------------------------------------
+    set_cellscalar("friction_velocity", [0.20, 0.18, 0.14, 0.10])
+    # Low evaporation — surface largely frozen
+    set_cellscalar("soil_evaporation", [0.5, 0.8, 1.0, 1.5])
+    set_cellscalar("elevation", [200.0, 100.0, 10.0, 10.0])
+    set_cellscalar("sensible_heat_flux_soil", [-2.0, -1.5, -1.0, -0.5])
+    set_cellscalar("latent_heat_flux_soil", [-1.0, -0.8, -0.5, -0.3])
+    set_cellscalar("zero_plane_displacement", [24.794382, 17.248311, 6.437428, 0.0])
+    set_cellscalar("roughness_length_momentum", [1.131343, 1.03269, 0.774258, 0.01])
+    set_cellscalar("mean_mixing_length", [1.3, 1.2, 1.1, 1.0])
+    # Higher aerodynamic resistance — stable cold atmosphere, low turbulence
+    set_cellscalar("aerodynamic_resistance_soil", [120.0, 100.0, 80.0, 60.0])
+    set_cellscalar("aerodynamic_resistance_canopy", [150.0, 120.0, 90.0, 120.0])
+    set_cellscalar("ground_heat_flux", [-2.0, -1.5, -1.0, -0.5])
+    set_cellscalar("ventilation_rate", [0.05, 0.07, 0.10, 0.15])
+
+    # ------------------------------------------------------------------
+    # Atmosphere-facing profile variables by cell
+    # Profile order per cell: [above, canopy_1, canopy_2, canopy_3, surface]
+    # CHANGED: all temperatures sub-zero, humidity and density consistent with cold air
+    # ------------------------------------------------------------------
+    atmosphere_profiles = {
+        "layer_heights": [
+            [32.0, 30.0, 20.0, 10.0, 0.1],
+            [24.0, 22.0, 12.0, 6.0, 0.1],
+            [12.0, 10.0, 6.0, 4.0, 0.1],
+            [3.0, 2.0, 1.0, 0.5, 0.1],
+        ],
+        "wind_speed": [
+            [0.30, 0.15, 0.08, 0.04, 0.01],
+            [0.50, 0.28, 0.14, 0.07, 0.03],
+            [0.80, 0.50, 0.30, 0.18, 0.08],
+            [1.20, 0.90, 0.65, 0.45, 0.20],
+        ],
+        "mixing_coefficient": [
+            [0.08, 0.06, 0.04, 0.03, 0.02],
+            [0.09, 0.07, 0.05, 0.03, 0.02],
+            [0.11, 0.08, 0.06, 0.04, 0.03],
+            [0.14, 0.11, 0.08, 0.06, 0.04],
+        ],
+        "atmospheric_pressure": [
+            [96.0, 96.0, 96.1, 96.1, 96.2],
+            [95.8, 95.8, 95.9, 95.9, 96.0],
+            [95.5, 95.6, 95.6, 95.7, 95.7],
+            [95.2, 95.2, 95.3, 95.3, 95.4],
+        ],
+        "atmospheric_co2": [
+            [400.0, 400.0, 400.0, 400.0, 400.0],
+            [400.0, 400.0, 400.0, 400.0, 400.0],
+            [400.0, 400.0, 400.0, 400.0, 400.0],
+            [400.0, 400.0, 400.0, 400.0, 400.0],
+        ],
+        # Sub-zero air temperature profiles — small gradient between layers
+        # consistent with stable winter atmosphere and narrow diurnal range
+        "air_temperature": [
+            [-5.0, -5.5, -6.0, -6.5, -7.0],
+            [-4.0, -4.5, -5.0, -5.5, -6.0],
+            [-3.0, -3.5, -4.0, -4.5, -5.0],
+            [-2.0, -2.5, -3.0, -3.5, -4.0],
+        ],
+        "diurnal_temperature_range": [
+            [3.0, 2.5, 2.0, 1.5, 1.0],
+            [3.5, 3.0, 2.5, 2.0, 1.5],
+            [4.0, 3.5, 3.0, 2.5, 2.0],
+            [5.0, 4.5, 4.0, 3.5, 3.0],
+        ],
+        # Relative humidity — high in cold air but not saturated
+        "relative_humidity": [
+            [85.0, 87.0, 89.0, 91.0, 93.0],
+            [80.0, 82.0, 85.0, 88.0, 91.0],
+            [75.0, 78.0, 81.0, 85.0, 89.0],
+            [70.0, 73.0, 77.0, 82.0, 87.0],
+        ],
+        # Specific humidity — very low in cold air
+        "specific_humidity": [
+            [0.0022, 0.0021, 0.0020, 0.0019, 0.0018],
+            [0.0020, 0.0019, 0.0018, 0.0017, 0.0016],
+            [0.0018, 0.0017, 0.0016, 0.0015, 0.0014],
+            [0.0016, 0.0015, 0.0014, 0.0013, 0.0012],
+        ],
+        # Vapour pressure — consistent with sat. VP at -5°C ≈ 0.40 kPa
+        "vapour_pressure": [
+            [0.34, 0.33, 0.32, 0.31, 0.30],
+            [0.32, 0.31, 0.30, 0.29, 0.28],
+            [0.30, 0.29, 0.28, 0.27, 0.26],
+            [0.28, 0.27, 0.26, 0.25, 0.24],
+        ],
+        # VPD — very small in cold saturated air
+        "vapour_pressure_deficit": [
+            [0.06, 0.05, 0.04, 0.03, 0.02],
+            [0.08, 0.07, 0.05, 0.04, 0.02],
+            [0.10, 0.08, 0.06, 0.04, 0.02],
+            [0.12, 0.10, 0.08, 0.05, 0.03],
+        ],
+        # Molar density — higher in cold dense air
+        "molar_density_air": [
+            [44.0, 44.2, 44.5, 44.7, 45.0],
+            [43.8, 44.0, 44.3, 44.6, 44.9],
+            [43.5, 43.8, 44.1, 44.4, 44.7],
+            [43.2, 43.4, 43.7, 44.0, 44.3],
+        ],
+        # Air density — higher in cold air (~1.30 kg m-3 at -5°C vs ~1.18 at 25°C)
+        "density_air": [
+            [1.30, 1.31, 1.32, 1.33, 1.34],
+            [1.29, 1.30, 1.31, 1.32, 1.33],
+            [1.28, 1.29, 1.30, 1.31, 1.32],
+            [1.27, 1.28, 1.29, 1.30, 1.31],
+        ],
+        "specific_heat_air": [
+            [1006.0, 1006.0, 1006.0, 1006.0, 1006.0],
+            [1006.0, 1006.0, 1006.0, 1006.0, 1006.0],
+            [1006.0, 1006.0, 1006.0, 1006.0, 1006.0],
+            [1006.0, 1006.0, 1006.0, 1006.0, 1006.0],
+        ],
+        # Latent heat of vapourisation — slightly higher at cold temperatures
+        "latent_heat_vapourisation": [
+            [2500.0, 2500.5, 2501.0, 2501.5, 2502.0],
+            [2499.5, 2500.0, 2500.5, 2501.0, 2501.5],
+            [2499.0, 2499.5, 2500.0, 2500.5, 2501.0],
+            [2498.5, 2499.0, 2499.5, 2500.0, 2500.5],
+        ],
+    }
+    for var, profiles in atmosphere_profiles.items():
+        set_atmosphere_variable(var, profiles)
+
+    # ------------------------------------------------------------------
+    # Flux-layer variables by cell
+    # Profile order per cell: [canopy_1, canopy_2, canopy_3, surface, topsoil]
+    # CHANGED: all fluxes scaled down for low-energy cold conditions
+    # ------------------------------------------------------------------
+    flux_profiles = {
+        # Low shortwave absorption — low incoming radiation + high snow albedo
+        "shortwave_absorption": [
+            [1.5, 1.0, 0.5, 2.0, 0.5],
+            [2.5, 1.5, 0.8, 3.0, 0.8],
+            [3.5, 2.0, 1.0, 4.0, 1.0],
+            [4.5, 2.5, 1.2, 5.0, 1.2],
+        ],
+        # Absorbed longwave — cold surfaces emit and absorb much less
+        "absorbed_longwave_radiation": [
+            [80.0, 60.0, 45.0, 60.0, 50.0],
+            [75.0, 55.0, 40.0, 58.0, 48.0],
+            [70.0, 50.0, 35.0, 55.0, 45.0],
+            [65.0, 45.0, 30.0, 52.0, 42.0],
+        ],
+        # Longwave emission — recalculated for sub-zero surfaces
+        "longwave_emission": [
+            [286.0, 284.0, 282.0, 284.0, 282.0],
+            [288.0, 286.0, 284.0, 286.0, 284.0],
+            [290.0, 288.0, 286.0, 288.0, 286.0],
+            [292.0, 290.0, 288.0, 290.0, 288.0],
+        ],
+        # Small sensible heat fluxes — low temperature gradients, stable atmosphere
+        "sensible_heat_flux": [
+            [-2.0, -1.5, -1.0, -0.8, -0.5],
+            [-1.8, -1.3, -0.9, -0.7, -0.4],
+            [-1.5, -1.1, -0.7, -0.5, -0.3],
+            [-1.2, -0.9, -0.6, -0.4, -0.2],
+        ],
+        # Near-zero latent heat — frozen surfaces, dormant vegetation
+        "latent_heat_flux": [
+            [-0.5, -0.4, -0.3, -0.2, -0.1],
+            [-0.4, -0.3, -0.2, -0.15, -0.08],
+            [-0.3, -0.2, -0.15, -0.10, -0.06],
+            [-0.2, -0.15, -0.10, -0.08, -0.04],
+        ],
+        "net_radiation": [
+            [3.0, 2.0, 1.0, 1.5, 0.8],
+            [4.0, 2.5, 1.5, 2.0, 1.0],
+            [5.0, 3.0, 2.0, 2.5, 1.2],
+            [6.0, 3.5, 2.5, 3.0, 1.5],
+        ],
+    }
+    for var, profiles in flux_profiles.items():
+        set_flux_variable(var, profiles)
+
+    # ------------------------------------------------------------------
+    # Canopy + vegetated surface variables
+    # CHANGED: bare winter deciduous canopy — very low LAI, near-zero fluxes,
+    # canopy temperature slightly above zero due to solar absorption on dark bark
+    # ------------------------------------------------------------------
+    canopy_profiles = {
+        # Bare deciduous canopy — stems and branches only
+        # Cell 0 (dense): slightly higher LAI from branch density
+        # Cell 3 (exposed): no canopy layers, surface value only
+        "leaf_area_index": [
+            [0.30, 0.20, 0.10],
+            [0.20, 0.12, 0.06],
+            [0.10, 0.06, 0.03],
+            [0.05, 0.03, 0.01],
+        ],
+        # Canopy temperature: slightly above zero — solar warming of dark bark
+        # despite sub-zero air temperature; above zero is physically realistic
+        # for sun-exposed branches on a clear winter day
+        "canopy_temperature": [
+            [1.5, 1.0, 0.5],
+            [1.8, 1.2, 0.6],
+            [2.0, 1.5, 0.8],
+            [2.2, 1.8, 1.0],
+        ],
+        # Near-zero evaporation — dormant vegetation, frozen surfaces
+        "canopy_evaporation": [
+            [0.05, 0.03, 0.02],
+            [0.04, 0.02, 0.01],
+            [0.03, 0.02, 0.01],
+            [0.00, 0.00, 0.00],
+        ],
+        # Near-zero stomatal conductance — dormant, no active gas exchange
+        "stomatal_conductance": [
+            [0.5, 0.3, 0.2],
+            [0.4, 0.2, 0.1],
+            [0.3, 0.1, 0.05],
+            [0.0, 0.0, 0.0],
+        ],
+        # Near-zero condensation — cold but not saturated
+        "condensation": [
+            [0.05, 0.04, 0.03],
+            [0.04, 0.03, 0.02],
+            [0.03, 0.02, 0.01],
+            [0.00, 0.00, 0.00],
+        ],
+        # Near-zero transpiration — dormant vegetation
+        "transpiration": [
+            [0.10, 0.05, 0.02],
+            [0.08, 0.04, 0.02],
+            [0.05, 0.02, 0.01],
+            [0.00, 0.00, 0.00],
+        ],
+    }
+    canopy_surface_values = {
+        # Surface LAI — low ground cover under snow
+        "leaf_area_index": [0.05, 0.05, 0.06, 0.07],
+        # Surface temperature — slightly above zero, insulated by snow above
+        "canopy_temperature": [0.5, 0.8, 1.0, 1.2],
+        "canopy_evaporation": [0.02, 0.02, 0.02, 0.01],
+        "stomatal_conductance": [0.2, 0.2, 0.1, 0.1],
+        "condensation": [0.03, 0.02, 0.02, 0.01],
+        "transpiration": [0.5, 0.4, 0.3, 0.1],
+    }
+    for var, profiles in canopy_profiles.items():
+        set_canopy_surface_variable(var, profiles, canopy_surface_values[var])
+
+    # ------------------------------------------------------------------
+    # Soil variables
+    # CHANGED: near-surface frozen, deeper layers above zero
+    # ------------------------------------------------------------------
+    soil_profiles = {
+        # Top soil layer frozen or near zero; deeper layer above zero
+        # (insulated by snow and frozen surface layer)
+        "soil_temperature": [
+            [-1.0, 1.5],
+            [-0.5, 2.0],
+            [0.0, 2.5],
+            [0.5, 3.0],
+        ],
+        "matric_potential": [
+            [-20.0, -100.0],
+            [-35.0, -140.0],
+            [-60.0, -220.0],
+            [-90.0, -320.0],
+        ],
+        # Low soil moisture — frozen surface limits liquid water
+        "soil_moisture": [
+            [2.0, 300.0],
+            [1.8, 260.0],
+            [1.5, 200.0],
+            [1.2, 180.0],
+        ],
+    }
+    for var, profiles in soil_profiles.items():
+        set_soil_variable(var, profiles)
+
+    # Hydrology state — reduced groundwater in cold dry conditions
+    data["groundwater_storage"] = DataArray(
+        np.array(
+            [
+                [300.0, 250.0, 200.0, 150.0],
+                [350.0, 310.0, 260.0, 200.0],
+            ],
+            dtype=float,
+        ),
+        dims=("groundwater_layers", "cell_id"),
+    )
+
+    # Add soil layers to layer height
+    data["layer_heights"][lyr_str.index_all_soil] = lyr_str.soil_layer_depths[:, None]
+    return data
