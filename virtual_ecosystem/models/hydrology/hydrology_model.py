@@ -83,6 +83,7 @@ class HydrologyModel(
         "baseflow",
         "bypass_flow",
         "aerodynamic_resistance_soil",
+        "snowfall",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -129,6 +130,7 @@ class HydrologyModel(
         "river_discharge_rate",
         "total_runoff",
         "canopy_evaporation",
+        "snowfall",
     ),
 ):
     """A class describing the hydrology model.
@@ -516,6 +518,8 @@ class HydrologyModel(
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             p_wet_wet=self.p_wet_wet,
             p_wet_dry=self.p_wet_dry,
+            temperature_threshold_snow=self.model_constants.temperature_threshold_snow,
+            temperature_threshold_rain=self.model_constants.temperature_threshold_rain,
             shape_parameter=self.rainfall_shape_parameter,
             scale_parameter=self.rainfall_scale_parameter,
         )
@@ -575,6 +579,10 @@ class HydrologyModel(
             daily_lists["canopy_evaporation"].append(
                 canopy_water_update["canopy_evaporation"]
             )
+
+            # Snow routine
+            # TODO: This will be implemented in small steps as part of #1696
+            daily_lists["snowfall"].append(hydro_input["current_snowfall"][:, day])
 
             # Precipitation, condensation,  and not-evaporated intercept that reaches
             # the surface per day, [mm]
@@ -829,6 +837,7 @@ class HydrologyModel(
         # Calculate monthly accumulated/mean values for hydrology variables
         for var in [
             "precipitation_surface",
+            "snowfall",
             "surface_runoff",
             "soil_evaporation",
             "subsurface_flow",
