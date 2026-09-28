@@ -815,7 +815,7 @@ class PalmsModel(
         * the fraction of absorbed photosynthetically active radiation in each layer
           (``layer_fapar``), and
         * the proportion of shortwave radiation absorbed, including both by leaves in
-          canopy layers and by light reaching the topsoil  (``shortwave_absorption``).
+          canopy layers and by light reaching the topsoil (``shortwave_absorption``).
         """
 
         canopy_array_shape = (self.layer_structure.n_canopy_layers, self.grid.n_cells)
