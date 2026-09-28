@@ -1,9 +1,11 @@
 """The ``palms`` module is a local analogue of :mod:`pyrealm.demography.tmodel`,
 providing scaling relationships for the palm growth form using the plant functional
 type traits defined in :mod:`~virtual_ecosystem.models.plants.functional_types`
-(including the palm-specific ``palm_a`` and ``palm_b``scaling traits) and the palm
-cohort inputs (diameter at breast height and stem height) to define stem geometry,
-masses, respiration and growth given net primary productivity.
+(including the palm-specific height-crown area scaling parameters ``palm_a`` and 
+``palm_b`` and the living stem tissue fraction ``palm_stem_resp_fraction`` used to
+calculate stem respiration) and the palm cohort inputs (diameter at breast height 
+and stem height) to define stem geometry, masses, respiration and growth given net
+primary productivity.
 
 This file starts as a direct copy of :mod:`pyrealm.demography.tmodel` (the T Model,
 :cite:`Li:2014bc`), which is DBH-driven. The palm growth form instead grows primarily
