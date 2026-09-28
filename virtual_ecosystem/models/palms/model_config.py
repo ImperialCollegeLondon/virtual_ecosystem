@@ -106,12 +106,6 @@ class PalmsConstants(Configuration):
     root_exudates: float = 0.5
     """Fraction of GPP topslice allocated to root exudates."""
 
-    propagule_mass_portion: float = 0.5
-    """Fraction of reprodutive tissue allocated to propagules."""
-
-    carbon_mass_per_propagule: float = 1
-    """Mass of carbon per propagule in g."""
-
     fallen_fruit_decay_rate: float = Field(default=0.0075, gt=0.0)
     """Rate at which fruit that has fallen from the canopy decays [Celsius^-1 day^-1].
     
