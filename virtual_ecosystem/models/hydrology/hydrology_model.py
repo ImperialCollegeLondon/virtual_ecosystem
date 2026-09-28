@@ -552,6 +552,9 @@ class HydrologyModel(
             scale_parameter=self.rainfall_scale_parameter,
         )
 
+        #  Initialise snow water equivalent variable for this time_index, [mm]
+        snow_water_equivalent = self.data["snow_water_equivalent"].to_numpy().copy()
+
         # Calculate psychrometric constant
         psychrometric_constant = hydrology_tools.calculate_psychrometric_constant(
             atmospheric_pressure=self.data["atmospheric_pressure"].to_numpy(),
@@ -610,22 +613,30 @@ class HydrologyModel(
 
             # Snow routine
             # NOTE: This will be implemented in small steps as part of #1696
-            daily_lists["snowfall"].append(hydro_input["current_snowfall"][:, day])
 
+            # TODO: implement snowmelt, [mm]
+            temperature_driven_snowmelt = np.zeros(self.grid.n_cells, dtype=float)
+            # TODO: implement sublimation calculation, [mm]
+            sublimation_snow = np.zeros(self.grid.n_cells, dtype=float)
+            # TODO: implement rain-driven snowmelt, [mm]
+            rain_driven_snowmelt = np.zeros(self.grid.n_cells, dtype=float)
+
+            #  Update snow water equivalent, [mm]
             snow_water_equivalent = above_ground.update_snow_water_equivalent(
-                snow_water_equivalent=self.data["snow_water_equivalent"].to_numpy(),
+                snow_water_equivalent=snow_water_equivalent,
                 snowfall=hydro_input["current_snowfall"][:, day],
-                temperature_driven_snowmelt=np.full_like(
-                    hydro_input["current_snowfall"][:, day], 0.0
-                ),  # TODO: implement snowmelt
-                sublimation_snow=np.full_like(
-                    hydro_input["current_snowfall"][:, day], 0.0
-                ),  # TODO: implement sublimation calculation
-                rain_driven_snowmelt=np.full_like(
-                    hydro_input["current_snowfall"][:, day], 0.0
-                ),  # TODO: implement rain-driven snowmelt
+                temperature_driven_snowmelt=temperature_driven_snowmelt,
+                sublimation_snow=sublimation_snow,
+                rain_driven_snowmelt=rain_driven_snowmelt,
             )
+
+            daily_lists["snowfall"].append(hydro_input["current_snowfall"][:, day])
             daily_lists["snow_water_equivalent"].append(snow_water_equivalent)
+            daily_lists["temperature_driven_snowmelt"].append(
+                temperature_driven_snowmelt
+            )
+            daily_lists["sublimation_snow"].append(sublimation_snow)
+            daily_lists["rain_driven_snowmelt"].append(rain_driven_snowmelt)
 
             # Precipitation, condensation,  and not-evaporated intercept that reaches
             # the surface per day, [mm]
@@ -881,6 +892,10 @@ class HydrologyModel(
         for var in [
             "precipitation_surface",
             "snowfall",
+            "snow_water_equivalent",
+            "temperature_driven_snowmelt",
+            "rain_driven_snowmelt",
+            "sublimation_snow",
             "surface_runoff",
             "soil_evaporation",
             "subsurface_flow",
