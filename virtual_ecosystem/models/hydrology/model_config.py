@@ -181,7 +181,7 @@ class HydrologyConstants(Configuration):
     temperature is at or below this point, precipitation is assumed to fall as snow
     rather than rain. This threshold is based on the freezing point of water, which is
     0°C under standard atmospheric conditions. Value from
-    :cite:t:`jennings_aerodynamic_2018`."""
+    :cite:t:`jennings_spatial_2018`."""
 
     t_rain: float = 2.0
     """Temperature above which all precipitation falls as rain, [°C]
@@ -191,7 +191,7 @@ class HydrologyConstants(Configuration):
     rather than snow. This threshold is slightly above the freezing point of water to
     account for the fact that snow can still occur at temperatures slightly above 0°C
     due to factors such as supercooling and local atmospheric conditions. Value from
-    :cite:t:`jennings_aerodynamic_2018`.
+    :cite:t:`jennings_spatial_2018`.
     """
 
 
