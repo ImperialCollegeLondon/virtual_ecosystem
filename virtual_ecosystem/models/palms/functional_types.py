@@ -32,11 +32,13 @@ class PalmFloraValidator(VEFloraValidator):
     """
 
     palm_a: tuple[float, ...] = (1.1444,)
-    r"""Placeholder palm allometry parameter (:math:`a`), pending a permanent name."""
+    r"""Palm establishment height (:math:`a`), theoretical stem height at which
+    :math:`A_c`=0."""
     palm_b: tuple[float, ...] = (0.2455,)
-    r"""Placeholder palm allometry parameter (:math:`b`), pending a permanent name."""
+    r"""Palm height-crown area scaling factor (:math:`b`)."""
     palm_stem_resp_fraction: tuple[float, ...] = (0.65,)
-    r"""Fraction of palm stem tissue mass used to calculate stem respiration."""
+    r"""Fraction of palm stem tissue mass that is metabolically active (analogous
+    to sapwood)."""
 
 
 def get_flora_from_config(config: PalmsConfiguration) -> Flora:
