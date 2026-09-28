@@ -118,8 +118,8 @@ def setup_hydrology_input_current_timestep(
     p_wet_dry: float,
     shape_parameter: float,
     scale_parameter: float,
-    t_snow: float,
-    t_rain: float,
+    temperature_threshold_snow: float,
+    temperature_threshold_rain: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
 
@@ -163,8 +163,10 @@ def setup_hydrology_input_current_timestep(
         soil_moisture_residual: Soil moisture residual, unitless
         p_wet_wet: Probability a wet day follows a wet day.
         p_wet_dry: Probability a wet day follows a dry day.
-        t_snow: Temperature below which all precipitation falls as snow, [°C]
-        t_rain: Temperature above which all precipitation falls as rain, [°C]
+        temperature_threshold_snow: Temperature below which all precipitation falls as
+            snow, [°C]
+        temperature_threshold_rain: Temperature above which all precipitation falls as
+            rain, [°C]
         shape_parameter: Shape parameter of the Gamma distribution controlling
             rainfall variability.
         scale_parameter: Scale parameter of the Gamma distribution controlling
@@ -199,8 +201,8 @@ def setup_hydrology_input_current_timestep(
         partition_precipitation(
             precipitation=output["current_precipitation"],
             air_temperature=air_temperature_ref[:, np.newaxis],
-            t_snow=t_snow,
-            t_rain=t_rain,
+            temperature_threshold_snow=temperature_threshold_snow,
+            temperature_threshold_rain=temperature_threshold_rain,
         )
     )
     # named 'surface_...' for now TODO needs to be replaced with 2m above ground
@@ -244,8 +246,8 @@ def setup_hydrology_input_current_timestep(
 def partition_precipitation(
     precipitation: NDArray[np.floating],
     air_temperature: NDArray[np.floating],
-    t_snow: float,
-    t_rain: float,
+    temperature_threshold_snow: float,
+    temperature_threshold_rain: float,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Partition precipitation into rainfall and snowfall fractions.
 
@@ -255,15 +257,19 @@ def partition_precipitation(
     Args:
         precipitation: Daily precipitation, [mm]
         air_temperature: Air temperature, [°C]
-        t_snow: Temperature below which all precipitation falls as snow, [°C]
-        t_rain: Temperature above which all precipitation falls as rain, [°C]
+        temperature_threshold_snow: Temperature below which all precipitation falls as
+            snow, [°C]
+        temperature_threshold_rain: Temperature above which all precipitation falls as
+            rain, [°C]
 
     Returns:
         Tuple of (rainfall, snowfall), both shape (n_cells, days), [mm]
     """
-    # Snow fraction: 1 below t_snow, 0 above t_rain, linear between
+    # Snow fraction: 1 below temperature_threshold_snow,
+    # 0 above temperature_threshold_rain, linear between
     f_snow = np.clip(
-        (t_rain - air_temperature) / (t_rain - t_snow),
+        (temperature_threshold_rain - air_temperature)
+        / (temperature_threshold_rain - temperature_threshold_snow),
         0.0,
         1.0,
     )

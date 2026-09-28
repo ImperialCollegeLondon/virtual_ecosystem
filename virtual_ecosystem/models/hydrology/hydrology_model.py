@@ -518,8 +518,8 @@ class HydrologyModel(
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             p_wet_wet=self.p_wet_wet,
             p_wet_dry=self.p_wet_dry,
-            t_snow=self.model_constants.t_snow,
-            t_rain=self.model_constants.t_rain,
+            temperature_threshold_snow=self.model_constants.temperature_threshold_snow,
+            temperature_threshold_rain=self.model_constants.temperature_threshold_rain,
             shape_parameter=self.rainfall_shape_parameter,
             scale_parameter=self.rainfall_scale_parameter,
         )

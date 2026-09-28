@@ -169,8 +169,8 @@ def test_partition_precipitation(
     rainfall, snowfall = partition_precipitation(
         precipitation=precip_arr,
         air_temperature=temp_arr,
-        t_snow=t_snow,
-        t_rain=t_rain,
+        temperature_threshold_snow=t_snow,
+        temperature_threshold_rain=t_rain,
     )
 
     # Check rainfall and snowfall values
@@ -204,8 +204,8 @@ def test_partition_precipitation_linearity():
     rainfall, snowfall = partition_precipitation(
         precipitation=precip_arr,
         air_temperature=temperatures,
-        t_snow=t_snow,
-        t_rain=t_rain,
+        temperature_threshold_snow=t_snow,
+        temperature_threshold_rain=t_rain,
     )
 
     snow_fractions = snowfall / precipitation
@@ -248,8 +248,8 @@ def test_setup_hydrology_input_current_timestep(
         soil_moisture_residual=0.1,
         p_wet_wet=0.6,
         p_wet_dry=0.3,
-        t_snow=0.0,
-        t_rain=2.0,
+        temperature_threshold_snow=0.0,
+        temperature_threshold_rain=2.0,
         shape_parameter=1.5,
         scale_parameter=1.0,
     )
