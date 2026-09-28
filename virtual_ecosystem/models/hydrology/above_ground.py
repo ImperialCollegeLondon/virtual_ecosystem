@@ -21,6 +21,31 @@ from virtual_ecosystem.models.abiotic.abiotic_tools import (
 )
 
 
+def update_snow_water_equivalent(
+    snow_water_equivalent: NDArray[np.floating],
+    snowfall: NDArray[np.floating],
+    temperature_driven_snowmelt: NDArray[np.floating],
+    sublimation_snow: NDArray[np.floating],
+    rain_driven_snowmelt: NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Update snow water equivalent (SWE) for one daily timestep.
+
+    Args:
+        snow_water_equivalent: Current SWE, [mm]
+        snowfall: Daily snowfall, [mm water equivalent]
+        temperature_driven_snowmelt: Temperature-driven melt, [mm]
+        sublimation_snow: Sublimation (positive) or deposition (negative), [mm]
+        rain_driven_snowmelt: Rain-on-snow melt, [mm]
+
+    Returns:
+        Updated SWE, [mm], clipped to zero
+    """
+    delta_swe = (
+        snowfall - temperature_driven_snowmelt - sublimation_snow - rain_driven_snowmelt
+    )
+    return np.maximum(snow_water_equivalent + delta_swe, 0.0)
+
+
 def potential_evaporation_leaf(
     net_radiation: NDArray[np.floating],
     vapour_pressure_deficit: NDArray[np.floating],
