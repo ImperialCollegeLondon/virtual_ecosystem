@@ -275,6 +275,8 @@ def test_setup_and_update_hydrology_model_ranges(
     # Test ranges for 1D variables
     for var_name in [
         "total_runoff",
+        "precipitation_surface",
+        "snowfall",
         "subsurface_stormflow",
         "surface_runoff",
         "surface_runoff_routed_plus_local",

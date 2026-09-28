@@ -24,7 +24,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 name = "virtual_ecosystem"
 readme = "README.md"
-version = "0.2.1"
+version = "0.2.2"
 
 requires-python = ">=3.12"
 
@@ -63,7 +63,7 @@ types-jsonschema = "^4.26.0"
 types-tqdm = "^4.70.0.20260827"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.168.0"
+hypothesis = "^6.168.1"
 pytest = ">=9.1.1,<10.0.0"
 pytest-cov = ">=3,<8"
 pytest-datadir = "^1.4.1"
@@ -75,7 +75,7 @@ codespell = "^2.4.1"
 ipykernel = "^7.3.0" 
 ipython = ">=9.17.1" # SPEC0
 isort = ">=9.0.1,<10.0" 
-jupyterlab = "^4.6.3" 
+jupyterlab = "^4.6.4" 
 jupyterlab-myst = "^2.7.0" 
 jupytext = "^1.19.5" 
 matplotlib = ">=3.11.2" # SPEC0

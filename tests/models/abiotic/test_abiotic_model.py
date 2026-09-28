@@ -52,6 +52,20 @@ def fixture_abiotic_init_data(dummy_climate_data):
     return init_data
 
 
+@pytest.fixture
+def fixture_abiotic_init_data_cold(dummy_cold_climate_data):
+    """Returns a reduced dataset suitable for initialising Abiotic Model below 0°C."""
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
+
+    # Reduce to data to initialise model
+    init_data = Data(grid=dummy_cold_climate_data.grid)
+    for var in AbioticModel.vars_required_for_init:
+        init_data[var] = dummy_cold_climate_data.data[var]
+
+    return init_data
+
+
 def test_abiotic_model_initialization(
     caplog,
     fixture_abiotic_init_data,
@@ -342,3 +356,71 @@ def test_update_warns_for_fractional_days(
     messages = [call.args[0] for call in mock_warn.call_args_list]
 
     assert any("not a whole number of days" in msg for msg in messages)
+
+
+def test_setup_and_update_abiotic_model_below_zero(
+    fixture_abiotic_init_data_cold,
+    dummy_cold_climate_data,
+    fixture_core_components,
+):
+    """Test that abiotic model returns below zero values with below zero inputs.
+
+    The standard dummy data is designed for tropical regions that never experience
+    freezing temperatures. This test uses a modified set of dummy data that is designed
+    to represent a cold climate with below zero temperatures and reduced vegetation.
+
+    """
+
+    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
+
+    lyr_strct = fixture_core_components.layer_structure
+
+    # initialise model
+    model = AbioticModel(
+        data=fixture_abiotic_init_data_cold,
+        core_components=fixture_core_components,
+        latitude=50.0,
+    )
+
+    # Test that soil temperature was created correctly
+    np.testing.assert_allclose(
+        model.data["soil_temperature"][-1],
+        fixture_abiotic_init_data_cold["mean_annual_temperature"],
+        rtol=1e-3,
+        atol=1e-3,
+    )
+
+    # Test that air temperature was created correctly
+    non_nan_mask = ~np.isnan(model.data["air_temperature"])
+    assert np.all(model.data["air_temperature"].values[non_nan_mask.values] < 0)
+
+    # Add update data to the model data
+    for var in model.vars_required_for_update:
+        model.data[var] = dummy_cold_climate_data.data[var]
+
+    model.update(time_index=0)
+
+    # Test that soil temperature was updated correctly
+    expected_soil_temp = lyr_strct.from_template()
+    expected_soil_temp[lyr_strct.index_all_soil] = np.array(
+        [
+            [-9.633594, -9.217643, -8.595394, -7.902851],
+            [-2.648394, -1.759237, -0.850561, 0.106648],
+        ]
+    )
+    xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp)
+
+    # Test that air temperature was interpolated correctly
+    exp_air_temp = lyr_strct.from_template()
+    exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
+        [
+            [-5.0, -4.0, -3.0, -2.0],
+            [-13.188856, -11.762249, -10.301414, np.nan],
+            [-12.381201, -10.695637, np.nan, np.nan],
+            [-11.989425, np.nan, np.nan, np.nan],
+            [-15.832212, -15.6861, -14.545973, -13.461521],
+        ]
+    )
+    xr.testing.assert_allclose(
+        model.data["air_temperature"], exp_air_temp, rtol=1e-1, atol=1e-1
+    )

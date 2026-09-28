@@ -197,19 +197,19 @@ Field,Description
 
 These attribute field names and descriptions are identical to the fields reported in the
 [definition of PFTs](./tree_definition.md#plant-functional-types) used in the model.
+Some of the values recorded at the cohort level are identical to the input PFT values -
+you may want to exclude these to reduce output file sizes. However, note the following
+differences:
 
-```{note}
-These fields mostly duplicate values from the PFT definitions to make it easier to make
-calculations across cohorts. You may want to exclude them to reduce file sizes and then
-simply use the PFT name for each cohort to merge the PFT definitions back onto the
-cohort level data.
+* The respiration (`resp_`) and turnover (`tau_`) values are scaled from the annual
+  values provided in the PFT definitions to account for the timestep of the model. The
+  exported values are these corrected values.
 
-There are two exceptions: the `lai` and  `tau_f` values change within the simulation
-to capture herbivory effects on light capture and carbon allocation for individuals
-within cohorts. The field definitions do not change from the input trait data but `lai`
-is decreased by herbivory and `tau_f` increases to capture the additional turnover and
-carbon costs of herbivory.
-```
+* In addition, the `lai` and  `tau_f` values change within the simulation to capture
+  herbivory effects on light capture and carbon allocation for individuals within
+  cohorts. The field definitions do not change from the input trait data but `lai` is
+  decreased by herbivory and `tau_f` increases to capture the additional turnover and
+  carbon costs of herbivory.
 
 ### Allometry, allocation and growth attributes
 

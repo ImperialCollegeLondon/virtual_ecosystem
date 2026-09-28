@@ -77,7 +77,6 @@ class PalmsModel(
     vars_populated_by_init=(
         "layer_fapar",
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
-        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "shortwave_absorption",
         "subcanopy_seedbank_litter_cnp",
@@ -142,7 +141,6 @@ class PalmsModel(
         "subcanopy_seedbank_cnp",
         "layer_fapar",
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
-        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
@@ -156,6 +154,7 @@ class PalmsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
+        "light_use_efficiency",
         "fallen_fruit_decay_cnp",
     ),
     vars_populated_by_first_update=(
@@ -168,6 +167,7 @@ class PalmsModel(
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
+        "light_use_efficiency",
         "fallen_fruit_decay_cnp",
     ),
 ):
@@ -199,10 +199,9 @@ class PalmsModel(
     at this stage are:
 
     * the canopy layer closure heights (``layer_heights``),
-    * the canopy layer leaf area indices (``leaf_area_index``),
+    * the canopy layer leaf area indices (``leaf_area_index``) and
     * the fraction of absorbed photosynthetically active radiation in each canopy layer
-        (``layer_fapar``), and
-    * the whole canopy leaf mass within the layers (``layer_leaf_mass``)
+        (``layer_fapar``)
 
     The model update process filters the photosynthetic photon flux density at the top
     of canopy through the community canopy representation. This allows the gross primary
@@ -374,7 +373,7 @@ class PalmsModel(
         # turnover foliage/roots etc and are included in equations as the reciprocal of
         # the values. So rescaling them to shorter timescales requires that we
         # _increase_ the values proportionally to the reduced time between updates.
-        for turnover_rate in ["tau_f", "tau_r", "tau_rt", "tau_f_base"]:
+        for turnover_rate in ["tau_f", "tau_r", "tau_rt", "tau_f_base", "tau_b"]:
             setattr(
                 self.flora,
                 turnover_rate,
@@ -815,7 +814,6 @@ class PalmsModel(
         * the layer leaf area indices (``leaf_area_index``),
         * the fraction of absorbed photosynthetically active radiation in each layer
           (``layer_fapar``), and
-        * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
         * the proportion of shortwave radiation absorbed, including both by leaves in
           canopy layers and by light reaching the topsoil  (``shortwave_absorption``).
         """
@@ -879,7 +877,6 @@ class PalmsModel(
         self.data["layer_heights"][self._canopy_layer_indices, :] = heights
         self.data["leaf_area_index"][self._canopy_layer_indices, :] = lai
         self.data["layer_fapar"][self._canopy_layer_indices, :] = fapar
-        self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = mass
 
         # Add the above canopy reference height, handling np.nan in first row when
         # the canopy is empty.
@@ -903,7 +900,7 @@ class PalmsModel(
         )
 
         # Update the internal canopy layer mask
-        self.filled_canopy_mask = np.logical_not(np.isnan(self.data["layer_leaf_mass"]))
+        self.filled_canopy_mask = np.logical_not(np.isnan(self.data["leaf_area_index"]))
 
         LOGGER.info(
             f"Updated canopy data on {self.layer_structure.index_filled_canopy.sum()}"
@@ -1079,6 +1076,11 @@ class PalmsModel(
         )
 
         self.pmodel = PModel(pmodel_env)
+
+        # Add light use efficiency to the data object
+        lue = self.layer_structure.from_template("light_use_efficiency")
+        lue[:] = self.pmodel.lue
+        self.data["light_use_efficiency"] = lue
 
     def estimate_gpp(self, time_index: int) -> None:
         """Estimate the gross primary productivity within plant cohorts.
