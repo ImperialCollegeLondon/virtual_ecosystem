@@ -139,6 +139,7 @@ class HydrologyModel(
         "total_runoff",
         "canopy_evaporation",
         "snowfall",
+        "snowfall",
     ),
 ):
     """A class describing the hydrology model.
@@ -540,6 +541,8 @@ class HydrologyModel(
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             p_wet_wet=self.p_wet_wet,
             p_wet_dry=self.p_wet_dry,
+            temperature_threshold_snow=self.model_constants.temperature_threshold_snow,
+            temperature_threshold_rain=self.model_constants.temperature_threshold_rain,
             shape_parameter=self.rainfall_shape_parameter,
             scale_parameter=self.rainfall_scale_parameter,
         )
@@ -871,6 +874,7 @@ class HydrologyModel(
         # Calculate monthly accumulated/mean values for hydrology variables
         for var in [
             "precipitation_surface",
+            "snowfall",
             "surface_runoff",
             "soil_evaporation",
             "subsurface_flow",
