@@ -83,6 +83,11 @@ class HydrologyModel(
         "baseflow",
         "bypass_flow",
         "aerodynamic_resistance_soil",
+        "snow_water_equivalent",
+        "temperature_driven_snowmelt",
+        "rain_driven_snowmelt",
+        "sublimation_snow",
+        "snowfall",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -113,6 +118,10 @@ class HydrologyModel(
         "latent_heat_vapourisation",
         "density_air",
         "condensation",
+        "snow_water_equivalent",
+        "temperature_driven_snowmelt",
+        "rain_driven_snowmelt",
+        "sublimation_snow",
     ),
     vars_populated_by_first_update=(
         "interception",
@@ -129,6 +138,7 @@ class HydrologyModel(
         "river_discharge_rate",
         "total_runoff",
         "canopy_evaporation",
+        "snowfall",
     ),
 ):
     """A class describing the hydrology model.
@@ -266,6 +276,20 @@ class HydrologyModel(
         # Select aboveground layer for surface evaporation calculation
         # TODO this needs to be replaced with 2m above ground value
         self.surface_layer_index = self.layer_structure.index_surface_scalar
+
+        # Initialise snow variables, [mm]
+        for snow_var in [
+            "snow_water_equivalent",
+            "temperature_driven_snowmelt",
+            "rain_driven_snowmelt",
+            "sublimation_snow",
+        ]:
+            self.data[snow_var] = DataArray(
+                np.zeros((self.grid.n_cells,)),
+                dims=("cell_id",),
+                coords={"cell_id": self.grid.cell_id},
+                name=snow_var,
+            )
 
         # Calculate initial soil moisture, [mm]
         self.data["soil_moisture"] = hydrology_tools.initialise_soil_moisture_mm(
@@ -576,6 +600,24 @@ class HydrologyModel(
                 canopy_water_update["canopy_evaporation"]
             )
 
+            # Snow routine
+            # TODO: This will be implemented in small steps as part of #1696
+            daily_lists["snowfall"].append(hydro_input["current_snowfall"][:, day])
+
+            snow_water_equivalent = above_ground.update_snow_water_equivalent(
+                snow_water_equivalent=self.data["snow_water_equivalent"].to_numpy(),
+                snowfall=hydro_input["current_snowfall"][:, day],
+                temperature_driven_snowmelt=np.full_like(
+                    hydro_input["current_snowfall"][:, day], 0.0
+                ),  # TODO: implement snowmelt
+                sublimation_snow=np.full_like(
+                    hydro_input["current_snowfall"][:, day], 0.0
+                ),  # TODO: implement sublimation calculation
+                rain_driven_snowmelt=np.full_like(
+                    hydro_input["current_snowfall"][:, day], 0.0
+                ),  # TODO: implement rain-driven snowmelt
+            )
+            daily_lists["snow_water_equivalent"].append(snow_water_equivalent)
             # Precipitation, condensation,  and not-evaporated intercept that reaches
             # the surface per day, [mm]
             incoming_water = (

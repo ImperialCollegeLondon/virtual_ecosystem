@@ -504,6 +504,34 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Snow water equivalent"
+name = "snow_water_equivalent"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Temperature driven snow melt"
+name = "temperature_driven_snowmelt"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rain driven snow melt"
+name = "rain_driven_snowmelt"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Sublimation from snow"
+name = "sublimation_snow"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Soil respiration"
 name = "soil_respiration"
 unit = "ppm"
