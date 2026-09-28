@@ -135,7 +135,8 @@ def initialise_models(
                 attr="vars_populated_by_init",
             )
 
-        except (InitialisationError, ConfigurationError):
+        except (InitialisationError, ConfigurationError, ValueError):
+            LOGGER.critical(f"Initialisation failed for {model_name} model.")
             failed_models.append(model_name)
 
     # If any models fail to configure inform the user about it
