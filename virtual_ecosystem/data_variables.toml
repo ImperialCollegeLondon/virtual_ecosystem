@@ -1134,20 +1134,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Carbon biomass of vegetation growing underneath the canopy."
-name = "subcanopy_vegetation_biomass"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon biomass of subcanopy seedbank."
-name = "subcanopy_seedbank_biomass"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Proportion of subcanopy vegetation litter carbon that is lignin carbon."
 name = "subcanopy_vegetation_litter_lignin"
 unit = "unitless"
@@ -1210,10 +1196,10 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # elements
 description = "C, N, and P masses for subcanopy vegetation"
 name = "subcanopy_vegetation_cnp"
-unit = "kg"
+unit = "kg m-2"
 variable_type = "float"
 
 [[variable]]
@@ -1238,10 +1224,10 @@ unit = "kg C m^-2"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # elements
 description = "C, N, and P masses for the subcanopy seedbank CNP"
 name = "subcanopy_seedbank_cnp"
-unit = "kg"
+unit = "kg m2"
 variable_type = "float"
 
 [[variable]]
