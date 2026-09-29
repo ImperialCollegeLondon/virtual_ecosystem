@@ -467,6 +467,10 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, tricky_plant_cohorts):
     # Calculate GPP
     fxt_plants_model.reset_update_vars()
     fxt_plants_model.calculate_light_use_efficiency()
+
+    # Check LUE is populated
+    assert "light_use_efficiency" in fxt_plants_model.data
+
     fxt_plants_model.estimate_gpp(time_index=0)
 
     # TODO - Validation below uses benchmark values to detect changing code behaviour
@@ -533,7 +537,8 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, tricky_plant_cohorts):
         [5.11323840e-02, 5.09088906e-02, np.nan, np.nan],
         [2.10673712e-02, np.nan, np.nan, np.nan],
     ]
-
+    # Add zero defaults from subcanopy
+    transpiration_by_layer_benchmark[11] = 0
     assert_allclose(
         fxt_plants_model.data["transpiration"], transpiration_by_layer_benchmark
     )
