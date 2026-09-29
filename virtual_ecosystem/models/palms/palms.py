@@ -357,7 +357,7 @@ def calculate_net_primary_productivity(
     The net primary productivity (NPP, :math:`P_{net}`) is calculated as a plant
     functional type specific yield proportion (:math:`y`) of the total GPP (:math:`P`)
     for the individual minus respiration (:math:`R_m`), as the sum of the respiration
-    costs for foliage  (:math:`R_f`), fine roots  (:math:`R_r`) and living stem tissue
+    costs for foliage (:math:`R_f`), fine roots (:math:`R_r`) and living stem tissue
     (:math:`R_s`).
 
     .. math::
