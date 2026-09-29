@@ -223,7 +223,7 @@ def calculate_crown_r0(
     (:math:`m,n,q_m`) for plant functional types and the estimated crown area
     (:math:`A_c`) of individuals. The shape parameters are defined as part of the
     extension of the T Model presented by :cite:t:`joshi:2022a` and :math:`r_0` is used
-    to scale the crown area such that the crown area at the  maximum crown radius fits
+    to scale the crown area such that the crown area at the maximum crown radius fits
     the expectations of the T Model.
 
     .. math::
