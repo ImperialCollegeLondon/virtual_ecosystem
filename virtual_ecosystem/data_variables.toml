@@ -1001,27 +1001,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Mass of Nitrogen in plant reproductive and tissue turnover"
-name = "plant_rt_turnover_n_mass"
-unit = "kg N"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Phosphorus in plant reproductive and tissue turnover"
-name = "plant_rt_turnover_p_mass"
-unit = "kg P"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of plant reproductive tissue turnover"
-name = "plant_reproductive_tissue_turnover"
-unit = "kg C"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Biomasses (CNP) of plant fruit tissue turnover"
 name = "fruit_turnover_cnp"
 unit = "kg"
