@@ -93,14 +93,14 @@ def calculate_stem_masses(
 
     The stem mass (:math:`W_{s}`) is calculated from individual diameters at breast
     height (:math:`D`) and stem height (:math:`H`), along with the stem density
-    (:math:`\rho_s`) of the plant functional type :cite:p:`{Equation 6, }Li:2014bc`:
+    (:math:`\rho_s`) of the palm functional type :cite:p:`{Equation 6, }Li:2014bc`:
 
     .. math::
 
         W_s = (\pi / 8) \rho_s D^2 H
 
     Args:
-        rho_s: Wood density of the PFT
+        rho_s: Stem density of the palm PFT
         stem_height: Stem height of individuals
         dbh: Diameter at breast height of individuals
     """
@@ -167,16 +167,17 @@ def calculate_sapwood_masses(
     Palm stems are composed of a mixture of living parenchyma cells and vascular bundles
     along with non-living structural tissues. We use the term "sapwood" for consistency
     with calculations for other tree types in the Virtual Ecosystem, although palms do
-    not have true sapwood. We calculate the living stem mass
-    (:math:`W_{\cdot s}`) as a fixed proportion (:math:`f_{resp}`) of the total stem
-    mass (:math:`W_{s}`):
+    not have true sapwood. We consider a fixed proportion of the stem to be living
+    tissue that undergoes respiration (:math:`f_{resp}`), which we multiply by the total
+    stem mass (:math:`W_{s}`) to calculate the mass of living stem tissue (:math:`W_{\cdot s}`)
+    We calculate the living stem mass:
 
     .. math::
 
         W_{\cdot s} = f_{resp} W_{s}
 
     Args:
-        rho_s: Wood density of the PFT
+        rho_s: Stem density of the palm PFT
         stem_height: Stem height of individuals
         dbh: Diameter at breast height of individuals
         palm_stem_resp_fraction: Fraction of palm stem mass that is respiring tissue
@@ -545,8 +546,8 @@ def calculate_growth_increments(
 
     * the specific leaf area (:math:`\sigma`),
     * the leaf area index (:math:`L`),
-    * the wood  density of the PFT (:math:`\rho_s`),
-    * the palm crown allometry parameters (:math:`a` and :math:`b`), and
+    * the stem  density of the palm PFT (:math:`\rho_s`),
+    * the palm height-crown diameter scaling parameters (:math:`a` and :math:`b`), and
     * the ratio of fine root mass to leaf area (:math:`\zeta`).
 
     The value of :math:`\Delta H` is unstable when :math:`D = 0` and hence :math:`H = 0`
@@ -589,7 +590,7 @@ def calculate_growth_increments(
 
 
     Args:
-        rho_s: Wood density of the PFT
+        rho_s: Stem density of the palm PFT
         lai: Leaf area index of the PFT
         sla: Specific leaf area of the PFT
         zeta: The ratio of fine root mass to foliage area of the PFT
