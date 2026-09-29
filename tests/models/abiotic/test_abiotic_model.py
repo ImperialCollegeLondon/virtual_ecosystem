@@ -103,10 +103,11 @@ def test_abiotic_model_initialization_no_data(
     """Test `AbioticModel` initialization with no data."""
 
     from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.exceptions import InitialisationError
     from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
-    with pytest.raises(ValueError):
+    with pytest.raises(InitialisationError):
         # Make four cell grid
         grid = Grid(cell_nx=4, cell_ny=1)
         empty_data = Data(grid)
@@ -270,7 +271,10 @@ def test_setup_and_update_abiotic_model(
     # Test that soil temperature was created correctly
     expected_soil_temp = lyr_strct.from_template()
     expected_soil_temp[lyr_strct.index_all_soil] = np.array(
-        [[20.131051, 21.591324, 23.142502, 24.505557], [22.0, 22.5, 23.0, 24.0]]
+        [
+            [20.131051, 21.591324, 23.142502, 24.505557],
+            [22.0, 22.5, 23.0, 24.0],
+        ]
     )
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp)
 

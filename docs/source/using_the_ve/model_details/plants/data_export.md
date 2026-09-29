@@ -68,8 +68,9 @@ Each setting accepts a list of attribute names to export for that data type:
 
 * `[]`: the default value of an empty list does not export any attributes.
 * `["attribute_a", "attribute_b"]`: the named attributes are exported.
-* `"ALL"`: This is a special keyword value that provides a shortcut to exporting all
-  available attributes.
+* `"ALL"`: This is a special keyword value that can be used to get all variables instead
+  of having to provide a list of all variable names. Note that this is should not be in
+  brackets: it is `"ALL"` not `["ALL"]`.
 
 The default settings are shown below along with a short description of each setting:
 
@@ -120,8 +121,8 @@ display_markdown(
 ```
 
 The alternative configuration below exports selected attributes for all three data
-types and shows the use of the `"ALL"` keyword as a shortcut for exporting all
-attributes for a data type.
+types and shows the use of the `"ALL"` keyword (again, note that this is not in square
+brackets)as a shortcut for exporting all attributes for a data type.
 
 ```{code-cell} ipython3
 :tags: [remove-input]
