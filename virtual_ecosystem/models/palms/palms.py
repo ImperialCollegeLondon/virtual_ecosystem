@@ -420,8 +420,7 @@ def calculate_branch_turnover(
     NOTE::
         This function is deprecated for palms, which do not have woody branches. It is
         included only for consistency with the rest of the Virtual Ecosystem code,
-        and is
-        bypassed by leaving ``tau_b`` at its default infinite value.
+        and is bypassed by leaving ``tau_b`` at its default infinite value.
 
     This function calculates the carbon mass of branch turnover, representing branch
     fall and other woody tissue losses. This is calculated from the total stem mass of
@@ -1043,7 +1042,7 @@ class GrowthIncrements(ToDataFrameMixin):
     Args:
         cohorts: A set of cohorts
         allometry: The current stem allometry for those cohorts
-        stem_allocation: An StemAllocation object providing NPP and turnover costs.
+        stem_allocation: A StemAllocation object providing NPP and turnover costs.
         biomass_production: An optional array of biomass production values, used to
             override the NPP estimate in ``gpp_allocation``.
     """
