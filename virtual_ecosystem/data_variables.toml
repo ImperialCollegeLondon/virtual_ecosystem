@@ -504,8 +504,36 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Snow fall as part of total precipitation"
+description = "Snowfall as part of total precipitation"
 name = "snowfall"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Snow water equivalent is the depth of liquid water that would result if an entire snowpack melted instantly"
+name = "snow_water_equivalent"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Temperature driven snow melt"
+name = "temperature_driven_snowmelt"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rain driven snow melt"
+name = "rain_driven_snowmelt"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Sublimation is the process where snow turns directly from a solid (ice) into a gas (water vapor) without melting into liquid first"
+name = "sublimation_snow"
 unit = "mm"
 variable_type = "float"
 
@@ -969,27 +997,6 @@ axis = ["spatial"]
 description = "Carbon:phosphorus ratio of plant reproductive tissue turnover"
 name = "fruit_seed_c_p_ratio"
 unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Nitrogen in plant reproductive and tissue turnover"
-name = "plant_rt_turnover_n_mass"
-unit = "kg N"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Phosphorus in plant reproductive and tissue turnover"
-name = "plant_rt_turnover_p_mass"
-unit = "kg P"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of plant reproductive tissue turnover"
-name = "plant_reproductive_tissue_turnover"
-unit = "kg C"
 variable_type = "float"
 
 [[variable]]
