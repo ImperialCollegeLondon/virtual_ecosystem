@@ -339,18 +339,23 @@ class AnimalCohort:
             for element in ("C", "N", "P")
         }
 
-        # Numerical safety: clamp tiny negatives to zero, but catch real bugs. The
-        # tolerance is relative to the intake so that it scales with pool magnitude.
+        # Numerical safety: clamp tiny negatives to zero, but catch real bugs.
+        ABS_TOLERANCE = (
+            1e-9  # Absolute threshold for sub-nanogram float precision noise.
+        )
+        # Tolerance is relative to the intake so that it scales with pool magnitude.
         for element, value in waste.items():
-            if value < 0.0:
-                if value > -self.constants._GROWTH_WASTE_TOLERANCE * max(
-                    abs(resource_intake[element]), 1.0
-                ):
-                    waste[element] = 0.0
-                else:
-                    raise ValueError(
-                        f"grow produced negative waste for {element}: {value}"
-                    )
+            if value >= 0.0:
+                continue
+
+            rel_threshold = self.constants._GROWTH_WASTE_TOLERANCE * max(
+                abs(resource_intake[element]), 1.0
+            )
+
+            if abs(value) < ABS_TOLERANCE or value > -rel_threshold:
+                waste[element] = 0.0
+            else:
+                raise ValueError(f"grow produced negative waste for {element}: {value}")
 
         return waste
 
