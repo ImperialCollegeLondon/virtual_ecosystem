@@ -179,8 +179,10 @@ class SoilConstants(Configuration):
 
     tectonic_uplift_rate_phosphorus: float = 0.0
     """Rate at which tectonic uplift exposes new primary phosphorus [kg{P} m^-3 day^-1].
-    This rate is essentially zero for decadal simulations. We have only included to
-    give the flexibility to run longer term test scenarios."""
+    This rate is essentially zero for decadal simulations. We have only included to give
+    the flexibility to run longer term test scenarios. This variable is site specific,
+    you will need to decide on an appropriate value for it if you are setting up a new
+    site."""
 
     ammonia_volatilisation_rate_constant: float = 1e-9 * (24 * 60 * 60)
     """Rate constant for ammonia volatilisation from ammonium [day^-1]. Following
@@ -290,13 +292,15 @@ class SoilConstants(Configuration):
 
     ammonium_deposition_rate: float = 1.5e-4 / 365.25
     """Rate at which ammonium is deposited into the system [kg{N} m^-2 day^-1]. We are
-    assuming that deposition rates won't vary substantially over the area the 
-    simulation encompasses. Value taken from :cite:t:`vet_global_2014`."""
+    assuming that deposition rates won't vary substantially over the area the simulation
+    encompasses. Value taken from :cite:t:`vet_global_2014`. This variable is site
+    specific, you will need to recalculate it if you are setting up a new site."""
 
     phosphorus_deposition_rate: float = 5e-6 / 365.25
     """Rate at which phosphorus is deposited into the system [kg{P} m^-2 day^-1].
     We are assuming that deposition rates won't vary substantially over the area the
-    simulation encompasses. Value taken from :cite:t:`Mahowald2008`."""
+    simulation encompasses. Value taken from :cite:t:`Mahowald2008`.This variable is
+    site specific, you will need to recalculate it if you are setting up a new site."""
 
     nitrogen_fixer_supply_fraction: float = 0.3
     """Fraction of carbon supplied by plants to symbiotes that goes to nitrogen fixers.
