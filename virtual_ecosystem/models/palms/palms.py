@@ -169,8 +169,8 @@ def calculate_sapwood_masses(
     with calculations for other tree types in the Virtual Ecosystem, although palms do
     not have true sapwood. We consider a fixed proportion of the stem to be living
     tissue that undergoes respiration (:math:`f_{resp}`), which we multiply by the total
-    stem mass (:math:`W_{s}`) to calculate the mass of living stem tissue (:math:`W_{\cdot s}`)
-    We calculate the living stem mass:
+    stem mass (:math:`W_{s}`) to calculate the mass of living stem tissue
+    (:math:`W_{\cdot s}`). We calculate the living stem mass:
 
     .. math::
 
@@ -276,7 +276,7 @@ def calculate_sapwood_respiration(
 
     Calculates the total living stem tissue respiration (:math:`R_{\cdot s}`) given the
     individual living stem tissue mass (:math:`W_{\cdot s}`) and the stem tissue
-    respiration rate of the palm functional type (:math:`r_{s}`)
+    sapwood-specific respiration rate of the palm functional type (:math:`r_{s}`)
     :cite:p:`{see Equation 13, }Li:2014bc`. We keep the term "sapwood" in the function
     name for consistency with the rest of the Virtual Ecosystem code, although palms do
     not have true sapwood.
@@ -285,7 +285,7 @@ def calculate_sapwood_respiration(
          R_{\cdot s} = W_{\cdot s} \, r_s
 
     Args:
-        resp_s: The sapwood respiration rate
+        resp_s: The sapwood-specific respiration rate (year-1).
         sapwood_mass: The individual sapwood mass
     """
 
@@ -299,16 +299,17 @@ def calculate_foliage_respiration(
     r"""Calculate foliar respiration.
 
     Calculates the total foliar respiration (:math:`R_{f}`) given the individual crown
-    GPP (:math:`P`) and the foliar respiration rate of the plant functional type
-    (:math:`r_{f}`). :cite:t:`Li:2014bc` remove foliar respiration as a constant
-    proportion of potential GPP before calculating GPP for the crown, but ``pyrealm``
-    treats this proportion as part of the definition of plant functional types.
+    GPP (:math:`P`) and the foliage maintenance respiration fraction of the plant
+    functional type (:math:`r_{f}`). :cite:t:`Li:2014bc` remove foliar respiration
+    as a constant proportion of potential GPP before calculating GPP for the crown,
+    but ``pyrealm`` treats this proportion as part of the definition of plant
+    functional types.
 
     .. math::
          R_{f} = P \, r_f
 
     Args:
-        resp_f: The foliar respiration rate
+        resp_f: The foliage maintenance respiration fraction (unitless).
         whole_crown_gpp: The individual whole crown GPP.
     """
 
@@ -322,7 +323,7 @@ def calculate_fine_root_respiration(
     r"""Calculate fine root respiration.
 
     Calculates the total fine root respiration (:math:`R_{r}`) given fine root mass
-    (:math:`W_r`) the fine root respiration rate (:math:`r_r`):
+    (:math:`W_r`) and the fine-root specific respiration rate (:math:`r_r`):
 
     .. math::
          R_{r} = W_r r_r
@@ -339,7 +340,7 @@ def calculate_fine_root_respiration(
 
     Args:
         fine_root_mass: The individual fine root mass.
-        resp_r: The respiration rate of fine roots of the PFT.
+        resp_r: The fine-root specific respiration rate of the PFT (year-1).
     """
 
     return fine_root_mass * resp_r
@@ -808,6 +809,12 @@ class StemAllocation(ToDataFrameMixin):
     This method calculates the predicted GPP allocations of potential gross primary
     productivity (GPP) for stems under the T Model :cite:`Li:2014bc`, given a set of
     cohorts and stem allometry predictions for those cohorts.
+
+    Reproductive tissues are handled separately in
+    :meth:`~virtual_ecosystem.models.palms.palms_model.PalmsModel.allocate_gpp`:
+    fruit and seed masses are initialised from foliage mass, and their respiration
+    and turnover costs reduce carbon available for growth. Allocation to new fruit
+    and seed growth is not yet implemented; both growth increments are zero.
 
     Allocation from GPP estimates are handled in two ways:
 

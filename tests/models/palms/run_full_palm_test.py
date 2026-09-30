@@ -11,6 +11,7 @@ inputs in ``tests/data``:
 * ``palm_pfts.csv`` contains the palm traits used by the palm validator.
 * ``palm_cohort_data.csv`` contains one cohort in each of the 81 cells.
 * ``palm_plant_data.nc`` contains palm plant forcing and zero animal/herbivory fluxes.
+* The example plant data supplies the subcanopy vegetation and seedbank CNP inputs.
 
 The animal model is deliberately not configured. The zero animal and herbivory arrays
 in ``palm_plant_data.nc`` satisfy the input contracts of the soil and litter models.
@@ -29,6 +30,7 @@ from virtual_ecosystem.main import Progress, ve_run
 
 REPO_ROOT = Path(__file__).parents[3]
 EXAMPLE_CONFIG = REPO_ROOT / "virtual_ecosystem" / "example_data" / "config"
+EXAMPLE_PLANT_DATA = EXAMPLE_CONFIG.parent / "data" / "example_plant_data.nc"
 PALM_DATA = REPO_ROOT / "tests" / "data"
 
 
@@ -50,8 +52,6 @@ def build_configuration(output_path: Path) -> str:
     variables = [
         "plant_pft_propagules",
         "downward_shortwave_radiation",
-        "subcanopy_vegetation_biomass",
-        "subcanopy_seedbank_biomass",
         "animal_pom_consumption_cnp",
         "fungal_fruiting_bodies_consumed_cnp",
         "decomposed_excrement_cnp",
@@ -70,10 +70,13 @@ def build_configuration(output_path: Path) -> str:
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
     ]
+    data_paths = {variable: plant_data_path for variable in variables}
+    for variable in ("subcanopy_vegetation_cnp", "subcanopy_seedbank_cnp"):
+        data_paths[variable] = EXAMPLE_PLANT_DATA
     data_config = "\n".join(
-        f'[[core.data.variable]]\nfile_path = "{plant_data_path.as_posix()}"\n'
+        f'[[core.data.variable]]\nfile_path = "{data_path.as_posix()}"\n'
         f'var_name = "{variable}"\n'
-        for variable in variables
+        for variable, data_path in data_paths.items()
     )
 
     return f"""
