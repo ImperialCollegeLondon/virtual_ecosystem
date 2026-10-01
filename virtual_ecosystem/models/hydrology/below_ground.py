@@ -479,13 +479,14 @@ def calculate_subsurface_stormflow(
     The lateral subsurface flow implementation is based on after
     :cite:t:`ye_regionalization_2014`:
 
-    .. math::
-        Q2 = k_{Q2} * S_{e}^beta_{Q2} * max(root_soil_moisture - transpiration, 0)
+    :math:`Q_2 = k_{Q_2} \, S_e^{\beta_{Q_2}} \, \max(q_{\mathrm{root}} - T, 0)`
 
-    where :math:`Q2` is the lateral subsurface stormflow (mm timestep-1), :math:`k_{Q2}`
-    is the empirical lateral flow coefficient, :math:`S_{e}` is the effective saturation
-    of the middle soil layer (-), :math:`beta_{Q2}` is a non-linearity exponent,
-    :math:`S2` is the middle soil water storage (mm), :math:`T` is the transpiration
+    where :math:`Q_2` is the lateral subsurface stormflow (mm timestep-1),
+    :math:`k_{Q_2}`
+    is the empirical lateral flow coefficient, :math:`S_e` is the effective saturation
+    of the middle soil layer (-), :math:`beta_{Q_2}` is a non-linearity exponent,
+    :math:`S2` is the middle soil water storage (mm), :math:`q_{root}` is the root-zone
+    soil moisture (mm), and :math:`T` is the transpiration
     extracted from the middle soil layer during the current timestep (mm).
 
     Args:
