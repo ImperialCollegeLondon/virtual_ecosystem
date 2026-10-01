@@ -21,7 +21,6 @@ def calculate_vertical_flow(
     air_entry_potential_inverse: float,
     van_genuchten_nonlinearily_parameter: float,
     pore_connectivity_parameter: float,
-    groundwater_capacity: float | NDArray[np.floating],
     seconds_to_day: float,
     denominator_tolerance: float,
 ) -> dict[str, NDArray[np.floating]]:
@@ -54,7 +53,7 @@ def calculate_vertical_flow(
     The soil matric potential :math:`\Psi_{m}` is calculated as follows:
 
     .. math ::
-        \Psi_{m} = \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}
+        \Psi_{m} = -\frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}
 
     where :math:`\alpha` is the inverse of air entry value.
 
@@ -62,12 +61,16 @@ def calculate_vertical_flow(
     :math:`q` in :math:`\frac{m}{s-1}` considering the effective unsaturated hydraulic
     conductivity:
 
-    .. math ::
-        q = - K(\Theta) (\frac{d \Psi_{m}}{dz} + 1)
+    .. math::
+        q = K_{\mathrm{face}}
+        \left(1 - \frac{d\Psi_m}{dz}\right)
 
     where :math:`\frac{d \Psi_{m}}{dz}` is the matric potential gradient with :math:`z`
-    the elevation (gravitational potential) or gravitational head. The result is
-    converted to mm per day.
+    the elevation (gravitational potential) or gravitational head.
+    :math:`K_{\mathrm{face}}` is the harmonic mean of the
+    adjacent layers' effective conductivities. Upward flux is set to zero.
+    The flow is converted from [m s-1] to [mm d-1] and limited by available
+    water in the source layer and pore space in the receiving layer.
 
     Note that there are severe limitations to this approach on the temporal and
     spatial scale of this model and this can only be treated as a very rough
@@ -86,7 +89,6 @@ def calculate_vertical_flow(
             model that describes the degree of nonlinearity of the relationship between
             the volumetric water content and the soil matric potential.
         pore_connectivity_parameter: Pore connectivity parameter, dimensionless
-        groundwater_capacity: Storage capacity of groundwater, [m]
         seconds_to_day: Factor to convert between second and day
         denominator_tolerance: Small value to avid division by zero
 
@@ -95,69 +97,132 @@ def calculate_vertical_flow(
         saturation, [rel. vol.]
     """
 
-    output = {}
-    shape_parameter = 1 - 1 / van_genuchten_nonlinearily_parameter
-
     # Calculate soil effective saturation in rel. vol. water content for each layer:
     effective_saturation = calculate_effective_saturation(
         soil_moisture=soil_moisture,
         soil_moisture_saturation=soil_moisture_saturation,
         soil_moisture_residual=soil_moisture_residual,
     )
-    output["effective_saturation"] = effective_saturation
+    effective_saturation = np.clip(
+        np.nan_to_num(effective_saturation, nan=0.0, posinf=1.0, neginf=0.0),
+        0.0,
+        1.0,
+    )
 
     # Calculate matric potential for each grid point and depth
+    n_parameter = van_genuchten_nonlinearily_parameter
+    m_parameter = 1.0 - 1.0 / n_parameter
+
+    se_for_potential = np.clip(effective_saturation, denominator_tolerance, 1.0)
     matric_potential = calculate_matric_potential(
-        effective_saturation=effective_saturation,
+        effective_saturation=se_for_potential,
         air_entry_potential_inverse=air_entry_potential_inverse,
         van_genuchten_nonlinearily_parameter=van_genuchten_nonlinearily_parameter,
         denominator_tolerance=denominator_tolerance,
     )
 
-    # Calculate the unsaturated (effective) hydraulic conductivity in m/s
-    effective_conductivity = np.array(
+    # Calculate the unsaturated (effective) hydraulic conductivity, [m s-1]
+    # The saturated hydraulic conductivity is reduced according to the current effective
+    # saturation. Dry soil therefore conducts less water.
+    effective_conductivity = (
         saturated_hydraulic_conductivity
         * effective_saturation**pore_connectivity_parameter
-        * (1 - (1 - (effective_saturation) ** (1 / shape_parameter)) ** shape_parameter)
-        ** 2,
+        * (1.0 - (1.0 - effective_saturation ** (1.0 / m_parameter)) ** m_parameter)
+        ** 2
     )
 
-    # Compute matric potential gradient
-    matric_potential_gradient = np.gradient(matric_potential, soil_layer_depth, axis=0)
+    # Available water and pore space are water depths [mm]:
+    # volumetric moisture [-] * layer thickness [m] * 1000 [mm/m].
+    available_water_mm = (
+        np.maximum(soil_moisture - soil_moisture_residual, 0.0)
+        * soil_layer_thickness
+        * 1000.0
+    )
+    receiving_space_mm = (
+        np.maximum(soil_moisture_saturation - soil_moisture, 0.0)
+        * soil_layer_thickness
+        * 1000.0
+    )
 
-    # Calculate vertical flow from top soil to lower soil in m s-1
-    flow = -effective_conductivity * (matric_potential_gradient + 1)
+    # Estimate conductivity at each layer boundary. The harmonic mean makes
+    # a low-conductivity layer restrict flow more strongly than an arithmetic
+    # average would.
+    conductivity_above = effective_conductivity[:-1]
+    conductivity_below = effective_conductivity[1:]
+    conductivity_sum = conductivity_above + conductivity_below
+    conductivity_boundary = np.divide(
+        2.0 * conductivity_above * conductivity_below,
+        conductivity_sum,
+        out=np.zeros_like(conductivity_sum),
+        where=conductivity_sum > 0,
+    )
 
-    # Make sure that flow does not exceed storage capacity in m
-    available_storage = (soil_moisture - soil_moisture_residual) * soil_layer_thickness
+    # Matric potential is negative pressure head [m]. Depth increases downward,
+    # so this Darcy form gives positive flux for downward flow.
+    # k_boundary [m/s] * hydraulic gradient [-] = flux [m/s].
+    matric_gradient = np.gradient(
+        matric_potential,
+        soil_layer_depth,
+        axis=0,
+    )[:-1]
+    flux_m_per_second = conductivity_boundary * (1.0 - matric_gradient)
 
-    # Flow in m per day to match unit of available storage
-    flow_timestep = flow * seconds_to_day
-
-    # Redistribute water in soil layers
-    flow_min = []
-    for i in np.arange(len(soil_moisture) - 1):
-        flow_layer = np.where(
-            flow_timestep[i] < available_storage[i + 1],
-            flow_timestep[i],
-            available_storage[i + 1],
+    # Convert flux rate [m s-1] to [mm day-1].
+    flux_mm_per_day = (
+        np.maximum(
+            np.nan_to_num(
+                flux_m_per_second,
+                nan=0.0,
+                posinf=0.0,
+                neginf=0.0,
+            ),
+            0.0,
         )
-        flow_min.append(flow_layer)
+        * seconds_to_day
+        * 1000.0
+    )
 
-    outflow = np.where(
-        flow_timestep[-1] < groundwater_capacity,
-        flow_timestep[-1],
-        groundwater_capacity,
+    # Limit transfer: the upper layer must have water to lose, and the lower
+    # layer must have pore space to receive it.
+    vertical_flow = np.zeros_like(soil_moisture)
+    vertical_flow[:-1] = np.minimum(
+        flux_mm_per_day,
+        np.minimum(
+            available_water_mm[:-1],
+            receiving_space_mm[1:],
+        ),
     )
-    flow_min.append(outflow)
 
-    output["matric_potential"] = np.nan_to_num(
-        matric_potential, nan=-denominator_tolerance
+    # Free-drainage lower boundary: q = K. Limit it by water available
+    # in the bottom layer.
+    bottom_flux_mm_per_day = (
+        np.maximum(
+            np.nan_to_num(
+                effective_conductivity[-1],
+                nan=0.0,
+                posinf=0.0,
+                neginf=0.0,
+            ),
+            0.0,
+        )
+        * seconds_to_day
+        * 1000.0
     )
-    output["vertical_flow"] = np.nan_to_num(
-        np.abs(np.array(flow_min) / 1000.0), nan=denominator_tolerance
+    vertical_flow[-1] = np.minimum(
+        bottom_flux_mm_per_day,
+        available_water_mm[-1],
     )
-    return output
+
+    return {
+        "matric_potential": np.nan_to_num(
+            matric_potential,
+            nan=0.0,
+            posinf=0.0,
+            neginf=0.0,
+        ),
+        "vertical_flow": vertical_flow,
+        "effective_saturation": effective_saturation,
+    }
 
 
 def update_soil_moisture(
@@ -262,7 +327,6 @@ def calculate_matric_potential(
         An estimate of the water potential of the soil, [m]
     """
     shape_parameter = 1 - 1 / van_genuchten_nonlinearily_parameter
-    effective_saturation += denominator_tolerance
     return (
         -1
         / air_entry_potential_inverse
@@ -404,10 +468,10 @@ def calculate_subsurface_stormflow(
     The lateral subsurface flow implementation is based on after
     :cite:t:`ye_regionalization_2014`:
 
-    .. math ::
-        Q2 = k_{Q2} * S_{e}**beta_{Q2} * max(root_soil_moisture - transpiration, 0)
+    .. math::
+        Q2 = k_{Q2} * S_{e}^beta_{Q2} * max(root_soil_moisture - transpiration, 0)
 
-    where :math:`Q2` is the lateral subsurface stormflow (mm timestep-1), :math:`k_Q2`
+    where :math:`Q2` is the lateral subsurface stormflow (mm timestep-1), :math:`k_{Q2}`
     is the empirical lateral flow coefficient, :math:`S_{e}` is the effective saturation
     of the middle soil layer (-), :math:`beta_{Q2}` is a non-linearity exponent,
     :math:`S2` is the middle soil water storage (mm), :math:`T` is the transpiration

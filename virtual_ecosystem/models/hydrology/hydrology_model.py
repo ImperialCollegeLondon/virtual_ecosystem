@@ -776,7 +776,6 @@ class HydrologyModel(
                 pore_connectivity_parameter=(
                     self.model_constants.pore_connectivity_parameter
                 ),
-                groundwater_capacity=self.model_constants.groundwater_capacity / 1000.0,
                 seconds_to_day=self.core_constants.seconds_to_day,
                 denominator_tolerance=self.model_constants.denominator_tolerance,
             )
