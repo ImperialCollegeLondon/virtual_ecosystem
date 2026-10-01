@@ -369,7 +369,8 @@ class AnimalModel(
 
         Keyed by functional group name, each value a ``(n_cells,)`` array in [0, 1].
         ``None`` whenever thermal habitat selection is disabled or the climate pass has
-        not yet run, in which case dispersal falls back to uniform destination choice.
+        not yet run, in which case dispersal falls back to uniform destination choice
+        and territories are built breadth-first.
         """
 
         self.active_cohorts = {}
@@ -1112,12 +1113,28 @@ class AnimalModel(
     ) -> None:
         """This updates the community lists for animal cohort occupancy.
 
+        This is the single seam through which every territory the model uses is
+        built: at cohort creation, on return from the aquatic phase, and after
+        migration. Territories grow preferentially into thermally suitable cells
+        when the suitability cache is populated, and breadth-first otherwise.
+
+        The cache is empty during model setup, because the climate pass that fills
+        it has not yet run, so the territories of the initial cohorts are
+        breadth-first. They become suitability-aware the first time they are
+        rebuilt, which is to say on the cohort's first migration.
+
         Args:
             cohort: The animal cohort being updates.
             centroid_key: The grid cell key of the anchoring grid cell.
         """
 
-        territory_cells = cohort.get_territory_cells(centroid_key)
+        suitability = (
+            None
+            if self.thermal_suitability is None
+            else self.thermal_suitability[cohort.functional_group.name]
+        )
+
+        territory_cells = cohort.get_territory_cells(centroid_key, suitability)
         cohort.update_territory(territory_cells)
 
         for cell_id in territory_cells:
@@ -1956,7 +1973,8 @@ class AnimalModel(
 
         Computes, for each functional group, the per-cell activity window it would
         experience given the current stratum climate. The result is cached on
-        :attr:`thermal_suitability` and consumed by dispersal.
+        :attr:`thermal_suitability` and consumed by both dispersal and territory
+        construction.
 
         Leaves :attr:`thermal_suitability` as ``None`` when thermal habitat selection
         is disabled, so that dispersal falls through to uniform destination choice.
