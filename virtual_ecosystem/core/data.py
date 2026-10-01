@@ -70,7 +70,8 @@ Adding data from a file
 The general solution for programmatically adding data from a file is to:
 
 * manually open a data file using an appropriate reader packages for the format,
-* coerce the data into a properly structured :class:`~xarray.DataArray` object, and then
+* coerce data from named variables into properly structured :class:`~xarray.DataArray`
+  objects, and then
 * use the :meth:`~virtual_ecosystem.core.data.Data.__setitem__` method to validate and
   add it to a :class:`~virtual_ecosystem.core.data.Data` instance.
 
@@ -83,9 +84,10 @@ supported formats and for extending the system to additional file formats.
 
     # Load temperature data from a supported file
     from virtual_ecosystem.core.readers import load_to_dataarray
-    data['temp'] = load_to_dataarray(
-        '/path/to/supported/format.nc', var_name='temperature'
+    results = load_to_dataarray(
+        '/path/to/supported/format.nc', var_names=['temperature']
     )
+    data['temperature'] = results['temperature']
 
 Using a data configuration
 --------------------------
@@ -93,25 +95,25 @@ Using a data configuration
 A :class:`~virtual_ecosystem.core.data.Data` instance can also be populated using the
 :meth:`~virtual_ecosystem.core.data.Data.load_data_config` method. This is expecting to
 take a properly validated configuration object, typically created from TOML files
-(see :class:`~virtual_ecosystem.core.config.Config`). The expected
+(see :class:`~virtual_ecosystem.core.config_builder.ConfigurationLoader`). The expected
 structure of the data configuration section within those TOML files is as follows:
 
 .. code-block:: toml
 
     [[core.data.variable]]
-    file="/path/to/file.nc"
+    file_path="/path/to/file.nc"
     var_name="precip"
     [[core.data.variable]]
-    file="/path/to/file.nc"
+    file_path="/path/to/file.nc"
     var_name="temperature"
     [[core.data.variable]]
+    file_path="/path/to/a/different/file.nc"
     var_name="elev"
 
-Data configurations must not contain repeated data variable names. NOTE: At the moment,
-```core.data.variable``` tags cannot be used across multiple toml config files without
-causing ```ConfigurationError: Duplicated entries in config files: core.data.variable```
-to be raised. This means that all variables need to be combined in one ```config```
-file.
+You can include ```core.data.variable``` tags in different files. This can be useful to
+group model-specific data with other model configuration options, and allow
+configuration files to be swapped in a more modular fashion. However, the data
+configurations across all files **must not** contain repeated data variable names.
 
 .. code-block:: python
 
@@ -120,29 +122,23 @@ file.
 
 """  # noqa: D205
 
+from itertools import groupby
 from pathlib import Path
 from typing import Any
 
-import dask
 import numpy as np
-from xarray import DataArray, Dataset, open_mfdataset
+import xarray as xr
 
 from virtual_ecosystem.core.axes import AXIS_VALIDATORS, validate_dataarray
-from virtual_ecosystem.core.config import Config, ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.core.readers import load_to_dataarray
-from virtual_ecosystem.core.utils import check_outfile
 
-# There are ongoing xarray issues with NetCDF not being thread safe and this causes
-# segfaults on different architectures in testing using `xarray.open_mfdataset`
-# See:
-# - https://github.com/pydata/xarray/issues/7079
-# - https://github.com/pydata/xarray/issues/3961
-#
-# Following advice on both those issues, we currently explicitly stop dask from trying
-# to use parallel file processing and use open_mfdataset(..., lock=False)
-dask.config.set(scheduler="single-threaded")
+# TODO: Model timing is currently used when writing the data to file to provide the
+#       datestamps of the time_index dimension. This should probably be passed to
+#       Data.__init__ so that it is available for all methods.
 
 
 class Data:
@@ -167,9 +163,18 @@ class Data:
             LOGGER.critical(to_raise)
             raise to_raise
 
+        # Local import to avoid circular import issue
+        from virtual_ecosystem.core.variables import (
+            VariableMetadata,
+            load_known_variables,
+        )
+
+        self.known_variables: dict[str, VariableMetadata] = load_known_variables()
+        """A dictionary of known variables."""
+
         self.grid: Grid = grid
         """The configured Grid to be used in a simulation."""
-        self.data = Dataset()
+        self.data = xr.Dataset()
         """The :class:`~xarray.Dataset` used to store data."""
         self.variable_validation: dict[str, dict[str, str | None]] = {}
         """Records validation details for loaded variables.
@@ -180,6 +185,8 @@ class Data:
         subclass applied to that axis. If no validator was applied, the entry for that
         core axis will be ``None``.
         """
+        self.time_index: int = 0
+        """Current time index, to be used to slice DataArrays with a time axis."""
 
     def __repr__(self) -> str:
         """Returns a representation of a Data instance."""
@@ -189,7 +196,7 @@ class Data:
 
         return "Data: no variables loaded"
 
-    def __setitem__(self, key: str, value: DataArray) -> None:
+    def __setitem__(self, key: str, value: xr.DataArray) -> None:
         """Load a data array into a Data instance.
 
         This method takes an input {class}`~xarray.DataArray` object and then matches
@@ -200,7 +207,11 @@ class Data:
         key.
 
         Note that the DataArray name is expected to match the standard internal variable
-        names used in Virtual Ecosystem.
+        names used in Virtual Ecosystem and this is enforced against the dictionary of
+        known variables.
+
+        The method also adds unit and description metadata to from the known variables
+        database to attributes as they are written to the data object.
 
         Args:
             key: The name to store the data under
@@ -210,29 +221,42 @@ class Data:
             TypeError: when the value is not a DataArray.
         """
 
-        if not isinstance(value, DataArray):
+        if not isinstance(value, xr.DataArray):
             to_raise = TypeError(
                 "Only DataArray objects can be added to Data instances"
             )
             LOGGER.critical(to_raise)
             raise to_raise
 
+        if key not in self.known_variables:
+            msg = f"Attempt to add unknown variable to data: '{key}'"
+            LOGGER.critical(msg)
+            raise ValueError(msg)
+
         if key not in self.data.data_vars:
             LOGGER.info(f"Adding data array for '{key}'")
         else:
             LOGGER.info(f"Replacing data array for '{key}'")
+
+        # Add variable_metadata from known variables database - these needs to be done
+        # for both adding and replacing variables as the science models do not attempt
+        # to persist array attributes during calculations.
+        variable = self.known_variables[key]
+        value.attrs.update({"unit": variable.unit, "description": variable.description})
 
         # Validate and store the data array
         value, valid_dict = validate_dataarray(value=value, grid=self.grid)
         self.data[key] = value
         self.variable_validation[key] = valid_dict
 
-    def __getitem__(self, key: str) -> DataArray:
-        """Get a given data variable from a Data instance.
+    def __getitem__(self, key: str) -> xr.DataArray:
+        """Get a given data variable at the current time index from a Data instance.
 
         This method looks for the provided key in the data variables saved in the `data`
-        attribute and returns the DataArray for that variable. Note that this is just a
-        shortcut: ``data_instance['var']`` is the same as ``data_instance.data['var']``.
+        attribute and returns the DataArray for that variable at the current time index,
+        if it has a `time_index` dimension. Note that this is just a shortcut:
+        ``data_instance['var']`` is the same as ``data_instance.data['var']`` for the
+        case where there is not a 'time_index`.
 
         Args:
             key: The name of the data variable to get
@@ -240,8 +264,13 @@ class Data:
         Raises:
             KeyError: if the data variable is not present
         """
+        value = self.data[key]
 
-        return self.data[key]
+        return (
+            value.isel(time_index=self.time_index)
+            if "time_index" in value.dims
+            else value
+        )
 
     def __contains__(self, key: str) -> bool:
         """Check if a given data variable is present in a Data instance.
@@ -255,6 +284,39 @@ class Data:
         """
 
         return key in self.data
+
+    def get_time_slice(self, variable: str, time_index: int) -> xr.DataArray:
+        """Get the variable and the chosen time_index.
+
+        Args:
+            variable: The name of the data variable to get.
+            time_index: The time index to get the data for.
+
+        Raises:
+            KeyError: if the data variable is not present.
+            ValueError: if the DataArray does not have a `time_index` dimension.
+        """
+        return self.data[variable].isel(time_index=time_index)
+
+    def get_time_series(self, variable: str) -> xr.DataArray:
+        """Get the variable whole time series information.
+
+        Args:
+            variable: The name of the data variable to get.
+
+        Raises:
+            KeyError: if the data variable is not present.
+            ValueError: if the DataArray does not have a `time_index` dimension.
+        """
+        value = self.data[variable]
+
+        if "time_index" not in value.dims:
+            raise ValueError(
+                "Time series requested for a variable without 'time_index' "
+                f"dimension: {variable}."
+            )
+
+        return value
 
     def on_core_axis(self, var_name: str, axis_name: str) -> bool:
         """Check core axis validation.
@@ -289,14 +351,16 @@ class Data:
 
         return True
 
-    def load_data_config(self, config: Config) -> None:
+    def load_data_config(self, config: CoreConfiguration) -> None:
         """Setup the simulation data from a user configuration.
 
         This is a method is used to validate a provided user data configuration and
         populate the Data instance object from the provided data sources. The
         data_config dictionary can contain a 'variable' key containing an array of
-        dictionaries providing the path to the file (``file``) and the
-        name of the variable within the file (``var_name``).
+        dictionaries providing the path to the file (``file_path``) and the name of the
+        variable within the file (``var_name``). The function groups variables by their
+        source file path, so that each file is only opened once to load the requested
+        variables.
 
         Args:
             config: A validated Virtual Ecosystem model configuration object.
@@ -304,126 +368,146 @@ class Data:
 
         LOGGER.info("Loading data from configuration")
 
-        # Check the data configuration is provided - note that the default configuration
-        # is to include cfg['core']['data'] = {} - so check first for something totally
-        # broken/
-        if ("core" not in config) or ("data" not in config["core"]):
-            msg = "Data configuration not found in config object."
-            LOGGER.critical(msg)
-            raise ConfigurationError(msg)
-
         # Track errors in loading multiple files from a configuration
-        data_config = config["core"]["data"]
-        data_source_types = ["variable", "constant", "generator"]
-        clean_load = True
+        data_config = config.data
 
-        # Check for an empty data configuration - do not make this an error or critical
-        # but do log it, so that users can trace back when variables are missing
-        if not set(data_source_types).intersection(data_config):
-            msg = "No data sources defined in the data configuration."
-            LOGGER.warning(msg)
+        # The previous code here tested for "constant" and "generator" data types, but
+        # since those are not yet implemented, this has been dropped
 
         # Handle variables
-        if "variable" in data_config:
-            # Check what name the data will be saved under but do then carry on to check
-            # for other loading problems
-            data_var_names = [v["var_name"] for v in data_config["variable"]]
+        if len(data_config.variable) == 0:
+            LOGGER.warning("No data sources defined in the data configuration.")
+            return
 
-            dupl_names = {
-                str(md) for md in data_var_names if data_var_names.count(md) > 1
-            }
-            if dupl_names:
-                LOGGER.error("Duplicate variable names in data configuration.")
+        clean_load = True
+
+        # Check what name the data will be saved under but do then carry on to check
+        # for other loading problems
+        data_var_names = [var.var_name for var in data_config.variable]
+
+        dupl_names = {str(md) for md in data_var_names if data_var_names.count(md) > 1}
+        if dupl_names:
+            LOGGER.error("Duplicate variable names in data configuration.")
+            clean_load = False
+
+        # Group variables by file
+        variables = list(data_config.variable)
+        variables.sort(key=lambda var: var.file_path)
+        file_groups = groupby(variables, key=lambda var: var.file_path)
+
+        # Load data from each data source
+        for file, file_vars in file_groups:
+            # Attempt to load the file, trapping exceptions as critical logger
+            # messages and defer failure until the whole configuration has been
+            # processed
+
+            try:
+                loaded_data = load_to_dataarray(
+                    file=Path(file),
+                    var_names=[var.var_name for var in file_vars],
+                )
+
+            except Exception as err:
+                LOGGER.error(str(err))
                 clean_load = False
-
-            # Load data from each data source
-            for each_var in data_config["variable"]:
-                # Attempt to load the file, trapping exceptions as critical logger
-                # messages and defer failure until the whole configuration has been
-                # processed
-                try:
-                    self[each_var["var_name"]] = load_to_dataarray(
-                        file=Path(each_var["file"]),
-                        var_name=each_var["var_name"],
-                    )
-                except Exception as err:
-                    LOGGER.error(str(err))
-                    clean_load = False
-
-        if "constant" in data_config:
-            msg = "Data config for constants not yet implemented."
-            LOGGER.critical(msg)
-            raise NotImplementedError(msg)
-
-        if "generator" in data_config:
-            msg = "Data config for generators not yet implemented."
-            LOGGER.critical(msg)
-            raise NotImplementedError(msg)
+            else:
+                for var_name, data_array in loaded_data.items():
+                    self[var_name] = data_array
 
         if not clean_load:
             msg = "Data configuration did not load cleanly - check log"
             LOGGER.critical(msg)
             raise ConfigurationError(msg)
 
-    def save_to_netcdf(
-        self, output_file_path: Path, variables_to_save: list[str] | None = None
+    def save_to_zarr(
+        self,
+        output_file_path: Path,
+        group: str | None = None,
+        variables_to_save: list[str] | None = None,
     ) -> None:
-        """Save the contents of the data object as a NetCDF file.
+        """Save variables from the data object to a Zarr store.
 
         Either the whole contents of the data object or specific variables of interest
         can be saved using this function.
 
         Args:
             output_file_path: Path location to save the Virtual Ecosystem model state.
-            variables_to_save: List of variables to be saved. If not provided then all
-                variables are saved.
+            group: A zarr group to export the data to.
+            variables_to_save: List of variables to be saved, defaulting to all
+                variables.
         """
 
-        # Check that the folder to save to exists and that there isn't already a file
-        # saved there
-        check_outfile(output_file_path)
-
-        # If the file path is okay then write the model state out as a NetCDF. Should
-        # check if all variables should be saved or just the requested ones.
+        # Check if all variables should be saved or just the requested ones.
         if variables_to_save:
-            self.data[variables_to_save].to_netcdf(output_file_path)
+            out = self.data[variables_to_save]
         else:
-            self.data.to_netcdf(output_file_path)
+            out = self.data
 
-    def save_timeslice_to_netcdf(
-        self, output_file_path: Path, variables_to_save: list[str], time_index: int
-    ) -> None:
-        """Save specific variables from current state of data as a NetCDF file.
+        # # Unstack cell_id back to XY
+        # out = out.set_index(cell_id=["y", "x"]).unstack("cell_id")
 
-        At present, this function save each time step individually. In future, this
-        function might be altered to append multiple time steps at once, as this could
-        improve performance significantly.
-
-        Args:
-            output_file_path: Path location to save NetCDF file to.
-            variables_to_save: List of variables to save in the file
-            time_index: The time index of the slice being saved
-
-        Raises:
-            ConfigurationError: If the file to save to can't be found
-        """
-
-        # Check that the folder to save to exists and that there isn't already a file
-        # saved there
-        check_outfile(output_file_path)
-
-        # Loop over variables adding them to the new dataset
-        time_slice = (
-            self.data[variables_to_save]
-            .expand_dims({"time_index": 1})
-            .assign_coords(time_index=[time_index])
+        out.to_zarr(
+            output_file_path, group=group, mode="a", consolidated=False, zarr_format=2
         )
 
-        # Save and close new dataset
-        time_slice.to_netcdf(Path(output_file_path))
-        time_slice.close()
+    def save_current_state_to_zarr(
+        self,
+        output_file_path: Path,
+        time_index: int,
+        timestamp: np.datetime64,
+        variables_to_save: list[str] = [],
+        group: str | None = None,
+    ) -> None:
+        """Export requested variables in current data state to ``zarr`` format.
 
-    def add_from_dict(self, output_dict: dict[str, DataArray]) -> None:
+        Args:
+            output_file_path: Path to the zarr data store.
+            time_index: The time index of the slice being saved
+            timestamp: The timestamp of the start of the timeslice
+            variables_to_save: An optional list of variables to be exported.
+            group: An optional zarr group to export the data to.
+        """
+
+        # Check if all variables should be saved or just the requested ones.
+        if variables_to_save:
+            out = self.data[variables_to_save]
+        else:
+            out = self.data
+
+        # Create a dataset with the added time dimension and timestamp
+        time_slice = out.expand_dims({"time_index": 1}).assign_coords(
+            time_index=[time_index]
+        )
+        time_slice["timestamp"] = xr.DataArray([timestamp], dims="time_index")
+
+        # # Collapse cell_id back to XY
+        # time_slice = time_slice.set_index(cell_id=["y", "x"]).unstack("cell_id")
+
+        # Save the variables to the zarr store, appending along time index after the
+        # first time step. Zarr format 2 is used here because format 3 doesn't currently
+        # handle fixed length strings, such as the PFT coords.
+        #
+        # TODO - will need to do something cleverer if we aren't writing all time steps
+        #        and potentially skipping zero. Create a flag on data that records if
+        #        any data has been written by this method
+        if time_index == 0:
+            time_slice.to_zarr(
+                output_file_path,
+                group=group,
+                mode="a",
+                consolidated=False,
+                zarr_format=2,
+            )
+        else:
+            time_slice.to_zarr(
+                output_file_path,
+                group=group,
+                append_dim="time_index",
+                consolidated=False,
+                zarr_format=2,
+            )
+
+    def add_from_dict(self, output_dict: dict[str, xr.DataArray]) -> None:
         """Update data object from dictionary of variables.
 
         This function takes a dictionary of updated variables to replace the
@@ -440,84 +524,6 @@ class Data:
 
         for variable in output_dict:
             self[variable] = output_dict[variable]
-
-    def output_current_state(
-        self,
-        variables_to_save: list[str],
-        data_options: dict[str, Any],
-        time_index: int,
-    ) -> Path:
-        """Method to output the current state of the data object.
-
-        This function outputs all variables stored in the data object, except for any
-        data with a "time_index" dimension defined (at present only climate input data
-        has this). This data can either be saved as a new file or appended to an
-        existing file.
-
-        Args:
-            variables_to_save: List of variables to save
-            data_options: Set of options concerning what to output and where
-            time_index: The index representing the current time step in the data object.
-
-        Raises:
-            ConfigurationError: If the final output directory doesn't exist, isn't a
-               directory, or the final output file already exists (when in new file
-               mode). If the file to append to is missing (when not in new file mode).
-
-        Returns:
-            A path to the file that the current state is saved in
-        """
-
-        # Create output file path for specific time index
-        out_path = (
-            Path(data_options["out_folder_continuous"])
-            / f"continuous_state{time_index:05}.nc"
-        )
-
-        # Save the required variables by appending to existing file
-        self.save_timeslice_to_netcdf(out_path, variables_to_save, time_index)
-
-        return out_path
-
-
-def merge_continuous_data_files(
-    data_options: dict[str, Any], continuous_data_files: list[Path]
-) -> None:
-    """Merge all continuous data files in a folder into a single file.
-
-    This function deletes all of the continuous output files it has been asked to merge
-    once the combined output is saved.
-
-    Args:
-        data_options: Set of options concerning what to output and where
-        continuous_data_files: Files containing previously output continuous data
-
-    Raises:
-        ConfigurationError: If output folder doesn't exist or if it output file already
-            exists
-    """
-
-    # Path to folder containing the continuous output (that merged file should be saved
-    # to)
-    out_path = (
-        Path(data_options["out_folder_continuous"])
-        / data_options["out_continuous_file_name"]
-    )
-
-    # Check that output file doesn't already exist
-    check_outfile(out_path)
-
-    # Open all files as a single dataset
-    with open_mfdataset(continuous_data_files, lock=False) as all_data:
-        # Specify type of the layer roles object to allow for quicker saving by dask
-        all_data["layer_roles"] = all_data["layer_roles"].astype("S9")
-
-        # Save and close complete dataset
-        all_data.to_netcdf(out_path)
-
-    # Iterate over all continuous files and delete them
-    for file_path in continuous_data_files:
-        file_path.unlink()
 
 
 class DataGenerator:
@@ -537,3 +543,40 @@ class DataGenerator:
         **kwargs: Any,
     ) -> None:
         pass
+
+
+def convert_zarr_outputs_to_netcdf(zarr_store: Path) -> Path:
+    """Convert the model outputs from a Zarr store to NetCDF.
+
+    This utility function reads in the groups in the Zarr store generated by ``ve_run``
+    and converts them into a grouped NetCDF file. The function also stacks the internal
+    `cell_id` dimension used by ``ve_run`` back into the original ``x`` and ``y``
+    dimensions.
+
+    Returns:
+        The path of the converted NetCDF file
+
+    Args:
+        zarr_store: Path to an output Zarr store generated by ``ve_run``
+    """
+
+    # Open the Zarr outputs as a dictionary of groups, specifying the engine to avoid
+    # problems with autodetection of file format in Windows.
+    data = xr.open_groups(zarr_store, consolidated=False, engine="zarr")
+
+    # Loop over groups
+    for group, dataset in data.items():
+        # Skip the empty root group
+        if group == "/":
+            continue
+        # Unstacking cell id to XY in dimensions.
+        data[group] = data[group].set_index(cell_id=["y", "x"]).unstack("cell_id")
+
+        # Reverse the y coordinates
+        data[group] = data[group].isel(y=slice(None, None, -1))
+
+    # Turn the dictionary of groups into a data tree and export.
+    nc_file = zarr_store.with_suffix(".nc")
+    xr.DataTree.from_dict(data).to_netcdf(nc_file)
+
+    return nc_file

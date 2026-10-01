@@ -1,4 +1,29 @@
-# The Virtual Ecosystem science models
+---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.19.5
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.12
+---
+
+# The science models
 
 This page provides an overview of the implementations of each science model. These
 descriptions are intentionally brief to allow you to see all of the different science
@@ -15,23 +40,28 @@ drive the dynamics of plants, animals, and microbes at different vertical levels
 
 - above canopy (canopy height + reference measurement height, typically 2 m)
 - canopy (dynamic heights provided by plant model)
-- surface (10 cm above ground)
+- surface (10 cm above ground, including understorey vegetation)
 - topsoil (25 cm below ground)
 - subsoil (minimum of one layer at 1 m depth)
 
-At the moment, the default option is the
-[abiotic_simple](../../api/models/abiotic_simple.md) model, a simple regression
+The [abiotic_simple](../../api/models/abiotic_simple.md) model is a simple regression
 model that estimates microclimatic variables based on empirical data for a monthly
-model timestep.
-In parallel, we are working on a process-based
-[abiotic](../../api/models/abiotic.md) model, which will provide microclimate on
-a (sub-)daily resolution. Both versions of the abiotic model provide the following key
+model timestep. It can be used for quick simulations and it is used to initialise the
+process-based abiotic model.
+
+The process-based [abiotic](../../api/models/abiotic.md) model is the default model in
+`ve_run`. At the moment, the model solves energy balance equantions assuming steady
+state; in the future we plan to run this model with a (sub-)daily resolution to capture
+diurnal cycles and weather extremes.
+
+Both versions of the abiotic model provide the following key
 variables at relevant vertical levels:
 
 - Air temperature (°C), relative humidity (-), and vapour pressure deficit (VPD, kPa)
 - Soil temperature (°C)
 - Atmospheric $\ce{CO_{2}}$ concentration (ppm)
 - Atmospheric Pressure (kPa)
+- Wind speed (m s-1)
 
 ### Simple Abiotic Model
 
@@ -39,7 +69,7 @@ The [abiotic_simple](../../api/models/abiotic_simple.md) model is a one-column m
 that operates on a grid cell basis and does not consider horizontal exchange of energy,
 atmospheric water, and momentum. The model uses linear regressions from
 {cite}`hardwick_relationship_2015` and {cite}`jucker_canopy_2018` to predict
-atmospheric temperature, relative humidity, and vapour pressure deficit
+atmospheric temperature, relative humidity, wind speed, and vapour pressure deficit
 at ground level (1.5 m) given the above canopy conditions and leaf area index of
 intervening canopy. A vertical profile across all atmospheric layers is then
 interpolated using a logarithmic curve between the above canopy observation and ground
@@ -50,42 +80,36 @@ atmospheric $\ce{CO_{2}}$ based on external inputs.
 
 ### Process-based Abiotic Model
 
-The process-based [abiotic](../../api/models/abiotic.md) model will contain a sub-daily
+The process-based [abiotic](../../api/models/abiotic.md) model contains a
 mechanistic representation of the radiation balance, the energy
-balance, and wind profiles. Submodules will be closely coupled to the hydrology and
-plants models through the exchange of energy and water. The model will also provides a
+balance, and wind profiles. Submodules are closely coupled to the hydrology and
+plants models through the exchange of energy and water. The model also provides a
 constant vertical profile of atmospheric pressure and atmospheric $\ce{CO_{2}}$ based on
-external inputs. Most processes will be calculated on a per grid cell basis; horizontal
-exchange of properties will be considered at a later stage. The first model draft is
-loosely based on the 'microclimc' model by {cite}`maclean_microclimc_2021`.
+external inputs. Most processes are calculated on a per grid cell basis; horizontal
+exchange of properties will be considered at a later stage.
 
 ```{note}
 Some of the features described here are not yet implemented.
 ```
 
-#### Radiation balance
+#### Radiation and Energy balance
 
-The radiation balance submodule will calculate location-specific solar irradiance
-(shortwave), reflection and scattering of shortwave radiation from canopy and surface, a
-vertical profile of net shortwave radiation, and outgoing longwave radiation from canopy
-and surface. A basic version of the surface and canopy radiation balance is currently
-included in the energy balance submodule.
-
-#### Energy balance
-
-The [energy balance](../../api/models/abiotic/energy_balance.md) and
-[soil energy balance](../../api/models/abiotic/soil_energy_balance.md) submodules will
-derive sensible and latent heat fluxes from canopy layers and surface to the atmosphere.
+The [microclimate](../../api/models/abiotic/microclimate.md) submodule contains the
+equations to solve the radiation and energy balance in the Virtual Ecosystem.
+This includes the radiation balance with reflection and scattering of shortwave
+radiation from canopy and surface, a vertical profile of net shortwave radiation, and
+outgoing longwave radiation from canopy and surface.
+The net radiation is then partitioned in sensible and latent heat fluxes from canopy
+layers and surface to the atmosphere.
 Part of the net radiation will be converted into soil heat flux. Based on these
 turbulent fluxes, air temperature, canopy temperature, relative humidity, and soil
-temperature will be updated simultaneously at each level. The vertical mixing between
-layers is assumed to be driven by
-[heat conductance](../../api/models/abiotic/conductivities.md) because turbulence is
+temperature will be updated at each level. The vertical mixing between
+layers is assumed to be driven by heat conductance because turbulence is
 typically low below the canopy {cite}`maclean_microclimc_2021`.
 
 #### Wind
 
-The [wind](../../api/models/abiotic/wind.md) submodule will calculate the above- and
+The microclimate submodule will also calculate the above- and
 within-canopy wind profiles for the Virtual Ecosystem. These profiles determine the
 exchange of heat and water between soil and atmosphere below the canopy
 as well as the exchange with the atmosphere above the canopy.
@@ -95,7 +119,7 @@ as well as the exchange with the atmosphere above the canopy.
 The [hydrology](../../api/models/hydrology.md) model simulates the hydrological
 processes in the Virtual Ecosystem. We placed hydrology in a separate model to allow
 easy replacement with a different hydrology model. Also, this separation provides more
-flexibility in defining the order of models an/or processes in the overall Virtual
+flexibility in defining the order of models and/or processes in the overall Virtual
 Ecosystem workflow.
 
 ```{note}
@@ -117,8 +141,8 @@ The model is loosely based on the LISFLOOD model {cite}`van_der_knijff_lisflood_
 
 The second part of the hydrology model calculates the horizontal water movement across
 the full model grid including accumulated surface runoff and sub-surface flow, and river
-discharge rate, [see](../../api/models/hydrology/above_ground.md). The flow direction is
-based on a digital elevation model.
+discharge rate, see [above ground details](../../api/models/hydrology/above_ground.md).
+The flow direction is based on a digital elevation model.
 
 ## Plant Model
 
@@ -132,7 +156,7 @@ primary productivity (GPP). The P Model requires estimates of the following driv
 - Atmospheric pressure (Pa)
 - Atmospheric $\ce{CO_{2}}$ concentration (parts per million)
 - Fraction of absorbed photosynthetically active radiation ($F_{APAR}$, unitless)
-- Photosynthetic photon flux density (PPFD, $\mu \text{mol}, m^{-2}, s^{-1}$)
+- Downward shortwave radiation (DSR, $\text{W}, m^{-2}$)
 
 GPP is then allocated to plant maintenance, respiration and growth using the T Model
 {cite}`li_simulation_2014`.
@@ -159,8 +183,8 @@ The Carbon cycle uses as its basic structure a recently described soil-pool mode
 the Millennial model {cite}`abramoff_millennial_2018`. This model splits carbon into
 five separate pools: particulate organic matter, low molecular weight carbon (LMWC),
 mineral associated organic matter, aggregates and microbial biomass. Though plant root
-exudates feed directly into the LMWC pool, most biomass input will less direct and occur
-via litter decomposition. Thus, we utilize a common set of litter pools
+exudates feed directly into the LMWC pool, most biomass input is direct less direct and
+occurs via litter decomposition. Thus, we utilize a common set of litter pools
 {cite}`kirschbaum_modelling_2002`, that are divided between above- and below-ground
 pools, and by biomass source (e.g. deadwood).
 
@@ -183,8 +207,8 @@ occluded phosphorus which is irrecoverably bound within a mineral structure.
 
 ### Further details
 
-Further theoretical background for the Soil Model can be found
-[here](../theory/soil_theory.md).
+A separate page documents the [further theoretical background for the Soil
+Model](../theory/soil/summary.md).
 
 ## Animal Model
 

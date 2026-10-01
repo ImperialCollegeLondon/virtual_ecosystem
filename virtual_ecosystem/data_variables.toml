@@ -2,7 +2,7 @@
 axis = [] # ["community_id", "functional_group_id"]
 description = "Density of animal populations."
 name = "population_densities"
-unit = "???"
+unit = "individual m-2"
 variable_type = "float"
 
 [[variable]]
@@ -23,6 +23,20 @@ variable_type = "float"
 axis = ["spatial", "time"]
 description = "Air temperature at reference height (2m)"
 name = "air_temperature_ref"
+unit = "C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Diurnal air and soil temperature range"
+name = "diurnal_temperature_range"
+unit = "C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Diurnal air temperature range at reference height"
+name = "diurnal_temperature_range_ref"
 unit = "C"
 variable_type = "float"
 
@@ -85,8 +99,8 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "Shortwave radiation absorbed by individual canopy layers"
-name = "canopy_absorption"
-unit = ""
+name = "shortwave_absorption"
+unit = "W m-2"
 variable_type = "float"
 
 [[variable]]
@@ -115,6 +129,13 @@ axis = ["spatial"]
 description = "Conductivity from soil"
 name = "conductivity_from_soil"
 unit = "mol m-2 s-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Condensated water from supersaturation in the atmosphere"
+name = "condensation"
+unit = "mm"
 variable_type = "float"
 
 [[variable]]
@@ -154,8 +175,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Evapotranspiration"
-name = "evapotranspiration"
+description = "Transpiration from the canopy and subcanopy"
+name = "transpiration"
 unit = "mm"
 variable_type = "float"
 
@@ -170,6 +191,13 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Ground heat flux"
 name = "ground_heat_flux"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Conductive flux between soil and understorey"
+name = "conductive_flux_understorey"
 unit = "W m-2"
 variable_type = "float"
 
@@ -210,6 +238,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Intercepted rainfall in canopy"
+name = "interception"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Leaf air heat conductivity"
 name = "leaf_air_heat_conductivity"
 unit = "mol m-2 s-1"
@@ -231,15 +266,29 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Longwave radiation from individual canopy layers"
+description = "Longwave emission from individual canopy layers"
 name = "longwave_canopy"
 unit = "W m-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Longwave radiation from topsoil layer"
+description = "Longwave emission from topsoil layer"
 name = "longwave_emission_soil"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Longwave emission"
+name = "longwave_emission"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Absorbed longwave radiation in all flux layers"
+name = "absorbed_longwave_radiation"
 unit = "W m-2"
 variable_type = "float"
 
@@ -266,8 +315,29 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Temperature-dependent molar density of air"
-name = "molar_density_air"
+description = "Turbulent mixing coefficient"
+name = "mixing_coefficient"
+unit = "s-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "ventilation rate between top of canopy and atmosphere above"
+name = "ventilation_rate"
+unit = "s-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Net radiation"
+name = "net_radiation"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Temperature-dependent density of air"
+name = "density_air"
 unit = "kg m-3"
 variable_type = "float"
 
@@ -280,9 +350,16 @@ variable_type = ""
 
 [[variable]]
 axis = ["spatial", "time"]
-description = "Top of canopy photosynthetic photon flux density (PPFD)"
-name = "photosynthetic_photon_flux_density"
-unit = "umol m-2 s-1"
+description = "Top of canopy downward shortwave radiation (DSR)"
+name = "downward_shortwave_radiation"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial", "time"]
+description = "Top of canopy downward longwave radiation (DLR)"
+name = "downward_longwave_radiation"
+unit = "W m-2"
 variable_type = "float"
 
 [[variable]]
@@ -329,9 +406,23 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Aerodynamic resistance surface"
-name = "aerodynamic_resistance_surface"
-unit = "kg m2 s-3"
+description = "Aerodynamic resistance soil"
+name = "aerodynamic_resistance_soil"
+unit = "s m-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Aerodynamic resistance canopy"
+name = "aerodynamic_resistance_canopy"
+unit = "s m-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Canopy evaporation"
+name = "canopy_evaporation"
+unit = "mm"
 variable_type = "float"
 
 [[variable]]
@@ -385,8 +476,15 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Accumulated subsurface flow"
-name = "subsurface_flow_accumulated"
+description = "Subsurface flow contributing to river discharge in each grid cell"
+name = "subsurface_runoff_routed_plus_local"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Subsurface stormflow contributing to river discharge in each grid cell"
+name = "subsurface_stormflow"
 unit = "mm"
 variable_type = "float"
 
@@ -401,6 +499,41 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Soil moisture"
 name = "soil_moisture"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Snowfall as part of total precipitation"
+name = "snowfall"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Snow water equivalent is the depth of liquid water that would result if an entire snowpack melted instantly"
+name = "snow_water_equivalent"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Temperature driven snow melt"
+name = "temperature_driven_snowmelt"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rain driven snow melt"
+name = "rain_driven_snowmelt"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Sublimation is the process where snow turns directly from a solid (ice) into a gas (water vapor) without melting into liquid first"
+name = "sublimation_snow"
 unit = "mm"
 variable_type = "float"
 
@@ -422,7 +555,7 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Specific heat of air"
 name = "specific_heat_air"
-unit = "kJ kg-1"
+unit = "J kg-1 K-1"
 variable_type = "float"
 
 [[variable]]
@@ -462,8 +595,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Accumlated surface runoff"
-name = "surface_runoff_accumulated"
+description = "Surface runoff contributing to river discharge in each grid cell"
+name = "surface_runoff_routed_plus_local"
 unit = "mm"
 variable_type = "float"
 
@@ -476,8 +609,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Total river discharge"
-name = "total_river_discharge"
+description = "Total runoff through each grid cell"
+name = "total_runoff"
 unit = "mm"
 variable_type = "float"
 
@@ -532,51 +665,100 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Zero displacement height"
-name = "zero_displacement_height"
+description = "Zero plane displacement height"
+name = "zero_plane_displacement"
 unit = "m"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil low molecular weight carbon pool"
-name = "soil_c_pool_lmwc"
-unit = "kg C m-3"
+description = "Soil low molecular weight organic pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_lmwc"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil mineral associated organic matter pool "
-name = "soil_c_pool_maom"
-unit = "kg C m-3"
+description = "Soil mineral associated organic matter pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_maom"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil microbial biomass (carbon) pool"
-name = "soil_c_pool_microbe"
-unit = "kg C m-3"
+description = "Soil bacterial biomass (carbon) pool"
+name = "soil_c_pool_bacteria"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Particulate organic matter pool"
-name = "soil_c_pool_pom"
-unit = "kg C m-3"
+description = "Soil saprotrophic fungal biomass (carbon) pool"
+name = "soil_c_pool_saprotrophic_fungi"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Necrotic organic matter pool"
-name = "soil_c_pool_necromass"
-unit = "kg C m-3"
+description = "Soil arbuscular mycorrhizal fungal biomass (carbon) pool"
+name = "soil_c_pool_arbuscular_mycorrhiza"
+unit = "kg{C} m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Bulk density of soil"
-name = "bulk_density"
-unit = "kg m-3"
+description = "Soil ectomycorrhizal fungal biomass (carbon) pool"
+name = "soil_c_pool_ectomycorrhiza"
+unit = "kg{C} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Particulate organic matter pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_pom"
+unit = "kg m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Necrotic organic matter pool. Carbon, nitrogen and phosphorous content"
+name = "soil_cnp_pool_necromass"
+unit = "kg m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of nitrogen contained in the soil ammonium (NH4+) pool"
+name = "soil_n_pool_ammonium"
+unit = "kg{N} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of nitrogen contained in the soil nitrate (NO3-) pool"
+name = "soil_n_pool_nitrate"
+unit = "kg{N} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of phosphorus in a primary mineral form"
+name = "soil_p_pool_primary"
+unit = "kg{P} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of inorganic phosphorus that is associated with secondary minerals"
+name = "soil_p_pool_secondary"
+unit = "kg{P} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of inorganic phosphorus that is in a labile form"
+name = "soil_p_pool_labile"
+unit = "kg{P} m^-3"
 variable_type = "float"
 
 [[variable]]
@@ -588,238 +770,336 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Above ground metabolic litter pool"
-name = "litter_pool_above_metabolic"
-unit = "kg C m^-2"
+description = "Above ground metabolic litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_above_metabolic_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Above ground structural litter pool"
-name = "litter_pool_above_structural"
-unit = "kg C m^-2"
+description = "Above ground structural litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_above_structural_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Woody litter pool"
-name = "litter_pool_woody"
-unit = "kg C m^-2"
+description = "Woody litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_woody_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Below ground metabolic litter pool"
-name = "litter_pool_below_metabolic"
-unit = "kg C m^-2"
+description = "Below ground metabolic litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_below_metabolic_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Below ground structural litter pool"
-name = "litter_pool_below_structural"
-unit = "kg C m^-2"
+description = "Below ground structural litter pool, carbon, nitrogen and phosphorus mass"
+name = "litter_pool_below_structural_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of carbon addition to soil from litter"
-name = "litter_C_mineralisation_rate"
-unit = "kg C m^-3 day^-1"
+description = "Rate of carbon, nitrogen and phosphorus addition to soil from litter"
+name = "litter_mineralisation_rate_cnp"
+unit = "kg m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of nitrogen addition to soil from litter"
-name = "litter_N_mineralisation_rate"
-unit = "kg N m^-3 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Proportion of above ground structural pool which is lignin"
+description = "Proportion of above ground structural litter carbon which is lignin carbon"
 name = "lignin_above_structural"
-unit = "kg lignin kg C^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Proportion of below ground structural pool which is lignin"
+description = "Proportion of below ground structural litter carbon which is lignin carbon"
 name = "lignin_below_structural"
-unit = "kg lignin kg C^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Proportion of dead wood pool which is lignin"
+description = "Proportion of dead wood carbon which is lignin carbon"
 name = "lignin_woody"
-unit = "kg lignin kg C^-1"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Carbon nitrogen ratio of above ground metabolic pool"
-name = "c_n_ratio_above_metabolic"
-unit = "-"
+description = "Flow rates of carbon, nitrogen and phosphorous into the soil due to animal excrement decay"
+name = "decomposed_excrement_cnp"
+unit = "kg m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Carbon nitrogen ratio of above ground structural pool"
-name = "c_n_ratio_above_structural"
-unit = "-"
+description = "Flow rates of carbon, nitrogen and phosphorous into the soil due to animal carcass decay"
+name = "decomposed_carcasses_cnp"
+unit = "kg m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Carbon nitrogen ratio of below ground metabolic pool"
-name = "c_n_ratio_below_metabolic"
-unit = "-"
+description = "Carbon, nitrogen and phosphorus mass added to the above ground litter due to herbivore mechanical inefficiency"
+name = "herbivory_waste_above_cnp"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Carbon nitrogen ratio of below ground structural pool"
-name = "c_n_ratio_below_structural"
-unit = "-"
+description = "Proportion of leaf carbon added to the above ground litter due to herbivore mechanical inefficiency that is lignin carbon"
+name = "herbivory_waste_above_lignin"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Carbon nitrogen ratio of woody litter pool"
-name = "c_n_ratio_woody"
-unit = "-"
+description = "Carbon, nitrogen and phosphorus mass added to the below ground litter due to herbivore mechanical inefficiency"
+name = "herbivory_waste_below_cnp"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of excrement flow from animals into litter"
-name = "decomposed_excrement"
+description = "Proportion of leaf carbon added to the below ground litter due to herbivore mechanical inefficiency that is lignin carbon"
+name = "herbivory_waste_below_lignin"
+unit = "unitless"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of above-ground metabolic litter that has been consumed by animals, in carbon, nitrogen and phosphorus terms"
+name = "litter_consumed_above_metabolic_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of above-ground structural litter that has been consumed by animals, in carbon, nitrogen and phosphorus terms"
+name = "litter_consumed_above_structural_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of woody litter that has been consumed by animals, in carbon, nitrogen and phosphorus terms"
+name = "litter_consumed_woody_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of below-ground metabolic litter that has been consumed by animals, in carbon, nitrogen and phosphorus terms"
+name = "litter_consumed_below_metabolic_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of below-ground structural litter that has been consumed by animals, in carbon, nitrogen and phosphorus terms"
+name = "litter_consumed_below_structural_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which carbon, nitrogen and phosphorus components of soil particulate organic matter are consumed by animals"
+name = "animal_pom_consumption_cnp"
+unit = "kg m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which soil bacteria are being consumed by animals"
+name = "animal_bacteria_consumption"
 unit = "kg C m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of decomposed carcass biomass flow from animals into litter"
-name = "decomposed_carcasses"
+description = "Rate at which saprotrophic soil fungi are being consumed by animals"
+name = "animal_saprotrophic_fungi_consumption"
 unit = "kg C m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of dead wood produced since last update"
-name = "deadwood_production"
-unit = "kg C m^-2"
+description = "Rate at which ectomycorrhizal soil fungi are being consumed by animals"
+name = "animal_ectomycorrhiza_consumption"
+unit = "kg C m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Leaf turnover since last update"
-name = "leaf_turnover"
-unit = "kg C m^-2"
+description = "Rate at which arbuscular mycorrhizal soil fungi are being consumed by animals"
+name = "animal_arbuscular_mycorrhiza_consumption"
+unit = "kg C m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Plant reproductive tissue (fruits and flowers) turnover since last update"
-name = "plant_reproductive_tissue_turnover"
-unit = "kg C m^-2"
+description = "Density (of carbon, nitrogen and phosphorous) of fungal fruiting bodies growing from the soil"
+name = "fungal_fruiting_bodies_cnp"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Root turnover since last update"
-name = "root_turnover"
-unit = "kg C m^-2"
+description = "Mass (carbon, nitrogen and phosphorous) of fungal fruiting bodies consumed by animals"
+name = "fungal_fruiting_bodies_consumed_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"] # ["spatial", "pft"]
+description = "Per cell counts of propagules for each plant functional type"
+name = "plant_pft_propagules"
+unit = "count"
+variable_type = "integer"
+
+[[variable]]
+axis = ["spatial"]
+description = "Proportion of stem carbon that is lignin carbon"
+name = "stem_lignin"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of deadwood"
-name = "deadwood_lignin"
-unit = "kg lignin kg C^-1"
+description = "Proportion of carbon in leaf turnover that is lignin carbon"
+name = "senesced_leaf_lignin"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Lignin proportion of leaf turnover"
-name = "leaf_turnover_lignin"
-unit = "kg lignin kg C^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Lignin proportion of plant reproductive tissue turnover"
-name = "plant_reproductive_tissue_turnover_lignin"
-unit = "kg lignin kg C^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Lignin proportion of root turnover"
-name = "root_turnover_lignin"
-unit = "kg lignin kg C^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon:nitrogen ratio of deadwood"
-name = "deadwood_c_n_ratio"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon:nitrogen ratio of leaf turnover"
-name = "leaf_turnover_c_n_ratio"
-unit = "-"
+description = "Proportion of carbon in root turnover that is lignin carbon"
+name = "root_lignin"
+unit = "unitless"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Carbon:nitrogen ratio of plant reproductive tissue turnover"
-name = "plant_reproductive_tissue_turnover_c_n_ratio"
+name = "fruit_seed_c_n_ratio"
 unit = "-"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Carbon:nitrogen ratio of root turnover"
-name = "root_turnover_c_n_ratio"
+description = "Carbon:phosphorus ratio of plant reproductive tissue turnover"
+name = "fruit_seed_c_p_ratio"
 unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = [] # as_yet_undefined_cohort_setup_axis
-description = "Cell ID of plant cohorts"
-name = "plant_cohorts_cell_id"
-unit = "-"
-variable_type = "int"
-
-[[variable]]
-axis = [] # as_yet_undefined_cohort_setup_axis
-description = "Plant functional type of plant cohorts"
-name = "plant_cohorts_pft"
-unit = "-"
-variable_type = "str"
-
-[[variable]]
-axis = [] # as_yet_undefined_cohort_setup_axis
-description = "Number of individuals in a plant cohort"
-name = "plant_cohorts_n"
-unit = "-"
-variable_type = "int"
-
-[[variable]]
-axis = [] # as_yet_undefined_cohort_setup_axis
-description = "Diameter at breast height of individuals in plant cohorts"
-name = "plant_cohorts_dbh"
-unit = "m"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "The fraction of clay in soil"
+description = "Biomasses (CNP) of plant fruit tissue turnover"
+name = "fruit_turnover_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Biomasses of plant seed tissue turnover"
+name = "seed_turnover_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants are supplying carbon to their soil-living symbiotic partners"
+name = "plant_symbiote_carbon_supply"
+unit = "kg C m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants exude carbohydrates from their roots into the soil"
+name = "root_carbohydrate_exudation"
+unit = "kg C m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Concentration of dissolved nitrate in the topsoil layer"
+name = "dissolved_nitrate"
+unit = "kg{N} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Concentration of dissolved ammonium in the topsoil layer"
+name = "dissolved_ammonium"
+unit = "kg{N} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Concentration of dissolved labile inorganic phosphorus in the topsoil layer"
+name = "dissolved_phosphorus"
+unit = "kg{P} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of nitrogen provided by arbuscular mycorrhizal fungi to their plant partners"
+name = "arbuscular_mycorrhizal_n_supply"
+unit = "kg{N}"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of phosphorous provided by arbuscular mycorrhizal fungi to their plant partners"
+name = "arbuscular_mycorrhizal_p_supply"
+unit = "kg{P}"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of nitrogen provided by ectomycorrhizal fungi to their plant partners"
+name = "ectomycorrhizal_n_supply"
+unit = "kg{N}"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of phosphorous provided by ectomycorrhizal fungi to their plant partners"
+name = "ectomycorrhizal_p_supply"
+unit = "kg{P}"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants uptake ammonium from the soil"
+name = "plant_ammonium_uptake"
+unit = "kg N m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants uptake nitrate from the soil"
+name = "plant_nitrate_uptake"
+unit = "kg N m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants uptake labile inorganic phosphorus from the soil"
+name = "plant_phosphorus_uptake"
+unit = "kg P m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "The fraction of clay in soil. This is a proportion between 0 and 1."
 name = "clay_fraction"
 unit = "-"
 variable_type = "float"
@@ -833,21 +1113,290 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "The leaf mass within each canopy layer."
-name = "layer_leaf_mass"
+description = "Amount of bacterial enzyme class which breaks down particulate organic matter"
+name = "soil_enzyme_pom_bacteria"
+unit = "kg{C} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of bacterial enzyme class which breaks down mineral associated organic matter"
+name = "soil_enzyme_maom_bacteria"
+unit = "kg{C} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of fungal enzyme class which breaks down particulate organic matter"
+name = "soil_enzyme_pom_fungi"
+unit = "kg{C} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of fungal enzyme class which breaks down mineral associated organic matter"
+name = "soil_enzyme_maom_fungi"
+unit = "kg{C} m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Proportion of subcanopy vegetation litter carbon that is lignin carbon."
+name = "subcanopy_vegetation_litter_lignin"
+unit = "unitless"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Proportion of subcanopy seedbank litter carbon that is lignin carbon"
+name = "subcanopy_seedbank_litter_lignin"
+unit = "unitless"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Uptake of ammonium by subcanopy transpiration"
+name = "subcanopy_ammonium_uptake"
 unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of enzyme class which breaks down particulate organic matter"
-name = "soil_enzyme_pom"
-unit = "kg C m^-3"
+description = "Uptake of nitrate by subcanopy transpiration"
+name = "subcanopy_nitrate_uptake"
+unit = "kg"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of enzyme class which breaks down mineral associated organic matter"
-name = "soil_enzyme_maom"
-unit = "kg C m^-3"
+description = "Uptake of phosphorous by subcanopy transpiration"
+name = "subcanopy_phosphorus_uptake"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses for stem turnover in a given timestep"
+name = "stem_turnover_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses for foliage turnover in a given timestep"
+name = "foliage_turnover_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses for root turnover in a given timestep"
+name = "root_turnover_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses for subcanopy turnover in a given timestep"
+name = "subcanopy_vegetation_litter_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"] # elements
+description = "C, N, and P masses for subcanopy vegetation"
+name = "subcanopy_vegetation_cnp"
+unit = "kg m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses of subcanopy vegetation consumed by animals."
+name = "subcanopy_vegetation_cnp_consumed"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses for the ground seedbank"
+name = "subcanopy_seedbank_litter_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses of subcanopy seedbank consumed by animals."
+name = "subcanopy_seedbank_cnp_consumed"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"] # elements
+description = "C, N, and P masses for the subcanopy seedbank CNP"
+name = "subcanopy_seedbank_cnp"
+unit = "kg m2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P mass of each seed PFT"
+name = "canopy_seed_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Average C, N, and P masses of each fruit per PFT in the canopy"
+name = "canopy_fruit_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P mass of fallen fruit for each PFT"
+name = "fallen_fruit_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses of fallen seeds for each a PFT"
+name = "fallen_seeds_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy foliage"
+name = "canopy_foliage_cnp"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy foliage consumed by animals"
+name = "canopy_foliage_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy seed consumed by animals"
+name = "canopy_seed_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P of canopy fruit consumed by animals"
+name = "canopy_fruit_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses of fallen seeds consumed by animals"
+name = "fallen_seeds_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "C, N, and P masses of fallen fruit consumed by animals"
+name = "fallen_fruit_cnp_consumed"
+unit = "kg"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate of decay (C, N, and P) of fallen fruit into the soil"
+name = "fallen_fruit_decay_cnp"
+unit = "kg m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Light use efficiency of the P Model."
+name = "light_use_efficiency"
+unit = "gC mol-1"
+variable_type = "float"
+
+## Everything below here added 2026-01-26 by David to meet new requirements for 
+## variables to actually be known
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "fallen_n_propagules"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "canopy_n_propagules"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "canopy_non_propagule_c_mass"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "sensible_heat_flux_topofcanopy"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "surface_runoff_accumulated"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION"
+name = "molar_density_air"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION - I THINK THIS MIGHT BE AN OUTDATED INPUT INTO ANIMALS"
+name = "subsurface_flow_accumulated"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION - I THINK THIS MIGHT BE AN OUTDATED INPUT INTO ANIMALS"
+name = "zero_displacement_height"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION - I THINK THIS MIGHT BE AN OUTDATED INPUT INTO ANIMALS"
+name = "aerodynamic_resistance_surface"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION - I THINK THIS MIGHT BE AN OUTDATED INPUT INTO ANIMALS"
+name = "absorbed_radiation"
+unit = "NEEDS UNIT"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "NEEDS DESCRIPTION - I THINK THIS MIGHT BE AN OUTDATED INPUT INTO ANIMALS"
+name = "evapotranspiration"
+unit = "NEEDS UNIT"
 variable_type = "float"

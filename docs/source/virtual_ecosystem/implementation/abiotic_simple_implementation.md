@@ -5,100 +5,110 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.2
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.12
 ---
 
-# The abiotic simple model implementation
+# The abiotic simple model
 
 This section walks through the steps in generating and updating the
 [abiotic_simple](virtual_ecosystem.models.abiotic_simple.abiotic_simple_model)
-model which is currently the default abiotic model version in the Virtual Ecosystem
-configuration.
+model.
 
 ## Required variables
 
 The abiotic_simple model requires a timeseries of the following variables to
-initialise and update the model. Please check also the
-[notes on climate data pre-processing](../../using_the_ve/data/notes_preprocessing.md).
+initialise and update the model.
 
-```{code-cell} ipython3
----
-tags: [remove-input]
-mystnb:
-  markdown_format: myst
----
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=abiotic_simple&roles=vars_required_for_init">Variables
+  required to initialise the abiotic_simple model.</a>
 
-from IPython.display import display_markdown
-from var_generator import generate_variable_table
-
-display_markdown(
-    generate_variable_table(
-        'AbioticSimpleModel', 
-        ['vars_required_for_init', 'vars_required_for_update']
-    ), 
-    raw=True
-)
-```
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=abiotic_simple&roles=vars_required_for_update">Variables
+  required to update the abiotic_simple model.</a>
 
 ## Model overview
 
 The `abiotic_simple` model is a simple regression model that estimates microclimatic
-variables based on empirical relationships between leaf area index (LAI) and atmospheric
-temperature (T), relative humidity (RH), and vapour pressure deficit (VPD) to derive
-logarithmic profiles of these variables from external climate data such as regional
+variables based on empirical relationships between leaf area index (LAI) and air
+temperature, relative humidity, vapour pressure deficit, and horizontal
+wind speed to derive
+vertical profiles of these variables from external climate data such as regional
 climate models or satellite observations. The model also provides information on
 atmospheric pressure and $\ce{CO_{2}}$ and soil temperatures at different depths.
 
+```{warning}
+Note this implementation is based on a snow-free environment and effects of below-zero
+temperatures and changes to albedo due to snow cover or LAI reduction have to be assumed
+implicitly.
+```
+
 This sections describes the workflow of the `abiotic_simple` model update step.
 At each time step when the model updates, the
-{py:meth}`~virtual_ecosystem.models.abiotic_simple.microclimate.run_microclimate`
+{py:meth}`~virtual_ecosystem.models.abiotic_simple.microclimate_simple.run_simple_microclimate`
 function is called to perform the steps outlined below.
 
 ### Step 1: Linear regression above ground
 
-The linear regression for below canopy values (1.5 m) is based on
-{cite:t}`hardwick_relationship_2015` as
+The linear regression for below canopy values at measurement height (default 1.5 m) is
+based on {cite:t}`hardwick_relationship_2015` as
 
 $$y = m * LAI + c$$
 
 where $y$ is the variable of interest, $m$ is the gradient
-(see {py:class}`~virtual_ecosystem.models.abiotic_simple.constants.AbioticSimpleBounds`)
+(see {py:class}`~virtual_ecosystem.models.abiotic_simple.model_config.AbioticSimpleBounds`)
 and $c$ is the intersect which we set to the external data values,
 see {numref}`abiotic_simple_step1`.
 We assume that the gradient remains constant throughout the simulation.
 
-:::{figure} ../../_static/images/step1.png
+:::{figure} ../../_static/images/abiotic_simple_step_1.svg
 :name: abiotic_simple_step1
 :alt: Abiotic simple step1
 :class: bg-primary
 :width: 450px
 
-Linear regression between leaf area index (LAI) and temperature (T) or
-vapour pressure deficit (VPD) at 1.5 m above the ground. The y-axis is intersected
-at the temperature at reference height. Orange crosses indicate 1.5m and reference height.
+Linear regression between leaf area index (LAI) and abiotic variables at measurement
+height, here 1.5 m above the ground. The y-axis is intersected at the temperature at
+reference height 2 m above the canopy. Orange crosses indicate measurement and reference
+height.
 :::
 
-### Step 2: Logarithmic interpolation above ground
+### Step 2: Interpolation above ground
 
 The values for any other aboveground heights, including but not limited to
-canopy layers and surface layer, are calculated by logarithmic regression and
-interpolation between the input 2 m above the canopy and the 1.5 m values, see
-{numref}`abiotic_simple_step2`.
+canopy layers and surface layer, are calculated by logarithmic regression (for wind speed)
+or exponential regression (for air temperature, relative humidity and vapour pressure
+deficit) and
+interpolation between the input at reference height 2 m above the canopy and the
+measured values at 1.5 m, see {numref}`abiotic_simple_step2`.
 
-:::{figure} ../../_static/images/step2.png
+:::{figure} ../../_static/images/abiotic_simple_step_2.svg
 :name: abiotic_simple_step2
 :alt: Abiotic simple step2
 :class: bg-primary
 :width: 450px
 
-Logarithmic interpolation between temperature (T) or vapour pressure deficit
-(VPD) at 1.5 m and the reference height 2m above the canopy. This approach returns
-values at any height of interest. Orange crosses indicate 1.5 m and reference height as
-in {numref}`abiotic_simple_step1`.
+Logarithmic (solid blue curve) and exponential (dashed blue curve) interpolation between
+abiotic variables at measurement height, here 1.5 m, and the reference height 2 m above
+the canopy. This approach
+returns values at any height of interest. Orange crosses indicate measurement and
+reference height as in {numref}`abiotic_simple_step1`.
 :::
 
 ### Step 3: Broadcasting constant atmospheric properties
@@ -115,42 +125,25 @@ can assumed to be constant over the year.
 
 ## Generated variables
 
-When the abiotic simple model initialises, it uses the input data to populate the following
-variables. When the model first updates, it then sets further variables.
+The calculations described above result in the following variables being calculated and
+saved within the data object, and then updated
 
-```{code-cell} ipython3
----
-tags: [remove-input]
-mystnb:
-  markdown_format: myst
----
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=abiotic_simple&roles=vars_populated_by_init">Variables
+  generated by abiotic_simple model initialisation.</a>
 
-display_markdown(
-    generate_variable_table(
-        'AbioticSimpleModel', 
-        ['vars_populated_by_init', 'vars_populated_by_first_update']
-    ), 
-    raw=True
-)
-```
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=abiotic_simple&roles=vars_populated_by_first_update">Variables
+  generated by the first abiotic_simple model update.</a>
 
 ## Updated variables
 
-The table below shows the complete set of model variables that are updated at each model
+The link below provides the complete set of model variables that are updated at each model
 step.
 
-```{code-cell} ipython3
----
-tags: [remove-input]
-mystnb:
-  markdown_format: myst
----
-
-display_markdown(
-    generate_variable_table(
-        'AbioticSimpleModel', 
-        ['vars_updated']
-    ), 
-    raw=True
-)
-```
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=abiotic_simple&roles=vars_updated">Variables
+  updated by the abiotic_simple model.</a>

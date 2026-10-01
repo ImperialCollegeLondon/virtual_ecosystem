@@ -5,6 +5,10 @@ This module check that the model entry points exist and function as expected
 
 import shutil
 import subprocess
+from contextlib import nullcontext as does_not_raise
+from importlib.metadata import version
+
+import pytest
 
 import virtual_ecosystem as ve
 
@@ -25,6 +29,65 @@ def test_version():
     result = subprocess.run(
         [shutil.which("ve_run"), "--version"], capture_output=True, text=True
     )
+    version_printed_in_log = version("virtual_ecosystem")
 
     assert result.returncode == 0
     assert result.stdout == f"ve_run {expected_version}\n"
+    assert expected_version == version_printed_in_log
+
+
+@pytest.mark.parametrize(
+    argnames="inputs, outcome, excep_message",
+    argvalues=(
+        pytest.param(
+            ["NO_EQUALS"],
+            pytest.raises(ValueError),
+            "Incorrect syntax",
+            id="bad_syntax",
+        ),
+        pytest.param(
+            ["ONE_EQUALS=TMPDIR/file_one.nc"],
+            does_not_raise(),
+            None,
+            id="single_path_ok",
+        ),
+        pytest.param(
+            ["TWO_EQUALS=TMPDIR/file_=_two.nc"],
+            does_not_raise(),
+            None,
+            id="single_path_with_equals_ok",
+        ),
+        pytest.param(
+            ["ONE_EQUALS=TMPDIR/file_ohno.nc"],
+            pytest.raises(ValueError),
+            "does not point to existing",
+            id="single_path_bad_file",
+        ),
+        pytest.param(
+            [
+                "ONE_EQUALS=TMPDIR/file_one.nc",
+                "ONE_EQUALS=TMPDIR/file_one.nc",
+            ],
+            does_not_raise(),
+            None,
+            id="two_paths_ok",
+        ),
+    ),
+)
+def test__parse_cli_paths(tmp_path, inputs, outcome, excep_message):
+    """Test the path parsing function for the command line."""
+
+    from virtual_ecosystem.entry_points import _parse_cli_paths
+
+    # Create some temporary files for checking file
+    (tmp_path / "file_one.nc").touch()
+    (tmp_path / "file_=_two.nc").touch()
+
+    # Sub in the tmp_path
+    inputs = [i.replace("TMPDIR", str(tmp_path)) for i in inputs]
+
+    with outcome as excep:
+        _parse_cli_paths(inputs)
+
+    if excep:
+        assert excep_message in str(excep.value)

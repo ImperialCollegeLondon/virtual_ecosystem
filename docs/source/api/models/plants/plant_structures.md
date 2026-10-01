@@ -7,21 +7,33 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.13.8
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.12
 ---
 
 # Plant structures for the {mod}`~virtual_ecosystem.models.plants` module
 
-This page documents three submodules of the `plants` module:
+This page documents submodules of the `plants` module used to support the central
+{mod}`~virtual_ecosystem.models.plants.plants_model` module:
 
 1. The plant functional types (PFTs) that make up the flora used in a simulation.
 2. The plant community structures, describing the cohorts of stems of different PFTs
    with different diameters at breast height within a grid cell.
 3. The canopy structure generated in a grid cell by the plant community.
+4. The constants definitions required to run the model
 
 ## The plant {mod}`~virtual_ecosystem.models.plants.functional_types` module
 
@@ -31,10 +43,10 @@ This page documents three submodules of the `plants` module:
     :members:
 ```
 
-## The plants {mod}`~virtual_ecosystem.models.plants.community` module
+## The plants {mod}`~virtual_ecosystem.models.plants.communities` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.plants.community
+.. automodule:: virtual_ecosystem.models.plants.communities
     :autosummary:
     :members:
 ```
@@ -43,6 +55,30 @@ This page documents three submodules of the `plants` module:
 
 ```{eval-rst}
 .. automodule:: virtual_ecosystem.models.plants.canopy
+    :autosummary:
+    :members:
+```
+
+## The plants {mod}`~virtual_ecosystem.models.plants.biomasses` module
+
+```{eval-rst}
+.. automodule:: virtual_ecosystem.models.plants.biomasses
+    :autosummary:
+    :members:
+```
+
+## The plants {mod}`~virtual_ecosystem.models.plants.subcanopy` module
+
+```{eval-rst}
+.. automodule:: virtual_ecosystem.models.plants.subcanopy
+    :autosummary:
+    :members:
+```
+
+## The plant {mod}`~virtual_ecosystem.models.plants.exporter` module
+
+```{eval-rst}
+.. automodule:: virtual_ecosystem.models.plants.exporter
     :autosummary:
     :members:
 ```

@@ -1,89 +1,137 @@
-"""Initial definition of plant functional type classes.
+"""The :mod:`~virtual_ecosystem.models.plants.functional_types` submodule:
 
-These are likely to become part of pyrealm.
-"""
+* Defines an extended :class:`~pyrealm.demography.flora.Flora` class to hold additional
+  traits used in the Virtual Ecosystem and to add required computed and reference traits
+
+* Provides a simple loader function with error checking for failure modes.
+"""  # noqa: D415
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import pandas as pd
+from pydantic import ConfigDict, computed_field, model_validator
+from pyrealm.demography.flora import Flora, FloraValidator, load_flora_from_csv
 
-from virtual_ecosystem.core.config import Config, ConfigurationError
-from virtual_ecosystem.core.logger import LOGGER
-
-
-@dataclass(frozen=True)
-class PlantFunctionalType:
-    """Data class containing plant functional type definitions."""
-
-    pft_name: str
-    """The name of the plant functional type."""
-    max_height: float
-    """The maximum stem height of the plant functional type."""
+from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
 
 
-class Flora(dict):
-    """Defines the flora used in a ``virtual_ecosystem`` model.
+class VEFloraValidator(FloraValidator):
+    """Extended plant functional trait definition.
 
-    The flora is the set of plant functional types used within a particular simulation
-    and this class provides dictionary-like access to a defined set of
-    :class:`~virtual_ecosystem.models.plants.functional_types.PlantFunctionalType`
-    instances.
-
-    Instances of this class should not be altered during model fitting, at least until
-    the point where plant evolution is included in the modelling process.
-
-    Args:
-        pfts: A list of ``PlantFunctionalType`` instances, which must not have
-            duplicated
-            :attr:`~virtual_ecosystem.models.plants.functional_types.PlantFunctionalType.pft_name`
-            attributes.
+    This class extends the basic pyrealm Flora definition to include the extra traits
+    required for the Virtual Ecosystem.
     """
 
-    def __init__(self, pfts: list[PlantFunctionalType]) -> None:
-        # Get the names and check there are no duplicates
-        pft_names = [p.pft_name for p in pfts]
-        if len(pft_names) != len(set(pft_names)):
-            msg = "Duplicated plant functional type names in creating Flora instance."
-            LOGGER.critical(msg)
-            raise ValueError(msg)
+    model_config = ConfigDict(use_attribute_docstrings=True)
 
-        for name, pft in zip(pft_names, pfts):
-            self[name] = pft
+    fruit_seed_foliage_mass_fraction: tuple[float, ...] = (0.05,)
+    r"""Carbon allocation to reproductive structures tissue (fruit and seeds) as a
+     fraction of foliage carbon mass (kg kg-1)."""
+    resp_rt: tuple[float, ...] = (0.05,)
+    r"""Annual respiration fraction of tissues in reproductive structures (fruit and
+     seeds): tissue respiration costs from GPP are calculated as a fraction of tissue
+     carbon mass (:math:`r_{rt}`, kg kg-1)."""
+    tau_rt: tuple[float, ...] = (1.0,)
 
+    r"""Turnover time of tissues in reproductive structures (fruit and seeds), expressed
+     as the time for the entire tissue carbon mass to be replaced through turnover
+     (:math:`\tau_{rt}`, years)."""
+    r"""The annual turnover rate of reproductive tissues (:math:`\tau_{rt}`, kg
+     kg-1)."""
+    root_symbiote_npp_fraction: tuple[float, ...] = (0.1,)
+    r"""Carbon allocation to root symbiotes as a fraction of net primary productivity
+     (kg kg-1)."""
+    stem_c_n_ratio: tuple[float, ...] = (60.7,)
+    r"""Carbon/Nitrogen ratio of stem tissue (kg kg-1)."""
+    stem_c_p_ratio: tuple[float, ...] = (856.5,)
+    r"""Carbon/Phosphorous ratio of stem tissue (kg kg-1)."""
+    foliage_turnover_c_n_ratio: tuple[float, ...] = (25.5,)
+    r"""Carbon/Nitrogen ratio of foliage tissue that is lost through turnover, after
+     nutrient resorption during leaf senescence (kg kg-1)."""
+    foliage_turnover_c_p_ratio: tuple[float, ...] = (415.0,)
+    r"""Carbon/Phosphorous ratio of foliage tissue that is lost through turnover, after
+     nutrient resorption during leaf senescence (kg kg-1)."""
+    fruit_seed_c_n_ratio: tuple[float, ...] = (12.5,)
+    r"""Carbon/Nitrogen ratio of tissues in reproductive structures (fruit and seeds)
+     (kg kg-1)."""
+    fruit_seed_c_p_ratio: tuple[float, ...] = (125.5,)
+    r"""Carbon/Phosphorous ratio of tissues in reproductive structures (fruit and seeds)
+     (kg kg-1)."""
+    root_c_n_ratio: tuple[float, ...] = (656.7,)
+    r"""Carbon/Nitrogen ratio of fine root tissue (kg kg-1)."""
+    root_c_p_ratio: tuple[float, ...] = (45.6,)
+    r"""Carbon/Phosphorous ratio of fine root tissue (kg kg-1)."""
+    foliage_c_n_ratio: tuple[float, ...] = (15.0,)
+    r"""Carbon/Nitrogen ratio of foliage tissue (kg kg-1)."""
+    foliage_c_p_ratio: tuple[float, ...] = (300.0,)
+    r"""Carbon/Phosphorous ratio of foliage tissue (kg kg-1)."""
+    c_mass_fruit_flesh: tuple[float, ...] = (5.0,)
+    r"""Carbon mass of fruit flesh in a fruit (g)."""
+    c_mass_fruit_seed: tuple[float, ...] = (1.0,)
+    r"""Carbon mass of a single seed in a fruit (g)."""
+    seeds_per_fruit: tuple[int, ...] = (2,)
+    r"""Number of seeds in a fruit (unitless)."""
+
+    # Additional traits populated during validation - these hold the reference values
+    # for lai and tau_f, which are modified by herbivory.
+
+    # HACK pyrealm 3 - This doesn't really work properly with strict mode (which we want
+    #      to use) and the enforcement of equal lengths for attributes. It works for
+    #      now, but it probably makes more sense to add these directly after to Cohorts
+    #      after running create_cohorts. Keep this for now.
+    lai_base: tuple[float, ...] | None = None
+    r"""Reference variable holding the base LAI for the PFT."""
+    tau_f_base: tuple[float, ...] | None = None
+    r"""Reference variable holding the base foliage turnover rate for the PFT."""
+
+    @model_validator(mode="before")
     @classmethod
-    def from_config(cls, config: Config) -> Flora:
-        """Factory method to generate a Flora instance from a configuration.
+    def populate_reference_values(cls, data, info):
+        """Populate the reference value fields from the imported data."""
+        data["lai_base"] = data.get("lai")
+        data["tau_f_base"] = data.get("tau_f")
 
-        Args:
-            config: A validated Virtual Ecosystem model configuration object.
+        return data
 
-        Returns:
-            A populated Flora instance
-        """
+    # This decorator order for computed fields is recommended by pydantic but mypy
+    # objects, so mute the warnings.
 
-        # TODO alternative config option to load from CSV
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def fruit_flesh_fraction(self) -> tuple[float, ...]:
+        """The proportion of fleshy tissue in reproductive structures, calculated
+        automatically from  fruit flesh fraction from the fruit traits.
+        """  # noqa: D205
+        # The Flora properties are lists not arrays, so calculated by iteration.
 
-        # Load the configuration, using a dict to keep track of duplicated PFT names
-        # along the way.
-        pft_dict: dict = {}
+        return tuple(
+            [
+                cmf / (cmf + (cms * spf))
+                for cmf, cms, spf in zip(
+                    self.c_mass_fruit_flesh,
+                    self.c_mass_fruit_seed,
+                    self.seeds_per_fruit,
+                )
+            ]
+        )
 
-        if "plants" in config and "ftypes" in config["plants"]:
-            for ftype in config["plants"]["ftypes"]:
-                try:
-                    pft = PlantFunctionalType(**ftype)
-                    if pft.pft_name in pft_dict:
-                        msg = f"Config duplicates plant functional type {pft.pft_name}."
-                        LOGGER.critical(msg)
-                        raise ConfigurationError(msg)
-                    pft_dict[pft.pft_name] = pft
-                except Exception as excep:
-                    LOGGER.critical(
-                        f"Error generating plant functional type: {excep!s}"
-                    )
-                    raise
-        else:
-            msg = "Missing plant functional type definitions in plant model config."
-            LOGGER.critical(msg)
-            raise ConfigurationError(msg)
 
-        return cls(list(pft_dict.values()))
+def get_flora_from_config(config: PlantsConfiguration) -> Flora:
+    """Generate a Flora object from a Virtual Ecosystem configuration.
+
+    Args:
+        config: A validated PlantsConfiguration instance.
+
+    Returns:
+        A  populated :class:`pyrealm.demography.flora.Flora` instance.
+    """
+
+    # Read the file, handling file IO and parsing errors.
+    try:
+        flora = load_flora_from_csv(
+            path=config.pft_definitions_path, strict=True, validator=VEFloraValidator
+        )
+    except (FileNotFoundError, pd.errors.ParserError) as excep:
+        raise excep
+
+    return flora

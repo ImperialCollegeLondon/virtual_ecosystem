@@ -7,60 +7,64 @@ set of configuration files.
 import argparse
 import sys
 import textwrap
+import tomllib
 from collections.abc import Sequence
 from pathlib import Path
 from shutil import copytree, ignore_patterns
+from tomllib import TOMLDecodeError
 from typing import Any
 
 import virtual_ecosystem as ve
 from virtual_ecosystem import example_data_path
-from virtual_ecosystem.core.config import config_merge
+from virtual_ecosystem.core.config_builder import merge_configuration_dicts
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.main import ve_run
-
-if sys.version_info[:2] >= (3, 11):
-    import tomllib
-    from tomllib import TOMLDecodeError
-else:
-    import tomli as tomllib
-    from tomli import TOMLDecodeError
+from virtual_ecosystem.main import Progress, ve_run
 
 
-def _parse_param_str(s: str) -> dict[str, Any]:
-    """Parse a single parameter string into a dict.
+def _parse_config_string(config_string: str) -> dict[str, Any]:
+    """Parse a single configuration string into a dictionary.
 
-    For example: hydrology.initial_soil_moisture=0.3
+    Args:
+        config_string: A string containing a TOML formatted configuration setting, for
+            example: "hydrology.initial_soil_moisture=0.3"
 
     Raises:
         ConfigurationError: If the command-line parameters are not valid TOML
     """
     try:
-        return tomllib.loads(s)
+        return tomllib.loads(config_string)
     except TOMLDecodeError:
-        to_raise = ConfigurationError("Invalid format for command-line parameters")
+        to_raise = ConfigurationError(
+            f"Invalid format for command-line configuration setting: {config_string}"
+        )
         LOGGER.critical(to_raise)
         raise to_raise
 
 
-def _parse_command_line_params(
-    params_str: Sequence[str], override_params: dict[str, Any]
-) -> None:
-    """Parse extra parameters provided with command-line arguments.
+def _parse_command_line_config(config_strings: Sequence[str]) -> dict[str, Any]:
+    """Parse command-line configuration settings.
+
+    This function takes a list of strings containing configuration settings passed to
+    the ``ve_run_cli`` entry points using the ``--config`` option. Each string should be
+    parseable TOML (e.g. ``plants.constants.value=0.4``) and the function builds a
+    partial configuration dictionary from the input strings.
 
     Args:
-        params_str: Extra parameters in string format (e.g. my.parameter=0.2)
-        override_params: Dictionary to be appended to with additional parameters
+        config_strings: A list of strings containing configuration settings.
+
+    Returns:
+        A partial configuration dictionary containing parsed settings.
 
     Raises:
         ConfigurationError: Invalid format for parameters or conflicting values supplied
     """
-    conflicts: tuple = ()
-    for param_str in params_str:
-        param_dict = _parse_param_str(param_str)
-        override_params, conflicts = config_merge(
-            override_params, param_dict, conflicts
-        )
+
+    config_dict: dict[str, Any] = {}
+
+    for param_str in config_strings:
+        param_dict = _parse_config_string(param_str)
+        config_dict, conflicts = merge_configuration_dicts(config_dict, param_dict)
 
     if conflicts:
         to_raise = ConfigurationError(
@@ -68,6 +72,47 @@ def _parse_command_line_params(
         )
         LOGGER.critical(to_raise)
         raise to_raise
+
+    return config_dict
+
+
+def _parse_cli_paths(cli_paths: Sequence[str]) -> dict[str, Path]:
+    """Parse command-line data input path substitutions.
+
+    This function takes a list of strings containing path substitutions to
+    the ``ve_run_cli`` entry points using the ``-p`` option. Each string should provide
+    a file marker that can be referred to in a configuration file and a data path that
+    should be used for that marker.
+
+    Args:
+        cli_paths: A list of strings containing configuration settings.
+
+    Returns:
+        A dictionary of markers and paths.
+    """
+
+    cli_path_dict: dict[str, Path] = {}
+
+    for path_data in cli_paths:
+        # Try and split on first equals sign (allowing further '=' in path names)
+        try:
+            marker, file = path_data.split("=", 1)
+        except ValueError:
+            raise ValueError(
+                "Incorrect syntax in command line path input: should use "
+                "'marker=path' values."
+            )
+
+        # Check the file exists
+        file_path = Path(file)
+        if not (file_path.exists() and file_path.is_file()):
+            raise ValueError(
+                f"Command line path input does not point to existing file: {file}"
+            )
+
+        cli_path_dict[marker] = file_path
+
+    return cli_path_dict
 
 
 def install_example_directory(install_dir: Path) -> int:
@@ -122,14 +167,46 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
 
     The output directory for simulation results is typically set in the configuration
     files, but can be overwritten using the `--outpath` option. A log file path can be
-    provided for logging output - if this is not provided the log will be written to the
-    console. If the log is being redirected to a file, then the `--progress` option can
-    be used to print a simple progress report to the standard output.
+    provided for logging output. If this is not provided then the log will be written to
+    the console, but the logging is typically verbose and it is usually better to
+    redirect the log to a file.
+
+    When logging is redirected to a file, a short progress report is written to stdout.
+    By default, the command reports: the start and end of the simulation and log
+    location; the completion of simulation stages; and a progress bar over the time
+    steps of the model. The `--quiet` command can be used to incrementally mute this
+    output: `-q` will remove the progress bar, `-qq` just prints the start and stop and
+    `-qqq` mutes the report entirely.
+
+    The `--config` option can be used to override configuration settings provided in the
+    file or to add additional settings. This is typically used to run a set of parallel
+    simulations that vary configuration settings of interest around a central
+    configuration setup, without the need to write a specific configuration file for
+    each permutation.
+
+    The `--data-path` option can be used to dynamically set the location of data paths
+    in the configuration. A file path in the config can be set as a path marker, which
+    must be a string starting with a "$", for example "$CLIMATE_DATA". This option can
+    then be used to substitute different files into that marker for different runs:
+    `--data-path CLIMATE_DATA=/path/to/file.nc`.
+
+    The `--validate-config-only` flag can be used to only run the configuration
+    validation part of the model setup and the exit before running any models.
 
     The resolved complete configuration will then be written to a single consolidated
-    config file in the output path with a default name of
-    `vr_full_model_configuration.toml`. This can be disabled by setting the
-    `core.data_output_options.save_merged_config` option to false.
+    config file in the output path with a default name of `compiled_configuration.toml`.
+    This can be disabled by setting the
+    `core.data_output_options.save_compiled_configuration` option to false. Note that
+    the merged configuration automatically converts all file paths within the merged
+    configurations to absolute file paths - this ties the merged configuration to the
+    file system where the run is executed.
+
+    The running simulation adds data to a single Zarr store. This format is used because
+    data can easily be appended along the time series of the simulation steps. However
+    the resulting store contains a large number of files and also uses an internal
+    `cell_id` dimension to capture the spatial structure of cells. The `--to-netcdf`
+    file generates an additional single NetCDF file from the Zarr data and converts the
+    data back to using the original XY spatial dimensions.
 
     Args:
         args_list: This is a developer and testing facing argument that is used to
@@ -175,12 +252,30 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         "-o", "--outpath", type=str, help="Path for output files", dest="outpath"
     )
     parser.add_argument(
-        "-p",
-        "--param",
+        "-c",
+        "--config",
         type=str,
         action="append",
-        help="Value for additional parameter (in the form parameter.name=something)",
-        dest="params",
+        help="Override configuration settings",
+        dest="cli_config",
+        default=[],
+    )
+
+    parser.add_argument(
+        "--validate-config-only",
+        action="store_true",
+        help="Exit after validating configuration",
+        dest="validate_only",
+    )
+
+    parser.add_argument(
+        "-p",
+        "--data-path",
+        type=str,
+        action="append",
+        help="Set data paths used for input data",
+        dest="cli_paths",
+        default=[],
     )
 
     parser.add_argument(
@@ -191,9 +286,18 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     )
 
     parser.add_argument(
-        "--progress",
+        "-q",
+        "--quiet",
+        action="count",
+        help="Quieten the default progress reporting",
+        default=0,
+    )
+
+    parser.add_argument(
+        "-n",
+        "--to-netcdf",
         action="store_true",
-        help="A flag to turn on simple progress reporting",
+        help="Postprocess the output data to NetCDF",
     )
 
     args = parser.parse_args(args=args_list)
@@ -205,27 +309,47 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         )
         return 1
 
-    # Install the example directory to the provided empty location if requested
+    # Install the example directory to the provided empty location if requested and then
+    # exit.
     if args.install_example:
         installed = install_example_directory(args.install_example)
         return installed
 
-    # Otherwise run with the provided  config paths
-    override_params: dict[str, Any] = {}
+    # If the output path is provided on the command line, add it to the list of command
+    # line modifications of the configuration.
+    # NOTE: The quoting style here is important. The text here needs to be parsable
+    #       TOML and needs to support literal strings for pathnames on Windows (rather
+    #       than trying to interpret backslashes as escape characters). In TOML, literal
+    #       strings are written using single quotes.
     if args.outpath:
         # Set the output path
-        outpath_opt = {"core": {"data_output_options": {"out_path": args.outpath}}}
-        override_params, _ = config_merge(override_params, outpath_opt)
-    if args.params:
-        # Parse any extra parameters passed using the --param flag
-        _parse_command_line_params(args.params, override_params)
+        args.cli_config.append(f"core.data_output_options.out_path='{args.outpath}'")
+
+    # Parse any extra parameters passed using the --param flag
+    if args.cli_config:
+        cli_config = _parse_command_line_config(args.cli_config)
+    else:
+        cli_config = {}
+
+    # Parse any input data file path substitution
+    if args.cli_paths:
+        cli_paths = _parse_cli_paths(args.cli_paths)
+    else:
+        cli_paths = {}
+
+    # Figure out the progress reporting level - the defaults is FULL (3 - 0) and as
+    # `-q` is repeatedly applied that decrease down to SILENT (3, 3) with `-qqq`
+    progress = Progress(3 - min(3, args.quiet))
 
     # Run the virtual ecosystem run function
     ve_run(
         cfg_paths=args.cfg_paths,
-        override_params=override_params,
+        cli_config=cli_config,
+        cli_paths=cli_paths,
+        validate_only=args.validate_only,
         logfile=args.logfile,
-        progress=args.progress,
+        progress=progress,
+        to_netcdf=args.to_netcdf,
     )
 
     return 0

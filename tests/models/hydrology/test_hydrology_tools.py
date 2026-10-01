@@ -4,7 +4,226 @@ import numpy as np
 import pytest
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
+
+def test_initialise_atmosphere_for_hydrology(
+    dummy_climate_data,
+    fixture_core_components,
+    fixture_hydrology_constants,
+    fixture_abiotic_constants,
+    fixture_core_constants,
+):
+    """Test initialisation of atmospheric variables for hydrology."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        initialise_atmosphere_for_hydrology,
+    )
+
+    data = dummy_climate_data
+    layer_structure = fixture_core_components.layer_structure
+    output = initialise_atmosphere_for_hydrology(
+        data=data,
+        model_constants=fixture_hydrology_constants,
+        abiotic_constants=fixture_abiotic_constants,
+        core_constants=fixture_core_constants,
+        layer_structure=layer_structure,
+    )
+
+    # Check keys exist
+    expected_keys = [
+        "aerodynamic_resistance_soil",
+        "aerodynamic_resistance_canopy",
+        "stomatal_conductance",
+        "density_air",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
+    ]
+    for key in expected_keys:
+        assert key in output
+
+    bounds = {
+        "specific_heat_air": (0.9, 1.5),
+        "latent_heat_vapourisation": (2300, 2600),
+        "density_air": (0.9, 1.5),
+        "stomatal_conductance": (0.0, np.inf),
+        "aerodynamic_resistance_soil": (0.0, np.inf),
+    }
+
+    for var, (vmin, vmax) in bounds.items():
+        arr = output[var].to_numpy()
+        valid = ~np.isnan(arr)
+
+        assert np.all(arr[valid] > vmin)
+        assert np.all(arr[valid] < vmax)
+
+    ra_canopy = output["aerodynamic_resistance_canopy"].to_numpy()
+    valid_canopy = ~np.isnan(ra_canopy)
+
+    assert np.all(ra_canopy[valid_canopy] == 12.1)
+
+
+@pytest.mark.parametrize(
+    "air_temperature, precipitation, t_snow, t_rain, "
+    "expected_rainfall, expected_snowfall, atol",
+    [
+        pytest.param(
+            5.0,
+            10.0,
+            0.0,
+            2.0,
+            10.0,
+            0.0,
+            1e-10,
+            id="all_rain",
+        ),
+        pytest.param(
+            -5.0,
+            10.0,
+            0.0,
+            2.0,
+            0.0,
+            10.0,
+            1e-10,
+            id="all_snow",
+        ),
+        pytest.param(
+            1.0,
+            10.0,
+            0.0,
+            2.0,
+            5.0,
+            5.0,
+            1e-6,
+            id="mixed_phase",
+        ),
+        pytest.param(
+            0.0,
+            10.0,
+            0.0,
+            2.0,
+            0.0,
+            10.0,
+            1e-10,
+            id="at_t_snow",
+        ),
+        pytest.param(
+            2.0,
+            10.0,
+            0.0,
+            2.0,
+            10.0,
+            0.0,
+            1e-10,
+            id="at_t_rain",
+        ),
+        pytest.param(
+            -5.0,
+            0.0,
+            0.0,
+            2.0,
+            0.0,
+            0.0,
+            1e-10,
+            id="zero_precip",
+        ),
+        pytest.param(
+            30.0,
+            15.0,
+            0.0,
+            2.0,
+            15.0,
+            0.0,
+            1e-10,
+            id="warm_climate",
+        ),
+        pytest.param(
+            1.0,
+            10.0,
+            -2.0,
+            4.0,
+            5.0,
+            5.0,
+            1e-6,
+            id="custom_thresholds",
+        ),
+    ],
+)
+def test_partition_precipitation(
+    air_temperature,
+    precipitation,
+    t_snow,
+    t_rain,
+    expected_rainfall,
+    expected_snowfall,
+    atol,
+):
+    """Test precipitation partitioning into rainfall and snowfall."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        partition_precipitation,
+    )
+
+    # Shape inputs as (n_cells=1, days=1) to match function signature
+    precip_arr = np.array([[precipitation]], dtype=float)
+    temp_arr = np.array([[air_temperature]], dtype=float)
+
+    rainfall, snowfall = partition_precipitation(
+        precipitation=precip_arr,
+        air_temperature=temp_arr,
+        temperature_threshold_snow=t_snow,
+        temperature_threshold_rain=t_rain,
+    )
+
+    # Check rainfall and snowfall values
+    np.testing.assert_allclose(rainfall, [[expected_rainfall]], atol=atol)
+    np.testing.assert_allclose(snowfall, [[expected_snowfall]], atol=atol)
+
+    # Mass conservation: rainfall + snowfall == total precipitation in all cases
+    np.testing.assert_allclose(rainfall + snowfall, precip_arr, atol=1e-10)
+
+    # Warm climate regression: snowfall must be exactly zero, not just approximately
+    if air_temperature >= t_rain:
+        assert np.all(snowfall == 0.0), (
+            f"Expected snowfall to be exactly zero for T={air_temperature}°C "
+            f">= t_rain={t_rain}°C, but got {snowfall}"
+        )
+
+
+def test_partition_precipitation_linearity():
+    """Snow fraction decreases linearly with temperature between thresholds."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        partition_precipitation,
+    )
+
+    t_snow, t_rain = 0.0, 2.0
+    precipitation = 10.0
+
+    temperatures = np.array([-0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5])
+    precip_arr = np.repeat(precipitation, 7)
+
+    rainfall, snowfall = partition_precipitation(
+        precipitation=precip_arr,
+        air_temperature=temperatures,
+        temperature_threshold_snow=t_snow,
+        temperature_threshold_rain=t_rain,
+    )
+
+    snow_fractions = snowfall / precipitation
+    rain_fractions = rainfall / precipitation
+
+    assert np.all(snow_fractions + rain_fractions == 1.0), (
+        "Snow and rain fractions do not sum to 1.0"
+    )
+
+    # Expected: linear decrease from 1 at t_snow to 0 at t_rain
+    expected_fractions = np.array([1.0, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0])
+
+    np.testing.assert_allclose(
+        snow_fractions,
+        expected_fractions,
+        atol=1e-10,
+        err_msg="Snow fraction is not linear between t_snow and t_rain",
+    )
 
 
 def test_setup_hydrology_input_current_timestep(
@@ -16,37 +235,40 @@ def test_setup_hydrology_input_current_timestep(
         setup_hydrology_input_current_timestep,
     )
 
+    data = dummy_climate_data
     lyr_strct = fixture_core_components.layer_structure
     result = setup_hydrology_input_current_timestep(
-        data=dummy_climate_data,
+        data=data,
         time_index=0,
         days=30,
         seed=42,
         layer_structure=lyr_strct,
         soil_layer_thickness_mm=lyr_strct.soil_layer_thickness * 1000,
-        soil_moisture_capacity=0.9,
+        soil_moisture_saturation=0.9,
         soil_moisture_residual=0.1,
-        core_constants=CoreConsts(),
-        latent_heat_vap_equ_factors=[1.91846e6, 33.91],
+        p_wet_wet=0.6,
+        p_wet_dry=0.3,
+        temperature_threshold_snow=0.0,
+        temperature_threshold_rain=2.0,
+        shape_parameter=1.5,
+        scale_parameter=1.0,
     )
 
     # Check if all variables were created TODO switch back to subcanopy
     var_list = [
-        "latent_heat_vapourisation",
-        "molar_density_air",
         "current_precipitation",
         "surface_temperature",
         "surface_humidity",
         "surface_pressure",
         "surface_wind_speed",
         "leaf_area_index_sum",
-        "current_evapotranspiration",
-        "top_soil_moisture_capacity",
+        "current_transpiration",
+        "top_soil_moisture_saturation",
         "top_soil_moisture_residual",
-        "previous_accumulated_runoff",
-        "previous_subsurface_flow_accumulated",
         "groundwater_storage",
         "current_soil_moisture",
+        "condensation",
+        "current_snowfall",
     ]
 
     assert set(result.keys()) == set(var_list)
@@ -54,27 +276,27 @@ def test_setup_hydrology_input_current_timestep(
     # check if climate values are selected correctly
     np.testing.assert_allclose(
         np.sum(result["current_precipitation"], axis=1),
-        (dummy_climate_data["precipitation"].isel(time_index=0)).to_numpy(),
+        (data.get_time_slice("precipitation", 0)).to_numpy(),
     )
     # Get the surface layer index as an integer to extract a 1D slice
     surface_idx = lyr_strct.index_surface_scalar
     np.testing.assert_allclose(
         result["surface_temperature"],
-        dummy_climate_data["air_temperature"][surface_idx],
+        data["air_temperature"][surface_idx],
     )
     np.testing.assert_allclose(
         result["surface_humidity"],
-        dummy_climate_data["relative_humidity"][surface_idx],
+        data["relative_humidity"][surface_idx],
     )
     # The reference data is a time series with cell id in axis 0, the result has cell_id
     # on axis 1, so need to extract from the second axis
     np.testing.assert_allclose(
         result["surface_pressure"],
-        dummy_climate_data["atmospheric_pressure_ref"][:, 0].to_numpy(),
+        data["atmospheric_pressure"][surface_idx],
     )
     np.testing.assert_allclose(
         result["current_soil_moisture"],
-        DataArray(np.tile([[5], [500]], fixture_core_components.grid.n_cells)),
+        data["soil_moisture"][lyr_strct.index_all_soil],
     )
 
 
@@ -102,3 +324,106 @@ def test_initialise_soil_moisture_mm(fixture_core_components, init_soilm, expect
     # The fixture is configured with soil layers [-0.25, -1.0]
     exp_result = DataArray(np.broadcast_to(expected, (2, 4)))
     np.testing.assert_allclose(result[layer_structure.index_all_soil], exp_result)
+
+
+def test_calculate_psychrometric_constant():
+    """Test psychrometric constant."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        calculate_psychrometric_constant,
+    )
+
+    atmospheric_pressure = np.array([101.3], dtype=np.float64)  # in kPa
+    latent_heat_vapourization = np.array([2268.0], dtype=np.float64)  # in kJ/kg
+    specific_heat_air = np.array([1.005], dtype=np.float64)  # in kJ/kg·K
+    molecular_weight_ratio_water_to_dry_air = 0.622  # dimensionless
+
+    # Expected result calculated manually or using a known value
+    expected_output = np.array([0.072168])
+
+    # Call the function
+    output = calculate_psychrometric_constant(
+        atmospheric_pressure,
+        latent_heat_vapourization,
+        specific_heat_air,
+        molecular_weight_ratio_water_to_dry_air,
+    )
+
+    # Assert that the output is as expected within a small tolerance
+    np.testing.assert_allclose(output, expected_output, rtol=1e-5)
+
+
+def test_check_precipitation_surface_raises_error():
+    """Test check surface precipitation is positive."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_precipitation_surface,
+    )
+
+    test_array = np.array([1.0, 0.5, -0.2, 0.8])
+
+    with pytest.raises(
+        ValueError,
+        match=r"Surface precipitation should not be negative! "
+        r"Consider checking that the canopy water balance is correct.",
+    ):
+        check_precipitation_surface(test_array)
+
+
+def test_calculate_effective_saturation(fixture_hydrology_constants):
+    """Test that the calculation the effective saturation works correctly."""
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        calculate_effective_saturation,
+    )
+
+    soil_moistures = np.array([0.178, 0.25, 0.333, 0.5])
+
+    expected_sats = [0.00895522, 0.22388060, 0.47164179, 0.97014925]
+
+    actual_sats = calculate_effective_saturation(
+        soil_moisture=soil_moistures,
+        soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
+        soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
+    )
+
+    assert np.allclose(actual_sats, expected_sats)
+
+
+def test_mass_balance_pass():
+    """Test a case where total outlet streamflow <= total precipitation."""
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_monthly_mass_balance,
+    )
+
+    drainage_map = {0: [], 1: [0], 2: [0, 1]}
+    surface_channel_inflow = np.array([50.0, 40.0, 30.0])  # mm per cell
+    monthly_precipitation = np.array([100.0, 100.0, 100.0])  # mm per cell
+    monthly_evaporation = np.array([10.0, 10.0, 10.0])  # mm per cell
+
+    # Should not raise an error
+    check_monthly_mass_balance(
+        drainage_map=drainage_map,
+        surface_channel_inflow_mm=surface_channel_inflow,
+        monthly_precipitation_mm=monthly_precipitation,
+        monthly_evaporation_mm=monthly_evaporation,
+    )
+
+
+def test_mass_balance_fail():
+    """Test a case where total outlet streamflow > total precipitation."""
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_monthly_mass_balance,
+    )
+
+    drainage_map = {0: [], 1: [0], 2: [0, 1]}
+    surface_channel_inflow = np.array([150.0, 140.0, 400.0])  # mm per cell
+    monthly_precipitation = np.array([100.0, 100.0, 100.0])  # total precip = 300
+    monthly_evaporation = np.array([10.0, 10.0, 10.0])  # mm per cell
+
+    with pytest.raises(AssertionError, match="Mass balance violated"):
+        check_monthly_mass_balance(
+            drainage_map=drainage_map,
+            surface_channel_inflow_mm=surface_channel_inflow,
+            monthly_precipitation_mm=monthly_precipitation,
+            monthly_evaporation_mm=monthly_evaporation,
+        )

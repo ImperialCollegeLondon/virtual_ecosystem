@@ -53,7 +53,7 @@ def fixture_data(fixture_square_grid_simple):
     data = Data(fixture_square_grid_simple)
 
     # Create an existing variable to test replacement
-    data["existing_var"] = DataArray([1, 2, 3, 4], dims=("cell_id",))
+    data["atmospheric_co2"] = DataArray([1, 2, 3, 4], dims=("cell_id",))
 
     return data
 

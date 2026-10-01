@@ -7,44 +7,69 @@ functional types.
 """
 
 import numpy as np
+from pandas import DataFrame
 from xarray import DataArray, Dataset
 
 from virtual_ecosystem.example_data.generation_scripts.common import (
+    cell_displacements,
     cell_id,
     n_cells,
     n_dates,
+    nx,
+    ny,
     time,
     time_index,
 )
-
-data = Dataset()
 
 # Plant cohort dimensions
 n_cohorts = n_cells * 2
 cohort_index = np.arange(n_cohorts)
 
+# Generate the initial cohort data as a pandas dataframe
 
-# Add cohort configurations
-data["plant_cohorts_n"] = DataArray(
-    np.array([5, 10] * n_cells), coords={"cohort_index": cohort_index}
+cohort_data = DataFrame(
+    dict(
+        plant_cohorts_n=np.array([5, 10] * n_cells),
+        plant_cohorts_pft=np.array(["broadleaf", "shrub"] * n_cells),
+        plant_cohorts_cell_id=np.repeat(cell_id, 2),
+        plant_cohorts_dbh=np.array([0.1, 0.05] * n_cells),
+    )
 )
-data["plant_cohorts_pft"] = DataArray(
-    np.array(["broadleaf", "shrub"] * n_cells), coords={"cohort_index": cohort_index}
+
+cohort_data.to_csv("../data/example_plant_cohorts.csv", index=False)
+
+# Populate the required array data variables into an xarray dataset
+data = Dataset()
+
+# PFT propagules
+xy_coords = dict(x=cell_displacements, y=cell_displacements)
+data["plant_pft_propagules"] = DataArray(
+    data=np.full((nx, ny, 2), fill_value=100, dtype=np.int_),
+    coords={
+        **xy_coords,
+        "pft": np.array(["broadleaf", "shrub"]),
+    },
 )
-data["plant_cohorts_cell_id"] = DataArray(
-    np.repeat(cell_id, 2), coords={"cohort_index": cohort_index}
+
+# Subcanopy vegetation stoichiometric biomasses using np.nan for N and P slices so that
+# initial N and P are calculated at ideal ratios.
+subcanopy_masses = np.full((nx, ny, 3), np.nan)
+subcanopy_masses[:, :, 0] = 0.07
+cell_stoich_coords = {**xy_coords, "element": ["C", "N", "P"]}
+
+data["subcanopy_vegetation_cnp"] = DataArray(
+    data=subcanopy_masses.copy(), coords=cell_stoich_coords
 )
-data["plant_cohorts_dbh"] = DataArray(
-    np.array([0.1, 0.05] * n_cells), coords={"cohort_index": cohort_index}
+data["subcanopy_seedbank_cnp"] = DataArray(
+    data=subcanopy_masses.copy(), coords=cell_stoich_coords
 )
 
 # Spatio-temporal data
-data["photosynthetic_photon_flux_density"] = DataArray(
-    data=np.full((n_cells, n_dates), fill_value=1000),
-    coords={"cell_id": cell_id, "time_index": time_index},
+data["downward_shortwave_radiation"] = DataArray(
+    data=np.full((nx, ny, n_dates), fill_value=2040),
+    coords={**xy_coords, "time_index": time_index},
 )
-
 
 data["time"] = DataArray(time, coords={"time_index": time_index})
 
-data.to_netcdf("../data/example_plant_data.nc", format="NETCDF3_64BIT")
+data.to_netcdf("../data/example_plant_data.nc")

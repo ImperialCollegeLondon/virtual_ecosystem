@@ -8,10 +8,11 @@ class TestFunctionalGroup:
 
     @pytest.mark.parametrize(
         (
-            "name, taxa, diet, metabolic_type, reproductive_type, "
-            "development_type, development_status, offspring_functional_group,"
-            "excretion_type, birth_mass, adult_mass, dam_law_exp, dam_law_coef,"
-            "conv_eff"
+            "name, taxa, diet, metabolic_type, reproductive_environment,"
+            "reproductive_type, development_type, development_status,"
+            "offspring_functional_group, excretion_type,migration_type,"
+            "vertical_occupancy, birth_mass,"
+            "adult_mass, dam_law_exp, dam_law_coef,conv_eff, expected_cnp"
         ),
         [
             (
@@ -19,128 +20,60 @@ class TestFunctionalGroup:
                 "mammal",
                 "herbivore",
                 "endothermic",
+                "terrestrial",
                 "iteroparous",
                 "direct",
                 "adult",
                 "herbivorous_mammal",
                 "ureotelic",
+                "none",
+                "ground",
                 1.0,
                 10.0,
                 -0.75,
                 4.23,
                 0.1,
-            ),
-            (
-                "carnivorous_mammal",
-                "mammal",
-                "carnivore",
-                "endothermic",
-                "iteroparous",
-                "direct",
-                "adult",
-                "carnivorous_mammal",
-                "ureotelic",
-                4.0,
-                40.0,
-                -0.75,
-                1.00,
-                0.25,
-            ),
-            (
-                "herbivorous_bird",
-                "bird",
-                "herbivore",
-                "endothermic",
-                "iteroparous",
-                "direct",
-                "adult",
-                "herbivorous_bird",
-                "uricotelic",
-                0.05,
-                0.5,
-                -0.75,
-                5.00,
-                0.1,
+                {"C": 0.5, "N": 0.3, "P": 0.2},
             ),
             (
                 "carnivorous_bird",
                 "bird",
                 "carnivore",
                 "endothermic",
+                "terrestrial",
                 "iteroparous",
                 "direct",
                 "adult",
                 "carnivorous_bird",
                 "uricotelic",
+                "seasonal",
+                "ground_canopy",
                 0.1,
                 1.0,
                 -0.75,
                 2.00,
                 0.25,
+                {"C": 0.4, "N": 0.3, "P": 0.3},
             ),
             (
                 "herbivorous_insect_iteroparous",
-                "insect",
+                "invertebrate",
                 "herbivore",
                 "ectothermic",
+                "terrestrial",
                 "iteroparous",
                 "direct",
                 "adult",
                 "herbivorous_insect_iteroparous",
                 "uricotelic",
+                "none",
+                "soil_ground_canopy",
                 0.0005,
                 0.005,
                 -0.75,
                 5.00,
                 0.1,
-            ),
-            (
-                "carnivorous_insect_iteroparous",
-                "insect",
-                "carnivore",
-                "ectothermic",
-                "iteroparous",
-                "direct",
-                "adult",
-                "carnivorous_insect_iteroparous",
-                "uricotelic",
-                0.001,
-                0.01,
-                -0.75,
-                2.00,
-                0.25,
-            ),
-            (
-                "herbivorous_insect_semelparous",
-                "insect",
-                "herbivore",
-                "ectothermic",
-                "semelparous",
-                "direct",
-                "adult",
-                "herbivorous_insect_semelparous",
-                "uricotelic",
-                0.0005,
-                0.005,
-                -0.75,
-                5.00,
-                0.1,
-            ),
-            (
-                "carnivorous_insect_semelparous",
-                "insect",
-                "carnivore",
-                "ectothermic",
-                "semelparous",
-                "direct",
-                "adult",
-                "carnivorous_insect_semelparous",
-                "uricotelic",
-                0.001,
-                0.01,
-                -0.75,
-                2.00,
-                0.25,
+                {"C": 0.4, "N": 0.2, "P": 0.4},
             ),
         ],
     )
@@ -150,178 +83,343 @@ class TestFunctionalGroup:
         taxa,
         diet,
         metabolic_type,
+        reproductive_environment,
         reproductive_type,
         development_type,
         development_status,
         offspring_functional_group,
         excretion_type,
+        migration_type,
+        vertical_occupancy,
         birth_mass,
         adult_mass,
         dam_law_exp,
         dam_law_coef,
         conv_eff,
+        expected_cnp,
     ):
         """Testing initialization of derived parameters for animal cohorts."""
-
         from virtual_ecosystem.models.animal.animal_traits import (
             DietType,
             ExcretionType,
             MetabolicType,
+            MigrationType,
+            ReproductiveEnvironment,
             ReproductiveType,
             TaxaType,
+            VerticalOccupancy,
         )
-        from virtual_ecosystem.models.animal.constants import AnimalConsts
         from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
         func_group = FunctionalGroup(
             name,
             taxa,
             diet,
             metabolic_type,
+            reproductive_environment,
             reproductive_type,
             development_type,
             development_status,
             offspring_functional_group,
             excretion_type,
+            migration_type,
+            vertical_occupancy,
             birth_mass,
             adult_mass,
-            constants=AnimalConsts(),
+            constants=AnimalConstants(density_scaling_method="damuth"),
         )
         assert func_group.name == name
         assert func_group.taxa == TaxaType(taxa)
-        assert func_group.diet == DietType(diet)
+        assert func_group.diet == DietType.parse(diet)
         assert func_group.metabolic_type == MetabolicType(metabolic_type)
+        assert func_group.reproductive_environment == ReproductiveEnvironment(
+            reproductive_environment
+        )
         assert func_group.reproductive_type == ReproductiveType(reproductive_type)
         assert func_group.offspring_functional_group == offspring_functional_group
         assert func_group.excretion_type == ExcretionType(excretion_type)
-        assert func_group.damuths_law_terms[0] == dam_law_exp
-        assert func_group.damuths_law_terms[1] == dam_law_coef
+        assert func_group.migration_type == MigrationType(migration_type)
+        assert func_group.vertical_occupancy == VerticalOccupancy.parse(
+            vertical_occupancy
+        )
+        assert func_group.population_density_terms[0] == dam_law_exp
+        assert func_group.population_density_terms[1] == dam_law_coef
         assert func_group.conversion_efficiency == conv_eff
+
+        assert hasattr(func_group, "cnp_proportions"), (
+            "cnp_proportions attribute missing!"
+        )
+
+        # Check CNP proportions
+        assert func_group.cnp_proportions == expected_cnp, (
+            f"Expected {expected_cnp} but got {func_group.cnp_proportions} for "
+            f"taxa {taxa}."
+        )
+
+
+def test_functional_group_thermal_tolerance_defaults_to_none(
+    shared_datadir, constants_instance
+):
+    """Test that thermal tolerance attributes default to None when absent from CSV."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants=constants_instance)
+
+    # herbivorous_mammal (index 3) has no thermal tolerance values in CSV
+    fg = fg_list[3]
+    assert fg.t_opt is None
+    assert fg.t_max_crit is None
+    assert fg.t_min_crit is None
+
+
+def test_functional_group_thermal_tolerance_loaded_from_csv(
+    shared_datadir, constants_instance
+):
+    """Test that thermal tolerance values are correctly loaded from CSV."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants=constants_instance)
+
+    # thermophilic_lizard has explicit thermal tolerance values
+    fg = next(f for f in fg_list if f.name == "thermophilic_lizard")
+    assert fg.t_opt == pytest.approx(35.0)
+    assert fg.t_max_crit == pytest.approx(42.0)
+    assert fg.t_min_crit == pytest.approx(30.0)
 
 
 @pytest.mark.parametrize(
-    "index, name, taxa, diet, metabolic_type, reproductive_type, "
-    "development_type, development_status, offspring_functional_group, excretion_type",
+    "index, name, taxa, diet, metabolic_type, reproductive_environment,"
+    "reproductive_type, development_type, development_status,"
+    "offspring_functional_group, excretion_type, migration_type,"
+    "vertical_occupancy, birth_mass, adult_mass",
     [
         (
             0,
             "carnivorous_bird",
             "bird",
-            "carnivore",
+            "vertebrates_invertebrates_carcasses",
             "endothermic",
+            "terrestrial",
             "iteroparous",
             "direct",
             "adult",
             "carnivorous_bird",
             "uricotelic",
+            "none",
+            "ground_canopy",
+            0.1,
+            1.0,
         ),
         (
             1,
             "herbivorous_bird",
             "bird",
-            "herbivore",
+            "fruit_foliage",
             "endothermic",
+            "terrestrial",
             "iteroparous",
             "direct",
             "adult",
             "herbivorous_bird",
             "uricotelic",
+            "none",
+            "ground_canopy",
+            0.05,
+            0.5,
         ),
         (
             2,
             "carnivorous_mammal",
             "mammal",
-            "carnivore",
+            "vertebrates_invertebrates_carcasses",
             "endothermic",
+            "terrestrial",
             "iteroparous",
             "direct",
             "adult",
             "carnivorous_mammal",
             "ureotelic",
+            "none",
+            "ground",
+            4.0,
+            40.0,
         ),
         (
             3,
             "herbivorous_mammal",
             "mammal",
-            "herbivore",
+            "fruit_foliage_seeds",
             "endothermic",
+            "terrestrial",
             "iteroparous",
             "direct",
             "adult",
             "herbivorous_mammal",
             "ureotelic",
+            "none",
+            "ground",
+            1.0,
+            10.0,
         ),
         (
             4,
             "carnivorous_insect_iteroparous",
-            "insect",
-            "carnivore",
+            "invertebrate",
+            "invertebrates",
             "ectothermic",
+            "terrestrial",
             "iteroparous",
             "direct",
             "adult",
             "carnivorous_insect_iteroparous",
             "uricotelic",
+            "none",
+            "soil_ground_canopy",
+            0.001,
+            0.01,
         ),
         (
             5,
             "herbivorous_insect_iteroparous",
-            "insect",
-            "herbivore",
+            "invertebrate",
+            "fruit_foliage",
             "ectothermic",
+            "terrestrial",
             "iteroparous",
             "direct",
             "adult",
             "herbivorous_insect_iteroparous",
             "uricotelic",
+            "none",
+            "soil_ground_canopy",
+            0.0005,
+            0.005,
         ),
         (
             6,
             "carnivorous_insect_semelparous",
-            "insect",
-            "carnivore",
+            "invertebrate",
+            "invertebrates",
             "ectothermic",
+            "terrestrial",
             "semelparous",
             "direct",
             "adult",
             "carnivorous_insect_semelparous",
             "uricotelic",
+            "none",
+            "soil_ground_canopy",
+            0.001,
+            0.01,
         ),
         (
             7,
             "herbivorous_insect_semelparous",
-            "insect",
-            "herbivore",
+            "invertebrate",
+            "fruit_foliage",
             "ectothermic",
+            "terrestrial",
             "semelparous",
             "direct",
             "adult",
             "herbivorous_insect_semelparous",
             "uricotelic",
+            "none",
+            "soil_ground_canopy",
+            0.0005,
+            0.005,
         ),
         (
             8,
             "butterfly",
-            "insect",
-            "herbivore",
+            "invertebrate",
+            "fruit_foliage",
             "ectothermic",
+            "terrestrial",
             "semelparous",
             "indirect",
             "adult",
             "caterpillar",
             "uricotelic",
+            "none",
+            "ground_canopy",
+            0.0005,
+            0.005,
         ),
         (
             9,
             "caterpillar",
-            "insect",
-            "herbivore",
+            "invertebrate",
+            "fruit_foliage",
             "ectothermic",
+            "terrestrial",
             "nonreproductive",
             "indirect",
             "larval",
             "butterfly",
             "uricotelic",
+            "none",
+            "canopy",
+            0.0005,
+            0.005,
+        ),
+        (
+            10,
+            "frog",
+            "amphibian",
+            "vertebrates_invertebrates_carcasses",
+            "ectothermic",
+            "aquatic",
+            "iteroparous",
+            "direct",
+            "adult",
+            "frog",
+            "ureotelic",
+            "none",
+            "ground",
+            0.005,
+            0.5,
+        ),
+        (
+            11,
+            "swallow",
+            "bird",
+            "invertebrates",
+            "endothermic",
+            "terrestrial",
+            "iteroparous",
+            "direct",
+            "adult",
+            "swallow",
+            "uricotelic",
+            "seasonal",
+            "canopy",
+            0.005,
+            0.2,
+        ),
+        (
+            12,
+            "earthworm",
+            "invertebrate",
+            "detritus_fungi_pom_bacteria",
+            "ectothermic",
+            "terrestrial",
+            "iteroparous",
+            "direct",
+            "adult",
+            "earthworm",
+            "uricotelic",
+            "none",
+            "soil_ground",
+            0.0005,
+            0.005,
         ),
     ],
 )
@@ -332,11 +430,16 @@ def test_import_functional_groups(
     taxa,
     diet,
     metabolic_type,
+    reproductive_environment,
     reproductive_type,
     development_type,
     development_status,
     offspring_functional_group,
     excretion_type,
+    migration_type,
+    vertical_occupancy,
+    birth_mass,
+    adult_mass,
 ):
     """Testing import functional groups."""
     from virtual_ecosystem.models.animal.animal_traits import (
@@ -345,28 +448,39 @@ def test_import_functional_groups(
         DietType,
         ExcretionType,
         MetabolicType,
+        MigrationType,
+        ReproductiveEnvironment,
         ReproductiveType,
         TaxaType,
+        VerticalOccupancy,
     )
-    from virtual_ecosystem.models.animal.constants import AnimalConsts
     from virtual_ecosystem.models.animal.functional_group import (
         FunctionalGroup,
         import_functional_groups,
     )
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
     file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file, constants=AnimalConsts())
-    assert len(fg_list) == 10
-    assert isinstance(fg_list[index], FunctionalGroup)
-    assert fg_list[index].name == name
-    assert fg_list[index].taxa == TaxaType(taxa)
-    assert fg_list[index].diet == DietType(diet)
-    assert fg_list[index].metabolic_type == MetabolicType(metabolic_type)
-    assert fg_list[index].reproductive_type == ReproductiveType(reproductive_type)
-    assert fg_list[index].development_type == DevelopmentType(development_type)
-    assert fg_list[index].development_status == DevelopmentStatus(development_status)
-    assert fg_list[index].offspring_functional_group == offspring_functional_group
-    assert fg_list[index].excretion_type == ExcretionType(excretion_type)
+    fg_list = import_functional_groups(file, constants=AnimalConstants())
+
+    fg = fg_list[index]
+    assert isinstance(fg, FunctionalGroup)
+    assert fg.name == name
+    assert fg.taxa == TaxaType(taxa)
+    assert fg.diet == DietType.parse(diet)
+    assert fg.metabolic_type == MetabolicType(metabolic_type)
+    assert fg.reproductive_environment == ReproductiveEnvironment(
+        reproductive_environment
+    )
+    assert fg.reproductive_type == ReproductiveType(reproductive_type)
+    assert fg.development_type == DevelopmentType(development_type)
+    assert fg.development_status == DevelopmentStatus(development_status)
+    assert fg.offspring_functional_group == offspring_functional_group
+    assert fg.excretion_type == ExcretionType(excretion_type)
+    assert fg.migration_type == MigrationType(migration_type)
+    assert fg.vertical_occupancy == VerticalOccupancy.parse(vertical_occupancy)
+    assert fg.birth_mass == birth_mass
+    assert fg.adult_mass == adult_mass
 
 
 @pytest.mark.parametrize(
@@ -396,3 +510,81 @@ def test_get_functional_group_by_name(
         result = get_functional_group_by_name(functional_groups, name)
         assert isinstance(result, FunctionalGroup)
         assert result.name == name
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        pytest.param(1.5, 1.5, id="valid_float"),
+        pytest.param(0.0, 0.0, id="zero_float"),
+        pytest.param(None, None, id="none"),
+        pytest.param(float("nan"), None, id="nan"),
+    ],
+)
+def test_none_or_float(value, expected):
+    """Test that NaN and None are converted to None, valid floats pass through."""
+    from virtual_ecosystem.models.animal.functional_group import _none_or_float
+
+    assert _none_or_float(value) is expected or _none_or_float(value) == pytest.approx(
+        expected
+    )
+
+
+@pytest.fixture
+def placeholder_annual_temp_terms():
+    """Per-stratum placeholder annual temperature terms with distinct values.
+
+    Distinct means and SDs per stratum let the averaging across occupied strata be
+    verified unambiguously.
+
+    Returns:
+        Placeholder annual temperature terms keyed by atomic VerticalOccupancy member.
+    """
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+
+    return {
+        VerticalOccupancy.SOIL: {"mean_temp": 21.0, "temp_sd": 1.0},
+        VerticalOccupancy.GROUND: {"mean_temp": 24.0, "temp_sd": 2.0},
+        VerticalOccupancy.CANOPY: {"mean_temp": 27.0, "temp_sd": 3.0},
+    }
+
+
+@pytest.mark.parametrize(
+    "occupancy, expected_mean, expected_sd",
+    [
+        pytest.param("soil", 21.0, 1.0, id="soil_only"),
+        pytest.param("ground", 24.0, 2.0, id="ground_only"),
+        pytest.param("canopy", 27.0, 3.0, id="canopy_only"),
+        pytest.param("soil_ground", 22.5, 1.5, id="soil_ground"),
+        pytest.param("ground_canopy", 25.5, 2.5, id="ground_canopy"),
+        pytest.param("soil_ground_canopy", 24.0, 2.0, id="all_strata"),
+    ],
+)
+def test_resolve_reference_annual_climate(
+    occupancy, expected_mean, expected_sd, placeholder_annual_temp_terms
+):
+    """Test that reference terms are the unweighted mean across occupied strata."""
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.functional_group import (
+        _resolve_reference_annual_climate,
+    )
+
+    result_mean, result_sd = _resolve_reference_annual_climate(
+        VerticalOccupancy.parse(occupancy), placeholder_annual_temp_terms
+    )
+
+    assert result_mean == pytest.approx(expected_mean)
+    assert result_sd == pytest.approx(expected_sd)
+
+
+def test_resolve_reference_annual_climate_empty_raises(placeholder_annual_temp_terms):
+    """Test that an occupancy with no atomic strata raises ValueError."""
+    from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+    from virtual_ecosystem.models.animal.functional_group import (
+        _resolve_reference_annual_climate,
+    )
+
+    with pytest.raises(ValueError):
+        _resolve_reference_annual_climate(
+            VerticalOccupancy(0), placeholder_annual_temp_terms
+        )

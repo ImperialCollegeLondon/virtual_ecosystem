@@ -14,16 +14,17 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Sequence
-from typing import Any, TypeAlias
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
+from shapely import GeometryCollection, Point, Polygon, STRtree  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
-from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
-from virtual_ecosystem.core.config import Config, ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import GridConfiguration
 
 GRID_REGISTRY: dict[str, Callable] = {}
 """A registry for different grid geometries.
@@ -33,7 +34,7 @@ grid of that type. Users can register their own grid types using the `register_g
 decorator.
 """
 
-GRID_STRUCTURE_SIG: TypeAlias = tuple[list[int], list[Polygon]]
+type GRID_STRUCTURE_SIG = tuple[list[int], list[Polygon]]
 """Type signature of the data structure to be returned from grid creator functions.
 
 The first value is a list of integer cell ids, the second is a matching list of the
@@ -237,6 +238,9 @@ class Grid:
         self.centroids: np.ndarray
         """A list of the centroid of each cell as shapely.geometry.Point objects, in
         cell_id order."""
+        self._strtree: STRtree
+        """An STRtree object of the grid polygons, used for searching coordinates
+        matches in loading data."""
 
         # Retrieve the creator function from the grid registry and handle unknowns
         creator = GRID_REGISTRY.get(self.grid_type, None)
@@ -264,6 +268,9 @@ class Grid:
         centroids = [cell.centroid for cell in self.polygons]
         self.centroids = np.array([(gm.xy[0][0], gm.xy[1][0]) for gm in centroids])
 
+        #  Populate the STRtree
+        self._strtree = STRtree(self.polygons)
+
         # Get the bounds as a 4 tuple
         self.bounds: GeometryCollection = GeometryCollection(self.polygons).bounds
         """A GeometryCollection providing the bounds of the cell polygons."""
@@ -273,7 +280,7 @@ class Grid:
         self._neighbours: list[NDArray[np.int_]] | None = None
 
         # Do not by default store the full distance matrix
-        self._distances: NDArray | None = None
+        self._distances: NDArray[np.floating] | None = None
 
     @property
     def neighbours(self) -> list[NDArray[np.int_]]:
@@ -297,15 +304,23 @@ class Grid:
         )
 
     @classmethod
-    def from_config(cls, config: Config) -> Grid:
+    def from_config(cls, config: GridConfiguration) -> Grid:
         """Factory function to generate a Grid instance from a configuration dict.
 
         Args:
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # The GRID_REGISTRY is dynamic, so can only enforce the grid type checking at
+        # the point of Grid instance creation.
+        if config.grid_type not in GRID_REGISTRY:
+            LOGGER.error(f"The grid_type {config.grid_type} is not defined.")
+            to_raise = ConfigurationError("Grid creation from configuration failed.")
+            LOGGER.critical(to_raise)
+            raise to_raise
+
         try:
-            grid = Grid(**config["core"]["grid"])
+            grid = Grid(**config.model_dump())
         except Exception as err:
             LOGGER.error(err)
             to_raise = ConfigurationError("Grid creation from configuration failed.")
@@ -408,17 +423,17 @@ class Grid:
         # operations (as in Shapely.touches and pysal.weights.Queen/etc) turns out to be
         # unreliable for hexagon grids simply due to floating point differences. For the
         # moment, just implementing distance.
-
-        self._neighbours = [
-            np.where(self.get_distances(idx, self.cell_id) <= distance)[1]
-            for idx in self.cell_id
-        ]
+        if distance is not None:
+            self._neighbours = [
+                np.where(self.get_distances(idx, self.cell_id) <= distance)[1]
+                for idx in self.cell_id
+            ]
 
     def get_distances(
         self,
         cell_from: int | Sequence[int] | None,
         cell_to: int | Sequence[int] | None,
-    ) -> np.ndarray:
+    ) -> NDArray[np.floating]:
         """Calculate euclidean distances between cell centroids.
 
         This method returns a two dimensional np.array containing the Euclidean
@@ -433,14 +448,14 @@ class Grid:
         """
 
         if cell_from is None:
-            _cell_from = np.arange(self.n_cells)
+            _cell_from: NDArray[np.int_] = np.arange(self.n_cells)
         else:
             _cell_from = np.array(
                 [cell_from] if isinstance(cell_from, int) else cell_from
             )
 
         if cell_to is None:
-            _cell_to = np.arange(self.n_cells)
+            _cell_to: NDArray[np.int_] = np.arange(self.n_cells)
         else:
             _cell_to = np.array([cell_to] if isinstance(cell_to, int) else cell_to)
 
@@ -501,7 +516,7 @@ class Grid:
         #    object https://shapely.readthedocs.io/en/latest/strtree.html
 
         return [
-            [id for id, ply in zip(self.cell_id, self.polygons) if ply.intersects(pt)]
+            self._strtree.query(geometry=pt, predicate="intersects").tolist()
             for pt in xyp
         ]
 

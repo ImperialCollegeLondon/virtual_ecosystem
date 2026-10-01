@@ -13,11 +13,11 @@ jobs:
   qa:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.10"
-      - uses: pre-commit/action@v3.0.0
+          python-version: "3.12"
+      - uses: pre-commit/action@v3.0.1
 
   test:
     needs: qa
@@ -26,29 +26,46 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ "3.10", "3.11", "3.12"]
+        python-version: ["3.12", "3.13", "3.14"]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Install Poetry
-      uses: abatilo/actions-poetry@v2.3.0
+      run: |
+        pipx install poetry --python python${{ matrix.python-version }}
+        poetry --version
+
+    - name: Install dependencies for testing
+      run: poetry install  --only main --only test 
+
+    - name: Run unit tests
+      run: poetry run pytest --cov-report xml -m "not integration"
+
+    - name: Archive log for error checking on failure
+      if: failure()
+      uses: actions/upload-artifact@v7
       with:
-        poetry-version: 1.5.1
-
-    - name: Install dependencies
-      run: poetry install
-
-    - name: Run tests
-      run: poetry run pytest --cov-report xml
+        name: failed_tests_ve_run_cli_log
+        path: ${{ runner.temp }}/log_file.log
+        archive: false
+        retention-days: 1
 
     - name: Upload coverage to Codecov
-      if: (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10')
-      uses: codecov/codecov-action@v4
+      if: >- 
+          ${{ ! (
+             github.event.pull_request.user.login == 'dependabot[bot]' || 
+             github.event.pull_request.user.login == 'pre-commit-ci[bot]'
+            ) && (
+             matrix.os == 'ubuntu-latest' && 
+             matrix.python-version == '3.12'
+            )
+          }}
+      uses: codecov/codecov-action@v7
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -57,16 +74,16 @@ jobs:
     needs: qa
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.10"
+          python-version: "3.12"
 
       - name: Install Poetry
-        uses: abatilo/actions-poetry@v2.3.0
-        with:
-          poetry-version: 1.5.1
-
+        run: |
+          pipx install poetry --python python3.12
+          poetry --version
+      
       - name: Install dependencies
         run: poetry install
 
@@ -77,7 +94,7 @@ jobs:
       
       - name: Archive built docs for error checking on failure
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: built-docs
           path: docs/build

@@ -90,7 +90,7 @@ LOGGER = logging.getLogger("virtual_ecosystem")
 def add_file_logger(logfile: Path) -> None:
     """Redirect logging to a provided file path.
 
-    This function adds a FileHandler with the name ``vr_logfile`` to
+    This function adds a FileHandler with the name ``ve_logfile`` to
     :data:`~virtual_ecosystem.core.logger.LOGGER` using the provided ``logfile`` path.
     It also turns off record propagation so that logging messages are only sent to that
     file and not to the parent StreamHandler.
@@ -104,10 +104,10 @@ def add_file_logger(logfile: Path) -> None:
     """
 
     for handler in LOGGER.handlers:
-        if isinstance(handler, logging.FileHandler) and handler.name == "vr_logfile":
+        if isinstance(handler, logging.FileHandler) and handler.name == "ve_logfile":
             raise RuntimeError(f"Already logging to file: {handler.baseFilename}")
 
-    # Do not propogate errors up to parent handler - this avoids mirroring the log
+    # Do not propagate errors up to parent handler - this avoids mirroring the log
     # output through the StreamHandler associated with the root logger
     LOGGER.propagate = False
 
@@ -116,7 +116,7 @@ def add_file_logger(logfile: Path) -> None:
     formatter = logging.Formatter(fmt=format)
     handler = logging.FileHandler(logfile)
     handler.setFormatter(formatter)
-    handler.name = "vr_logfile"
+    handler.name = "ve_logfile"
     LOGGER.addHandler(handler)
     LOGGER.setLevel(logging.DEBUG)
 
@@ -124,7 +124,7 @@ def add_file_logger(logfile: Path) -> None:
 def remove_file_logger() -> None:
     """Remove the file logger and return to stream logging.
 
-    This function attempts to remove the ``vr_logfile`` FileHandler that is added by
+    This function attempts to remove the ``ve_logfile`` FileHandler that is added by
     :func:`~virtual_ecosystem.core.logger.add_file_logger`. If that file handler is
     not found it simple exits, otherwise it removes the file handler and restores
     message propagation.
@@ -132,14 +132,14 @@ def remove_file_logger() -> None:
 
     try:
         # Find the file logger by name and remove it
-        vr_logfile = next(
-            handler for handler in LOGGER.handlers if handler.name == "vr_logfile"
+        ve_logfile = next(
+            handler for handler in LOGGER.handlers if handler.name == "ve_logfile"
         )
     except StopIteration:
         return
 
-    vr_logfile.close()
-    LOGGER.removeHandler(vr_logfile)
+    ve_logfile.close()
+    LOGGER.removeHandler(ve_logfile)
 
-    # Allow logger messages to propogate back down to the root StreamHandler
+    # Allow logger messages to propagate back down to the root StreamHandler
     LOGGER.propagate = True

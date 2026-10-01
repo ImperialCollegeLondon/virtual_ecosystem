@@ -7,9 +7,8 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.13.8
+    jupytext_version: 1.19.5
 ---
-
 
 # Docstring style for the Virtual Ecosystem package
 
@@ -19,9 +18,8 @@ We use the
 [`autodoc`](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html)
 extension to `sphinx` to convert the docstrings in code modules into rendered HTML.
 
-The results of using `autodoc` on the code below are shown [here](api_generation.md).
+The results of using `autodoc` on the code below are shown in the [API generation
+page](api_generation.md).
 
-```{eval-rst}
-.. include:: ./docstring_style.py
-    :code: python
+```{literalinclude} ./docstring_style.py
 ```

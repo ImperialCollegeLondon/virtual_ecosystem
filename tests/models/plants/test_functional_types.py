@@ -3,41 +3,31 @@
 This module tests the functionality of the plant functional types submodule.
 """
 
-
-def test_plant_functional_type():
-    """Simple test of PlantFunctionalType dataclass."""
-    from virtual_ecosystem.models.plants.functional_types import PlantFunctionalType
-
-    pft = PlantFunctionalType(pft_name="tree", max_height=12.0)
-
-    assert pft.pft_name == "tree"
-    assert pft.max_height == 12.0
+import pandas as pd
 
 
-def test_flora__init__():
-    """Simple test of Flora __init__."""
-    from virtual_ecosystem.models.plants.functional_types import (
-        Flora,
-        PlantFunctionalType,
-    )
+def test_get_flora_from_config(fixture_configuration):
+    """Testing the pyrealm flora loading mechanism.
 
-    flora = Flora(
-        [
-            PlantFunctionalType(pft_name="shrub", max_height=1.0),
-            PlantFunctionalType(pft_name="broadleaf", max_height=50.0),
-        ]
-    )
+    Checks that VEFlora (an extended pyrealm Flora class) loads from CSV and populates
+    the required extra fields.
+    """
 
-    assert len(flora) == 2
-    assert tuple(flora.keys()) == ("shrub", "broadleaf")
+    from pyrealm.demography.flora import Flora
 
+    from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
-def test_plant_functional_types_from_config(fixture_config):
-    """Simple test of Flora from_config factory method."""
+    # Initial fixture_config uses PFT definitions in the file
+    flora = get_flora_from_config(config=fixture_configuration.plants)
 
-    from virtual_ecosystem.models.plants.functional_types import Flora
+    assert isinstance(flora, Flora)
 
-    flora = Flora.from_config(fixture_config)
+    # Check one of the extended properties is present
+    assert "stem_c_n_ratio" in flora.columns
 
-    assert len(flora) == 2
-    assert tuple(flora.keys()) == ("shrub", "broadleaf")
+    # Check the reference values have been copied across
+    assert flora.lai.equals(flora.lai_base)
+    assert flora.tau_f.equals(flora.tau_f_base)
+
+    # Check the fruit flesh fraction has been populated
+    assert flora.fruit_flesh_fraction.equals(pd.Series((5 / 6, 3 / 4)))

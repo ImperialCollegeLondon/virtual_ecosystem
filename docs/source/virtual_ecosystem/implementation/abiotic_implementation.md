@@ -5,250 +5,931 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.2
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.12
 ---
 
-# The abiotic model implementation
-
-```{warning}
-The process-based abiotic model is still under development and currently not available
-for Virtual Ecosystem simulations with `ve_run`. This page provides a brief summary of
-the current status and the directions in which we aim to take the model development
-forward.
-```
+# The abiotic model
 
 ## Required variables
 
 The tables below show the variables that are required to initialise the abiotic model
-and then update it at each time step. Please check also the
-[notes on climate data pre-processing](../../using_the_ve/data/notes_preprocessing.md).
+and then update it at each time step.
 
-```{code-cell} ipython3
----
-tags: [remove-input]
-mystnb:
-  markdown_format: myst
----
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=abiotic&roles=vars_required_for_init">Variables
+  required to initialise the abiotic model.</a>
 
-from IPython.display import display_markdown
-from var_generator import generate_variable_table
-
-display_markdown(
-    generate_variable_table(
-        'AbioticModel', 
-        ['vars_required_for_init', 'vars_required_for_update']
-    ), 
-    raw=True
-)
-```
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=abiotic&roles=vars_required_for_update">Variables
+  required to update the abiotic model.</a>
 
 ## Model overview
 
-### Radiation
+The abiotic model simulates the exchange of energy, water, and heat between the land
+surface, vegetation canopy, soil, and atmosphere. These processes regulate
+microclimate conditions that directly influence ecosystem dynamics.
 
-The representation of radiation is currently limited to reflection/absorption of direct
-downward shortwave radiation and the emission of longwave radiation as part of the
-energy balance. Net radiation at the surface $R_N$ is calculated as:
+To ensure numerical stability and capture sub-daily variability, the model operates on
+a reconstructed **mean diurnal cycle**, derived from monthly mean input data.
 
-$$R_N = S_0 \cdot (1 - \alpha) - \epsilon_{s} \sigma T^{4}$$
+## Temporal resolution strategy
 
-where $S_0$ is the incoming shortwave radiation, $\alpha$ is the albedo of the leaf/soil
-surface, $\epsilon$ is the emissivity of the leaf/surface and $T$ is the temperature of
-the leaf/soil surface.
+### The mean diurnal cycle
 
-In the future, we aim to implement a diurnal cycle of incoming radiation including the
-effects of topography on sun angle as well as diffuse radiation.
+Calculating abiotic processes at coarse temporal resolution (e.g. monthly) can introduce
+numerical instability and obscure important sub-daily dynamics. To address this, the
+model simulates a single representative (average) day for each month. From monthly mean
+inputs, a full diurnal cycle is reconstructed, allowing processes to be resolved at
+hourly time steps.
 
-### Soil energy balance
+The resulting hourly values are then used to derive monthly means and ranges of state
+variables required by other models.
 
-The ``models.abiotic.soil_energy_balance`` submodule determines the energy balance at
-the surface by calculating how incoming solar radiation that reaches the surface is
-partitioned in sensible, latent, and ground heat flux. The sensible heat flux from the
-soil surface is given by:
+### Diurnal cycle reconstruction
 
-$$H_{S} = \frac {\rho_{air} C_{air} (T_{S} - T_{b}^{A})}{r_{A}}$$
+Monthly mean climate variables at reference height above the canopy are converted into
+hourly values over a 24-hour period using simplified, physically motivated assumptions.
 
-where $T_{S}$ is the soil surface temperature, $T_{b}^{A}$ is the
-temperature of the bottom air layer and $r_{A}$ is the aerodynamic resistance
-of the soil surface, given by
+**Air temperature** follows a sinusoidal cycle, peaking in the early afternoon (~14:00).
+The amplitude is defined by a prescribed daily temperature range (currently part of
+the model configuration), which produces a smooth oscillation around the monthly mean.
 
-$$r_{A} = \frac {C_{S}}{u_{b}}$$
+**Incoming shortwave radiation** is distributed across daylight hours using a half-sine
+curve which is zero at night and peaks at midday. The resulting hourly fractions are
+normalised and used to distribute monthly shortwave absorption across hours, layers,
+and grid cells. **Incoming longwave radiation** is assumed to be constant throughout the
+day.
 
-where $u_{b}$ is the wind speed in the bottom air layer and $C_{S}$ is
-the soil surface heat transfer coefficient.
+```{note}
+Daylength is estimated from month and latitude and is constrained between 6 and 18
+hours. Sunrise and sunset are then calculated symmetrically around noon.
 
-Latent heat flux $\lambda E_S$ is derived by conversion of surface evaporation as
-calculated by the hydrology model, and ground heat flux $G$ is calculated as the residual:
+The mean latitude of the grid has to be provided to the model configuration. In the
+future, this will be determined internally from the input model data projection and
+extent.
+```
 
-$$G = R_N - H_S - \lambda E_S$$
+**Relative humidity** is computed assuming constant atmospheric vapour pressure.
+Saturation vapour pressure depends on temperature, actual vapour pressure is derived
+from monthly mean humidity, and hourly humidity is computed from their ratio. Values are
+constrained between 0 and 100%.
 
-After the flux partitioning, we determine the soil temperatures at different depths.
-At the moment, this is achieved with linear interpolation between the surface and
-soil temperature at 1 m depth. In the future, we aim for a mechanistic implementation.
+**Evapotranspiration** is distributed hourly proportional to absorbed radiation when
+present and uniform when radiation is absent. **Soil evaporation** follows the same
+approach, using total absorbed radiation across layers
+to determine hourly scaling.
+
+### Numerical workflow
+
+At each Virtual Ecosystem model time step, a sequence of steps is executed as
+illustrated in {numref}`abiotic_workflow`.
+
+:::{figure} ../../_static/images/abiotic_workflow.svg
+:name: abiotic_workflow
+:alt: Abiotic workflow
+:class: bg-primary
+:width: 600px
+
+Numerical workflow of the abiotic model, starting with initialisation (yellow), followed
+by 24 runs of the hourly loop (green), and closed with post-processing (blue).
+Static variables are variables that are updated by the abiotic model but held
+constant during the diurnal cycle. This currently includes atmospheric pressure and
+$\ce{CO2}$ and the wind profiles.
+State variables refer to all variables that are updated hourly by the abiotic model.
+This includes vertical profiles of air temperature, relative humidity, soil temperature,
+and energy fluxes, for full list see [list of updated variables](#updated-variables).
+canopy and air temperature are solved in an iterative loop until both variables
+converge. If no convergence is reached, the last best guess is returned.
+The aggregation step at the end returns mean values of the representative day.
+:::
+
+## Energy balance framework
+
+The exchange of energy between the Earth's surface or canopy and the surrounding
+atmosphere involves five important categories of processes:
+
+* *Absorption* and *emission* of electromagnetic radiation by the surface/canopy
+* *Thermal conduction* of heat energy within the ground
+* *Turbulent transfer* of heat energy towards or away from the surface within the
+  atmosphere
+* *Evaporation*, *transpiration*, and *condensation* of water
+* *Primary productivity*
+
+Each of these processes can be associated with an energy flux density, which is the rate
+of transfer of energy normal to a surface of unit area (in $\mathrm{W\,m^{-2}}$).
+
+The energy balance of a surface layer of finite depth and unit horizontal area can be
+written as:
+
+$$\frac{dQ}{dt} = R_n - G - H - \lambda E - PP$$
+
+where each term is later expanded for the [canopy](#canopy-energy-balance), and
+[soil surface](#soil-energy-balance).
+
+**Variable definitions:**
+
+$Q$:
+Total heat energy stored in the surface layer.
+
+$R_n$:
+Net surface irradiance (commonly referred to as the net radiation). It
+represents the gain of energy by the surface from radiation. It is a positive number
+when it is towards the surface. This includes long- and shortwave radiation.
+
+$G$:
+Ground Heat Flux. It is the loss of energy by heat conduction through the
+lower boundary. It is a positive number when it is directed away from the surface into
+ground. The value at the surface is denoted $G_{0}$.
+
+$H$:
+Sensible Heat Flux. It represents the loss of energy by the
+surface by heat transfer to the atmosphere. It is positive when directed
+away from the surface into the atmosphere.
+
+$\lambda E$:
+Latent Heat Flux. It represents a loss of energy from the
+surface due to evaporation and/or transpiration. ($\lambda$ is the specific latent heat
+of evaporation,
+units $\mathrm{J\,kg^{-1}}$ and E is the evaporation rate, with units
+$\mathrm{kg\,m^{-2}\,s^{-1}}$).
+
+$PP$:
+Primary productivity, represents the energy that plants use to photosynthesize.
+
+## Radiative forcing
+
+### Net radiation
+
+The net radiation $R_n$ ($\mathrm{W\,m^{-2}}$) at the leaf or soil surface is
+calculated as:
+
+$$R_n = S_0 \cdot (1 - \alpha) + LW_{down} - \epsilon_{s} \sigma T^{4}$$
+
+where:
+
+$S_0$:
+Incoming shortwave radiation ($\mathrm{W\,m^{-2}}$)
+
+$\alpha$:
+Surface albedo, the fraction of shortwave radiation reflected (–)
+
+$LW_{down}$:
+Incoming longwave radiation ($\mathrm{W\,m^{-2}}$)
+
+$\epsilon_s$:
+Surface emissivity, the efficiency of longwave radiation emission (–)
+
+$\sigma$:
+Stefan–Boltzmann constant ($5.67 \times 10^{-8}\,\mathrm{W\,m^{-2}\,K^{-4}}$)
+
+$T$:
+Surface temperature (°C)
+
+Shortwave radiation $S_0$ and longwave radiation $LW_{down}$ are progressively
+attenuated through the canopy, as leaves absorb a portion of the incoming radiation.
+We account for the fact that some of the absorbed shortwave radiation is used by the
+plants to photosyntheses and is therefore not available for the generation of heat
+fluxes.
+
+```{Note}
+In the future, we aim to implement a more advance radiative transfer scheme, including:
+- the effects of topography on sun angle, and
+- the contribution of diffuse radiation.
+```
+
+## Canopy processes
 
 ### Canopy energy balance
 
-Given that the time increments of the model are an hour or longer,
+Given that the time increments of the model are one hour,
 we can assume that below-canopy heat and vapour exchange attain steady state and heat
 storage in the canopy does not need to be simulated explicitly
 {cite:p}`maclean_microclimc_2021`.
-(For applications where very fine-temporal resolution data might be needed, heat and
-vapour exchange must be modelled as transient processes, and heat storage by the canopy,
-and the exchange of heat between different layers of the canopy, must be considered
-explicitly, see {cite:t}`maclean_microclimc_2021`. This is currently not implemented.)
 
-Under steady-state, the balance equation for the leaves in each canopy layer is as
-follows (after {cite:t}`maclean_microclimc_2021`):
+Under steady-state, the balance equation $\frac{dQ}{dt}$ for the leaves in each canopy
+layer is as follows:
 
 ```{math}
-    & R_{abs} - R_{em} - H - \lambda E \\
-    & = R_{abs} - \epsilon_{s} \sigma T_{L}^{4} - c_{P}g_{Ha}(T_{L} - T_{A})
-    - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{A}} \\
+    & \frac{dQ}{dt} \\
+    & = R_{n} - H_l - \lambda E_l (- PP)\\
+    & = R_{\text{abs}} - \epsilon_{l} \sigma T_{l}^{4} -
+    \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})
+    - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} - PP\\
     & = 0
 ```
 
-where $R_{abs}$ is absorbed radiation, $R_{em}$ emitted radiation, $H$
-the sensible heat flux, $\lambda E$ the latent heat flux, $\epsilon_{s}$ the
-emissivity of the leaf, $\sigma$ the Stefan-Boltzmann constant, $T_{L}$ the
-absolute temperature of the leaf, $T_{A}$ the absolute temperature of the air
-surrounding the leaf, $\lambda$ the latent heat of vapourisation of water,
-$e_{L}$ the effective vapour pressure of the leaf, $e_{A}$ the vapour
-pressure of air and $p_{A}$ atmospheric pressure. $g_{Ha}$ is the heat
-conductance between leaf and atmosphere, $g_{v}$ represents the conductance
-for vapour loss from the leaves as a function of the stomatal conductance $g_{c}$.
+where:
 
-A challenge in solving this equation is the dependency of latent heat and emitted
-radiation on leaf temperature. We use a linearisation approach to solve the equation for
-leaf temperature and air temperature simultaneously after
-{cite:t}`maclean_microclimc_2021`.
+$R_{\text{abs}}$:
+Shortwave and longwave radiation absorbed by the canopy ($\mathrm{W\,m^{-2}}$)
 
-The air temperature surrounding the leaf $T_{A}$ is assumed to be influenced
-by leaf temperature $T_{L}$, soil temperature $T_{0}$, and reference air
-temperature $T_{R}$ as follows:
+$R_{\text{em}}$:
+Emitted longwave radiation from the canopy ($\mathrm{W\,m^{-2}}$)
 
-$$g_{tR} c_{p} (T_{R} - T_{A}) + g_{t0} c_{p} (T_{0} - T_{A}) + g_{L} c_{p} (T_{L} - T_{A})
-= 0$$
+$H_{l}$:
+Sensible heat flux from the canopy to the air ($\mathrm{W\,m^{-2}}$)
 
-where $c_{p}$ is the specific heat of air at constant pressure and
-$g_{tR}$, $g_{t0}$ and $g_{L}$ are conductance from reference
-height, the ground and from the leaf, respectively.
-$g_{L} = 1/(1/g_{HA} + 1/g_{z})$ where $g_{HA}$ is leaf boundary layer
-conductance and $g_{z}$ is the sub-canopy turbulent conductance at the height
-of the leaf over the mean distance between the leaf and the air.
+$\lambda E_{l}$:
+Latent heat flux associated with transpiration from the canopy to the air
+($\mathrm{W\,m^{-2}}$)
 
-Defining $T_{L} - T_{A}$ as $\Delta T$ and rearranging gives:
+$\epsilon_{l}$:
+Emissivity of the leaf (-), typically close to 1
 
-$$T_{A} = a_{A} + b_{A} \Delta T_{L}$$
+$\sigma$:
+Stefan–Boltzmann constant ($5.67 \times 10^{-8}\,\mathrm{W\,m^{-2}\,K^{-4}}$)
 
-where $a_{A} = \frac{(g_{tR} T_{R} + g_{t0} T_{0})}{(g_{tR} + g_{t0})}$ and
-$b_{A} = \frac{g_{L}}{(g_{tR} + g_{t0})}$ .
+$T_{l}$:
+Temperature of the leaf (°C)
 
-The sensible heat flux between the leaf and the air is given by
+$T_{a}$:
+Temperature of the air surrounding the leaf (°C)
 
-$$g_{Ha} c_{p} (T_{L} - T_{A}) = b_{H} \Delta T_{L}$$
+$\lambda$:
+Latent heat of vapourisation of water ($\mathrm{kJ\,kg^{-1}}$)
 
-where $b_{H} = g_{Ha} c_{p}$. The equivalent vapour flux equation is
+$e_{l}$:
+Effective vapour pressure of the leaf (kPa)
 
-$$g_{tR}(e_{R} - e_{a}) + g_{t0} (e_{0} - e_{a}) + g_{v} (e_{L} - e_{a}) = 0$$
+$e_{a}$:
+Vapour pressure of air (kPa)
 
-where $e_{L}$, $e_{A}$, $e_{0}$ and $e_{R}$ are the vapour
-pressure of the leaf, air, soil and air at reference height, respectively, and
-$g_{v}$ is leaf conductance for vapour given by
-$g_{v} = \frac{1}{(\frac{1}{g_{c} + g_{L})}}$ where $g_{c}$ is stomatal
-conductance. Assuming the leaf to be saturated, and approximated by
-$e_{s} [T_{R}]+\Delta_{v} [T_{R}]\Delta T_{L}$ where $\Delta_{v}$ is the
-slope of the saturated pressure curve at temperature $T_{R}$, and rearranging
-gives
+$p_{a}$:
+Atmospheric pressure (kPa)
 
-$$e_{a} = a_{E} + b_{E} \Delta T_{L}$$
+$g_{v}$:
+Conductance for vapour loss from the leaves ($\mathrm{mol\,m^{-2}\,s^{-1}}$) as a
+function of the stomatal conductance $g_{c}$ ($\mathrm{s\,m^{-1}}$)
 
-where
-$a_{E} = \frac{(g_{tR} e_{R} + g_{t0} e_{0} + g_{v} e_{s}[T_{R}])}{(g_{tR} + g_{t0} + g_{v})}$
-and $b_{E} = \frac{(\Delta_{V} [T_{R}])}{(g_{tR} + g_{t0} + g_{v})}$.
+$PP$:
+Primary productivity, represents the energy that plants use to photosynthesize
 
-The latent heat term is given by
+### Temperature solution
 
-$$\lambda E = \frac{\lambda g_{v}}{p_{a}} (e_{L} - e_{A})$$
+A challenge in solving the canopy energy balance is the strong nonlinear dependence of
+radiative and turbulent fluxes on leaf temperature. In particular, emitted longwave
+radiation scales with the fourth power of temperature, while sensible heat flux depends
+linearly on the temperature difference between the canopy and the surrounding air.
 
-Substituting $e_{A}$ for its linearized form, again assuming $e_{L}$
-is approximated by $e_{s} [T_{R}]+\Delta_{v} [T_{R}]\Delta T_{L}$, and
-rearranging gives:
+To solve for the leaf temperature that satisfies the energy balance
 
-$$\lambda E = a_{L} + b_{L} \Delta T_{L},$$
+```{math}
+\frac{dQ}{dt}=0,
+```
 
-where $a_{L} = \frac{\lambda g_{v}}{p_{a}} (e_{s} [T_{R}] - a_{E})$ and
-$b_{L} = \frac{\lambda g_{v}}{p_{a}} (\Delta_{V} [T_{R}] - b_{E})$.
+we apply a secant method, a derivative-free root-finding approach. This avoids the need
+to explicitly evaluate the derivative of the energy balance (as in Newton method) while
+retaining fast convergence.
 
-The radiation emitted by the leaf $R_{em}$ is given by the Stefan Boltzmann
-law and can be linearised as follows:
+However, canopy and air temperatures are coupled through the sensible heat flux, so the
+leaf temperature cannot be solved fully independently of the surrounding air
+temperature. We therefore use a two-level iterative solution. For a given estimate of
+air temperature, the secant method is used to solve for the canopy temperature that
+satisfies the energy balance. The air temperature is then updated from the resulting
+sensible heat flux. This procedure is repeated until successive estimates of both canopy
+and air temperature change by less than a prescribed tolerance.
 
-$$R_{em} = a_{R} + b_{R} \Delta T_{L}$$
+### Air-canopy temperature coupling
 
-where $a_{R} = \epsilon_{s} \sigma a_{A}^{4}$ and
-$b_{R} = 4 \epsilon_{s} \sigma (a_{A}^{3} b_{A} + T_{R}^{3})$.
+After each canopy temperature solve, the air temperature in the
+adjacent canopy layer is updated to reflect its coupling with the leaf temperature
+following {cite:t}`bonan_climate_2019`:
 
-The full heat balance equation for the difference between leaf and canopy air
-temperature becomes
+The sensible heat flux between canopy and air is
 
-$$\Delta T_{L} = \frac{R_{abs} - a_{R} - a_{L}}{(1 + b_{R} + b_{L} + b_{H})}$$
+$$H = \frac{\rho_{a} c_{p}}{r_{a}}(T_{l} - T_{a})$$
 
-The equation is then used to calculate air and leaf temperature as follows:
+and the air temperature evolves as
 
-$$T_{A} = a_{A} + b_{A} \Delta T_{L}$$
+$$T_{a}^{\text{new}} = T_{a}^{\text{old}} + \frac{H}{\rho_{a} c_{p} z}$$
 
-and
+where:
 
-$$T_{L} = T_{A} + \Delta T_{L}.$$
+$T_a$:
+Air temperature, (°C)
 
-### Wind
+$z$:
+Thickness of the air layer we are updating, (m)
+
+This update is part of the outer coupling iteration: canopy temperature is solved for
+fixed air temperature, air temperature is then updated from the canopy sensible heat
+flux, and the process is repeated until both variables converge.
+
+The surface air temperature is diagnosed separately from the soil and canopy-bottom
+conductances and temperatures, assuming equilibrium between the soil and canopy
+fluxes. This is necessary because the surface layer is too thin to be updated based
+on fluxes over a 1-hour timestep, and a purely flux-based update would produce
+unrealistic surface air temperatures.
+
+Finally, we consider vertical mixing between all vegetation layers and heat is
+transferred to the air above the canopy.
+
+```{note}
+Advection of heat above the canopy is currently not implemented. For time intervals
+$\geq 1 \text{ h}$, excess heat is assumed to be removed locally, and horizontal heat
+transfer is not considered.
+```
+
+## Soil processes
+
+### Soil energy balance
+
+The energy balance at the soil surface is solved by partitioning net radiation $R_N$
+into different fluxes.
+
+The **sensible heat flux** from the soil surface is given by:
+
+$$H_{s} = \frac {\rho_{a} c_{p} (T_{s} - T_{a})}{r_{a}}$$
+
+where:
+
+$T_s$:
+Soil surface temperature (°C)
+
+$T_a$:
+Air temperature in the bottom atmospheric layer (°C)
+
+$r_a$:
+Aerodynamic resistance of the soil surface ($\mathrm{s\,m^{-1}}$)
+
+$\rho_{a}$:
+Air density ($\mathrm{kg\,m^{-3}}$)
+
+$c_{p}$:
+Specific heat capacity of air at constant pressure ($\mathrm{J\,kg^{-1}\,K^{-1}}$)
+
+The aerodynamic resistance of the soil surface is given by
+{cite:p}`barton_parameterization_1979`:
+
+$$r_{a} = \frac{1}{C_{E} u}$$
+
+where:
+
+$u$:
+Horizontal wind speed at the bottom air layer ($\mathrm{m\,s^{-1}}$)
+
+$C_E$:
+Drag coefficient for evaporation (–)
+
+The **latent heat flux** is derived by conversion of surface evaporation as
+calculated by the hydrology model.
+
+The **ground heat flux** is calculated as the residual of the energy balance at the
+soil surface plus the conductive heat from the understorey layer:
+
+$$G = R_{n} - H_{s} - \lambda E_{s} + G_{u}$$
+
+### Soil temperature update
+
+After the energy fluxes at the land surface have been partitioned, we simulate how heat
+is transported vertically through the soil profile by updating the temperature of each
+soil layer over time. This is done using an explicit finite-difference approach, which
+numerically solves the one-dimensional heat diffusion equation while allowing thermal
+properties to vary with soil moisture. Moisture influences temperature evolution through
+both the soil volumetric heat capacity and thermal conductivity.
+
+The **soil volumetric heat capacity** $C_{\mathrm{vol}}$ ($\mathrm{J,m^{-3},K^{-1}}$)
+determines how much energy is required to change soil temperature and is represented as:
+
+$$C_{vol}=\rho_b c_{s} + \theta \rho_w c_w​$$
+
+where:
+
+$\rho_b$: Soil bulk density ($\mathrm{kg,m^{-3}}$)
+
+$c_s$: Specific heat capacity of soil solids ($\mathrm{J,kg^{-1},K^{-1}}$)
+
+$\theta$: Volumetric soil moisture ($\mathrm{m^{3},m^{-3}}$)
+
+$\rho_w$: Water density ($\mathrm{kg,m^{-3}}$)
+
+$c_w$: Specific heat capacity of water ($\mathrm{J,kg^{-1},K^{-1}}$)
+
+The **soil thermal conductivity** $\lambda$ ($\mathrm{W,m^{-1},K^{-1}}$) is estimated
+following a Johansen-style unfrozen-soil parameterisation
+{cite:p}`johansen_thermal_1975`, using the Kersten number $K_{e}$, which scales
+between the dry ($\lambda_\mathrm{dry}$) and saturated ($\lambda_\mathrm{sat}$)
+conductivity limits.
+
+The saturated volumetric water content ($\theta_{s}$) is taken equal to the porosity and
+the degree of saturation ($\theta$) is then:
+
+$$S_{r} = \frac{\theta}{\theta_{s}}$$
+
+The Kersten number $K_{e}$ depends on soil texture:
+
+```{math}
+    K_{e} =
+    \begin{cases}
+        \kappa \log_{10}(S_{r}) + 1, & \text{coarse-textured soils} \\
+        \log_{10}(S_{r}) + 1,        & \text{fine-textured soils}
+    \end{cases}
+```
+
+where $\kappa$ is the ``coarse_kersten_factor`` parameter.
+{cite:t}`johansen_thermal_1975` gives $\kappa = 0.7$ for coarse mineral soils.
+
+Thermal conductivity is then obtained by linear interpolation between the
+dry and saturated limits:
+
+```{math}
+\lambda = K_{e} \left( \lambda_\mathrm{sat} - \lambda_\mathrm{dry} \right)
++ \lambda_\mathrm{dry}
+```
+
+```{note}
+This formulation is valid for unfrozen mineral soils with $S_{r} > 0.1$. Below
+this threshold the Kersten number becomes negative, which is physically unrealistic;
+implementations should clamp $S_{r}$ or $K_{e}$ accordingly.
+```
+
+**Soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2},s^{-1}}$) is then calculated as:
+
+$$\alpha = \frac{\lambda}{C_{vol}}$$
+
+#### Temperature Update Scheme
+
+Let $T_i^t$ represent the temperature (°C) of the $i^{\text{th}}$ soil layer at time
+$t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z_i$ (m),
+and time advances in steps of $\Delta t$ (s).
+
+**Top layer update** (surface boundary condition):
+
+The topmost layer ($i = 0$) is updated using the net ground heat flux $G$
+($\mathrm{W\,m^{-2}}$):
+
+$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{C_{\mathrm{vol},0}\,\Delta z_{m}}\right)G$$
+
+**Interior layers update**:
+
+Each interior layer ($i = 1, \dots, n-2$) exchanges heat with adjacent layers following
+the diffusion equation:
+
+```{math}
+\begin{aligned}
+T_i^{t+\Delta t} =
+& T_i^t + (\frac{\Delta t}{\Delta z_i^2}) \alpha_i
+(T_{i+1}^t - 2T_i^t + T_{i-1}^t)
+\end{aligned}
+```
+
+This term approximates vertical conduction using the second spatial derivative of
+temperature, with moisture-dependent thermal diffusivity.
+
+**Bottom layer update** (no-flux boundary condition):
+
+A zero heat flux is assumed at the bottom boundary ($i = n-1$), so the bottom layer only
+exchanges heat with the layer above:
+
+```{math}
+\begin{aligned}
+T_{n-1}^{t+\Delta t} =
+& T_{n-1}^t + (\frac{\Delta t}{\Delta z_{n-1}^2}) \alpha_{n-1}
+(T_{n-2}^t - T_{n-1}^t)
+\end{aligned}
+```
+
+All layer updates are calculated from the temperature profile at the previous timestep,
+so the scheme is consistent with a forward-in-time, centred-in-space explicit
+finite-difference method.
+
+## Atmospheric moisture
+
+Evapotranspiration and soil evaporation are initially provided in millimetres of water
+depth. These values are converted to a mass of water per unit volume of air
+($\mathrm{kg\, m^{-3}}$) then added to the relevant atmospheric
+layers: canopy evapotranspiration is distributed across the layers surrounding the
+vegetation, while soil evaporation is added to the lowest layer near the surface.
+
+Using the updated water mass, specific humidity is recalculated for each layer by
+dividing the total water mass by the volume of air in that layer. Then, the new specific
+humidity is vertically mixed between layers and ventilated at the top of the canopy to
+make sure that water does not accumulate unrealistcally in the canopy but stays connected
+to the atmosphere above. To maintain physical realism, additional redistribution steps
+are taken where necessary until all layers in the canopy are within realistic bounds.
+The resulting change in specific humidity is then used to compute the new vapour pressure
+, relative humidity, and vapour pressure deficit. Access water is allocated to
+condensation which is added to the surface precipitation in the next time step.
+
+```{note}
+Advection of water above the canopy is currently not implemented as everything is
+removed with time interval >= 1h and horizontal transfer is not considered.
+```
+
+## Turbulence and wind
 
 The wind profile determines the exchange of heat, water, and $\ce{CO_{2}}$ between soil
-and atmosphere below the canopy as well as the exchange with the atmosphere above the canopy.
+and atmosphere below the canopy as well as the exchange with the atmosphere above the
+canopy. The wind speed above the canopy is provided as an input to the model at each
+time step.
 
-The wind profile above the canopy is described as follows (based on
-{cite:t}`campbell_introduction_1998` as implemented in {cite:t}`maclean_microclimc_2021`):
+This section describes the implementation of wind profiles within the canopy, friction
+velocity, aerodynamic resistance, vertical mixing rates, and ventilation rate used to
+model turbulent mixing with air above the canopy.
 
-$$u_z = \frac{u^{*}}{0.4} ln \frac{z-d}{z_M} + \Psi_M$$
+The **zero-plane displacement height** $d$ (m) is a concept used in micrometeorology to
+describe the flow of air near the ground or over surfaces like a forest canopy or crops.
+It represents the height above the actual ground where the wind speed is theoretically
+reduced to zero due to the obstruction caused by the roughness elements (like trees
+or buildings).
 
-where $u_z$ is wind speed at height $z$ above the canopy, $d$ is
-the height above ground within the canopy where the wind profile extrapolates to
-zero, $z_m$ the roughness length for momentum, $\Psi_M$ is a diabatic
-correction for momentum and $u^{*}$ is the friction velocity, which gives the
-wind speed at height $d + z_m$.
+$d$ is estimated as a function of canopy height $h_{c}$ (m), leaf area index $LAI$
+ $\mathrm{m\,m^{-1}}$, and a scaling parameter $\beta_{d}$ after
+ {cite:t}`maclean_microclimc_2021`:
 
-The wind profile below canopy is derived as follows:
+```{math}
+d = h_c \left( 1 - \frac{1 - \exp\left(-\sqrt{\beta_d \cdot \text{LAI}}\,\right)}
+{\sqrt{\beta_d \cdot \text{LAI}}} \right)
+```
 
-$$u_z = u_h \exp(a(\frac{z}{h} - 1))$$
+This ensures $d \to 0$ in the absence of vegetation and approaches a fraction of
+canopy height in dense vegetation.
 
-where $u_z$ is wind speed at height $z$ within the canopy, $u_h$
-is wind speed at the top of the canopy at height $h$, and $a$ is a wind
-attenuation coefficient given by $a = 2 l_m i_w$, where $c_d$ is a drag
-coefficient that varies with leaf inclination and shape, $i_w$ is a
-coefficient describing relative turbulence intensity and $l_m$ is the mean
-mixing length, equivalent to the free space between the leaves and stems. For
-details, see {cite:t}`maclean_microclimc_2021`.
+The **roughness length** $z_0$ (m) determines the height above the ground where the wind
+speed theoretically becomes zero under neutral atmospheric conditions. It is influenced
+by the drag imposed by both the substrate and the vegetation canopy. The roughness
+length is computed as (after {cite:t}`maclean_microclimc_2021`):
+
+$$z_{m} = (h_c − d) exp⁡(−\kappa \frac{1}{R} − C_d)$$
+
+with
+
+$$R = \sqrt{C_s + \frac{C_r LAI}{2}}$$
+
+where $C_{s}$ is the substrate surface roughness length, $C_{r}$ is the roughness
+element (vegetation) drag coefficient, $C_{d}$ is the roughness sublayer depth parameter,
+$\kappa$ is the von Karman constant, and $LAI$ is the leaf area index
+($\mathrm{m\,m^{-1}}$).
+
+The **wind speed** ($\mathrm{m\,s^{-1}}$) at any height $z$ (m) is computed using the
+logarithmic wind profile under neutral conditions (based on
+{cite:t}`holmes_wind_2019`):
+
+```{math}
+u(z) = u_{\text{ref}} \cdot \frac{\ln\left( \frac{z - d}{z_0} \right)}
+{\ln\left( \frac{z_{\text{ref}} - d}{z_0} \right)}
+```
+
+where $u(z)$ is wind speed at height $z$, $u_{\text{ref}}$ is reference wind speed at
+height $z_{\text{ref}}$, $d$ is the zero-plane displacement height, $z_{m}$ is the
+roughness length.
+
+Minimum wind speed is enforced below the canopy to avoid unrealistically low turbulent
+transport.
+
+**Friction velocity** $u_{*}$ ($\mathrm{m\,s^{-1}}$) quantifies the shear stress
+imposed by wind near the surface and is calculated from the wind speed profile
+(based on {cite:t}`holmes_wind_2019`):
+
+$$u_* = \frac{\kappa \cdot u(z)}{\ln\left( \frac{z - d}{z_0} \right)}$$
+
+Friction velocity is used to estimate turbulence strength and mixing coefficients.
+
+The **aerodynamic resistance** $r_a$ ($\mathrm{s\,m^{-1}}$) quantifies the resistance to
+vertical transfer of scalars (heat, water vapour) between surface and air
+(based on {cite:t}`jansson_coupled_2004`):
+
+```{math}
+r_a = \frac{1}{g_a} = \frac{\left[ \ln\left( \frac{z - d}{z_0} \right) \right]^2}
+{\kappa^2 \cdot u(z)}
+```
+
+Separate values are computed for:
+
+* Canopy resistance, using wind speeds within the canopy layer.
+* Soil resistance, passed as an external input from the hydrology model.
+
+```{note}
+We currently distinguish between daytime and night time values or aerodynamic resistance
+. The calculation above are true for daytime conditions; during nighttime, values are
+set to a constant value which can be defined in the model configuration. This will be
+updated once the nighttime wind speed can be calculated reliably.
+```
+
+The **eddy diffusivity** or **turbulent mixing coefficients** for heat ($k_H$) and
+momentum ($k_M$) ($\mathrm{m^{2}\,s^{-1}}$) are used to mix water and energy in the
+canopy. Inside the canopy, turbulence is strongly damped by vegetation drag, and a
+simple linear profile like used for the top of the canopy like
+$k_{H,M} = \kappa u^{*}(z-d)$ {cite:p}`raupach_coherent_1996`
+does not match observed eddy diffusivity well. Instead, empirical profiles based on
+measurements are used, and these often take parabolic or other non-linear forms like:
+
+$$k_{H,M}(z)=\kappa u^{*}z(1-zh)^{2}$$
+
+where $\kappa$ is the von Karman constant (dimensionless), $u_{*}$ is
+the friction velocity ($\mathrm{m\,s^{-1}}$), $z$ is the height (m) for which
+coefficients are calculated, and $h_c$ is the canopy height (m).
+
+This particular form goes to zero at both z=0 and z=h and peaks somewhere within the
+canopy.
+
+The **ventilation rate** $v$ represents the rate of air exchange above the
+canopy and is defined as (after {cite:t}`wolfe_forest_2011`):
+
+$$v = \frac{1}{r_a \cdot h}$$
+
+Where $r_a$ is the aerodynamic resistance from the top canopy layer and $h$ is the
+vertical scale of exchange, or characteristic height, here canopy height (m).
+
+This rate is used to estimate convective removal of heat and water vapour from the
+canopy.
+
+## Snow and ice (design note)
+
+```{note}
+This section is a design note; snow and freezing processes are currently not
+implemented.
+```
+
+To run the Virtual Ecosystem in seasonal environments, we need to introduce a set of
+processes that allow for below zero degree conditions. This includes effects on both
+microclimate and hydrology. For clarity, the full set of processes is described here
+although some processes will be implemented in the hydrology model.
+
+First, the snow submodule needs to include a minimum set of **above-ground processes**
+so that snow and below zero temperatures affect precipitation phase (rain vs snow),
+water storage at the surface, melting, surface roughness and wind
+profiles, surface albedo and absorbed shortwave radiation, surface energy
+partitioning, and hydrologic liquid-water input from melted snow.
+
+Most snow models use a multi-layer approach with snow accumulating at the top, becoming
+more compact and dark as it ages (leading to albedo changes), and melting from the lower
+layers (e.g. {cite:t}`maclean_ecologist_2026`, {cite:t}`jennings_spatial_2018`,
+{cite:t}`kearney_how_2020`).
+For simplicity, the first version of our snow model uses a single layer approach. This
+layer will cover the current surface layer so that the effects of surface vegetation
+on the energy balance are reduced. Note: the precise treatment of sub-canopy snow
+interception and surface vegetation masking is not yet finalised.
+
+Workflow:
+
+Hydrology model runs snow mass balance:
+
+* Partition precipitation into $P_{r}$​ and $P_{s}$
+* Update snow mass balance $\Delta S$
+* Update snow density $\rho_{s}$​ and depth $D_{s}$
+* Calculate melt $M$ and rain-on-snow melt $M_{r}$​
+* Pass liquid water to surface water store
+
+Abiotic model runs snow energy balance:
+
+* Adjust canopy structure for snow burial
+* Solve snow surface energy balance for $T_{s}$​
+* Calculate conductive flux $G$ to soil
+* Update soil temperature profile
+* Pass sublimation flux $E$ back to atmosphere
+
+The second step is a frozen-soil module that uses snow cover to alter
+**below-ground** conditions and processes, including soil thermal conditions,
+infiltration and runoff, soil evaporation, and plant uptake when soils are frozen.
+This part will be described in more detail in
+[M2.1.1](https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/1715).
+
+```{admonition} Warm climate behaviour
+No configuration flags are required to enable or disable snow processes. Instead, snow
+dynamics emerge naturally from air temperature: when temperatures remain above freezing,
+the snowfall fraction $f_{s}=0$, no snow water equivalent accumulates ($S=0$), and snow
+depth $D_{s}=0$ throughout. Under these conditions, all snow-related terms disappear
+from the energy balance and hydrology equations, and the model behaviour is identical to
+the pre-snow implementation. Snow processes activate automatically whenever subfreezing
+temperatures occur, and are entirely absent in warm-climate simulations without any code
+changes or configuration.
+```
+
+### Snow mass balance
+
+The **snow mass balance** will be introduced in the `hydrology` model at the start of
+the daily loop. The first step is to partition total precipitation ($P$, $\mathrm{mm}$)
+into rainfall ($P_{r}$) and snow ($P_{s}$)
+
+$$P_{s} = f_{s} P, \qquad  P_{r} = (1-f_{S})P$$
+
+where $f_{s}$ is the fraction of snow, expressed as a function of air temperature
+($T_{a}$):
+
+$$
+f_{s} =
+\begin{cases}
+1 & T_{a} \leq T_{s}\\
+0 & T_{a} \geq T_{r}\\
+\frac{T_{r}-T_{a}}{T_{r}-T_{s}} & T_{s} < T_{a} < T_{r}
+\end{cases}
+$$
+
+where $T_{s} = 0\,^{\circ}\mathrm{C}$ is the temperature below which all precipitation
+falls as snow, and $T_{r} = 2\,^{\circ}\mathrm{C}$ is the temperature above which all
+precipitation falls as rain {cite:p}`jennings_spatial_2018`. Between these thresholds,
+precipitation is partitioned linearly.
+
+The rainfall fraction $P_{r}$ is treated as "normal" precipitation input by the hydrology
+model. The snow fraction $P_{s}$ accumulates at the surface as snow water equivalent
+($S$, $\mathrm{mm}$) in a single layer.
+
+The change in snow water equivalent is calculated at each daily timestep as:
+
+$$\Delta S = P_{s} - M - E - M_{r}$$
+
+$M$ is melt from the snow layer, $E$ is sublimation (positive upward, negative for
+deposition), and $M_{r}$ is rain-induced melt (all in $\mathrm{mm}$)
+({cite:t}`anderson_apoint_1976`, {cite:t}`kearney_how_2020`,
+{cite:t}`maclean_ecologist_2026`).
+
+```{note}
+Sublimation ($E$) is not yet assigned a governing equation in this design note and
+will be specified during implementation.
+```
+
+#### Snow melt
+
+Melt is calculated from the energy available to warm the snowpack to $0\,^{\circ}\mathrm{C}$,
+expressed as a fraction of the latent heat required for phase change.
+Temperature-driven melt is calculated as:
+
+$$M = \min \left(S, \frac{c_{ice} \max(T_{s}, 0)}{L_{f}} S \right)$$
+
+where $c_{ice}$ ($\mathrm{J\,kg^{-1}, K^{-1}}$) is the heat capacity of ice, and $L_{f}$
+($\mathrm{J\,kg^{-1}}$) is the latent heat of fusion of ice. The $⁡min$ operator ensures
+that melt cannot exceed the available snow water equivalent.
+
+The snowmelt generated by rainfall is calculated as:
+
+$$M_{r} = k_{r}T_{a}P_{r}$$
+
+with $k_{r} = 0.0125$ {cite:p}`kearney_how_2020`.
+
+#### Snow depth and density
+
+The snow depth ($D_{s}$, $\mathrm{m}$) is defined as the ratio between snow water
+equivalent and snow density:
+
+$$D_{s} = \frac{S}{\rho_{s}}$$
+
+Snow density ($\rho_{s}$, $\mathrm{kg\,m^{-3}}$) is calculated as a function of snow
+depth and snow age following {cite:t}`maclean_ecologist_2026`:
+
+$$\rho_{s} = (\rho_{max} - \rho_{0})(1-\exp(-k_{d} D_{s} -k_{a}t_{s}))+\rho_0$$
+
+Here $\rho_0$​ is the density of freshly fallen snow and $\rho_max$​ is the maximum
+density the snowpack can reach (both in $\mathrm{kg\,m^{-3}}$). The coefficients
+$k_d$ ​($\mathrm{m^{-1}}$) and $k_a$​ ($\mathrm{day^{-1}}$) capture the compaction of
+snow under its own weight and through gradual metamorphism over time, and $t_{s}$​ is
+snow age in days {cite:p}`sturm_estimating_2010`. {cite:t}`maclean_ecologist_2026`
+provide parameter values for several snow climate classes in their supplementary
+materials.
+
+```{note}
+$\rho{s}$​ depends on $D_{s}$​, which itself depends on $\rho{s}$​. This
+circularity is resolved by using the snow depth from the previous timestep when
+computing density at each new timestep.
+```
+
+#### Hydrology outputs
+
+The liquid water generated from snowmelt ($M + M_{r}​$) is added to the surface water
+variable, from which the hydrology model proceeds unchanged as described in the
+documentation.
+
+Once implemented, the net sublimation flux ($E$) will be accumulated and
+added to or removed from the lowest atmospheric layer in the next call of the abiotic
+model, depending on its sign.
+
+The following additional variables will be produced and added to `data`:
+
+* snow fraction of precipitation, (mm)
+* liquid water fraction of precipitation, (mm)
+* snow water equivalent, (mm)
+* snow height, (m)
+* snow density, ($\mathrm{kg\,m^{-3}}$)
+* snow melt from energy balance, (mm)
+* snow melt from rainfall, (mm)
+
+### Snow energy balance
+
+The snow surface temperature is obtained by solving the surface energy balance, using
+the same framework applied to vegetated surfaces described above. The implementation
+follows {cite:t}`kearney_how_2020` and {cite:t}`maclean_ecologist_2026`, building on
+{cite:t}`anderson_apoint_1976`. The net energy flux at the snow surface determines both
+the snow surface temperature and the conductive heat flux into the soil below. For this
+to be initiated, snow has to be present when the abiotic model is called, so there needs
+to be a boolean indicator implemented.
+
+**Shortwave radiation** absorbed at the snow surface is determined by snow albedo
+($\alpha_s$; between 0 and 0.97​), which declines as the snowpack ages due to grain
+metamorphism and deposition of debris. Snow albedo is expressed as a function of snow
+age ($t_{s}$, here in days):
+
+$$\alpha_{s} = \frac{-9.8740 \ln(t_{s}) + 78.3434}{100}$$
+
+following regressions derived from {cite:t}`anderson_apoint_1976`. Fresh snow is highly
+reflective ($\alpha_{s} = 0.8-0.9$), and albedo decreases progressively with age. This has
+a strong influence on the surface energy balance and therefore on melt rates.
+
+**Longwave emission** from the snow surface assumes a fixed emissivity of
+$\epsilon = 0.99$, such that emitted longwave radiation ($R_{em,s}, \mathrm{W\,m^{-2}}$)
+is:
+
+$$R_{em,s}=\epsilon \sigma T_{s}^{4}$$
+
+where $\sigma$ is the Stefan-Boltzmann constant and $T_{s}$​ is snow surface temperature
+($K$). Incoming longwave radiation from the canopy and atmosphere above is calculated as
+for other surfaces.
+
+**Sensible heat** exchange between the snow surface and the air above is calculated using
+the same aerodynamic resistance formulation as for other surfaces in the model. However,
+the roughness length and zero-plane displacement height are adjusted to account for the
+presence of snow.
+
+Where snow depth ($D_{s}$​) is less than canopy height ($h_{c}$), the exposed canopy
+height is reduced to $h_{c}-D_{s}$​, and leaf area index is scaled proportionally. The
+zero-plane displacement height ($d, \mathrm{m}$) and roughness length for momentum
+($z_{m}, \mathrm{m}$​) are then recalculated for the reduced canopy following the standard
+formulations described [above](#turbulence-and-wind).
+
+Where snow depth meets or exceeds vegetation height, the surface is treated as bare
+snow, with:
+
+$$d=0, \qquad z_{m}=0.002 \exp(\Psi_{h})$$
+
+where $\Psi_{h}$ is a diabatic correction coefficient for momentum. The aerodynamic
+resistance to heat transfer ($r_{a}​, \mathrm{s\,m^{-1}}$) is then
+calculated using the adjusted values of $d$ and $z_{m}$​​.
+
+**Latent heat** exchange at the snow surface is calculated without a surface resistance.
+The snowpack is treated as freely evaporating, with water vapour flux driven entirely by
+the vapour pressure gradient between the snow surface and the air above, and modulated by
+aerodynamic resistance $r_{a}$​.
+
+### Snow surface temperature
+
+The net energy flux at the snow surface ($R_{net}​, \mathrm{W\, m^{−2}}$) is the sum of
+absorbed shortwave radiation, net longwave radiation, and turbulent sensible and latent
+heat fluxes. In our simple one layer approach, the single snow layer is treated as a
+thermal slab with a conductive flux ($G,\mathrm{W\, m^{−2}}$) to the soil surface below:
+
+$$G=k_{s} D_{s} (T_{s} − T_{soil})$$
+
+where $k_{s}$​ ($\mathrm{W\, m^{−1}, K^{-1}}$) is the thermal conductivity of snow,
+and $T_{soil}$​ ($K$) is the temperature of the topsoil layer. The snow surface
+temperature is then obtained by solving the energy balance:
+
+$$R_{net} = G$$
+
+Snow thermal conductivity is calculated from snow density as:
+
+$$k_s = 0.0442 \exp(5.151 \rho_{s})$$
+
+following {cite:t}`anderson_apoint_1976`. Denser, older snow conducts heat more
+efficiently than fresh powder, so $k_{s}$​ increases as the snowpack compacts over
+time.
+
+```{note}
+Note that this slab conductance approach is a deliberate simplification consistent with
+the single-layer snow model. It captures the insulating effect of snow on the soil below;
+a shallower or denser snowpack conducts more heat to the soil, while a deep, low-density
+snowpack effectively decouples the soil from the atmosphere above.
+```
+
+The following additional variables will be produced and added to `data`:
+
+* snow albedo, (unitless)
+
+## Generated variables
+
+The calculations described above result in the following variables being calculated and
+saved within the data object, and then updated
+
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=abiotic&roles=vars_populated_by_init">Variables
+  generated by abiotic model initialisation.</a>
+
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=abiotic&roles=vars_populated_by_first_update">Variables
+  generated by the first abiotic model update.</a>
 
 ## Updated variables
 
-The table below shows the complete set of model variables that are updated at each model
+The link below provides the complete set of model variables that are updated at each model
 step.
 
-```{code-cell} ipython3
----
-tags: [remove-input]
-mystnb:
-  markdown_format: myst
----
-
-display_markdown(
-    generate_variable_table(
-        'AbioticModel', 
-        ['vars_updated']
-    ), 
-    raw=True
-)
-```
+<!-- markdownlint-disable-next-line MD033-->
+* <a
+  href="../../using_the_ve/variables/variables.html?models=abiotic&roles=vars_updated">Variables
+  updated by the abiotic model.</a>

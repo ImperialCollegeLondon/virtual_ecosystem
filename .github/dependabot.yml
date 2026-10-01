@@ -11,6 +11,20 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "sunday"
+      time: "03:00"
+      timezone: "Europe/London"
+    # Ignore major version updates for the sphinx ecosystem packages 
+    ignore:
+      - dependency-name: "sphinx*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Bundle updates in the pyproject.toml [tool.poetry.dependencies] section
+      production-dependencies:
+        dependency-type: "production"
+      # Should bundle updates in the pyproject.toml [tool.poetry.groups.*] sections
+      development-dependencies:
+        dependency-type: "development"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

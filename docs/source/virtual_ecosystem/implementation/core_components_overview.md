@@ -1,10 +1,33 @@
+---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.19.5
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.10.14
+---
 
-# Implementation of the core components
+# The simulation core
 
-The first stages in a simulation are the configuration and initialisation of the core
-components.
+The simulation starts by configuring and initialising the core components.
 
-## The configuration
+## Configuration
 
 The model core and each science model has a set of configuration options that set how
 the simulation is set up and how the science models run. These configuration options are
@@ -19,20 +42,20 @@ When a simulation starts, the Virtual Ecosystem:
 * Loads the user-provided configuration files and checks the file formats are valid.
 * Collates the configuration settings into a single unified configuration.
 * Loads the model schemas for the core and requested science models and uses this to
-  validate the congfiguration.
+  validate the configuration.
 * The validation process populates any missing options from the default values.
 * The configuration validation will fail if:
   * Any options are duplicated within the configuration.
   * Any configuration settings are not valid, given the rules in the model schema.
   * Any required fields without defaults are not completed.
 
-Further details can be found in the [configuration
-documentation](../../using_the_ve/configuration/config.md).
+Further details can be found in the [model configuration details
+documentation](../../using_the_ve/model_details/overview.md).
 
 ## The grid
 
 Next, the spatial structure of the simulation is configured as a [`Grid`
-object](../../using_the_ve/configuration/grid.md) that defines the area, coordinate system
+object](../../development/design/grid.md) that defines the area, coordinate system
 and geometry of the individual cells that will be used in the simulation. The grid is
 also used to establish grid cell neighbours and connectivity across the spatial domain.
 
@@ -60,14 +83,15 @@ vertical layer structure. (click to zoom).
 ## Loading and validation of input data
 
 All of the variables required to initialise and run the simulation are then loaded into
-an internal [`Data` object](../../using_the_ve/data/data.md). The model configuration
-provides the location of the file containing each required variables and the Data object
-is then used to load the data, checking that:
+an internal [`Data`
+object](../../using_the_ve/running_ve_with_your_own_data.md#providing-the-data-required-to-run-your-simulations).
+The model configuration provides the location of the file containing each required
+variables and the Data object is then used to load the data, checking that:
 
 * the input files are valid and can be read, and
 * that the data in files is congruent with the rest of the configuration, such as
   checking the dimensionality and shape of [core
-  axes](../../using_the_ve/configuration/axes.md) like the spatial grid.
+  axes](../../using_the_ve/axes.md) like the spatial grid.
 
 ## Simulation timescale
 
@@ -82,8 +106,8 @@ uses 12 equal length months and equal length years, ignoring leap years.
 
 ## Core constants
 
-The [core constants](../../api/core/constants.md) contains values that are shared across
-the whole simulation. This includes:
+The [core constants](../../api/core/model_config.md) contains values that are shared
+across the whole simulation. This includes:
 
 * Global scientific constants, such as the gravitational constant $G$.
 * Simulation constants that are either:

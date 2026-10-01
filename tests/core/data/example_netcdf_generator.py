@@ -1,11 +1,11 @@
 """Generate NetCDF datasets for testing."""
 
+import numpy as np
+import xarray
+
 
 def generate_files() -> None:
     """Generates a set of test files for test_data."""
-
-    import numpy as np
-    import xarray
 
     # https://towardsdatascience.com/basic-data-structures-of-xarray-80bab8094efa
 
@@ -22,8 +22,6 @@ def generate_files() -> None:
     # Cell centre coordinates
     x = x_off + x_idx * res + res / 2
     y = y_off + y_idx * res + res / 2
-
-    xx, yy = np.meshgrid(x, y)
 
     # Cell IDs
     cell_id = np.arange(x_n * y_n)
@@ -56,7 +54,7 @@ def generate_files() -> None:
     # Good version
     ds_1cid = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(temp_flat, dims=["cell_id"]),
+            "air_temperature": xarray.DataArray(temp_flat, dims=["cell_id"]),
         }
     )
 
@@ -65,7 +63,7 @@ def generate_files() -> None:
     # Bad version - doesn't cover cells
     ds_1cid_too_few = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(temp_flat[too_few], dims=["cell_id"]),
+            "air_temperature": xarray.DataArray(temp_flat[too_few], dims=["cell_id"]),
         }
     )
 
@@ -74,7 +72,7 @@ def generate_files() -> None:
     # Bad version - too many cells and no ids
     ds_1cid_too_many = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(
+            "air_temperature": xarray.DataArray(
                 np.concatenate((temp_flat, temp_flat)), dims=["cell_id"]
             ),
         }
@@ -90,16 +88,16 @@ def generate_files() -> None:
 
     ds_1cid = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(
+            "air_temperature": xarray.DataArray(
                 temp.flatten(), coords=[cell_id], dims=["cell_id"]
             ),
-            "prec": xarray.DataArray(
+            "precipitation": xarray.DataArray(
                 temp.flatten(), coords=[cell_id], dims=["cell_id"]
             ),
-            "elev": xarray.DataArray(
+            "elevation": xarray.DataArray(
                 temp.flatten(), coords=[cell_id], dims=["cell_id"]
             ),
-            "vapd": xarray.DataArray(
+            "vapour_pressure_deficit": xarray.DataArray(
                 temp.flatten(), coords=[cell_id], dims=["cell_id"]
             ),
         }
@@ -111,7 +109,7 @@ def generate_files() -> None:
 
     ds_1cid_too_few = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(
+            "air_temperature": xarray.DataArray(
                 temp.flatten()[too_few], coords=[cell_id[too_few]], dims=["cell_id"]
             ),
         }
@@ -123,7 +121,7 @@ def generate_files() -> None:
 
     ds_1cid_badid = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(
+            "air_temperature": xarray.DataArray(
                 temp.flatten(), coords=[cell_id + 100], dims=["cell_id"]
             ),
         }
@@ -138,7 +136,7 @@ def generate_files() -> None:
     # - Good version
     ds_2idx = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(temp, dims=["x", "y"]),
+            "air_temperature": xarray.DataArray(temp, dims=["x", "y"]),
         }
     )
 
@@ -148,7 +146,7 @@ def generate_files() -> None:
 
     ds_2idx_small = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(temp[sset], dims=["x", "y"]),
+            "air_temperature": xarray.DataArray(temp[sset], dims=["x", "y"]),
         }
     )
 
@@ -158,7 +156,9 @@ def generate_files() -> None:
 
     ds_2idx_large = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(np.concatenate((temp, temp)), dims=["x", "y"]),
+            "air_temperature": xarray.DataArray(
+                np.concatenate((temp, temp)), dims=["x", "y"]
+            ),
         }
     )
 
@@ -171,7 +171,7 @@ def generate_files() -> None:
     # - good version.
     ds_2xy = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(temp, coords=[x, y], dims=["x", "y"]),
+            "air_temperature": xarray.DataArray(temp, coords=[x, y], dims=["x", "y"]),
         }
     )
 
@@ -180,7 +180,9 @@ def generate_files() -> None:
     # - bad: does not cover all cells
     ds_2xy_6by10 = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(temp[sset], coords=[x[sset], y], dims=["x", "y"]),
+            "air_temperature": xarray.DataArray(
+                temp[sset], coords=[x[sset], y], dims=["x", "y"]
+            ),
         }
     )
 
@@ -190,7 +192,9 @@ def generate_files() -> None:
 
     ds_2xy_lowx = xarray.Dataset(
         data_vars={
-            "temp": xarray.DataArray(temp, coords=[x - 3e6, y], dims=["x", "y"]),
+            "air_temperature": xarray.DataArray(
+                temp, coords=[x - 3e6, y], dims=["x", "y"]
+            ),
         }
     )
 

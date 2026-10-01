@@ -2,8 +2,10 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, INFO
+from zipfile import BadZipFile
 
 import pytest
+from pandas.errors import ParserError
 from xarray import DataArray
 
 from tests.conftest import log_check
@@ -37,11 +39,7 @@ from tests.conftest import log_check
     ],
 )
 def test_file_format_loader(caplog, file_types, expected_log):
-    """Tests the file format loader decorator.
-
-    TODO - Note that the test here is actually changing the live DATA_LOADER_REGISTRY,
-           so that the tests are not independent of one another.
-    """
+    """Tests the file format loader decorator."""
 
     # Import register_data_loader - this triggers the registration of existing data
     # loaders so need to clear those log messages before trying new ones
@@ -64,42 +62,195 @@ def test_file_format_loader(caplog, file_types, expected_log):
 
 
 @pytest.mark.parametrize(
-    argnames=["file", "file_var", "exp_err", "expected_log"],
+    argnames=["file", "file_vars", "exp_err", "expected_log"],
     argvalues=[
-        (
+        pytest.param(
             "not_there.nc",
-            "irrelevant",
+            ["irrelevant"],
             pytest.raises(FileNotFoundError),
             ((CRITICAL, "Data file not found"),),
+            id="file_missing",
         ),
-        (
+        pytest.param(
             "garbage.nc",
-            "irrelevant",
+            ["irrelevant"],
             pytest.raises(ValueError),
             ((CRITICAL, "Could not load data from"),),
+            id="file_misformatted",
         ),
-        (
+        pytest.param(
             "xy_dim.nc",
-            "missing",
+            ["missing"],
             pytest.raises(KeyError),
-            ((CRITICAL, "Variable missing not found in"),),
+            ((CRITICAL, "Data variables not found in"),),
+            id="missing_var",
         ),
-        (
+        pytest.param(
             "xy_dim.nc",
-            "temp",
+            ["air_temperature"],
             does_not_raise(),
             (),
+            id="all_good_single_var",
+        ),
+        pytest.param(
+            "cellid_coords.nc",
+            ["air_temperature", "precipitation", "elevation"],
+            does_not_raise(),
+            (),
+            id="all_good_multi_var",
+        ),
+        pytest.param(
+            "cellid_coords.nc",
+            ["air_temperature", "precipitation", "elves_station"],
+            pytest.raises(KeyError),
+            ((CRITICAL, "Data variables not found in"),),
+            id="missing_multi_var",
         ),
     ],
 )
-def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_log):
+def test_load_netcdf(shared_datadir, caplog, file, file_vars, exp_err, expected_log):
     """Test the netdcf variable loader."""
 
     from virtual_ecosystem.core.readers import load_netcdf
 
+    caplog.clear()
+
     with exp_err:
-        darray = load_netcdf(shared_datadir / file, file_var)
-        assert isinstance(darray, DataArray)
+        result = load_netcdf(shared_datadir / file, file_vars)
+        assert len(result) == len(file_vars)
+        assert list(result.keys()) == file_vars
+        for ky, val in result.items():
+            assert isinstance(val, DataArray)
+
+    # Check the error reports
+    log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["file", "file_vars", "exp_err", "expected_log"],
+    argvalues=[
+        pytest.param(
+            "not_there.csv",
+            ["irrelevant"],
+            pytest.raises(FileNotFoundError),
+            ((CRITICAL, "Data file not found"),),
+            id="file_missing",
+        ),
+        pytest.param(
+            "garbage.csv",
+            ["irrelevant"],
+            pytest.raises(ParserError),
+            ((CRITICAL, "Could not load data from"),),
+            id="file_malformatted",
+        ),
+        pytest.param(
+            "reader_test.csv",
+            ["missing"],
+            pytest.raises(KeyError),
+            ((CRITICAL, "Data variables not found in"),),
+            id="missing_var",
+        ),
+        pytest.param(
+            "reader_test.csv",
+            ["var1"],
+            does_not_raise(),
+            (),
+            id="all_good_single_var",
+        ),
+        pytest.param(
+            "reader_test.csv",
+            ["var1", "var2"],
+            does_not_raise(),
+            (),
+            id="all_good_multi_var",
+        ),
+        pytest.param(
+            "reader_test.csv",
+            ["var1", "var22"],
+            pytest.raises(KeyError),
+            ((CRITICAL, "Data variables not found in"),),
+            id="missing_multi_var",
+        ),
+    ],
+)
+def test_load_csv(shared_datadir, caplog, file, file_vars, exp_err, expected_log):
+    """Test the netdcf variable loader."""
+
+    from virtual_ecosystem.core.readers import load_csv
+
+    caplog.clear()
+
+    with exp_err:
+        result = load_csv(shared_datadir / file, file_vars)
+        assert len(result) == len(file_vars)
+        assert list(result.keys()) == file_vars
+        for ky, val in result.items():
+            assert isinstance(val, DataArray)
+
+    # Check the error reports
+    log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["file", "file_vars", "exp_err", "expected_log"],
+    argvalues=[
+        pytest.param(
+            "not_there.xlsx",
+            ["irrelevant"],
+            pytest.raises(FileNotFoundError),
+            ((CRITICAL, "Data file not found"),),
+            id="file_missing",
+        ),
+        pytest.param(
+            "garbage.xlsx",
+            ["irrelevant"],
+            pytest.raises(BadZipFile),
+            ((CRITICAL, "Could not load data from"),),
+            id="file_malformatted",
+        ),
+        pytest.param(
+            "reader_test.xlsx",
+            ["missing"],
+            pytest.raises(KeyError),
+            ((CRITICAL, "Data variables not found in"),),
+            id="missing_var",
+        ),
+        pytest.param(
+            "reader_test.xlsx",
+            ["var1"],
+            does_not_raise(),
+            (),
+            id="all_good_single_var",
+        ),
+        pytest.param(
+            "reader_test.xlsx",
+            ["var1", "var2"],
+            does_not_raise(),
+            (),
+            id="all_good_multi_var",
+        ),
+        pytest.param(
+            "reader_test.xlsx",
+            ["var1", "var22"],
+            pytest.raises(KeyError),
+            ((CRITICAL, "Data variables not found in"),),
+            id="missing_multi_var",
+        ),
+    ],
+)
+def test_load_excel(shared_datadir, caplog, file, file_vars, exp_err, expected_log):
+    """Test the netdcf variable loader."""
+
+    from virtual_ecosystem.core.readers import load_excel
+
+    caplog.clear()
+
+    with exp_err:
+        result = load_excel(shared_datadir / file, file_vars)
+        assert len(result) == len(file_vars)
+        assert list(result.keys()) == file_vars
+        for ky, val in result.items():
+            assert isinstance(val, DataArray)
 
     # Check the error reports
     log_check(caplog, expected_log)
@@ -126,7 +277,7 @@ def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_l
             "cellid_dims.nc",
             does_not_raise(),
             None,
-            ((INFO, "Loading variable 'temp' from file:"),),
+            ((INFO, "Loading variables from file"),),
             20 * 100,
             id="valid_netcdf",
         ),
@@ -154,10 +305,11 @@ def test_load_to_dataarray(
     datafile = shared_datadir / filename
 
     with exp_error as err:
-        dataarray = load_to_dataarray(file=datafile, var_name="temp")
+        results = load_to_dataarray(file=datafile, var_names=["air_temperature"])
 
         # Check the data is in fact loaded and that a simple sum of values matches
-        dataarray.sum() == exp_sum_val
+        assert "air_temperature" in results
+        assert results["air_temperature"].sum() == exp_sum_val
 
     if err:
         assert str(err.value) == exp_msg

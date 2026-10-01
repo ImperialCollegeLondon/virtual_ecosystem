@@ -8,7 +8,9 @@ each stage, although the specific methods may simply do nothing if no action is 
 at that stage. The stages are:
 
 * Creating a model instance (:class:`~virtual_ecosystem.core.base_model.BaseModel`).
-* Setup a model instance (:meth:`~virtual_ecosystem.core.base_model.BaseModel.setup`).
+* Setup a model instance (:meth:`~virtual_ecosystem.core.base_model.BaseModel._setup`).
+  This method should include any initialization logic including validating and
+  populating class attributes.
 * Perform any spinup required to get a model state to equilibrate
   (:meth:`~virtual_ecosystem.core.base_model.BaseModel.spinup`).
 * Update the model from one time step to the next
@@ -56,10 +58,12 @@ and validates the class attributes for the new model class.
 The ``BaseModel.__init__`` method
 ----------------------------------
 
-Each model subclass will include an ``__init__`` method that validates and populates
-model specific attributes. That ``__init__`` method **must** call the
+Each model subclass should include an ``__init__`` method that defines all
+model specific attributes. The ``__init__`` should not contain any further
+initialization logic, which should happen in the subclass ``_setup`` method instead.
+The ``__init__`` method **must** call the
 :meth:`BaseModel.__init__() <virtual_ecosystem.core.base_model.BaseModel.__init__>`
-method, as this populates core shared model attrributes - see the linked method
+method, as this populates core shared model attributes - see the linked method
 description for details.
 
 .. code-block:: python
@@ -78,8 +82,8 @@ subclass. The method must follow the signature of that method, providing:
 * ``data`` as an instance of :class:`~virtual_ecosystem.core.data.Data`.
 * ``core_components`` as an instance of
   :class:`~virtual_ecosystem.core.core_components.CoreComponents`.
-* ``config`` as an instance of
-  :class:`~virtual_ecosystem.core.config.Config`.
+* ``configuration`` as an instance of
+  :class:`~virtual_ecosystem.core.configuration.CompiledConfiguration`.
 
 The method should provide any code to validate the configuration for that model and then
 use the configuration to initialise and return a new instance of the class.
@@ -87,32 +91,35 @@ use the configuration to initialise and return a new instance of the class.
 Model registration
 ------------------
 
-Models have three core components: the
-:class:`~virtual_ecosystem.core.base_model.BaseModel` subclass itself (``model``),
-a JSON schema for validating the model configuration (``schema``) and an optional set of
-user modifiable constants classes (``constants``, see
-:class:`~virtual_ecosystem.core.constants_class.ConstantsDataclass`). All model
-modules must register these components when they are imported: see the
+Models have two core components: the
+:class:`~virtual_ecosystem.core.base_model.BaseModel` subclass itself (``model``) and a
+model configuration module that both defines the configuration options and constants
+associated with the model and provides validation of configuration data from TOML files.
+All model modules must register these components when they are imported: see the
 :mod:`~virtual_ecosystem.core.registry` module.
 """  # noqa: D205, D415
 
 from __future__ import annotations
 
+import pkgutil
 from abc import ABC, abstractmethod
+from importlib import import_module
+from types import ModuleType
 from typing import Any
 
 import pint
 
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import (
     CoreComponents,
+    DisturbanceTiming,
     LayerStructure,
     ModelTiming,
 )
 from virtual_ecosystem.core.data import Data, Grid
-from virtual_ecosystem.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 
 
 class BaseModel(ABC):
@@ -194,14 +201,15 @@ class BaseModel(ABC):
 
     These are the variables that are initialised by the model and stored in the data
     object when running the update method for the first time. They will be available for
-    other models to use in their update methods but not in the setup methos.
+    other models to use in their update methods but not in the setup methods.
     """
 
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
-        **kwargs: Any,
+        static: bool = False,
+        *args: Any,
     ):
         """Performs core initialisation for BaseModel subclasses.
 
@@ -211,7 +219,7 @@ class BaseModel(ABC):
         :class:`~virtual_ecosystem.core.core_components.CoreComponents` and
         :class:`~virtual_ecosystem.core.data.Data` value:
 
-        * ``data``: the provided :class:`~virtual_ecosystem.core.data.Data` instance,
+        * ``data``: the provided :class:`~virtual_ecosystem.core.data.Data` instance.
         * ``model_timing``: the
           :class:`~virtual_ecosystem.core.core_components.ModelTiming` instance from the
           ``core_components`` argument.
@@ -220,8 +228,9 @@ class BaseModel(ABC):
         * ``layer_structure``: the
           :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance from
           the ``core_components`` argument.
-        * ``core_constants``: the :class:`~virtual_ecosystem.core.constants.CoreConsts`
-          instance from the ``core_components`` argument.
+        * ``core_constants``: the
+          :class:`~virtual_ecosystem.core.model_config.CoreConstants` instance from the
+          ``core_components`` argument.
 
         It then uses the
         :meth:`~virtual_ecosystem.core.base_model.BaseModel.check_init_data` method to
@@ -236,26 +245,202 @@ class BaseModel(ABC):
         """The Grid details used in the model."""
         self.layer_structure: LayerStructure = core_components.layer_structure
         """The LayerStructure details used in the model."""
-        self.core_constants: CoreConsts = core_components.core_constants
+        self.core_constants: CoreConstants = core_components.core_constants
         """The core constants used in the model."""
         self._repr: list[tuple[str, ...]] = [("model_timing", "update_interval")]
         """A list of attributes to be included in the class __repr__ output"""
+        self._static = static
+        """Flag indicating if the model is static, i.e. does not change with time."""
+        self._run_setup: bool
+        """Flag indicating if the setup method should run when model static."""
+        self._run_initial_static_update: bool
+        """Flag indicating if the update method should be run once when model static."""
 
         # Check the required init variables
         self.check_init_data()
         # Check the configured update interval is within model bounds
         self._check_update_speed()
+        # Set the static configuration settings
+        self._set_static_config()
+
+    def _set_static_config(self):
+        """Set the static configuration .
+
+        The method checks that the model static configuration and provided data are a
+        valid configuration and then sets the `_run_setup` and
+        `_run_initial_static_update` flags as appropriate.
+
+        Raises:
+            ConfigurationError: If there is any error in the static configuration of the
+            model.
+        """
+        self._run_setup = self._run_setup_due_to_static_configuration()
+        self._run_initial_static_update = self._run_update_due_to_static_configuration()
+
+        # Bypassing the setup and running the update is not valid
+        if not self._run_setup and self._run_initial_static_update:
+            raise ConfigurationError(
+                f"Static model {self.model_name} will not run the setup method, but "
+                "requires the update method to run once. This is an invalid "
+                "configuration. Please, make sure that either both methods are run "
+                "once by not providing any variables in vars_populated_by_first_update "
+                "and vars_updated or that both are bypassed by providing all variables "
+                "in vars_populated_by_init."
+            )
+
+        # Flag indicating if the setup method will setup any variable
+        any_var_to_setup = len(self.vars_populated_by_init) > 0
+        # Flag indicating if the update method will update any variable
+        any_var_to_update = (
+            len(self.vars_populated_by_first_update) > 0 or len(self.vars_updated) > 0
+        )
+
+        # Running the setup but not the update is only valid if
+        # - There are no variables to setup (setup is always run in this case), or
+        # - There are no variables to update (unusual case)
+        if (
+            self._run_setup
+            and not self._run_initial_static_update
+            and any_var_to_setup
+            and any_var_to_update
+        ):
+            raise ConfigurationError(
+                f"Static model {self.model_name} will run the setup method, but "
+                "not the update method. This is an invalid configuration. "
+                "Please, make sure that either both methods are run once"
+                " by not providing any variables in vars_populated_by_init or that both"
+                " are bypassed by providing all variables in "
+                "vars_populated_by_first_update and vars_updated."
+            )
+
+    def _run_setup_due_to_static_configuration(self) -> bool:
+        """Decide if the setup should be run based on the static flag.
+
+        In particular, it checks that the appropriate variables populated by init are
+        present or not in the data object. Based on this, an exception is raised is
+        there is a problem or a decision is made on whether or not bypass the setup.
+
+        Raises:
+            ConfigurationError: If the model is static and some but not all the
+                variables or None in vars_populated_by_init are present in the data
+                object or if the model is not static and some of the variables in
+                vars_populated_by_init are not present in the data object.
+
+        Returns:
+            False if the model is static and all variables are present, such that the
+            setup method can be bypassed. True otherwise.
+        """
+        present = [var for var in self.vars_populated_by_init if var in self.data]
+        found = len(present)
+        expected = len(self.vars_populated_by_init)
+
+        if not self._static and present:
+            raise ConfigurationError(
+                f"Non-static model {self.model_name} requires none of the variables in "
+                "vars_populated_by_init to be present in the data object. "
+                f"Present variables: {', '.join(present)}"
+            )
+
+        elif self._static:
+            if 0 < found < expected:
+                raise ConfigurationError(
+                    f"Static model {self.model_name} requires to either all variables "
+                    "in vars_populated_by_init to be present in the data object or "
+                    f"all to be absent. {found} out of {expected} found: "
+                    f"{', '.join(present)}."
+                )
+            elif found == 0:
+                # The case when static is true and no init vars provided
+                return True
+            else:
+                # The case when static is true and all init vars provided
+                return False
+
+        return True
+
+    def _run_update_due_to_static_configuration(self) -> bool:
+        """Decides if the update should be bypassed based on the static flag.
+
+        In particular, it checks that the appropriate variables created or updated in
+        the update method are present or not in the data object. Based on this, an
+        exception is raised is there is a problem or a decision is made on whether or
+        not running the update method once.
+
+        Raises:
+            ConfigurationError: If the model is static and some but not all the
+                variables or None in vars_populated_by_first_update or vars_updated are
+                present in the data object or if the model is not static and some of the
+                variables in vars_populated_by_init are not present in the data object.
+
+        Returns:
+            True if the model is static and the update method needs to run once. False
+            otherwise.
+        """
+        required = set(self.vars_populated_by_first_update + self.vars_updated) - set(
+            self.vars_required_for_init
+        )
+        present = [var for var in required if var in self.data]
+        found = len(present)
+        expected = len(required)
+
+        if not self._static and present:
+            raise ConfigurationError(
+                f"Non-static model {self.model_name} requires none of the variables in "
+                "vars_populated_by_first_update or vars_updated to be present in the "
+                f"data object. Present variables: {', '.join(present)}"
+            )
+
+        elif self._static:
+            if found == 0 and expected > 0:
+                return True
+            elif found == expected:
+                return False
+            else:
+                raise ConfigurationError(
+                    f"Static model {self.model_name} requires to either all variables "
+                    "in vars_populated_by_first_update and vars_updated to be present "
+                    f"in the data object or all to be absent. {found} out of {expected}"
+                    f" found: {', '.join(present)}."
+                )
+
+        return True
 
     @abstractmethod
-    def setup(self) -> None:
-        """Function to use input data to set up the model."""
+    def _setup(self, *args: Any) -> None:
+        """Function to setup the model during initialisation."""
 
     @abstractmethod
     def spinup(self) -> None:
         """Function to spin up the model."""
 
-    @abstractmethod
     def update(self, time_index: int, **kwargs: Any) -> None:
+        """Function to update the model.
+
+        If the model is static, the inner update method, self._update will only run
+        once, at most.
+
+        Args:
+            time_index: The index representing the current time step in the data object.
+            **kwargs: Further arguments to the update method.
+        """
+
+        log_message = f"Updating {self.model_name} model"
+
+        if self._static:
+            if not self._run_initial_static_update:
+                LOGGER.info(f"Model {self.model_name} in static mode, no update.")
+                return
+            else:
+                self._run_initial_static_update = False
+                log_message = (
+                    f"Running initial update for {self.model_name} model in static mode"
+                )
+
+        LOGGER.info(log_message)
+        self._update(time_index, **kwargs)
+
+    @abstractmethod
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         """Function to update the model.
 
         Args:
@@ -270,7 +455,10 @@ class BaseModel(ABC):
     @classmethod
     @abstractmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 
@@ -390,8 +578,7 @@ class BaseModel(ABC):
         # Check lower less than upper bound
         if model_update_bounds_pint[0] >= model_update_bounds_pint[1]:
             to_raise = ValueError(
-                f"Lower time bound for {cls.__name__} is not less than the upper "
-                f"bound."
+                f"Lower time bound for {cls.__name__} is not less than the upper bound."
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -476,6 +663,11 @@ class BaseModel(ABC):
             TypeError: If model_name is not a string
         """
 
+        if cls.update != BaseModel.update:
+            raise NotImplementedError(
+                "Model subclasses cannot override the update method."
+            )
+
         try:
             cls.model_name = cls._check_model_name(model_name=model_name)
 
@@ -524,56 +716,329 @@ class BaseModel(ABC):
         return f"A {self.model_name} model instance"
 
     def check_init_data(self) -> None:
-        """Check the init data contains the required variables.
+        """Check the initialisation data contains the required variables.
 
         This method is used to check that the set of variables defined in the
         :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init`
         class attribute are present in the :attr:`~virtual_ecosystem.core.data.Data`
-        instance used to create a new instance of the class.
+        instance used to initialise a new instance of the class.
 
         Raises:
-            ValueError: If the Data instance does not contain all the required variables
-                or if those variables do not map onto the required axes.
+            InitialisationError: If the Data instance does not contain all the required
+                variables to initialise the model or if those variables do not map onto
+                the required axes.
         """
 
-        # Sentinel variables
-        # all_axes_ok: bool = True
-        all_vars_found: bool = True
+        # Canary variable for failed checks
+        init_data_ok = True
 
-        # Loop over the required  and axes
-        for var in self.vars_required_for_init:
-            # Record when a variable is missing
-            if var not in self.data:
-                LOGGER.error(
-                    f"{self.model_name} model: init data missing required var '{var}'"
-                )
-                all_vars_found = False
-                continue
+        # Check for missing init variables
+        provided_variable_names = set(self.data.data.data_vars.variables)
+        missing_vars = set(self.vars_required_for_init).difference(
+            provided_variable_names
+        )
 
-            # # Get a list of missing axes
-            # bad_axes = []
-            # # Could use try: here and let on_core_axis report errors but easier to
-            # # provide more clearly structured feedback this way
-            # for axis in axes:
-            #     if not self.data.on_core_axis(var, axis):
-            #         bad_axes.append(axis)
+        if missing_vars:
+            init_data_ok = False
+            error = InitialisationError(
+                f"{self.model_name} model: input data is missing required "
+                f"initialisation variables: {','.join(missing_vars)}"
+            )
+            LOGGER.error(error)
 
-            # Log the outcome
-            # if bad_axes:
-            #     LOGGER.error(
-            #         f"{self.model_name} model: required var '{var}' "
-            #         f"not on required axes: {','.join(bad_axes)}"
-            #     )
-            #     all_axes_ok = False
-            # else:
+        # TODO: Check required axes on provided variables but this needs fixing up axis
+        #       requirements in data variables TOML file.
 
-            LOGGER.debug(f"{self.model_name} model: required var '{var}' checked")
+        # # Get a list of missing axes
+        # bad_axes = []
+        # # Could use try: here and let on_core_axis report errors but easier to
+        # # provide more clearly structured feedback this way
+        # for axis in axes:
+        #     if not self.data.on_core_axis(var, axis):
+        #         bad_axes.append(axis)
+
+        # Log the outcome
+        # if bad_axes:
+        #     LOGGER.error(
+        #         f"{self.model_name} model: required var '{var}' "
+        #         f"not on required axes: {','.join(bad_axes)}"
+        #     )
+        #     all_axes_ok = False
+        # else:
 
         # Raise if any problems found
-        if not (all_vars_found):
-            error = ValueError(
-                f"{self.model_name} model: error checking vars_required_for_init, "
-                "see log."
+        if not init_data_ok:
+            error = InitialisationError(
+                f"{self.model_name} model: Problems with initial model data: check log."
             )
             LOGGER.error(error)
             raise error
+
+        # Log successful data checking
+        LOGGER.info(f"{self.model_name} model: required initial data variables checked")
+
+
+def to_camel_case(snake_str: str) -> str:
+    """Convert a snake_case string to CamelCase.
+
+    Args:
+        snake_str: The snake case string to convert.
+
+    Returns:
+        The camel case string.
+    """
+    return "".join(x.capitalize() for x in snake_str.lower().split("_"))
+
+
+def _discover_models[T](models: ModuleType, of_type: type[T]) -> list[type[T]]:
+    """Discover all the models in Virtual Ecosystem.
+
+    We use the generic T type to ensure that the types of the inputs and the
+    outputs are linked together. In practice, T will be either
+    :attr:`~virtual_ecosystem.core.base_model.BaseModel` or
+    :attr:`~virtual_ecosystem.core.base_model.BaseDisturbance`.
+    """
+
+    models_found = []
+    for mod in pkgutil.iter_modules(models.__path__):
+        if not mod.ispkg:
+            continue
+
+        try:
+            module = import_module(f"{models.__name__}.{mod.name}.{mod.name}_model")
+        except ImportError:
+            LOGGER.warning(
+                f"No model file found for model {models.__name__}.{mod.name}."
+            )
+            continue
+
+        mod_class_name = to_camel_case(mod.name) + "Model"
+        if hasattr(module, mod_class_name) and issubclass(
+            getattr(module, mod_class_name), of_type
+        ):
+            models_found.append(getattr(module, mod_class_name))
+        else:
+            LOGGER.warning(
+                f"No model class '{mod_class_name}' of type `{of_type}` found in module"
+                f" '{models.__name__}.{mod.name}.{mod.name}_model'."
+            )
+            continue
+
+    return models_found
+
+
+def discover_models() -> list[type[BaseModel]]:
+    """Discover all the models in Virtual Ecosystem."""
+    import virtual_ecosystem.models as models
+
+    return _discover_models(models, BaseModel)  # type: ignore[type-abstract]
+
+
+class BaseDisturbance(ABC):
+    """A superclass for all Virtual Ecosystem disturbance models.
+
+    This abstract base class defines the shared common methods and attributes used as an
+    API across all Virtual Ecosystem disturbance models. This includes functions to
+    setup and run the specific model.
+
+    The base class defines the core abstract methods that must be defined in subclasses
+    as well as shared helper functions.
+
+    Args:
+        data: A :class:`~virtual_ecosystem.core.data.Data` instance containing
+            variables to be used in the model.
+        core_components: A
+            :class:`~virtual_ecosystem.core.core_components.CoreComponents`
+            instance containing shared core elements used throughout models.
+    """
+
+    model_name: str
+    """The model name.
+
+    This class attribute sets the name used to refer to identify the disturbance class
+    in the disturbance registry, within the configuration settings and in logging
+    messages.
+    """
+
+    disturbed_models: tuple[str, ...]
+    """A list of model names that this disturbance will affect.
+    
+    This list will be used to validate the configuration - check that all the models
+    to disturb are available in the simulation - as well at runtime to select those 
+    models when creating an instance of the disturbance."""
+
+    data_variables_disturbed: tuple[str, ...]
+    """A list of data variables that will be updated.
+    
+    This list will be used to validate the configuration and ensure that all the
+    variables to be disturbed will be available in the simulation. Disturbance models
+    do not create new variables.
+    """
+
+    def __init__(
+        self,
+        data: Data,
+        models: dict[str, BaseModel],
+        disturbance_timing: DisturbanceTiming,
+        **kwargs,
+    ):
+        """Performs core initialization for BaseModel subclasses.
+
+        This method **must** be called in the ``__init__`` method of all subclasses.
+
+        * ``data``: the provided :class:`~virtual_ecosystem.core.data.Data` instance.
+        * ``models``: dictionary of
+          :class:`~virtual_ecosystem.core.base_model.BaseModel` instances of the models
+          available in the simulation.
+        * ``disturbance_timing``: the
+          :class:`~virtual_ecosystem.core.core_components.DisturbanceTiming` instance.
+        """
+        self.data = data
+        """A Data instance providing access to the shared simulation data."""
+        self.timing = disturbance_timing
+        """The DisturbanceTiming details used in the model."""
+        self._repr: list[tuple[str, ...]] = [("timing", "_run_at")]
+        """A list of attributes to be included in the class __repr__ output"""
+
+        missing = set(self.disturbed_models).difference(models.keys())
+        if missing:
+            raise ConfigurationError(
+                f"Models {missing} required by disturbance {self.model_name}"
+                "not available."
+            )
+        self.models = {
+            name: model
+            for name, model in models.items()
+            if name in self.disturbed_models
+        }
+        """The models this disturbance will disturb."""
+
+    @classmethod
+    def __init_subclass__(
+        cls,
+        model_name: str,
+        disturbed_models: tuple[str, ...],
+        data_variables_disturbed: tuple[str, ...],
+    ):
+        """Checks the disturbed models and variables are all known.
+
+        If so, it adds the disturbance to the registry.
+        """
+        cls.model_name = cls._check_model_name(model_name)
+        cls.disturbed_models = cls._check_attributes(disturbed_models)
+        cls.data_variables_disturbed = cls._check_attributes(data_variables_disturbed)
+
+    @classmethod
+    def _check_model_name(cls, model_name: str) -> str:
+        """Check the model_name attribute is valid.
+
+        Args:
+            model_name: The
+                :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_name`
+                attribute to be used for a subclass.
+
+        Raises:
+            ValueError: the model_name is not a string.
+
+        Returns:
+            The provided ``model_name`` if valid
+        """
+
+        if not isinstance(model_name, str):
+            excep = TypeError(
+                f"Class attribute model_name in {cls.__name__} is not a string"
+            )
+            LOGGER.error(excep)
+            raise excep
+
+        return model_name
+
+    @classmethod
+    def _check_attributes(cls, attribute_value: tuple[str, ...]) -> tuple[str, ...]:
+        """Check that disturbance variables and models attributes are valid.
+
+        They both need to be tuples of strings, so we make sure that is the case
+        when creating the class.
+
+        Args:
+            attribute_value: The provided value for the attribute
+
+        Raises:
+            TypeError: the value of the model attribute has the wrong type structure.
+
+        Returns:
+            The validated variables attribute value
+        """
+
+        # Check the structure
+        if isinstance(attribute_value, tuple) and all(
+            isinstance(vname, str) for vname in attribute_value
+        ):
+            return attribute_value
+
+        to_raise = TypeError(
+            f"Class attribute {attribute_value} has the wrong "
+            f"structure in {cls.__name__}"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    @classmethod
+    @abstractmethod
+    def from_config(
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        models: dict[str, BaseModel],
+    ) -> BaseDisturbance:
+        """Factory function to unpack config and initialise a model instance."""
+
+    def disturb(self, time_index: int) -> None:
+        """Run the disturbance, updating the self.data and/or self.models as needed.
+
+        First, the timing is checked, returning if the disturbance shall not be run
+        at this timestep. Otherwise, it calls the inner _disturb method where the actual
+        disturbance is executed.
+
+        Args:
+            time_index: The index of the current timestep.
+        """
+        if not self.timing.check_run(time_index):
+            return
+        self._disturb(time_index)
+
+    @abstractmethod
+    def _disturb(self, time_index: int) -> None:
+        """Run the disturbance, updating the self.data and/or self.models as needed.
+
+        Args:
+            time_index: The index of the current timestep.
+        """
+
+    def __repr__(self) -> str:
+        """Represent a Disturbance as a string from the attributes listed in _repr.
+
+        Each entry in self._repr is a tuple of strings providing a path through the
+        model hierarchy. The method assembles the tips of each path into a repr string.
+        """
+
+        repr_elements: list[str] = []
+
+        for repr_entry in self._repr:
+            obj = self
+            for attr in repr_entry:
+                obj = getattr(obj, attr)
+            repr_elements.append(f"{attr}={obj}")
+
+        # Add all args to the function signature
+        repr_string = ", ".join(repr_elements)
+
+        return f"{self.__class__.__name__}({repr_string})"
+
+
+def discover_disturbances() -> list[type[BaseDisturbance]]:
+    """Discover all the disturbances in Virtual Ecosystem."""
+    import virtual_ecosystem.disturbances as disturbances
+
+    return _discover_models(disturbances, BaseDisturbance)  # type: ignore[type-abstract]

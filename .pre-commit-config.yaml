@@ -1,22 +1,47 @@
+default_language_version:
+    # force all unspecified python hooks to run python3
+    python: python3.12
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: check-merge-conflict
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.2
+    rev: v0.16.9
     hooks:
-      - id: ruff        #  Run the linter.
-        args: [--fix, --exit-non-zero-on-fix]
-      - id: ruff-format #  Run the formatter.
+      - id: ruff-check   #  Run the linter.
+        args: [--fix, --exit-non-zero-on-fix, --target-version, py312]
+      - id: ruff-format  #  Run the formatter.
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.11.2"
+    rev: "v2.3.1"
     hooks:
       - id: mypy
         additional_dependencies: [types-jsonschema, xarray, types-tabulate, numpy]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.41.0
+    rev: v0.49.1
     hooks:
     - id: markdownlint
-
+  - repo: https://github.com/mwouts/jupytext
+    rev: v1.19.5
+    hooks:
+    - id: jupytext
+      args: [--pipe, black]
+      files: docs/source
+      exclude: |
+        (?x)(
+            ^docs/source/conf.py|
+            ^docs/source/genindex.md|
+            ^docs/source/modindex.md|
+            ^docs/source/using_the_ve/[a-z_]+.py|
+            ^docs/source/using_the_ve/variables/[a-z_]+.py
+        )
+      additional_dependencies:
+        - black==24.4.2 # Matches hook
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.3
+    hooks:
+    - id: codespell
+      args: ["--toml", "pyproject.toml"]
+      additional_dependencies:
+        - tomli

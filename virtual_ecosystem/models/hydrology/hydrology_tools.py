@@ -2,53 +2,154 @@
 
 import numpy as np
 from numpy.typing import NDArray
+from pyrealm.core.hygro import calculate_specific_heat
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import abiotic_tools
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.hydrology import above_ground
+from virtual_ecosystem.models.hydrology.model_config import HydrologyConstants
+
+
+def initialise_atmosphere_for_hydrology(
+    data: Data,
+    model_constants: HydrologyConstants,
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
+    layer_structure: LayerStructure,
+):
+    """Initialise atmospheric variables required for hydrology model.
+
+    Args:
+        data: Data object
+        model_constants: Set of constants for hydrology model
+        abiotic_constants: Set of constants for abiotic model
+        core_constants: Set of constants shared across all models
+        layer_structure: The LayerStructure instance for a simulation
+
+    Returns:
+        aerodynamic_resistance_soil, aerodynamic_resistance_canopy,
+            stomatal_conductance, density_air, specific_heat_air,
+            latent_heat_vapourisation
+    """
+
+    output = {}
+
+    # Initialise scalar layers
+    initial_values = [
+        (
+            "aerodynamic_resistance_soil",
+            {},
+            layer_structure.index_surface_scalar,
+            model_constants.initial_aerodynamic_resistance_soil,
+        ),
+        (
+            "stomatal_conductance",
+            layer_structure.index_filled_canopy,
+            layer_structure.index_surface_scalar,
+            model_constants.initial_stomatal_conductance,
+        ),
+    ]
+
+    for key, index, index_surface, value in initial_values:
+        layer = layer_structure.from_template()
+        layer[index] = value
+        layer[index_surface] = value
+        output[key] = layer
+
+    output["aerodynamic_resistance_canopy"] = DataArray(
+        np.repeat(
+            core_constants.initial_aerodynamic_resistance_canopy,
+            data["air_temperature_ref"].shape[0],
+        ),
+        dims="cell_id",
+    )
+
+    # Extract air temperature and pressure
+    air_temp = data.get_time_slice("air_temperature_ref", 0).to_numpy()
+    air_pressure = data.get_time_slice("atmospheric_pressure_ref", 0).to_numpy()
+
+    # Density of air
+    density_air = abiotic_tools.calculate_air_density(
+        air_temperature=air_temp,
+        atmospheric_pressure=air_pressure,
+        specific_gas_constant_dry_air=core_constants.specific_gas_constant_dry_air,
+        celsius_to_kelvin=core_constants.zero_Celsius,
+    )
+    density_air_layer = layer_structure.from_template()
+    density_air_layer[layer_structure.index_filled_atmosphere] = density_air
+    output["density_air"] = density_air_layer
+
+    # Specific heat of air
+    specific_heat_air = calculate_specific_heat(tc=air_temp)
+    specific_heat_air_layer = layer_structure.from_template()
+    specific_heat_air_layer[layer_structure.index_filled_atmosphere] = specific_heat_air
+    output["specific_heat_air"] = specific_heat_air_layer / 1000.0
+
+    # Latent heat of vapourisation
+    latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
+        temperature=air_temp,
+        celsius_to_kelvin=core_constants.zero_Celsius,
+        latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
+    )
+    latent_heat_layer = layer_structure.from_template()
+    latent_heat_layer[layer_structure.index_filled_atmosphere] = (
+        latent_heat_vapourisation
+    )
+    output["latent_heat_vapourisation"] = latent_heat_layer
+
+    return output
 
 
 def setup_hydrology_input_current_timestep(
     data: Data,
     time_index: int,
     days: int,
-    seed: None | int,
+    seed: int | None,
     layer_structure: LayerStructure,
-    soil_layer_thickness_mm: NDArray[np.float32],
-    soil_moisture_capacity: float | NDArray[np.float32],
-    soil_moisture_residual: float | NDArray[np.float32],
-    core_constants: CoreConsts,
-    latent_heat_vap_equ_factors: list[float],
-) -> dict[str, NDArray[np.float32]]:
+    soil_layer_thickness_mm: NDArray[np.floating],
+    soil_moisture_saturation: float | NDArray[np.floating],
+    soil_moisture_residual: float | NDArray[np.floating],
+    p_wet_wet: float,
+    p_wet_dry: float,
+    shape_parameter: float,
+    scale_parameter: float,
+    temperature_threshold_snow: float,
+    temperature_threshold_rain: float,
+) -> dict[str, NDArray[np.floating]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
 
-    The hydrology model currently loops over 30 days per month. Atmospheric variables
+    The hydrology model currently loops over 30 days per month. Atmospheric variables in
+    the canopy and
     near the surface are selected here and kept constant for the whole month. Daily
-    timeseries of precipitation and evapotranspiration are generated from monthly
+    timeseries of precipitation and canopy transpiration are generated from monthly
     values in `data` to be used in the daily loop. States of other hydrology variables
     are selected and updated in the daily loop.
 
     The function returns a dictionary with the following variables:
 
-    * latent_heat_vapourisation
-    * molar_density_air
-
     * surface_temperature (TODO switch to subcanopy_temperature)
     * surface_humidity (TODO switch to subcanopy_humidity)
     * surface_pressure (TODO switch to subcanopy_pressure)
     * surface_wind_speed (TODO switch to subcanopy_wind_speed)
+
+    * atmospheric_pressure_canopy
+    * air_temperature_canopy
+    * vapour_pressure_deficit_canopy
+
     * leaf_area_index_sum
     * current_precipitation
-    * current_evapotranspiration
+    * current_snowfall
+    * current_transpiration
     * current_soil_moisture
-    * top_soil_moisture_capacity
+    * top_soil_moisture_saturation
     * top_soil_moisture_residual
-    * previous_accumulated_runoff
-    * previous_subsurface_flow_accumulated
     * groundwater_storage
+    * condensation
 
     Args:
         data: Data object that contains inputs from the microclimate model, the plant
@@ -58,11 +159,18 @@ def setup_hydrology_input_current_timestep(
         seed: Seed for random rainfall generator
         layer_structure: The LayerStructure instance for a simulation.
         soil_layer_thickness_mm: The thickness of the soil layer, [mm]
-        soil_moisture_capacity: Soil moisture capacity, unitless
+        soil_moisture_saturation: Soil moisture saturation, unitless
         soil_moisture_residual: Soil moisture residual, unitless
-        core_constants: Set of core constants share across all models
-        latent_heat_vap_equ_factors: Factors in calculation of latent heat of
-            vapourisation.
+        p_wet_wet: Probability a wet day follows a wet day.
+        p_wet_dry: Probability a wet day follows a dry day.
+        temperature_threshold_snow: Temperature below which all precipitation falls as
+            snow, [°C]
+        temperature_threshold_rain: Temperature above which all precipitation falls as
+            rain, [°C]
+        shape_parameter: Shape parameter of the Gamma distribution controlling
+            rainfall variability.
+        scale_parameter: Scale parameter of the Gamma distribution controlling
+            absolute magnitude of rainfall.
 
     Returns:
         dictionary with all variables that are required to run one hydrology update()
@@ -71,30 +179,32 @@ def setup_hydrology_input_current_timestep(
 
     output = {}
 
-    # Calculate latent heat of vapourisation and density of air for all layers
-    latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
-        temperature=data["air_temperature"].to_numpy(),
-        celsius_to_kelvin=core_constants.zero_Celsius,
-        latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
-    )
-    output["latent_heat_vapourisation"] = latent_heat_vapourisation
-
-    molar_density_air = abiotic_tools.calculate_molar_density_air(
-        temperature=data["air_temperature"].to_numpy(),
-        atmospheric_pressure=data["atmospheric_pressure"].to_numpy(),
-        standard_mole=core_constants.standard_mole,
-        standard_pressure=core_constants.standard_pressure,
-        celsius_to_kelvin=core_constants.zero_Celsius,
-    )
-    output["molar_density_air"] = molar_density_air
-
     # Get atmospheric variables
+    # Generate daily rainfall, [mm]
+    input_rainfall = data.get_time_slice("precipitation", time_index).to_numpy()
     output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
-        (data["precipitation"].isel(time_index=time_index)).to_numpy(),
+        total_monthly_rainfall=input_rainfall,
         num_days=days,
+        p_wet_wet=p_wet_wet,
+        p_wet_dry=p_wet_dry,
+        shape_parameter=shape_parameter,
+        scale_parameter=scale_parameter,
         seed=seed,
     )
 
+    # Get daily snowfall, [mm]
+    air_temperature_ref = data.get_time_slice(
+        "air_temperature_ref", time_index
+    ).to_numpy()
+
+    output["current_precipitation"], output["current_snowfall"] = (
+        partition_precipitation(
+            precipitation=output["current_precipitation"],
+            air_temperature=air_temperature_ref[:, np.newaxis],
+            temperature_threshold_snow=temperature_threshold_snow,
+            temperature_threshold_rain=temperature_threshold_rain,
+        )
+    )
     # named 'surface_...' for now TODO needs to be replaced with 2m above ground
     # We explicitly get a scalar index for the surface layer to extract the values as a
     # 1D array of grid cells and not a 2D array with a singleton layer dimension.
@@ -107,14 +217,16 @@ def setup_hydrology_input_current_timestep(
         output[out_var] = data[in_var][layer_structure.index_surface_scalar].to_numpy()
 
     # Get inputs from plant model
-    output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
-    output["current_evapotranspiration"] = (
-        data["evapotranspiration"].sum(dim="layers") / days
-    ).to_numpy()
+    output["leaf_area_index_sum"] = np.nansum(
+        data["leaf_area_index"].to_numpy(), axis=0
+    )
+    output["current_transpiration"] = np.nansum(
+        data["transpiration"].to_numpy() / days, axis=0
+    )
 
     # Select soil variables
-    output["top_soil_moisture_capacity"] = (
-        soil_moisture_capacity * soil_layer_thickness_mm[0]
+    output["top_soil_moisture_saturation"] = (
+        soil_moisture_saturation * soil_layer_thickness_mm[0]
     )
     output["top_soil_moisture_residual"] = (
         soil_moisture_residual * soil_layer_thickness_mm[0]
@@ -123,22 +235,55 @@ def setup_hydrology_input_current_timestep(
         data["soil_moisture"][layer_structure.index_all_soil]
     ).to_numpy()
 
-    # Get accumulated runoff/flow and ground water level from previous time step
-    output["previous_accumulated_runoff"] = data[
-        "surface_runoff_accumulated"
-    ].to_numpy()
-    output["previous_subsurface_flow_accumulated"] = data[
-        "subsurface_flow_accumulated"
-    ].to_numpy()
+    # Get ground water level
     output["groundwater_storage"] = data["groundwater_storage"].to_numpy()
 
+    # Get condensation from abiotic model
+    output["condensation"] = np.nansum(data["condensation"].to_numpy(), axis=0) / days
     return output
+
+
+def partition_precipitation(
+    precipitation: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    temperature_threshold_snow: float,
+    temperature_threshold_rain: float,
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    """Partition precipitation into rainfall and snowfall fractions.
+
+    Uses a linear transition between snow-only and rain-only thresholds
+    following Jennings et al. (2018).
+
+    Args:
+        precipitation: Daily precipitation, [mm]
+        air_temperature: Air temperature, [°C]
+        temperature_threshold_snow: Temperature below which all precipitation falls as
+            snow, [°C]
+        temperature_threshold_rain: Temperature above which all precipitation falls as
+            rain, [°C]
+
+    Returns:
+        Tuple of (rainfall, snowfall), both shape (n_cells, days), [mm]
+    """
+    # Snow fraction: 1 below temperature_threshold_snow,
+    # 0 above temperature_threshold_rain, linear between
+    f_snow = np.clip(
+        (temperature_threshold_rain - air_temperature)
+        / (temperature_threshold_rain - temperature_threshold_snow),
+        0.0,
+        1.0,
+    )
+
+    snowfall = f_snow * precipitation
+    rainfall = (1.0 - f_snow) * precipitation
+
+    return rainfall, snowfall
 
 
 def initialise_soil_moisture_mm(
     layer_structure: LayerStructure,
     initial_soil_moisture: float,
-    soil_layer_thickness: NDArray[np.float32],
+    soil_layer_thickness: NDArray[np.floating],
 ) -> DataArray:
     """Initialise soil moisture in mm.
 
@@ -165,3 +310,138 @@ def initialise_soil_moisture_mm(
     )
 
     return soil_moisture
+
+
+def calculate_psychrometric_constant(
+    atmospheric_pressure: NDArray[np.floating],
+    latent_heat_vapourization: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
+    molecular_weight_ratio_water_to_dry_air: float,
+):
+    """Calculate the psychrometric constant.
+
+    NOTE this might be replaced with pyrealm implementation
+
+    Args:
+        atmospheric_pressure: Atmospheric pressure, [KPa].
+        latent_heat_vapourization: Latent heat of vaporization, [kJ kg-1]
+        specific_heat_air: Specific heat of air at constant pressure, [kJ kg-1 K-1]
+        molecular_weight_ratio_water_to_dry_air: Ratio of molecular weights of water to
+            dry air
+
+    Returns:
+        Psychrometric constant in [kPa K-1]
+    """
+
+    return (specific_heat_air * atmospheric_pressure) / (
+        latent_heat_vapourization * molecular_weight_ratio_water_to_dry_air
+    )
+
+
+def check_precipitation_surface(precipitation_surface: NDArray[np.floating]) -> None:
+    """Check that precipitation at the surface is not negative.
+
+    Args:
+        precipitation_surface: Precipitation at the surface
+
+    Returns:
+        error if precipitation is negative in any grid cell
+    """
+    if (precipitation_surface < 0.0).any():
+        LOGGER.critical(
+            "Surface precipitation should not be negative! Consider checking that the"
+            " canopy water balance is correct."
+        )
+        raise ValueError(
+            "Surface precipitation should not be negative! Consider checking that the"
+            " canopy water balance is correct."
+        )
+
+
+def calculate_effective_saturation(
+    soil_moisture: NDArray[np.floating],
+    soil_moisture_saturation: float | NDArray[np.floating],
+    soil_moisture_residual: float | NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Calculate the effective soil saturation based on the soil moisture.
+
+    This is kept as a separate function because the soil model also needs to use this
+    quantity.
+
+    Args:
+        soil_moisture: Volumetric relative water content in top soil, [unitless]
+        soil_moisture_saturation: Soil moisture saturation, [unitless]
+        soil_moisture_residual: Residual soil moisture, [unitless]
+
+    Returns:
+        The :term:`effective saturation` of the soil [unitless]
+    """
+
+    return (soil_moisture - soil_moisture_residual) / (
+        soil_moisture_saturation - soil_moisture_residual
+    )
+
+
+def check_monthly_mass_balance(
+    drainage_map: dict[int, list[int]],
+    surface_channel_inflow_mm: NDArray[np.floating],
+    monthly_precipitation_mm: NDArray[np.floating],
+    monthly_evaporation_mm: NDArray[np.floating],
+) -> None:
+    """Check that total monthly streamflow at outlet(s) does not exceed total precip.
+
+    The function identifies the outlet cells (cells with no downstream connections) from
+    the drainage map. It then sums the surface channel inflow at these outlet cells and
+    compares it to the total catchment precipitation minus total evaporation. If the
+    streamflow exceeds the available water, an AssertionError is raised.
+
+    If no true outlet cells exist, the flow from the lowest cells (cells with fewest
+    upstream connections) is used for the check.
+
+    Args:
+        drainage_map: Dict mapping each cell ID -> list of upstream cell IDs
+        surface_channel_inflow_mm: Monthly total surface channel inflow per cell, [mm]
+        monthly_precipitation_mm: Monthly total precipitation per cell, [mm]
+        monthly_evaporation_mm: Monthly total evaporation per cell, [mm]
+
+    Raises:
+        AssertionError: if monthly streamflow exceeds total catchment precipitation.
+    """
+    n_cells = len(drainage_map)
+    all_cells = set(range(n_cells))
+
+    # Cells that are upstream to others
+    cells_with_downstream = set()
+    for upstream_ids in drainage_map.values():
+        cells_with_downstream.update(upstream_ids)
+
+    # Outlet cells = cells with no downstream
+    outlet_cells = list(all_cells - cells_with_downstream)
+
+    # If no outlet, pick the "lowest" cells (fewest upstream neighbors)
+    if not outlet_cells:
+        upstream_counts = {
+            cell: len(upstream_ids) for cell, upstream_ids in drainage_map.items()
+        }
+        min_upstream = min(upstream_counts.values())
+        outlet_cells = [
+            cell for cell, count in upstream_counts.items() if count == min_upstream
+        ]
+
+    # Total streamflow at outlet(s)
+    monthly_outlet_flow_mm = surface_channel_inflow_mm[outlet_cells].sum()
+
+    # Total catchment precipitation and soil evaporation
+    total_catchment_precip_mm = np.sum(monthly_precipitation_mm)
+    total_catchment_evaporation_mm = np.sum(monthly_evaporation_mm)
+
+    # Mass balance check
+    if (
+        monthly_outlet_flow_mm
+        > total_catchment_precip_mm - total_catchment_evaporation_mm
+    ):
+        raise AssertionError(
+            f"Mass balance violated: total streamflow ({monthly_outlet_flow_mm:.2f} mm)"
+            f" exceeds total catchment precip ({total_catchment_precip_mm:.2f} mm). "
+            f"Outlet cells: {outlet_cells}"
+        )

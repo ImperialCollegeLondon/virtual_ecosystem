@@ -4,19 +4,26 @@ constants and rate equations used by AnimalCohorts in the
 """  # noqa: D205
 
 from collections.abc import Iterable
+from math import isnan
+from pathlib import Path
+from statistics import mean
 
 import pandas as pd
 
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_traits import (
     DevelopmentStatus,
     DevelopmentType,
     DietType,
     ExcretionType,
     MetabolicType,
+    MigrationType,
+    ReproductiveEnvironment,
     ReproductiveType,
     TaxaType,
+    VerticalOccupancy,
 )
-from virtual_ecosystem.models.animal.constants import AnimalConsts
+from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
 
 class FunctionalGroup:
@@ -38,18 +45,26 @@ class FunctionalGroup:
         taxa: str,
         diet: str,
         metabolic_type: str,
+        reproductive_environment: str,
         reproductive_type: str,
         development_type: str,
         development_status: str,
         offspring_functional_group: str,
         excretion_type: str,
+        migration_type: str,
+        vertical_occupancy: str,
         birth_mass: float,
         adult_mass: float,
-        constants: AnimalConsts = AnimalConsts(),
+        density_individuals_m2: float | None = None,
+        t_opt: float | None = None,
+        t_max_crit: float | None = None,
+        t_min_crit: float | None = None,
+        constants: AnimalConstants = AnimalConstants(),
     ) -> None:
         """The constructor for the FunctionalGroup class.
 
         TODO: Remove unused attributes.
+        TODO: density test
 
         """
 
@@ -57,10 +72,14 @@ class FunctionalGroup:
         """The name of the functional group."""
         self.taxa = TaxaType(taxa)
         """The taxa of the functional group."""
-        self.diet = DietType(diet)
+        self.diet = DietType.parse(diet)
         """The diet of the functional group."""
         self.metabolic_type = MetabolicType(metabolic_type)
         """The metabolic type of the functional group."""
+        self.reproductive_environment = ReproductiveEnvironment(
+            reproductive_environment
+        )
+        """The reproductive environment used by the functional group."""
         self.reproductive_type = ReproductiveType(reproductive_type)
         """The reproductive type of the functional group."""
         self.development_type = DevelopmentType(development_type)
@@ -72,30 +91,121 @@ class FunctionalGroup:
             metamorphosis."""
         self.excretion_type = ExcretionType(excretion_type)
         """The excretion type of the functional group."""
+        self.migration_type = MigrationType(migration_type)
+        """The migration type of the functional group."""
+        self.vertical_occupancy = VerticalOccupancy.parse(vertical_occupancy)
+        """The vertical occupancy type of the functional group."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
         """The mass of the functional group at adulthood."""
+        self.density_individuals_m2 = density_individuals_m2
+        """Optional empirical density in individuals per m² for initialization."""
+        self.t_opt = _none_or_float(t_opt)
+        """Optional optimal activity temperature for ectotherms [°C]."""
+        self.t_max_crit = _none_or_float(t_max_crit)
+        """Optional upper critical temperature for ectotherms [°C]."""
+        self.t_min_crit = _none_or_float(t_min_crit)
+        """Optional lower critical temperature for ectotherms [°C]."""
         self.constants = constants
         """Animal constants."""
+        reference_mean, reference_sd = _resolve_reference_annual_climate(
+            self.vertical_occupancy,
+            self.constants.placeholder_annual_temp_terms,
+        )
+        self.reference_annual_mean_temp = reference_mean
+        """Annual mean temperature the functional group is adapted to [°C], averaged
+            across occupied strata. Placeholder fallback for deriving ectotherm thermal
+            tolerances when ``t_opt``/``t_max_crit``/``t_min_crit`` are not all set."""
+        self.reference_annual_temp_sd = reference_sd
+        """Standard deviation of annual temperature the functional group is adapted to
+            [°C], averaged across occupied strata. See
+            :attr:`reference_annual_mean_temp`."""
+        self.broad_diet: DietType = self.diet.coarse_category()
+        """The broad trophic category, herbivore, carnivore, omnivore."""
+        self.cnp_proportions = self.constants.cnp_proportion_terms[self.taxa]
+        """The proportions of carbon/nitrogen/phosphorus in the functional group,
+            example {"C": 0.8, "N": 0.15, "P": 0.05}."""
         self.metabolic_rate_terms = self.constants.metabolic_rate_terms[
             self.metabolic_type
         ]
         """The coefficient and exponent of metabolic rate."""
-        self.damuths_law_terms = self.constants.damuths_law_terms[self.taxa][self.diet]
-        """The coefficient and exponent of damuth's law for population density."""
-        self.conversion_efficiency = self.constants.conversion_efficiency[self.diet]
+        self.population_density_terms = self.constants.get_population_density_terms(
+            self.taxa, self.broad_diet
+        )
+        """The coefficient and exponent terms for the population density scaling."""
+        self.conversion_efficiency = self.constants.conversion_efficiency[
+            self.broad_diet
+        ]
         """The conversion efficiency of the functional group based on diet."""
-        self.mechanical_efficiency = self.constants.mechanical_efficiency[self.diet]
+        self.mechanical_efficiency = self.constants.mechanical_efficiency[
+            self.broad_diet
+        ]
         """The mechanical transfer efficiency of a functional group based on diet."""
         self.prey_scaling = self.constants.prey_mass_scaling_terms[self.metabolic_type][
             self.taxa
         ]
         """The predator-prey mass ratio scaling relationship."""
+        # Taxonomic convenience flags
+        self.is_invertebrate: bool = self.taxa == TaxaType("invertebrate")
+        """Whether the functional group is an invertebrate."""
+
+        self.is_vertebrate: bool = self.taxa in {
+            TaxaType("bird"),
+            TaxaType("mammal"),
+            TaxaType("amphibian"),
+            TaxaType("reptile"),
+        }
+        """Whether the functional group is a vertebrate."""
+
+
+def _resolve_reference_annual_climate(
+    vertical_occupancy: VerticalOccupancy,
+    placeholder_annual_temp_terms: dict[VerticalOccupancy, dict[str, float]],
+) -> tuple[float, float]:
+    """Average the placeholder annual temperature terms across occupied strata.
+
+    The annual mean temperature and its standard deviation that a functional group
+    is adapted to are taken as the unweighted mean, across the strata the group
+    occupies, of the per-stratum placeholder terms. This mirrors the unweighted
+    stratum averaging applied to the *experienced* climate in
+    :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_stratum_climate`,
+    keeping the reference and experienced climates on the same footing.
+
+    Note:
+        Averaging the standard deviation across strata is a placeholder
+        simplification, not a statistically rigorous pooling of variances. It is
+        harmless while the per-stratum values are equal, but is the first term to
+        revisit once strata carry genuinely different variability.
+
+    Args:
+        vertical_occupancy: The combined vertical occupancy flag of the functional
+            group, spanning one or more atomic strata.
+        placeholder_annual_temp_terms: Per-stratum placeholder terms keyed by atomic
+            :class:`~virtual_ecosystem.models.animal.animal_traits.VerticalOccupancy`
+            member, each providing ``"mean_temp"`` and ``"temp_sd"`` [°C].
+
+    Returns:
+        A tuple of (reference annual mean temperature, reference annual temperature
+        standard deviation), each averaged across the occupied strata [°C].
+
+    Raises:
+        ValueError: If ``vertical_occupancy`` contains no recognised atomic strata.
+    """
+    strata = list(vertical_occupancy)
+    if not strata:
+        raise ValueError(
+            f"No recognised vertical occupancy strata in: {vertical_occupancy}"
+        )
+
+    means = [placeholder_annual_temp_terms[stratum]["mean_temp"] for stratum in strata]
+    sds = [placeholder_annual_temp_terms[stratum]["temp_sd"] for stratum in strata]
+
+    return mean(means), mean(sds)
 
 
 def import_functional_groups(
-    fg_csv_file: str, constants: AnimalConsts
+    fg_csv_file: Path, constants: AnimalConstants
 ) -> list[FunctionalGroup]:
     """The function to import pre-defined functional groups.
 
@@ -105,6 +215,7 @@ def import_functional_groups(
     definitions of parameters and scaling relationships based on those traits.
 
     TODO: A structure for user-selection of which traits to employ.
+    TODO: density test
 
     Args:
         fg_csv_file: The location of the csv file holding the functional group
@@ -115,32 +226,56 @@ def import_functional_groups(
         A list of the FunctionalGroup instances created by the import.
 
     """
-    functional_group_list: list[FunctionalGroup] = []
 
-    fg = pd.read_csv(fg_csv_file)
+    try:
+        fg_data = pd.read_csv(fg_csv_file, na_values=["None"])
+    except FileNotFoundError:
+        msg = f"Animal functional group definition file not found: {fg_csv_file!s}"
+        LOGGER.error(msg)
+        raise
+    except pd.errors.ParserError:
+        msg = f"Cannot parse animal functional group definition file: {fg_csv_file!s}"
+        LOGGER.error(msg)
+        raise
 
-    expected_header = ["name", "taxa", "diet", "metabolic_type"]
-    if not set(expected_header).issubset(fg.columns):
+    required_headers = {
+        "name",
+        "taxa",
+        "diet",
+        "metabolic_type",
+        "reproductive_environment",
+        "reproductive_type",
+        "development_type",
+        "development_status",
+        "offspring_functional_group",
+        "excretion_type",
+        "migration_type",
+        "vertical_occupancy",
+        "birth_mass",
+        "adult_mass",
+    }
+
+    missing_headers = required_headers.difference(fg_data.columns)
+    if missing_headers:
         raise ValueError(
-            f"Invalid header. Expected at least {expected_header}, but got {fg.columns}"
+            "Missing required headers in animal functional group definition file:"
+            + ",".join(missing_headers)
         )
 
-    functional_group_list = [
-        FunctionalGroup(
-            row.name,
-            row.taxa,
-            row.diet,
-            row.metabolic_type,
-            row.reproductive_type,
-            row.development_type,
-            row.development_status,
-            row.offspring_functional_group,
-            row.excretion_type,
-            row.birth_mass,
-            row.adult_mass,
-            constants=constants,
-        )
-        for row in fg.itertuples()
+    # Set individual densities if not provided
+    if "density_individuals_m2" not in fg_data:
+        fg_data["density_individuals_m2"] = None
+
+    # Set thermal tolerance values if not provided
+    for col in ("t_opt", "t_max_crit", "t_min_crit"):
+        if col not in fg_data:
+            fg_data[col] = None
+
+    # Build the functional group list - ignore mypy moaning about unpacking column
+    # headers from pandas: they are all strings
+    functional_group_list: list[FunctionalGroup] = [
+        FunctionalGroup(constants=constants, **row)  # type: ignore [misc]
+        for row in fg_data.to_dict(orient="records")
     ]
 
     return functional_group_list
@@ -165,3 +300,17 @@ def get_functional_group_by_name(
         if fg.name == name:
             return fg
     raise ValueError(f"No FunctionalGroup with name '{name}' found.")
+
+
+def _none_or_float(value: float | None) -> float | None:
+    """Convert NaN to None, passing through valid floats and None unchanged.
+
+    Args:
+        value: A float value or None, potentially NaN.
+
+    Returns:
+        None if the value is None or NaN, otherwise the original float.
+    """
+    if value is None or (isinstance(value, float) and isnan(value)):
+        return None
+    return value

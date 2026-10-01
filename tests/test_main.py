@@ -4,33 +4,25 @@ This module tests both the main simulation function `ve_run` and the other funct
 defined in main.py that it calls.
 """
 
+import re
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
+from logging import CRITICAL, ERROR, INFO
+from typing import cast
 
 import pytest
 
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
-from virtual_ecosystem.main import ve_run
 
-from .conftest import log_check
+from .conftest import log_check, record_found_in_log
 
 INITIALISATION_LOG = [
-    (INFO, "Initialising models: soil"),
-    (INFO, "Initialised soil.SoilConsts from config"),
+    (INFO, "Initialising models: litter"),
+    (INFO, "Initialising litter model"),
     (
         INFO,
-        "Information required to initialise the soil model successfully extracted.",
+        "Information required to initialise the litter model successfully extracted.",
     ),
-    (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_pom' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_maom' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
-    (DEBUG, "soil model: required var 'pH' checked"),
-    (DEBUG, "soil model: required var 'bulk_density' checked"),
-    (DEBUG, "soil model: required var 'clay_fraction' checked"),
+    (INFO, "litter model: required initial data variables checked"),
 ]
 
 
@@ -38,14 +30,18 @@ INITIALISATION_LOG = [
     "cfg_strings,output,raises,expected_log_entries",
     [
         pytest.param(
-            '[core.timing]\nupdate_interval = "7 days"\n[soil]\n',
-            "SoilModel(update_interval=604800 seconds)",
+            '[core.timing]\nupdate_interval = "7 days"\n[litter]\n',
+            "LitterModel(update_interval=604800 seconds)",
             does_not_raise(),
-            tuple(INITIALISATION_LOG),
+            tuple(
+                [
+                    *INITIALISATION_LOG,
+                ],
+            ),
             id="valid config",
         ),
         pytest.param(
-            '[core.timing]\nupdate_interval = "1 minute"\n[soil]\n',
+            '[core.timing]\nupdate_interval = "1 minute"\n[litter]\n',
             None,
             pytest.raises(InitialisationError),
             tuple(
@@ -53,16 +49,24 @@ INITIALISATION_LOG = [
                     *INITIALISATION_LOG,
                     (
                         ERROR,
-                        "The update interval is faster than the soil "
+                        "The update interval is faster than the litter "
                         "lower bound of 30 minute.",
                     ),
-                    (CRITICAL, "Configuration failed for models: soil"),
+                    (
+                        CRITICAL,
+                        "Configuration and initialisation failed for litter model",
+                    ),
+                    (
+                        CRITICAL,
+                        "Configuration and initialisation failed for the following "
+                        "models: litter",
+                    ),
                 ],
             ),
             id="update interval too short",
         ),
         pytest.param(
-            '[core.timing]\nupdate_interval = "1 year"\n[soil]\n',
+            '[core.timing]\nupdate_interval = "1 year"\n[litter]\n',
             None,
             pytest.raises(InitialisationError),
             tuple(
@@ -70,10 +74,18 @@ INITIALISATION_LOG = [
                     *INITIALISATION_LOG,
                     (
                         ERROR,
-                        "The update interval is slower than the soil "
+                        "The update interval is slower than the litter "
                         "upper bound of 3 month.",
                     ),
-                    (CRITICAL, "Configuration failed for models: soil"),
+                    (
+                        CRITICAL,
+                        "Configuration and initialisation failed for litter model",
+                    ),
+                    (
+                        CRITICAL,
+                        "Configuration and initialisation failed for the following "
+                        "models: litter",
+                    ),
                 ],
             ),
             id="update interval too long",
@@ -82,7 +94,7 @@ INITIALISATION_LOG = [
 )
 def test_initialise_models(
     caplog,
-    dummy_carbon_data,
+    dummy_litter_data,
     cfg_strings,
     output,
     raises,
@@ -90,28 +102,32 @@ def test_initialise_models(
 ):
     """Test the function that initialises the models."""
 
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.main import initialise_models
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
-    config = Config(cfg_strings=cfg_strings)
-    core_components = CoreComponents(config)
+    config_data = ConfigurationLoader(cfg_strings=cfg_strings)
+    configuration = generate_configuration(config_data.data)
+    core_components = CoreComponents(configuration.core)
     caplog.clear()
 
     with raises:
         models = initialise_models(
-            config=config,
-            data=dummy_carbon_data,
+            configuration=configuration,
+            data=dummy_litter_data,
             core_components=core_components,
-            models=config.model_classes,
+            models=configuration._model_classes,
         )
 
         if output is None:
             assert models == [None]
         else:
-            assert repr(models["soil"]) == output
+            assert repr(models["litter"]) == output
 
     log_check(caplog, expected_log_entries)
 
@@ -123,7 +139,7 @@ def test_initialise_models(
             """[core]
             data = {}
             [core.data_output_options]
-            save_merged_config = false
+            save_compiled_configuration = false
             [core.timing]
             start_date = "2020-01-01"
             run_length = "50 years"
@@ -138,7 +154,8 @@ def test_initialise_models(
             (
                 (
                     ERROR,
-                    "Invalid units for core.timing.update_interval: 0.5 martian days",
+                    "core.timing.update_interval = 0.5 martian days: Value error, "
+                    "Cannot parse value as time quantity: 0.5 martian days",
                 ),
             ),
             id="bad_config_data_one",
@@ -152,98 +169,181 @@ def test_ve_run_model_issues(caplog, config_content, expected_log_entries, mocke
     names should not pass schema validation, but incorrect config data can still pass
     schema validation.
     """
-    # TODO: Once models are adapted, this can be removed
-    mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
+    from virtual_ecosystem.main import ve_run
 
     with pytest.raises(ConfigurationError):
         ve_run(cfg_strings=config_content)
 
-    log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
+    record_found_in_log(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
-    "cfg_strings,method,raises,model_keys,expected_log_entries",
+    argnames="progress_value, output_length",
+    argvalues=(
+        pytest.param(0, 0, id="silent"),
+        pytest.param(1, 3, id="minimal"),
+        pytest.param(2, 12, id="staged"),
+        pytest.param(3, 12, id="full"),
+    ),
+)
+def test_ve_run_progress_reporting(capsys, tmp_path, progress_value, output_length):
+    """Test the function that initialises the models.
+
+    The progress report is muted when the log is not written to file, so this writes the
+    log out to a temporary file.
+    """
+
+    from virtual_ecosystem.core.logger import remove_file_logger
+    from virtual_ecosystem.main import ve_run
+
+    # Need to remove any existing file log attached to LOGGER
+    remove_file_logger()
+
+    # Make the output directory - need to make a decision about whether ve_run creates
+    # this.
+    out_dir = tmp_path / "out_dir"
+    out_dir.mkdir()
+
+    # Run ve_run with just a minimal TestingModel used and don't save any outputs
+    ve_run(
+        cfg_strings=f"""
+[core.data_output_options]
+out_path='{out_dir!s}'
+[core.data]
+variable = []
+[testing]
+""",
+        progress=progress_value,
+        logfile=tmp_path / "log.log",
+    )
+
+    out, err = capsys.readouterr()
+
+    # Nothing in std_err
+    assert len(err.splitlines()) == 0
+
+    # std_out contains the expected number of lines: remove empty lines.
+    # For the simulation progress bar (starting e.g ' 62%|'), which is only written with
+    # FULL reporting, the number of lines can vary. So check there _are_ some when FULL
+    # but otherwise strip them out and count other lines
+    output = [v for v in out.splitlines() if v]
+    output_is_progress_bar = [re.search(r"^ *[0-9]+%\|", v) is not None for v in output]
+    output = [v for v, pbar in zip(output, output_is_progress_bar) if not pbar]
+
+    if progress_value == 3:
+        assert sum(output_is_progress_bar) > 1
+
+    assert len(output) == output_length
+
+
+def test_sort_disturbances(mocker):
+    """Test the sort_disturbances function."""
+    from virtual_ecosystem.core.configuration import (
+        CompiledConfiguration,
+        DisturbanceConfigurationRoot,
+    )
+    from virtual_ecosystem.main import sort_disturbances
+
+    models = {
+        "normal": DisturbanceConfigurationRoot(run_at=0, priority=0),
+        "more_important": DisturbanceConfigurationRoot(run_at=0, priority=2),
+        "important": DisturbanceConfigurationRoot(run_at=0, priority=1),
+    }
+    expected_order = ["more_important", "important", "normal"]
+
+    class MockConfig(CompiledConfiguration):
+        _model_classes = models
+
+        def get_subconfiguration(self, model_name, _):
+            return self._model_classes[model_name]
+
+        @property
+        def disturbance(self):
+            return self
+
+    actual_order = sort_disturbances(cast(CompiledConfiguration, MockConfig()))
+    assert expected_order == actual_order
+
+
+DISTURBANCE_INITIALISATION_LOG = [
+    (INFO, "Initialising disturbances: disturbance_testing"),
+    (INFO, "Initialising disturbance_testing disturbance"),
+    (
+        INFO,
+        "Disturbance testing model instance generated from configuration.",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "cfg_strings,output,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[soil.depends]\ninit=['abiotic_simple']\n"
-            "[abiotic_simple.depends]\ninit=[]\n",
-            "init",
+            "[core.timing]\nupdate_interval = '7 days'\n"
+            "[testing]\n"
+            "[disturbance.disturbance_testing]\n",
+            "DisturbanceTestingModel(_run_at=[0])",
             does_not_raise(),
-            ["abiotic_simple", "soil"],
-            ((INFO, "Model init execution order set: abiotic_simple, soil"),),
-            id="valid init depends",
-        ),
-        pytest.param(
-            "[core]\n[abiotic_simple.depends]\nupdate=['soil']\n[soil]\n",
-            "update",
-            does_not_raise(),
-            ["soil", "abiotic_simple"],
-            ((INFO, "Model update execution order set: soil, abiotic_simple"),),
-            id="valid update depends",
-        ),
-        pytest.param(
-            "[core]\n[abiotic_simple.depends]\nupdate=['soil']\n"
-            "[soil.depends]\nupdate=['abiotic_simple']\n",
-            "update",
-            pytest.raises(ConfigurationError),
-            None,
-            ((CRITICAL, "Model update dependencies are cyclic"),),
-            id="cyclic dependencies",
-        ),
-        pytest.param(
-            "[core]\n[abiotic_simple.depends]\nupdate=['abiotic_simple']\n",
-            "update",
-            pytest.raises(ConfigurationError),
-            None,
-            (
-                (
-                    CRITICAL,
-                    "Model update dependencies for abiotic_simple includes itself",
-                ),
+            tuple(
+                [
+                    *DISTURBANCE_INITIALISATION_LOG,
+                ],
             ),
-            id="depends over self",
+            id="valid config",
         ),
         pytest.param(
-            "[core]\n[abiotic_simple.depends]\nupdate=['plants', 'soil']\n[soil]",
-            "update",
-            does_not_raise(),
-            ["soil", "abiotic_simple"],
-            (
-                (
-                    WARNING,
-                    "Configuration does not include all of the models listed in "
-                    "update dependencies for abiotic_simple: plants",
-                ),
-                (INFO, "Model update execution order set: soil, abiotic_simple"),
+            "[core.timing]\nupdate_interval = '7 days'\n"
+            "[disturbance.disturbance_testing]\n",
+            None,
+            pytest.raises(InitialisationError),
+            tuple(
+                [
+                    *DISTURBANCE_INITIALISATION_LOG[:-1],
+                    (
+                        CRITICAL,
+                        "Configuration failed for disturbances: disturbance_testing",
+                    ),
+                ],
             ),
-            id="depends includes unconfigured models",
+            id="model required for disturbance missing",
         ),
     ],
 )
-def test_get_model_sequence(
+def test_initialise_disturbances(
     caplog,
+    dummy_litter_data,
     cfg_strings,
+    output,
     raises,
-    method,
-    model_keys,
     expected_log_entries,
 ):
-    """Test the function that sets the model sequence."""
+    """Test the function that initialises the models."""
 
-    from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.main import _get_model_sequence
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.main import initialise_disturbances
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
-    config = Config(cfg_strings=cfg_strings)
+    config_data = ConfigurationLoader(cfg_strings=cfg_strings)
+    configuration = generate_configuration(config_data.data)
+    core_components = CoreComponents(configuration.core)
     caplog.clear()
 
     with raises:
-        model_sequence = _get_model_sequence(
-            config=config, models=config.model_classes, method=method
+        models = initialise_disturbances(
+            configuration=configuration,
+            data=dummy_litter_data,
+            core_components=core_components,
+            models=configuration._model_classes,
         )
 
-        if isinstance(raises, does_not_raise):
-            assert model_keys == list(model_sequence.keys())
+        if output is None:
+            assert models == [None]
+        else:
+            assert repr(models["disturbance_testing"]) == output
 
     log_check(caplog, expected_log_entries)

@@ -176,16 +176,12 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
     argvalues=[
         pytest.param(
             {
-                "core": {
-                    "grid": {
-                        "grid_type": "square",
-                        "cell_area": 100,
-                        "cell_nx": 10,
-                        "cell_ny": 10,
-                        "xoff": 0,
-                        "yoff": 0,
-                    }
-                }
+                "grid_type": "square",
+                "cell_area": 100,
+                "cell_nx": 10,
+                "cell_ny": 10,
+                "xoff": 0,
+                "yoff": 0,
             },
             does_not_raise(),
             ((INFO, "Grid created from configuration."),),
@@ -193,16 +189,12 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
         ),
         pytest.param(
             {
-                "core": {
-                    "grid": {
-                        "grid_type": "hexagon",
-                        "cell_area": 100,
-                        "cell_nx": 10,
-                        "cell_ny": 10,
-                        "xoff": 0,
-                        "yoff": 0,
-                    }
-                }
+                "grid_type": "hexagon",
+                "cell_area": 100,
+                "cell_nx": 10,
+                "cell_ny": 10,
+                "xoff": 0,
+                "yoff": 0,
             },
             does_not_raise(),
             ((INFO, "Grid created from configuration."),),
@@ -210,16 +202,12 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
         ),
         pytest.param(
             {
-                "core": {
-                    "grid": {
-                        "grid_type": "penrose",
-                        "cell_area": 100,
-                        "cell_nx": 10,
-                        "cell_ny": 10,
-                        "xoff": 0,
-                        "yoff": 0,
-                    }
-                }
+                "grid_type": "penrose",
+                "cell_area": 100,
+                "cell_nx": 10,
+                "cell_ny": 10,
+                "xoff": 0,
+                "yoff": 0,
             },
             pytest.raises(ConfigurationError),
             (
@@ -231,15 +219,13 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
     ],
 )
 def test_grid_from_config(caplog, config, expected_err, expected_log):
-    """Test the creation of a Grid object using the from_config factory method.
-
-    NOTE: this does not use an actual Config object, just a dictionary
-    """
+    """Test the creation of a Grid object using the from_config factory method."""
 
     from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.core.model_config import GridConfiguration
 
     with expected_err:
-        _ = Grid.from_config(config)
+        _ = Grid.from_config(GridConfiguration(**config))
 
     log_check(caplog, expected_log)
 
@@ -396,40 +382,45 @@ def test_grid_dumps():
 @pytest.mark.parametrize(
     argnames=["x_coord", "y_coord", "exp_exception", "exp_message", "exp_map"],
     argvalues=[
-        (
+        pytest.param(
             [0, 1, 2],
             [[0, 1], [0, 1]],
             pytest.raises(ValueError),
             "The x/y coordinate arrays are not 1 dimensional",
             None,
+            id="coords_not_1D",
         ),
-        (
+        pytest.param(
             [0, 1, 2],
             [0, 1],
             pytest.raises(ValueError),
             "The x/y coordinates are of unequal length",
             None,
+            id="coords_not_equal_length",
         ),
-        (
+        pytest.param(
             [0, 1, 2],
             [0, 1, 2],
             does_not_raise(),
             None,
             [[], [], []],
+            id="outside_grid",
         ),
-        (
+        pytest.param(
             [500000, 500100, 500200],
             [200000, 200100, 200200],
             does_not_raise(),
             None,
             [[90], [80, 81, 90, 91], [71, 72, 81, 82]],
+            id="on_borders",
         ),
-        (
+        pytest.param(
             [500050, 500150, 500250],
             [200050, 200150, 200250],
             does_not_raise(),
             None,
             [[90], [81], [72]],
+            id="within_cells",
         ),
     ],
 )
@@ -450,7 +441,37 @@ def test_map_xy_to_cell_ids(
         assert str(excep.value) == exp_message
 
     if exp_map is not None:
-        assert cell_map == exp_map
+        assert all([set(obs) == set(exp) for obs, exp in zip(cell_map, exp_map)])
+
+
+@pytest.mark.parametrize(
+    argnames="nx, ny", argvalues=((50, 50), (100, 100), (150, 150))
+)
+def test_map_xy_to_cell_ids_performance(nx, ny):
+    """Scaling test of map_xy_to_cell_ids.
+
+    Creates a grid of nx, ny cells and then simply maps the computed centroids back to
+    the cells as a tool to check the run time.
+
+    1953.27s call test_grid.py::test_map_xy_to_cell_ids_performance[150-150]
+    371.25s call  test_grid.py::test_map_xy_to_cell_ids_performance[100-100]
+    23.24s call   test_grid.py::test_map_xy_to_cell_ids_performance[50-50]
+
+    1.19s call    test_grid.py::test_map_xy_to_cell_ids_performance[150-150]
+    0.56s call    test_grid.py::test_map_xy_to_cell_ids_performance[100-100]
+    0.13s call    test_grid.py::test_map_xy_to_cell_ids_performance[50-50]
+
+    TODO: Not sure this is best placed as a test, but saving the code and information
+          here until we have a more formal performance testing ground.
+    """
+
+    from virtual_ecosystem.core.grid import Grid
+
+    grid = Grid(cell_nx=nx, cell_ny=ny)
+
+    _ = grid.map_xy_to_cell_id(
+        x_coords=grid.centroids[:, 0], y_coords=grid.centroids[:, 1]
+    )
 
 
 @pytest.mark.parametrize(

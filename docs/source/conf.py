@@ -11,6 +11,7 @@ add these directories to sys.path here. If the directory is relative to the
 documentation root, use os.path.abspath to make it absolute, like shown here.
 """
 
+import datetime
 import sys
 import warnings
 from dataclasses import dataclass, field
@@ -20,16 +21,14 @@ from pathlib import Path
 # "Matplotlib is building the font cache; this may take a moment."
 import matplotlib.pyplot  # noqa: F401
 import sphinxcontrib.bibtex.plugin
-from sphinx.deprecation import RemovedInSphinx80Warning
+from sphinx.deprecation import RemovedInSphinx90Warning
 from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
 import virtual_ecosystem as ve
-from virtual_ecosystem.core import variables
 
-# Silence sphinx 8 warnings.
-warnings.filterwarnings("ignore", category=RemovedInSphinx80Warning)
-
+# Silence sphinx 9 warnings.
+warnings.filterwarnings("ignore", category=RemovedInSphinx90Warning)
 
 # This path is required for automodule to be able to find and render the docstring
 # example in the development section of the documentation. The path to the modules for
@@ -39,22 +38,15 @@ warnings.filterwarnings("ignore", category=RemovedInSphinx80Warning)
 # adding an absolute path is more reliable.
 sys.path.append(str(Path(__file__).parent / "development/documentation"))
 
-
 version = ve.__version__
 release = version
 
-# Update the variables file
-varfile = Path(__file__).parent / "variables.rst"
-variables.output_known_variables(varfile)
-
-
 # -- Project information -----------------------------------------------------
+# Ideally the copyright would have a link to the team page, but neither an RST link, nor
+# an HTML <a> link works - they just get rendered as is.
 
 project = "Virtual Ecosystem"
-copyright = (
-    "2022, Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, "
-    "Jaideep Joshi, Taran Rallings, Vivienne Groner"
-)
+copyright = f"{datetime.date.today().year}, The Virtual Ecosystem project team"
 author = (
     "Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, "
     "Taran Rallings, Vivienne Groner"
@@ -74,20 +66,30 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
+    "sphinx.ext.todo",
     "sphinxcontrib.bibtex",
-    "sphinxcontrib.mermaid",
     "myst_nb",
-    "sphinx_rtd_theme",
+    "pydata_sphinx_theme",
     "sphinx_external_toc",
     "sphinx_design",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
 
+# autodoc_typehints = "description"
+autodoc_typehints_format = "short"
+python_use_unqualified_type_names = True
+# autodoc_type_aliases = {
+#   "FILEPATH_PLACEHOLDER": "virtual_ecosystem.core.configuration.FILEPATH_PLACEHOLDER",
+# }
+
 
 # Set up the external table of contents file path and configure
 external_toc_path = "_toc.yaml"
 external_toc_exclude_missing = False
+
+# Display TODO lists:
+todo_include_todos = True
 
 
 # Set up a bracketed citation style, register it with sphinxcontrib.bibtex, and then set
@@ -121,21 +123,27 @@ bibtex_reference_style = "author_year_round"
 # links are resolvable. Then ignore a whole bunch of annoying broken links.
 nitpicky = True
 nitpick_ignore = [
+    # Numpy references aren't always found
+    ("py:class", "NDArray"),
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.float32"),
-    # HACK - core_components docstrings are being odd.
-    ("py:class", "NDArray"),
+    ("py:class", "numpy.float64"),
+    ("py:class", "numpy.bool_"),
     ("py:class", "np.int_"),
     ("py:class", "np.str_"),
     ("py:class", "np.bool_"),
-    ("py:class", "numpy.bool_"),
-    ("py:class", "np.float32"),
+    ("py:class", "np.floating"),
+    ("py:class", "np.float64"),
     ("py:class", "np.datetime64"),
+    ("py:class", "np.ndarray"),
     ("py:class", "np.timedelta64"),
+    ("py:class", "timedelta64"),
     ("py:class", "InitVar"),
     ("py:class", "dataclasses.InitVar"),
     ("py:class", "Quantity"),
     ("py:class", "numpy._typing._array_like._ScalarType_co"),
+    ("py:class", "numpy._typing._array_like._ScalarT"),
+    ("py:class", "xr.DataArray"),
     # God only knows why this is needed. We don't refer to pint.util.Quantity and it
     # isn't in the pint objects.inv, so why the hell is intersphinx trying to build
     # references to it.
@@ -146,7 +154,72 @@ nitpick_ignore = [
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.__repr__"),
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.count"),
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.index"),
+    ("py:exc", "ParserError"),
+    ("py:exc", "BadZipFile"),
+    # Absolutely mystifying sphinx failure to link to pyrealm objects in plants_model.py
+    # when it resolves those objects without issue in other plants model modules.
+    ("py:class", "PModel"),
+    ("py:class", "Canopy"),
+    ("py:class", "Flora"),
+    ("py:class", "PModelConst"),
+    ("py:class", "CoreConst"),
+    ("py:class", "StemAllocation"),
+    ("py:class", "GrowthIncrements"),
+    ("py:class", "StemStoichiometry"),
+    ("py:class", "pydantic.types.PathType"),
+    # Something about the pydantic annotated pattern generates a ton of peculiar
+    # intersphinx noise.
+    ("py:class", "pathlib.Annotated"),
+    ("py:class", "path_type=file"),
+    ("py:class", "file"),
+    ("py:class", "FieldInfo"),
+    ("py:class", "NoneType"),
+    ("py:class", "PosixPath"),
+    ("py:class", "virtual_ecosystem.core.configuration.placeholder_validator"),
+    ("py:class", "PydanticUndefined"),
+    # Actually just generally intersphinx is janky when it comes to pydantic
+    ("py:class", "annotated_types.Gt"),
+    ("py:class", "PositiveFloat"),
+    ("py:class", "PositiveInt"),
+    ("py:class", "annotated_types.Lt"),
+    ("py:class", "annotated_types.MinLen"),
+    ("py:class", "annotated_types.Gt"),
+    ("py:class", "annotated_types.Ge"),
+    ("py:class", "annotated_types.Le"),
+    ("py:class", "annotated_types.Ge"),
+    ("py:class", "annotated_types.Le"),
+    ("py:class", "NegativeFloat"),
+    ("py:class", "date"),
+    ("py:class", "_PydanticGeneralMetadata"),
+    # Sphinx seems to insist that pydantic model types are classes, when they can be
+    # global Literals
+    ("py:class", "ConfigDict"),
+    ("py:class", "SUBSTRATES"),
+    ("py:class", "REQUIRED_MICROBIAL_GROUPS"),
+    ("py:class", "HIGHER_TAXONOMIC_GROUPS"),
+    ("py:class", "dir"),
+    # FOR PITY'S SAKE, SPHINX - not finding types
+    ("py:class", "FILEPATH_PLACEHOLDER"),
+    ("py:class", "GRID_STRUCTURE_SIG"),
+    ("py:class", "DIRPATH_PLACEHOLDER"),
+    ("py:class", "SubcanopyNutrients"),
+    ("py:class", "PyrealmCoreConst"),
+    # Typing on animal.model_config
+    ("py:class", "virtual_ecosystem.models.animal.animal_traits.Annotated"),
+    ("py:class", "virtual_ecosystem.models.animal.model_config.serialise_diet_type"),
+    ("py:class", "virtual_ecosystem.models.animal.model_config.deserialise_diet_type"),
+    (
+        "py:class",
+        "virtual_ecosystem.models.animal.model_config.serialise_vertical_occupancy",
+    ),
+    (
+        "py:class",
+        "virtual_ecosystem.models.animal.model_config.deserialise_vertical_occupancy",
+    ),
+    ("py:class", "always"),
 ]
+
+
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
@@ -154,6 +227,9 @@ intersphinx_mapping = {
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
+    "pyrealm": ("https://pyrealm.readthedocs.io/en/latest/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
 
 # Turn on figure numbering - this slows down build time a surprising amount!
@@ -200,20 +276,33 @@ exclude_patterns = [
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-html_theme = "sphinx_rtd_theme"  # 'sphinx_material'
+html_theme = "pydata_sphinx_theme"
+
+html_sidebars = {"**": ["sidebar_funder", "sidebar-nav-bs"]}
 
 html_theme_options = {
-    "logo_only": False,
-    "display_version": True,
-    "prev_next_buttons_location": "top",
-    "style_external_links": False,
-    "style_nav_header_background": "grey",
-    # Toc options
-    "collapse_navigation": False,
-    "sticky_navigation": True,
-    "navigation_depth": 4,
-    "includehidden": True,
-    "titles_only": False,
+    "logo": {
+        "text": "The Virtual Ecosystem",
+        # "image_light": "_static/logo-light.png",
+        # "image_dark": "_static/logo-dark.png",
+    },
+    # Add GH link icon
+    "github_url": "https://github.com/ImperialCollegeLondon/virtual_ecosystem",
+    # Don't centre top nav tabs.
+    "navbar_align": "left",
+    # Remove "Page source" link in page sidebar
+    "secondary_sidebar_items": ["page-toc"],
+    # "logo_only": False,
+    # "version_selector": True,
+    # "prev_next_buttons_location": "top",
+    # "style_external_links": False,
+    # "style_nav_header_background": "grey",
+    # # Toc options
+    # "collapse_navigation": False,
+    # "sticky_navigation": True,
+    # "navigation_depth": 4,
+    # "includehidden": True,
+    # "titles_only": False,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -221,6 +310,65 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-html_sidebars = {
-    "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
-}
+# These can be used to add custom JS and CSS files to all pages in the docs. The paths
+# are relative to html_static_path. See the add_datatable_to_variables_page hook below
+# that is used to inject JS and CSS into a single page.
+html_js_files: list[str] = []
+html_css_files = [
+    "css/custom.css",
+]
+
+
+# Allow for longer runtime
+nb_execution_mode = "force"
+nb_execution_timeout = 300
+
+
+def add_datatable_to_variables_page(app, page_name, template_name, context, doctree):
+    """Make the variables page use DataTables.
+
+    This function adds script and style links for the DataTables framework _only_ to the
+    variables page and then the JS to add DataTables functionality to the auto-generated
+    table of variable details.
+
+    These files can be added to _all_ pages by adding to them to the ``html_js_files``
+    and ``html_css_files`` lists above, but this hook attempts to keep page sizes
+    smaller by only adding them to the one page that needs them.
+
+    See the variables page markdown for details.
+
+    .. note::
+
+        If the variable table page is moved, the page_name below must be updated to
+        match.
+    """
+
+    if page_name == "using_the_ve/variables/variables":
+        # Add Datatables JS links and local custom table setup
+        # - dataTables.min.js is the main DataTables framework
+        # - dataTables.responsive.min.js adds responsive wrapping of row contents, which
+        #   we use to provide drop downs for further details.
+        # - js/variable_table.js is the configuration and logic that powers our specific
+        #   DataTable instance.
+        app.add_js_file("https://code.jquery.com/jquery-4.0.0.min.js")
+        app.add_js_file("https://cdn.datatables.net/2.3.5/js/dataTables.min.js")
+        app.add_js_file(
+            "https://cdn.datatables.net/responsive/3.0.7/js/dataTables.responsive.min.js"
+        )
+        app.add_js_file("js/variable_table.js")
+
+        # Add the CSS files that support the DataTables framework and its "responsive"
+        # extension.
+        app.add_css_file(
+            "https://cdn.datatables.net/2.3.5/css/dataTables.dataTables.css"
+        )
+        app.add_css_file(
+            "https://cdn.datatables.net/responsive/3.0.7/css/responsive.dataTables.min.css"
+        )
+
+
+def setup(app):
+    """Customise the sphinx build."""
+
+    # Add the datatables engine to the variables page.
+    app.connect("html-page-context", add_datatable_to_variables_page)

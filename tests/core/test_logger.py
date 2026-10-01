@@ -48,7 +48,7 @@ def test_add_file_logger():
 
         # Check the handler has been created by looking for it by name - this will raise
         # with StopIteration if it fails.
-        _ = next(handler for handler in LOGGER.handlers if handler.name == "vr_logfile")
+        _ = next(handler for handler in LOGGER.handlers if handler.name == "ve_logfile")
 
         # Check the file is being written to
         assert tempfile.exists()
@@ -98,7 +98,7 @@ def test_remove_file_logger(caplog):
 
         with pytest.raises(StopIteration):
             _ = next(
-                handler for handler in LOGGER.handlers if handler.name == "vr_logfile"
+                handler for handler in LOGGER.handlers if handler.name == "ve_logfile"
             )
 
         # Check the logging works

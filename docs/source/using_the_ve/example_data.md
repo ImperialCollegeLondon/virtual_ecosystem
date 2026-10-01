@@ -1,84 +1,203 @@
-# Virtual Ecosystem example data
+---
+jupytext:
+  cell_metadata_filter: all,-trusted
+  notebook_metadata_filter: settings,mystnb,language_info,execution
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.19.5
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.12
+mystnb:
+  render_markdown_format: myst
+---
 
-Example data is included with Virtual Ecosystem to provide an introduction to the file
-formats and configuration. Using this data is described in the [getting
-started](./getting_started.md) page - this page describes the structure and contents of
-the example data folder.
+<!-- markdownlint-disable MD041-->
 
-It might be useful to install the `ve_example` directory to a location of your choice
-when reading these notes, using the command shown below, but the contents of the key
-files are also linked on this page.
+```{code-cell} ipython3
+:tags: [remove-cell]
 
-```shell
-ve_run --install-example /location/path/
+# This cell defines some Python tools used to render the page
+from pathlib import Path
+from importlib import resources
+from IPython.display import display, Markdown
+import xarray
+
+# Path to the example_data resources
+example_dir = resources.files("virtual_ecosystem.example_data")
+
+
+def data_section_markdown(section: str, ds_path: Path) -> Markdown:
+    """Data section Markdown generator
+
+    This function generates markdown to display a section for a NetCDF data file in the
+    example data directory. This is basically just a section heading, a short dataset
+    description and then a simple table of data variables in a given NetCDF file.
+    We could use the builtin IPython display of xarray  datasets but it is much more
+    complex - we just want to show the data variables.
+
+    It looks for "dataset_description" in the dataset attributes and then "description"
+    and "units" in each data variables attributes, so generates the descriptions
+    automatically from the current file contents.
+
+    Args:
+      ds_path: Path to the NetCDF dataset
+    """
+
+    ds = xarray.open_dataset(ds_path)
+
+    # Build a list-table row for each data variable using the variable name, description
+    # and units attributes and the variable dimensions
+    var_list = []
+    for var_name in ds.data_vars:
+        var = ds[var_name]
+        var_list.append(
+            f"* - `{var_name}`\n  - {var.attrs.get('description', 'Missing attribute')}\n"
+            f"  - {var.attrs.get('units', 'Missing attribute')}\n  - {var.dims}"
+        )
+
+    # Wrap the rows up in the list-table declaration
+    var_rows = "\n".join(var_list)
+    table = (
+        f"```{{list-table}}\n:align: left\n\n* - Variable\n  - Description\n"
+        f"  - Units\n  - Axes\n{var_rows}\n```"
+    )
+
+    ds_desc = ds.attrs.get("dataset_description", "Missing description")
+    return Markdown("### " + section + "\n\n" + ds_desc + "\n\n" + table)
 ```
 
-## Example data directory structure
+# Installing the example data
 
-The `ve_example` directory contains the following sub-directories:
+The Virtual Ecosystem model package includes example data to run a model. This page
+provides:
 
-1. The `config` directory contains three configuration files that combine to provide a
-   basic complete configuration for the example data.
+* a guide to installing the example model data,
+* an introduction to the example model file structure,
+* an overview of the configuration and data files in the example model.
 
-1. The `data` directory contains NetCDF format files containing the variables required
-   to initialise the model and then iterate over a time series.
+## Installing the example model data
 
-1. The empty `out` directory is simply used as a location to store model outputs.
+The first step before running the example model is to install the data. You will need to
+open a terminal (e.g. `bash` or Powershell) to run the installation command below. The
+command creates a new directory called `ve_example` inside the directory you specify:
 
-1. The `generation_scripts` directory contains Python scripts that are used to generate
-   the contents of the `data` directory. You won't typically need to look at these, but
-   they provide simple recipes for creating or editing the input data files.
+`````{tab-set}
+:sync-group: operating_system
 
-1. A `source` directory that contains files used to create the input data files.
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} shell
+ve_run --install-example /install/path/
+```
+````
+
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+ve_run --install-example C:\install\path\
+```
+````
+`````
+
+The following sections describe the sub-directories in the example data and their
+contents.
 
 ## Configuration files
 
-The example configuration files are:
+The `config` directory contains configuration files required to configure simulation
+runs using the example data. To configure a simulation `ve_run` needs to be provided
+with the data configuration, as well as a configuration file for each model you wish to
+run. All models need to be provided, with the exception of the `abiotic` model which can
+be replaced with the `abiotic_simple` model.
 
-* The **`ve_run.toml`** configures the models to be used in the simulation and the order
-  in which they are initialised and updated.
-
-````{admonition} config/ve_run.toml
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/config/ve_run.toml
-```
-````
+The specific contents of each config file are as follows:
 
 * The **`data_config.toml`** file configures the initial variables to be loaded and sets
   the paths to the source files providing those variables.
 
-````{admonition} config/data_config.toml
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/config/data_config.toml
-```
-````
+* The **`abiotic_config.toml`** file provides basic configuration needed to setup the
+  `abiotic` model.
 
-* The **`animal_functional_groups.toml`** file provides basic configuration for the
-  `animal` model to set functional group definitions.
+* The **`abiotic_simple_config.toml`** file provides basic configuration needed to setup
+  the `abiotic_simple` model. If you wish to run the `abiotic_simple` model, you
+  **must** `ve_run` with a path to this config file **instead** of
+  `abiotic_config.toml`.
 
-````{admonition} config/animal_functional_groups.toml
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/config/animal_functional_groups.toml
-```
-````
+* The **`animal_config.toml`** file provides basic configuration for the
+  `animal` model to set functional group definitions and cohort data export.
+
+* The **`hydrology_config.toml`** file provides basic configuration needed to setup the
+  `abiotic` model.
+
+* The **`litter_config.toml`** file provides basic configuration needed to setup the
+  `litter` model.
 
 * The **`plant_config.toml`** file provides basic configuration for the
   `plants` model to set functional group definitions.
 
-````{admonition} config/plant_config.toml
-:class: dropdown
+* The **`soil_config.toml`** file provides basic configuration for the `soil` model to
+  set microbial functional group definitions.
+
+The dropdown boxes below reveal the contents of these files, so you can see what the
+configuration format and example settings look like in practice.
+
+````{dropdown} config/data_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/data_config.toml
+```
+````
+
+````{dropdown} config/abiotic_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/abiotic_config.toml
+```
+````
+
+````{dropdown} config/abiotic_simple_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/abiotic_simple_config.toml
+```
+````
+
+````{dropdown} config/animal_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/animal_config.toml
+```
+````
+
+````{dropdown} config/hydrology_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/hydrology_config.toml
+```
+````
+
+````{dropdown} config/litter_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/litter_config.toml
+```
+````
+
+````{dropdown} config/plant_config.toml
 ```{literalinclude} ../../../virtual_ecosystem/example_data/config/plant_config.toml
 ```
 ````
 
-## Example data files
+````{dropdown} config/soil_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/soil_config.toml
+```
+````
 
-The [data configuration
-file](../../../virtual_ecosystem/example_data/config/data_config.toml) sets up the
-links between the variables used in the models and the provided data file in which they
-are stored. The NetCDF files in the `data` directory are all generated by the Python
-scripts provided in the `generation_scripts` directory, which provide some simple
-recipes for creating various kinds of input data and saving them in the required format.
+## Data files
 
 ```{warning}
 All of these data files currently contain artificial data to test the program flow and
@@ -86,129 +205,92 @@ data handling of the Virtual Ecosystem simulation. Although some values are take
 real source data, this is **not yet a meaningful real world example dataset**.
 ```
 
-The **`common.py`** script file defines some common elements that are used across the
-data generation scripts, primarily the spatial grid to be used and the dates for time
-series data.
+The `data` directory contains files containing the variables required to initialise the
+model and then iterate over a time series.
 
-````{admonition} common.py
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/generation_scripts/common.py
-```
-````
+### Array data
 
-### Elevation data
+Most of the data required by the Virtual Ecosystem is organised on well defined axes and
+so is imported into a central data store. These input data are typically stored in
+NetCDF format files, which is a format designed around array data on defined axes.
 
-The `data/example_elevation_data.nc` file provides:
+The data in the files then needs to be linked into the variables required by the Virtual
+Ecosystem model. This is set in the configuration TOML files using the
+``core.data.variable`` option, which identifies the NetCDF file containing a particular
+variable. For example:
 
-```{list-table}
-* - Variable
-  - Name
-  - Unit
-  - Dims
-* - elevation
-  - `elevation`
-  - m
-  - XY
+```toml
+[[core.data.variable]]
+file_path = "../data/example_litter_data.nc"
+var_name = "litter_pool_above_metabolic_cnp"
 ```
 
-````{admonition} elevation_example_data.py
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/generation_scripts/elevation_example_data.py
-```
-````
+The configuration setting needs to be provided which for every variable required by
+a given simulation setup - see the example TOML contents above for more examples.
 
-This code creates a dummy elevation map from a digital elevation model
-([SRTM](https://www2.jpl.nasa.gov/srtm/)) which is required to run, amongst others, the
-{mod}`~virtual_ecosystem.models.hydrology.hydrology_model`. The initial data covers the
-region 4°N 116°E to 5°N 117°E, see [SAFE
-wiki](https://safeproject.net/dokuwiki/safe_gis/srtm) for reference and download. We
-reduce the initial 30m spatial resolution to match the 9 x 9 grid of the example
-simulation while covering an area similar to the climate dummy data.
+Within the Virtual Ecosystem, the data system is used to load and track these variables.
+The system also checks that the axes of loaded data are congruent with the following
+expected data axis definitions from the core model settings.
 
-### Climate data
+* The `x`, `y` and `cell_id` axes all record the spatial location of input cells. All
+  cells have an `x` and `y` coordinate, but we also map cells onto a unique `cell_id`
+  axis to make it easier to calculate values across cells.
+* The `time_index` axis is used to store variables that vary in time through a
+  simulation - the simulation updates iterate along this axis to change the conditions
+  within the model.
+* The `pft` axis is used to separate outputs within cells that come from different plant
+  functional types.
 
-The `example_climate_data.nc` file provides:
+The NetCDF files provided in the example data provide a long set of required variables and
+the sections below show the data variables defined in each of the NetCDF files:
 
-```{list-table}
-* - Variable
-  - Name
-  - Unit
-  - Dims
-* - air temperature
-  - `air_temperature_ref`
-  - °C
-  - XYT
-* - relative humidity
-  - `relative_humidity_ref`
-  - unitless
-  - XYT
-* - atmospheric pressure
-  - `atmospheric_pressure_ref`
-  - kPa
-  - XYT
-* - precipitation
-  - `precipitation`
-  - mm $\textrm{month}^{-1}$
-  - XYT
-* - atmospheric $\ce{CO_{2}}$ concentration
-  - `atmospheric_co2_ref`
-  - ppm
-  - XYT
-* - mean annual temperature
-  - `mean_annual_temperature`
-  - °C
-  - XY
+* the variable name used within model,
+* a short description,
+* the units for the variable, and
+* a list of the axes that apply to the input variable.
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+# Define the data file section names and paths
+sections = (
+    ("Elevation data", "data/example_elevation_data.nc"),
+    ("Climate data", "data/example_climate_data.nc"),
+    ("Soil data", "data/example_soil_data.nc"),
+    ("Litter data", "data/example_litter_data.nc"),
+    ("Plant data", "data/example_plant_data.nc"),
+)
+
+for section, dataset in sections:
+    display(data_section_markdown(section, example_dir / dataset))
 ```
 
-````{admonition} climate_example_data.py
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/generation_scripts/climate_example_data.py
-```
-````
+### Other data files
 
-The dummy climate data for the example simulation is based on monthly ERA5-Land data
-which can be downloaded from the [Copernicus climate data store](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-monthly-means?tab=overview).
+The `data` directory also provides some model specific files that are required to
+initialise a simulation:
 
-Metadata:
+#### Plant functional type definitions
 
-* Muñoz-Sabater,J. et al: ERA5-Land: A state-of-the-art global reanalysis dataset for
-  land applications, Earth Syst. Sci. Data,13, 4349-4383, 2021.
-  [https://doi.org/10.5194/essd-13-4349-2021](https://doi.org/10.5194/essd-13-4349-2021)
-* Product type: Monthly averaged reanalysis
-* Variable: 2m dewpoint temperature, 2m temperature, Surface pressure, Total
-  precipitation
-* Year: 2013, 2014
-* Month: January, February, March, April, May, June, July, August, September, October,
-  November, December
-* Time: 00:00
-* Sub-region extraction: North 6°, West 116°, South 4°, East 118°
-* Format: NetCDF3
+The `plants_pft.csv` file is a CSV file that contains a set of plant functional types.
+It defines a set of named PFTs and then provides a set of traits that define the
+behaviour of individuals in each PFT.
 
-### Hydrology data
+#### Initial plant cohort data
 
-The `example_surface_runoff_data.nc` file provides:
+The `example_plant_cohorts.csv` file is a CSV file that defines the initial plant
+communities found in each cell. It provides a set of rows identifying size structured
+cohorts of PFTs occurring in each cell.
 
-```{list-table}
-* - Variable
-  - Name
-  - Unit
-  - Dims
-* - surface runoff
-  - `surface_runoff`
-  - mm
-  - XY
-```
+#### Animal functional group definitions
 
-````{admonition} runoff_example_data.py
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/generation_scripts/runoff_example_data.py
-```
-````
+The `animal_functional_groups.csv` file is a CSV file that defines the animal functional
+groups to be used within the simulation. Each row defines a uniquely named functional
+group along with key traits such as the adult body mass and diet.
 
-The hydrology model requires an initial surface runoff field to calculate accumulated
-surface runoff. This value is currently created using a normal distribution, and
-adjusted to Virtual Ecosystem conventions, but will in the future be estimated from
-rainfall data using the SPLASH model.
+<!--
+
+Original text and partial tables, to be moved into NetCDF attributes
 
 ### Soil data
 
@@ -220,53 +302,42 @@ The `example_soil_data.nc` file provides:
   - Unit
   - Dims
 * - pH
-  - `pH` 
+  - `pH`
   - unitless
   - XY
-* - Bulk soil density
-  - `bulk_density` 
-  - kg $\textrm{m}^{-3}$
-  - XY
 * - Soil clay fraction
-  - `clay_fraction` 
+  - `clay_fraction`
   - unitless
   - XY
 * - Soil low molecular weight carbon pool
-  - `soil_c_pool_lmwc` 
+  - `soil_c_pool_lmwc`
   - kg C $\textrm{m}^{-3}$
   - XY
 * - Soil mineral associated organic matter carbon pool
-  - `soil_c_pool_maom` 
+  - `soil_c_pool_maom`
   - kg C $\textrm{m}^{-3}$
   - XY
 * - Soil microbial carbon pool
-  - `soil_c_pool_microbe` 
+  - `soil_c_pool_microbe`
   - kg C $\textrm{m}^{-3}$
   - XY
 * - Soil particulate organic matter carbon pool
-  - `soil_c_pool_pom` 
+  - `soil_c_pool_pom`
   - kg C $\textrm{m}^{-3}$
   - XY
 * - Soil particulate organic matter enzyme pool
-  - `soil_enzyme_pom` 
+  - `soil_enzyme_pom`
   - kg C $\textrm{m}^{-3}$
   - XY
 * - Soil mineral associated organic matter enzyme pool
-  - `soil_enzyme_maom` 
+  - `soil_enzyme_maom`
   - kg C $\textrm{m}^{-3}$
   - XY
 ```
 
-This code creates a set of plausible values for which the
-{mod}`~virtual_ecosystem.models.soil.soil_model` absolutely has to function sensibly
-for. Descriptions of the soil pools can be found
-[here](../virtual_ecosystem/theory/soil_theory.md).
-
-````{admonition} soil_example_data.py
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/generation_scripts/soil_example_data.py
-```
-````
+This code creates a set of plausible values for the [soil
+pools](../virtual_ecosystem/theory/soil/summary.md) that absolutely must be defined for
+the {mod}`~virtual_ecosystem.models.soil.soil_model`  to function sensibly.
 
 ### Litter data
 
@@ -278,24 +349,24 @@ The `example_litter_data.nc` file provides:
   - Unit
   - Dims
 * - above ground metabolic litter pools
-  - `litter_pool_above_metabolic`
-  - kg C $\textrm{m}^{-2}$ 
+  - `litter_pool_above_metabolic_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - above ground structural litter pools
-  - `litter_pool_above_structural`
-  - kg C $\textrm{m}^{-2}$ 
+  - `litter_pool_above_structural_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - woody litter pools
-  - `litter_pool_woody`
-  - kg C $\textrm{m}^{-2}$ 
+  - `litter_pool_woody_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - below ground metabolic litter pools
-  - `litter_pool_below_metabolic`
-  - kg C $\textrm{m}^{-2}$ 
+  - `litter_pool_below_metabolic_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - below ground structural litter pools
-  - `litter_pool_below_structural`
-  - kg C $\textrm{m}^{-2}$ 
+  - `litter_pool_below_structural_cnp`
+  - kg $\textrm{m}^{-2}$
   - XY
 * - lignin proportion of above ground structural litter
   - `lignin_above_structural`
@@ -311,15 +382,10 @@ The `example_litter_data.nc` file provides:
   - XY
 ```
 
-The generation script creates a set of plausible values for which the {mod}`~virtual_ecosystem.models.litter.litter_model`
-absolutely has to function sensibly for.
-Descriptions of the litter pools can be found [here](../virtual_ecosystem/theory/soil_theory.md).
-
-````{admonition} litter_example_data.py
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/generation_scripts/litter_example_data.py
-```
-````
+The generation script creates a set of plausible values for the [litter
+pools](../virtual_ecosystem/theory/soil/litter_theory.md) that absolutely have to be
+defined for the {mod}`~virtual_ecosystem.models.litter.litter_model` to function
+sensibly.
 
 ### Plant data
 
@@ -341,14 +407,29 @@ added for each of the 81 grid cells, giving 162 entries along the cohort axis.
   - `plant_cohorts_dbh`
   - m
   - C
-* - Photosynthetic photon flux density
-  - `photosynthetic_photon_flux_density`
-  - µ mol m$^{-2}$ s$^{-1}$
+* - Downward shortwave radiation
+  - `downward_shortwave_radiation`
+  - W m$^{-2}$
   - XYT
 ```
+-->
 
-````{admonition} plant_example_data.py
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/generation_scripts/plant_example_data.py
-```
-````
+## Output directory
+
+The `out` directory is empty when the example data is installed and is simply used as a
+location to store model outputs when the model is run.
+
+## Additional directories
+
+The example model data directory also contains:
+
+* The `generation_scripts` directory contains Python scripts that are used to generate
+   the contents of the `data` directory.
+
+   You don't really need to look at these, but they provide simple recipes for creating
+   or editing the example data files, so might be useful for tinkering with the example
+   inputs. For any real model you want to fit, you will need to prepare actual
+   [data inputs](./model_details/overview.md) using data for your ecosystem.
+
+* The `static_config` directory is empty and is used as part of the advanced usage of
+  [static models](./virtual_ecosystem_in_static_mode.ipynb) in the Virtual Ecosystem.

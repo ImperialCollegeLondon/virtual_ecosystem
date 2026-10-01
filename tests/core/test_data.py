@@ -2,12 +2,12 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, ERROR, INFO, WARNING
-from pathlib import Path
 
 import numpy as np
 import pytest
 import xarray as xr
-from xarray import DataArray, Dataset, open_dataset, testing
+from xarray import DataArray, Dataset
+from xarray.testing import assert_allclose
 
 from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import ConfigurationError
@@ -68,16 +68,16 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             None,
             id="dataset_not_datarray",
         ),
-        pytest.param(  # Bad load - uses reserved dimension names
+        pytest.param(  # Bad load - uses x without y and does not match validator
             DataArray(
                 data=np.array(np.arange(9)),
                 coords={"x": np.arange(9)},
                 name="should_not_work",
             ),
-            "should_not_work",
+            "air_temperature",
             pytest.raises(ValueError),
             (
-                (INFO, "Adding data array for 'should_not_work'"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (
                     CRITICAL,
                     "DataArray uses 'spatial' axis dimension names but does "
@@ -99,15 +99,15 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             [0, 1, 2, 3],
             id="valid_square_xy_coords",
         ),
-        pytest.param(  # Replacing previous load from square_xy_coords
+        pytest.param(  # Replacing pre-populated variable in fixture
             DataArray(
                 data=np.array([[4, 5], [6, 7]]),
                 coords={"y": [2, 1], "x": [1, 2]},
-                name="existing_var",
+                name="atmospheric_co2",
             ),
-            "existing_var",
+            "atmospheric_co2",
             does_not_raise(),
-            ((INFO, "Replacing data array for 'existing_var'"),),
+            ((INFO, "Replacing data array for 'atmospheric_co2'"),),
             [4, 5, 6, 7],
             id="replacing_data",
         ),
@@ -151,11 +151,11 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             DataArray(
                 data=np.array(np.arange(9)),
                 coords={"nope": np.arange(9)},
-                name="add_without_axis",
+                name="air_temperature",
             ),
-            "add_without_axis",
+            "air_temperature",
             does_not_raise(),
-            ((INFO, "Adding data array for 'add_without_axis'"),),
+            ((INFO, "Adding data array for 'air_temperature'"),),
             np.arange(9),
             id="add_without_axis",
         ),
@@ -180,7 +180,7 @@ def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_
     argnames=["var_name", "exp_err", "exp_msg", "exp_vals"],
     argvalues=[
         pytest.param(
-            "existing_var",
+            "atmospheric_co2",
             does_not_raise(),
             None,
             [1, 2, 3, 4],
@@ -189,8 +189,8 @@ def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_
         pytest.param(
             "not_existing_var",
             pytest.raises(KeyError),
-            """"No variable named 'not_existing_var'. """
-            '''Variables on the dataset include ['existing_var']"''',
+            "\"No variable named 'not_existing_var'. "
+            """Variables on the dataset include ['atmospheric_co2']\"""",
             None,
             id="should_not_get",
         ),
@@ -211,10 +211,127 @@ def test_Data_getitem(fixture_data, var_name, exp_err, exp_msg, exp_vals):
         assert str(err.value) == exp_msg
 
 
+@pytest.fixture
+def fixture_data_with_time(fixture_data):
+    """Extend fixture_data with a variable that has a time_index dimension."""
+
+    fixture_data["air_temperature_ref"] = DataArray(
+        data=np.array(
+            [
+                [10.0, 20.0, 30.0],
+                [11.0, 21.0, 31.0],
+                [12.0, 22.0, 32.0],
+                [13.0, 23.0, 33.0],
+            ]
+        ),
+        dims=("cell_id", "time_index"),
+        coords={"time_index": [0, 1, 2]},
+    )
+
+    return fixture_data
+
+
+def test_Data_getitem_default_time_index(fixture_data_with_time):
+    """Test that __getitem__ defaults to time_index 0 for time-varying data."""
+
+    assert fixture_data_with_time.time_index == 0
+
+    darray = fixture_data_with_time["air_temperature_ref"]
+
+    # The time_index dimension has been sliced away, leaving only cell_id
+    assert darray.dims == ("cell_id",)
+    assert np.allclose(darray.values, [10.0, 11.0, 12.0, 13.0])
+
+
+@pytest.mark.parametrize(
+    argnames=["time_index", "exp_vals"],
+    argvalues=[
+        pytest.param(0, [10.0, 11.0, 12.0, 13.0], id="time_index_0"),
+        pytest.param(1, [20.0, 21.0, 22.0, 23.0], id="time_index_1"),
+        pytest.param(2, [30.0, 31.0, 32.0, 33.0], id="time_index_2"),
+    ],
+)
+def test_Data_getitem_time_index_selection(
+    fixture_data_with_time, time_index, exp_vals
+):
+    """Test that __getitem__ tracks changes to the current Data.time_index."""
+
+    fixture_data_with_time.time_index = time_index
+    darray = fixture_data_with_time["air_temperature_ref"]
+
+    assert "time_index" not in darray.dims
+    assert np.allclose(darray.values, exp_vals)
+
+
+def test_Data_getitem_no_time_index_dimension(fixture_data_with_time):
+    """Test that __getitem__ leaves variables without a time_index dim unchanged."""
+
+    # atmospheric_co2 has no time_index dimension, so changing time_index should have
+    # no effect on the returned data.
+    fixture_data_with_time.time_index = 1
+    darray = fixture_data_with_time["atmospheric_co2"]
+
+    assert "time_index" not in darray.dims
+    assert np.allclose(darray.values, [1, 2, 3, 4])
+
+
+@pytest.mark.parametrize(
+    argnames=["variable", "time_index", "exp_err", "exp_vals"],
+    argvalues=[
+        pytest.param(
+            "air_temperature_ref",
+            0,
+            does_not_raise(),
+            [10.0, 11.0, 12.0, 13.0],
+            id="valid_time_index_0",
+        ),
+        pytest.param(
+            "air_temperature_ref",
+            2,
+            does_not_raise(),
+            [30.0, 31.0, 32.0, 33.0],
+            id="valid_time_index_2",
+        ),
+        pytest.param(
+            "not_existing_var",
+            0,
+            pytest.raises(KeyError),
+            None,
+            id="missing_variable",
+        ),
+        pytest.param(
+            "atmospheric_co2",
+            0,
+            pytest.raises(ValueError),
+            None,
+            id="no_time_index_dimension",
+        ),
+    ],
+)
+def test_Data_get_time_slice(
+    fixture_data_with_time, variable, time_index, exp_err, exp_vals
+):
+    """Test the get_time_slice method.
+
+    This checks that an explicit time index can be retrieved regardless of the
+    current value of ``Data.time_index``, and that the expected exceptions are
+    raised for a missing variable or a variable without a `time_index` dimension.
+    """
+
+    # Set the current time index to something other than the requested time_index, to
+    # confirm that get_time_slice is independent of Data.time_index.
+    fixture_data_with_time.time_index = 1
+
+    with exp_err:
+        darray = fixture_data_with_time.get_time_slice(variable, time_index)
+        assert "time_index" not in darray.dims
+        assert np.allclose(darray.values, exp_vals)
+
+
 @pytest.mark.parametrize(
     argnames=["var_name", "expected"],
     argvalues=[
-        pytest.param("existing_var", True),
+        pytest.param("atmospheric_co2", True),
         pytest.param("not_existing_var", False),
     ],
 )
@@ -229,27 +346,27 @@ def test_Data_contains(fixture_data, var_name, expected):
 
 
 @pytest.mark.parametrize(
-    argnames=["name", "exp_log"],
+    argnames=["var_names", "exp_log"],
     argvalues=[
         pytest.param(
-            "temp",
+            ["air_temperature"],
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             id="simple_load",
         ),
         pytest.param(
-            "elev",
+            ["elevation"],
             (
-                (INFO, "Loading variable 'elev' from file:"),
-                (INFO, "Replacing data array for 'elev'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Replacing data array for 'elevation'"),
             ),
             id="load_and_replace",
         ),
     ],
 )
-def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
+def test_Data_load_to_dataarray_naming(caplog, shared_datadir, var_names, exp_log):
     """Test the coding of the name handling and replacement."""
 
     # Setup a Data instance to match the example files generated in tests/core/data
@@ -257,6 +374,8 @@ def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.core.readers import load_to_dataarray
+
+    caplog.clear()
 
     grid = Grid(
         grid_type="square",
@@ -269,17 +388,20 @@ def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
     data = Data(grid)
 
     # Create an existing variable to test replacement
-    data["elev"] = DataArray(np.arange(100), dims=("cell_id",))
+    data["elevation"] = DataArray(np.arange(100), dims=("cell_id",))
     caplog.clear()
 
     # Load the data from file
     datafile = shared_datadir / "cellid_coords.nc"
 
-    data[name] = load_to_dataarray(file=datafile, var_name=name)
+    results = load_to_dataarray(file=datafile, var_names=var_names)
+    for ky, val in results.items():
+        data[ky] = val
 
-    # Check the naming has worked and the data are loaded
-    assert name in data
-    assert data[name].sum() == (20 * 100)
+    for name in var_names:
+        # Check the naming has worked and the data are loaded
+        assert name in data
+        assert data[name].sum() == (20 * 100)
 
     # Check the error reports
     log_check(caplog, exp_log)
@@ -328,8 +450,8 @@ def fixture_load_data_grids(request):
             does_not_raise(),
             None,
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__cellid_dim_any",
@@ -340,8 +462,8 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "Grid defines 100 cells, data provides 60",
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Grid defines 100 cells, data provides 60"),
             ),
             None,
@@ -353,8 +475,8 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "Grid defines 100 cells, data provides 200",
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Grid defines 100 cells, data provides 200"),
             ),
             None,
@@ -366,8 +488,8 @@ def fixture_load_data_grids(request):
             does_not_raise(),
             None,
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__cellid_coords_any",
@@ -376,10 +498,10 @@ def fixture_load_data_grids(request):
             ["__any__"],
             "cellid_coords_too_few.nc",
             pytest.raises(ValueError),
-            "The data cell ids do not provide a one-to-one map onto grid " "cell ids.",
+            "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (
                     CRITICAL,
                     "The data cell ids do not provide a one-to-one map onto grid "
@@ -393,10 +515,10 @@ def fixture_load_data_grids(request):
             ["__any__"],
             "cellid_coords_bad_cellid.nc",
             pytest.raises(ValueError),
-            "The data cell ids do not provide a one-to-one map onto grid " "cell ids.",
+            "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (
                     CRITICAL,
                     "The data cell ids do not provide a one-to-one map onto grid "
@@ -412,8 +534,8 @@ def fixture_load_data_grids(request):
             does_not_raise(),
             None,
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__xy_dim_square",
@@ -424,8 +546,8 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "Data XY dimensions do not match square grid",
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Data XY dimensions do not match square grid"),
             ),
             None,
@@ -437,8 +559,8 @@ def fixture_load_data_grids(request):
             does_not_raise(),
             None,
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
             ),
             20 * 100,
             id="vldr_spat__xy_coords_square",
@@ -449,8 +571,8 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "Mapped points do not cover all cells.",
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Mapped points do not cover all cells."),
             ),
             None,
@@ -462,8 +584,8 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "Mapped points fall outside grid.",
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
                 (CRITICAL, "Mapped points fall outside grid."),
             ),
             None,
@@ -499,6 +621,8 @@ def test_Data_load_to_dataarray_data_handling(
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.readers import load_to_dataarray
 
+    caplog.clear()
+
     # Skip combinations where validator does not supported this grid
     if not (
         ("__any__" in supported_grids)
@@ -510,55 +634,58 @@ def test_Data_load_to_dataarray_data_handling(
     datafile = shared_datadir / filename
 
     with exp_error as err:
-        data["temp"] = load_to_dataarray(file=datafile, var_name="temp")
+        results = load_to_dataarray(file=datafile, var_names=["air_temperature"])
+        data["air_temperature"] = results["air_temperature"]
 
         # Check the data is in fact loaded and that a simple sum of values matches
-        assert "temp" in data
-        assert data["temp"].sum() == exp_sum_val
+        assert "air_temperature" in data
+        assert data["air_temperature"].sum() == exp_sum_val
 
     if err:
         assert str(err.value) == exp_msg
 
     log_check(caplog, exp_log)
 
-    return
-
 
 @pytest.mark.parametrize(
-    argnames=["cfg_strings", "exp_error", "exp_msg", "exp_log"],
+    argnames=["cfg_data", "exp_error", "exp_msg", "exp_log"],
     argvalues=[
         pytest.param(
-            """[core]
-               [[core.data.variable]]
-               file = "cellid_coords.nc"
-               var_name = "temp"
-               [[core.data.variable]]
-               file = "cellid_coords.nc"
-               var_name = "prec"
-               [[core.data.variable]]
-               file = "cellid_coords.nc"
-               var_name = "elev"
-               [[core.data.variable]]
-               file = "cellid_coords.nc"
-               var_name = "vapd"
-               """,
+            {
+                "core": {
+                    "data": {
+                        "variable": [
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "air_temperature",
+                            },
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "precipitation",
+                            },
+                            {"file_path": "cellid_coords.nc", "var_name": "elevation"},
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "vapour_pressure_deficit",
+                            },
+                        ]
+                    }
+                }
+            },
             does_not_raise(),
             None,
             (
                 (INFO, "Loading data from configuration"),
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
-                (INFO, "Loading variable 'prec' from file:"),
-                (INFO, "Adding data array for 'prec'"),
-                (INFO, "Loading variable 'elev' from file:"),
-                (INFO, "Adding data array for 'elev'"),
-                (INFO, "Loading variable 'vapd' from file:"),
-                (INFO, "Adding data array for 'vapd'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
+                (INFO, "Adding data array for 'precipitation'"),
+                (INFO, "Adding data array for 'elevation'"),
+                (INFO, "Adding data array for 'vapour_pressure_deficit'"),
             ),
             id="valid config",
         ),
         pytest.param(
-            """[core]\n""",
+            {"core": {"data": {"variable": []}}},
             does_not_raise(),
             None,
             (
@@ -568,33 +695,33 @@ def test_Data_load_to_dataarray_data_handling(
             id="no data",
         ),
         pytest.param(
-            """[core]
-               [[core.data.variable]]
-               file = "cellid_coords.nc"
-               var_name = "temp"
-               [[core.data.variable]]
-               file = "cellid_coords.nc"
-               var_name = "prec"
-               [[core.data.variable]]
-               file = "cellid_coords.nc"
-               var_name = "elev"
-               [[core.data.variable]]
-               file = "cellid_coords.nc"
-               var_name = "elev"
-               """,
+            {
+                "core": {
+                    "data": {
+                        "variable": [
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "air_temperature",
+                            },
+                            {
+                                "file_path": "cellid_coords.nc",
+                                "var_name": "precipitation",
+                            },
+                            {"file_path": "cellid_coords.nc", "var_name": "elevation"},
+                            {"file_path": "cellid_coords.nc", "var_name": "elevation"},
+                        ]
+                    }
+                }
+            },
             pytest.raises(ConfigurationError),
             "Data configuration did not load cleanly - check log",
             (
                 (INFO, "Loading data from configuration"),
                 (ERROR, "Duplicate variable names in data configuration"),
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Adding data array for 'temp'"),
-                (INFO, "Loading variable 'prec' from file:"),
-                (INFO, "Adding data array for 'prec'"),
-                (INFO, "Loading variable 'elev' from file:"),
-                (INFO, "Adding data array for 'elev'"),
-                (INFO, "Loading variable 'elev' from file:"),
-                (INFO, "Replacing data array for 'elev'"),
+                (INFO, "Loading variables from file"),
+                (INFO, "Adding data array for 'air_temperature'"),
+                (INFO, "Adding data array for 'precipitation'"),
+                (INFO, "Adding data array for 'elevation'"),
                 (CRITICAL, "Data configuration did not load cleanly - check log"),
             ),
             id="repeated names",
@@ -611,7 +738,7 @@ def test_Data_load_from_config(
     caplog,
     shared_datadir,
     fixture_load_data_grids,
-    cfg_strings,
+    cfg_data,
     exp_error,
     exp_msg,
     exp_log,
@@ -625,21 +752,27 @@ def test_Data_load_from_config(
 
     # Setup a Data instance to match the example files generated in tests/core/data
 
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        generate_configuration,
+    )
     from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.model_config import CoreConfiguration
+
+    # Update the paths to point to copies of actual files in shared_datadir
+    # This has to happen before generating the configuration, because the config
+    # BaseModel requires that files actually exist.
+    for each_var in cfg_data["core"]["data"]["variable"]:
+        each_var["file_path"] = shared_datadir / each_var["file_path"]
 
     data = Data(fixture_load_data_grids)
-    cfg = Config(cfg_strings=cfg_strings)
+    config = generate_configuration(cfg_data)
+
+    core_config = config.get_subconfiguration("core", CoreConfiguration)
+
     caplog.clear()
 
-    # Edit the paths loaded to point to copies in shared_datadir
-    # Note that the no data test gets the default empty dict for cfg["core"]["data"]
-    if "variable" in cfg["core"]["data"]:
-        for each_var in cfg["core"]["data"]["variable"]:
-            each_var["file"] = shared_datadir / each_var["file"]
-
     with exp_error as err:
-        data.load_data_config(config=cfg)
+        data.load_data_config(config=core_config)
 
     if err:
         assert str(err.value) == exp_msg
@@ -650,8 +783,8 @@ def test_Data_load_from_config(
 @pytest.mark.parametrize(
     argnames="vname, axname, result, err_ctxt, err_message",
     argvalues=[
-        ("temp", "spatial", True, does_not_raise(), None),
-        ("temp", "testing", False, does_not_raise(), None),
+        ("air_temperature", "spatial", True, does_not_raise(), None),
+        ("air_temperature", "testing", False, does_not_raise(), None),
         (
             "missing",
             "spatial",
@@ -667,7 +800,7 @@ def test_Data_load_from_config(
             "Missing variable validation data: incorrect",
         ),
         (
-            "temp",
+            "air_temperature",
             "missing",
             False,
             pytest.raises(ValueError),
@@ -682,7 +815,7 @@ def test_on_core_axis(
 
     # Add a data array properly
     da = DataArray([1, 2, 3, 4], dims=("cell_id",), name="temp")
-    fixture_data["temp"] = da
+    fixture_data["air_temperature"] = da
 
     # Add a data array _incorrectly_
     fixture_data.data["incorrect"] = da
@@ -694,204 +827,131 @@ def test_on_core_axis(
         assert str(err.value) == err_message
 
 
-@pytest.mark.parametrize(
-    argnames=["folder", "file_name", "raises", "save_specific", "exp_log"],
-    argvalues=[
-        (None, "initial.nc", does_not_raise(), False, ()),
-        (None, "initial.nc", does_not_raise(), True, ()),
-        (
-            "bad_folder",
-            "initial.nc",
-            pytest.raises(ConfigurationError),
-            "",
-            (
-                (
-                    CRITICAL,
-                    "The user specified output directory (bad_folder) doesn't exist!",
-                ),
-            ),
-        ),
-        (
-            "pyproject.toml",
-            "initial.nc",
-            pytest.raises(ConfigurationError),
-            False,
-            (
-                (
-                    CRITICAL,
-                    "The user specified output folder (pyproject.toml) isn't a "
-                    "directory!",
-                ),
-            ),
-        ),
-        (
-            None,
-            "already_exists.nc",
-            pytest.raises(ConfigurationError),
-            False,
-            (
-                (
-                    CRITICAL,
-                    "A file in the user specified output folder (",
-                ),
-            ),
-        ),
-    ],
-)
-def test_save_to_netcdf(
+@pytest.mark.parametrize(argnames="group", argvalues=("vars", None))
+@pytest.mark.parametrize(argnames="save_specific", argvalues=(False, True))
+def test_save_to_zarr(
     shared_datadir,
-    caplog,
-    dummy_carbon_data,
-    folder,
-    file_name,
+    dummy_litter_data,
+    group,
     save_specific,
-    raises,
-    exp_log,
 ):
-    """Test that data object can save as NetCDF."""
+    """Test that data object can save as Zarr.
 
-    if folder:
-        out_path = Path(folder) / file_name
+    This tests combinations of:
+    1. writing all or some variables, and
+    2. writing data to a group within the Zarr store.
+    """
+
+    out_path = shared_datadir / "test_output.zarr"
+
+    if save_specific:
+        dummy_litter_data.save_to_zarr(
+            output_file_path=out_path,
+            group=group,
+            variables_to_save=["litter_pool_woody_cnp"],
+        )
     else:
-        out_path = shared_datadir / file_name
+        dummy_litter_data.save_to_zarr(output_file_path=out_path, group=group)
 
-    with raises:
-        if save_specific:
-            dummy_carbon_data.save_to_netcdf(
-                out_path, variables_to_save=["soil_c_pool_lmwc"]
-            )
-        else:
-            dummy_carbon_data.save_to_netcdf(out_path)
+    # Load in zarr data to check the contents
+    # NOTE - For some reason, unless the engine is specified, the xarray process to
+    #        guess the engine runs into a permissions issue.
+    saved_data = xr.open_dataset(
+        out_path, group=group, engine="zarr", consolidated=False
+    )
 
-        # Load in netcdf data to check the contents
-        saved_data = xr.open_dataset(out_path)
+    # Then check that expected keys are in it and the values match
+    assert "litter_pool_woody_cnp" in saved_data
+    assert_allclose(
+        dummy_litter_data["litter_pool_woody_cnp"],
+        saved_data["litter_pool_woody_cnp"],
+    )
 
-        # Then check that expected keys are in it
-        if save_specific:
-            assert "soil_c_pool_lmwc" in saved_data
-            assert "soil_c_pool_maom" not in saved_data
-        else:
-            assert "soil_c_pool_lmwc" in saved_data
-            assert "soil_c_pool_maom" in saved_data
+    if save_specific:
+        assert "litter_pool_above_metabolic_cnp" not in saved_data
+    else:
+        assert "litter_pool_above_metabolic_cnp" in saved_data
 
-        # Close the dataset (otherwise windows has a problem)
-        saved_data.close()
-
-    log_check(caplog, exp_log)
+    # Close the dataset (otherwise windows has a problem)
+    saved_data.close()
 
 
-@pytest.mark.parametrize(
-    argnames=["folder", "file_name", "raises", "expected_log"],
-    argvalues=[
-        (
-            "bad_folder",
-            "initial.nc",
-            pytest.raises(ConfigurationError),
-            (
-                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
-                (
-                    CRITICAL,
-                    "The user specified output directory (bad_folder) doesn't exist!",
-                ),
-            ),
-        ),
-        (
-            "pyproject.toml",
-            "initial.nc",
-            pytest.raises(ConfigurationError),
-            (
-                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
-                (
-                    CRITICAL,
-                    "The user specified output folder (pyproject.toml) isn't a "
-                    "directory!",
-                ),
-            ),
-        ),
-        (
-            None,
-            "already_exists.nc",
-            pytest.raises(ConfigurationError),
-            (
-                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
-                (CRITICAL, "A file in the user specified output folder ("),
-            ),
-        ),
-        (
-            None,
-            "continuous1.nc",
-            does_not_raise(),
-            (),
-        ),
-    ],
-)
-def test_save_timeslice_to_netcdf(
-    caplog, shared_datadir, dummy_carbon_data, folder, file_name, raises, expected_log
+@pytest.mark.parametrize(argnames="group", argvalues=("vars", None))
+@pytest.mark.parametrize(argnames="save_specific", argvalues=(False, True))
+def test_save_current_state_to_zarr(
+    shared_datadir, dummy_litter_data, group, save_specific
 ):
-    """Test that data object can append to an existing NetCDF file."""
+    """Test that the save current state method appends correctly."""
 
-    if folder:
-        out_path = Path(folder) / file_name
+    out_path = shared_datadir / "test_output.zarr"
+
+    # Write data to zarr
+    var_to_save = ["lignin_woody", "soil_temperature"] if save_specific else []
+    dummy_litter_data.save_current_state_to_zarr(
+        out_path,
+        group=group,
+        variables_to_save=var_to_save,
+        time_index=0,
+        timestamp=np.datetime64("2000-01-01"),
+    )
+
+    # NOTE - For some reason, unless the engine is specified, the xarray process to
+    #        guess the engine runs into a permissions issue.
+    saved_data = xr.open_dataset(out_path, group=group, engine="zarr")
+
+    assert "lignin_woody" in saved_data
+    # The saved data should now have coords with time_index in them but otherwise be the
+    # same as the values in the data object
+    vals = dummy_litter_data["lignin_woody"].to_numpy().copy()
+    expected = xr.DataArray(
+        vals[None, :],
+        coords=dict(time_index=np.array([0]), cell_id=np.arange(4)),
+    )
+    assert_allclose(expected, saved_data["lignin_woody"])
+
+    if save_specific:
+        assert "litter_pool_above_metabolic_cnp" not in saved_data
     else:
-        out_path = shared_datadir / file_name
+        assert "litter_pool_above_metabolic_cnp" in saved_data
 
-    with raises:
-        # Change data to check that appending works
-        dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
-            [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
-        )
-        dummy_carbon_data["soil_temperature"][12][0] = 15.0
-        # Append data to netcdf file
-        dummy_carbon_data.save_timeslice_to_netcdf(
-            out_path,
-            variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
-            time_index=1,
-        )
+    # Alter the data and export again to the next step
+    dummy_litter_data["lignin_woody"] *= 2
 
-        # Load file, and then check that contents meet expectation
-        saved_data = xr.open_dataset(out_path)
-        xr.testing.assert_allclose(
-            saved_data["soil_c_pool_lmwc"],
-            DataArray(
-                [[0.1, 0.05, 0.2, 0.01]],
-                dims=["time_index", "cell_id"],
-                coords={"cell_id": [0, 1, 2, 3], "time_index": [1]},
-            ),
-        )
-        xr.testing.assert_allclose(
-            saved_data["soil_temperature"].isel(layers=range(11, 14)),
-            DataArray(
-                [
-                    [
-                        [np.nan, np.nan, np.nan, np.nan],
-                        [15.0, 37.5, 40.0, 25.0],
-                        [22.5, 22.5, 22.5, 22.5],
-                    ],
-                ],
-                dims=["time_index", "layers", "cell_id"],
-                coords={
-                    "cell_id": [0, 1, 2, 3],
-                    "time_index": [1],
-                    "layers": [11, 12, 13],
-                    "layer_roles": ("layers", ["surface", "topsoil", "subsoil"]),
-                },
-            ),
-        )
+    dummy_litter_data.save_current_state_to_zarr(
+        out_path,
+        group=group,
+        variables_to_save=var_to_save,
+        time_index=1,
+        timestamp=np.datetime64("2001-01-01"),
+    )
 
-        # Check that only expected variables were added
-        assert (
-            set(saved_data.keys()) - {"soil_c_pool_lmwc", "soil_temperature"} == set()
-        )
-        # Finally, close the dataset
-        saved_data.close()
+    # Load in zarr data to check the contents
+    # NOTE - For some reason, unless the engine is specified, the xarray process to
+    #        guess the engine runs into a permissions issue.
+    saved_data = xr.open_dataset(
+        out_path, group=group, engine="zarr", consolidated=False
+    )
 
-    # Finally check that the error message was as expected
-    if expected_log:
-        log_check(caplog, expected_log)
+    assert "lignin_woody" in saved_data
+    # The saved data should now have coords with time_index in them but otherwise be the
+    # same as the values in the data object
+    expected = xr.DataArray(
+        np.vstack([vals, vals * 2]),
+        coords=dict(time_index=np.array([0, 1]), cell_id=np.arange(4)),
+    )
+    assert_allclose(expected, saved_data["lignin_woody"])
+
+    if save_specific:
+        assert "litter_pool_above_metabolic_cnp" not in saved_data
+    else:
+        assert "litter_pool_above_metabolic_cnp" in saved_data
+
+    # Finally, close the dataset
+    saved_data.close()
 
 
 def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
-    """Test reading from dictionary."""
+    """Test adding and replacing data from a dictionary."""
 
     from virtual_ecosystem.core.data import Data
 
@@ -899,14 +959,18 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
         "mean_annual_temperature": DataArray(
             np.full((fixture_core_components.grid.n_cells), 40),
             dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            coords={
+                "cell_id": dummy_climate_data["mean_annual_temperature"]["cell_id"]
+            },
             name="mean_annual_temperature",
         ),
-        "new_variable": DataArray(
+        "elevation": DataArray(
             np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
-            name="new_variable",
+            coords={
+                "cell_id": dummy_climate_data["mean_annual_temperature"]["cell_id"]
+            },
+            name="elevation",
         ),
     }
 
@@ -917,189 +981,76 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
         DataArray(
             np.full((fixture_core_components.grid.n_cells), 40),
             dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            coords={
+                "cell_id": dummy_climate_data["mean_annual_temperature"]["cell_id"]
+            },
             name="mean_annual_temperature",
         ),
     )
     xr.testing.assert_allclose(
-        dummy_climate_data["new_variable"],
+        dummy_climate_data["elevation"],
         DataArray(
             np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
-            name="new_variable",
-        ),
-    )
-
-
-@pytest.mark.parametrize("time_index", [0, 1])
-def test_output_current_state(mocker, dummy_carbon_data, time_index):
-    """Test that function to output the current data state works as intended."""
-
-    # Set up the registry with the soil model
-    from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
-
-    register_module("virtual_ecosystem.models.soil")
-
-    data_options = {"out_folder_continuous": "."}
-
-    # Patch the relevant lower level function
-    mock_save = mocker.patch("virtual_ecosystem.main.Data.save_timeslice_to_netcdf")
-
-    # Extract model from registry and put into expected dictionary format
-    models_cfd = {"soil": MODULE_REGISTRY["soil"].model}
-
-    # Only variables in the data object that are updated by a model should be output
-    all_variables = [
-        models_cfd[model_nm].vars_updated for model_nm in models_cfd.keys()
-    ]
-    # Then flatten the list to generate list of variables to output
-    variables_to_save = [item for sublist in all_variables for item in sublist]
-
-    # Then call the top level function
-    outpath = dummy_carbon_data.output_current_state(
-        variables_to_save, data_options, time_index
-    )
-
-    # Check that the mocked function was called once with correct input (which is
-    # calculated in the higher level function)
-    mock_save.assert_called_once()
-    assert mock_save.call_args == mocker.call(
-        Path(f"./continuous_state{time_index:05}.nc"),
-        [
-            "soil_c_pool_maom",
-            "soil_c_pool_lmwc",
-            "soil_c_pool_microbe",
-            "soil_c_pool_pom",
-            "soil_c_pool_necromass",
-            "soil_enzyme_pom",
-            "soil_enzyme_maom",
-        ],
-        time_index,
-    )
-    assert outpath == Path(f"./continuous_state{time_index:05}.nc")
-
-
-def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
-    """Test that function to merge the continuous data files works as intended."""
-    from virtual_ecosystem.core.data import merge_continuous_data_files
-
-    # Simple and slightly more complex data for the file
-    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
-    data_options = {
-        "out_folder_continuous": str(shared_datadir),
-        "out_continuous_file_name": "all_continuous_data.nc",
-    }
-
-    # Save first data file
-    dummy_carbon_data.save_timeslice_to_netcdf(
-        shared_datadir / "continuous_state1.nc",
-        variables_to_save,
-        1,
-    )
-
-    # Alter data so that files differ (slightly)
-    dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
-        [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
-    )
-    dummy_carbon_data["soil_temperature"][12][0] = 15.0
-
-    # Save second data file
-    dummy_carbon_data.save_timeslice_to_netcdf(
-        shared_datadir / "continuous_state2.nc",
-        variables_to_save,
-        2,
-    )
-
-    continuous_files = [
-        shared_datadir / "continuous_state1.nc",
-        shared_datadir / "continuous_state2.nc",
-    ]
-
-    # Merge data
-    merge_continuous_data_files(data_options, continuous_files)
-
-    # Check that original two files have been deleted
-    assert len(list(shared_datadir.rglob("continuous_state*.nc"))) == 0
-
-    # Load in and test full combined data
-    out_file = shared_datadir / "all_continuous_data.nc"
-    full_data = open_dataset(out_file)
-
-    # Check that data file is as expected
-    testing.assert_allclose(
-        full_data["soil_c_pool_lmwc"],
-        DataArray(
-            [[0.05, 0.02, 0.1, 0.005], [0.1, 0.05, 0.2, 0.01]],
-            dims=["time_index", "cell_id"],
-            coords={"cell_id": [0, 1, 2, 3], "time_index": [1, 2]},
-        ),
-    )
-    testing.assert_allclose(
-        full_data["soil_temperature"].isel(layers=range(11, 14)),
-        DataArray(
-            [
-                [
-                    [np.nan, np.nan, np.nan, np.nan],
-                    [35.0, 37.5, 40.0, 25.0],
-                    [22.5, 22.5, 22.5, 22.5],
-                ],
-                [
-                    [np.nan, np.nan, np.nan, np.nan],
-                    [15.0, 37.5, 40.0, 25.0],
-                    [22.5, 22.5, 22.5, 22.5],
-                ],
-            ],
-            dims=["time_index", "layers", "cell_id"],
             coords={
-                "cell_id": [0, 1, 2, 3],
-                "time_index": [1, 2],
-                "layers": [11, 12, 13],
-                "layer_roles": ("layers", ["surface", "topsoil", "subsoil"]),
+                "cell_id": dummy_climate_data["mean_annual_temperature"]["cell_id"]
             },
+            name="elevation",
         ),
     )
 
-    # Close data set and delete file
-    full_data.close()
-    out_file.unlink()
 
+def test_convert_zarr_outputs_to_netcdf(tmp_path):
+    """Tests the final output consolidation function."""
 
-def test_merge_continuous_file_already_exists(
-    shared_datadir, caplog, dummy_carbon_data
-):
-    """Test that the merge continuous function fails if file name already used."""
-    from virtual_ecosystem.core.data import merge_continuous_data_files
+    from virtual_ecosystem.core.data import convert_zarr_outputs_to_netcdf
 
-    # Simple and slightly more complex data for the file
-    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
-    data_options = {
-        "out_folder_continuous": str(shared_datadir),
-        "out_continuous_file_name": "already_exists.nc",
-    }
+    # Create n=20 time series on a 10x10 grid and add tell-tale stripes on spatial axes
+    # to detect problem with spatial reconstruction.
+    data = np.zeros((20, 10, 10))
+    x = np.arange(50, 1000, 100)
+    y = np.flip(x)  # Y coordinate increase from bottom left as in maps.
+    time = np.arange(20)
+    da = xr.DataArray(data, dims=["time", "y", "x"], coords=dict(time=time, y=y, x=x))
+    da.loc[dict(y=150)] = 150
+    da.loc[dict(x=350)] = 350
 
-    # Save first data file
-    dummy_carbon_data.save_timeslice_to_netcdf(
-        shared_datadir / "continuous_state1.nc",
-        variables_to_save,
-        1,
-    )
+    # Stack into a single dimension as cell_id does
+    da_stack = da.stack(dim={"cell_id": ("y", "x")}, create_index=False)
+    da_stack = da_stack.assign_coords({"cell_id": np.arange(100)})
 
-    continuous_files = [
-        shared_datadir / "continuous_state1.nc",
-        shared_datadir / "already_exists.nc",
-    ]
+    # 2 variables per group
+    ds = xr.Dataset({"aaa": da_stack.copy(), "bbb": da_stack.copy()})
 
-    with pytest.raises(ConfigurationError):
-        # Merge data
-        merge_continuous_data_files(data_options, continuous_files)
+    # Generate a grouped output like the real outputs
+    zarr_out = tmp_path / "temp.zarr"
+    groups = ("inputs", "init", "outputs")
 
-    log_check(
-        caplog,
-        (
-            (
-                CRITICAL,
-                "A file in the user specified output folder (",
-            ),
-        ),
-    )
+    # Output data by time step as used in model update sequence.
+    for time in np.arange(20):
+        for group in groups:
+            ds.sel(time=[time]).to_zarr(
+                store=zarr_out,
+                group=group,
+                mode="w" if time == 0 else "a",
+                append_dim=None if time == 0 else "time",
+                consolidated=False,
+                zarr_format=2,
+            )
+
+    # Run the converter function
+    nc_out = convert_zarr_outputs_to_netcdf(zarr_store=zarr_out)
+
+    # Check groups match
+    zr = xr.open_datatree(zarr_out, consolidated=False, engine="zarr")
+    nc = xr.open_datatree(nc_out)
+
+    assert set(zr.groups) == set(nc.groups)
+
+    # Compare data in each group against the original time series.
+    for group in nc.groups:
+        if group == "/":
+            continue
+
+        for data_var in ["aaa", "bbb"]:
+            xr.testing.assert_allclose(nc[group][data_var], da)

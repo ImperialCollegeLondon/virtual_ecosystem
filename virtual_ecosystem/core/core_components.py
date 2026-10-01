@@ -7,20 +7,23 @@ these components to be cascaded down to individual model subclass instances via 
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import InitVar, dataclass, field
 
 import numpy as np
+import pint
 from numpy.typing import NDArray
-from pint import Quantity
-from pint.errors import DimensionalityError, UndefinedUnitError
 from xarray import DataArray
 
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import (
+    CoreConfiguration,
+    CoreConstants,
+    LayersConfiguration,
+    TimingConfiguration,
+)
 
 
 @dataclass
@@ -39,21 +42,21 @@ class CoreComponents:
     """The vertical layer structure for the simulation."""
     model_timing: ModelTiming = field(init=False)
     """The model timing details for the simulation."""
-    core_constants: CoreConsts = field(init=False)
-    """The core constants definitions for the simulation"""
-    config: InitVar[Config]
+    core_constants: CoreConstants = field(init=False)
+    """The core constant definitions for the simulation."""
+    config: InitVar[CoreConfiguration]
     """A validated model configuration."""
 
-    def __post_init__(self, config: Config) -> None:
+    def __post_init__(self, config: CoreConfiguration) -> None:
         """Populate the core components from the config."""
-        self.grid = Grid.from_config(config=config)
-        self.core_constants = load_constants(config, "core", "CoreConsts")
+        self.grid = Grid.from_config(config=config.grid)
+        self.core_constants = config.constants
         self.layer_structure = LayerStructure(
-            config=config,
+            config=config.layers,
             n_cells=self.grid.n_cells,
-            max_depth_of_microbial_activity=self.core_constants.max_depth_of_microbial_activity,
+            microbial_simulation_depth=self.core_constants.microbial_simulation_depth,
         )
-        self.model_timing = ModelTiming(config=config)
+        self.model_timing = ModelTiming(config=config.timing)
 
 
 @dataclass
@@ -61,16 +64,12 @@ class ModelTiming:
     """Model timing details.
 
     This data class defines the timing of a Virtual Ecosystem simulation from the
-    ``core.timing`` section of a validated model configuration. The start time, run
-    length and update interval are all extracted from the configuration and validated.
+    {class}`~virtual_ecosystem.core.model_config.TimingConfiguration` section of a
+    validated model configuration.
 
     The end time is calculated from the previously extracted timing information. This
     end time will always be the largest whole multiple of the update interval that
     exceeds or equal the configured ``run_length``.
-
-
-    Raises:
-        ConfigurationError: If the timing configuration details are incorrect.
     """
 
     start_time: np.datetime64 = field(init=False)
@@ -81,64 +80,39 @@ class ModelTiming:
     """The difference between start and calculated end time."""
     run_length: np.timedelta64 = field(init=False)
     """The configured run length."""
-    run_length_quantity: Quantity = field(init=False)
-    """The configured run length as a pint Quantity."""
+    update_datestamps: NDArray[np.datetime64] = field(init=False)
+    """The date of the start of each update interval."""  # TODO: temp fix from #1257
     update_interval: np.timedelta64 = field(init=False)
     """The configured update interval."""
-    update_interval_quantity: Quantity = field(init=False)
-    """The configured update interval as a pint Quantity."""
+    run_length_quantity: pint.Quantity = field(init=False)
+    """The configured run length."""
+    update_interval_quantity: pint.Quantity = field(init=False)
+    """The configured update interval."""
+    update_interval_seconds: float = field(init=False)
+    """The configured update interval in seconds."""
     n_updates: int = field(init=False)
     """The total number of model updates in the configured run."""
-    config: InitVar[Config]
+    updates_per_year: np.float64 = field(init=False)
+    """The number of updates per year based on update_interval."""
+    config: InitVar[TimingConfiguration]
     """A validated model configuration."""
 
-    def __post_init__(self, config: Config) -> None:
+    def __post_init__(self, config: TimingConfiguration) -> None:
         """Populate the ``ModelTiming`` instance.
 
         This method populates the ``ModelTiming`` attributes from the provided
-        :class:`~virtual_ecosystem.core.config.Config` instance.
+        :class:`~virtual_ecosystem.core.model_config.TimingConfiguration` instance.
 
         Args:
-            config: A Config instance.
+            config: A TimingConfiguration instance.
         """
 
-        timing = config["core"]["timing"]
-
-        # Validate and convert configuration
-        # NOTE: some of this is also trapped by validation against the core schema.
-        # Start date from string to np.datetime64
-        try:
-            self.start_time = np.datetime64(timing["start_date"])
-        except ValueError:
-            to_raise = ConfigurationError(
-                f"Cannot parse start_date: {timing['start_date']}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        # Handle conversion of strings to time quantities
-        for attr in ("run_length", "update_interval"):
-            try:
-                value = timing[attr]
-                value_pint = Quantity(value).to("seconds")
-            except (DimensionalityError, UndefinedUnitError):
-                to_raise = ConfigurationError(
-                    f"Invalid units for core.timing.{attr}: {value}"
-                )
-                LOGGER.error(to_raise)
-                raise to_raise
-
-            # Set values as timedelta64 values with second precision and store quantity
-            setattr(self, attr, np.timedelta64(round(value_pint.magnitude), "s"))
-            setattr(self, attr + "_quantity", value_pint)
-
-        if self.run_length < self.update_interval:
-            to_raise = ConfigurationError(
-                f"Model run length ({timing['run_length']}) expires before "
-                f"first update ({timing['update_interval']})"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+        # Convert configuration into datetime64 and timedelta64
+        self.start_time = np.datetime64(config.start_date)
+        self.update_interval = np.timedelta64(int(config.update_interval_seconds), "s")
+        self.run_length = np.timedelta64(int(config.run_length_seconds), "s")
+        self.update_interval_quantity = pint.Quantity(config.update_interval)
+        self.run_length_quantity = pint.Quantity(config.run_length)
 
         # Calculate when the simulation should stop as the first number of update
         # intervals to exceed the requested run length and calculate the actual run
@@ -150,6 +124,24 @@ class ModelTiming:
         self.reconciled_run_length = self.end_time - self.start_time
 
         self.n_updates = int((self.end_time - self.start_time) / self.update_interval)
+
+        # Calculate the approximate dates of these updates
+        # TODO: This is a temporary fix to provide actual data to the data science team
+        # alongside the time index: see
+        # https://github.com/ImperialCollegeLondon/virtual_ecosystem/discussions/1246
+        self.update_datestamps = np.arange(
+            self.start_time, self.end_time, self.update_interval
+        ).astype("datetime64[D]")
+
+        # Calculate the number of updates in one year
+        # TODO - this is not calendar aware - variable length months and leap years.
+        seconds_per_year = np.timedelta64(31536000, "s")
+        self.updates_per_year = seconds_per_year / self.update_interval
+
+        # Calculate the total number of seconds in the update interval
+        self.update_interval_seconds = float(
+            self.update_interval / np.timedelta64(1, "s")
+        )
 
         # Log the completed timing creation.
         LOGGER.info(
@@ -167,21 +159,8 @@ class LayerStructure:
     This class defines the structure of the vertical dimension of a simulation using the
     Virtual Ecosystem. The vertical dimension is divided into a series of layers,
     ordered from above the canopy to the bottom of the soil, that perform different
-    roles in the simulation. The layers are defined using the following five
-    configuration settings from the ``[core.layers]`` section.
-
-    * ``above_canopy_height_offset``: the height above the canopy top of the first layer
-      role ``above``, which is used as the measurement height of reference climate data.
-    * ``canopy_layers``: a fixed number of layers with the ``canopy`` role. Not all of
-      these necessarily contain canopy during a simulation as the canopy structure
-      within these layers is dynamic.
-    * ``surface_layer_height``: the height above ground level of the ground surface
-      atmospheric layer.
-    * ``soil_layers``: this provides the depths of the soil horizons to be used in the
-      simulation and so sets the number of soil layers and the horizon depth for each
-      layer relative to the surface.
-    * ``max_depth_of_microbial_activity``: the depth limit of significant microbial
-      activity.
+    roles in the simulation. The configuration of the layer structure is defined in the
+    :class:`virtual_ecosystem.core.model_config.LayersConfiguration` class.
 
     The layer structure is shown below, along with the default configured height values
     in metres relative to ground level.
@@ -206,14 +185,14 @@ class LayerStructure:
         is created and are constant through the runtime of the model.
 
         1. The ``active_soil`` role indicates soil layers that fall even partially above
-           the configured `max_depth_of_microbial_activity`. The `soil_layer_thickness`
+           the configured `microbial_simulation_depth`. The `soil_layer_thickness`
            attribute provides the thickness of each soil layer - including both top- and
            sub-soil layers - and the `soil_layer_active_thickness` records the thickness
-           of biologically active soil within each layer. Note that the ``soil_layers``
-           provides the sequence of depths of soil horizons relative to the surface and
-           these values provide the thickness of individual layers: the default
-           ``soil_layers`` values of ``[-0.25, -1.00]`` give thickness values of
-           ``[0.25, 0.75]``.
+           of soil within the soil-microbial simulation zone within each layer. Note
+           that the ``soil_layers`` provides the sequence of depths of soil horizons
+           relative to the surface and these values provide the thickness of individual
+           layers: the default ``soil_layers`` values of ``[-0.25, -1.00]`` give
+           thickness values of ``[0.25, 0.75]``.
 
         2. The ``all_soil`` role is the combination of the ``topsoil`` and ``subsoil``
            layers.
@@ -235,13 +214,13 @@ class LayerStructure:
         2, The ``filled_atmosphere`` role includes the above canopy layer, all filled
         canopy layer indices and the surface layer.
 
-        3. The ``flux_layers`` role includes the filled canopy layers and the topsoil
-           layer.
+        3. The ``flux_layers`` role includes the filled canopy layers, understorey, and
+            the topsoil layer.
 
         In addition, the :attr:`.lowest_canopy_filled` attribute provides an array
         giving the vertical index of the lowest filled canopy layer in each grid cell.
-        It contains ``np.nan`` when there is  no canopy in a grid cell and is initalised
-        as an array of ``np.nan`` values.
+        It contains ``np.nan`` when there is  no canopy in a grid cell and is
+        initialised as an array of ``np.nan`` values.
 
     **Getting layer indices**:
 
@@ -274,7 +253,7 @@ class LayerStructure:
             the layer structure.
     """
 
-    config: InitVar[Config]
+    config: InitVar[LayersConfiguration]
     """A configuration object instance."""
 
     # These two init arguments could also be accessed directly from the config, but
@@ -282,13 +261,13 @@ class LayerStructure:
     # these values rather than doing it internally.
     n_cells: InitVar[int]
     """The number of grid cells in the simulation."""
-    max_depth_of_microbial_activity: float
-    """The maximum soil depth of significant microbial activity."""
+    microbial_simulation_depth: float
+    """Depth above which soil is included in the soil-microbial simulation [m]."""
 
     # Attributes populated by __post_init__
     n_canopy_layers: int = field(init=False)
     """The maximum number of canopy layers."""
-    soil_layer_depths: NDArray[np.float32] = field(init=False)
+    soil_layer_depths: NDArray[np.floating] = field(init=False)
     """A list of the depths of soil layer boundaries."""
     n_soil_layers: int = field(init=False)
     """The number of soil layers."""
@@ -319,14 +298,14 @@ class LayerStructure:
     """An integer index showing the lowest filled canopy layer for each grid cell"""
     n_canopy_layers_filled: int = field(init=False)
     """The current number of filled canopy layers across grid cells"""
-    soil_layer_thickness: NDArray[np.float32] = field(init=False)
+    soil_layer_thickness: NDArray[np.floating] = field(init=False)
     """Thickness of each soil layer (m)"""
-    soil_layer_active_thickness: NDArray[np.float32] = field(init=False)
+    soil_layer_active_thickness: NDArray[np.floating] = field(init=False)
     """Thickness of the microbially active soil in each soil layer (m)"""
     _array_template: DataArray = field(init=False)
     """A private data array template. Access copies using get_template."""
 
-    def __post_init__(self, config: Config, n_cells: int) -> None:
+    def __post_init__(self, config: LayersConfiguration, n_cells: int) -> None:
         """Populate the ``LayerStructure`` instance.
 
         This method populates the ``LayerStructure`` attributes from the dataclass init
@@ -341,7 +320,7 @@ class LayerStructure:
         self._n_cells = n_cells
 
         # Validates the configuration inputs and sets the layer structure attributes
-        self._validate_and_initialise_layer_config(config)
+        self._initialise_layers(config)
 
         # Now populate the initial role indices and create the layer data template
         self._populate_role_indices()
@@ -351,29 +330,19 @@ class LayerStructure:
 
         LOGGER.info("Layer structure built from model configuration")
 
-    def _validate_and_initialise_layer_config(self, config: Config):
-        """Layer structure config validation and attribute setting.
+    def _initialise_layers(self, config: LayersConfiguration):
+        """Layer structure attribute initialisation.
 
         Args:
             config: A Config instance.
         """
 
-        lcfg = config["core"]["layers"]
-
-        # Validate configuration
-        self.n_canopy_layers = _validate_positive_integer(lcfg["canopy_layers"])
-
-        # Soil layers are negative floats
-        self.soil_layer_depths = np.array(_validate_soil_layers(lcfg["soil_layers"]))
-        self.n_soil_layers = len(self.soil_layer_depths)
-
-        # Other heights should all be positive floats
-        self.above_canopy_height_offset = _validate_positive_finite_numeric(
-            lcfg["above_canopy_height_offset"], "above_canopy_height_offset"
-        )
-        self.surface_layer_height = _validate_positive_finite_numeric(
-            lcfg["surface_layer_height"], "surface_layer_height"
-        )
+        # Extract validated configuration values
+        self.n_canopy_layers = config.canopy_layers
+        self.soil_layer_depths = np.array(config.soil_layers)
+        self.n_soil_layers = self.soil_layer_depths.size
+        self.above_canopy_height_offset = config.above_canopy_height_offset
+        self.surface_layer_height = config.surface_layer_height
 
         # Set the layer role sequence
         self.layer_roles: NDArray[np.str_] = np.array(
@@ -394,10 +363,10 @@ class LayerStructure:
 
         # Check that the maximum depth of the last layer is greater than the max depth
         # of microbial activity.
-        if self.soil_layer_depths[-1] > -self.max_depth_of_microbial_activity:
+        if self.soil_layer_depths[-1] > -self.microbial_simulation_depth:
             to_raise = ConfigurationError(
-                "Maximum depth of soil layers is less than the maximum depth "
-                "of microbial activity"
+                "Maximum depth of soil layers is less than the soil-microbial "
+                "simulation depth"
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -408,7 +377,7 @@ class LayerStructure:
         self.soil_layer_active_thickness = np.clip(
             np.minimum(
                 self.soil_layer_thickness,
-                (soil_layer_boundaries + self.max_depth_of_microbial_activity)[:-1],
+                (soil_layer_boundaries + self.microbial_simulation_depth)[:-1],
             ),
             a_min=0,
             a_max=np.inf,
@@ -460,7 +429,10 @@ class LayerStructure:
             "flux_layers",
             np.logical_or(
                 self._role_indices_bool["filled_canopy"],
-                self._role_indices_bool["topsoil"],
+                np.logical_or(
+                    self._role_indices_bool["surface"],
+                    self._role_indices_bool["topsoil"],
+                ),
             ),
         )
 
@@ -503,7 +475,7 @@ class LayerStructure:
         self._role_indices_bool[name] = bool_values
         self._role_indices_int[name] = np.nonzero(bool_values)[0]
 
-    def set_filled_canopy(self, canopy_heights: NDArray[np.float32]) -> None:
+    def set_filled_canopy(self, canopy_heights: NDArray[np.floating]) -> None:
         """Set the dynamic canopy indices and attributes.
 
         The layer structure includes a fixed number of canopy layers but these layers
@@ -551,7 +523,10 @@ class LayerStructure:
             "flux_layers",
             np.logical_or(
                 self._role_indices_bool["filled_canopy"],
-                self._role_indices_bool["topsoil"],
+                np.logical_or(
+                    self._role_indices_bool["surface"],
+                    self._role_indices_bool["topsoil"],
+                ),
             ),
         )
 
@@ -575,134 +550,141 @@ class LayerStructure:
         return template_copy
 
     @property
-    def index_above(self) -> NDArray:
+    def index_above(self) -> NDArray[np.bool_]:
         """Layer indices for the above layer."""
         return self._role_indices_bool["above"]
 
     @property
-    def index_canopy(self) -> NDArray:
+    def index_canopy(self) -> NDArray[np.bool_]:
         """Layer indices for the above canopy layers."""
         return self._role_indices_bool["canopy"]
 
     @property
-    def index_surface(self) -> NDArray:
+    def index_surface(self) -> NDArray[np.bool_]:
         """Layer indices for the surface layer."""
         return self._role_indices_bool["surface"]
 
     @property
-    def index_topsoil(self) -> NDArray:
+    def index_topsoil(self) -> NDArray[np.bool_]:
         """Layer indices for the topsoil layer."""
         return self._role_indices_bool["topsoil"]
 
     @property
-    def index_subsoil(self) -> NDArray:
+    def index_subsoil(self) -> NDArray[np.bool_]:
         """Layer indices for the subsoil layers."""
         return self._role_indices_bool["subsoil"]
 
     @property
-    def index_all_soil(self) -> NDArray:
+    def index_all_soil(self) -> NDArray[np.bool_]:
         """Layer indices for all soil layers."""
         return self._role_indices_bool["all_soil"]
 
     @property
-    def index_atmosphere(self) -> NDArray:
+    def index_atmosphere(self) -> NDArray[np.bool_]:
         """Layer indices for all atmospheric layers."""
         return self._role_indices_bool["atmosphere"]
 
     @property
-    def index_active_soil(self) -> NDArray:
+    def index_active_soil(self) -> NDArray[np.bool_]:
         """Layer indices for microbially active soil layers."""
         return self._role_indices_bool["active_soil"]
 
     @property
-    def index_filled_canopy(self) -> NDArray:
+    def index_filled_canopy(self) -> NDArray[np.bool_]:
         """Layer indices for the filled canopy layers."""
         return self._role_indices_bool["filled_canopy"]
 
     @property
-    def index_filled_atmosphere(self) -> NDArray:
+    def index_filled_atmosphere(self) -> NDArray[np.bool_]:
         """Layer indices for the filled atmospheric layers."""
         return self._role_indices_bool["filled_atmosphere"]
 
     @property
-    def index_flux_layers(self) -> NDArray:
+    def index_flux_layers(self) -> NDArray[np.bool_]:
         """Layer indices for the flux layers."""
         return self._role_indices_bool["flux_layers"]
 
     @property
     def index_above_scalar(self) -> int:
-        """Layer indices for the flux layers."""
+        """Layer indices for the above canopy layer."""
         return self._role_indices_scalar["above"]
 
     @property
     def index_topsoil_scalar(self) -> int:
-        """Layer indices for the flux layers."""
+        """Layer indices for the topsoil layer."""
         return self._role_indices_scalar["topsoil"]
 
     @property
     def index_surface_scalar(self) -> int:
-        """Layer indices for the flux layers."""
+        """Layer indices for the surface layer."""
         return self._role_indices_scalar["surface"]
 
 
-def _validate_positive_integer(value: float | int) -> int:
-    """Validation function for positive integer values including integer floats."""
+class DisturbanceTiming:
+    """Implement the timing for disturbance models."""
 
-    # Note that float.is_integer() traps np.inf and np.nan, both of which are floats
-    if (
-        (not isinstance(value, float | int))
-        or (isinstance(value, int) and value < 1)
-        or (isinstance(value, float) and (not value.is_integer() or value < 1))
-    ):
-        to_raise = ConfigurationError(
-            "The number of canopy layers is not a positive integer."
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
+    def __init__(
+        self,
+        model_timing: ModelTiming,
+        run_at: int | tuple[int, ...] = (),
+        run_every: tuple[int, ...] = (),
+    ) -> None:
+        """Constructor for the DisturbanceTiming class.
 
-    return int(value)
+        At least 'run_at' or 'run_every' need to be provided. 'run_at' takes precedence.
 
+        Args:
+            model_timing: The timing for the models.
+            run_at: Either a single integer or a tuple of integers indicating the time
+                indices when the disturbance is to run.
+            run_every: A tuple of integers indicating (start), or (start, step), or
+                (start, step, stop), from where a list of integers indicating the time
+                indices when the disturbance is to run can be constructed. If not
+                provided, 'step' defaults to 1 and 'stop' defaults to the last time
+                index. 'start' must always be provided.
 
-def _validate_soil_layers(soil_layers: list[int | float]) -> list[int | float]:
-    """Validation function for soil layer configuration setting."""
+        """
 
-    # NOTE - this could become a validate_decreasing_negative_numerics() if we ever
-    #        needed that more widely.
+        if run_at != ():
+            self._run_at = sorted(run_at) if isinstance(run_at, Iterable) else [run_at]
 
-    if not isinstance(soil_layers, list) or len(soil_layers) < 1:
-        to_raise = ConfigurationError(
-            "The soil layers must be a non-empty list of layer depths."
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
+        elif run_every != ():
+            match len(run_every):
+                case 1:
+                    start = run_every[0]
+                    step = 1
+                    stop = model_timing.n_updates
+                case 2:
+                    start, step = run_every
+                    stop = model_timing.n_updates
+                case 3:
+                    start, step, stop = run_every
+                case _:
+                    raise ValueError(
+                        "Invalid disturbance timing: 'run_every' must have 1, 2 or 3 "
+                        f"elements. {len(run_every)} found."
+                    )
+            self._run_at = list(range(start, stop, step))
 
-    if not all([isinstance(v, float | int) for v in soil_layers]):
-        to_raise = ConfigurationError("The soil layer depths are not all numeric.")
-        LOGGER.error(to_raise)
-        raise to_raise
+        else:
+            raise ValueError(
+                "Invalid disturbance timing: either 'run_at' or 'run_every' must be "
+                "provided."
+            )
 
-    np_soil_layer = np.array(soil_layers)
-    if not (np.all(np_soil_layer < 0) and np.all(np.diff(np_soil_layer) < 0)):
-        to_raise = ConfigurationError(
-            "Soil layer depths must be strictly decreasing and negative."
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
+        if self._run_at[0] < 0 or self._run_at[-1] >= model_timing.n_updates:
+            raise ValueError(
+                "Invalid disturbance timing: 'run_at' values must be between 0 and"
+                f" {model_timing.n_updates - 1}"
+            )
 
-    return soil_layers
+    def check_run(self, time_index) -> bool:
+        """Check if the disturbance needs to be run.
 
+        Args:
+            time_index: The index of the time to check.
 
-def _validate_positive_finite_numeric(value: float | int, label: str) -> float | int:
-    """Validation function for positive numeric values."""
-
-    if (
-        not isinstance(value, float | int)
-        or np.isinf(value)
-        or np.isnan(value)
-        or value < 0
-    ):
-        to_raise = ConfigurationError(f"The {label} value must be a positive numeric.")
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    return value
+        Return:
+            True if the disturbance must be run, False otherwise.
+        """
+        return True if time_index in self._run_at else False
