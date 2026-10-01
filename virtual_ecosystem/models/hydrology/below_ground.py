@@ -19,7 +19,7 @@ def calculate_vertical_flow(
     soil_moisture_residual: float | NDArray[np.floating],
     saturated_hydraulic_conductivity: float | NDArray[np.floating],
     air_entry_potential_inverse: float,
-    van_genuchten_nonlinearily_parameter: float,
+    van_genuchten_nonlinearity_parameter: float,
     pore_connectivity_parameter: float,
     seconds_to_day: float,
     denominator_tolerance: float,
@@ -55,22 +55,28 @@ def calculate_vertical_flow(
     .. math ::
         \Psi_{m} = -\frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}
 
-    where :math:`\alpha` is the inverse of air entry value.
+    where :math:`\alpha` is the inverse of air entry value. :math:`\Psi_{m}` is
+    negative for unsaturated soil (tension).
 
-    Then, the function applies Darcy's law to calculate the water flow rate
-    :math:`q` in :math:`\frac{m}{s-1}` considering the effective unsaturated hydraulic
-    conductivity:
+    Then, the function applies Darcy's law to calculate the downward water flux
+    :math:`q` in :math:`\text{m s}^{-1}`. Using depth :math:`d` as the vertical
+    coordinate (positive downward), the gravitational head decreases by 1 m per
+    meter of depth, so the total hydraulic gradient is:
 
     .. math::
         q = K_{\mathrm{face}}
-        \left(1 - \frac{d\Psi_m}{dz}\right)
+        \left(1 - \frac{d\Psi_m}{dd}\right)
 
-    where :math:`\frac{d \Psi_{m}}{dz}` is the matric potential gradient with :math:`z`
-    the elevation (gravitational potential) or gravitational head.
-    :math:`K_{\mathrm{face}}` is the harmonic mean of the
-    adjacent layers' effective conductivities. Upward flux is set to zero.
-    The flow is converted from [m s-1] to [mm d-1] and limited by available
-    water in the source layer and pore space in the receiving layer.
+    where :math:`\frac{d\Psi_{m}}{dd}` is the matric potential gradient with
+    respect to depth :math:`d` (positive downward). The :math:`-1` gravity term
+    arises because elevation decreases as depth increases: a unit increase in depth
+    reduces the gravitational head by 1 m, driving flow downward.
+    :math:`K_{\mathrm{face}}` is the harmonic mean of the adjacent layers'
+    effective conductivities. Upward flux (negative :math:`q`) is set
+    to zero, suppressing capillary rise as a deliberate simplification.
+    The flow is converted from :math:`\text{m s}^{-1}` to :math:`\text{mm d}^{-1}`
+    and limited by available water in the source layer and pore space in the
+    receiving layer.
 
     Note that there are severe limitations to this approach on the temporal and
     spatial scale of this model and this can only be treated as a very rough
@@ -79,21 +85,21 @@ def calculate_vertical_flow(
     Args:
         soil_moisture: Volumetric relative water content in top soil, [unitless]
         soil_layer_thickness: Thickness of all soil layers, [m]
-        soil_layer_depth: Soil layer depth, [m]
+        soil_layer_depth: Soil layer depth (positive downward), [m]
         soil_moisture_saturation: Soil moisture saturation, [unitless]
         soil_moisture_residual: Residual soil moisture, [unitless]
         saturated_hydraulic_conductivity: Hydraulic conductivity of soil, [m/s]
         air_entry_potential_inverse: Inverse of air entry water potential (parameter
             alpha in van Genuchten model), [m-1]
-        van_genuchten_nonlinearily_parameter: Dimensionless parameter in van Genuchten
+        van_genuchten_nonlinearity_parameter: Dimensionless parameter in van Genuchten
             model that describes the degree of nonlinearity of the relationship between
             the volumetric water content and the soil matric potential.
         pore_connectivity_parameter: Pore connectivity parameter, dimensionless
         seconds_to_day: Factor to convert between second and day
-        denominator_tolerance: Small value to avid division by zero
+        denominator_tolerance: Small value to avoid division by zero
 
     Returns:
-        matric potential,[m] volumetric flow rate of water, [mm d-1], effective
+        matric potential, [m]; volumetric flow rate of water, [mm d-1]; effective
         saturation, [rel. vol.]
     """
 
@@ -109,19 +115,20 @@ def calculate_vertical_flow(
         1.0,
     )
 
-    # Calculate matric potential for each grid point and depth
-    n_parameter = van_genuchten_nonlinearily_parameter
+    # Calculate matric potential for each grid point and depth.
+    # psi_m is negative for unsaturated soil (tension).
+    n_parameter = van_genuchten_nonlinearity_parameter
     m_parameter = 1.0 - 1.0 / n_parameter
 
     se_for_potential = np.clip(effective_saturation, denominator_tolerance, 1.0)
     matric_potential = calculate_matric_potential(
         effective_saturation=se_for_potential,
         air_entry_potential_inverse=air_entry_potential_inverse,
-        van_genuchten_nonlinearily_parameter=van_genuchten_nonlinearily_parameter,
+        van_genuchten_nonlinearity_parameter=van_genuchten_nonlinearity_parameter,
         denominator_tolerance=denominator_tolerance,
     )
 
-    # Calculate the unsaturated (effective) hydraulic conductivity, [m s-1]
+    # Calculate the unsaturated (effective) hydraulic conductivity, [m s-1].
     # The saturated hydraulic conductivity is reduced according to the current effective
     # saturation. Dry soil therefore conducts less water.
     effective_conductivity = (
@@ -144,9 +151,9 @@ def calculate_vertical_flow(
         * 1000.0
     )
 
-    # Estimate conductivity at each layer boundary. The harmonic mean makes
-    # a low-conductivity layer restrict flow more strongly than an arithmetic
-    # average would.
+    # Estimate conductivity at each layer boundary using the harmonic mean.
+    # The harmonic mean makes a low-conductivity layer restrict flow more strongly
+    # than an arithmetic average would.
     conductivity_above = effective_conductivity[:-1]
     conductivity_below = effective_conductivity[1:]
     conductivity_sum = conductivity_above + conductivity_below
@@ -193,8 +200,10 @@ def calculate_vertical_flow(
         ),
     )
 
-    # Free-drainage lower boundary: q = K. Limit it by water available
-    # in the bottom layer.
+    # Free-drainage lower boundary: unit hydraulic gradient (gravity only), q = K.
+    # This assumes the matric potential gradient is zero at the base of the column,
+    # so only gravity drives flow out of the bottom layer.
+    # Limited by water available in the bottom layer.
     bottom_flux_mm_per_day = (
         np.maximum(
             np.nan_to_num(
@@ -299,7 +308,7 @@ def update_soil_moisture(
 def calculate_matric_potential(
     effective_saturation: NDArray[np.floating],
     air_entry_potential_inverse: float,
-    van_genuchten_nonlinearily_parameter: float,
+    van_genuchten_nonlinearity_parameter: float,
     denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Convert soil moisture into an estimate of water potential.
@@ -318,7 +327,7 @@ def calculate_matric_potential(
         effective_saturation: Effective saturation
         air_entry_potential_inverse: Inverse of air entry potential (parameter alpha in
             van Genuchten), [m-1]
-        van_genuchten_nonlinearily_parameter: Dimensionless parameter in van Genuchten
+        van_genuchten_nonlinearity_parameter: Dimensionless parameter in van Genuchten
             model that describes the degree of nonlinearity of the relationship between
             the volumetric water content and the soil matric potential.
         denominator_tolerance: Small value to prevent division by zero
@@ -326,12 +335,12 @@ def calculate_matric_potential(
     Returns:
         An estimate of the water potential of the soil, [m]
     """
-    shape_parameter = 1 - 1 / van_genuchten_nonlinearily_parameter
+    shape_parameter = 1 - 1 / van_genuchten_nonlinearity_parameter
     return (
         -1
         / air_entry_potential_inverse
         * (effective_saturation ** (-1 / shape_parameter) - 1)
-        ** (1 / van_genuchten_nonlinearily_parameter)
+        ** (1 / van_genuchten_nonlinearity_parameter)
     )
 
 

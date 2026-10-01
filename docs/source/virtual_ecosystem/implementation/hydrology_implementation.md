@@ -357,13 +357,21 @@ $$\Psi_{m} = - \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}$$
 where $\alpha$ is the inverse of air entry value.
 
 Then, the function applies
-Darcy's law to calculate the water flow rate $q$ in $\frac{mm}{day^1}$ considering the
+Darcy's law to calculate the water flow rate $q$ in $ mm d^1$ considering the
 effective unsaturated hydraulic conductivity:
 
 $$q = - K(\Theta) \cdot (\frac{d \Psi_{m}}{dz} + 1)$$
 
 where $\frac{d \Psi_{m}}{dz}$ is the soil matric potential gradient with $z$
-    the elevation (gravitational potential) or {term}`gravitational head`.
+the elevation (gravitational potential) or {term}`gravitational head`.
+Since depth $d=−z$ increases downward, and defining $q$ as positive downward,
+this becomes:
+
+$$q = K_{face} \cdot (1 - \frac{d \Psi_{m}}{dd})$$
+
+where $\frac{d \Psi_{m}}{dd}$​ is the matric potential gradient with respect to depth
+(positive downward), and $K_{face}$​ is the harmonic mean of the conductivities of
+the adjacent layers evaluated at each inter-layer boundary.
 
 ```{note}
 There are severe limitations to this approach on the temporal and spatial scale of this

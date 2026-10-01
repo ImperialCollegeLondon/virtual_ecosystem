@@ -312,7 +312,7 @@ class HydrologyModel(
         matric_potential = below_ground.calculate_matric_potential(
             effective_saturation=effective_saturation,
             air_entry_potential_inverse=self.model_constants.air_entry_potential_inverse,
-            van_genuchten_nonlinearily_parameter=self.model_constants.van_genuchten_nonlinearily_parameter,
+            van_genuchten_nonlinearity_parameter=self.model_constants.van_genuchten_nonlinearity_parameter,
             denominator_tolerance=self.model_constants.denominator_tolerance,
         )
         self.data["matric_potential"] = self.layer_structure.from_template()
@@ -770,8 +770,8 @@ class HydrologyModel(
                 air_entry_potential_inverse=(
                     self.model_constants.air_entry_potential_inverse
                 ),  # m/m
-                van_genuchten_nonlinearily_parameter=(
-                    self.model_constants.van_genuchten_nonlinearily_parameter
+                van_genuchten_nonlinearity_parameter=(
+                    self.model_constants.van_genuchten_nonlinearity_parameter
                 ),
                 pore_connectivity_parameter=(
                     self.model_constants.pore_connectivity_parameter

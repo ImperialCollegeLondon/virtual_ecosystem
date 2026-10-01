@@ -31,7 +31,7 @@ def test_calculate_vertical_flow_uniform_profile(n_layers):
         soil_moisture_residual=theta_r,
         saturated_hydraulic_conductivity=ks,
         air_entry_potential_inverse=1.0,
-        van_genuchten_nonlinearily_parameter=n_parameter,
+        van_genuchten_nonlinearity_parameter=n_parameter,
         pore_connectivity_parameter=pore_connectivity,
         seconds_to_day=seconds_per_day,
         denominator_tolerance=1e-6,
@@ -76,7 +76,7 @@ def test_calculate_vertical_flow_is_nonnegative_and_capped():
         soil_moisture_residual=residual,
         saturated_hydraulic_conductivity=1e-8,
         air_entry_potential_inverse=1.0,
-        van_genuchten_nonlinearily_parameter=2.0,
+        van_genuchten_nonlinearity_parameter=2.0,
         pore_connectivity_parameter=0.5,
         seconds_to_day=86400.0,
         denominator_tolerance=1e-6,
@@ -128,8 +128,8 @@ def test_calculate_matric_potential(fixture_hydrology_constants):
     actual_potentials = calculate_matric_potential(
         effective_saturation=np.repeat(0.5, 3),
         air_entry_potential_inverse=constants.air_entry_potential_inverse,
-        van_genuchten_nonlinearily_parameter=(
-            constants.van_genuchten_nonlinearily_parameter
+        van_genuchten_nonlinearity_parameter=(
+            constants.van_genuchten_nonlinearity_parameter
         ),
         denominator_tolerance=0.001,
     )
