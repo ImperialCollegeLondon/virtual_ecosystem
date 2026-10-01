@@ -873,7 +873,6 @@ class HydrologyModel(
             river_discharge_rate = above_ground.convert_mm_flow_to_m3_per_second(
                 river_discharge_mm=total_runoff,
                 area=self.grid.cell_area,
-                days=days,
                 seconds_to_day=self.core_constants.seconds_to_day,
                 meters_to_millimeters=self.core_constants.meters_to_mm,
             )

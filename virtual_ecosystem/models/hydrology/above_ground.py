@@ -742,7 +742,6 @@ def calculate_bypass_flow(
 def convert_mm_flow_to_m3_per_second(
     river_discharge_mm: NDArray[np.floating],
     area: int | float,
-    days: int,
     seconds_to_day: float,
     meters_to_millimeters: float,
 ) -> NDArray[np.floating]:
@@ -751,7 +750,6 @@ def convert_mm_flow_to_m3_per_second(
     Args:
         river_discharge_mm: Total river discharge, [mm]
         area: Area of each grid cell, [m2]
-        days: Number of days
         seconds_to_day: Second to day conversion factor
         meters_to_millimeters: Factor to convert between millimeters and meters
 
@@ -759,7 +757,7 @@ def convert_mm_flow_to_m3_per_second(
         river discharge rate for each grid cell, [m3 s-1]
     """
 
-    return river_discharge_mm / meters_to_millimeters / days / seconds_to_day * area
+    return river_discharge_mm / meters_to_millimeters / seconds_to_day * area
 
 
 def calculate_surface_runoff(
