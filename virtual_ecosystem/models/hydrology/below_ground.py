@@ -460,7 +460,9 @@ def update_groundwater_storage(
     output["baseflow"] = np.maximum(0.0, lower_zone / reservoir_const_lower_groundwater)
 
     # Update ground water storage
-    output["groundwater_storage"] = np.vstack((upper_zone, lower_zone))
+    output["groundwater_storage"] = np.vstack(
+        (upper_zone - output["subsurface_flow"], lower_zone - output["baseflow"])
+    )
 
     return output
 
