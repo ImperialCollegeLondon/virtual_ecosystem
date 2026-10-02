@@ -7,8 +7,6 @@ TODO change temperatures to Kelvin
 
 """  # noqa: D205
 
-from math import sqrt
-
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
@@ -442,7 +440,8 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 
     This function finds the lowest neighbour for each grid cell, identifies all upstream
     cell IDs and creates a dictionary that provides all upstream cell IDs for each grid
-    cell. This function currently supports only square grids.
+    cell. This function currently supports only square grids and rook move neighbours,
+    but this is enforced during model setup.
 
     Args:
         grid: Grid object
@@ -453,14 +452,6 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 
     TODO move this to core.grid once we decided on common use
     """
-
-    if grid.grid_type != "square":
-        to_raise = ValueError("This grid type is currently not supported!")
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    # Establish neighbour relationships
-    grid.set_neighbours(distance=sqrt(grid.cell_area))
 
     # Find flow direction: each cell -> lowest neighbor
     lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)

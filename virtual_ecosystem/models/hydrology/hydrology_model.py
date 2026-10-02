@@ -26,7 +26,6 @@ There are still a number of open TODOs related to process implementation and imp
 
 from __future__ import annotations
 
-from math import sqrt
 from typing import Any
 
 import numpy as np
@@ -38,6 +37,7 @@ from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.abiotic.model_config import (
@@ -256,7 +256,17 @@ class HydrologyModel(
         self.abiotic_constants = abiotic_constants
         self.pyrealm_core_constants = pyrealm_core_constants
 
-        self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
+        # The hydrology model currently assumes a square grid with already populated
+        # neighbours using rook move model, so check that this is true.
+        if (
+            (self.grid.grid_type != "square")
+            or (self.grid._neighbours is None)
+            or (max([len(n) for n in self.grid._neighbours]) > 4)
+        ):
+            msg = "Square grid with rook move neighbours required"
+            LOGGER.critical(msg)
+            raise InitialisationError(msg)
+
         """Set neighbours."""
         self.drainage_map = above_ground.calculate_drainage_map(
             grid=self.data.grid,
