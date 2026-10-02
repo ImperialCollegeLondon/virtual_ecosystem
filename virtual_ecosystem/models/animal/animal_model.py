@@ -47,6 +47,7 @@ from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.animal.animal_climate import StratumClimate
@@ -320,6 +321,19 @@ class AnimalModel(
 
         # Convert pint update_interval to timedelta64 once during initialization.
         self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
+
+        # Check the grid has been set up with rook move neighbours.
+        if (
+            (self.grid.grid_type != "square")
+            or (self.grid._neighbours is None)
+            or (max([len(n) for n in self.grid._neighbours]) > 5)
+        ):
+            msg = (
+                "Animal model currently requires a square grid with "
+                "rook move neighbours"
+            )
+            LOGGER.error(msg)
+            raise InitialisationError(msg)
 
         self.functional_groups = functional_groups
 

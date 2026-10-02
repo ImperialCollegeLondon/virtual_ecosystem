@@ -446,6 +446,9 @@ def fixture_core_components(fixture_configuration):
     canopy_array[np.array([0, 1, 2])] = 1.0
     core_components.layer_structure.set_filled_canopy(canopy_array)
 
+    # Set up rook move neighbours
+    core_components.grid.set_closest_neighbours()
+
     return core_components
 
 

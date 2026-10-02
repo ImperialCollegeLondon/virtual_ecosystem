@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calculate_vp_sat
 
+from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
@@ -441,7 +442,7 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
     This function finds the lowest neighbour for each grid cell, identifies all upstream
     cell IDs and creates a dictionary that provides all upstream cell IDs for each grid
     cell. This function currently supports only square grids and rook move neighbours,
-    but this is enforced during model setup.
+    which should already be defined on the input Grid object.
 
     Args:
         grid: Grid object
@@ -452,6 +453,20 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 
     TODO move this to core.grid once we decided on common use
     """
+
+    # The drainage map in the hydrology model currently assumes a square grid with
+    # already populated neighbours using rook move model, so check that this is true.
+    # Note that the rook move neighbours includes the focal cell, so 5 neighbours.
+    if (
+        (grid.grid_type != "square")
+        or (grid._neighbours is None)
+        or (max([len(n) for n in grid._neighbours]) > 5)
+    ):
+        msg = (
+            "Hydrology model currently requires a square grid with rook move neighbours"
+        )
+        LOGGER.error(msg)
+        raise InitialisationError(msg)
 
     # Find flow direction: each cell -> lowest neighbor
     lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)
