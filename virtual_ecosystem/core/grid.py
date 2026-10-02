@@ -429,6 +429,28 @@ class Grid:
                 for idx in self.cell_id
             ]
 
+    def set_closest_neighbours(self, precision: float = 0.01) -> None:
+        """Populate neighbours for a Grid object using the nearest neighbour distance.
+
+        This function identifies neighbour as cells that have a cell-to-cell centroid
+        distance equal to the minimum distance across all cells, which requires that
+        ``populate_distances`` is run. Since floating point difference can lead to
+        'true' closest neighbours having inconsequentially different distances, a
+        precision difference in metres is added to the global minimum distance.
+
+        Args:
+            precision: Distance value within which floating point differences are
+                ignored [m]
+        """
+
+        if self._distances is None:
+            self.populate_distances()
+
+        # The _distances attribute is now guaranteed to be populated so can safely mute
+        # mypy warnings
+        minimum_distance = np.where(self._distances > 0, self._distances, np.inf).min()  # type: ignore[arg-type, operator]
+        self.set_neighbours(distance=minimum_distance + precision)
+
     def get_distances(
         self,
         cell_from: int | Sequence[int] | None,
