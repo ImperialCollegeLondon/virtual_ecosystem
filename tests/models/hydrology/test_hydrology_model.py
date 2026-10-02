@@ -162,6 +162,7 @@ def test_generate_hydrology_model(
     config_data = ConfigurationLoader(cfg_strings=cfg_string)
     configuration = generate_configuration(config_data.data)
     core_components = CoreComponents(configuration.core)
+    core_components.grid.set_closest_neighbours()
     caplog.clear()
 
     model = HydrologyModel.from_config(
@@ -184,7 +185,6 @@ def test_generate_hydrology_model(
     ],
 )
 def test_setup_and_update_hydrology_model_ranges(
-    fixture_core_components,
     fixture_hydrology_init_data,
     dummy_climate_data,
     fixture_configuration,
@@ -204,6 +204,7 @@ def test_setup_and_update_hydrology_model_ranges(
     # Initialize core and model
     core_components = CoreComponents(fixture_configuration.core)
     lyr_strct = core_components.layer_structure
+    core_components.grid.set_closest_neighbours()
 
     model = HydrologyModel.from_config(
         data=fixture_hydrology_init_data,
@@ -229,7 +230,7 @@ def test_setup_and_update_hydrology_model_ranges(
 
     # Test groundwater storage
     exp_groundwater = DataArray(
-        np.full((2, fixture_core_components.grid.n_cells), 450.0),
+        np.full((2, core_components.grid.n_cells), 450.0),
         dims=("groundwater_layers", "cell_id"),
         coords={"groundwater_layers": [14, 15], "cell_id": [0, 1, 2, 3]},
     )
