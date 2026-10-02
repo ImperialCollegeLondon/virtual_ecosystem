@@ -340,7 +340,8 @@ class AnimalModel(
         # Initialise the array resources for the model and then the resulting resource
         # pools from those arrays (one resource can provide multiple pools)
         self.array_resources = [
-            ArrayResource(definition=defn, data=self.data) for defn in ARRAY_RESOURCES
+            ArrayResource(definition=defn, grid=self.grid, data=self.data)
+            for defn in ARRAY_RESOURCES
         ]
 
         self.array_resource_pools = list(
@@ -360,7 +361,7 @@ class AnimalModel(
                     cell_id=cell_id,
                 )
             ]
-            for cell_id in self.data.grid.cell_id
+            for cell_id in self.grid.cell_id
         }
 
         self.carcass_pools = {
@@ -371,11 +372,11 @@ class AnimalModel(
                     cell_id=cell_id,
                 )
             ]
-            for cell_id in self.data.grid.cell_id
+            for cell_id in self.grid.cell_id
         }
 
         self.herbivory_waste_pools = {
-            cell_id: HerbivoryWaste() for cell_id in self.data.grid.cell_id
+            cell_id: HerbivoryWaste() for cell_id in self.grid.cell_id
         }
 
         self.thermal_suitability: dict[str, NDArray] | None = None
@@ -387,11 +388,11 @@ class AnimalModel(
         """
 
         self.active_cohorts = {}
-        self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
+        self.communities = {cell_id: list() for cell_id in self.grid.cell_id}
         self.migrated_cohorts = {}
         self.aquatic_cohorts = {}
 
-        self.target_cohorts_per_fg = len(self.data.grid.cell_id)
+        self.target_cohorts_per_fg = len(self.grid.cell_id)
         """The target number of cohorts per functional group in each grid cell."""
         self.minimum_cohort_size = 5
         """The minimum number of individuals to initialize a cohort at init."""
@@ -422,7 +423,7 @@ class AnimalModel(
 
         # animal respiration data variable
         # the array should have one value for each animal community
-        n_grid_cells = len(self.data.grid.cell_id)
+        n_grid_cells = len(self.grid.cell_id)
 
         # Initialize total_animal_respiration as a DataArray with a single dimension:
         # cell_id
@@ -431,7 +432,7 @@ class AnimalModel(
                 n_grid_cells
             ),  # Filled with zeros to start with no carbon production.
             dims=["cell_id"],
-            coords={"cell_id": self.data.grid.cell_id},
+            coords={"cell_id": self.grid.cell_id},
             name="total_animal_respiration",
         )
 
@@ -442,7 +443,7 @@ class AnimalModel(
         functional_group_names = [fg.name for fg in self.functional_groups]
 
         # Assuming self.communities is a dict with community_id as keys
-        community_ids = self.data.grid.cell_id
+        community_ids = self.grid.cell_id
 
         # Create a multi-dimensional array for population densities
         population_densities = DataArray(
@@ -608,8 +609,8 @@ class AnimalModel(
 
         """
 
-        self.communities = {cell_id: [] for cell_id in self.data.grid.cell_id}
-        total_area_m2 = self.data.grid.n_cells * self.data.grid.cell_area
+        self.communities = {cell_id: [] for cell_id in self.grid.cell_id}
+        total_area_m2 = self.grid.n_cells * self.grid.cell_area
         target = self.total_heterotroph_biomass_density_kg_m2
         method = self.density_scaling_method
 
@@ -664,7 +665,7 @@ class AnimalModel(
         Returns:
             A list of grid cell IDs for each cohort.
         """
-        cell_ids = list(self.data.grid.cell_id)  # a list of all the grid cell ids
+        cell_ids = list(self.grid.cell_id)  # a list of all the grid cell ids
         n_cells = len(cell_ids)  # the number of grid cells
 
         if n_cohorts <= n_cells:  # if more cells than cohorts
@@ -732,13 +733,13 @@ class AnimalModel(
                     pool_name=som_type,
                     cell_id=cell_id,
                     data=self.data,
-                    cell_area=self.data.grid.cell_area,  # OK while area is uniform
+                    cell_area=self.grid.cell_area,  # OK while area is uniform
                     microbial_simulation_depth=self.core_constants.microbial_simulation_depth,
                     c_n_p_ratios=self.microbial_c_n_p_ratios,
                 )
                 for som_type in soil_organic_matter_types
             }
-            for cell_id in self.data.grid.cell_id
+            for cell_id in self.grid.cell_id
         }
 
     def calculate_total_litter_consumption(
@@ -766,8 +767,8 @@ class AnimalModel(
             "below_structural",
         )
 
-        cell_ids = self.data.grid.cell_id
-        area = self.data.grid.cell_area  # Cell area is uniform at present
+        cell_ids = self.grid.cell_id
+        area = self.grid.cell_area  # Cell area is uniform at present
 
         results: dict[str, DataArray] = {}
 
@@ -807,8 +808,8 @@ class AnimalModel(
             m^-3 day^-1]
         """
 
-        cell_ids = self.data.grid.cell_id
-        area = self.data.grid.cell_area  # Cell area is uniform at present
+        cell_ids = self.grid.cell_id
+        area = self.grid.cell_area  # Cell area is uniform at present
 
         pom_initial_stock = self.data["soil_cnp_pool_pom"].loc[:, "C"].to_numpy()
 
@@ -932,7 +933,7 @@ class AnimalModel(
                         self.herbivory_waste_pools[cell_id].above_ground_mass_cnp[
                             nutrient
                         ]
-                        for cell_id in self.data.grid.cell_id
+                        for cell_id in self.grid.cell_id
                     ]
                 )
                 for nutrient in nutrients
@@ -942,7 +943,7 @@ class AnimalModel(
 
         above_lignin = [
             self.herbivory_waste_pools[cell_id].above_ground_lignin_proportion
-            for cell_id in self.data.grid.cell_id
+            for cell_id in self.grid.cell_id
         ]
 
         below_cnp = stack(
@@ -952,7 +953,7 @@ class AnimalModel(
                         self.herbivory_waste_pools[cell_id].below_ground_mass_cnp[
                             nutrient
                         ]
-                        for cell_id in self.data.grid.cell_id
+                        for cell_id in self.grid.cell_id
                     ]
                 )
                 for nutrient in nutrients
@@ -962,7 +963,7 @@ class AnimalModel(
 
         below_lignin = [
             self.herbivory_waste_pools[cell_id].below_ground_lignin_proportion
-            for cell_id in self.data.grid.cell_id
+            for cell_id in self.grid.cell_id
         ]
 
         # Reset all of the herbivory waste pools to zero
@@ -999,7 +1000,7 @@ class AnimalModel(
         decomposed_excrement = {
             nutrient: [
                 pool.decomposed_nutrient_per_area(
-                    nutrient=nutrient, grid_cell_area=self.data.grid.cell_area
+                    nutrient=nutrient, grid_cell_area=self.grid.cell_area
                 )
                 for _, pools in self.excrement_pools.items()
                 for pool in pools
@@ -1010,7 +1011,7 @@ class AnimalModel(
         decomposed_carcasses = {
             nutrient: [
                 pool.decomposed_nutrient_per_area(
-                    nutrient=nutrient, grid_cell_area=self.data.grid.cell_area
+                    nutrient=nutrient, grid_cell_area=self.grid.cell_area
                 )
                 for _, pools in self.carcass_pools.items()
                 for pool in pools
@@ -1101,7 +1102,7 @@ class AnimalModel(
             The population density of the cohort within the community (individuals/m2).
         """
         # Retrieve the area of the community where the cohort resides
-        community_area = self.data.grid.cell_area
+        community_area = self.grid.cell_area
 
         # Calculate the population density
         population_density = cohort.individuals / community_area
@@ -1186,10 +1187,9 @@ class AnimalModel(
         """
 
         if any(
-            c.centroid_key >= self.data.grid.n_cells
-            for c in self.active_cohorts.values()
+            c.centroid_key >= self.grid.n_cells for c in self.active_cohorts.values()
         ):
-            raise ValueError("cohort centroid outside self.data.grid — grid mismatch")
+            raise ValueError("cohort centroid outside self.grid — grid mismatch")
 
         dt_days = float(dt / timedelta64(1, "D"))
 
@@ -1220,7 +1220,7 @@ class AnimalModel(
 
             candidate_keys = cells_within_distance(
                 # find all the grid cells within migrating distance
-                self.data.grid,
+                self.grid,
                 cohort.centroid_key,
                 cohort.get_dispersal_distance(dt_days),
             )
@@ -1852,7 +1852,7 @@ class AnimalModel(
             age=age,
             individuals=individuals,
             centroid_key=centroid_key,
-            grid=self.data.grid,
+            grid=self.grid,
             constants=self.model_constants,
             core_constants=self.core_constants,
         )

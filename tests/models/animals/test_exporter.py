@@ -677,7 +677,7 @@ class TestAnimalCohortDataExporter:
         self,
         tmp_path,
         dummy_animal_data,
-        fixture_core_components,
+        animal_fixture_core_components,
         functional_group_list_instance,
         microbial_c_n_p_ratios,
         dummy_resource_pool_exporter,
@@ -687,7 +687,7 @@ class TestAnimalCohortDataExporter:
         Args:
             tmp_path: Temporary directory provided by pytest.
             dummy_animal_data: Data fixture for the animal model.
-            fixture_core_components: CoreComponents fixture.
+            animal_fixture_core_components: CoreComponents fixture.
             functional_group_list_instance: List of animal functional groups.
             microbial_c_n_p_ratios: Microbial stoichiometry ratios.
             dummy_resource_pool_exporter: No-op exporter for resource pools.
@@ -722,7 +722,7 @@ class TestAnimalCohortDataExporter:
 
         model = AnimalModel(
             data=clean_data,
-            core_components=fixture_core_components,
+            core_components=animal_fixture_core_components,
             model_constants=AnimalConstants(density_scaling_method="madingley"),
             functional_groups=functional_group_list_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
@@ -1269,7 +1269,7 @@ class TestResourcePoolDataExporter:
         self,
         tmp_path,
         dummy_animal_data,
-        fixture_core_components,
+        animal_fixture_core_components,
         functional_group_list_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
@@ -1279,7 +1279,7 @@ class TestResourcePoolDataExporter:
         Args:
             tmp_path: Temporary directory provided by pytest.
             dummy_animal_data: Data fixture for the animal model.
-            fixture_core_components: CoreComponents fixture.
+            animal_fixture_core_components: CoreComponents fixture.
             functional_group_list_instance: List of animal functional groups.
             microbial_c_n_p_ratios: Microbial stoichiometry ratios.
             dummy_animal_exporter: No-op cohort exporter.
@@ -1305,7 +1305,7 @@ class TestResourcePoolDataExporter:
 
         model = AnimalModel(
             data=clean_data,
-            core_components=fixture_core_components,
+            core_components=animal_fixture_core_components,
             model_constants=AnimalConstants(density_scaling_method="madingley"),
             functional_groups=functional_group_list_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
