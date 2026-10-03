@@ -313,7 +313,6 @@ class HydrologyModel(
             effective_saturation=effective_saturation,
             air_entry_potential_inverse=self.model_constants.air_entry_potential_inverse,
             van_genuchten_nonlinearity_parameter=self.model_constants.van_genuchten_nonlinearity_parameter,
-            denominator_tolerance=self.model_constants.denominator_tolerance,
         )
         self.data["matric_potential"] = self.layer_structure.from_template()
         self.data["matric_potential"][self.layer_structure.index_all_soil] = DataArray(

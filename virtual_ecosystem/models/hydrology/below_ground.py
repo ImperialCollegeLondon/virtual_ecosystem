@@ -125,7 +125,6 @@ def calculate_vertical_flow(
         effective_saturation=se_for_potential,
         air_entry_potential_inverse=air_entry_potential_inverse,
         van_genuchten_nonlinearity_parameter=van_genuchten_nonlinearity_parameter,
-        denominator_tolerance=denominator_tolerance,
     )
 
     # Calculate the unsaturated (effective) hydraulic conductivity, [m s-1].
@@ -309,7 +308,6 @@ def calculate_matric_potential(
     effective_saturation: NDArray[np.floating],
     air_entry_potential_inverse: float,
     van_genuchten_nonlinearity_parameter: float,
-    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Convert soil moisture into an estimate of water potential.
 
@@ -330,7 +328,6 @@ def calculate_matric_potential(
         van_genuchten_nonlinearity_parameter: Dimensionless parameter in van Genuchten
             model that describes the degree of nonlinearity of the relationship between
             the volumetric water content and the soil matric potential.
-        denominator_tolerance: Small value to prevent division by zero
 
     Returns:
         An estimate of the water potential of the soil, [m]

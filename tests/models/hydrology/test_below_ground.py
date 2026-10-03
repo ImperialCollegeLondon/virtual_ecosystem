@@ -131,7 +131,6 @@ def test_calculate_matric_potential(fixture_hydrology_constants):
         van_genuchten_nonlinearity_parameter=(
             constants.van_genuchten_nonlinearity_parameter
         ),
-        denominator_tolerance=0.001,
     )
 
     np.testing.assert_allclose(actual_potentials, expected_potentials, rtol=0.001)
