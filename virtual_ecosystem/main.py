@@ -136,12 +136,16 @@ def initialise_models(
             )
 
         except (InitialisationError, ConfigurationError):
+            LOGGER.critical(
+                f"Configuration and initialisation failed for {model_name} model."
+            )
             failed_models.append(model_name)
 
     # If any models fail to configure inform the user about it
     if failed_models:
         to_raise: Exception = InitialisationError(
-            f"Configuration failed for models: {','.join(failed_models)}"
+            f"Configuration and initialisation failed for the following "
+            f"models: {','.join(failed_models)}"
         )
         LOGGER.critical(to_raise)
         raise to_raise
