@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.parametrize("n_layers", [2, 4])
+@pytest.mark.parametrize("n_layers", [2, 5])
 def test_calculate_vertical_flow_uniform_profile(n_layers):
     """Uniform moisture gives gravity-driven flow at every interface."""
 
@@ -14,7 +14,7 @@ def test_calculate_vertical_flow_uniform_profile(n_layers):
 
     moisture = np.full((n_layers, 2), 0.3)
     thickness = np.ones((n_layers, 2))
-    depth = np.arange(n_layers, dtype=float) + 0.5
+    depth = -(np.arange(n_layers, dtype=float))
 
     theta_s = 0.5
     theta_r = 0.1
@@ -45,6 +45,8 @@ def test_calculate_vertical_flow_uniform_profile(n_layers):
         * se**pore_connectivity
         * (1.0 - (1.0 - se ** (1.0 / m_parameter)) ** m_parameter) ** 2
     )
+    # Under uniform moisture the matric gradient is zero, so q = -K * (0 + 1) = -K.
+    # The stored flow is the magnitude, converted to mm/day.
     expected_flow = expected_k * seconds_per_day * 1000.0  # mm/day
 
     assert result["vertical_flow"].shape == moisture.shape
@@ -63,15 +65,16 @@ def test_calculate_vertical_flow_is_nonnegative_and_capped():
         calculate_vertical_flow,
     )
 
-    moisture = np.full((3, 2), 0.3)
-    thickness = np.full((3, 2), 1e-6)
+    moisture = np.full((5, 2), 0.3)
+    thickness = np.full((5, 2), 1e-6)
     residual = 0.1
     saturation = 0.5
+    depth = np.array([-0.5, -1.5, -2.5, -3.5, -4.5])
 
     result = calculate_vertical_flow(
         soil_moisture=moisture,
         soil_layer_thickness=thickness,
-        soil_layer_depth=np.array([0.5, 1.5, 2.5]),
+        soil_layer_depth=depth,
         soil_moisture_saturation=saturation,
         soil_moisture_residual=residual,
         saturated_hydraulic_conductivity=1e-8,

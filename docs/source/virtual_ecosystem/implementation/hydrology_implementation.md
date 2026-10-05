@@ -354,24 +354,38 @@ The soil matric potential $\Psi_{m}$ is calculated as follows:
 
 $$\Psi_{m} = - \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}$$
 
-where $\alpha$ is the inverse of air entry value.
+where $\alpha$ is the inverse of air entry value. $\Psi_{m}$ is negative for unsaturated
+soil (tension) and zero at saturation.
 
-Then, the function applies
-Darcy's law to calculate the water flow rate $q$ in $ mm d^1$ considering the
-effective unsaturated hydraulic conductivity:
+Darcy's law is then applied to calculate the water flux $q$ in $\text{m s}^{-1}$.
+Following the standard soil physics convention, $z$ is taken as positive upward, so
+depth is negative and becomes more negative with depth. The total hydraulic head
+combines the matric potential and the gravitational head, and the Darcy flux is:
 
 $$q = - K(\Theta) \cdot (\frac{d \Psi_{m}}{dz} + 1)$$
 
-where $\frac{d \Psi_{m}}{dz}$ is the soil matric potential gradient with $z$
-the elevation (gravitational potential) or {term}`gravitational head`.
-Since depth $d=−z$ increases downward, and defining $q$ as positive downward,
-this becomes:
+where $\frac{d\Psi_{m}}{dz}$ is the matric potential gradient with respect to $z$
+(positive upward), and the $+1$ gravity term reflects the fact that gravitational head
+increases by 1 m per metre upward, driving flow downward. Under uniform moisture
+conditions ($\frac{d\Psi_{m}}{dz} = 0$), this reduces to $q = -K$, which is negative in
+the upward-positive frame and therefore represents downward flow.
 
-$$q = K_{face} \cdot (1 - \frac{d \Psi_{m}}{dd})$$
+Since $z$ is negative downward, the finite difference denominator $z_{i+1} - z_i$ is
+negative for deeper layers, and the sign of the gradient is handled consistently.
+Downward flux (negative $q$) is negated before storage in `data` so that `vertical_flow`
+is always a positive quantity representing downward transfer in $\text{mm d}^{-1}$.
+Upward flux (positive $q$) is set to zero, suppressing capillary rise as a deliberate
+simplification.
 
-where $\frac{d \Psi_{m}}{dd}$​ is the matric potential gradient with respect to depth
-(positive downward), and $K_{face}$​ is the harmonic mean of the conductivities of
-the adjacent layers evaluated at each inter-layer boundary.
+$K_{\mathrm{face}}$ is evaluated at each inter-layer boundary as the harmonic mean of
+the conductivities of the two adjacent layers, which ensures that a low-conductivity
+layer restricts flow more strongly than an arithmetic mean would.
+
+The flow is converted from $\text{m s}{-1}$ to $\text{mm d}{-1}$ and capped by the
+available water in the source layer and the available pore space in the receiving layer.
+At the base of the soil column, a free-drainage boundary condition is applied: the
+matric potential gradient is assumed to be zero, so only gravity drives flow out of the
+bottom layer and $q = -K$.
 
 ```{note}
 There are severe limitations to this approach on the temporal and spatial scale of this

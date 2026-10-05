@@ -756,7 +756,7 @@ class HydrologyModel(
                 soil_moisture=soil_moisture_evap_mm
                 / self.soil_layer_thickness_mm,  # vol
                 soil_layer_thickness=self.soil_layer_thickness_mm / 1000.0,  # m
-                soil_layer_depth=np.abs(self.layer_structure.soil_layer_depths),  # m
+                soil_layer_depth=self.layer_structure.soil_layer_depths,  # m, negative
                 soil_moisture_saturation=(
                     self.model_constants.soil_moisture_saturation
                 ),  # vol

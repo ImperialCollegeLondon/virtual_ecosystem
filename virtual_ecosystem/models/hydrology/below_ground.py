@@ -58,22 +58,35 @@ def calculate_vertical_flow(
     where :math:`\alpha` is the inverse of air entry value. :math:`\Psi_{m}` is
     negative for unsaturated soil (tension).
 
-    Then, the function applies Darcy's law to calculate the downward water flux
-    :math:`q` in :math:`\text{m s}^{-1}`. Using depth :math:`d` as the vertical
-    coordinate (positive downward), the gravitational head decreases by 1 m per
-    meter of depth, so the total hydraulic gradient is:
+    The function then applies Darcy's law to calculate the downward water flux
+    :math:`q` in :math:`\text{m s}^{-1}`. Using the standard soil physics convention
+    where :math:`z` is positive upward (so depth is negative, becoming more negative
+    with depth), the total hydraulic head combines the matric potential and
+    gravitational components. The Darcy flux is:
 
     .. math::
-        q = K_{\mathrm{face}}
-        \left(1 - \frac{d\Psi_m}{dd}\right)
+        q = -K(\Theta) \left(\frac{d\Psi_m}{dz} + 1\right)
 
-    where :math:`\frac{d\Psi_{m}}{dd}` is the matric potential gradient with
-    respect to depth :math:`d` (positive downward). The :math:`-1` gravity term
-    arises because elevation decreases as depth increases: a unit increase in depth
-    reduces the gravitational head by 1 m, driving flow downward.
+    where :math:`\frac{d\Psi_{m}}{dz}` is the matric potential gradient with
+    respect to :math:`z` (positive upward), and the :math:`+1` gravity term reflects
+    the fact that gravitational head increases by 1 m per metre upward, driving flow
+    downward. The leading negative sign follows the standard Darcy convention: flow
+    is in the direction of decreasing total head. Under uniform moisture conditions
+    (:math:`\frac{d\Psi_m}{dz} = 0`), this reduces to :math:`q = -K`, which is
+    negative in the upward-positive frame and therefore represents downward flow.
+
+    Since :math:`z` is negative downward, the gradient denominator
+    :math:`z_{i+1} - z_i` is negative (deeper layers have more negative :math:`z`),
+    so the sign of the gradient is handled consistently by the finite difference.
+    Downward flux is negative in this convention; it is negated before storage so
+    that :math:`\text{vertical\_flow}` is always a positive quantity representing
+    downward transfer in :math:`\text{mm d}^{-1}`. Upward flux (positive :math:`q`)
+    is set to zero, suppressing capillary rise as a deliberate simplification.
+
     :math:`K_{\mathrm{face}}` is the harmonic mean of the adjacent layers'
-    effective conductivities. Upward flux (negative :math:`q`) is set
-    to zero, suppressing capillary rise as a deliberate simplification.
+    effective conductivities, which ensures that a low-conductivity layer
+    restricts flow more strongly than an arithmetic mean would.
+
     The flow is converted from :math:`\text{m s}^{-1}` to :math:`\text{mm d}^{-1}`
     and limited by available water in the source layer and pore space in the
     receiving layer.
@@ -85,7 +98,7 @@ def calculate_vertical_flow(
     Args:
         soil_moisture: Volumetric relative water content in top soil, [unitless]
         soil_layer_thickness: Thickness of all soil layers, [m]
-        soil_layer_depth: Soil layer depth (positive downward), [m]
+        soil_layer_depth: Soil layer depth, negative downward (z positive upward), [m]
         soil_moisture_saturation: Soil moisture saturation, [unitless]
         soil_moisture_residual: Residual soil moisture, [unitless]
         saturated_hydraulic_conductivity: Hydraulic conductivity of soil, [m/s]
@@ -117,8 +130,7 @@ def calculate_vertical_flow(
 
     # Calculate matric potential for each grid point and depth.
     # psi_m is negative for unsaturated soil (tension).
-    n_parameter = van_genuchten_nonlinearity_parameter
-    m_parameter = 1.0 - 1.0 / n_parameter
+    m_parameter = 1.0 - 1.0 / van_genuchten_nonlinearity_parameter
 
     se_for_potential = np.clip(effective_saturation, denominator_tolerance, 1.0)
     matric_potential = calculate_matric_potential(
@@ -151,8 +163,8 @@ def calculate_vertical_flow(
     )
 
     # Estimate conductivity at each layer boundary using the harmonic mean.
-    # The harmonic mean makes a low-conductivity layer restrict flow more strongly
-    # than an arithmetic average would.
+    # The harmonic mean ensures a low-conductivity layer restricts flow more
+    # strongly than an arithmetic mean would.
     conductivity_above = effective_conductivity[:-1]
     conductivity_below = effective_conductivity[1:]
     conductivity_sum = conductivity_above + conductivity_below
@@ -163,19 +175,23 @@ def calculate_vertical_flow(
         where=conductivity_sum > 0,
     )
 
-    # Matric potential is negative pressure head [m]. Depth increases downward,
-    # so this Darcy form gives positive flux for downward flow.
-    # k_boundary [m/s] * hydraulic gradient [-] = flux [m/s].
+    # Matric potential gradient with respect to depth, [m m-1], positive upward.
     matric_gradient = np.gradient(
         matric_potential,
         soil_layer_depth,
         axis=0,
     )[:-1]
-    flux_m_per_second = conductivity_boundary * (1.0 - matric_gradient)
 
-    # Convert flux rate [m s-1] to [mm day-1].
+    # Darcy flux [m s-1]: q = -K * (d_psi_m/dz + 1)
+    # z is positive upward, so downward flow is negative q.
+    # Under uniform moisture (d_psi_m/dz = 0): q = -K < 0 (downward) as expected.
+    flux_m_per_second = -conductivity_boundary * (matric_gradient + 1.0)
+
+    # Retain only downward flux (negative q in upward-positive convention).
+    # Upward flux (positive q) is set to zero, suppressing capillary rise.
+    # Negate so that vertical_flow is stored as a positive downward quantity [mm d-1].
     flux_mm_per_day = (
-        np.maximum(
+        np.minimum(
             np.nan_to_num(
                 flux_m_per_second,
                 nan=0.0,
@@ -184,6 +200,7 @@ def calculate_vertical_flow(
             ),
             0.0,
         )
+        * -1.0
         * seconds_to_day
         * 1000.0
     )
@@ -199,9 +216,9 @@ def calculate_vertical_flow(
         ),
     )
 
-    # Free-drainage lower boundary: unit hydraulic gradient (gravity only), q = K.
-    # This assumes the matric potential gradient is zero at the base of the column,
-    # so only gravity drives flow out of the bottom layer.
+    # Free-drainage lower boundary: unit hydraulic gradient (gravity only), q = -K.
+    # Setting d_psi_m/dz = 0 in the Darcy equation gives q = -K(0 + 1) = -K,
+    # i.e. downward flux of magnitude K. Stored as positive mm/day.
     # Limited by water available in the bottom layer.
     bottom_flux_mm_per_day = (
         np.maximum(
