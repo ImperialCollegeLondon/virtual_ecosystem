@@ -680,7 +680,6 @@ from virtual_ecosystem.models.hydrology.above_ground import (
 river_discharge_rate = convert_mm_flow_to_m3_per_second(
     river_discharge_mm=total_runoff,
     area=grid.cell_area,
-    days=1,
     seconds_to_day=86400,
     meters_to_millimeters=1000,
 )
