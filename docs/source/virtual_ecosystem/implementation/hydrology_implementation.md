@@ -377,10 +377,6 @@ is always a positive quantity representing downward transfer in $\text{mm d}^{-1
 Upward flux (positive $q$) is set to zero, suppressing capillary rise as a deliberate
 simplification.
 
-$K_{\mathrm{face}}$ is evaluated at each inter-layer boundary as the harmonic mean of
-the conductivities of the two adjacent layers, which ensures that a low-conductivity
-layer restricts flow more strongly than an arithmetic mean would.
-
 The flow is converted from $\text{m s}{-1}$ to $\text{mm d}{-1}$ and capped by the
 available water in the source layer and the available pore space in the receiving layer.
 At the base of the soil column, a free-drainage boundary condition is applied: the

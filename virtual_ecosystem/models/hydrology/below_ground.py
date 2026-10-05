@@ -79,13 +79,9 @@ def calculate_vertical_flow(
     :math:`z_{i+1} - z_i` is negative (deeper layers have more negative :math:`z`),
     so the sign of the gradient is handled consistently by the finite difference.
     Downward flux is negative in this convention; it is negated before storage so
-    that :math:`\text{vertical\_flow}` is always a positive quantity representing
-    downward transfer in :math:`\text{mm d}^{-1}`. Upward flux (positive :math:`q`)
+    that vertical_flow is always a positive quantity representing
+    downward transfer in mm d-1. Upward flux q
     is set to zero, suppressing capillary rise as a deliberate simplification.
-
-    :math:`K_{\mathrm{face}}` is the harmonic mean of the adjacent layers'
-    effective conductivities, which ensures that a low-conductivity layer
-    restricts flow more strongly than an arithmetic mean would.
 
     The flow is converted from :math:`\text{m s}^{-1}` to :math:`\text{mm d}^{-1}`
     and limited by available water in the source layer and pore space in the
