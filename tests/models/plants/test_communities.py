@@ -13,7 +13,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
 
 
 @pytest.mark.parametrize(
-    argnames="cohort_data,raises,exp_log,expected_cids",
+    argnames="cohort_data,raises,exp_log,expected_cids,n_cohorts",
     argvalues=[
         pytest.param(
             DataFrame(
@@ -28,6 +28,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                     "plant_cohorts_x, plant_cohorts_y",
                 ),
             ),
+            None,
             None,
             id="missing vars",
         ),
@@ -47,6 +48,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                 (CRITICAL, "Validation errors in plant cohort data: see above"),
             ),
             None,
+            None,
             id="xy outside grid",
         ),
         pytest.param(
@@ -65,6 +67,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                 (CRITICAL, "Validation errors in plant cohort data: see above"),
             ),
             None,
+            None,
             id="xy on cell boundaries",
         ),
         pytest.param(
@@ -80,6 +83,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
             does_not_raise(),
             ((INFO, "Plant cohort data validated"),),
             np.array([0, 1, 2, 3]),
+            {0: 1, 1: 1, 2: 1, 3: 1},
             id="xy ok",
         ),
         pytest.param(
@@ -97,6 +101,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                 (ERROR, "Plant cohort data includes PFT names not in flora"),
                 (CRITICAL, "Validation errors in plant cohort data: see above"),
             ),
+            None,
             None,
             id="unknown PFTs",
         ),
@@ -119,6 +124,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                 (CRITICAL, "Validation errors in plant cohort data: see above"),
             ),
             None,
+            None,
             id="negative individual counts",
         ),
         pytest.param(
@@ -139,6 +145,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                 ),
                 (CRITICAL, "Validation errors in plant cohort data: see above"),
             ),
+            None,
             None,
             id="zero individual counts",
         ),
@@ -161,6 +168,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                 (CRITICAL, "Validation errors in plant cohort data: see above"),
             ),
             None,
+            None,
             id="float individual counts",
         ),
         pytest.param(
@@ -179,6 +187,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                 (CRITICAL, "Validation errors in plant cohort data: see above"),
             ),
             None,
+            None,
             id="negative DBH",
         ),
         pytest.param(
@@ -196,6 +205,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                 (ERROR, "Plant cohort DBH data must be strictly positive"),
                 (CRITICAL, "Validation errors in plant cohort data: see above"),
             ),
+            None,
             None,
             id="zero DBH",
         ),
@@ -222,6 +232,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                 (CRITICAL, "Validation errors in plant cohort data: see above"),
             ),
             None,
+            None,
             id="all sorts of wrong",
         ),
         pytest.param(
@@ -241,145 +252,82 @@ from virtual_ecosystem.core.exceptions import InitialisationError
             does_not_raise(),
             ((INFO, "Plant cohort data validated"),),
             np.array([0, 1, 1, 2, 2, 2, 3, 3, 3, 3]),
+            {0: 1, 1: 2, 2: 3, 3: 4},
             id="all good more complex",
         ),
     ],
 )
-def test_validate_cohort_data(
-    caplog,
-    fixture_flora,
-    fixture_core_components,
-    cohort_data,
-    raises,
-    exp_log,
-    expected_cids,
-):
-    """Test the data handling of the PlantCommunities __init__."""
+class TestCohortData:
+    """Shared inputs into testing of cohort data validation and PlantCommunities."""
 
-    from virtual_ecosystem.models.plants.communities import validate_cohort_data
+    def test_validate_cohort_data(
+        self,
+        caplog,
+        fixture_flora,
+        fixture_core_components,
+        cohort_data,
+        raises,
+        exp_log,
+        expected_cids,
+        n_cohorts,
+    ):
+        """Test validate_cohort_data."""
 
-    # Clear any data loading log entries
-    caplog.clear()
+        from virtual_ecosystem.models.plants.communities import validate_cohort_data
 
-    with raises:
-        validated = validate_cohort_data(
-            cohort_data=cohort_data,
-            flora=fixture_flora,
-            grid=fixture_core_components.grid,
-        )
+        # Clear any data loading log entries
+        caplog.clear()
 
-        # Check the assigned cell_ids
-        assert_allclose(validated["plant_cohorts_cell_id"].to_numpy(), expected_cids)
+        with raises:
+            validated = validate_cohort_data(
+                cohort_data=cohort_data,
+                flora=fixture_flora,
+                grid=fixture_core_components.grid,
+            )
 
-    log_check(caplog, expected_log=exp_log)
+            # Check the assigned cell_ids
+            assert_allclose(
+                validated["plant_cohorts_cell_id"].to_numpy(), expected_cids
+            )
 
+        log_check(caplog, expected_log=exp_log)
 
-@pytest.mark.parametrize(
-    argnames="cohort_data,raises,exp_log, exp_n_cohorts",
-    argvalues=[
-        pytest.param(
-            DataFrame(
-                dict(plant_cohorts_n=np.array([5] * 4)),
-            ),
-            pytest.raises(ValueError),
-            (
-                (
-                    CRITICAL,
-                    "Cannot initialise plant communities from cohort data. Missing "
-                    "variables: plant_cohorts_cell_id, plant_cohorts_dbh, "
-                    "plant_cohorts_pft",
-                ),
-            ),
-            None,
-            id="missing vars",
-        ),
-        pytest.param(
-            DataFrame(
-                dict(
-                    plant_cohorts_n=np.array([5] * 4),
-                    plant_cohorts_pft=np.array(["shrub"] * 4),
-                    plant_cohorts_cell_id=np.arange(2, 6),
-                    plant_cohorts_dbh=np.array([0.1] * 4),
-                ),
-            ),
-            pytest.raises(ValueError),
-            ((CRITICAL, "Plant cohort data includes cell ids not in grid definition"),),
-            None,
-            id="bad cell ids",
-        ),
-        pytest.param(
-            DataFrame(
-                dict(
-                    plant_cohorts_n=np.array([5] * 4),
-                    plant_cohorts_pft=np.array(["tree"] * 4),
-                    plant_cohorts_cell_id=np.arange(4),
-                    plant_cohorts_dbh=np.array([0.1] * 4),
-                ),
-            ),
-            pytest.raises(ValueError),
-            ((CRITICAL, "Plant cohort data includes PFT names not in flora"),),
-            None,
-            id="bad pfts",
-        ),
-        pytest.param(
-            DataFrame(
-                dict(
-                    plant_cohorts_n=np.array([5] * 4),
-                    plant_cohorts_pft=np.array(["shrub"] * 4),
-                    plant_cohorts_cell_id=np.arange(4),
-                    plant_cohorts_dbh=np.array([0.1] * 4),
-                ),
-            ),
-            does_not_raise(),
-            ((INFO, "Plant cohort data loaded"),),
-            (1, 1, 1, 1),
-            id="all good",
-        ),
-        pytest.param(
-            DataFrame(
-                dict(
-                    plant_cohorts_n=np.array([5] * 10),
-                    plant_cohorts_pft=np.array(["shrub", "broadleaf"] * 5),
-                    plant_cohorts_cell_id=np.repeat(np.arange(4), np.arange(1, 5)),
-                    plant_cohorts_dbh=np.array([0.1] * 10),
-                ),
-            ),
-            does_not_raise(),
-            ((INFO, "Plant cohort data loaded"),),
-            (1, 2, 3, 4),
-            id="all good more complex",
-        ),
-    ],
-)
-def test_PlantCommunities__init__(
-    caplog, fixture_flora, cohort_data, raises, exp_log, exp_n_cohorts
-):
-    """Test the data handling of the PlantCommunities __init__."""
+    def test_PlantCommunities__init__(
+        self,
+        caplog,
+        fixture_flora,
+        fixture_core_components,
+        cohort_data,
+        raises,
+        exp_log,
+        expected_cids,
+        n_cohorts,
+    ):
+        """Test the data handling of the PlantCommunities __init__."""
 
-    from pyrealm.demography.cohorts import cohort_id_generator
+        from pyrealm.demography.cohorts import cohort_id_generator
 
-    from virtual_ecosystem.core.grid import Grid
-    from virtual_ecosystem.models.plants.communities import PlantCommunities
+        from virtual_ecosystem.models.plants.communities import PlantCommunities
 
-    grid = Grid(cell_ny=2, cell_nx=2)
+        # Clear any data loading log entries
+        caplog.clear()
 
-    # Clear any data loading log entries
-    caplog.clear()
+        with raises:
+            plants_obj = PlantCommunities(
+                cohort_data=cohort_data,
+                flora=fixture_flora,
+                grid=fixture_core_components.grid,
+                cohort_id_generator=cohort_id_generator(),
+            )
 
-    with raises:
-        plants_obj = PlantCommunities(
-            cohort_data=cohort_data,
-            flora=fixture_flora,
-            grid=grid,
-            cohort_id_generator=cohort_id_generator(),
-        )
-
-        if isinstance(raises, does_not_raise):
             # Check the expected contents of plants_obj
             assert len(plants_obj) == 4
             cids = {0, 1, 2, 3}
             assert set(plants_obj.keys()) == cids
-            for cid in cids:
-                assert len(plants_obj[cid].cohorts) == exp_n_cohorts[cid]
+            # Check the number of cohorts per community
+            assert {k: len(v.cohorts) for k, v in plants_obj.items()} == n_cohorts
 
-    log_check(caplog, expected_log=exp_log)
+            # Plant communities adds a log message on success
+            exp_log = (exp_log[0], (INFO, "Plant cohort data loaded"))
+
+        log_check(caplog, expected_log=exp_log)
