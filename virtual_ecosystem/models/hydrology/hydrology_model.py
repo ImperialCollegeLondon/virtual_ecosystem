@@ -629,7 +629,15 @@ class HydrologyModel(
             # TODO: implement sublimation calculation, [mm]
             sublimation_snow = np.zeros(self.grid.n_cells, dtype=float)
             # TODO: implement rain-driven snowmelt, [mm]
-            rain_driven_snowmelt = np.zeros(self.grid.n_cells, dtype=float)
+            rain_driven_snowmelt = above_ground.calculate_rain_driven_snowmelt(
+                air_temperature=self.data["air_temperature"][
+                    self.layer_structure.index_surface_scalar
+                ].to_numpy(),
+                rainfall=hydro_input["current_precipitation"][:, day],
+                rain_driven_snowmelt_coefficient=(
+                    self.model_constants.rain_driven_snowmelt_coefficient
+                ),
+            )
 
             #  Update snow water equivalent, [mm]
             snow_water_equivalent = above_ground.update_snow_water_equivalent(

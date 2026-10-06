@@ -756,3 +756,65 @@ def test_calculate_snowmelt_is_nonnegative():
     assert result.ndim == 1
     assert np.all(result >= 0.0)
     np.testing.assert_array_equal(result, 0.0)
+
+
+@pytest.mark.parametrize(
+    "air_temperature, rainfall, expected_melt",
+    [
+        # Sub-zero temperature: no melt
+        (np.array([-5.0, -1.0]), np.array([10.0, 5.0]), np.array([0.0, 0.0])),
+        # Zero temperature: no melt
+        (np.array([0.0, 0.0]), np.array([10.0, 5.0]), np.array([0.0, 0.0])),
+        # Positive temperature, zero rainfall: no melt
+        (np.array([5.0, 10.0]), np.array([0.0, 0.0]), np.array([0.0, 0.0])),
+        # Positive temperature and rainfall: melt proportional to both
+        (
+            np.array([2.0, 4.0]),
+            np.array([10.0, 20.0]),
+            np.array([0.0125 * 2.0 * 10.0, 0.0125 * 4.0 * 20.0]),
+        ),
+        # Mixed temperatures: only positive contributes
+        (
+            np.array([-3.0, 5.0]),
+            np.array([10.0, 10.0]),
+            np.array([0.0, 0.0125 * 5.0 * 10.0]),
+        ),
+    ],
+)
+def test_calculate_rain_driven_snowmelt_parametrized(
+    air_temperature, rainfall, expected_melt
+):
+    """Rainfall-driven snowmelt is correctly calculated across a range of conditions."""
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_rain_driven_snowmelt,
+    )
+
+    result = calculate_rain_driven_snowmelt(
+        air_temperature=air_temperature,
+        rainfall=rainfall,
+        rain_driven_snowmelt_coefficient=0.0125,
+    )
+
+    assert result.ndim == 1
+    np.testing.assert_allclose(result, expected_melt, rtol=1e-10)
+
+
+def test_calculate_rain_driven_snowmelt_is_nonnegative():
+    """Melt is always non-negative and zero for all sub-zero temperatures."""
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_rain_driven_snowmelt,
+    )
+
+    rng = np.random.default_rng(0)
+    air_temperature = rng.uniform(-20.0, 0.0, size=20)  # all sub-zero
+    rainfall = rng.uniform(0.0, 50.0, size=20)
+
+    result = calculate_rain_driven_snowmelt(
+        air_temperature=air_temperature,
+        rainfall=rainfall,
+        rain_driven_snowmelt_coefficient=0.0125,
+    )
+
+    assert result.ndim == 1
+    assert np.all(result >= 0.0)
+    np.testing.assert_array_equal(result, 0.0)
