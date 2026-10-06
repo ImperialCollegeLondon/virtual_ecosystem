@@ -504,6 +504,41 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Snowfall as part of total precipitation"
+name = "snowfall"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Snow water equivalent is the depth of liquid water that would result if an entire snowpack melted instantly"
+name = "snow_water_equivalent"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Temperature driven snow melt"
+name = "temperature_driven_snowmelt"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rain driven snow melt"
+name = "rain_driven_snowmelt"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Sublimation is the process where snow turns directly from a solid (ice) into a gas (water vapor) without melting into liquid first"
+name = "sublimation_snow"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Soil temperature profile"
 name = "soil_temperature"
 unit = "C"
@@ -945,13 +980,6 @@ variable_type = "integer"
 
 [[variable]]
 axis = ["spatial"]
-description = "Plant reproductive tissue non-propagule turnover since last update"
-name = "fallen_non_propagule_c_mass"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Proportion of stem carbon that is lignin carbon"
 name = "stem_lignin"
 unit = "unitless"
@@ -984,28 +1012,6 @@ description = "Carbon:phosphorus ratio of plant reproductive tissue turnover"
 name = "fruit_seed_c_p_ratio"
 unit = "-"
 variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Nitrogen in plant reproductive and tissue turnover"
-name = "plant_rt_turnover_n_mass"
-unit = "kg N"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of Phosphorus in plant reproductive and tissue turnover"
-name = "plant_rt_turnover_p_mass"
-unit = "kg P"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Mass of plant reproductive tissue turnover"
-name = "plant_reproductive_tissue_turnover"
-unit = "kg C"
-variable_type = "float"
-
 
 [[variable]]
 axis = ["spatial"]
@@ -1121,13 +1127,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "The leaf mass within each canopy layer."
-name = "layer_leaf_mass"
-unit = "kg"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Amount of bacterial enzyme class which breaks down particulate organic matter"
 name = "soil_enzyme_pom_bacteria"
 unit = "kg{C} m^-3"
@@ -1152,20 +1151,6 @@ axis = ["spatial"]
 description = "Amount of fungal enzyme class which breaks down mineral associated organic matter"
 name = "soil_enzyme_maom_fungi"
 unit = "kg{C} m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon biomass of vegetation growing underneath the canopy."
-name = "subcanopy_vegetation_biomass"
-unit = "kg C m^-2"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Carbon biomass of subcanopy seedbank."
-name = "subcanopy_seedbank_biomass"
-unit = "kg C m^-2"
 variable_type = "float"
 
 [[variable]]
@@ -1232,10 +1217,10 @@ unit = "kg"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # elements
 description = "C, N, and P masses for subcanopy vegetation"
 name = "subcanopy_vegetation_cnp"
-unit = "kg"
+unit = "kg m-2"
 variable_type = "float"
 
 [[variable]]
@@ -1260,10 +1245,10 @@ unit = "kg C m^-2"
 variable_type = "float"
 
 [[variable]]
-axis = ["spatial"]
+axis = ["spatial"] # elements
 description = "C, N, and P masses for the subcanopy seedbank CNP"
 name = "subcanopy_seedbank_cnp"
-unit = "kg"
+unit = "kg m2"
 variable_type = "float"
 
 [[variable]]
@@ -1341,6 +1326,13 @@ axis = ["spatial"]
 description = "Rate of decay (C, N, and P) of fallen fruit into the soil"
 name = "fallen_fruit_decay_cnp"
 unit = "kg m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Light use efficiency of the P Model."
+name = "light_use_efficiency"
+unit = "gC mol-1"
 variable_type = "float"
 
 ## Everything below here added 2026-01-26 by David to meet new requirements for 

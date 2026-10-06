@@ -52,12 +52,13 @@ def test_litter_model_initialization_no_data(
 ):
     """Test `LitterModel` initialization fails when all data is missing."""
     from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.exceptions import InitialisationError
     from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     caplog.clear()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(InitialisationError):
         # Make four cell grid
         grid = Grid(cell_nx=4, cell_ny=1)
         litter_data = Data(grid)

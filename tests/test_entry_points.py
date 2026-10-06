@@ -7,7 +7,6 @@ import shutil
 import subprocess
 from contextlib import nullcontext as does_not_raise
 from importlib.metadata import version
-from pathlib import Path
 
 import pytest
 
@@ -75,17 +74,17 @@ def test_version():
         ),
     ),
 )
-def test__parse_cli_paths(tmpdir, inputs, outcome, excep_message):
+def test__parse_cli_paths(tmp_path, inputs, outcome, excep_message):
     """Test the path parsing function for the command line."""
 
     from virtual_ecosystem.entry_points import _parse_cli_paths
 
     # Create some temporary files for checking file
-    (Path(tmpdir) / "file_one.nc").touch()
-    (Path(tmpdir) / "file_=_two.nc").touch()
+    (tmp_path / "file_one.nc").touch()
+    (tmp_path / "file_=_two.nc").touch()
 
-    # Sub in the tmpdir
-    inputs = [i.replace("TMPDIR", str(tmpdir)) for i in inputs]
+    # Sub in the tmp_path
+    inputs = [i.replace("TMPDIR", str(tmp_path)) for i in inputs]
 
     with outcome as excep:
         _parse_cli_paths(inputs)

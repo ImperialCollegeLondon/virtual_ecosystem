@@ -52,7 +52,15 @@ INITIALISATION_LOG = [
                         "The update interval is faster than the litter "
                         "lower bound of 30 minute.",
                     ),
-                    (CRITICAL, "Configuration failed for models: litter"),
+                    (
+                        CRITICAL,
+                        "Configuration and initialisation failed for litter model",
+                    ),
+                    (
+                        CRITICAL,
+                        "Configuration and initialisation failed for the following "
+                        "models: litter",
+                    ),
                 ],
             ),
             id="update interval too short",
@@ -69,7 +77,15 @@ INITIALISATION_LOG = [
                         "The update interval is slower than the litter "
                         "upper bound of 3 month.",
                     ),
-                    (CRITICAL, "Configuration failed for models: litter"),
+                    (
+                        CRITICAL,
+                        "Configuration and initialisation failed for litter model",
+                    ),
+                    (
+                        CRITICAL,
+                        "Configuration and initialisation failed for the following "
+                        "models: litter",
+                    ),
                 ],
             ),
             id="update interval too long",

@@ -755,3 +755,37 @@ def test_multidimensional_array():
     arr = np.array([[10, 60], [30, 40]])
     with pytest.raises(AssertionError, match="above 50"):
         finite_and_within(arr, 0, 50, "test_var")
+
+
+@pytest.mark.parametrize(
+    ("value", "shape", "expected"),
+    [
+        (2.5, (2, 3), np.full((2, 3), 2.5)),
+        (
+            np.array([1.0, 2.0, 3.0]),
+            (2, 3),
+            np.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]),
+        ),
+    ],
+)
+def test_to_shape_broadcasts_valid_inputs(value, shape, expected):
+    """Test to_shape broadcasts valid inputs correctly."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import to_shape
+
+    result = to_shape(value=value, shape=shape, name="test_value")
+    assert result.shape == expected.shape
+    assert result.dtype == float
+    np.testing.assert_allclose(result, expected)
+
+
+def test_to_shape_raises_for_invalid_broadcast():
+    """Test to_shape raises error for invalid broadcast."""
+    from virtual_ecosystem.models.abiotic.abiotic_tools import to_shape
+
+    with pytest.raises(
+        ValueError,
+        match=r"test_value could not be broadcast to shape \(2, 3\)\. "
+        r"Received shape \(2,\)\.",
+    ):
+        to_shape(value=np.array([1.0, 2.0]), shape=(2, 3), name="test_value")

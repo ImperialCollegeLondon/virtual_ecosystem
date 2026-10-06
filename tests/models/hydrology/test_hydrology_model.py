@@ -18,6 +18,11 @@ MODEL_VAR_CHECK_LOG = [
         "successfully extracted.",
     ),
     (INFO, "hydrology model: required initial data variables checked"),
+    (INFO, "Adding data array for 'snowfall'"),
+    (INFO, "Adding data array for 'snow_water_equivalent'"),
+    (INFO, "Adding data array for 'temperature_driven_snowmelt'"),
+    (INFO, "Adding data array for 'rain_driven_snowmelt'"),
+    (INFO, "Adding data array for 'sublimation_snow'"),
     (INFO, "Adding data array for 'soil_moisture'"),
     (INFO, "Adding data array for 'matric_potential'"),
     (INFO, "Adding data array for 'condensation'"),
@@ -275,6 +280,8 @@ def test_setup_and_update_hydrology_model_ranges(
     # Test ranges for 1D variables
     for var_name in [
         "total_runoff",
+        "precipitation_surface",
+        "snowfall",
         "subsurface_stormflow",
         "surface_runoff",
         "surface_runoff_routed_plus_local",

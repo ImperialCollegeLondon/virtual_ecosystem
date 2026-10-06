@@ -24,7 +24,7 @@ def fixture_pyrealm_constants():
 
 
 @pytest.fixture
-def fixture_exporter(tmpdir, fixture_configuration):
+def fixture_exporter(tmp_path, fixture_configuration):
     """Construct a minimal CommunityDataExporter object.
 
     This exporter uses the default exporter settings that do not output plant community
@@ -38,7 +38,7 @@ def fixture_exporter(tmpdir, fixture_configuration):
         "plants", PlantsConfiguration
     )
     exporter = CommunityDataExporter.from_config(
-        output_directory=tmpdir, config=plants_config.community_data_export
+        output_directory=tmp_path, config=plants_config.community_data_export
     )
 
     return exporter
@@ -119,14 +119,20 @@ def plants_data(fixture_core_components, fixture_flora):
         },
     )
 
-    # Subcanopy vegetation masses kg C m2
-    data["subcanopy_vegetation_biomass"] = DataArray(
-        data=np.array([0.07] * n_cells),
-        coords={"cell_id": fixture_core_components.grid.cell_id},
+    # Subcanopy vegetation masses kg m-2, set up with np.nan values in elements to
+    # create from ideal values
+    subcanopy_masses = np.full((n_cells, 3), np.nan)
+    subcanopy_masses[:, 0] = 0.07
+    cell_stoich_coords = {
+        "cell_id": fixture_core_components.grid.cell_id,
+        "element": ["C", "N", "P"],
+    }
+
+    data["subcanopy_vegetation_cnp"] = DataArray(
+        data=subcanopy_masses.copy(), coords=cell_stoich_coords
     )
-    data["subcanopy_seedbank_biomass"] = DataArray(
-        data=np.array([0.07] * n_cells),
-        coords={"cell_id": fixture_core_components.grid.cell_id},
+    data["subcanopy_seedbank_cnp"] = DataArray(
+        data=subcanopy_masses.copy(), coords=cell_stoich_coords
     )
 
     # Adding soil variables
@@ -255,7 +261,6 @@ def fixture_canopy_layer_data(
             ("leaf_area_index_full", "leaf_area_index"),  #   + subcanopy vegetation
             ("layer_fapar_canopy", "layer_fapar"),  # canopy fapar
             ("layer_fapar_full", "layer_fapar"),  #   + subcanopy vegetation
-            ("layer_leaf_mass", "layer_leaf_mass"),
         )
     }
 
@@ -299,15 +304,6 @@ def fixture_canopy_layer_data(
             cnpy.community_data.average_layer_fapar
         )
 
-        # Leaf mass - calculate from stem leaf area
-        # TODO - maybe pyrealm should provide stem_leaf_mass?
-        expected["layer_leaf_mass"][1][cnpy_idx, idx] = (
-            cnpy.cohort_data.stem_leaf_area
-            * (1 / cmty.cohorts.sla.to_numpy())
-            * cmty.cohorts.lai.to_numpy()
-            * cmty.cohorts.n_individuals.to_numpy()
-        ).sum(axis=1)
-
     # Fill soil and surface layer depths
     expected["layer_heights_full"][1][lyr_struct.index_surface] = (
         lyr_struct.surface_layer_height
@@ -322,7 +318,7 @@ def fixture_canopy_layer_data(
 
     # - Beer Lambert transmission from subcanopy vegetation
     subcanopy_vegetation_lai = (
-        plants_data["subcanopy_vegetation_biomass"]
+        plants_data["subcanopy_vegetation_cnp"].sel(element="C")
         * fixture_plants_constants.subcanopy_specific_leaf_area
         * fixture_plants_constants.subcanopy_leaf_fraction
     )

@@ -8,13 +8,16 @@ from collections.abc import Sequence
 from math import asin, ceil, exp, isnan, log, pi
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy.special import expit
 
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.model_config import CoreConstants
+from virtual_ecosystem.models.animal.animal_climate import StratumClimate
 from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     MetabolicType,
+    VerticalOccupancy,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 from virtual_ecosystem.models.animal.model_config import AnimalConstants
@@ -1019,3 +1022,122 @@ def activity_window(
     p_below = p_below_t_min(temperature, diurnal_temp_range, t_min_val)
 
     return max(0.0, 1.0 - (p_above + p_below))
+
+
+def stratum_mean_climate(
+    vertical_occupancy: VerticalOccupancy,
+    climate: StratumClimate,
+) -> tuple[NDArray, NDArray]:
+    """Per-cell mean temperature and diurnal range over occupied strata.
+
+    The whole-grid analogue of
+    :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_stratum_climate`:
+    it averages the climate of the strata a functional group occupies, but for every
+    cell at once and independent of any cohort, so it can be computed a single time per
+    functional group per timestep.
+
+    The stratum-to-array mapping matches ``get_stratum_climate``:
+
+    * ``CANOPY`` — mean of filled canopy layer values.
+    * ``GROUND`` — surface layer value.
+    * ``SOIL``   — topsoil layer value.
+
+    TODO: this duplicates the stratum-selection logic in
+    :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_stratum_climate`.
+    Unify the two once that method is refactored to take a ``StratumClimate``.
+
+    Args:
+        vertical_occupancy: The strata the functional group occupies.
+        climate: Per-cell, per-stratum climate for the current timestep.
+
+    Returns:
+        Two ``(n_cells,)`` arrays: the mean temperature and mean diurnal range across
+        the occupied strata, cell by cell.
+
+    Raises:
+        ValueError: If ``vertical_occupancy`` contains no recognised strata.
+    """
+
+    temps: list[NDArray] = []
+    diurnal: list[NDArray] = []
+
+    if vertical_occupancy & VerticalOccupancy.CANOPY:
+        temps.append(climate.canopy_temperature)
+        diurnal.append(climate.canopy_diurnal_range)
+
+    if vertical_occupancy & VerticalOccupancy.GROUND:
+        temps.append(climate.ground_temperature)
+        diurnal.append(climate.ground_diurnal_range)
+
+    if vertical_occupancy & VerticalOccupancy.SOIL:
+        temps.append(climate.soil_temperature)
+        diurnal.append(climate.soil_diurnal_range)
+
+    if not temps:
+        raise ValueError(
+            f"No recognised vertical occupancy flags in: {vertical_occupancy}"
+        )
+
+    return np.mean(temps, axis=0), np.mean(diurnal, axis=0)
+
+
+def thermal_suitability(
+    metabolic_type: MetabolicType,
+    temperature: NDArray,
+    diurnal_temp_range: NDArray,
+    annual_mean_temp: float,
+    annual_temp_sd: float,
+    t_opt: float | None = None,
+    t_max_crit: float | None = None,
+    t_min_crit: float | None = None,
+    constants: AnimalConstants = AnimalConstants(),
+) -> NDArray:
+    """Per-cell habitat suitability for a functional group, in [0, 1].
+
+    The per-cell analogue of ``sigma_f_t``: the activity window fraction a cohort of
+    this functional group would experience in each cell, given the current per-cell
+    stratum climate. Suitability depends only on the functional group and the cell, so
+    it is computed once per functional group and cached for all cohorts of that group.
+
+    Delegates to :func:`activity_window` cell by cell rather than re-deriving the
+    thermal maths, so the two cannot drift. Endotherms return 1.0 in every cell, which
+    makes thermal habitat selection inert for them by construction.
+
+    Args:
+        metabolic_type: Whether the functional group is endothermic or ectothermic.
+        temperature: Per-cell mean temperature over occupied strata [°C],
+            shape ``(n_cells,)``.
+        diurnal_temp_range: Per-cell mean diurnal range over occupied strata [°C],
+            shape ``(n_cells,)``.
+        annual_mean_temp: Annual mean ambient temperature [°C].
+        annual_temp_sd: Standard deviation of monthly temperatures across the
+            climatological year [°C].
+        t_opt: Optional optimal activity temperature [°C]. See :func:`activity_window`.
+        t_max_crit: Optional upper critical temperature [°C]. See ``t_opt``.
+        t_min_crit: Optional lower critical temperature [°C]. See ``t_opt``.
+        constants: Animal constants supplying the activity window parameters, used only
+            when ``t_opt``, ``t_max_crit``, and ``t_min_crit`` are not all provided.
+
+    Returns:
+        A ``(n_cells,)`` array of suitability values in [0, 1].
+    """
+
+    if metabolic_type == MetabolicType.ENDOTHERMIC:
+        return np.ones(temperature.shape)
+
+    return np.array(
+        [
+            activity_window(
+                metabolic_type=metabolic_type,
+                temperature=float(t),
+                diurnal_temp_range=float(d),
+                annual_mean_temp=annual_mean_temp,
+                annual_temp_sd=annual_temp_sd,
+                t_opt=t_opt,
+                t_max_crit=t_max_crit,
+                t_min_crit=t_min_crit,
+                constants=constants,
+            )
+            for t, d in zip(temperature, diurnal_temp_range)
+        ]
+    )

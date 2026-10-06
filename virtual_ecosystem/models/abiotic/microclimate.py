@@ -32,8 +32,8 @@ def prepare_static_inputs(
 
     These are inputs that do not change during the hourly loop, but can vary in space
     and between VE time steps. They include canopy height, sum over canopy leaf area
-    index, atmospheric pressure and CO2 profiles, absorbed longwave radiation, and cell
-    area.
+    index, atmospheric pressure and CO2 profiles, absorbed longwave radiation,
+    volumetric soil moisture, and cell area.
 
     If there is no canopy, canopy height and leaf area index sum are set to zero.
 
@@ -61,6 +61,12 @@ def prepare_static_inputs(
 
     # Evapotranspiration from plant and hydrology model, [mm per time interval]
     evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+
+    # Soil moisture, [m3 m-3]
+    soil_moisture_volumetric = layer_structure.from_template()
+    soil_moisture_volumetric[idx.soil] = (
+        data["soil_moisture"][idx.soil].to_numpy() / core_constants.meters_to_mm
+    ) / layer_structure.soil_layer_thickness[:, np.newaxis]
 
     # Atmospheric pressure profile set to reference value, [kPa]
     atmospheric_pressure = abiotic_tools.update_profile_from_reference(
@@ -118,6 +124,7 @@ def prepare_static_inputs(
         "geometry": atmospheric_layer_geometry,
         "absorbed_longwave_radiation": absorbed_longwave_radiation,
         "cell_area": cell_area,
+        "soil_moisture_volumetric": soil_moisture_volumetric,
     }
 
 
@@ -892,10 +899,17 @@ def run_hour_step(
         ground_heat_flux=state["ground_heat_flux"],
         soil_temperature=state["soil_temperature"][idx.soil],
         soil_layer_thickness=layer_structure.soil_layer_thickness,
-        soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
+        soil_moisture_volumetric=static["soil_moisture_volumetric"][idx.soil],
+        soil_porosity=abiotic_constants.soil_porosity,
+        soil_thermal_conductivity_dry=abiotic_constants.soil_thermal_conductivity_dry,
+        soil_thermal_conductivity_saturated=abiotic_constants.soil_thermal_conductivity_saturated,
         soil_bulk_density=abiotic_constants.bulk_density_soil,
         specific_heat_capacity_soil=abiotic_constants.specific_heat_capacity_soil,
         time_interval=core_constants.seconds_to_hour,
+        density_water=core_constants.density_water,
+        specific_heat_capacity_water=core_constants.specific_heat_capacity_water,
+        coarse_kersten_factor=abiotic_constants.coarse_kersten_factor,
+        is_coarse_textured=False,  # TODO find a way to pass this in from config
     )
     state["soil_temperature"][idx.soil] = soil_temperature
 

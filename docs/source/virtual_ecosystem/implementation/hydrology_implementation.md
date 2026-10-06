@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.5
+    jupytext_version: 1.19.6
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -685,6 +685,13 @@ plt.show()
 ```{note}
 To close the water balance, water needs to enter and leave the grid at some point. These
 boundaries are currently not implemented.
+```
+
+## Snow and ice
+
+```{note}
+The snow and freezing processes are currently not implemented; a design note is provided
+in the documentation of the abiotic model.
 ```
 
 ## Generated variables
