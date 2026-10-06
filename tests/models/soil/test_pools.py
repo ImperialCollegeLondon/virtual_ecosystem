@@ -150,6 +150,12 @@ def test_calculate_all_pool_updates(
             3.92029406e-06,
             2.69407247e-06,
         ],
+        "soil_respiration": [
+            0.00028582395193,
+            0.011805566713,
+            0.01353755468,
+            0.004935150175,
+        ],
     }
 
     # Make order of pools object
@@ -331,6 +337,30 @@ def test_calculate_microbial_changes(
             2.71058402e-06,
             3.92029406e-06,
             2.69407247e-06,
+        ],
+        "bacterial_respiration": [
+            0.0001138578,
+            0.0006805955,
+            0.0032067957,
+            3.0324783e-5,
+        ],
+        "saprotrophic_fungal_respiration": [
+            4.36782086e-05,
+            6.32509941e-03,
+            1.38736920e-03,
+            1.37674514e-04,
+        ],
+        "arbuscular_mycorrhizal_respiration": [
+            7.65595566e-05,
+            2.60993576e-03,
+            5.45173801e-03,
+            3.43037291e-03,
+        ],
+        "ectomycorrhizal_respiration": [
+            5.172838673e-5,
+            0.002189936043,
+            0.003491651770,
+            0.001336777968,
         ],
     }
 
