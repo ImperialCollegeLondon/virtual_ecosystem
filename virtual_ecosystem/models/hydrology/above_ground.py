@@ -39,11 +39,21 @@ def update_snow_water_equivalent(
 
     Returns:
         Updated SWE, [mm], clipped to zero
+
+    Raises:
+        Warning: If the updated SWE is negative for any grid cell, a warning is logged
     """
     delta_swe = (
         snowfall - temperature_driven_snowmelt - sublimation_snow - rain_driven_snowmelt
     )
-    return np.maximum(snow_water_equivalent + delta_swe, 0.0)
+    swe_updated = snow_water_equivalent + delta_swe
+
+    if np.any(swe_updated < 0.0):
+        LOGGER.warning(
+            "Snow water equivalent (SWE) is negative for some grid cells. "
+            "Setting SWE to zero for those cells."
+        )
+    return np.maximum(swe_updated, 0.0)
 
 
 def potential_evaporation_leaf(

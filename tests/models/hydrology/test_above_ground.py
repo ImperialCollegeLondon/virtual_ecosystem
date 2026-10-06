@@ -1,7 +1,7 @@
 """Test module for hydrology.above_ground.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import ERROR
+from logging import ERROR, WARNING
 
 import numpy as np
 import pytest
@@ -164,6 +164,56 @@ def test_update_snow_water_equivalent(
         f"Output shape {result.shape} does not match input shape "
         f"{snow_water_equivalent.shape}"
     )
+
+
+@pytest.mark.parametrize(
+    "swe,expected_log_entries",
+    [
+        (
+            np.array([10.0, 5.0]),
+            {},
+        ),
+        (
+            np.array([1.0, 5.0]),
+            (
+                (
+                    WARNING,
+                    "Snow water equivalent (SWE) is negative for some grid cells. "
+                    "Setting SWE to zero for those cells.",
+                ),
+            ),
+        ),
+    ],
+)
+def test_update_snow_water_equivalent_warns_on_negative_swe(
+    swe, expected_log_entries, caplog
+):
+    """A warning is emitted when losses exceed available SWE."""
+
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        update_snow_water_equivalent,
+    )
+
+    snowfall = np.array([0.0, 0.0])
+    temperature_driven_snowmelt = np.array([10.0, 5.0])
+    sublimation_snow = np.array([0.0, 0.0])
+    rain_driven_snowmelt = np.array([0.0, 0.0])
+
+    caplog.clear()
+
+    result = update_snow_water_equivalent(
+        snow_water_equivalent=swe,
+        snowfall=snowfall,
+        temperature_driven_snowmelt=temperature_driven_snowmelt,
+        sublimation_snow=sublimation_snow,
+        rain_driven_snowmelt=rain_driven_snowmelt,
+    )
+
+    # Result must be clipped to zero
+    assert np.all(result >= 0.0)
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)
 
 
 def test_potential_evaporation_leaf():
