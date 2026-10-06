@@ -477,6 +477,33 @@ class Grid:
 
         self._distances = squareform(pdist(self.centroids))
 
+    def map_cell_id_to_xy(
+        self,
+        cell_id: NDArray[np.integer],
+    ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+        """Map a set of coordinates onto grid cells.
+
+        This function loops over points defined by pairs of x and y coordinates and maps
+        the coordinates onto the cell_ids of the grid. The method also checks to see
+        that each point intersects one and only one of the cell polygons defined in the
+        grid. Points that intersect no cells fall outside the grid polygons and points
+        that intersect more than one cell fall ambiguously on cell borders.
+
+        Args:
+            cell_id: A numpy array of cell id values.
+
+        Returns:
+            A list giving arrays of the X and Y coordinates of the cell centroids for
+            each cell id value.
+        """
+
+        if not set(cell_id).issubset(self.cell_id):
+            raise ValueError("Unknown cell ids in map_cell_id_to_xy")
+
+        xy = self.centroids[cell_id, :]
+
+        return xy[:, 0], xy[:, 1]
+
     def map_xy_to_cell_id(
         self,
         x_coords: np.ndarray,

@@ -10,8 +10,6 @@ from logging import CRITICAL, ERROR, INFO
 import numpy as np
 import numpy.linalg as LA
 import pytest
-from hypothesis import given, settings
-from hypothesis.strategies import integers
 from scipy.spatial.distance import euclidean  # type: ignore
 
 from tests.conftest import log_check
@@ -24,9 +22,7 @@ hxs = np.sqrt(hxA / (1.5 * np.sqrt(3)))
 hxa = hxA / (3 * hxs)
 
 
-@settings(deadline=None)
-@given(integers(min_value=0, max_value=99))
-def test_make_square_grid(cell_id):
+def test_make_square_grid():
     """Test make_square_grid()."""
 
     from virtual_ecosystem.core.grid import make_square_grid
@@ -36,27 +32,27 @@ def test_make_square_grid(cell_id):
     # check if correct number of cells were created
     assert len(cids) == 100
 
-    # check number of vertices in outer ring is correct
-    xy = np.array(cpolys[cell_id].exterior.coords)
-    assert xy.shape == (5, 2)
+    # Probably overkill to check all cells
+    for cell_id in np.arange(100):
+        # check number of vertices in outer ring is correct
+        xy = np.array(cpolys[cell_id].exterior.coords)
+        assert xy.shape == (5, 2)
 
-    # check that distance between corner points is the same
-    distance = euclidean(xy[0], xy[2])
-    distance2 = euclidean(xy[1], xy[3])
+        # check that distance between corner points is the same
+        distance = euclidean(xy[0], xy[2])
+        distance2 = euclidean(xy[1], xy[3])
 
-    np.testing.assert_allclose(distance, distance2)
+        np.testing.assert_allclose(distance, distance2)
 
-    # If AB and AC are numpy arrays that go from point A to B and point A to C
-    # respectively, then they will form a ±90 deg angle if the inner product of the two
-    # segments is zero.
+        # If AB and AC are numpy arrays that go from point A to B and point A to C
+        # respectively, then they will form a ±90 deg angle if the inner product of the
+        # two segments is zero.
 
-    iprod = np.inner(xy[1] - xy[0], xy[3] - xy[0])
-    assert iprod == pytest.approx(0)
+        iprod = np.inner(xy[1] - xy[0], xy[3] - xy[0])
+        assert iprod == pytest.approx(0)
 
 
-@settings(deadline=None)
-@given(integers(min_value=0, max_value=99))
-def test_make_hex_grid(cell_id):
+def test_make_hex_grid():
     """Test make_hex_grid()."""
 
     from virtual_ecosystem.core.grid import make_hex_grid
@@ -66,23 +62,25 @@ def test_make_hex_grid(cell_id):
     # check if correct number of points were created
     assert len(cids) == 100
 
-    # check number of vertices in outer ring is correct
-    xy = np.array(cpolys[cell_id].exterior.coords)
-    assert xy.shape == (7, 2)
+    # Probably overkill to check all hexes
+    for cell_id in np.arange(100):
+        # check number of vertices in outer ring is correct
+        xy = np.array(cpolys[cell_id].exterior.coords)
+        assert xy.shape == (7, 2)
 
-    # check that distance between corner points is the same
-    distance = euclidean(xy[0], xy[3])
-    distance2 = euclidean(xy[1], xy[4])
-    distance3 = euclidean(xy[2], xy[5])
-    np.testing.assert_allclose(distance, distance2, distance3)
+        # check that distance between corner points is the same
+        distance = euclidean(xy[0], xy[3])
+        distance2 = euclidean(xy[1], xy[4])
+        distance3 = euclidean(xy[2], xy[5])
+        np.testing.assert_allclose(distance, distance2, distance3)
 
-    # check that angle between points = 60 deg
-    inner = np.inner(xy[0] - xy[1], xy[0] - xy[3])
-    norms = LA.norm(xy[0] - xy[1]) * LA.norm(xy[0] - xy[3])
+        # check that angle between points = 60 deg
+        inner = np.inner(xy[0] - xy[1], xy[0] - xy[3])
+        norms = LA.norm(xy[0] - xy[1]) * LA.norm(xy[0] - xy[3])
 
-    cos = inner / norms
-    rad = np.arccos(np.clip(cos, -1.0, 1.0))
-    assert np.rad2deg(rad) == pytest.approx(60)
+        cos = inner / norms
+        rad = np.arccos(np.clip(cos, -1.0, 1.0))
+        assert np.rad2deg(rad) == pytest.approx(60)
 
 
 @pytest.mark.parametrize(
@@ -631,3 +629,35 @@ def test_map_xy_to_cell_indexing_return(
 
     assert np.allclose(exp_x, x_idx)
     assert np.allclose(exp_y, y_idx)
+
+
+@pytest.mark.parametrize(
+    argnames="cell_ids, outcome, msg",
+    argvalues=(
+        pytest.param(np.arange(100), does_not_raise(), None, id="ok"),
+        pytest.param(
+            np.arange(-5, 105),
+            pytest.raises(ValueError),
+            "Unknown cell ids in map_cell_id_to_xy",
+            id="ok",
+        ),
+    ),
+)
+def test_map_cell_id_to_xy(fixture_square_grid, cell_ids, outcome, msg):
+    """Test mapping of cell_id back to XY coordinates."""
+
+    with outcome as excep:
+        xx, yy = fixture_square_grid.map_cell_id_to_xy(np.array(cell_ids))
+
+        lx, ly, ux, uy = fixture_square_grid.bounds
+        by = np.sqrt(fixture_square_grid.cell_area)
+
+        assert np.array_equal(
+            xx, np.tile(np.arange(lx, ux, by), fixture_square_grid.cell_nx) + by / 2
+        )
+        assert np.array_equal(
+            yy, np.repeat(np.arange(uy, ly, -by), fixture_square_grid.cell_ny) - by / 2
+        )
+
+    if msg is not None:
+        assert str(excep.value) == msg
