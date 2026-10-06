@@ -620,6 +620,7 @@ class PlantsModel(
         exporter = CommunityDataExporter.from_config(
             output_directory=core_configuration.data_output_options.out_path,
             config=model_configuration.community_data_export,
+            grid=core_components.grid,
         )
 
         # Try and create the instance - safeguard against exceptions from __init__
