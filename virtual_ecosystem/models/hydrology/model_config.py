@@ -194,6 +194,23 @@ class HydrologyConstants(Configuration):
     :cite:t:`jennings_spatial_2018`.
     """
 
+    heat_capacity_ice: float = 2090.0
+    """Specific heat capacity of ice, [J kg-1 K-1].
+    
+    The specific heat capacity of ice is the amount of heat energy required to raise
+    the temperature of a unit mass of ice by one degree Celsius (or Kelvin). The value
+    of 2090 J kg-1 K-1 is a commonly accepted average for the specific heat capacity of
+    ice at temperatures between 0°C and -10°C.
+    """
+
+    latent_heat_fusion: float = 334000.0
+    """Latent heat of fusion of ice, [J kg-1].
+    
+    The latent heat of fusion is the amount of energy required to change a unit mass
+    of a substance from solid to liquid at its melting point. For ice, this value is
+    commonly accepted as 334000 J kg-1.
+    """
+
 
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration class for the hydrology model."""

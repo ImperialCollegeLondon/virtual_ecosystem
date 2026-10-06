@@ -661,3 +661,98 @@ def test_calculate_surface_runoff():
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)
+
+
+# Physical constants for snowmelt calculations
+heat_capacity_ice = 2090.0  # J kg-1 K-1
+latent_heat_fusion = 334000.0  # J kg-1
+
+
+@pytest.mark.parametrize(
+    "snow_water_equivalent, surface_temperature, expected_melt",
+    [
+        # Sub-zero temperature: no melt
+        (np.array([100.0, 50.0]), np.array([-5.0, -1.0]), np.array([0.0, 0.0])),
+        # Zero temperature: no melt
+        (np.array([100.0, 50.0]), np.array([0.0, 0.0]), np.array([0.0, 0.0])),
+        # Positive temperature: melt fraction of SWE
+        (
+            np.array([100.0, 50.0]),
+            np.array([10.0, 5.0]),
+            np.array(
+                [
+                    min(100.0, (heat_capacity_ice * 10.0 / latent_heat_fusion) * 100.0),
+                    min(50.0, (heat_capacity_ice * 5.0 / latent_heat_fusion) * 50.0),
+                ]
+            ),
+        ),
+        # Melt capped by SWE: very high temperature, small snowpack
+        (
+            np.array([0.1, 0.5]),
+            np.array([100.0, 200.0]),
+            np.array([0.062575, 0.5]),
+        ),
+        # Zero SWE: no melt regardless of temperature
+        (np.array([0.0, 0.0]), np.array([10.0, 20.0]), np.array([0.0, 0.0])),
+    ],
+)
+def test_calculate_snowmelt_parametrized(
+    snow_water_equivalent, surface_temperature, expected_melt
+):
+    """Snowmelt is correctly calculated across a range of conditions."""
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_temperature_driven_snowmelt,
+    )
+
+    result = calculate_temperature_driven_snowmelt(
+        snow_water_equivalent=snow_water_equivalent,
+        surface_temperature=surface_temperature,
+        heat_capacity_ice=heat_capacity_ice,
+        latent_heat_fusion=latent_heat_fusion,
+    )
+
+    assert result.ndim == 1
+    np.testing.assert_allclose(result, expected_melt, rtol=1e-5, atol=1e-5)
+
+
+def test_calculate_snowmelt_never_exceeds_swe():
+    """Melt never exceeds available snow water equivalent."""
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_temperature_driven_snowmelt,
+    )
+
+    rng = np.random.default_rng(42)
+    snow_water_equivalent = rng.uniform(0.0, 200.0, size=20)
+    surface_temperature = rng.uniform(-10.0, 50.0, size=20)
+
+    result = calculate_temperature_driven_snowmelt(
+        snow_water_equivalent=snow_water_equivalent,
+        surface_temperature=surface_temperature,
+        heat_capacity_ice=heat_capacity_ice,
+        latent_heat_fusion=latent_heat_fusion,
+    )
+
+    assert result.ndim == 1
+    assert np.all(result <= snow_water_equivalent)
+
+
+def test_calculate_snowmelt_is_nonnegative():
+    """Melt is always non-negative and zero for all sub-zero temperatures."""
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_temperature_driven_snowmelt,
+    )
+
+    rng = np.random.default_rng(0)
+    snow_water_equivalent = rng.uniform(0.0, 200.0, size=20)
+    surface_temperature = rng.uniform(-20.0, 0.0, size=20)  # all sub-zero
+
+    result = calculate_temperature_driven_snowmelt(
+        snow_water_equivalent=snow_water_equivalent,
+        surface_temperature=surface_temperature,
+        heat_capacity_ice=heat_capacity_ice,
+        latent_heat_fusion=latent_heat_fusion,
+    )
+
+    assert result.ndim == 1
+    assert np.all(result >= 0.0)
+    np.testing.assert_array_equal(result, 0.0)

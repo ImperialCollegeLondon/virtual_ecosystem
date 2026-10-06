@@ -792,3 +792,41 @@ def calculate_surface_runoff(
         precipitation_surface - free_saturation_mm,
         0,
     )
+
+
+def calculate_temperature_driven_snowmelt(
+    snow_water_equivalent: NDArray[np.floating],
+    surface_temperature: NDArray[np.floating],
+    heat_capacity_ice: float,
+    latent_heat_fusion: float,
+) -> NDArray[np.floating]:
+    r"""Calculate temperature-driven snowmelt, [mm].
+
+    Melt is calculated from the energy available to warm the snowpack to
+    :math:`0\,^{\circ}\mathrm{C}`, expressed as a fraction of the latent heat
+    required for phase change:
+
+    .. math::
+
+        M = \min \left(S,\, \frac{c_{\mathrm{ice}}\,\max(T_{s}, 0)}{L_{f}} S \right)
+
+    where :math:`c_{\mathrm{ice}}` (:math:`\mathrm{J\,kg^{-1}\,K^{-1}}`) is the
+    heat capacity of ice, :math:`L_{f}` (:math:`\mathrm{J\,kg^{-1}}`) is the latent
+    heat of fusion of ice, and :math:`S` is the snow water equivalent. The
+    :math:`\min` operator ensures that melt cannot exceed the available snow water
+    equivalent.
+
+    Args:
+        snow_water_equivalent: Snow water equivalent, [mm]
+        surface_temperature: Surface temperature, [°C]
+        heat_capacity_ice: Specific heat capacity of ice, [J kg-1 K-1]
+        latent_heat_fusion: Latent heat of fusion of ice, [J kg-1]
+
+    Returns:
+        Snowmelt, [mm]
+    """
+    temperature_above_freezing = np.maximum(surface_temperature, 0.0)
+    melt_fraction = (
+        heat_capacity_ice * temperature_above_freezing
+    ) / latent_heat_fusion
+    return np.minimum(snow_water_equivalent, melt_fraction * snow_water_equivalent)

@@ -614,8 +614,18 @@ class HydrologyModel(
             # Snow routine
             # NOTE: This will be implemented in small steps as part of #1696
 
-            # TODO: implement snowmelt, [mm]
-            temperature_driven_snowmelt = np.zeros(self.grid.n_cells, dtype=float)
+            # Temperature driven snowmelt, [mm]
+            temperature_driven_snowmelt = (
+                above_ground.calculate_temperature_driven_snowmelt(
+                    snow_water_equivalent=snow_water_equivalent,
+                    surface_temperature=self.data["air_temperature"][
+                        self.layer_structure.index_surface_scalar
+                    ].to_numpy(),
+                    heat_capacity_ice=self.model_constants.heat_capacity_ice,
+                    latent_heat_fusion=self.model_constants.latent_heat_fusion,
+                )
+            )
+
             # TODO: implement sublimation calculation, [mm]
             sublimation_snow = np.zeros(self.grid.n_cells, dtype=float)
             # TODO: implement rain-driven snowmelt, [mm]
