@@ -319,6 +319,7 @@ class BiomassTissueABC(ABC):
         of cohorts and then an element dimension containing C and then each element.
         """
         self.elemental_masses -= herbivory_array.to_numpy()
+        self.elemental_masses.clip(min=0.0, out=self.elemental_masses)
 
 
 class FoliageBiomass(BiomassTissueABC):

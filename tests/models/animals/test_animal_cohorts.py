@@ -140,6 +140,15 @@ class TestAnimalCohort:
             expected_mass, rel=1e-6
         )
 
+    def test_grow_handles_valid_intake(self, herbivore_cohort_instance):
+        """Test the grow method returns a valid waste dict for positive intake."""
+        intake = {"C": 1.0, "N": 0.2, "P": 0.02}
+
+        waste = herbivore_cohort_instance.grow(intake)
+
+        assert set(waste) == {"C", "N", "P"}
+        assert all(value >= 0.0 for value in waste.values())
+
     @pytest.mark.parametrize(
         "cohort_type, dt, initial_mass, temperature, expected_final_mass, error_type,"
         "metabolic_rate_return_value",
