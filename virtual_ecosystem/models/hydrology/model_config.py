@@ -219,6 +219,13 @@ class HydrologyConstants(Configuration):
     :cite:p:`kearney_how_2020`.
     """
 
+    magnus_coefficients_ice: tuple[float, float, float] = (611.2, 22.46, 272.62)
+    """Magnus formula coefficients for ice.
+    
+    :math:`c_1` is the base pressure [Pa], :math:`c_2` is the numerator coefficient [-],
+    and :math:`c_3` is the denominator offset [°C].
+    """
+
 
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration class for the hydrology model."""
