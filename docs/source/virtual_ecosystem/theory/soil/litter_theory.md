@@ -263,7 +263,7 @@ respiration is the sum of the respiration from the above-ground metabolic, above
 structural and woody litter pools, and is what would generally be considered "litter
 respiration". Below-ground litter respiration is the sum of the respiration from the
 below-ground metabolic and below-ground structural litter pools, and from an empirical
-perspective is a component of soil respiration. However, we treat below-ground litter
+perspective is a subset component of soil respiration. However, we treat below-ground litter
 respiration as a separate output variable so that the impacts of the soil and litter
 models are clearly delineated.
 
