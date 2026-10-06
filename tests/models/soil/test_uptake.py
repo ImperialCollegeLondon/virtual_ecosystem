@@ -8,12 +8,14 @@ import pytest
     argnames=[
         "symbiotic",
         "expected_carbon_gain",
+        "expected_respiration",
         "expected_consumption_rates",
     ],
     argvalues=[
         pytest.param(
             False,
             [6.89926508e-5, 3.74098005e-4, 1.59890957e-3, 2.71401712e-5],
+            [0.0001138578, 0.0006805955, 0.0032067957, 3.0324783e-5],
             {
                 "organic_nitrogen": [
                     1.53076713e-05,
@@ -57,6 +59,7 @@ import pytest
         pytest.param(
             True,
             [2.77706145e-05, 1.06645929e-03, 1.54241078e-03, 1.05996294e-03],
+            [5.172838673e-5, 0.002189936043, 0.003491651770, 0.001336777968],
             {
                 "carbon": [-0.00691661, -0.1715943, -0.0, -0.00074486],
                 "organic_nitrogen": [0.0, 0.0, 0.0, 0.0],
@@ -97,6 +100,7 @@ def test_calculate_nutrient_uptake_rates(
     carbon_supply_from_plants,
     symbiotic,
     expected_carbon_gain,
+    expected_respiration,
     expected_consumption_rates,
     fixture_soil_constants,
 ):
@@ -106,39 +110,56 @@ def test_calculate_nutrient_uptake_rates(
     )
 
     if symbiotic:
-        actual_carbon_gain, actual_consumption_rates = calculate_nutrient_uptake_rates(
-            soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
-            soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="N"),
-            soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
-            soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-            soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="P"),
-            soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-            microbial_pool_size=dummy_carbon_data["soil_c_pool_ectomycorrhiza"],
-            external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
-            water_factor=environmental_factors.water,
-            pH_factor=environmental_factors.pH,
-            soil_temp=averaged_soil_temp,
-            constants=fixture_soil_constants,
-            functional_group=functional_groups["ectomycorrhiza"],
+        actual_carbon_gain, actual_respiration, actual_consumption_rates = (
+            calculate_nutrient_uptake_rates(
+                soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(
+                    element="C"
+                ),
+                soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(
+                    element="N"
+                ),
+                soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
+                soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
+                soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(
+                    element="P"
+                ),
+                soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
+                microbial_pool_size=dummy_carbon_data["soil_c_pool_ectomycorrhiza"],
+                external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
+                water_factor=environmental_factors.water,
+                pH_factor=environmental_factors.pH,
+                soil_temp=averaged_soil_temp,
+                constants=fixture_soil_constants,
+                functional_group=functional_groups["ectomycorrhiza"],
+            )
         )
     else:
-        actual_carbon_gain, actual_consumption_rates = calculate_nutrient_uptake_rates(
-            soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="C"),
-            soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="N"),
-            soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
-            soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-            soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(element="P"),
-            soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-            microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
-            external_carbon_supply=None,
-            water_factor=environmental_factors.water,
-            pH_factor=environmental_factors.pH,
-            soil_temp=averaged_soil_temp,
-            constants=fixture_soil_constants,
-            functional_group=functional_groups["bacteria"],
+        actual_carbon_gain, actual_respiration, actual_consumption_rates = (
+            calculate_nutrient_uptake_rates(
+                soil_c_pool_lmwc=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(
+                    element="C"
+                ),
+                soil_n_pool_don=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(
+                    element="N"
+                ),
+                soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
+                soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
+                soil_p_pool_dop=dummy_carbon_data["soil_cnp_pool_lmwc"].sel(
+                    element="P"
+                ),
+                soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
+                microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
+                external_carbon_supply=None,
+                water_factor=environmental_factors.water,
+                pH_factor=environmental_factors.pH,
+                soil_temp=averaged_soil_temp,
+                constants=fixture_soil_constants,
+                functional_group=functional_groups["bacteria"],
+            )
         )
 
     assert np.allclose(actual_carbon_gain, expected_carbon_gain)
+    assert np.allclose(actual_respiration, expected_respiration)
 
     for attr in dir(actual_consumption_rates):
         if not attr.startswith("_"):
@@ -433,3 +454,29 @@ def test_negative_highest_achievable_nutrient_uptake_are_impossible(
     )
 
     assert np.allclose(actual_uptake, expected_uptake)
+
+
+def test_calculate_carbon_respired(
+    max_uptake_rates, carbon_use_efficiency, functional_groups
+):
+    """Test that function to calculate microbial respiration works correctly."""
+    from virtual_ecosystem.models.soil.uptake import (
+        calculate_actual_carbon_gain,
+        calculate_carbon_respired,
+    )
+
+    actual_carbon_gain = calculate_actual_carbon_gain(
+        max_uptake_rates=max_uptake_rates,
+        external_carbon_supply=None,
+        carbon_use_efficiency=carbon_use_efficiency,
+        functional_group=functional_groups["bacteria"],
+    )
+
+    expected_respiration = [0.0001138578, 0.0006805955, 0.0032067957, 3.0324783e-5]
+
+    actual_respiration = calculate_carbon_respired(
+        actual_carbon_gain=actual_carbon_gain,
+        carbon_use_efficiency=carbon_use_efficiency,
+    )
+
+    assert np.allclose(actual_respiration, expected_respiration)

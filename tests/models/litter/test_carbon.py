@@ -135,24 +135,31 @@ def test_calculate_decay_rates(
         assert np.allclose(actual_decay[name], expected_decay[name])
 
 
-def test_calculate_total_C_mineralised(
+def test_calculate_C_mineralisation_and_respiration(
     litter_losses, fixture_litter_constants, fixture_core_constants
 ):
     """Test that calculation of total C mineralised is as expected."""
     from virtual_ecosystem.models.litter.carbon import (
-        calculate_total_C_mineralised,
+        calculate_C_mineralisation_and_respiration,
     )
 
-    expected_mineralisation = [0.02991986, 0.02295185, 0.00795922, 0.00802409]
+    expected_losses = {
+        "mineralised": [0.02991986, 0.02295185, 0.00795922, 0.00802409],
+        "above_respiration": [0.00282841, 0.00163094, 0.00133709, 0.00130600],
+        "below_respiration": [0.00616816, 0.00518435, 0.00073774, 0.00078915],
+    }
 
-    actual_mineralisation = calculate_total_C_mineralised(
+    actual_losses = calculate_C_mineralisation_and_respiration(
         litter_losses=litter_losses,
         model_constants=fixture_litter_constants,
         core_constants=fixture_core_constants,
         update_interval=2.0,
     )
 
-    assert np.allclose(actual_mineralisation, expected_mineralisation)
+    assert set(expected_losses.keys()) == set(actual_losses.keys())
+
+    for name in expected_losses.keys():
+        assert np.allclose(actual_losses[name], expected_losses[name])
 
 
 def test_calculate_updated_pools(decay_rates, post_consumption_pools, litter_inputs):
@@ -294,10 +301,10 @@ def test_calculate_litter_decay_structural_below(
     assert np.allclose(actual_decay, expected_decay)
 
 
-def test_calculate_carbon_mineralised(fixture_litter_constants):
-    """Test that the calculation of litter decay mineralisation works as expected."""
+def test_calculate_carbon_mineralised_vs_respired(fixture_litter_constants):
+    """Test that calculation of litter decay mineralisation vs respiration works."""
     from virtual_ecosystem.models.litter.carbon import (
-        calculate_carbon_mineralised,
+        calculate_carbon_mineralised_vs_respired,
     )
 
     carbon_loss = np.array(
@@ -305,10 +312,12 @@ def test_calculate_carbon_mineralised(fixture_litter_constants):
     )
 
     expected_mineral = [7.534305e-5, 3.767167e-5, 1.356180e-5, 1.356180e-5]
+    expected_respiration = [9.208595e-5, 4.6043158e-5, 1.6575537e-5, 1.6575537e-5]
 
-    actual_mineral = calculate_carbon_mineralised(
+    actual_mineral, actual_respiration = calculate_carbon_mineralised_vs_respired(
         carbon_loss=carbon_loss,
         carbon_use_efficiency=fixture_litter_constants.cue_metabolic,
     )
 
     assert np.allclose(actual_mineral, expected_mineral)
+    assert np.allclose(actual_respiration, expected_respiration)
