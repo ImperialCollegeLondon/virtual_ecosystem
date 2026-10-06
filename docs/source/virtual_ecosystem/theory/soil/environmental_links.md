@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.5
+    jupytext_version: 1.19.6
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -302,6 +302,12 @@ temperature, $\alpha$ is the change in carbon efficiency with temperature, $T$ i
 environmental temperature and $T_{\mathrm{ref}}$ is the reference temperature. The logit
 link function is used to ensure that carbon use efficiency $\epsilon$ is bound between 0
 and 1 as it is a proportion.
+
+The fraction of carbon uptake that is not assimilated to biomass (when carbon use
+efficiency is less than one) is respired. Though respiration is calculated on a per
+microbial functional group basis the model only returns a lumped total soil respiration.
+This is because the functional group specific respiration rates cannot be linked to
+real-world data and therefore are not useful information to provide users.
 
 ### Biomass loss
 
