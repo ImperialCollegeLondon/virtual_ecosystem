@@ -34,7 +34,7 @@ def update_snow_water_equivalent(
         snow_water_equivalent: Current SWE, [mm]
         snowfall: Daily snowfall, [mm water equivalent]
         temperature_driven_snowmelt: Temperature-driven melt, [mm]
-        sublimation_snow: Sublimation (positive) or deposition (negative), [mm]
+        sublimation_snow: Sublimation of snow, currently only positive, [mm]
         rain_driven_snowmelt: Rain-on-snow melt, [mm]
 
     Returns:
@@ -873,3 +873,45 @@ def calculate_rain_driven_snowmelt(
     temperature_above_freezing = np.maximum(air_temperature, 0.0)
 
     return rain_driven_snowmelt_coefficient * temperature_above_freezing * rainfall
+
+
+def calculate_snow_sublimation(
+    air_temperature: NDArray[np.floating],
+    snow_water_equivalent: NDArray[np.floating],
+    sublimation_coefficient: float,
+) -> NDArray[np.floating]:
+    r"""Calculate snow sublimation, [mm].
+
+    Snow sublimation is approximated as:
+
+    .. math::
+
+        S = k_{s} T_{c} \mathrm{SWE}
+
+    where :math:`k_{s}` is an empirical sublimation coefficient,
+    :math:`T_{c} = \max(-T_{a}, 0)` is the temperature below freezing,
+    :math:`T_{a}` is the air temperature, and :math:`\mathrm{SWE}` is the
+    snow water equivalent. Sublimation is set to zero when air temperature
+    is above freezing and capped so that it cannot exceed the available
+    snow water equivalent.
+
+    The function is inspired by the rain driven snowmelt function, but with the
+    temperature below freezing instead of above. We only consider positive flow towards
+    the atmosphere, no deposition.
+
+    Args:
+        air_temperature: Air temperature, [°C]
+        snow_water_equivalent: Snow water equivalent, [mm]
+        sublimation_coefficient: Sublimation coefficient :math:`k_{s}`,
+            [K-1 timestep-1]
+
+    Returns:
+        Snow sublimation, [mm]
+    """
+    temperature_below_freezing = np.maximum(-air_temperature, 0.0)
+
+    sublimation = (
+        sublimation_coefficient * temperature_below_freezing * snow_water_equivalent
+    )
+
+    return np.minimum(sublimation, snow_water_equivalent)

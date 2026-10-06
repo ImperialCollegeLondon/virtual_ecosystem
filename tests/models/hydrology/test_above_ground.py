@@ -868,3 +868,24 @@ def test_calculate_rain_driven_snowmelt_is_nonnegative():
     assert result.ndim == 1
     assert np.all(result >= 0.0)
     np.testing.assert_array_equal(result, 0.0)
+
+
+def test_calculate_snow_sublimation():
+    """Test snow sublimation calculation."""
+
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_snow_sublimation,
+    )
+
+    air_temperature = np.array([2.0, -2.0, -10.0], dtype=float)
+    snow_water_equivalent = np.array([100.0, 100.0, 1.0], dtype=float)
+    sublimation_coefficient = 0.1
+
+    result = calculate_snow_sublimation(
+        air_temperature=air_temperature,
+        snow_water_equivalent=snow_water_equivalent,
+        sublimation_coefficient=sublimation_coefficient,
+    )
+
+    expected = np.array([0.0, 20.0, 1.0], dtype=float)
+    np.testing.assert_allclose(result, expected)

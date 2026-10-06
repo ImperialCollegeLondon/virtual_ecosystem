@@ -613,26 +613,30 @@ class HydrologyModel(
 
             # Snow routine
             # NOTE: This will be implemented in small steps as part of #1696
+            surface_temperature = self.data["air_temperature"][
+                self.layer_structure.index_surface_scalar
+            ].to_numpy()
 
             # Temperature driven snowmelt, [mm]
             temperature_driven_snowmelt = (
                 above_ground.calculate_temperature_driven_snowmelt(
                     snow_water_equivalent=snow_water_equivalent,
-                    surface_temperature=self.data["air_temperature"][
-                        self.layer_structure.index_surface_scalar
-                    ].to_numpy(),
+                    surface_temperature=surface_temperature,
                     heat_capacity_ice=self.model_constants.heat_capacity_ice,
                     latent_heat_fusion=self.model_constants.latent_heat_fusion,
                 )
             )
 
-            # TODO: implement sublimation calculation, [mm]
-            sublimation_snow = np.zeros(self.grid.n_cells, dtype=float)
-            # TODO: implement rain-driven snowmelt, [mm]
+            # Sublimation calculation, [mm]
+            sublimation_snow = above_ground.calculate_snow_sublimation(
+                air_temperature=surface_temperature,
+                snow_water_equivalent=snow_water_equivalent,
+                sublimation_coefficient=self.model_constants.sublimation_coefficient,
+            )
+
+            # Rain-driven snowmelt, [mm]
             rain_driven_snowmelt = above_ground.calculate_rain_driven_snowmelt(
-                air_temperature=self.data["air_temperature"][
-                    self.layer_structure.index_surface_scalar
-                ].to_numpy(),
+                air_temperature=surface_temperature,
                 rainfall=hydro_input["current_precipitation"][:, day],
                 rain_driven_snowmelt_coefficient=(
                     self.model_constants.rain_driven_snowmelt_coefficient

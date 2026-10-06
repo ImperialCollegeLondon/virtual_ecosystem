@@ -226,6 +226,14 @@ class HydrologyConstants(Configuration):
     and :math:`c_3` is the denominator offset [°C].
     """
 
+    sublimation_coefficient: float = 0.1
+    """Sublimation coefficient, [mm K-1 s-1].
+
+    The sublimation coefficient is a parameter used to estimate the rate of sublimation
+    of snow or ice based on temperature. This value needs to be calibrated for the
+    specific region and conditions being modeled.
+    """
+
 
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration class for the hydrology model."""
