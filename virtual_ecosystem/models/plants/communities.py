@@ -97,7 +97,7 @@ def validate_cohort_data(
 
     # Check n_individuals is positive integer
     if (not np.issubdtype(cohort_data["plant_cohorts_n"].dtype, np.integer)) or (
-        np.any(cohort_data["plant_cohorts_n"] <= 0)
+        np.any(cohort_data["plant_cohorts_n"] < 0)
     ):
         validation_ok = False
         LOGGER.error("Plant cohort data individual counts must be positive integers")

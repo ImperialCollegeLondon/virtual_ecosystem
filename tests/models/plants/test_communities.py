@@ -137,17 +137,11 @@ from virtual_ecosystem.core.exceptions import InitialisationError
                     plant_cohorts_dbh=np.array([0.1] * 4),
                 ),
             ),
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "Plant cohort data individual counts must be positive integers",
-                ),
-                (CRITICAL, "Validation errors in plant cohort data: see above"),
-            ),
-            None,
-            None,
-            id="zero individual counts",
+            does_not_raise(),
+            ((INFO, "Plant cohort data validated"),),
+            np.array([0, 1, 2, 3]),
+            {0: 1, 1: 1, 2: 1, 3: 1},
+            id="zero counts ok",
         ),
         pytest.param(
             DataFrame(
@@ -212,7 +206,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
         pytest.param(
             DataFrame(
                 dict(
-                    plant_cohorts_n=np.array([0] * 4),
+                    plant_cohorts_n=np.array([-5] * 4),
                     plant_cohorts_pft=np.array(["tree"] * 4),
                     plant_cohorts_x=np.array([-100, 0, 45, 200]),
                     plant_cohorts_y=np.array([-100, 0, 45, 200]),
