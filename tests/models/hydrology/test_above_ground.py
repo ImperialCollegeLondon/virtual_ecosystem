@@ -636,11 +636,10 @@ def test_convert_mm_flow_to_m3_per_second(fixture_core_constants):
     )
 
     channel_flow = np.array([100, 1000, 10000])
-    exp_result = np.array([0.0003858, 0.003858, 0.0385802])
+    exp_result = np.array([0.011574, 0.115741, 1.157407])
     result = convert_mm_flow_to_m3_per_second(
         river_discharge_mm=channel_flow,
         area=np.array([10000, 10000, 10000]),
-        days=30,
         seconds_to_day=fixture_core_constants.seconds_to_day,
         meters_to_millimeters=1000,
     )
