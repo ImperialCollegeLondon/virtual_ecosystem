@@ -12,7 +12,7 @@ from tests.conftest import log_check
 @pytest.fixture
 def prepared_animal_model_instance(
     dummy_animal_data,
-    fixture_core_components,
+    animal_fixture_core_components,
     functional_group_list_instance,
     constants_instance,
     microbial_c_n_p_ratios,
@@ -24,7 +24,7 @@ def prepared_animal_model_instance(
 
     model = AnimalModel(
         data=dummy_animal_data,
-        core_components=fixture_core_components,
+        core_components=animal_fixture_core_components,
         animal_cohort_exporter=dummy_animal_exporter,
         resource_pool_exporter=dummy_resource_pool_exporter,
         functional_groups=functional_group_list_instance,
@@ -32,7 +32,6 @@ def prepared_animal_model_instance(
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
 
-    model.data.grid.populate_distances()
     return model
 
 
@@ -48,7 +47,7 @@ class TestAnimalModel:
         self,
         scaling_method,
         dummy_animal_data,
-        fixture_core_components,
+        animal_fixture_core_components,
         functional_group_list_instance,
         microbial_c_n_p_ratios,
         dummy_animal_exporter,
@@ -62,7 +61,7 @@ class TestAnimalModel:
         # Initialize the model
         model = AnimalModel(
             data=dummy_animal_data,
-            core_components=fixture_core_components,
+            core_components=animal_fixture_core_components,
             animal_cohort_exporter=dummy_animal_exporter,
             resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,
@@ -168,6 +167,7 @@ class TestAnimalModel:
 
         # Build the config object and core components using the fixture
         core_components = CoreComponents(animal_fixture_configuration.core)
+        core_components.grid.set_closest_neighbours()
         caplog.clear()
 
         # Check whether model is initialised (or not) as expected
@@ -211,7 +211,7 @@ class TestAnimalModel:
         scaling_method,
         dummy_animal_data,
         animal_fixture_configuration,
-        fixture_core_components,
+        animal_fixture_core_components,
     ):
         """Test that AnimalModel.from_config correctly sets density_scaling_method."""
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
@@ -226,7 +226,7 @@ class TestAnimalModel:
         model = AnimalModel.from_config(
             data=dummy_animal_data,
             configuration=animal_fixture_configuration,
-            core_components=fixture_core_components,
+            core_components=animal_fixture_core_components,
         )
 
         # Check that the model has the correct scaling method set
@@ -756,7 +756,7 @@ class TestAnimalModel:
         self,
         mocker,
         animal_data_for_model_instance,
-        fixture_core_components,
+        animal_fixture_core_components,
         functional_group_list_instance,
         constants_instance,
         microbial_c_n_p_ratios,
@@ -775,7 +775,7 @@ class TestAnimalModel:
 
         model = AnimalModel(
             data=animal_data_for_model_instance,
-            core_components=fixture_core_components,
+            core_components=animal_fixture_core_components,
             animal_cohort_exporter=dummy_animal_exporter,
             resource_pool_exporter=dummy_resource_pool_exporter,
             functional_groups=functional_group_list_instance,

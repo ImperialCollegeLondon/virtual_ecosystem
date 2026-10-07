@@ -464,7 +464,7 @@ class SoilModel(
         """
 
         # Find number of grid cells integration is being performed over
-        no_cells = self.data.grid.n_cells
+        no_cells = self.grid.n_cells
 
         # Extract update interval (in units of number of days)
         update_time = self.model_timing.update_interval_quantity.to("days").magnitude
@@ -520,9 +520,9 @@ class SoilModel(
                 np.zeros(
                     len(refreshed_biomass_triplets)
                     * len(elements.keys())
-                    * self.data.grid.n_cells
+                    * self.grid.n_cells
                 ),
-                np.zeros(len(refreshed_singlets) * self.data.grid.n_cells),
+                np.zeros(len(refreshed_singlets) * self.grid.n_cells),
             )
         )
 
