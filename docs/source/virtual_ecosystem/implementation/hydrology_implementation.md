@@ -354,16 +354,34 @@ The soil matric potential $\Psi_{m}$ is calculated as follows:
 
 $$\Psi_{m} = - \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}$$
 
-where $\alpha$ is the inverse of air entry value.
+where $\alpha$ is the inverse of air entry value. $\Psi_{m}$ is negative for unsaturated
+soil (tension) and zero at saturation.
 
-Then, the function applies
-Darcy's law to calculate the water flow rate $q$ in $\frac{mm}{day^1}$ considering the
-effective unsaturated hydraulic conductivity:
+Darcy's law is then applied to calculate the water flux $q$ in $\text{m s}^{-1}$.
+Following the standard soil physics convention, $z$ is taken as positive upward, so
+depth is negative and becomes more negative with depth. The total hydraulic head
+combines the matric potential and the gravitational head, and the Darcy flux is:
 
 $$q = - K(\Theta) \cdot (\frac{d \Psi_{m}}{dz} + 1)$$
 
-where $\frac{d \Psi_{m}}{dz}$ is the soil matric potential gradient with $z$
-    the elevation (gravitational potential) or {term}`gravitational head`.
+where $\frac{d\Psi_{m}}{dz}$ is the matric potential gradient with respect to $z$
+(positive upward), and the $+1$ gravity term reflects the fact that gravitational head
+increases by 1 m per metre upward, driving flow downward. Under uniform moisture
+conditions ($\frac{d\Psi_{m}}{dz} = 0$), this reduces to $q = -K$, which is negative in
+the upward-positive frame and therefore represents downward flow.
+
+Since $z$ is negative downward, the finite difference denominator $z_{i+1} - z_i$ is
+negative for deeper layers, and the sign of the gradient is handled consistently.
+Downward flux (negative $q$) is negated before storage in `data` so that `vertical_flow`
+is always a positive quantity representing downward transfer in $\text{mm d}^{-1}$.
+Upward flux (positive $q$) is set to zero, suppressing capillary rise as a deliberate
+simplification.
+
+The flow is converted from $\text{m s}{-1}$ to $\text{mm d}{-1}$ and capped by the
+available water in the source layer and the available pore space in the receiving layer.
+At the base of the soil column, a free-drainage boundary condition is applied: the
+matric potential gradient is assumed to be zero, so only gravity drives flow out of the
+bottom layer and $q = -K$.
 
 ```{note}
 There are severe limitations to this approach on the temporal and spatial scale of this
@@ -662,7 +680,6 @@ from virtual_ecosystem.models.hydrology.above_ground import (
 river_discharge_rate = convert_mm_flow_to_m3_per_second(
     river_discharge_mm=total_runoff,
     area=grid.cell_area,
-    days=1,
     seconds_to_day=86400,
     meters_to_millimeters=1000,
 )
