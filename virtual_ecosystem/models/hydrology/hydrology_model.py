@@ -613,39 +613,53 @@ class HydrologyModel(
                 self.layer_structure.index_surface_scalar
             ].to_numpy()
 
+            snow_available = (
+                snow_water_equivalent + hydro_input["current_snowfall"][:, day]
+            )
+
+            # Sublimation calculation, [mm]
+            sublimation_snow = above_ground.calculate_snow_sublimation(
+                air_temperature=surface_temperature,
+                snow_water_equivalent=snow_available,
+                sublimation_coefficient=self.model_constants.sublimation_coefficient,
+            )
+
+            snow_after_sublimation = snow_available - sublimation_snow
+
+            # Rain-driven snowmelt, [mm]
+            rain_driven_snowmelt_potential = (
+                above_ground.calculate_rain_driven_snowmelt(
+                    air_temperature=surface_temperature,
+                    rainfall=hydro_input["current_precipitation"][:, day],
+                    rain_driven_snowmelt_coefficient=(
+                        self.model_constants.rain_driven_snowmelt_coefficient
+                    ),
+                )
+            )
+
+            rain_driven_snowmelt = np.minimum(
+                rain_driven_snowmelt_potential,
+                snow_after_sublimation,
+            )
+
+            snow_after_rain_melt = snow_after_sublimation - rain_driven_snowmelt
+
             # Temperature driven snowmelt, [mm]
             temperature_driven_snowmelt = (
                 above_ground.calculate_temperature_driven_snowmelt(
-                    snow_water_equivalent=snow_water_equivalent,
+                    snow_water_equivalent=snow_after_rain_melt,
                     surface_temperature=surface_temperature,
                     heat_capacity_ice=self.model_constants.heat_capacity_ice,
                     latent_heat_fusion=self.model_constants.latent_heat_fusion,
                 )
             )
 
-            # Sublimation calculation, [mm]
-            sublimation_snow = above_ground.calculate_snow_sublimation(
-                air_temperature=surface_temperature,
-                snow_water_equivalent=snow_water_equivalent,
-                sublimation_coefficient=self.model_constants.sublimation_coefficient,
-            )
-
-            # Rain-driven snowmelt, [mm]
-            rain_driven_snowmelt = above_ground.calculate_rain_driven_snowmelt(
-                air_temperature=surface_temperature,
-                rainfall=hydro_input["current_precipitation"][:, day],
-                rain_driven_snowmelt_coefficient=(
-                    self.model_constants.rain_driven_snowmelt_coefficient
-                ),
-            )
-
             #  Update snow water equivalent, [mm]
-            snow_water_equivalent = above_ground.update_snow_water_equivalent(
-                snow_water_equivalent=snow_water_equivalent,
-                snowfall=hydro_input["current_snowfall"][:, day],
-                temperature_driven_snowmelt=temperature_driven_snowmelt,
-                sublimation_snow=sublimation_snow,
-                rain_driven_snowmelt=rain_driven_snowmelt,
+            snow_water_equivalent_to_check = (
+                snow_after_rain_melt - temperature_driven_snowmelt
+            )
+            snow_water_equivalent = above_ground.clip_negative_snow_water_equivalent(
+                snow_water_equivalent=snow_water_equivalent_to_check
             )
 
             daily_lists["snowfall"].append(hydro_input["current_snowfall"][:, day])

@@ -20,39 +20,24 @@ from virtual_ecosystem.models.abiotic.abiotic_tools import (
 )
 
 
-def update_snow_water_equivalent(
+def clip_negative_snow_water_equivalent(
     snow_water_equivalent: NDArray[np.floating],
-    snowfall: NDArray[np.floating],
-    temperature_driven_snowmelt: NDArray[np.floating],
-    sublimation_snow: NDArray[np.floating],
-    rain_driven_snowmelt: NDArray[np.floating],
 ) -> NDArray[np.floating]:
-    """Update snow water equivalent (SWE) for one daily timestep.
+    """Clip negative snow water equivalent values to zero.
 
     Args:
-        snow_water_equivalent: Current SWE, [mm]
-        snowfall: Daily snowfall, [mm water equivalent]
-        temperature_driven_snowmelt: Temperature-driven melt, [mm]
-        sublimation_snow: Sublimation of snow, currently only positive, [mm]
-        rain_driven_snowmelt: Rain-on-snow melt, [mm]
+        snow_water_equivalent: Snow water equivalent, [mm]
 
     Returns:
-        Updated SWE, [mm], clipped to zero
-
-    Raises:
-        Warning: If the updated SWE is negative for any grid cell, a warning is logged
+        Snow water equivalent with negative values set to zero, [mm]
     """
-    delta_swe = (
-        snowfall - temperature_driven_snowmelt - sublimation_snow - rain_driven_snowmelt
-    )
-    swe_updated = snow_water_equivalent + delta_swe
-
-    if np.any(swe_updated < 0.0):
+    if np.any(snow_water_equivalent < 0.0):
         LOGGER.warning(
             "Snow water equivalent (SWE) is negative for some grid cells. "
             "Setting SWE to zero for those cells."
         )
-    return np.maximum(swe_updated, 0.0)
+
+    return np.maximum(snow_water_equivalent, 0.0)
 
 
 def potential_evaporation_leaf(

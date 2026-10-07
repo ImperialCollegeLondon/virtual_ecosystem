@@ -11,163 +11,6 @@ from virtual_ecosystem.core.exceptions import InitialisationError
 
 
 @pytest.mark.parametrize(
-    "snow_water_equivalent, snowfall, temperature_driven_snowmelt, "
-    "sublimation_snow, rain_driven_snowmelt, expected, atol",
-    [
-        pytest.param(
-            np.array([100.0, 100.0, 100.0, 100.0]),
-            np.array([10.0, 10.0, 10.0, 10.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([110.0, 110.0, 110.0, 110.0]),
-            1e-10,
-            id="accumulation_only",
-        ),
-        pytest.param(
-            np.array([100.0, 80.0, 60.0, 40.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([10.0, 8.0, 6.0, 4.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([90.0, 72.0, 54.0, 36.0]),
-            1e-10,
-            id="temperature_melt_only",
-        ),
-        pytest.param(
-            np.array([100.0, 80.0, 60.0, 40.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([2.0, 1.5, 1.0, 0.5]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([98.0, 78.5, 59.0, 39.5]),
-            1e-10,
-            id="sublimation_only",
-        ),
-        pytest.param(
-            np.array([100.0, 80.0, 60.0, 40.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([5.0, 4.0, 3.0, 2.0]),
-            np.array([95.0, 76.0, 57.0, 38.0]),
-            1e-10,
-            id="rain_melt_only",
-        ),
-        pytest.param(
-            np.array([100.0, 80.0, 60.0, 40.0]),
-            np.array([5.0, 4.0, 3.0, 2.0]),
-            np.array([10.0, 8.0, 6.0, 4.0]),
-            np.array([2.0, 1.5, 1.0, 0.5]),
-            np.array([3.0, 2.5, 2.0, 1.5]),
-            np.array([90.0, 72.0, 54.0, 36.0]),
-            1e-10,
-            id="all_terms",
-        ),
-        pytest.param(
-            np.array([5.0, 3.0, 1.0, 0.5]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([10.0, 10.0, 10.0, 10.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            1e-10,
-            id="no_negative_swe",
-        ),
-        pytest.param(
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            1e-10,
-            id="zero_swe_no_snowfall",
-        ),
-        pytest.param(
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([20.0, 15.0, 10.0, 5.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([20.0, 15.0, 10.0, 5.0]),
-            1e-10,
-            id="accumulation_from_zero",
-        ),
-        pytest.param(
-            np.array([100.0, 80.0, 60.0, 40.0]),
-            np.array([5.0, 4.0, 3.0, 2.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([-1.0, -0.5, -0.5, -0.2]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([106.0, 84.5, 63.5, 42.2]),
-            1e-10,
-            id="deposition_adds_to_swe",
-        ),
-        pytest.param(
-            np.array([50.0, 0.0, 100.0, 0.0]),
-            np.array([0.0, 10.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 200.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([50.0, 10.0, 0.0, 0.0]),
-            1e-10,
-            id="mixed_cell_states",
-        ),
-    ],
-)
-def test_update_snow_water_equivalent(
-    snow_water_equivalent,
-    snowfall,
-    temperature_driven_snowmelt,
-    sublimation_snow,
-    rain_driven_snowmelt,
-    expected,
-    atol,
-):
-    """Test update_snow_water_equivalent for one daily timestep.
-
-    Covers:
-    - accumulation_only: snowfall only, no losses → SWE increases
-    - temperature_melt_only: melt only, no snowfall → SWE decreases
-    - sublimation_only: sublimation only → SWE decreases
-    - rain_melt_only: rain-on-snow melt only → SWE decreases
-    - all_terms: all four terms active simultaneously
-    - no_negative_swe: melt exceeds SWE → result clipped to zero
-    - zero_swe_no_snowfall: no snow, no inputs → SWE remains zero
-    - accumulation_from_zero: snowfall onto bare ground → SWE equals snowfall
-    - deposition_adds_to_swe: negative sublimation (deposition) increases SWE
-    - mixed_cell_states: cells with and without snow in the same array
-    """
-
-    from virtual_ecosystem.models.hydrology.above_ground import (
-        update_snow_water_equivalent,
-    )
-
-    result = update_snow_water_equivalent(
-        snow_water_equivalent=snow_water_equivalent,
-        snowfall=snowfall,
-        temperature_driven_snowmelt=temperature_driven_snowmelt,
-        sublimation_snow=sublimation_snow,
-        rain_driven_snowmelt=rain_driven_snowmelt,
-    )
-
-    # Check values
-    np.testing.assert_allclose(result, expected, atol=atol)
-
-    # SWE must never be negative
-    assert np.all(result >= 0.0), (
-        f"SWE contains negative values: {result[result < 0.0]}"
-    )
-
-    # Shape must be preserved
-    assert result.shape == snow_water_equivalent.shape, (
-        f"Output shape {result.shape} does not match input shape "
-        f"{snow_water_equivalent.shape}"
-    )
-
-
-@pytest.mark.parametrize(
     "swe,expected_log_entries",
     [
         (
@@ -175,7 +18,7 @@ def test_update_snow_water_equivalent(
             {},
         ),
         (
-            np.array([1.0, 5.0]),
+            np.array([-1.0, 5.0]),
             (
                 (
                     WARNING,
@@ -186,29 +29,16 @@ def test_update_snow_water_equivalent(
         ),
     ],
 )
-def test_update_snow_water_equivalent_warns_on_negative_swe(
-    swe, expected_log_entries, caplog
-):
+def test_clip_negative_snow_water_equivalent(swe, expected_log_entries, caplog):
     """A warning is emitted when losses exceed available SWE."""
 
     from virtual_ecosystem.models.hydrology.above_ground import (
-        update_snow_water_equivalent,
+        clip_negative_snow_water_equivalent,
     )
-
-    snowfall = np.array([0.0, 0.0])
-    temperature_driven_snowmelt = np.array([10.0, 5.0])
-    sublimation_snow = np.array([0.0, 0.0])
-    rain_driven_snowmelt = np.array([0.0, 0.0])
 
     caplog.clear()
 
-    result = update_snow_water_equivalent(
-        snow_water_equivalent=swe,
-        snowfall=snowfall,
-        temperature_driven_snowmelt=temperature_driven_snowmelt,
-        sublimation_snow=sublimation_snow,
-        rain_driven_snowmelt=rain_driven_snowmelt,
-    )
+    result = clip_negative_snow_water_equivalent(swe)
 
     # Result must be clipped to zero
     assert np.all(result >= 0.0)
