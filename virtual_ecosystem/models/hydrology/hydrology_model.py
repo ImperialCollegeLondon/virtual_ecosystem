@@ -26,7 +26,6 @@ There are still a number of open TODOs related to process implementation and imp
 
 from __future__ import annotations
 
-from math import sqrt
 from typing import Any
 
 import numpy as np
@@ -256,10 +255,8 @@ class HydrologyModel(
         self.abiotic_constants = abiotic_constants
         self.pyrealm_core_constants = pyrealm_core_constants
 
-        self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
-        """Set neighbours."""
         self.drainage_map = above_ground.calculate_drainage_map(
-            grid=self.data.grid,
+            grid=self.grid,
             elevation=np.array(self.data["elevation"]),
         )
 
@@ -312,8 +309,7 @@ class HydrologyModel(
         matric_potential = below_ground.calculate_matric_potential(
             effective_saturation=effective_saturation,
             air_entry_potential_inverse=self.model_constants.air_entry_potential_inverse,
-            van_genuchten_nonlinearily_parameter=self.model_constants.van_genuchten_nonlinearily_parameter,
-            denominator_tolerance=self.model_constants.denominator_tolerance,
+            van_genuchten_nonlinearity_parameter=self.model_constants.van_genuchten_nonlinearity_parameter,
         )
         self.data["matric_potential"] = self.layer_structure.from_template()
         self.data["matric_potential"][self.layer_structure.index_all_soil] = DataArray(
@@ -779,7 +775,7 @@ class HydrologyModel(
                 soil_moisture=soil_moisture_evap_mm
                 / self.soil_layer_thickness_mm,  # vol
                 soil_layer_thickness=self.soil_layer_thickness_mm / 1000.0,  # m
-                soil_layer_depth=np.abs(self.layer_structure.soil_layer_depths),  # m
+                soil_layer_depth=self.layer_structure.soil_layer_depths,  # m, negative
                 soil_moisture_saturation=(
                     self.model_constants.soil_moisture_saturation
                 ),  # vol
@@ -792,13 +788,12 @@ class HydrologyModel(
                 air_entry_potential_inverse=(
                     self.model_constants.air_entry_potential_inverse
                 ),  # m/m
-                van_genuchten_nonlinearily_parameter=(
-                    self.model_constants.van_genuchten_nonlinearily_parameter
+                van_genuchten_nonlinearity_parameter=(
+                    self.model_constants.van_genuchten_nonlinearity_parameter
                 ),
                 pore_connectivity_parameter=(
                     self.model_constants.pore_connectivity_parameter
                 ),
-                groundwater_capacity=self.model_constants.groundwater_capacity / 1000.0,
                 seconds_to_day=self.core_constants.seconds_to_day,
                 denominator_tolerance=self.model_constants.denominator_tolerance,
             )
@@ -895,7 +890,6 @@ class HydrologyModel(
             river_discharge_rate = above_ground.convert_mm_flow_to_m3_per_second(
                 river_discharge_mm=total_runoff,
                 area=self.grid.cell_area,
-                days=days,
                 seconds_to_day=self.core_constants.seconds_to_day,
                 meters_to_millimeters=self.core_constants.meters_to_mm,
             )

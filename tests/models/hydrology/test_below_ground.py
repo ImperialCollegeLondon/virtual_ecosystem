@@ -4,69 +4,96 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.parametrize(
-    "soilm_sat, soilm_res, hydr_con, nonlin_par, gw_cap",
-    [
-        (0.6, 0.1, 0.001, 2.0, 0.9),
-        (
-            np.full((2, 3), 0.6),
-            np.full((2, 3), 0.1),
-            np.full((2, 3), 0.001),
-            np.repeat(2.0, 3),
-            np.repeat(0.9, 3),
-        ),
-    ],
-)
-def test_calculate_vertical_flow(
-    soilm_sat,
-    soilm_res,
-    hydr_con,
-    nonlin_par,
-    gw_cap,
-):
-    """Test vertical flow with float or DataArray input."""
+@pytest.mark.parametrize("n_layers", [2, 5])
+def test_calculate_vertical_flow_uniform_profile(n_layers):
+    """Uniform moisture gives gravity-driven flow at every interface."""
 
-    from virtual_ecosystem.models.hydrology.below_ground import calculate_vertical_flow
+    from virtual_ecosystem.models.hydrology.below_ground import (
+        calculate_vertical_flow,
+    )
 
-    soil_moisture = np.array([[0.3, 0.4, 0.6], [0.3, 0.4, 0.6]])
-    layer_thickness = np.full((2, 3), 0.5)
-    layer_depth = np.array([0.5, 1])
+    moisture = np.full((n_layers, 2), 0.3)
+    thickness = np.ones((n_layers, 2))
+    depth = -(np.arange(n_layers, dtype=float))
+
+    theta_s = 0.5
+    theta_r = 0.1
+    ks = 1e-8  # m/s
+    n_parameter = 2.0
+    pore_connectivity = 0.5
+    seconds_per_day = 86400.0
+
     result = calculate_vertical_flow(
-        soil_moisture=soil_moisture,
-        soil_layer_thickness=layer_thickness,
-        soil_layer_depth=layer_depth,
-        soil_moisture_saturation=soilm_sat,
-        soil_moisture_residual=soilm_res,
-        saturated_hydraulic_conductivity=hydr_con,
-        air_entry_potential_inverse=0.01,
-        van_genuchten_nonlinearily_parameter=nonlin_par,
-        pore_connectivity_parameter=0.5,
-        groundwater_capacity=gw_cap,
-        seconds_to_day=86400,
-        denominator_tolerance=0.001,
+        soil_moisture=moisture,
+        soil_layer_thickness=thickness,
+        soil_layer_depth=depth,
+        soil_moisture_saturation=theta_s,
+        soil_moisture_residual=theta_r,
+        saturated_hydraulic_conductivity=ks,
+        air_entry_potential_inverse=1.0,
+        van_genuchten_nonlinearity_parameter=n_parameter,
+        pore_connectivity_parameter=pore_connectivity,
+        seconds_to_day=seconds_per_day,
+        denominator_tolerance=1e-6,
     )
 
-    exp_matric_pot = np.array(
-        [
-            [-228.448392, -132.986526, -0.001],
-            [-228.448392, -132.986526, -0.001],
-        ]
+    # Se = 0.5 in every layer, so K(theta) is the same throughout.
+    se = (0.3 - theta_r) / (theta_s - theta_r)
+    m_parameter = 1.0 - 1.0 / n_parameter
+    expected_k = (
+        ks
+        * se**pore_connectivity
+        * (1.0 - (1.0 - se ** (1.0 / m_parameter)) ** m_parameter) ** 2
     )
-    exp_flow = np.array(
-        [
-            [0.000385, 0.002699, 0.00025],
-            [0.000385, 0.002699, 0.0009],
-        ]
+    # Under uniform moisture the matric gradient is zero, so q = -K * (0 + 1) = -K.
+    # The stored flow is the magnitude, converted to mm/day.
+    expected_flow = expected_k * seconds_per_day * 1000.0  # mm/day
+
+    assert result["vertical_flow"].shape == moisture.shape
+    np.testing.assert_allclose(
+        result["vertical_flow"],
+        expected_flow,
+        rtol=1e-10,
     )
-    exp_efsat = np.array(
-        [
-            [0.401, 0.601, 1.0],
-            [0.401, 0.601, 1.0],
-        ]
+    assert np.all(np.isfinite(result["matric_potential"]))
+    assert np.all(np.isfinite(result["effective_saturation"]))
+
+
+def test_calculate_vertical_flow_is_nonnegative_and_capped():
+    """Downward-only flow respects donor water and receiver pore space."""
+    from virtual_ecosystem.models.hydrology.below_ground import (
+        calculate_vertical_flow,
     )
-    np.testing.assert_allclose(result["matric_potential"], exp_matric_pot, rtol=0.001)
-    np.testing.assert_allclose(result["vertical_flow"], exp_flow, rtol=0.001)
-    np.testing.assert_allclose(result["effective_saturation"], exp_efsat, rtol=0.001)
+
+    moisture = np.full((5, 2), 0.3)
+    thickness = np.full((5, 2), 1e-6)
+    residual = 0.1
+    saturation = 0.5
+    depth = np.array([-0.5, -1.5, -2.5, -3.5, -4.5])
+
+    result = calculate_vertical_flow(
+        soil_moisture=moisture,
+        soil_layer_thickness=thickness,
+        soil_layer_depth=depth,
+        soil_moisture_saturation=saturation,
+        soil_moisture_residual=residual,
+        saturated_hydraulic_conductivity=1e-8,
+        air_entry_potential_inverse=1.0,
+        van_genuchten_nonlinearity_parameter=2.0,
+        pore_connectivity_parameter=0.5,
+        seconds_to_day=86400.0,
+        denominator_tolerance=1e-6,
+    )
+
+    flow = result["vertical_flow"]
+    available_water_mm = (moisture - residual) * thickness * 1000.0
+    receiver_space_mm = (saturation - moisture) * thickness * 1000.0
+
+    assert np.all(np.isfinite(flow))
+    assert np.all(flow >= 0.0)
+    assert np.all(flow[:-1] <= available_water_mm[:-1])
+    assert np.all(flow[:-1] <= receiver_space_mm[1:])
+    assert np.all(flow[-1] <= available_water_mm[-1])
 
 
 def test_update_soil_moisture(fixture_hydrology_constants):
@@ -100,14 +127,13 @@ def test_calculate_matric_potential(fixture_hydrology_constants):
     )
 
     constants = fixture_hydrology_constants
-    expected_potentials = np.repeat(-67.927471, 3)
+    expected_potentials = np.repeat(-68.197326, 3)
     actual_potentials = calculate_matric_potential(
         effective_saturation=np.repeat(0.5, 3),
         air_entry_potential_inverse=constants.air_entry_potential_inverse,
-        van_genuchten_nonlinearily_parameter=(
-            constants.van_genuchten_nonlinearily_parameter
+        van_genuchten_nonlinearity_parameter=(
+            constants.van_genuchten_nonlinearity_parameter
         ),
-        denominator_tolerance=0.001,
     )
 
     np.testing.assert_allclose(actual_potentials, expected_potentials, rtol=0.001)
@@ -132,7 +158,7 @@ def test_update_groundwater_storage(dummy_climate_data, fixture_hydrology_consta
     )
 
     exp_groundwat = np.array(
-        [[451.3, 385.3, 307.3, 227.3], [501.7, 471.7, 391.7, 301.7]]
+        [[428.735, 366.035, 291.935, 215.935], [476.615, 448.115, 372.115, 286.615]]
     )
     exp_upper_flow = np.array([22.565, 19.265, 15.365, 11.365])
     exp_lower_flow = np.array([25.085, 23.585, 19.585, 15.085])

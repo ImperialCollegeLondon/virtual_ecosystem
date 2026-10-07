@@ -46,7 +46,7 @@ class HydrologyConstants(Configuration):
     :cite:t:`gupta_global_2022`.
     """
 
-    van_genuchten_nonlinearily_parameter: float = 1.598
+    van_genuchten_nonlinearity_parameter: float = 1.598
     """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model.
 
     This parameter is a fitting shape parameters of soil water retention curve, see

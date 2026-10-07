@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import InitialisationError
 
 
 @pytest.mark.parametrize(
@@ -265,7 +266,10 @@ def test_calculate_canopy_evaporation():
         aerodynamic_resistance_canopy=np.array([50.0, 60.0, np.nan]),
         stomatal_resistance=np.array([[150.0, 160.0, np.nan], [150.0, np.nan, np.nan]]),
         latent_heat_vapourisation=np.array(
-            [[2268.0, 2268.0, np.nan], [2268.0, np.nan, np.nan]]
+            [
+                [2268.0, 2268.0, np.nan],
+                [2268.0, np.nan, np.nan],
+            ]
         ),
         psychrometric_constant=np.array([0.066, 0.067, np.nan]),
         saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
@@ -446,11 +450,12 @@ def test_route_horizontal_flow_raises_on_negative():
         ),
         (
             "hexagon",
-            pytest.raises(ValueError),
+            pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
-                    "This grid type is currently not supported!",
+                    "Hydrology model currently requires a square grid with "
+                    "rook move neighbours",
                 ),
             ),
         ),
@@ -496,6 +501,7 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
 
     with raises:
         grid = Grid(grid_type, cell_nx=5, cell_ny=5)
+        grid.set_closest_neighbours()
         result = calculate_drainage_map(grid, elevation)
 
         assert len(result) == grid.n_cells
@@ -686,11 +692,10 @@ def test_convert_mm_flow_to_m3_per_second(fixture_core_constants):
     )
 
     channel_flow = np.array([100, 1000, 10000])
-    exp_result = np.array([0.0003858, 0.003858, 0.0385802])
+    exp_result = np.array([0.011574, 0.115741, 1.157407])
     result = convert_mm_flow_to_m3_per_second(
         river_discharge_mm=channel_flow,
         area=np.array([10000, 10000, 10000]),
-        days=30,
         seconds_to_day=fixture_core_constants.seconds_to_day,
         meters_to_millimeters=1000,
     )
