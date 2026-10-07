@@ -30,6 +30,9 @@ def clip_negative_snow_water_equivalent(
 
     Returns:
         Snow water equivalent with negative values set to zero, [mm]
+
+    Raises:
+        Warning: If any snow water equivalent values are negative, a warning is logged.
     """
     if np.any(snow_water_equivalent < 0.0):
         LOGGER.warning(
