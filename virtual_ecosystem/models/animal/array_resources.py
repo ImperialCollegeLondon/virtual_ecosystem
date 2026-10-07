@@ -77,6 +77,7 @@ import xarray as xr
 from numpy.typing import NDArray
 
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.models.animal.animal_traits import DietType, VerticalOccupancy
 from virtual_ecosystem.models.animal.protocols import Resource
 
@@ -124,7 +125,7 @@ class ArrayResource:
         identifting cell x element slices through pool arrays.
     """
 
-    def __init__(self, definition: ArrayResourceDefinition, data: Data):
+    def __init__(self, definition: ArrayResourceDefinition, grid: Grid, data: Data):
         """Constructor method for ArrayResource instances."""
 
         self.pool_array: str = definition.pool_array
@@ -150,6 +151,8 @@ class ArrayResource:
         PFT."""
         self.density: bool = definition.density
         """Is the pool being accessed a density (per m^2) rather than a mass."""
+        self.grid: Grid = grid
+        """The data instance containing array resources."""
         self.data: Data = data
         """The data instance containing array resources."""
 
@@ -197,11 +200,21 @@ class ArrayResource:
 
             # Return a resource for each PFT
             return [
-                ResourcePool(data=data, resource=self, pft=pft, density=self.density)
+                ResourcePool(
+                    grid=self.grid,
+                    data=data,
+                    resource=self,
+                    pft=pft,
+                    density=self.density,
+                )
                 for pft in pfts.to_numpy()
             ]
 
-        return [ResourcePool(data=data, resource=self, pft=None, density=self.density)]
+        return [
+            ResourcePool(
+                grid=self.grid, data=data, resource=self, pft=None, density=self.density
+            )
+        ]
 
 
 ARRAY_RESOURCES = [
@@ -331,11 +344,13 @@ class ResourcePool:
 
     def __init__(
         self,
+        grid: Grid,
         resource: ArrayResource,
         data: Data,
         density: bool,
         pft: str | None = None,
     ):
+        self.grid: Grid = grid
         self.data: Data = data
         self.resource: ArrayResource = resource
         self.pft = pft
@@ -376,12 +391,12 @@ class ResourcePool:
         # Store elemental biomasses per cell values into array attributes
         if self.density:
             # in the density case need to convert to mass units
-            self.elemental_masses = mass_data.to_numpy() * self.data.grid.cell_area
+            self.elemental_masses = mass_data.to_numpy() * self.grid.cell_area
         else:
             self.elemental_masses = mass_data.to_numpy()
 
         # Create a per cell array to track _total_ consumed biomass
-        self.consumed_total_mass = np.zeros(self.data.grid.n_cells)
+        self.consumed_total_mass = np.zeros(self.grid.n_cells)
 
     def write_consumption(self):
         """Write accumulated consumption from the pool back into the data object."""

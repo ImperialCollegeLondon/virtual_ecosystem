@@ -10,28 +10,39 @@ from xarray import DataArray
 
 
 @pytest.fixture
-def data_instance():
-    """Creates an empty data instance."""
-    from virtual_ecosystem.core.data import Data
-    from virtual_ecosystem.core.grid import Grid
+def animal_fixture_core_components(animal_fixture_configuration):
+    """A CoreComponents instance for use in testing."""
 
-    grid = Grid()
-    return Data(grid)
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.model_config import CoreConfiguration
+
+    core_cfg = animal_fixture_configuration.get_subconfiguration(
+        "core", CoreConfiguration
+    )
+    core_components = CoreComponents(core_cfg)
+
+    # Setup three filled canopy layers
+    canopy_array = np.full(
+        (core_components.layer_structure.n_canopy_layers, core_components.grid.n_cells),
+        np.nan,
+    )
+    canopy_array[np.array([0, 1, 2])] = 1.0
+    core_components.layer_structure.set_filled_canopy(canopy_array)
+
+    # Configure required neighbours
+    core_components.grid.set_closest_neighbours()
+
+    return core_components
 
 
 @pytest.fixture
-def animal_data_for_model_instance(fixture_core_components):
+def animal_data_for_model_instance(animal_fixture_core_components):
     """Fixture returning a combination of plant and air temperature data."""
 
     from virtual_ecosystem.core.data import Data
-    from virtual_ecosystem.core.grid import Grid
 
-    # Setup the data object with four cells.
-    grid = Grid(
-        grid_type="square",
-        cell_nx=3,
-        cell_ny=3,
-    )
+    # Setup the data object with nine cells.
+    grid = animal_fixture_core_components.grid
     data = Data(grid)
 
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
@@ -131,29 +142,6 @@ def animal_data_for_model_instance(fixture_core_components):
         data[pool] = lignin_contents
 
     return data
-
-
-@pytest.fixture
-def animal_fixture_core_components(animal_fixture_configuration):
-    """A CoreComponents instance for use in testing."""
-
-    from virtual_ecosystem.core.core_components import CoreComponents
-    from virtual_ecosystem.core.model_config import CoreConfiguration
-
-    core_cfg = animal_fixture_configuration.get_subconfiguration(
-        "core", CoreConfiguration
-    )
-    core_components = CoreComponents(core_cfg)
-
-    # Setup three filled canopy layers
-    canopy_array = np.full(
-        (core_components.layer_structure.n_canopy_layers, core_components.grid.n_cells),
-        np.nan,
-    )
-    canopy_array[np.array([0, 1, 2])] = 1.0
-    core_components.layer_structure.set_filled_canopy(canopy_array)
-
-    return core_components
 
 
 @pytest.fixture
@@ -618,7 +606,7 @@ def dummy_resource_pool_exporter():
 @pytest.fixture
 def animal_model_instance(
     dummy_animal_data,
-    fixture_core_components,
+    animal_fixture_core_components,
     functional_group_list_instance,
     microbial_c_n_p_ratios,
     dummy_animal_exporter,
@@ -635,7 +623,7 @@ def animal_model_instance(
 
     return AnimalModel(
         data=clean_data,
-        core_components=fixture_core_components,
+        core_components=animal_fixture_core_components,
         animal_cohort_exporter=dummy_animal_exporter,
         resource_pool_exporter=dummy_resource_pool_exporter,
         model_constants=AnimalConstants(density_scaling_method="madingley"),
@@ -925,7 +913,9 @@ def excrement_pools_by_cell_instance():
 
 
 @pytest.fixture
-def array_plant_list_instance(animal_data_for_model_instance):
+def array_plant_list_instance(
+    animal_fixture_core_components, animal_data_for_model_instance
+):
     """Return a list of CellResource objects usable as plant_list."""
     import numpy as np
 
@@ -947,6 +937,7 @@ def array_plant_list_instance(animal_data_for_model_instance):
             diet_type=DietType.FOLIAGE,
             lignin_array="subcanopy_vegetation_litter_lignin",
         ),
+        grid=animal_fixture_core_components.grid,
         data=animal_data_for_model_instance,
     )
 
@@ -971,7 +962,9 @@ def array_plant_list_instance(animal_data_for_model_instance):
 
 
 @pytest.fixture
-def array_litter_list_instance(animal_data_for_model_instance):
+def array_litter_list_instance(
+    animal_fixture_core_components, animal_data_for_model_instance
+):
     """Return a list of CellResource objects usable as litter_list."""
     import numpy as np
 
@@ -994,6 +987,7 @@ def array_litter_list_instance(animal_data_for_model_instance):
             lignin_array="lignin_woody",
             density=True,
         ),
+        grid=animal_fixture_core_components.grid,
         data=animal_data_for_model_instance,
     )
 
