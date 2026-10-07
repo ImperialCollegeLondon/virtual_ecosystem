@@ -37,9 +37,9 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.litter.carbon import (
+    calculate_C_mineralisation_and_respiration,
     calculate_decay_rates,
     calculate_post_consumption_pools,
-    calculate_total_C_mineralised,
     calculate_updated_pools,
 )
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
@@ -111,8 +111,14 @@ class LitterModel(
         "lignin_woody",
         "lignin_below_structural",
         "litter_mineralisation_rate_cnp",
+        "above_ground_litter_respiration",
+        "below_ground_litter_respiration",
     ),
-    vars_populated_by_first_update=("litter_mineralisation_rate_cnp",),
+    vars_populated_by_first_update=(
+        "litter_mineralisation_rate_cnp",
+        "above_ground_litter_respiration",
+        "below_ground_litter_respiration",
+    ),
 ):
     """A class defining the litter model.
 
@@ -339,8 +345,9 @@ class LitterModel(
             ).magnitude,
         )
 
-        # Calculate the total carbon mineralisation rate from the litter
-        total_C_mineralisation_rate = calculate_total_C_mineralised(
+        # Calculate the total carbon mineralisation and respiration rates from the
+        # litter
+        combined_C_losses = calculate_C_mineralisation_and_respiration(
             litter_losses=litter_losses,
             model_constants=self.model_constants,
             core_constants=self.core_constants,
@@ -418,13 +425,19 @@ class LitterModel(
             "litter_mineralisation_rate_cnp": DataArray(
                 data=np.stack(
                     (
-                        total_C_mineralisation_rate,
+                        combined_C_losses["mineralised"],
                         litter_losses.N_mineralisation_rate,
                         litter_losses.P_mineralisation_rate,
                     ),
                     axis=1,
                 ),
                 coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
+            ),
+            "above_ground_litter_respiration": DataArray(
+                combined_C_losses["above_respiration"], dims="cell_id"
+            ),
+            "below_ground_litter_respiration": DataArray(
+                combined_C_losses["below_respiration"], dims="cell_id"
             ),
         }
 

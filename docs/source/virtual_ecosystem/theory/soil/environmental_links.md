@@ -303,6 +303,12 @@ environmental temperature and $T_{\mathrm{ref}}$ is the reference temperature. T
 link function is used to ensure that carbon use efficiency $\epsilon$ is bound between 0
 and 1 as it is a proportion.
 
+The fraction of carbon uptake that is not assimilated to biomass (when carbon use
+efficiency is less than one) is respired. Though respiration is calculated on a per
+microbial functional group basis the model only returns a lumped total soil respiration.
+This is because the functional group specific respiration rates cannot be linked to
+real-world data and therefore are not useful information to provide users.
+
 ### Biomass loss
 
 The impact of temperature on the rate of biomass loss is assumed to follow the
