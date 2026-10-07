@@ -25,7 +25,8 @@ def test_proof_of_concept_workflow():
     )
 
     # Create a Data object
-    data = Data(Grid(cell_nx=3, cell_ny=4))
+    grid = Grid(cell_nx=3, cell_ny=4)
+    data = Data(grid=grid)
 
     # Modify the known_variables to allow some test variables
     for v in (
@@ -82,7 +83,8 @@ def test_proof_of_concept_workflow():
 
     # At run time, create the ArrayResource instances for each definition
     array_resources = [
-        ArrayResource(definition=defn, data=data) for defn in array_resource_definitions
+        ArrayResource(definition=defn, grid=grid, data=data)
+        for defn in array_resource_definitions
     ]
 
     # The consumed mass arrays should have been created

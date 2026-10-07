@@ -346,8 +346,13 @@ def ve_run(
 
     # Build core elements
     core_components = CoreComponents(config=core_configuration)
-    # initialize grid distances
+    # Initialize grid distances
     core_components.grid.populate_distances()
+    # Populate cell neighbours using closest neighbours and a 1cm precision
+    # NOTE: With square grids, this hard codes rook move neighbours, currently expected
+    #       by hydrology and animal models.
+    core_components.grid.set_closest_neighbours(precision=0.01)
+
     if progress > Progress.MINIMAL:
         print("* Built core model components")
 
