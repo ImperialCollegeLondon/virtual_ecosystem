@@ -1529,6 +1529,7 @@ class AnimalModel(
                 | DietType.NECTAR
                 | DietType.WOOD
                 | DietType.DETRITUS
+                | DietType.MUSHROOMS
             ):
                 array_resource_list = cohort.get_array_resources(
                     self.array_resource_pools
