@@ -310,6 +310,7 @@ class HydrologyModel(
             effective_saturation=effective_saturation,
             air_entry_potential_inverse=self.model_constants.air_entry_potential_inverse,
             van_genuchten_nonlinearity_parameter=self.model_constants.van_genuchten_nonlinearity_parameter,
+            denominator_tolerance=self.abiotic_constants.denominator_tolerance,
         )
         self.data["matric_potential"] = self.layer_structure.from_template()
         self.data["matric_potential"][self.layer_structure.index_all_soil] = DataArray(
@@ -670,7 +671,7 @@ class HydrologyModel(
             daily_lists["sublimation_snow"].append(sublimation_snow)
             daily_lists["rain_driven_snowmelt"].append(rain_driven_snowmelt)
 
-            # Precipitation, condensation,  and not-evaporated intercept that reaches
+            # Precipitation, condensation, and not-evaporated intercept that reaches
             # the surface per day, [mm]
             incoming_water = (
                 hydro_input["current_precipitation"][:, day]
@@ -780,12 +781,13 @@ class HydrologyModel(
                 )
             )
 
-            # Calculate vertical flow between soil layers in mm per day and soil matric
-            # potential in m (later converted to kPa for data object).
+            # Calculate potential vertical flow between soil layers in mm per day and
+            # soil matric potential in m (later updated and converted to kPa for data
+            # object).
             # Note that there are severe limitations to this approach on the temporal
             # spatial scale of this model and this can only be treated as a very rough
             # approximation to discuss nutrient leaching.
-            vertical_flow = below_ground.calculate_vertical_flow(
+            vertical_flow_potential = below_ground.calculate_vertical_flow(
                 soil_moisture=soil_moisture_evap_mm
                 / self.soil_layer_thickness_mm,  # vol
                 soil_layer_thickness=self.soil_layer_thickness_mm / 1000.0,  # m
@@ -811,29 +813,26 @@ class HydrologyModel(
                 seconds_to_day=self.core_constants.seconds_to_day,
                 denominator_tolerance=self.model_constants.denominator_tolerance,
             )
-            daily_lists["matric_potential"].append(
-                vertical_flow["matric_potential"] * self.model_constants.m_to_kpa
-            )
-            daily_lists["vertical_flow"].append(vertical_flow["vertical_flow"])
 
             # Calculate subsurface stormflow, [mm]
-            effective_saturation = vertical_flow["effective_saturation"]
-            subsurface_stormflow = below_ground.calculate_subsurface_stormflow(
-                effective_saturation=effective_saturation[1],
-                root_soil_moisture=soil_moisture_evap_mm[1],
-                transpiration=hydro_input["current_transpiration"],
-                stormflow_coefficient=self.model_constants.stormflow_coefficient,
-                saturation_exponent=self.model_constants.saturation_exponent,
+            effective_saturation_ini = vertical_flow_potential["effective_saturation"]
+            subsurface_stormflow_potential = (
+                below_ground.calculate_subsurface_stormflow(
+                    effective_saturation=effective_saturation_ini[1],
+                    root_soil_moisture=soil_moisture_evap_mm[1],
+                    transpiration=hydro_input["current_transpiration"],
+                    stormflow_coefficient=self.model_constants.stormflow_coefficient,
+                    saturation_exponent=self.model_constants.saturation_exponent,
+                )
             )
-            daily_lists["subsurface_stormflow"].append(subsurface_stormflow)
 
             # Update soil moisture by +/- vertical flow to each layer and remove root
             # water uptake by plants (transpiration) and subsurface stormflow, [mm]
-            soil_moisture_updated = below_ground.update_soil_moisture(
+            below_ground_update = below_ground.update_soil_moisture(
                 soil_moisture=soil_moisture_evap_mm,  # mm
-                vertical_flow=vertical_flow["vertical_flow"],  # mm day-1
+                vertical_flow=vertical_flow_potential["vertical_flow"],  # mm
                 transpiration=hydro_input["current_transpiration"],  # mm
-                subsurface_stormflow=subsurface_stormflow,  # mm
+                subsurface_stormflow=subsurface_stormflow_potential,  # mm
                 soil_moisture_saturation=(  # mm
                     self.model_constants.soil_moisture_saturation
                     * self.soil_layer_thickness_mm
@@ -843,12 +842,39 @@ class HydrologyModel(
                     * self.soil_layer_thickness_mm
                 ),
             )
+
+            soil_moisture_updated = below_ground_update["soil_moisture"]
+            vertical_flow_actual = below_ground_update["vertical_flow"]
+            subsurface_stormflow_actual = below_ground_update["subsurface_stormflow"]
+
+            daily_lists["vertical_flow"].append(vertical_flow_actual)
+            daily_lists["subsurface_stormflow"].append(subsurface_stormflow_actual)
             daily_lists["soil_moisture"].append(soil_moisture_updated)
+
+            # Recalculate matric potential based on updated soil moisture
+            effective_saturation_new = hydrology_tools.calculate_effective_saturation(
+                soil_moisture=soil_moisture_updated / self.soil_layer_thickness_mm,
+                soil_moisture_saturation=self.model_constants.soil_moisture_saturation,
+                soil_moisture_residual=self.model_constants.soil_moisture_residual,
+            )
+
+            matric_potential_updated = below_ground.calculate_matric_potential(
+                effective_saturation=effective_saturation_new,
+                air_entry_potential_inverse=self.model_constants.air_entry_potential_inverse,
+                van_genuchten_nonlinearity_parameter=(
+                    self.model_constants.van_genuchten_nonlinearity_parameter
+                ),
+                denominator_tolerance=self.abiotic_constants.denominator_tolerance,
+            )
+
+            daily_lists["matric_potential"].append(
+                matric_potential_updated * self.model_constants.m_to_kpa
+            )
 
             # Calculate below ground horizontal flow and update ground water
             below_ground_flow = below_ground.update_groundwater_storage(
                 groundwater_storage=hydro_input["groundwater_storage"],
-                vertical_flow_to_groundwater=vertical_flow["vertical_flow"][-1],
+                vertical_flow_to_groundwater=vertical_flow_actual[-1],
                 bypass_flow=bypass_flow,
                 max_percolation_rate_uzlz=(
                     self.model_constants.max_percolation_rate_uzlz
@@ -882,7 +908,7 @@ class HydrologyModel(
             subsurface_runoff = (
                 below_ground_flow["subsurface_flow"]
                 + below_ground_flow["baseflow"]
-                + subsurface_stormflow
+                + subsurface_stormflow_actual
             )
 
             subsurface_runoff_routed_plus_local = above_ground.route_horizontal_flow(

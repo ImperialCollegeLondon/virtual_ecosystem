@@ -133,6 +133,7 @@ def calculate_vertical_flow(
         effective_saturation=se_for_potential,
         air_entry_potential_inverse=air_entry_potential_inverse,
         van_genuchten_nonlinearity_parameter=van_genuchten_nonlinearity_parameter,
+        denominator_tolerance=denominator_tolerance,
     )
 
     # Calculate the unsaturated (effective) hydraulic conductivity, [m s-1].
@@ -253,74 +254,109 @@ def update_soil_moisture(
     subsurface_stormflow: NDArray[np.floating],
     soil_moisture_saturation: NDArray[np.floating],
     soil_moisture_residual: NDArray[np.floating],
-) -> NDArray[np.floating]:
-    """Update soil moisture profile.
+) -> dict[str, NDArray[np.floating]]:
+    """Update soil moisture profile with mass-conserving flux limitation.
 
     This function calculates soil moisture for each layer by removing the vertical flow
-    of the current layer and adding it to the layer below. The implementation is based
-    on :cite:t:`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration
-    and the subsurface stormflow are removed from the second soil layer.
+    of the current layer and adding it to the layer below. Additionally, canopy
+    transpiration and subsurface stormflow are removed from the second soil layer.
+    If the requested outgoing fluxes exceed the water available above residual soil
+    moisture, only the removable fluxes are reduced so that mass is conserved and soil
+    moisture does not fall below the residual value because of flux removal.
+    Transpiration is treated as an external demand and is not modified here.
 
     Args:
         soil_moisture: Soil moisture after infiltration and surface evaporation, [mm]
-        vertical_flow: Vertical flow between all layers, [mm]
+        vertical_flow: Potential vertical flow between all layers, [mm]
         transpiration: Canopy transpiration, [mm]
-        subsurface_stormflow: Subsurface storm flow, [mm]
+        subsurface_stormflow: Potential subsurface storm flow, [mm]
         soil_moisture_saturation: Soil moisture saturation for each layer, [mm]
         soil_moisture_residual: Residual soil moisture for each layer, [mm]
 
     Returns:
-        updated soil moisture profile, relative volumetric water content, dimensionless
+        Dictionary containing updated soil moisture profile and the actual removable
+        fluxes used.
     """
-    # TODO this is currently not conserving water
-    # Remove vertical flow from topsoil moisture and ensure it is within capacity
-    top_soil_moisture = np.clip(
-        soil_moisture[0] - vertical_flow[0],
-        soil_moisture_residual[0],
-        soil_moisture_saturation[0],
+    n_layers = len(soil_moisture)
+
+    soil_moisture_updated = np.zeros_like(soil_moisture, dtype=float)
+    vertical_flow_actual = np.zeros_like(vertical_flow, dtype=float)
+    subsurface_stormflow_actual = np.array(subsurface_stormflow, copy=True, dtype=float)
+
+    available_outflow = np.maximum(
+        soil_moisture[0] - soil_moisture_residual[0],
+        0.0,
     )
+    vertical_flow_actual[0] = np.minimum(vertical_flow[0], available_outflow)
+    soil_moisture_updated[0] = soil_moisture[0] - vertical_flow_actual[0]
 
-    # Add topsoil vertical flow to layer below and remove that layers flow as well as
-    # canopy transpiration = root water uptake, and ensure it is within capacity
-    root_soil_moisture = np.clip(
-        soil_moisture[1]
-        + vertical_flow[0]
-        - vertical_flow[1]
-        - transpiration
-        - subsurface_stormflow,
-        soil_moisture_residual[1],
-        soil_moisture_saturation[1],
-    )
+    if n_layers > 1:
+        root_inflow = vertical_flow_actual[0]
+        root_storage_before_outflow = soil_moisture[1] + root_inflow
 
-    # For all further soil layers, add the vertical flow from the layer above, remove
-    # that layers flow, and ensure it is within capacity
-    if len(vertical_flow) == 2:
-        soil_moisture_updated = np.stack((top_soil_moisture, root_soil_moisture))
-
-    elif len(vertical_flow) > 2:
-        lower_soil_moisture = [
-            np.clip(
-                (soil_moisture[i + 1] + vertical_flow[i] - vertical_flow[i + 1]),
-                soil_moisture_residual[i + 1],
-                soil_moisture_saturation[i + 1],
-            )
-            for sm, vf in zip(
-                soil_moisture[2:],
-                vertical_flow[2:],
-            )
-            for i in range(len(soil_moisture) - 2)
-        ]
-        soil_moisture_updated = np.concatenate(
-            ([top_soil_moisture], [root_soil_moisture], lower_soil_moisture)
+        root_available_outflow = np.maximum(
+            root_storage_before_outflow - soil_moisture_residual[1],
+            0.0,
         )
 
-    return soil_moisture_updated
+        root_available_for_removable_fluxes = np.maximum(
+            root_available_outflow - transpiration,
+            0.0,
+        )
+
+        root_total_removable_demand = vertical_flow[1] + subsurface_stormflow_actual
+
+        root_scale = np.where(
+            root_total_removable_demand > root_available_for_removable_fluxes,
+            np.divide(
+                root_available_for_removable_fluxes,
+                root_total_removable_demand,
+                out=np.ones_like(root_total_removable_demand, dtype=float),
+                where=root_total_removable_demand > 0.0,
+            ),
+            1.0,
+        )
+
+        vertical_flow_actual[1] = vertical_flow[1] * root_scale
+        subsurface_stormflow_actual = subsurface_stormflow_actual * root_scale
+
+        soil_moisture_updated[1] = (
+            root_storage_before_outflow
+            - vertical_flow_actual[1]
+            - transpiration
+            - subsurface_stormflow_actual
+        )
+
+    for i in range(2, n_layers):
+        inflow = vertical_flow_actual[i - 1]
+        storage_before_outflow = soil_moisture[i] + inflow
+
+        available_outflow = np.maximum(
+            storage_before_outflow - soil_moisture_residual[i],
+            0.0,
+        )
+
+        vertical_flow_actual[i] = np.minimum(vertical_flow[i], available_outflow)
+        soil_moisture_updated[i] = storage_before_outflow - vertical_flow_actual[i]
+
+    soil_moisture_updated = np.clip(
+        soil_moisture_updated,
+        soil_moisture_residual,
+        soil_moisture_saturation,
+    )
+
+    return {
+        "soil_moisture": soil_moisture_updated,
+        "vertical_flow": vertical_flow_actual,
+        "subsurface_stormflow": subsurface_stormflow_actual,
+    }
 
 
 def calculate_matric_potential(
     effective_saturation: NDArray[np.floating],
     air_entry_potential_inverse: float,
     van_genuchten_nonlinearity_parameter: float,
+    denominator_tolerance: float,
 ) -> NDArray[np.floating]:
     r"""Convert soil moisture into an estimate of water potential.
 
@@ -341,15 +377,18 @@ def calculate_matric_potential(
         van_genuchten_nonlinearity_parameter: Dimensionless parameter in van Genuchten
             model that describes the degree of nonlinearity of the relationship between
             the volumetric water content and the soil matric potential.
+        denominator_tolerance: Small value to avoid division by zero
 
     Returns:
         An estimate of the water potential of the soil, [m]
     """
     shape_parameter = 1 - 1 / van_genuchten_nonlinearity_parameter
+    effective_saturation_safe = np.maximum(effective_saturation, denominator_tolerance)
+
     return (
         -1
         / air_entry_potential_inverse
-        * (effective_saturation ** (-1 / shape_parameter) - 1)
+        * (effective_saturation_safe ** (-1 / shape_parameter) - 1)
         ** (1 / van_genuchten_nonlinearity_parameter)
     )
 
