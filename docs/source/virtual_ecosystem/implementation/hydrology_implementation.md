@@ -490,15 +490,16 @@ represents the slow groundwater component that generates the base flow.
 The runoff from the upper zone to the channel, $Q_{uz}$, (mm),
 ($Q4$ in {numref}`bucket_model`) equals:
 
-$$Q_{uz} = \frac{1}{T_{uz}} \cdot UZ \cdot \Delta t$$
+$$Q_{uz} = \frac{1}{T_{uz}} \cdot UZ$$
 
 where $T_{uz}$ is the reservoir constant for the upper groundwater layer
 (days), and $UZ$ is the amount of water that is stored in the upper zone (mm).
 The amount of water stored in the upper zone is computed as follows:
 
-$$UZ = D_{ls,gw} + D_{pref,gw} - D{uz,lz}$$
+$$UZ = GW_{uz} + D_{ls,gw} + D_{pref,gw} - D_{uz,lz}$$
 
-where $D_{ls,gw}$ is the flow from the lower soil layer to groundwater,
+where $GW_{uz}$ is the amount of water stored in the upper groundwater zone at the
+start of the timestep, $D_{ls,gw}$ is the flow from the lower soil layer to groundwater,
 $D_{pref,gw}$ is the amount of preferential flow or bypass flow per time step,
 $D_{uz,lz}$ is the amount of water that percolates from the upper to the lower
 zone, all in (mm).
@@ -508,27 +509,31 @@ groundwater zone. This amount of water is provided by the upper groundwater zone
 $D_{uz,lz}$ is a fixed amount per computational time step and it is defined as
 follows:
 
-$$D_{uz,lz} = min(GW_{perc} \cdot \Delta t, UZ)$$
+$$D_{uz,lz} = min(GW_{perc}, UZ)$$
 
-where $GW_{perc}$, [mm day-1], is the maximum percolation rate from the upper to
-the lower groundwater zone. The runoff from the lower zone to the channel $Q_{lz}$,
-(mm), ($Q5$ in {numref}`bucket_model`) is then computed by:
+where $GW_{perc}$, [mm], is the maximum percolation rate from the upper to
+the lower groundwater zone for the timestep. The runoff from the lower zone to the
+channel $Q_{lz}$, (mm), ($Q5$ in {numref}`bucket_model`) is then computed by:
 
-$$Q_{lz} = \frac{1}{T_{lz}} \cdot LZ \cdot \Delta t$$
+$$Q_{lz} = \frac{1}{T_{lz}} \cdot LZ$$
 
 $T_{lz}$ is the reservoir constant for the lower groundwater layer, (days),
 and $LZ$ is the amount of water that is stored in the lower zone, (mm).
 $LZ$ is computed as follows:
 
-$$LZ = D_{uz,lz} - (GW_{loss} \cdot \Delta t)$$
+$$LZ = GW_{lz} + D_{uz,lz} - GW_{loss,act}$$
 
-where $D_{uz,lz}$ is the percolation from the upper groundwater zone, (mm),
-and $GW_{loss}$ is the maximum percolation rate from the lower groundwater
-zone, (mm day-1).
+where $GW_{lz}$ is the amount of water stored in the lower groundwater zone at the
+start of the timestep, $D_{uz,lz}$ is the percolation from the upper groundwater
+zone, (mm), and $GW_{loss,act}$ is the actual groundwater loss, defined as:
+
+$$GW_{loss,act} = min(GW_{loss}, GW_{lz} + D_{uz,lz})$$
 
 The amount of water defined by $GW_{loss}$ never rejoins the river channel and
 is lost beyond the catchment boundaries or to deep groundwater systems. The larger
 the value of $GW_{loss}$, the larger the amount of water that leaves the system.
+The actual groundwater loss is capped by the water available in the lower zone so
+that groundwater storage cannot become negative.
 
 ## Across grid hydrology
 

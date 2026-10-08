@@ -376,45 +376,51 @@ def update_groundwater_storage(
 
     The outflow from the upper zone to the channel, :math:`Q_{uz}`, [mm], equals:
 
-    :math:`Q_{uz} = \frac{1}{T_{uz}} * UZ * \Delta t`
+    :math:`Q_{uz} = \frac{1}{T_{uz}} * UZ`
 
     where :math:`T_{uz}` is the reservoir constant for the upper groundwater layer
     [days], and :math:`UZ` is the amount of water that is stored in the upper zone [mm].
     The amount of water stored in the upper zone is computed as follows:
 
-    :math:`UZ = D_{ls,gw} + D_{pref,gw} - D{uz,lz}`
+    :math:`UZ = GW_{uz} + D_{ls,gw} + D_{pref,gw} - D_{uz,lz}`
 
-    where :math:`D_{ls,gw}` is the flow from the lower soil layer to groundwater,
-    :math:`D_{pref,gw}` is the amount of preferential flow or bypass flow per time step,
-    :math:`D_{uz,lz}` is the amount of water that percolates from the upper to the lower
-    zone, all in [mm].
+    where :math:`GW_{uz}` is the amount of water stored in the upper groundwater zone
+    at the start of the timestep, :math:`D_{ls,gw}` is the flow from the lower soil
+    layer to groundwater, :math:`D_{pref,gw}` is the amount of preferential flow or
+    bypass flow per time step, and :math:`D_{uz,lz}` is the amount of water that
+    percolates from the upper to the lower zone, all in [mm].
 
-    The water percolates from the upper to the lower zone is the inflow to the lower
-    groundwater zone. This amount of water is provided by the upper groundwater zone.
-    :math:`D_{uz,lz}` is a fixed amount per computational time step and it is defined as
-    follows:
+    The water that percolates from the upper to the lower zone is the inflow to the
+    lower groundwater zone. This amount of water is provided by the upper groundwater
+    zone. :math:`D_{uz,lz}` is a fixed amount per computational time step and it is
+    defined as follows:
 
-    :math:`D_{uz,lz} = min(GW_{perc} * \Delta t, UZ)`
+    :math:`D_{uz,lz} = \min(GW_{perc}, UZ)`
 
-    where :math:`GW_{perc}`, [mm day], is the maximum percolation rate from the upper to
-    the lower groundwater zone. The outflow from the lower zone to the channel is then
-    computed by:
+    where :math:`GW_{perc}`, [mm], is the maximum percolation rate from the upper to
+    the lower groundwater zone for the timestep. The outflow from the lower zone to the
+    channel is then computed by:
 
-    :math:`Q_{lz} = \frac{1}{T_{lz}} * LZ * \Delta t`
+    :math:`Q_{lz} = \frac{1}{T_{lz}} * LZ`
 
     :math:`T_{lz}` is the reservoir constant for the lower groundwater layer, [days],
     and :math:`LZ` is the amount of water that is stored in the lower zone, [mm].
     :math:`LZ` is computed as follows:
 
-    :math:`LZ = D_{uz,lz} - (GW_{loss} * \Delta t)`
+    :math:`LZ = GW_{lz} + D_{uz,lz} - GW_{loss,act}`
 
-    where :math:`D_{uz,lz}` is the percolation from the upper groundwater zone,[mm],
-    and :math:`GW_{loss}` is the maximum percolation rate from the lower groundwater
-    zone, [mm day].
+    where :math:`GW_{lz}` is the amount of water stored in the lower groundwater zone
+    at the start of the timestep, :math:`D_{uz,lz}` is the percolation from the upper
+    groundwater zone, [mm], and :math:`GW_{loss,act}` is the actual groundwater loss,
+    [mm], defined as:
+
+    :math:`GW_{loss,act} = \min(GW_{loss}, GW_{lz} + D_{uz,lz})`
 
     The amount of water defined by :math:`GW_{loss}` never rejoins the river channel and
     is lost beyond the catchment boundaries or to deep groundwater systems. The larger
-    the value of ath:`GW_{loss}`, the larger the amount of water that leaves the system.
+    the value of :math:`GW_{loss}`, the larger the amount of water that leaves the
+    system. The actual groundwater loss is capped by the water available in the lower
+    zone so that groundwater storage cannot become negative.
 
     Args:
         groundwater_storage: Amount of water that is stored in the groundwater reservoir
@@ -424,10 +430,10 @@ def update_groundwater_storage(
         bypass_flow: Flow that bypasses the soil matrix and drains directly to the
             groundwater, [mm]
         max_percolation_rate_uzlz: Maximum percolation rate between upper and lower
-            groundwater zone, [mm d-1]
-        groundwater_loss: Constant amount of water that never rejoins the river channel
-            and is lost beyond the catchment boundaries or to deep groundwater systems,
-            [mm]
+            groundwater zone for this timestep, [mm]
+        groundwater_loss: Potential amount of water that never rejoins the river channel
+            and is lost beyond the catchment boundaries or to deep groundwater systems
+            for this timestep, [mm]
         reservoir_const_upper_groundwater: Reservoir constant for the upper groundwater
             layer, [days]
         reservoir_const_lower_groundwater: Reservoir constant for the lower groundwater
@@ -439,35 +445,43 @@ def update_groundwater_storage(
     """
 
     output = {}
-    # The water that percolates from the upper to the lower groundwater zone is defined
-    # as the minimum of `max_percolation_rate_uzlz` and the amount water stored in upper
-    # zone, here `groundwater_storage[0]`
-    percolation_to_lower_zone = np.where(
-        max_percolation_rate_uzlz < groundwater_storage[0],
-        max_percolation_rate_uzlz,
-        groundwater_storage[0],
-    )
 
     # Update water stored in upper zone, [mm]
     upper_zone = np.array(
-        groundwater_storage[0]
-        + vertical_flow_to_groundwater
-        + bypass_flow
-        - percolation_to_lower_zone
+        groundwater_storage[0] + vertical_flow_to_groundwater + bypass_flow
     )
+
+    # The water that percolates from the upper to the lower groundwater zone is defined
+    # as the minimum of `max_percolation_rate_uzlz` and the amount water stored in upper
+    # zone
+    percolation_to_lower_zone = np.minimum(
+        max_percolation_rate_uzlz,
+        upper_zone,
+    )
+
+    # Update water stored in upper zone after percolation, [mm]
+    upper_zone = upper_zone - percolation_to_lower_zone
 
     # Calculate outflow from the upper zone to the channel, [mm]
-    output["subsurface_flow"] = np.maximum(
-        0.0, upper_zone / reservoir_const_upper_groundwater
+    output["subsurface_flow"] = np.minimum(
+        np.maximum(0.0, upper_zone / reservoir_const_upper_groundwater),
+        upper_zone,
     )
 
-    # Update water stored in lower zone, [mm], must be >=0
-    lower_zone = np.array(
-        groundwater_storage[1] + percolation_to_lower_zone - groundwater_loss
-    )
+    # Update water stored in lower zone, [mm], must be >= 0
+    lower_zone = np.array(groundwater_storage[1] + percolation_to_lower_zone)
 
-    # Calculate outflow from the lower zone to the channel, [mm], must be >=0
-    output["baseflow"] = np.maximum(0.0, lower_zone / reservoir_const_lower_groundwater)
+    # Groundwater loss cannot exceed available water in lower zone, [mm]
+    groundwater_loss = np.minimum(groundwater_loss, lower_zone)
+
+    # Apply groundwater loss
+    lower_zone = lower_zone - groundwater_loss
+
+    # Calculate outflow from the lower zone to the channel, [mm], must be >= 0
+    output["baseflow"] = np.minimum(
+        np.maximum(0.0, lower_zone / reservoir_const_lower_groundwater),
+        lower_zone,
+    )
 
     # Update ground water storage
     output["groundwater_storage"] = np.vstack(
