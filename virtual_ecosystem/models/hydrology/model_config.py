@@ -220,8 +220,10 @@ class HydrologyConstants(Configuration):
     """
 
     magnus_coefficients_ice: tuple[float, float, float] = (611.2, 22.46, 272.62)
-    """Magnus formula coefficients for ice.
+    """Magnus formula coefficients for saturation vapour pressure over ice.
     
+    The Magnus formula is used to calculate saturation vapour pressure. These
+    coefficients are appropriate for sub-freezing conditions such as snow sublimation.
     :math:`c_1` is the base pressure [Pa], :math:`c_2` is the numerator coefficient [-],
     and :math:`c_3` is the denominator offset [°C].
     """
