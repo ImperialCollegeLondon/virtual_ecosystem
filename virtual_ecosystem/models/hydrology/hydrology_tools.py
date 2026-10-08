@@ -445,3 +445,38 @@ def check_monthly_mass_balance(
             f" exceeds total catchment precip ({total_catchment_precip_mm:.2f} mm). "
             f"Outlet cells: {outlet_cells}"
         )
+
+
+def calculate_saturation_vapour_pressure_ice(
+    temperature: NDArray[np.floating],
+    magnus_coefficients_ice: tuple[float, float, float],
+) -> NDArray[np.floating]:
+    r"""Calculate saturation vapour pressure over ice using the Magnus formula, [Pa].
+
+    The saturation vapour pressure over ice is lower than over liquid water at the
+    same temperature, reflecting the lower energy state of the ice surface. This
+    formula should be used for snow or ice surfaces where temperature is at or
+    below freezing.
+
+    .. math::
+
+        e_{sat} = c_1 \cdot \exp\left(\frac{c_2 \cdot T}{c_3 + T}\right)
+
+    where :math:`T` is temperature in :math:`^{\circ}\mathrm{C}` and
+    :math:`(c_1, c_2, c_3)` are the Magnus coefficients for ice
+    (default: 611.2, 22.46, 272.62). Both formulas converge at
+    :math:`0\,^{\circ}\mathrm{C}` (:math:`e_{sat} = 611.2` Pa).
+
+    Args:
+        temperature: Surface temperature, [°C]
+        magnus_coefficients_ice: Tuple of Magnus formula coefficients
+            :math:`(c_1, c_2, c_3)` for ice, where :math:`c_1` is the base
+            pressure [Pa], :math:`c_2` is the numerator coefficient [-], and
+            :math:`c_3` is the denominator offset [°C].
+            Default values: (611.2, 22.46, 272.62).
+
+    Returns:
+        Saturation vapour pressure over ice, [kPa]
+    """
+    c1, c2, c3 = magnus_coefficients_ice
+    return c1 * np.exp((c2 * temperature) / (c3 + temperature)) / 1000

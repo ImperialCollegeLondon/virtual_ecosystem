@@ -427,3 +427,71 @@ def test_mass_balance_fail():
             monthly_precipitation_mm=monthly_precipitation,
             monthly_evaporation_mm=monthly_evaporation,
         )
+
+
+def test_calculate_saturation_vapour_pressure_ice_formula_and_properties():
+    """Saturation vapour pressure over ice is correctly calculated."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        calculate_saturation_vapour_pressure_ice,
+    )
+
+    c1, c2, c3 = (611.2, 22.46, 272.62)
+    temperature = np.array([0.0, -10.0, -20.0, -30.0])
+    expected = c1 * np.exp((c2 * temperature) / (c3 + temperature)) / 1000
+
+    result = calculate_saturation_vapour_pressure_ice(
+        temperature=temperature,
+        magnus_coefficients_ice=(c1, c2, c3),
+    )
+
+    # Matches formula
+    np.testing.assert_allclose(result, expected, rtol=1e-10)
+
+    # At 0°C equals c1
+    np.testing.assert_allclose(result[0], c1 / 1000, rtol=1e-10)
+
+    # Always positive
+    assert np.all(result > 0.0)
+
+    # Monotonically decreasing with temperature
+    assert np.all(np.diff(result) < 0.0)
+
+    # Output shape matches input
+    assert result.shape == temperature.shape
+
+
+def test_calculate_saturation_vapour_pressure_ice_physical_bounds():
+    """Saturation vapour pressure over ice is lower than over liquid water."""
+    from pyrealm.constants import CoreConst as PyrealmCoreConst
+    from pyrealm.core.hygro import calculate_vp_sat
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        calculate_saturation_vapour_pressure_ice,
+    )
+
+    magnus_coefficients_ice = (611.2, 22.46, 272.62)
+    pyrealm_core_constants = PyrealmCoreConst()
+
+    # Ice lower than liquid at sub-zero temperatures
+    temperature_subzero = np.array([-20.0, -10.0, -5.0, -1.0])
+    result_ice = calculate_saturation_vapour_pressure_ice(
+        temperature=temperature_subzero,
+        magnus_coefficients_ice=magnus_coefficients_ice,
+    )
+    result_liquid = calculate_vp_sat(
+        tc=temperature_subzero,
+        core_const=pyrealm_core_constants,
+    )
+    assert np.all(result_ice < result_liquid)
+
+    # Both converge at 0°C
+    result_ice_0 = calculate_saturation_vapour_pressure_ice(
+        temperature=np.array([0.0]),
+        magnus_coefficients_ice=magnus_coefficients_ice,
+    )
+    result_liquid_0 = calculate_vp_sat(
+        tc=np.array([0.0]),
+        core_const=pyrealm_core_constants,
+    )
+    np.testing.assert_allclose(result_ice_0, result_liquid_0, rtol=1e-3)
