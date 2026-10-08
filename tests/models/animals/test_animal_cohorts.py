@@ -4093,3 +4093,48 @@ class TestAnimalCohort:
         """Test _clamp_cnp_noise."""
         result = herbivore_cohort_instance._clamp_cnp_noise(input_cnp)
         assert result == pytest.approx(expected_cnp), f"Failed for scenario: {test_id}"
+
+    def test_get_territory_cells_passes_suitability_through(
+        self, mocker, herbivore_cohort_instance
+    ) -> None:
+        """The suitability array is forwarded to thermal_territory unchanged.
+
+        The cohort holds no reference to the model, so the array supplied by the
+        caller must reach the scaling function as given.
+        """
+        import numpy as np
+
+        mock_thermal = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.thermal_territory",
+            return_value=[0, 1],
+        )
+
+        cohort = herbivore_cohort_instance
+        suitability = np.full(cohort.grid.n_cells, 0.5)
+
+        cohort.get_territory_cells(0, suitability)
+
+        args = mock_thermal.call_args.args
+        assert args[0] == 0
+        assert args[1] == cohort.territory_cells
+        assert args[2] == cohort.grid.cell_nx
+        assert args[3] == cohort.grid.cell_ny
+        assert np.array_equal(args[4], suitability)
+
+    def test_get_territory_cells_defaults_to_breadth_first(
+        self, herbivore_cohort_instance
+    ) -> None:
+        """Omitting suitability reproduces the pre-thermal territory exactly.
+
+        This is the guarantee that cohort construction, which supplies no
+        suitability, is unchanged from breadth-first behaviour.
+        """
+        from virtual_ecosystem.models.animal import scaling_functions as sf
+
+        cohort = herbivore_cohort_instance
+
+        expected = sf.bfs_territory(
+            0, cohort.territory_cells, cohort.grid.cell_nx, cohort.grid.cell_ny
+        )
+
+        assert cohort.get_territory_cells(0) == expected

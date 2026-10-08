@@ -174,20 +174,31 @@ class AnimalCohort:
                 self.mass_current, self.functional_group.adult_mass
             )
 
-    def get_territory_cells(self, centroid_key: int) -> list[int]:
-        """This calls bfs_territory to determine the scope of the territory.
+    def get_territory_cells(
+        self, centroid_key: int, suitability: NDArray | None = None
+    ) -> list[int]:
+        """This determines the scope of the territory around a centroid.
+
+        Growth is breadth-first when no suitability is supplied, and otherwise
+        expands preferentially into thermally suitable cells. The cohort is not
+        aware of the model: the suitability array for its functional group is
+        supplied by the caller.
 
         Args:
             centroid_key: The central grid cell key of the territory.
+            suitability: Per-cell thermal suitability for this cohort's functional
+                group, or ``None`` for breadth-first growth.
 
+        Returns:
+            A list of grid cell keys representing the territory.
         """
 
-        # Perform BFS to determine the territory cells
-        territory_cells = sf.bfs_territory(
+        territory_cells = sf.thermal_territory(
             centroid_key,
             self.territory_cells,
             self.grid.cell_nx,
             self.grid.cell_ny,
+            suitability,
         )
 
         return territory_cells
@@ -197,6 +208,10 @@ class AnimalCohort:
         centroid_key: int,
     ) -> None:
         """This initializes the territory occupied by the cohort.
+
+        The territory is built breadth-first here and is replaced with a
+        suitability-aware territory by AnimalModel.update_community_occupancy
+        as soon as the cohort is registered.
 
         Args:
             centroid_key: The grid cell key anchoring the territory.
