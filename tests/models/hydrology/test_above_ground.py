@@ -1,169 +1,50 @@
 """Test module for hydrology.above_ground.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import ERROR
+from logging import ERROR, WARNING
 
 import numpy as np
 import pytest
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import InitialisationError
 
 
 @pytest.mark.parametrize(
-    "snow_water_equivalent, snowfall, temperature_driven_snowmelt, "
-    "sublimation_snow, rain_driven_snowmelt, expected, atol",
+    "swe,expected_log_entries",
     [
-        pytest.param(
-            np.array([100.0, 100.0, 100.0, 100.0]),
-            np.array([10.0, 10.0, 10.0, 10.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([110.0, 110.0, 110.0, 110.0]),
-            1e-10,
-            id="accumulation_only",
+        (
+            np.array([10.0, 5.0]),
+            {},
         ),
-        pytest.param(
-            np.array([100.0, 80.0, 60.0, 40.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([10.0, 8.0, 6.0, 4.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([90.0, 72.0, 54.0, 36.0]),
-            1e-10,
-            id="temperature_melt_only",
-        ),
-        pytest.param(
-            np.array([100.0, 80.0, 60.0, 40.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([2.0, 1.5, 1.0, 0.5]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([98.0, 78.5, 59.0, 39.5]),
-            1e-10,
-            id="sublimation_only",
-        ),
-        pytest.param(
-            np.array([100.0, 80.0, 60.0, 40.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([5.0, 4.0, 3.0, 2.0]),
-            np.array([95.0, 76.0, 57.0, 38.0]),
-            1e-10,
-            id="rain_melt_only",
-        ),
-        pytest.param(
-            np.array([100.0, 80.0, 60.0, 40.0]),
-            np.array([5.0, 4.0, 3.0, 2.0]),
-            np.array([10.0, 8.0, 6.0, 4.0]),
-            np.array([2.0, 1.5, 1.0, 0.5]),
-            np.array([3.0, 2.5, 2.0, 1.5]),
-            np.array([90.0, 72.0, 54.0, 36.0]),
-            1e-10,
-            id="all_terms",
-        ),
-        pytest.param(
-            np.array([5.0, 3.0, 1.0, 0.5]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([10.0, 10.0, 10.0, 10.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            1e-10,
-            id="no_negative_swe",
-        ),
-        pytest.param(
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            1e-10,
-            id="zero_swe_no_snowfall",
-        ),
-        pytest.param(
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([20.0, 15.0, 10.0, 5.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([20.0, 15.0, 10.0, 5.0]),
-            1e-10,
-            id="accumulation_from_zero",
-        ),
-        pytest.param(
-            np.array([100.0, 80.0, 60.0, 40.0]),
-            np.array([5.0, 4.0, 3.0, 2.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([-1.0, -0.5, -0.5, -0.2]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([106.0, 84.5, 63.5, 42.2]),
-            1e-10,
-            id="deposition_adds_to_swe",
-        ),
-        pytest.param(
-            np.array([50.0, 0.0, 100.0, 0.0]),
-            np.array([0.0, 10.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 200.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.0, 0.0, 0.0]),
-            np.array([50.0, 10.0, 0.0, 0.0]),
-            1e-10,
-            id="mixed_cell_states",
+        (
+            np.array([-1.0, 5.0]),
+            (
+                (
+                    WARNING,
+                    "Snow water equivalent (SWE) is negative for some grid cells. "
+                    "Setting SWE to zero for those cells.",
+                ),
+            ),
         ),
     ],
 )
-def test_update_snow_water_equivalent(
-    snow_water_equivalent,
-    snowfall,
-    temperature_driven_snowmelt,
-    sublimation_snow,
-    rain_driven_snowmelt,
-    expected,
-    atol,
-):
-    """Test update_snow_water_equivalent for one daily timestep.
-
-    Covers:
-    - accumulation_only: snowfall only, no losses → SWE increases
-    - temperature_melt_only: melt only, no snowfall → SWE decreases
-    - sublimation_only: sublimation only → SWE decreases
-    - rain_melt_only: rain-on-snow melt only → SWE decreases
-    - all_terms: all four terms active simultaneously
-    - no_negative_swe: melt exceeds SWE → result clipped to zero
-    - zero_swe_no_snowfall: no snow, no inputs → SWE remains zero
-    - accumulation_from_zero: snowfall onto bare ground → SWE equals snowfall
-    - deposition_adds_to_swe: negative sublimation (deposition) increases SWE
-    - mixed_cell_states: cells with and without snow in the same array
-    """
+def test_clip_negative_snow_water_equivalent(swe, expected_log_entries, caplog):
+    """A warning is emitted when losses exceed available SWE."""
 
     from virtual_ecosystem.models.hydrology.above_ground import (
-        update_snow_water_equivalent,
+        clip_negative_snow_water_equivalent,
     )
 
-    result = update_snow_water_equivalent(
-        snow_water_equivalent=snow_water_equivalent,
-        snowfall=snowfall,
-        temperature_driven_snowmelt=temperature_driven_snowmelt,
-        sublimation_snow=sublimation_snow,
-        rain_driven_snowmelt=rain_driven_snowmelt,
-    )
+    caplog.clear()
 
-    # Check values
-    np.testing.assert_allclose(result, expected, atol=atol)
+    result = clip_negative_snow_water_equivalent(swe)
 
-    # SWE must never be negative
-    assert np.all(result >= 0.0), (
-        f"SWE contains negative values: {result[result < 0.0]}"
-    )
+    # Result must be clipped to zero
+    assert np.all(result >= 0.0)
 
-    # Shape must be preserved
-    assert result.shape == snow_water_equivalent.shape, (
-        f"Output shape {result.shape} does not match input shape "
-        f"{snow_water_equivalent.shape}"
-    )
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)
 
 
 def test_potential_evaporation_leaf():
@@ -215,7 +96,10 @@ def test_calculate_canopy_evaporation():
         aerodynamic_resistance_canopy=np.array([50.0, 60.0, np.nan]),
         stomatal_resistance=np.array([[150.0, 160.0, np.nan], [150.0, np.nan, np.nan]]),
         latent_heat_vapourisation=np.array(
-            [[2268.0, 2268.0, np.nan], [2268.0, np.nan, np.nan]]
+            [
+                [2268.0, 2268.0, np.nan],
+                [2268.0, np.nan, np.nan],
+            ]
         ),
         psychrometric_constant=np.array([0.066, 0.067, np.nan]),
         saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
@@ -396,11 +280,12 @@ def test_route_horizontal_flow_raises_on_negative():
         ),
         (
             "hexagon",
-            pytest.raises(ValueError),
+            pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
-                    "This grid type is currently not supported!",
+                    "Hydrology model currently requires a square grid with "
+                    "rook move neighbours",
                 ),
             ),
         ),
@@ -446,6 +331,7 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
 
     with raises:
         grid = Grid(grid_type, cell_nx=5, cell_ny=5)
+        grid.set_closest_neighbours()
         result = calculate_drainage_map(grid, elevation)
 
         assert len(result) == grid.n_cells
@@ -636,11 +522,10 @@ def test_convert_mm_flow_to_m3_per_second(fixture_core_constants):
     )
 
     channel_flow = np.array([100, 1000, 10000])
-    exp_result = np.array([0.0003858, 0.003858, 0.0385802])
+    exp_result = np.array([0.011574, 0.115741, 1.157407])
     result = convert_mm_flow_to_m3_per_second(
         river_discharge_mm=channel_flow,
         area=np.array([10000, 10000, 10000]),
-        days=30,
         seconds_to_day=fixture_core_constants.seconds_to_day,
         meters_to_millimeters=1000,
     )
@@ -661,3 +546,181 @@ def test_calculate_surface_runoff():
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)
+
+
+# Physical constants for snowmelt calculations
+heat_capacity_ice = 2090.0  # J kg-1 K-1
+latent_heat_fusion = 334000.0  # J kg-1
+
+
+@pytest.mark.parametrize(
+    "snow_water_equivalent, surface_temperature, expected_melt",
+    [
+        # Sub-zero temperature: no melt
+        (np.array([100.0, 50.0]), np.array([-5.0, -1.0]), np.array([0.0, 0.0])),
+        # Zero temperature: no melt
+        (np.array([100.0, 50.0]), np.array([0.0, 0.0]), np.array([0.0, 0.0])),
+        # Positive temperature: melt fraction of SWE
+        (
+            np.array([100.0, 50.0]),
+            np.array([10.0, 5.0]),
+            np.array(
+                [
+                    min(100.0, (heat_capacity_ice * 10.0 / latent_heat_fusion) * 100.0),
+                    min(50.0, (heat_capacity_ice * 5.0 / latent_heat_fusion) * 50.0),
+                ]
+            ),
+        ),
+        # Melt capped by SWE: very high temperature, small snowpack
+        (
+            np.array([0.1, 0.5]),
+            np.array([100.0, 200.0]),
+            np.array([0.062575, 0.5]),
+        ),
+        # Zero SWE: no melt regardless of temperature
+        (np.array([0.0, 0.0]), np.array([10.0, 20.0]), np.array([0.0, 0.0])),
+    ],
+)
+def test_calculate_snowmelt_parametrized(
+    snow_water_equivalent, surface_temperature, expected_melt
+):
+    """Snowmelt is correctly calculated across a range of conditions."""
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_temperature_driven_snowmelt,
+    )
+
+    result = calculate_temperature_driven_snowmelt(
+        snow_water_equivalent=snow_water_equivalent,
+        surface_temperature=surface_temperature,
+        heat_capacity_ice=heat_capacity_ice,
+        latent_heat_fusion=latent_heat_fusion,
+    )
+
+    assert result.ndim == 1
+    np.testing.assert_allclose(result, expected_melt, rtol=1e-5, atol=1e-5)
+
+
+def test_calculate_snowmelt_never_exceeds_swe():
+    """Melt never exceeds available snow water equivalent."""
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_temperature_driven_snowmelt,
+    )
+
+    rng = np.random.default_rng(42)
+    snow_water_equivalent = rng.uniform(0.0, 200.0, size=20)
+    surface_temperature = rng.uniform(-10.0, 50.0, size=20)
+
+    result = calculate_temperature_driven_snowmelt(
+        snow_water_equivalent=snow_water_equivalent,
+        surface_temperature=surface_temperature,
+        heat_capacity_ice=heat_capacity_ice,
+        latent_heat_fusion=latent_heat_fusion,
+    )
+
+    assert result.ndim == 1
+    assert np.all(result <= snow_water_equivalent)
+
+
+def test_calculate_snowmelt_is_nonnegative():
+    """Melt is always non-negative and zero for all sub-zero temperatures."""
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_temperature_driven_snowmelt,
+    )
+
+    rng = np.random.default_rng(0)
+    snow_water_equivalent = rng.uniform(0.0, 200.0, size=20)
+    surface_temperature = rng.uniform(-20.0, 0.0, size=20)  # all sub-zero
+
+    result = calculate_temperature_driven_snowmelt(
+        snow_water_equivalent=snow_water_equivalent,
+        surface_temperature=surface_temperature,
+        heat_capacity_ice=heat_capacity_ice,
+        latent_heat_fusion=latent_heat_fusion,
+    )
+
+    assert result.ndim == 1
+    assert np.all(result >= 0.0)
+    np.testing.assert_array_equal(result, 0.0)
+
+
+@pytest.mark.parametrize(
+    "air_temperature, rainfall, expected_melt",
+    [
+        # Sub-zero temperature: no melt
+        (np.array([-5.0, -1.0]), np.array([10.0, 5.0]), np.array([0.0, 0.0])),
+        # Zero temperature: no melt
+        (np.array([0.0, 0.0]), np.array([10.0, 5.0]), np.array([0.0, 0.0])),
+        # Positive temperature, zero rainfall: no melt
+        (np.array([5.0, 10.0]), np.array([0.0, 0.0]), np.array([0.0, 0.0])),
+        # Positive temperature and rainfall: melt proportional to both
+        (
+            np.array([2.0, 4.0]),
+            np.array([10.0, 20.0]),
+            np.array([0.0125 * 2.0 * 10.0, 0.0125 * 4.0 * 20.0]),
+        ),
+        # Mixed temperatures: only positive contributes
+        (
+            np.array([-3.0, 5.0]),
+            np.array([10.0, 10.0]),
+            np.array([0.0, 0.0125 * 5.0 * 10.0]),
+        ),
+    ],
+)
+def test_calculate_rain_driven_snowmelt_parametrized(
+    air_temperature, rainfall, expected_melt
+):
+    """Rainfall-driven snowmelt is correctly calculated across a range of conditions."""
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_rain_driven_snowmelt,
+    )
+
+    result = calculate_rain_driven_snowmelt(
+        air_temperature=air_temperature,
+        rainfall=rainfall,
+        rain_driven_snowmelt_coefficient=0.0125,
+    )
+
+    assert result.ndim == 1
+    np.testing.assert_allclose(result, expected_melt, rtol=1e-10)
+
+
+def test_calculate_rain_driven_snowmelt_is_nonnegative():
+    """Melt is always non-negative and zero for all sub-zero temperatures."""
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_rain_driven_snowmelt,
+    )
+
+    rng = np.random.default_rng(0)
+    air_temperature = rng.uniform(-20.0, 0.0, size=20)  # all sub-zero
+    rainfall = rng.uniform(0.0, 50.0, size=20)
+
+    result = calculate_rain_driven_snowmelt(
+        air_temperature=air_temperature,
+        rainfall=rainfall,
+        rain_driven_snowmelt_coefficient=0.0125,
+    )
+
+    assert result.ndim == 1
+    assert np.all(result >= 0.0)
+    np.testing.assert_array_equal(result, 0.0)
+
+
+def test_calculate_snow_sublimation():
+    """Test snow sublimation calculation."""
+
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_snow_sublimation,
+    )
+
+    air_temperature = np.array([2.0, -2.0, -10.0], dtype=float)
+    snow_water_equivalent = np.array([100.0, 100.0, 1.0], dtype=float)
+    sublimation_coefficient = 0.1
+
+    result = calculate_snow_sublimation(
+        air_temperature=air_temperature,
+        snow_water_equivalent=snow_water_equivalent,
+        sublimation_coefficient=sublimation_coefficient,
+    )
+
+    expected = np.array([0.0, 20.0, 1.0], dtype=float)
+    np.testing.assert_allclose(result, expected)

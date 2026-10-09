@@ -7,13 +7,12 @@ TODO change temperatures to Kelvin
 
 """  # noqa: D205
 
-from math import sqrt
-
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calculate_vp_sat
 
+from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
@@ -21,29 +20,27 @@ from virtual_ecosystem.models.abiotic.abiotic_tools import (
 )
 
 
-def update_snow_water_equivalent(
+def clip_negative_snow_water_equivalent(
     snow_water_equivalent: NDArray[np.floating],
-    snowfall: NDArray[np.floating],
-    temperature_driven_snowmelt: NDArray[np.floating],
-    sublimation_snow: NDArray[np.floating],
-    rain_driven_snowmelt: NDArray[np.floating],
 ) -> NDArray[np.floating]:
-    """Update snow water equivalent (SWE) for one daily timestep.
+    """Clip negative snow water equivalent values to zero.
 
     Args:
-        snow_water_equivalent: Current SWE, [mm]
-        snowfall: Daily snowfall, [mm water equivalent]
-        temperature_driven_snowmelt: Temperature-driven melt, [mm]
-        sublimation_snow: Sublimation (positive) or deposition (negative), [mm]
-        rain_driven_snowmelt: Rain-on-snow melt, [mm]
+        snow_water_equivalent: Snow water equivalent, [mm]
 
     Returns:
-        Updated SWE, [mm], clipped to zero
+        Snow water equivalent with negative values set to zero, [mm]
+
+    Raises:
+        Warning: If any snow water equivalent values are negative, a warning is logged.
     """
-    delta_swe = (
-        snowfall - temperature_driven_snowmelt - sublimation_snow - rain_driven_snowmelt
-    )
-    return np.maximum(snow_water_equivalent + delta_swe, 0.0)
+    if np.any(snow_water_equivalent < 0.0):
+        LOGGER.warning(
+            "Snow water equivalent (SWE) is negative for some grid cells. "
+            "Setting SWE to zero for those cells."
+        )
+
+    return np.maximum(snow_water_equivalent, 0.0)
 
 
 def potential_evaporation_leaf(
@@ -442,7 +439,8 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 
     This function finds the lowest neighbour for each grid cell, identifies all upstream
     cell IDs and creates a dictionary that provides all upstream cell IDs for each grid
-    cell. This function currently supports only square grids.
+    cell. This function currently supports only square grids and rook move neighbours,
+    which should already be defined on the input Grid object.
 
     Args:
         grid: Grid object
@@ -454,13 +452,19 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
     TODO move this to core.grid once we decided on common use
     """
 
-    if grid.grid_type != "square":
-        to_raise = ValueError("This grid type is currently not supported!")
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    # Establish neighbour relationships
-    grid.set_neighbours(distance=sqrt(grid.cell_area))
+    # The drainage map in the hydrology model currently assumes a square grid with
+    # already populated neighbours using rook move model, so check that this is true.
+    # Note that the rook move neighbours includes the focal cell, so 5 neighbours.
+    if (
+        (grid.grid_type != "square")
+        or (grid._neighbours is None)
+        or (max([len(n) for n in grid._neighbours]) > 5)
+    ):
+        msg = (
+            "Hydrology model currently requires a square grid with rook move neighbours"
+        )
+        LOGGER.error(msg)
+        raise InitialisationError(msg)
 
     # Find flow direction: each cell -> lowest neighbor
     lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)
@@ -742,7 +746,6 @@ def calculate_bypass_flow(
 def convert_mm_flow_to_m3_per_second(
     river_discharge_mm: NDArray[np.floating],
     area: int | float,
-    days: int,
     seconds_to_day: float,
     meters_to_millimeters: float,
 ) -> NDArray[np.floating]:
@@ -751,7 +754,6 @@ def convert_mm_flow_to_m3_per_second(
     Args:
         river_discharge_mm: Total river discharge, [mm]
         area: Area of each grid cell, [m2]
-        days: Number of days
         seconds_to_day: Second to day conversion factor
         meters_to_millimeters: Factor to convert between millimeters and meters
 
@@ -759,7 +761,7 @@ def convert_mm_flow_to_m3_per_second(
         river discharge rate for each grid cell, [m3 s-1]
     """
 
-    return river_discharge_mm / meters_to_millimeters / days / seconds_to_day * area
+    return river_discharge_mm / meters_to_millimeters / seconds_to_day * area
 
 
 def calculate_surface_runoff(
@@ -792,3 +794,116 @@ def calculate_surface_runoff(
         precipitation_surface - free_saturation_mm,
         0,
     )
+
+
+def calculate_temperature_driven_snowmelt(
+    snow_water_equivalent: NDArray[np.floating],
+    surface_temperature: NDArray[np.floating],
+    heat_capacity_ice: float,
+    latent_heat_fusion: float,
+) -> NDArray[np.floating]:
+    r"""Calculate temperature-driven snowmelt, [mm].
+
+    Melt is calculated from the energy available to warm the snowpack to
+    :math:`0\,^{\circ}\mathrm{C}`, expressed as a fraction of the latent heat
+    required for phase change:
+
+    .. math::
+
+        M = \min \left(S,\, \frac{c_{\mathrm{ice}}\,\max(T_{s}, 0)}{L_{f}} S \right)
+
+    where :math:`c_{\mathrm{ice}}` (:math:`\mathrm{J\,kg^{-1}\,K^{-1}}`) is the
+    heat capacity of ice, :math:`L_{f}` (:math:`\mathrm{J\,kg^{-1}}`) is the latent
+    heat of fusion of ice, and :math:`S` is the snow water equivalent. The
+    :math:`\min` operator ensures that melt cannot exceed the available snow water
+    equivalent.
+
+    Args:
+        snow_water_equivalent: Snow water equivalent, [mm]
+        surface_temperature: Surface temperature, [°C]
+        heat_capacity_ice: Specific heat capacity of ice, [J kg-1 K-1]
+        latent_heat_fusion: Latent heat of fusion of ice, [J kg-1]
+
+    Returns:
+        Snowmelt, [mm]
+    """
+    temperature_above_freezing = np.maximum(surface_temperature, 0.0)
+
+    melt_fraction = (
+        heat_capacity_ice * temperature_above_freezing
+    ) / latent_heat_fusion
+
+    return np.minimum(snow_water_equivalent, melt_fraction * snow_water_equivalent)
+
+
+def calculate_rain_driven_snowmelt(
+    air_temperature: NDArray[np.floating],
+    rainfall: NDArray[np.floating],
+    rain_driven_snowmelt_coefficient: float,
+) -> NDArray[np.floating]:
+    r"""Calculate snowmelt generated by rainfall, [mm].
+
+    Snowmelt due to rainfall is calculated as:
+
+    .. math::
+
+        M_{r} = k_{r} T_{a} P_{r}
+
+    where :math:`k_{r}` (:cite:p:`kearney_how_2020`) is the rainfall melt coefficient,
+    :math:`T_{a}` is the air temperature, and :math:`P_{r}` is the rainfall rate.
+    Melt is set to zero when air temperature is at or below freezing.
+
+    Args:
+        air_temperature: Air temperature, [°C]
+        rainfall: Rainfall, [mm]
+        rain_driven_snowmelt_coefficient: Rainfall melt coefficient :math:`k_{r}`,
+            [mm mm-1 K-1]
+
+    Returns:
+        Snowmelt generated by rainfall, [mm]
+    """
+    temperature_above_freezing = np.maximum(air_temperature, 0.0)
+
+    return rain_driven_snowmelt_coefficient * temperature_above_freezing * rainfall
+
+
+def calculate_snow_sublimation(
+    air_temperature: NDArray[np.floating],
+    snow_water_equivalent: NDArray[np.floating],
+    sublimation_coefficient: float,
+) -> NDArray[np.floating]:
+    r"""Calculate snow sublimation, [mm].
+
+    Snow sublimation is approximated as:
+
+    .. math::
+
+        S = k_{s} T_{c} \mathrm{SWE}
+
+    where :math:`k_{s}` is an empirical sublimation coefficient,
+    :math:`T_{c} = \max(-T_{a}, 0)` is the temperature below freezing,
+    :math:`T_{a}` is the air temperature, and :math:`\mathrm{SWE}` is the
+    snow water equivalent. Sublimation is set to zero when air temperature
+    is above freezing and capped so that it cannot exceed the available
+    snow water equivalent.
+
+    The function is inspired by the rain driven snowmelt function, but with the
+    temperature below freezing instead of above. We only consider positive flow towards
+    the atmosphere, no deposition.
+
+    Args:
+        air_temperature: Air temperature, [°C]
+        snow_water_equivalent: Snow water equivalent, [mm]
+        sublimation_coefficient: Sublimation coefficient :math:`k_{s}`,
+            [K-1 timestep-1]
+
+    Returns:
+        Snow sublimation, [mm]
+    """
+    temperature_below_freezing = np.maximum(-air_temperature, 0.0)
+
+    sublimation = (
+        sublimation_coefficient * temperature_below_freezing * snow_water_equivalent
+    )
+
+    return np.minimum(sublimation, snow_water_equivalent)

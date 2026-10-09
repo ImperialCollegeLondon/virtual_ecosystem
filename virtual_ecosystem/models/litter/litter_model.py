@@ -283,7 +283,7 @@ class LitterModel(
             consumption_below_structural=self.data[
                 "litter_consumed_below_structural_cnp"
             ],
-            cell_area=self.data.grid.cell_area,
+            cell_area=self.grid.cell_area,
         )
 
         # Calculate the litter pool decay rates

@@ -295,7 +295,7 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
 @pytest.mark.parametrize(
     argnames=["grid_type", "distance", "expected"],
     argvalues=[
-        (
+        pytest.param(
             "square",
             100,
             [
@@ -309,8 +309,9 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
                 [4, 6, 7, 8],
                 [5, 7, 8],
             ],
+            id="rook_move",
         ),
-        (
+        pytest.param(
             "square",
             100 * 2**0.5,
             [
@@ -324,8 +325,9 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
                 [3, 4, 5, 6, 7, 8],
                 [4, 5, 7, 8],
             ],
+            id="queen_move",
         ),
-        (
+        pytest.param(
             "hexagon",
             110,
             [
@@ -339,6 +341,7 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
                 [3, 4, 6, 7, 8],
                 [4, 5, 7, 8],
             ],
+            id="hex_1_step",
         ),
     ],
 )
@@ -352,6 +355,61 @@ def test_set_neighbours(grid_type, distance, expected):
 
     grid = Grid(grid_type, cell_nx=3, cell_ny=3)
     grid.set_neighbours(distance=distance)
+
+    for idx in range(grid.n_cells):
+        assert np.allclose(grid.neighbours[idx], expected[idx])
+
+
+@pytest.mark.parametrize(argnames="preset_distances", argvalues=(False, True))
+@pytest.mark.parametrize(
+    argnames=["grid_type", "expected"],
+    argvalues=[
+        pytest.param(
+            "square",
+            [
+                [0, 1, 3],
+                [0, 1, 2, 4],
+                [1, 2, 5],
+                [0, 3, 4, 6],
+                [1, 3, 4, 5, 7],
+                [2, 4, 5, 8],
+                [3, 6, 7],
+                [4, 6, 7, 8],
+                [5, 7, 8],
+            ],
+            id="rook_move",
+        ),
+        pytest.param(
+            "hexagon",
+            [
+                [0, 1, 3],
+                [0, 1, 2, 3, 4],
+                [1, 2, 4, 5],
+                [0, 1, 3, 4, 6, 7],
+                [1, 2, 3, 4, 5, 7, 8],
+                [2, 4, 5, 8],
+                [3, 6, 7],
+                [3, 4, 6, 7, 8],
+                [4, 5, 7, 8],
+            ],
+            id="hex_1_step",
+        ),
+    ],
+)
+def test_set_closest_neighbours(preset_distances, grid_type, expected):
+    """Test the neighbourhood methods.
+
+    Uses small grids and hand-derived neighbourhood lists.
+    """
+
+    from virtual_ecosystem.core.grid import Grid
+
+    grid = Grid(grid_type, cell_nx=3, cell_ny=3)
+
+    if preset_distances:
+        grid.populate_distances()
+
+    grid.set_closest_neighbours()
 
     for idx in range(grid.n_cells):
         assert np.allclose(grid.neighbours[idx], expected[idx])

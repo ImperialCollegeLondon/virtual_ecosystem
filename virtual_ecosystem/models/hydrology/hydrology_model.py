@@ -26,7 +26,6 @@ There are still a number of open TODOs related to process implementation and imp
 
 from __future__ import annotations
 
-from math import sqrt
 from typing import Any
 
 import numpy as np
@@ -256,10 +255,8 @@ class HydrologyModel(
         self.abiotic_constants = abiotic_constants
         self.pyrealm_core_constants = pyrealm_core_constants
 
-        self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
-        """Set neighbours."""
         self.drainage_map = above_ground.calculate_drainage_map(
-            grid=self.data.grid,
+            grid=self.grid,
             elevation=np.array(self.data["elevation"]),
         )
 
@@ -312,8 +309,7 @@ class HydrologyModel(
         matric_potential = below_ground.calculate_matric_potential(
             effective_saturation=effective_saturation,
             air_entry_potential_inverse=self.model_constants.air_entry_potential_inverse,
-            van_genuchten_nonlinearily_parameter=self.model_constants.van_genuchten_nonlinearily_parameter,
-            denominator_tolerance=self.model_constants.denominator_tolerance,
+            van_genuchten_nonlinearity_parameter=self.model_constants.van_genuchten_nonlinearity_parameter,
         )
         self.data["matric_potential"] = self.layer_structure.from_template()
         self.data["matric_potential"][self.layer_structure.index_all_soil] = DataArray(
@@ -613,21 +609,57 @@ class HydrologyModel(
 
             # Snow routine
             # NOTE: This will be implemented in small steps as part of #1696
+            surface_temperature = self.data["air_temperature"][
+                self.layer_structure.index_surface_scalar
+            ].to_numpy()
 
-            # TODO: implement snowmelt, [mm]
-            temperature_driven_snowmelt = np.zeros(self.grid.n_cells, dtype=float)
-            # TODO: implement sublimation calculation, [mm]
-            sublimation_snow = np.zeros(self.grid.n_cells, dtype=float)
-            # TODO: implement rain-driven snowmelt, [mm]
-            rain_driven_snowmelt = np.zeros(self.grid.n_cells, dtype=float)
+            snow_available = (
+                snow_water_equivalent + hydro_input["current_snowfall"][:, day]
+            )
+
+            # Sublimation calculation, [mm]
+            sublimation_snow = above_ground.calculate_snow_sublimation(
+                air_temperature=surface_temperature,
+                snow_water_equivalent=snow_available,
+                sublimation_coefficient=self.model_constants.sublimation_coefficient,
+            )
+
+            snow_after_sublimation = snow_available - sublimation_snow
+
+            # Rain-driven snowmelt, [mm]
+            rain_driven_snowmelt_potential = (
+                above_ground.calculate_rain_driven_snowmelt(
+                    air_temperature=surface_temperature,
+                    rainfall=hydro_input["current_precipitation"][:, day],
+                    rain_driven_snowmelt_coefficient=(
+                        self.model_constants.rain_driven_snowmelt_coefficient
+                    ),
+                )
+            )
+
+            rain_driven_snowmelt = np.minimum(
+                rain_driven_snowmelt_potential,
+                snow_after_sublimation,
+            )
+
+            snow_after_rain_melt = snow_after_sublimation - rain_driven_snowmelt
+
+            # Temperature driven snowmelt, [mm]
+            temperature_driven_snowmelt = (
+                above_ground.calculate_temperature_driven_snowmelt(
+                    snow_water_equivalent=snow_after_rain_melt,
+                    surface_temperature=surface_temperature,
+                    heat_capacity_ice=self.model_constants.heat_capacity_ice,
+                    latent_heat_fusion=self.model_constants.latent_heat_fusion,
+                )
+            )
 
             #  Update snow water equivalent, [mm]
-            snow_water_equivalent = above_ground.update_snow_water_equivalent(
-                snow_water_equivalent=snow_water_equivalent,
-                snowfall=hydro_input["current_snowfall"][:, day],
-                temperature_driven_snowmelt=temperature_driven_snowmelt,
-                sublimation_snow=sublimation_snow,
-                rain_driven_snowmelt=rain_driven_snowmelt,
+            snow_water_equivalent_to_check = (
+                snow_after_rain_melt - temperature_driven_snowmelt
+            )
+            snow_water_equivalent = above_ground.clip_negative_snow_water_equivalent(
+                snow_water_equivalent=snow_water_equivalent_to_check
             )
 
             daily_lists["snowfall"].append(hydro_input["current_snowfall"][:, day])
@@ -757,7 +789,7 @@ class HydrologyModel(
                 soil_moisture=soil_moisture_evap_mm
                 / self.soil_layer_thickness_mm,  # vol
                 soil_layer_thickness=self.soil_layer_thickness_mm / 1000.0,  # m
-                soil_layer_depth=np.abs(self.layer_structure.soil_layer_depths),  # m
+                soil_layer_depth=self.layer_structure.soil_layer_depths,  # m, negative
                 soil_moisture_saturation=(
                     self.model_constants.soil_moisture_saturation
                 ),  # vol
@@ -770,13 +802,12 @@ class HydrologyModel(
                 air_entry_potential_inverse=(
                     self.model_constants.air_entry_potential_inverse
                 ),  # m/m
-                van_genuchten_nonlinearily_parameter=(
-                    self.model_constants.van_genuchten_nonlinearily_parameter
+                van_genuchten_nonlinearity_parameter=(
+                    self.model_constants.van_genuchten_nonlinearity_parameter
                 ),
                 pore_connectivity_parameter=(
                     self.model_constants.pore_connectivity_parameter
                 ),
-                groundwater_capacity=self.model_constants.groundwater_capacity / 1000.0,
                 seconds_to_day=self.core_constants.seconds_to_day,
                 denominator_tolerance=self.model_constants.denominator_tolerance,
             )
@@ -873,7 +904,6 @@ class HydrologyModel(
             river_discharge_rate = above_ground.convert_mm_flow_to_m3_per_second(
                 river_discharge_mm=total_runoff,
                 area=self.grid.cell_area,
-                days=days,
                 seconds_to_day=self.core_constants.seconds_to_day,
                 meters_to_millimeters=self.core_constants.meters_to_mm,
             )

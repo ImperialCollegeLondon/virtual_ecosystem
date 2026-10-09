@@ -1364,9 +1364,7 @@ class PlantsModel(
             #       targets the DBH, not the rest of the allocation so these turnover
             #       etc may still be based on shrinking tree values.
 
-            new_dbh = (
-                cohorts["dbh_value"].to_numpy() + growth_increments.delta_dbh.squeeze()
-            )
+            new_dbh = cohorts["dbh_value"].to_numpy() + growth_increments.delta_dbh
             cohorts["dbh_value"] = np.where(
                 new_dbh <= 0, cohorts["dbh_value"].to_numpy(), new_dbh
             )
