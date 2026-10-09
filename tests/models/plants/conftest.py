@@ -24,7 +24,7 @@ def fixture_pyrealm_constants():
 
 
 @pytest.fixture
-def fixture_exporter(tmp_path, fixture_configuration):
+def fixture_exporter(tmp_path, fixture_configuration, fixture_core_components):
     """Construct a minimal CommunityDataExporter object.
 
     This exporter uses the default exporter settings that do not output plant community
@@ -38,7 +38,9 @@ def fixture_exporter(tmp_path, fixture_configuration):
         "plants", PlantsConfiguration
     )
     exporter = CommunityDataExporter.from_config(
-        output_directory=tmp_path, config=plants_config.community_data_export
+        output_directory=tmp_path,
+        config=plants_config.community_data_export,
+        grid=fixture_core_components.grid,
     )
 
     return exporter
@@ -55,7 +57,9 @@ def plants_cohort_data(tricky_plant_cohorts):
 
     data = pd.DataFrame(
         {
-            "plant_cohorts_cell_id": [0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+            # "plant_cohorts_cell_id": [0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+            "plant_cohorts_x": [0, 0, 0, 90, 90, 0, 0, 90, 90, 90],
+            "plant_cohorts_y": [90, 90, 90, 90, 90, 0, 0, 0, 0, 0],
             "plant_cohorts_n": [400, 100, 100, 300, 100, 200, 100, 100, 100, 100],
             "plant_cohorts_pft": [
                 "broadleaf",
@@ -76,7 +80,9 @@ def plants_cohort_data(tricky_plant_cohorts):
     if tricky_plant_cohorts:
         data = pd.DataFrame(
             {
-                "plant_cohorts_cell_id": [1, 2, 3, 3],
+                # "plant_cohorts_cell_id": [1, 2, 3, 3],
+                "plant_cohorts_x": [90, 0, 90, 90],
+                "plant_cohorts_y": [90, 0, 0, 0],
                 "plant_cohorts_n": [0, 1, 1, 1],
                 "plant_cohorts_pft": [
                     "broadleaf",
@@ -209,30 +215,19 @@ def fixture_canopy_layer_data(
     """
 
     from pyrealm.demography.canopy import Canopy
-    from pyrealm.demography.cohorts import cohort_id_generator, create_cohorts
+    from pyrealm.demography.cohorts import cohort_id_generator
 
-    from virtual_ecosystem.models.plants.communities import Community
+    from virtual_ecosystem.models.plants.communities import PlantCommunities
 
     # Build the pyrealm community for each cell
     cid_gen = cohort_id_generator()
 
-    communities = []
-    for cell_id in fixture_core_components.grid.cell_id:
-        chrts = plants_cohort_data[plants_cohort_data.plant_cohorts_cell_id == cell_id]
-        communities.append(
-            Community(
-                flora=fixture_flora,
-                cell_area=fixture_core_components.grid.cell_area,
-                cell_id=int(cell_id),
-                cohorts=create_cohorts(
-                    flora=fixture_flora,
-                    cid_generator=cid_gen,
-                    dbh_value=chrts["plant_cohorts_dbh"].to_numpy(),
-                    n_individuals=chrts["plant_cohorts_n"].to_numpy(),
-                    pft_name=chrts["plant_cohorts_pft"].to_numpy(),
-                ),
-            )
-        )
+    communities = PlantCommunities(
+        cohort_data=plants_cohort_data,
+        flora=fixture_flora,
+        grid=fixture_core_components.grid,
+        cohort_id_generator=cid_gen,
+    )
 
     # Fit the PPA solution for each cell, handling communities with no cohorts as None
     canopies = [
@@ -244,7 +239,7 @@ def fixture_canopy_layer_data(
         )
         if len(cmnty.cohorts)
         else None
-        for cmnty in communities
+        for cmnty in communities.values()
     ]
 
     # Extract direct pyrealm canopy data for different variable test cases.

@@ -22,6 +22,7 @@ from pyrealm.demography.core import ToDataFrameMixin
 from pyrealm.demography.tmodel import GrowthIncrements, StemAllocation, StemAllometry
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.biomasses import PLANT_BIOMASS_TISSUES, Biomasses
 from virtual_ecosystem.models.plants.communities import PlantCommunities
@@ -55,6 +56,9 @@ class CommunityDataExporter:
     shortcut for including all available attributes, the keyword "ALL" can be provided
     as a string instead of a set of attribute names.
 
+    The exporter class also maps the cell_id spatial attribute used internally within
+    the model back onto XY coordinates within the simulation.
+
     The ``stem_allometry_cls``, ``stem_allocation_cls`` and ``growth_increments_cls``
     arguments allow this exporter to be reused by growth forms other than the default
     tree T Model, such as ``virtual_ecosystem.models.palms.palms``, by determining
@@ -86,10 +90,21 @@ class CommunityDataExporter:
     """Class variable storing the output filenames for each data type."""
 
     _mandatory_attributes: ClassVar[dict[str, set[str]]] = dict(
-        cohort_attributes=set(["cohort_id", "cell_id", "time", "time_index"]),
+        cohort_attributes=set(
+            [
+                "cohort_id",
+                "cell_id",
+                "cell_x",
+                "cell_y",
+                "time",
+                "time_index",
+            ]
+        ),
         community_canopy_attributes=set(
             [
                 "cell_id",
+                "cell_x",
+                "cell_y",
                 "time",
                 "time_index",
                 "canopy_layer_index",
@@ -100,6 +115,8 @@ class CommunityDataExporter:
             [
                 "cohort_id",
                 "cell_id",
+                "cell_x",
+                "cell_y",
                 "time",
                 "time_index",
                 "canopy_layer_index",
@@ -111,6 +128,7 @@ class CommunityDataExporter:
     def __init__(
         self,
         output_directory: Path,
+        grid: Grid,
         cohort_attributes: ALL | set[str] = set(),
         community_canopy_attributes: ALL | set[str] = set(),
         stem_canopy_attributes: ALL | set[str] = set(),
@@ -128,8 +146,10 @@ class CommunityDataExporter:
         # Store the argument values
         self.output_directory: Path = output_directory
         """The directory in which to save plant community data."""
-        self.float_format = float_format
+        self.float_format: str = float_format
         """The float format for data export."""
+        self.grid: Grid = grid
+        """A Grid object providing XY coordinates for cell id values."""
 
         # Set the attribute export options
         self.cohort_attributes: ALL | set[str] = cohort_attributes
@@ -284,6 +304,7 @@ class CommunityDataExporter:
         cls,
         output_directory: Path,
         config: PlantsExportConfig,
+        grid: Grid,
         stem_allometry_cls: type[ToDataFrameMixin] = StemAllometry,
         stem_allocation_cls: type[ToDataFrameMixin] = StemAllocation,
         growth_increments_cls: type[ToDataFrameMixin] = GrowthIncrements,
@@ -297,6 +318,7 @@ class CommunityDataExporter:
         Args:
             output_directory: The path to the output directory for the files
             config: An instance of ``PlantsExportConfig``
+            grid: The Grid instance for the simulation.
             stem_allometry_cls: The stem allometry class used by the calling model.
             stem_allocation_cls: The stem allocation class used by the calling model.
             growth_increments_cls: The growth increments class used by the calling
@@ -306,6 +328,7 @@ class CommunityDataExporter:
         # Convert lists to sets and get the instance
         return cls(
             output_directory=output_directory,
+            grid=grid,
             cohort_attributes="ALL"
             if config.cohort_attributes == "ALL"
             else set(config.cohort_attributes),
@@ -454,6 +477,12 @@ class CommunityDataExporter:
         # Concatenate the cells by row
         cohort_data_compiled = pd.concat(cohort_data)
 
+        # Convert cell_id to XY
+        xx, yy = self.grid.map_cell_id_to_xy(cohort_data_compiled["cell_id"])
+        cell_id_idx = cohort_data_compiled.columns.get_loc("cell_id")
+        cohort_data_compiled.insert(cell_id_idx + 1, "cell_x", xx)
+        cohort_data_compiled.insert(cell_id_idx + 2, "cell_y", yy)
+
         # If cohort attributes is a subset then reduce
         if self.cohort_attributes != "ALL":
             cohort_data_compiled = cohort_data_compiled[list(self.cohort_attributes)]
@@ -504,6 +533,12 @@ class CommunityDataExporter:
 
         # Concatenate the cells into a single data frame
         community_canopy_data_compiled = pd.concat(community_canopy_data)
+
+        # Convert cell_id to XY
+        xx, yy = self.grid.map_cell_id_to_xy(community_canopy_data_compiled["cell_id"])
+        cell_id_idx = community_canopy_data_compiled.columns.get_loc("cell_id")
+        community_canopy_data_compiled.insert(cell_id_idx + 1, "cell_x", xx)
+        community_canopy_data_compiled.insert(cell_id_idx + 2, "cell_y", yy)
 
         # Reduce to requested attributes
         if self.community_canopy_attributes != "ALL":
@@ -561,6 +596,12 @@ class CommunityDataExporter:
 
         # Concatenate the cells into a single data frame
         stem_canopy_data_compiled = pd.concat(stem_canopy_data)
+
+        # Convert cell_id to XY
+        xx, yy = self.grid.map_cell_id_to_xy(stem_canopy_data_compiled["cell_id"])
+        cell_id_idx = stem_canopy_data_compiled.columns.get_loc("cell_id")
+        stem_canopy_data_compiled.insert(cell_id_idx + 1, "cell_x", xx)
+        stem_canopy_data_compiled.insert(cell_id_idx + 2, "cell_y", yy)
 
         # Reduce to requested attributes
         if self.stem_canopy_attributes != "ALL":
