@@ -76,11 +76,11 @@ ipython = ">=9.17.1" # SPEC0
 isort = ">=9.0.2,<10.0" 
 jupyterlab = "^4.6.4" 
 jupyterlab-myst = "^2.7.0" 
-jupytext = "^1.19.5" 
+jupytext = "^1.19.6" 
 matplotlib = ">=3.11.2" # SPEC0
-mypy = "^2.3.1" 
+mypy = "^2.4.0" 
 pre-commit = ">=4.6.2,<5" 
-ruff = ">=0.16.9,<0.17.0" 
+ruff = ">=0.16.10,<0.17.0" 
 snakeviz = ">=2.2.2,<3.0.0" 
 
 [tool.poetry.group.docs.dependencies]
