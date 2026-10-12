@@ -319,8 +319,12 @@ class AnimalModel(
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
         self.update_interval_in_days = days_as_float
 
-        # Convert pint update_interval to timedelta64 once during initialization.
-        self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
+        # timedelta64 cannot hold a fractional count of its unit, and int() would drop
+        # 0.4375 d of a 30.4375 d month. Store at second resolution instead, so every
+        # downstream float(dt / timedelta64(1, "D")) conversion recovers the exact
+        # interval and the processes run over the same duration that to_per_day divides
+        # by.
+        self.update_interval_timedelta = timedelta64(round(days_as_float * 86400), "s")
 
         # Check the grid has been set up with rook move neighbours.
         if (
