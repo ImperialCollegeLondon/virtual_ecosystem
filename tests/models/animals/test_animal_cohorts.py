@@ -1559,14 +1559,12 @@ class TestAnimalCohort:
         """
         from math import exp, isclose
 
-        from numpy import timedelta64
-
         prey = mocker.Mock()
         prey.mass_current = mass_current
         prey.individuals = individuals
 
-        adjusted_dt = timedelta64(8, "D")
-        dt_days = float(adjusted_dt / timedelta64(1, "D"))
+        adjusted_dt = 8.0
+        dt_days = adjusted_dt
         bin_densities = {5: 0.001}
 
         mocker.patch.object(
@@ -1591,7 +1589,6 @@ class TestAnimalCohort:
         mocker,
     ):
         """Test that arguments are forwarded correctly to F_i_j_individual."""
-        from numpy import timedelta64
 
         prey = mocker.Mock()
         prey.mass_current = 10.0
@@ -1605,7 +1602,7 @@ class TestAnimalCohort:
 
         predator_cohort_instance.calculate_consumed_mass_predation(
             prey,
-            timedelta64(8, "D"),
+            8.0,
             5000.0,
             0.1,
             bin_densities,
@@ -1998,14 +1995,14 @@ class TestAnimalCohort:
             with pytest.raises(expect_error):
                 herbivore.forage_resource_list(
                     resources=[resource1, resource2],
-                    adjusted_dt=timedelta64(10, "D"),
+                    adjusted_dt=10.0,
                     herbivory_waste_pools=waste_pools,
                     resource_kind="plant_resource",
                 )
         else:
             result_gain, result_unassimilated = herbivore.forage_resource_list(
                 resources=[resource1, resource2],
-                adjusted_dt=timedelta64(10, "D"),
+                adjusted_dt=10.0,
                 herbivory_waste_pools=waste_pools,
                 resource_kind="plant_resource",
             )
@@ -2398,7 +2395,7 @@ class TestAnimalCohort:
 
         # Basic sanity: adjusted_dt is numeric for each call.
         for m in (m_det, m_fungi, m_pom, m_bact):
-            assert isinstance(m.call_args.kwargs["adjusted_dt"], timedelta64)
+            assert isinstance(m.call_args.kwargs["adjusted_dt"], float)
 
     def test_forage_cohort_skips_when_no_individuals(
         self, mocker, herbivore_cohort_instance
