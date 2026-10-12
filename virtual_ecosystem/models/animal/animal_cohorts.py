@@ -1067,7 +1067,7 @@ class AnimalCohort:
     def calculate_consumed_mass_predation(
         self,
         target_cohort: AnimalCohort,
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
         intersection_area: float,
         theta_opt: float,
         bin_densities: dict[int, float],
@@ -1081,7 +1081,7 @@ class AnimalCohort:
 
         Args:
             target_cohort: The prey cohort from which mass will be consumed.
-            adjusted_dt: The amount of time (D) in the time-step available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
             intersection_area: Pre-computed overlap area between predator and target
                 territories in m2.
             theta_opt: This predator's optimal prey-predator mass ratio, drawn once
@@ -1104,14 +1104,14 @@ class AnimalCohort:
         return (
             target_cohort.mass_current
             * target_cohort.individuals
-            * (1 - exp(-(F * float(adjusted_dt / timedelta64(1, "D")))))
+            * (1 - exp(-(F * adjusted_dt)))
         )
 
     def delta_mass_predation(
         self,
         animal_list: list[AnimalCohort],
         carcass_pools: dict[int, list[CarcassPool]],
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
     ) -> tuple[dict[str, float], dict[str, float]]:
         """Handles mass assimilation from predation.
 
@@ -1130,7 +1130,7 @@ class AnimalCohort:
         Args:
             animal_list: A list of animal cohorts that can be consumed by the predator.
             carcass_pools: The pools to which animal carcasses are delivered.
-            adjusted_dt: The amount of time (D) in the time-step available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
 
         Returns:
             A tuple of the cohort-total assimilated mass gained and the cohort-total
@@ -1209,7 +1209,7 @@ class AnimalCohort:
     def forage_resource_list(
         self,
         resources: list[Resource] | list[CellResource],
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
         resource_kind: str,
         herbivory_waste_pools: dict[int, HerbivoryWaste] | None = None,
     ) -> tuple[dict[str, float], dict[str, float]]:
@@ -1236,7 +1236,7 @@ class AnimalCohort:
 
         Args:
             resources: List of foragable resources.
-            adjusted_dt: Time available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
             resource_kind: A string label of the resource type, used as a key in
                 trophic transfer records.
             herbivory_waste_pools: Optional mapping of cell_id to waste pool for
@@ -1258,7 +1258,6 @@ class AnimalCohort:
             resources, alpha
         )
         A_cell = self.grid.cell_area
-        dt_days = float(adjusted_dt / timedelta64(1, "D"))
         conv_eff = self.functional_group.conversion_efficiency
 
         for resource in resources:
@@ -1269,7 +1268,7 @@ class AnimalCohort:
             # Exponential depletion integral: total biomass consumed over dt days when
             # consuming a fraction F of remaining stock per day. Approaches F*B*dt for
             # small F*dt (linear regime) and B for large F*dt (full depletion).
-            requested = resource.mass_current * (1.0 - exp(-F * dt_days))
+            requested = resource.mass_current * (1.0 - exp(-F * adjusted_dt))
 
             gain_cnp, litter_cnp, litter_lignin = resource.get_eaten(requested, self)
 
@@ -1299,14 +1298,14 @@ class AnimalCohort:
     def delta_mass_herbivory(
         self,
         plant_list: list[CellResource],
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
         herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from live plant herbivory.
 
         Args:
             plant_list: List of live plant resources.
-            adjusted_dt: Time available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
             herbivory_waste_pools: Waste pools for mechanically lost plant matter.
 
         Returns:
@@ -1323,13 +1322,13 @@ class AnimalCohort:
     def delta_mass_detritivory(
         self,
         litter_pools: list[CellResource],
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
     ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from litter (detritivory).
 
         Args:
             litter_pools: List of litter pools available to the cohort.
-            adjusted_dt: Time available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
 
         Returns:
             A tuple of the assimilated mass gained and the unassimilated mass
@@ -1344,13 +1343,13 @@ class AnimalCohort:
     def delta_mass_carcass_scavenging(
         self,
         carcass_pools: list[Resource],
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
     ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from carcass scavenging.
 
         Args:
             carcass_pools: List of carcass pools available to the cohort.
-            adjusted_dt: Time available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
 
         Returns:
             A tuple of the assimilated mass gained and the unassimilated mass
@@ -1365,13 +1364,13 @@ class AnimalCohort:
     def delta_mass_excrement_scavenging(
         self,
         excrement_pools: list[Resource],
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
     ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from excrement (coprophagy).
 
         Args:
             excrement_pools: List of excrement pools available to the cohort.
-            adjusted_dt: Time available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
 
         Returns:
             A tuple of the assimilated mass gained and the unassimilated mass
@@ -1386,14 +1385,14 @@ class AnimalCohort:
     def delta_mass_fruiting_fungivory(
         self,
         fungal_fruit_list: list[CellResource],
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
         herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from fruiting body (mushroom) fungivory.
 
         Args:
             fungal_fruit_list: List of fungal fruiting resources.
-            adjusted_dt: Time available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
             herbivory_waste_pools: Waste pools for mechanically lost fungal matter.
 
         Returns:
@@ -1410,14 +1409,14 @@ class AnimalCohort:
     def delta_mass_soil_fungivory(
         self,
         soil_fungi_list: list[Resource],
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
     ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from soil fungi foraging.
 
         Args:
             soil_fungi_list: List of soil fungi resources (distinct from fruiting
                 bodies).
-            adjusted_dt: Time available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
 
         Returns:
             A tuple of the assimilated mass gained and the unassimilated mass
@@ -1432,13 +1431,13 @@ class AnimalCohort:
     def delta_mass_pomivory(
         self,
         pom_list: list[Resource],
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
     ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from POM (particulate organic matter) foraging.
 
         Args:
             pom_list: List of particulate organic matter soil resources.
-            adjusted_dt: Time available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
 
         Returns:
             A tuple of the assimilated mass gained and the unassimilated mass
@@ -1453,13 +1452,13 @@ class AnimalCohort:
     def delta_mass_bacteriophagy(
         self,
         bacteria_list: list[Resource],
-        adjusted_dt: timedelta64,
+        adjusted_dt: float,
     ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle mass assimilation from soil bacteria.
 
         Args:
             bacteria_list: List of soil bacteria resources.
-            adjusted_dt: Time available for foraging.
+            adjusted_dt: Time available for foraging on this diet category [days].
 
         Returns:
             A tuple of the assimilated mass gained and the unassimilated mass
@@ -1558,9 +1557,14 @@ class AnimalCohort:
             if resource.resource.diet_type == DietType.MUSHROOMS
         ]
 
-        # Compute foraging time proportionally across diet types
+        # Foraging time available to each diet category [days]. dt is converted to float
+        # days before any arithmetic: timedelta64 stores an integer count of its unit,
+        # multiplying or dividing it by a float truncates toward zero at every
+        # operation, not just once at the end (e.g. 30 d * 0.5 * 0.37 / 3 gives 1 d,
+        #  not 1.85 d).
+        dt_days = float(dt / timedelta64(1, "D"))
         time_available_per_diet = (
-            dt * self.constants.tau_f * self.sigma_f_t / self.diet_category_count
+            dt_days * self.constants.tau_f * self.sigma_f_t / self.diet_category_count
         )
 
         total_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
