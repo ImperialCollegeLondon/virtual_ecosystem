@@ -634,6 +634,7 @@ class PalmsModel(
         exporter = CommunityDataExporter.from_config(
             output_directory=core_configuration.data_output_options.out_path,
             config=cast(PlantsExportConfig, model_configuration.community_data_export),
+            grid=core_components.grid,
             stem_allometry_cls=StemAllometry,
             stem_allocation_cls=StemAllocation,
             growth_increments_cls=GrowthIncrements,

@@ -12,7 +12,6 @@ from xarray import DataArray, Dataset
 
 from virtual_ecosystem.example_data.generation_scripts.common import (
     cell_displacements,
-    cell_id,
     n_cells,
     n_dates,
     nx,
@@ -26,12 +25,15 @@ n_cohorts = n_cells * 2
 cohort_index = np.arange(n_cohorts)
 
 # Generate the initial cohort data as a pandas dataframe
+# - get XY coordinates
+xx, yy = np.meshgrid(cell_displacements, cell_displacements)
 
 cohort_data = DataFrame(
     dict(
         plant_cohorts_n=np.array([5, 10] * n_cells),
         plant_cohorts_pft=np.array(["broadleaf", "shrub"] * n_cells),
-        plant_cohorts_cell_id=np.repeat(cell_id, 2),
+        plant_cohorts_x=np.repeat(xx.flatten(), 2),
+        plant_cohorts_y=np.repeat(yy.flatten(), 2),
         plant_cohorts_dbh=np.array([0.1, 0.05] * n_cells),
     )
 )

@@ -135,16 +135,23 @@ The fields in the cohort data file are:
 field,description
 `plant_cohorts_pft`,"The plant functional type of the cohort: a text value that must
 match one of the PFT names set in the PFT definitions."
-`plant_cohorts_cell_id`, "The grid cell in which the cohort is found."
+`plant_cohorts_x`, "An X coordinate of the grid cell in which the cohort is found."
+`plant_cohorts_y`, "An Y coordinate of the grid cell in which the cohort is found."
 `plant_cohorts_dbh`, "The initial size of each individual in the cohort, as the diameter
 at breast height (metres)."
 `plant_cohorts_n`, "The initial number of individuals in the cohort."
 ```
 
-```{note}
-Even if you intend cohort distributions to be identical across all simulation cells you
-still **must** provide the input data described above for every single cell individually.
-```
+When setting up your cohort data, note the following:
+
+* The Virtual Ecosystem does not currently have a mechanism to add cohorts to all cells.
+  Even if you intend cohort distributions to be identical across all simulation cells
+  you  still **must** provide the input data described above for every single cell
+  individually.
+
+* The Virtual Ecosystem does not use a spatially explicit model of stem location. The XY
+  coordinates in the input data are only used to identify the cell in which the
+  individuals of the cohort are located.
 
 ### Initial PFT propagule distributions
 

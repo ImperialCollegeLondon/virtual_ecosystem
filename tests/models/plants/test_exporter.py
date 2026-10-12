@@ -93,7 +93,7 @@ def fixture_exporter_components(
     ),
 )
 def test_CommunityDataExporter_check_and_set_paths(
-    request, tmp_path, cohort, community_canopy, stem_canopy
+    request, tmp_path, fixture_core_components, cohort, community_canopy, stem_canopy
 ):
     """Test the path validation of CommunityDataExporter."""
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
@@ -101,6 +101,7 @@ def test_CommunityDataExporter_check_and_set_paths(
     # Create the exporter
     exporter = CommunityDataExporter(
         output_directory=tmp_path,
+        grid=fixture_core_components.grid,
         cohort_attributes=cohort,
         community_canopy_attributes=community_canopy,
         stem_canopy_attributes=stem_canopy,
@@ -126,6 +127,7 @@ def test_CommunityDataExporter_check_and_set_paths(
     with pytest.raises(ConfigurationError) as excep:
         exporter = CommunityDataExporter(
             output_directory=tmp_path,
+            grid=fixture_core_components.grid,
             cohort_attributes=cohort,
             community_canopy_attributes=community_canopy,
             stem_canopy_attributes=stem_canopy,
@@ -184,6 +186,7 @@ def test_CommunityDataExporter_check_and_set_paths(
 )
 def test_CommunityDataExporter_check_attribute_subsets(
     tmp_path,
+    fixture_core_components,
     cohort_attr,
     community_canopy_attr,
     stem_canopy_attr,
@@ -197,6 +200,7 @@ def test_CommunityDataExporter_check_attribute_subsets(
     with outcome as excep:
         _ = CommunityDataExporter(
             output_directory=tmp_path,
+            grid=fixture_core_components.grid,
             cohort_attributes=cohort_attr,
             community_canopy_attributes=community_canopy_attr,
             stem_canopy_attributes=stem_canopy_attr,
@@ -255,7 +259,9 @@ def test_CommunityDataExporter_check_attribute_subsets(
         ),
     ),
 )
-def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
+def test_CommunityDataExporter_from_config(
+    tmp_path, fixture_core_components, inputs, outcome, msg
+):
     """Test the from_config factory method."""
 
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
@@ -273,7 +279,9 @@ def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
 
     with outcome as excep:
         config = PlantsExportConfig().model_validate(cfg_data)
-        CommunityDataExporter.from_config(output_directory=tmp_path, config=config)
+        CommunityDataExporter.from_config(
+            output_directory=tmp_path, config=config, grid=fixture_core_components.grid
+        )
 
     if excep:
         assert str(excep.value).startswith(msg)
@@ -317,6 +325,7 @@ def csv_check(
 def test_CommunityDataExporter_dump_cohort_data(
     tmp_path,
     fixture_exporter_components,
+    fixture_core_components,
     tricky_plant_cohorts,  # Set that the straightforward cohort data gets used
     attributes,
 ):
@@ -327,6 +336,7 @@ def test_CommunityDataExporter_dump_cohort_data(
     # Create the exporter
     exporter = CommunityDataExporter(
         output_directory=tmp_path,
+        grid=fixture_core_components.grid,
         cohort_attributes=attributes,
     )
 
@@ -381,6 +391,7 @@ def test_CommunityDataExporter_dump_cohort_data(
 def test_CommunityDataExporter_dump_community_canopy_data(
     tmp_path,
     fixture_exporter_components,
+    fixture_core_components,
     tricky_plant_cohorts,  # Set that the straightforward cohort data gets used
     attributes,
 ):
@@ -391,6 +402,7 @@ def test_CommunityDataExporter_dump_community_canopy_data(
     # Create the exporter
     exporter = CommunityDataExporter(
         output_directory=tmp_path,
+        grid=fixture_core_components.grid,
         community_canopy_attributes=attributes,
     )
 
@@ -438,6 +450,7 @@ def test_CommunityDataExporter_dump_community_canopy_data(
 def test_CommunityDataExporter_dump_stem_canopy_data(
     tmp_path,
     fixture_exporter_components,
+    fixture_core_components,
     tricky_plant_cohorts,  # Set that the straightforward cohort data gets used
     attributes,
 ):
@@ -448,6 +461,7 @@ def test_CommunityDataExporter_dump_stem_canopy_data(
     # Create the exporter
     exporter = CommunityDataExporter(
         output_directory=tmp_path,
+        grid=fixture_core_components.grid,
         stem_canopy_attributes=attributes,
     )
 
@@ -531,6 +545,7 @@ class TestExporterDump:
         self,
         tmp_path,
         fixture_exporter_components,
+        fixture_core_components,
         cohort,
         community_canopy,
         stem_canopy,
@@ -543,6 +558,7 @@ class TestExporterDump:
         exporter = CommunityDataExporter(
             output_directory=tmp_path,
             cohort_attributes=cohort,
+            grid=fixture_core_components.grid,
             community_canopy_attributes=community_canopy,
             stem_canopy_attributes=stem_canopy,
         )
@@ -612,6 +628,7 @@ class TestExporterDump:
         exporter = CommunityDataExporter(
             output_directory=tmp_path,
             cohort_attributes=cohort,
+            grid=fixture_core_components.grid,
             community_canopy_attributes=community_canopy,
             stem_canopy_attributes=stem_canopy,
         )
@@ -651,6 +668,7 @@ class TestExporterDump:
         self,
         tmp_path,
         fixture_exporter_components,
+        fixture_core_components,
         cohort,
         community_canopy,
         stem_canopy,
@@ -671,7 +689,7 @@ class TestExporterDump:
         )
 
         exporter = CommunityDataExporter.from_config(
-            output_directory=tmp_path, config=config
+            output_directory=tmp_path, config=config, grid=fixture_core_components.grid
         )
 
         if any(cohort or community_canopy or stem_canopy):
