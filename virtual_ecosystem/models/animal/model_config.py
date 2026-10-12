@@ -26,8 +26,6 @@ from virtual_ecosystem.models.animal.animal_traits import (
     VerticalOccupancy,
 )
 
-BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
-
 TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
 
 DENSITY_SCALING_METHODS = Literal["damuth", "madingley"]
@@ -106,6 +104,8 @@ class AnimalConstants(Configuration):
     TODO: Remove unused constants.
 
     """
+
+    BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
     density_scaling_method: DENSITY_SCALING_METHODS = "madingley"
     """The density scaling method to use within a simulation."""

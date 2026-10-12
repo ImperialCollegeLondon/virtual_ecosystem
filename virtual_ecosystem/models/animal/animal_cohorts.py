@@ -385,7 +385,7 @@ class AnimalCohort:
             metabolic_type=self.functional_group.metabolic_type,
             sigma_f_t=self.sigma_f_t,
             metabolic_scaling_coefficients=self.constants.metabolic_scaling_coefficients,
-            boltzmann_constant=self.core_constants.boltzmann_constant,
+            boltzmann_constant=self.constants.BOLTZMANN_CONSTANT,
         ) * float(dt / timedelta64(1, "D"))
 
         # Ensure metabolized carbon does not exceed available carbon
