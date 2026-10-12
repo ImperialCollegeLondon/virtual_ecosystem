@@ -384,7 +384,8 @@ class AnimalModel(
 
         Keyed by functional group name, each value a ``(n_cells,)`` array in [0, 1].
         ``None`` whenever thermal habitat selection is disabled or the climate pass has
-        not yet run, in which case dispersal falls back to uniform destination choice.
+        not yet run, in which case dispersal falls back to uniform destination choice
+        and territories are built breadth-first.
         """
 
         self.active_cohorts = {}
@@ -1127,12 +1128,28 @@ class AnimalModel(
     ) -> None:
         """This updates the community lists for animal cohort occupancy.
 
+        This is the single seam through which every territory the model uses is
+        built: at cohort creation, on return from the aquatic phase, and after
+        migration. Territories grow preferentially into thermally suitable cells
+        when the suitability cache is populated, and breadth-first otherwise.
+
+        The cache is empty during model setup, because the climate pass that fills
+        it has not yet run, so the territories of the initial cohorts are
+        breadth-first. They become suitability-aware the first time they are
+        rebuilt, which is to say on the cohort's first migration.
+
         Args:
             cohort: The animal cohort being updates.
             centroid_key: The grid cell key of the anchoring grid cell.
         """
 
-        territory_cells = cohort.get_territory_cells(centroid_key)
+        suitability = (
+            None
+            if self.thermal_suitability is None
+            else self.thermal_suitability[cohort.functional_group.name]
+        )
+
+        territory_cells = cohort.get_territory_cells(centroid_key, suitability)
         cohort.update_territory(territory_cells)
 
         for cell_id in territory_cells:
@@ -1154,18 +1171,11 @@ class AnimalModel(
 
         """
 
-        # Remove the cohort from its current community
-        current_centroid = migrant.centroid_key
-        self.communities[current_centroid].remove(migrant)
-
-        # Update the cohort's cell ID to the destination cell ID
-        migrant.centroid_key = destination_centroid
-
-        # Add the cohort to the destination community
-        self.communities[destination_centroid].append(migrant)
-
-        # Regenerate a territory for the cohort at the destination community
+        # Leave every cell of the current territory
         self.abandon_communities(migrant)
+
+        # Move the centroid and rebuild the territory around it
+        migrant.centroid_key = destination_centroid
         self.update_community_occupancy(migrant, destination_centroid)
 
     def migrate_community(self, dt: timedelta64) -> None:
@@ -1242,14 +1252,8 @@ class AnimalModel(
         Raises:
             KeyError: If the cohort ID does not exist in the model's cohorts.
         """
-        # Check if the cohort exists in self.active_cohorts
         if cohort.id in self.active_cohorts:
-            # Iterate over all grid cell keys in the cohort's territory
-            for cell_id in cohort.territory:
-                if cell_id in self.communities and cohort in self.communities[cell_id]:
-                    self.communities[cell_id].remove(cohort)
-
-            # Remove the cohort from the model's cohorts dictionary
+            self.abandon_communities(cohort)
             del self.active_cohorts[cohort.id]
         else:
             raise KeyError(f"Cohort with ID {cohort.id} does not exist.")
@@ -1971,7 +1975,8 @@ class AnimalModel(
 
         Computes, for each functional group, the per-cell activity window it would
         experience given the current stratum climate. The result is cached on
-        :attr:`thermal_suitability` and consumed by dispersal.
+        :attr:`thermal_suitability` and consumed by both dispersal and territory
+        construction.
 
         Leaves :attr:`thermal_suitability` as ``None`` when thermal habitat selection
         is disabled, so that dispersal falls through to uniform destination choice.

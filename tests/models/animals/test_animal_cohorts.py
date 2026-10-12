@@ -2616,6 +2616,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional groups
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         predator_group = get_functional_group_by_name(
             functional_group_list_instance, "carnivorous_mammal"
         )
@@ -2707,6 +2709,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional groups
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         predator_group = get_functional_group_by_name(
             functional_group_list_instance, "carnivorous_mammal"
         )
@@ -2786,6 +2790,8 @@ class TestAnimalCohort:
         )
 
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -2845,6 +2851,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -2903,6 +2911,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -2960,6 +2970,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3025,6 +3037,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3096,6 +3110,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3167,6 +3183,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3257,6 +3275,7 @@ class TestAnimalCohort:
 
         # Setup grid
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
 
         # Create functional group with given vertical occupancy
         group = FunctionalGroup(
@@ -4093,3 +4112,45 @@ class TestAnimalCohort:
         """Test _clamp_cnp_noise."""
         result = herbivore_cohort_instance._clamp_cnp_noise(input_cnp)
         assert result == pytest.approx(expected_cnp), f"Failed for scenario: {test_id}"
+
+    def test_get_territory_cells_passes_suitability_through(
+        self, mocker, herbivore_cohort_instance
+    ) -> None:
+        """The suitability array is forwarded to thermal_territory unchanged.
+
+        The cohort holds no reference to the model, so the array supplied by the
+        caller must reach the scaling function as given.
+        """
+        import numpy as np
+
+        mock_thermal = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.thermal_territory",
+            return_value=[0, 1],
+        )
+
+        cohort = herbivore_cohort_instance
+        suitability = np.full(cohort.grid.n_cells, 0.5)
+
+        cohort.get_territory_cells(0, suitability)
+
+        args = mock_thermal.call_args.args
+        assert args[0] == 0
+        assert args[1] == cohort.territory_cells
+        assert args[2] is cohort.grid
+        assert np.array_equal(args[3], suitability)
+
+    def test_get_territory_cells_defaults_to_breadth_first(
+        self, herbivore_cohort_instance
+    ) -> None:
+        """Omitting suitability reproduces the pre-thermal territory exactly.
+
+        This is the guarantee that cohort construction, which supplies no
+        suitability, is unchanged from breadth-first behaviour.
+        """
+        from virtual_ecosystem.models.animal import scaling_functions as sf
+
+        cohort = herbivore_cohort_instance
+
+        expected = sf.bfs_territory(0, cohort.territory_cells, cohort.grid)
+
+        assert cohort.get_territory_cells(0) == expected
