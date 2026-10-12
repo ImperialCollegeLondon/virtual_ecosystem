@@ -826,6 +826,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Rate of ammonia volatilisation from the soil."
+name = "soil_ammonia_volatilisation"
+unit = "kg{N} m-2 day-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Proportion of above ground structural litter carbon which is lignin carbon"
 name = "lignin_above_structural"
 unit = "unitless"
