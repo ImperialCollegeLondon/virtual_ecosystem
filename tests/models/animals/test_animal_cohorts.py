@@ -2616,6 +2616,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional groups
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         predator_group = get_functional_group_by_name(
             functional_group_list_instance, "carnivorous_mammal"
         )
@@ -2707,6 +2709,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional groups
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         predator_group = get_functional_group_by_name(
             functional_group_list_instance, "carnivorous_mammal"
         )
@@ -2786,6 +2790,8 @@ class TestAnimalCohort:
         )
 
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -2845,6 +2851,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -2903,6 +2911,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -2960,6 +2970,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3025,6 +3037,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3096,6 +3110,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3167,6 +3183,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3257,6 +3275,7 @@ class TestAnimalCohort:
 
         # Setup grid
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
 
         # Create functional group with given vertical occupancy
         group = FunctionalGroup(
@@ -4117,9 +4136,8 @@ class TestAnimalCohort:
         args = mock_thermal.call_args.args
         assert args[0] == 0
         assert args[1] == cohort.territory_cells
-        assert args[2] == cohort.grid.cell_nx
-        assert args[3] == cohort.grid.cell_ny
-        assert np.array_equal(args[4], suitability)
+        assert args[2] is cohort.grid
+        assert np.array_equal(args[3], suitability)
 
     def test_get_territory_cells_defaults_to_breadth_first(
         self, herbivore_cohort_instance
@@ -4133,8 +4151,6 @@ class TestAnimalCohort:
 
         cohort = herbivore_cohort_instance
 
-        expected = sf.bfs_territory(
-            0, cohort.territory_cells, cohort.grid.cell_nx, cohort.grid.cell_ny
-        )
+        expected = sf.bfs_territory(0, cohort.territory_cells, cohort.grid)
 
         assert cohort.get_territory_cells(0) == expected

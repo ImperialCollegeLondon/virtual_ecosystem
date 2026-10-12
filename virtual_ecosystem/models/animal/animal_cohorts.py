@@ -196,11 +196,9 @@ class AnimalCohort:
         territory_cells = sf.thermal_territory(
             centroid_key,
             self.territory_cells,
-            self.grid.cell_nx,
-            self.grid.cell_ny,
+            self.grid,
             suitability,
         )
-
         return territory_cells
 
     def _initialize_territory(
