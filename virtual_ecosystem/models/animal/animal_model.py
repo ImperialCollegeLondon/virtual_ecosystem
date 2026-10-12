@@ -1171,18 +1171,11 @@ class AnimalModel(
 
         """
 
-        # Remove the cohort from its current community
-        current_centroid = migrant.centroid_key
-        self.communities[current_centroid].remove(migrant)
-
-        # Update the cohort's cell ID to the destination cell ID
-        migrant.centroid_key = destination_centroid
-
-        # Add the cohort to the destination community
-        self.communities[destination_centroid].append(migrant)
-
-        # Regenerate a territory for the cohort at the destination community
+        # Leave every cell of the current territory
         self.abandon_communities(migrant)
+
+        # Move the centroid and rebuild the territory around it
+        migrant.centroid_key = destination_centroid
         self.update_community_occupancy(migrant, destination_centroid)
 
     def migrate_community(self, dt: timedelta64) -> None:
@@ -1259,14 +1252,8 @@ class AnimalModel(
         Raises:
             KeyError: If the cohort ID does not exist in the model's cohorts.
         """
-        # Check if the cohort exists in self.active_cohorts
         if cohort.id in self.active_cohorts:
-            # Iterate over all grid cell keys in the cohort's territory
-            for cell_id in cohort.territory:
-                if cell_id in self.communities and cohort in self.communities[cell_id]:
-                    self.communities[cell_id].remove(cohort)
-
-            # Remove the cohort from the model's cohorts dictionary
+            self.abandon_communities(cohort)
             del self.active_cohorts[cohort.id]
         else:
             raise KeyError(f"Cohort with ID {cohort.id} does not exist.")

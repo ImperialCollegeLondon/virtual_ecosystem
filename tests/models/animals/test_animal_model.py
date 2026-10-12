@@ -1084,53 +1084,74 @@ class TestAnimalModel:
             assert cohort in model.communities[cell_id]
 
     def test_migrate(self, animal_model_instance, herbivore_cohort_instance, mocker):
-        """Test that `migrate` correctly moves an AnimalCohort between grid cells."""
+        """Test that `migrate` re-centres the cohort and rebuilds its occupancy.
 
-        # Mock the abandonment and community occupancy update methods
-        mock_abandon_communities = mocker.patch.object(
-            animal_model_instance, "abandon_communities"
+        Community membership is handled entirely by the two helpers, so they are
+        mocked here and checked for being called in order: the old territory must
+        be abandoned before the new one is registered.
+        """
+
+        model = animal_model_instance
+        cohort = herbivore_cohort_instance
+
+        # Attach both mocks to one parent so their relative call order is recorded
+        manager = mocker.Mock()
+        manager.attach_mock(
+            mocker.patch.object(model, "abandon_communities"), "abandon_communities"
         )
-        mock_update_community_occupancy = mocker.patch.object(
-            animal_model_instance, "update_community_occupancy"
-        )
-
-        # Assign the cohort to a specific starting grid cell
-        initial_cell = animal_model_instance.data.grid.cell_id[0]
-        destination_cell = animal_model_instance.data.grid.cell_id[1]
-
-        herbivore_cohort_instance.centroid_key = initial_cell
-        animal_model_instance.communities[initial_cell].append(
-            herbivore_cohort_instance
-        )
-
-        # Check that the cohort is in the initial community before migration
-        assert (
-            herbivore_cohort_instance in animal_model_instance.communities[initial_cell]
+        manager.attach_mock(
+            mocker.patch.object(model, "update_community_occupancy"),
+            "update_community_occupancy",
         )
 
-        # Call the migrate method to move the cohort to the destination cell
-        animal_model_instance.migrate(herbivore_cohort_instance, destination_cell)
+        initial_cell = model.grid.cell_id[0]
+        destination_cell = model.grid.cell_id[1]
+        cohort.centroid_key = initial_cell
 
-        # Assert that the cohort is no longer in the initial community
-        assert (
-            herbivore_cohort_instance
-            not in animal_model_instance.communities[initial_cell]
+        model.migrate(cohort, destination_cell)
+
+        # The centroid has moved to the destination
+        assert cohort.centroid_key == destination_cell
+
+        # The old territory is abandoned before the new one is registered
+        assert manager.mock_calls == [
+            mocker.call.abandon_communities(cohort),
+            mocker.call.update_community_occupancy(cohort, destination_cell),
+        ]
+
+    def test_remove_dead_cohort_after_migration_leaves_no_trace(
+        self, animal_model_instance
+    ):
+        """After a cohort migrates and is removed, it is gone from all communities."""
+        model = animal_model_instance
+        cohort = next(iter(model.active_cohorts.values()))
+        destination = next(
+            c for c in range(model.grid.n_cells) if c not in cohort.territory
+        )
+        model.migrate(cohort, destination)
+
+        model.remove_dead_cohort(cohort)
+
+        assert all(cohort not in community for community in model.communities.values())
+
+    def test_migrate_registers_cohort_once_per_territory_cell(
+        self, animal_model_instance
+    ):
+        """Post migrating, a cohort is in exactly its new territory cells, once each."""
+
+        model = animal_model_instance
+        cohort = next(iter(model.active_cohorts.values()))
+        old_territory = set(cohort.territory)
+        destination = next(
+            c for c in range(model.grid.n_cells) if c not in old_territory
         )
 
-        # Assert that the cohort is now in the destination community
-        assert (
-            herbivore_cohort_instance
-            in animal_model_instance.communities[destination_cell]
-        )
+        model.migrate(cohort, destination)
 
-        # Assert that the centroid of the cohort has been updated
-        assert herbivore_cohort_instance.centroid_key == destination_cell
-
-        # Check that abandon_communities and update_community_occupancy were called
-        mock_abandon_communities.assert_called_once_with(herbivore_cohort_instance)
-        mock_update_community_occupancy.assert_called_once_with(
-            herbivore_cohort_instance, destination_cell
-        )
+        for cell_id, community in model.communities.items():
+            count = sum(c is cohort for c in community)
+            expected = 1 if cell_id in cohort.territory else 0
+            assert count == expected, f"cell {cell_id}: {count} copies"
 
     @pytest.mark.parametrize(
         "mass_ratio, age, probability_output, should_migrate",
