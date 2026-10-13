@@ -2133,74 +2133,115 @@ class TestAnimalModel:
         )
 
     @pytest.mark.parametrize(
-        "layout, expected_resp",
+        "cohort_specs, expected_resp",
         [
             pytest.param(
-                {0: [(22.0, 0.40)], 1: []},
-                {0: 0.40, 1: 0.0},
-                id="single_cohort_occupied_and_empty_cell",
+                [(22.0, [0], 0.40)],
+                {0: 0.40},
+                id="single_cell_cohort",
             ),
             pytest.param(
-                {0: [(22.0, 0.40), (28.0, 0.90)], 1: []},
-                {0: 1.30, 1: 0.0},
-                id="two_cohorts_distinct_temperatures",
+                [(22.0, [0], 0.40), (28.0, [0], 0.90)],
+                {0: 1.30},
+                id="two_cohorts_sharing_a_cell",
             ),
             pytest.param(
-                {0: [(22.0, 0.40)], 1: [(15.0, 0.20)]},
+                [(22.0, [0], 0.40), (15.0, [1], 0.20)],
                 {0: 0.40, 1: 0.20},
-                id="cohorts_across_two_cells",
+                id="cohorts_in_separate_cells",
             ),
             pytest.param(
-                {0: [], 1: []},
-                {0: 0.0, 1: 0.0},
-                id="all_empty_cells",
+                [(22.0, [0, 1, 2], 0.90)],
+                {0: 0.30, 1: 0.30, 2: 0.30},
+                id="multi_cell_territory_split_evenly",
+            ),
+            pytest.param(
+                [(22.0, [0, 1], 0.40), (28.0, [1, 2, 3], 0.90)],
+                {0: 0.20, 1: 0.50, 2: 0.30, 3: 0.30},
+                id="overlapping_multi_cell_territories",
+            ),
+            pytest.param(
+                [],
+                {},
+                id="no_active_cohorts",
             ),
         ],
     )
     def test_metabolize_community(
-        self, animal_model_instance, mocker, layout, expected_resp
+        self, animal_model_instance, mocker, cohort_specs, expected_resp
     ):
-        """Test metabolize_community routes climate state and waste across layouts."""
+        """Test metabolize_community charges each cohort once and splits its wastes.
+
+        Each mock cohort is also registered in the community of every cell in its
+        territory, mirroring update_community_occupancy, so that a regression to
+        iterating over communities would metabolise a multi-cell cohort once per cell
+        and fail the call-count assertions.
+
+        Expected respiration is worked by hand: each cohort's respired carbon divided
+        equally across its territory cells, summed per cell. Cells absent from
+        ``expected_resp`` must receive nothing.
+
+        Args:
+            animal_model_instance: Animal model fixture.
+            mocker: pytest-mock fixture.
+            cohort_specs: One ``(current_temperature, territory, respired_carbon)``
+                tuple per mock cohort.
+            expected_resp: Expected respiration per cell, for cells that receive any.
+        """
         import numpy as np
 
+        model = animal_model_instance
         dt = np.timedelta64(1, "D")
 
-        # Build one mock cohort per layout spec entry.
-        cell_mocks: dict[int, list] = {}
-        for cell_id, specs in layout.items():
-            cohorts = []
-            for temp, respire_ret in specs:
-                m = mocker.Mock()
-                m.current_temperature = temp
-                m.respire.return_value = respire_ret
-                cohorts.append(m)
-            cell_mocks[cell_id] = cohorts
+        model.active_cohorts = {}
+        model.communities = {cell_id: [] for cell_id in model.communities}
+        model.data["total_animal_respiration"].values[:] = 0.0
 
-        pools = {cell_id: mocker.Mock() for cell_id in layout}
+        cohorts = []
+        for index, (temperature, territory, respired) in enumerate(cohort_specs):
+            cohort = mocker.Mock()
+            cohort.current_temperature = temperature
+            cohort.territory = territory
+            cohort.respire.return_value = respired
+            cohort.get_excrement_pools.return_value = [mocker.Mock() for _ in territory]
 
-        animal_model_instance.communities = {
-            cell_id: cell_mocks[cell_id] for cell_id in layout
-        }
-        animal_model_instance.excrement_pools = pools
-        animal_model_instance.data["total_animal_respiration"].values[:] = 0.0
+            model.active_cohorts[f"cohort_{index}"] = cohort
+            for cell_id in territory:
+                model.communities[cell_id].append(cohort)
 
-        animal_model_instance.metabolize_community(dt)
+            cohorts.append(cohort)
 
-        for cell_id, specs in layout.items():
-            for mock, (temp, _) in zip(cell_mocks[cell_id], specs):
-                # Temperature routing: cohort's own current_temperature is used.
-                mock.metabolize.assert_called_once_with(temp, dt)
-                # Waste chaining: respire and excrete both receive the exact object
-                # that metabolize returned, confirming it is threaded through once.
-                mock.respire.assert_called_once_with(mock.metabolize.return_value)
-                mock.excrete.assert_called_once_with(
-                    mock.metabolize.return_value, pools[cell_id]
-                )
+        model.metabolize_community(dt)
 
-        # Respiration accumulation and empty-cell guard: empty cells contribute 0.0.
-        resp = animal_model_instance.data["total_animal_respiration"]
-        for cell_id, expected in expected_resp.items():
-            assert resp.sel(cell_id=cell_id).item() == pytest.approx(expected)
+        for cohort in cohorts:
+            # Exactly one metabolism call, at the cohort's territory-mean temperature,
+            # however many communities the cohort is registered in.
+            cohort.metabolize.assert_called_once_with(cohort.current_temperature, dt)
+
+            # The waste from that single call is threaded to both sinks.
+            waste = cohort.metabolize.return_value
+            cohort.respire.assert_called_once_with(waste)
+
+            # Excreta go to the pools of the whole territory, not one cell's pools.
+            cohort.get_excrement_pools.assert_called_once_with(model.excrement_pools)
+            cohort.excrete.assert_called_once_with(
+                waste, cohort.get_excrement_pools.return_value
+            )
+
+        resp = model.data["total_animal_respiration"]
+
+        # Per-cell split, including zero for every cell outside all territories.
+        for cell_id in model.grid.cell_id:
+            expected = expected_resp.get(int(cell_id), 0.0)
+            assert resp.sel(cell_id=cell_id).item() == pytest.approx(expected), (
+                f"cell {cell_id}: expected {expected}, "
+                f"got {resp.sel(cell_id=cell_id).item()}"
+            )
+
+        # Conservation: the split neither creates nor loses respired carbon.
+        assert resp.values.sum() == pytest.approx(
+            sum(respired for _, _, respired in cohort_specs)
+        )
 
     def test_increase_age_community(self, animal_model_instance, mocker):
         """Test increase_age."""
