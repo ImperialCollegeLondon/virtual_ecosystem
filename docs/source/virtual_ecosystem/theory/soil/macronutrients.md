@@ -184,6 +184,17 @@ rate](./environmental_links.md#denitrification-temperature-factor), $f_{w,d}$ is
 rate](./environmental_links.md#denitrification-moisture-factor) and $\ce{NO_{3}^{-}}$ is
 the concentration of nitrate in the soil.
 
+#### Ammonia volatilisation
+
+As well as nitrifying, soil ammonium can also volatilise (as ammonia), leaving the soil
+as a gas. The rate this happens at is calculated as
+
+$$r_v = k_v * \ce{NH_{4}^{+}},$$
+
+where $k_v$ is the rate constant for ammonia volatilisation. This rate is summed over
+the model integration, converted to per area units and then this is provided as a model
+prediction of the ammonia soil flux (per area).
+
 ## Inorganic phosphorus cycling
 
 Similarly, inorganic forms of phosphorus play an important role in the total phosphorus

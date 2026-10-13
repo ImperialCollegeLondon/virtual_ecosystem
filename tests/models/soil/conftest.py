@@ -362,6 +362,7 @@ def soil_pool_data(dummy_carbon_data):
         "new_emf_n_supply",
         "new_emf_p_supply",
         "soil_respiration",
+        "soil_ammonia_volatilisation",
     ]
     elements = {"C": "carbon", "N": "nitrogen", "P": "phosphorus"}
 
