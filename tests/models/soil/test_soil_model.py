@@ -312,6 +312,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
         coords=dict(element=np.array(["C", "N", "P"])),
     )
     soil_respiration = [0.01, 0.005, 0.001, 0.2]
+    soil_ammonia_volatilisation = [0.005, 0.001, 0.0005, 0.1]
 
     mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
@@ -331,6 +332,9 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             new_emf_p_supply=DataArray(new_emf_p_supply, dims="cell_id"),
             cnp_fungal_fruiting_body_production=cnp_fungal_fruiting_body_production,
             soil_respiration=DataArray(soil_respiration, dims="cell_id"),
+            soil_ammonia_volatilisation=DataArray(
+                soil_ammonia_volatilisation, dims="cell_id"
+            ),
         )
     )
 
@@ -388,6 +392,12 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     # Check that soil respiration updates correctly based on what the integrator returns
     final_soil_respiration = [0.005, 0.0025, 0.0005, 0.1]
     assert np.allclose(dummy_carbon_data["soil_respiration"], final_soil_respiration)
+    # Check that soil respiration updates correctly based on what the integrator returns
+    final_soil_ammonia_volatilisation = [0.0025, 0.0005, 0.00025, 0.05]
+    assert np.allclose(
+        dummy_carbon_data["soil_ammonia_volatilisation"],
+        final_soil_ammonia_volatilisation,
+    )
 
 
 @pytest.mark.parametrize(
@@ -443,17 +453,17 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         coords={"cell_id": np.arange(0, 4), "element": ["C", "N", "P"]},
                     ),
                     soil_c_pool_bacteria=DataArray(
-                        [5.77045533, 2.28891905, 11.24087901, 0.99629548],
+                        [5.77045538, 2.28891919, 11.24087901, 0.99629549],
                         dims="cell_id",
                     ),
                     soil_c_pool_saprotrophic_fungi=DataArray(
-                        [0.88572308, 8.51096246, 2.19878325, 4.52372127], dims="cell_id"
+                        [0.88572168, 8.51096365, 2.1987831, 4.52372129], dims="cell_id"
                     ),
                     soil_c_pool_arbuscular_mycorrhiza=DataArray(
-                        [0.64705435, 1.46397984, 3.90103466, 9.00941312], dims="cell_id"
+                        [0.64705363, 1.46398033, 3.90103543, 9.00941168], dims="cell_id"
                     ),
                     soil_c_pool_ectomycorrhiza=DataArray(
-                        [0.4675008, 1.3144604, 4.17831672, 3.75662054], dims="cell_id"
+                        [0.46750023, 1.3144608, 4.17831672, 3.75662093], dims="cell_id"
                     ),
                     soil_enzyme_pom_bacteria=DataArray(
                         [0.02241112, 0.00946393, 0.04946033, 0.00297472], dims="cell_id"
@@ -462,16 +472,16 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.035178, 0.01156259, 0.02479707, 0.00450623], dims="cell_id"
                     ),
                     soil_enzyme_pom_fungi=DataArray(
-                        [0.02576334, 0.00572417, 0.0064011, 0.00437354], dims="cell_id"
+                        [0.02576333, 0.00572418, 0.0064011, 0.00437355], dims="cell_id"
                     ),
                     soil_enzyme_maom_fungi=DataArray(
-                        [0.00856991, 0.00678733, 0.00377974, 0.00215334], dims="cell_id"
+                        [0.00856989, 0.00678734, 0.00377974, 0.00215335], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [0.00019038, 0.00981524, 0.00023841, 0.00490147], dims="cell_id"
+                        [0.00019038, 0.00981523, 0.0002384, 0.00490147], dims="cell_id"
                     ),
                     soil_n_pool_nitrate=DataArray(
-                        [-0.00115396, -0.00162492, -0.00064311, 0.01254262],
+                        [-0.0011536, -0.00162473, -0.00064314, 0.01254262],
                         dims="cell_id",
                     ),
                     soil_p_pool_primary=DataArray(
@@ -492,9 +502,9 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                     cnp_fungal_fruiting_body_production=DataArray(
                         data=np.stack(
                             [
-                                [6.043928e-5, 6.416566e-4, 3.458375e-4, 3.317209e-4],
-                                [4.937344e-6, 7.161188e-5, 2.478646e-5, 2.349150e-5],
-                                [7.715069e-7, 1.144543e-5, 3.827011e-6, 3.622775e-6],
+                                [6.043867e-5, 6.416618e-4, 3.458162e-4, 3.317274e-4],
+                                [4.937158e-6, 7.161246e-5, 2.478534e-5, 2.349185e-5],
+                                [7.714760e-7, 1.144552e-5, 3.826844e-6, 3.622827e-6],
                             ],
                             axis=1,
                         ),
@@ -522,7 +532,11 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         dims="cell_id",
                     ),
                     soil_respiration=DataArray(
-                        [0.00197672, 0.01365577, 0.01018594, 0.00421197], dims="cell_id"
+                        [0.00197671, 0.01365588, 0.01018549, 0.00421205], dims="cell_id"
+                    ),
+                    soil_ammonia_volatilisation=DataArray(
+                        [5.45574032e-9, 3.16418534e-7, 9.70855812e-9, 2.17590153e-7],
+                        dims="cell_id",
                     ),
                 ),
             ),
@@ -571,8 +585,6 @@ def test_integrate_soil_model(
         assert set(new_pools.keys()) == set(final_pools.keys())
 
         for key in new_pools.keys():
-            print(key)
-            print(new_pools[key])
             assert np.allclose(new_pools[key], final_pools[key])
 
     # Check that integrator is called once (and once only)
@@ -1092,6 +1104,10 @@ def test_construct_full_soil_model(
         0.011805566713,
         0.01353755468,
         0.004935150175,
+        6.01513672e-09,
+        4.31262351e-07,
+        1.97913888e-08,
+        4.48894129e-07,
     ]
     elements = {"C": "carbon", "N": "nitrogen", "P": "phosphorus"}
 

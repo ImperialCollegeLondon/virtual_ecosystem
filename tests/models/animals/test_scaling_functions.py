@@ -84,7 +84,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
             1.0,
-            9.116692117764761e-17,
+            8.333909375257098e-17,
             id="ectothermic_small_mass",
         ),
         pytest.param(
@@ -93,7 +93,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
             1.0,
-            1.261354870157637e-16,
+            1.153051681700344e-16,
             id="ectothermic_large_mass",
         ),
         # Asymmetric terms (basal != field) — exercises the sigma FMR/BMR split
@@ -103,7 +103,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
             "endothermic",
             1.0,
-            2.316717571445662e-16,
+            3.5064966949326065e-16,
             id="endothermic_fully_active",
         ),
         pytest.param(
@@ -112,7 +112,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
             "endothermic",
             0.0,
-            1.9480521887285538e-16,
+            1.287066328779035e-16,
             id="endothermic_fully_inactive",
         ),
         pytest.param(
@@ -121,7 +121,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
             "ectothermic",
             1.0,
-            9.078585349134391e-17,
+            1.256116786804866e-16,
             id="ectothermic_fully_active",
         ),
         pytest.param(
@@ -130,7 +130,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
             "ectothermic",
             0.0,
-            7.633886097261398e-17,
+            4.610600727635162e-17,
             id="ectothermic_fully_inactive",
         ),
     ],
@@ -143,7 +143,141 @@ def test_metabolic_rate(mass, temperature, terms, metabolic_type, sigma_f_t, met
     testing_rate = metabolic_rate(
         mass, temperature, terms, MetabolicType(metabolic_type), sigma_f_t
     )
-    assert testing_rate == pytest.approx(met_rate, rel=1e-6)
+    assert testing_rate == pytest.approx(met_rate, rel=1e-6, abs=0.0)
+
+
+@pytest.mark.parametrize("metabolic_type", ["endothermic", "ectothermic"])
+def test_metabolic_rate_blends_linearly_in_activity_window(
+    metabolic_type: str,
+) -> None:
+    """Rate at intermediate sigma_f_t is the weighted mean of basal and field rates.
+
+    The equation is linear in sigma_f_t, so half-active metabolism must equal the
+    mean of the fully inactive (basal) and fully active (field) rates.
+    """
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
+
+    terms = {"basal": (0.5, 0.02), "field": (0.9, 0.08)}
+    m_type = MetabolicType(metabolic_type)
+
+    def rate_at(sigma_f_t: float) -> float:
+        return metabolic_rate(1.0, 25, terms, m_type, sigma_f_t)
+
+    assert rate_at(0.5) == pytest.approx(
+        0.5 * (rate_at(0.0) + rate_at(1.0)), rel=1e-9, abs=0.0
+    )
+
+
+def test_boltzmann_constant_is_in_ev_per_kelvin() -> None:
+    """The k_B used for metabolism must be in eV/K, matching the activation energy.
+
+    The Madingley activation energy is in eV, so k_B must be in eV/K. The SI value
+    (1.38e-23 J/K) makes the Arrhenius factor underflow to exactly zero.
+    """
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
+
+    assert AnimalConstants().BOLTZMANN_CONSTANT == pytest.approx(8.617333e-5, rel=1e-3)
+
+
+@pytest.mark.parametrize(
+    "metabolic_type, mass, sigma_f_t",
+    [
+        pytest.param("endothermic", 0.001, 1.0, id="endotherm_1g_active"),
+        pytest.param("endothermic", 1.0, 0.0, id="endotherm_1kg_inactive"),
+        pytest.param("endothermic", 70.0, 1.0, id="endotherm_70kg_active"),
+        pytest.param("ectothermic", 0.001, 1.0, id="ectotherm_1g_active"),
+        pytest.param("ectothermic", 1.0, 0.5, id="ectotherm_1kg_half_active"),
+        pytest.param("ectothermic", 70.0, 0.0, id="ectotherm_70kg_inactive"),
+    ],
+)
+def test_metabolic_rate_default_constants_are_nonzero_and_finite(
+    metabolic_type: str, mass: float, sigma_f_t: float
+) -> None:
+    """Metabolic rate from the real default constants must be positive and finite.
+
+    The toy-term tests give rates of order 1e-16, so a rate that has silently
+    collapsed to zero would still pass them. This uses the real Madingley terms.
+    """
+    from math import isfinite
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
+    from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
+
+    m_type = MetabolicType(metabolic_type)
+    rate = metabolic_rate(
+        mass=mass,
+        temperature=25.0,
+        terms=AnimalConstants().metabolic_rate_terms[m_type],
+        metabolic_type=m_type,
+        sigma_f_t=sigma_f_t,
+    )
+
+    assert isfinite(rate)
+    assert rate > 0.0
+
+
+@pytest.mark.parametrize(
+    "mass",
+    [0.001, 0.1, 1.0, 70.0],
+    ids=["1g", "100g", "1kg", "70kg"],
+)
+def test_endotherm_field_metabolic_rate_is_physiologically_plausible(
+    mass: float,
+) -> None:
+    """Fully active endotherm metabolism should be a small multiple of Kleiber's BMR.
+
+    The anchor is independent of the model's constants: Kleiber's law gives a basal
+    rate of about 3.4 * M^0.75 W for an endotherm of mass M kg, and free-living
+    field metabolic rate is typically 2-3x basal (Nagy et al. 1999). One watt is
+    86.4 kJ/day, and the Madingley conversion is 0.037 g body mass per kJ. The band
+    of 1-6x is deliberately loose; it catches unit errors (orders of magnitude), not
+    calibration.
+    """
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
+    from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
+
+    kleiber_kg_per_day = 3.4 * mass**0.75 * 86.4 * 0.037 / 1000.0
+
+    rate = metabolic_rate(
+        mass=mass,
+        temperature=25.0,
+        terms=AnimalConstants().metabolic_rate_terms[MetabolicType.ENDOTHERMIC],
+        metabolic_type=MetabolicType.ENDOTHERMIC,
+        sigma_f_t=1.0,
+    )
+
+    assert 1.0 <= rate / kleiber_kg_per_day <= 6.0
+
+
+@pytest.mark.parametrize("sigma_f_t", [0.0, 1.0], ids=["basal", "field"])
+def test_ectotherm_metabolic_rate_temperature_sensitivity_is_physical(
+    sigma_f_t: float,
+) -> None:
+    """A 10 degree rise should raise ectotherm metabolism by a Q10 of about 2-3.
+
+    The Madingley activation energy of 0.69 eV implies a Q10 of about 2.5 near
+    20-30 C. A wrong activation energy or k_B unit shows up as a ratio of 1, nan
+    (0/0), or a huge number, so a loose 1.5-4 band is enough.
+    """
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
+    from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
+
+    terms = AnimalConstants().metabolic_rate_terms[MetabolicType.ECTOTHERMIC]
+
+    def rate_at(temperature: float) -> float:
+        return metabolic_rate(
+            mass=1.0,
+            temperature=temperature,
+            terms=terms,
+            metabolic_type=MetabolicType.ECTOTHERMIC,
+            sigma_f_t=sigma_f_t,
+        )
+
+    assert 1.5 <= rate_at(30.0) / rate_at(20.0) <= 4.0
 
 
 def test_herbivore_prey_group_selection(functional_group_list_instance):
