@@ -315,12 +315,19 @@ class AnimalModel(
             self.model_constants.total_heterotroph_biomass_density_kg_m2
         )
 
-        # Store update interval as a number of days.
-        days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
-        self.update_interval_in_days = days_as_float
+        # Length of the update interval [days]. This may be fractional: a "1 month"
+        # interval is 30.4375 days.
+        self.update_interval_in_days = self.model_timing.update_interval_quantity.to(
+            "days"
+        ).magnitude
 
-        # Convert pint update_interval to timedelta64 once during initialization.
-        self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
+        # The same interval as a timedelta64 at second precision. timedelta64 holds an
+        # integer count of its unit and raises on any float, even 2629800.0, so the
+        # seconds are rounded to an int first. A day-unit timedelta64 would drop the
+        # 0.4375 d of a monthly step.
+        self.update_interval_timedelta = timedelta64(
+            round(self.model_timing.update_interval_seconds), "s"
+        )
 
         # Check the grid has been set up with rook move neighbours.
         if (
