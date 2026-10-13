@@ -485,6 +485,7 @@ def animal_data_for_cohorts_instance(fixture_core_components):
         cell_nx=3,
         cell_ny=3,
     )
+    grid.set_closest_neighbours()
     data = Data(grid)
 
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
