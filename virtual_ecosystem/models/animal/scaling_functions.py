@@ -14,7 +14,6 @@ from numpy.typing import NDArray
 from scipy.special import expit
 
 from virtual_ecosystem.core.grid import Grid
-from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_climate import StratumClimate
 from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
@@ -182,7 +181,7 @@ def metabolic_rate(
     metabolic_scaling_coefficients: tuple[
         float, float
     ] = AnimalConstants().metabolic_scaling_coefficients,
-    boltzmann_constant: float = CoreConstants().boltzmann_constant,
+    boltzmann_constant: float = AnimalConstants().BOLTZMANN_CONSTANT,
 ) -> float:
     r"""Calculates metabolic rate in grams of body mass per day.
 

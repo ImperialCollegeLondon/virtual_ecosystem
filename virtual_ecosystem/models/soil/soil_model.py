@@ -170,8 +170,9 @@ class SoilModel(
         "ectomycorrhizal_n_supply",
         "ectomycorrhizal_p_supply",
         "soil_respiration",
+        "soil_ammonia_volatilisation",
     ),
-    vars_populated_by_first_update=("soil_respiration",),
+    vars_populated_by_first_update=("soil_respiration", "soil_ammonia_volatilisation"),
 ):
     """A class defining the soil model.
 
@@ -220,6 +221,7 @@ class SoilModel(
             "new_emf_n_supply",
             "new_emf_p_supply",
             "soil_respiration",
+            "soil_ammonia_volatilisation",
         ]
         """List of variables that the model resets for each new integration step.
         
@@ -395,13 +397,15 @@ class SoilModel(
             }
         )
 
-        # Add respiration
+        # Add respiration and ammonia volatilisation
+        flux_variables = ["soil_respiration", "soil_ammonia_volatilisation"]
         self.data.add_from_dict(
             {
-                "soil_respiration": updated_soil_pools["soil_respiration"]
+                variable: updated_soil_pools[variable]
                 * self.core_constants.microbial_simulation_depth
                 / self.model_timing.update_interval_quantity.to("days").magnitude
-            }
+                for variable in flux_variables
+            },
         )
 
         # Calculate dissolved amounts of each inorganic nutrients
@@ -475,6 +479,7 @@ class SoilModel(
         var_updated_outside_integration = [
             "fungal_fruiting_bodies_cnp",
             "soil_respiration",
+            "soil_ammonia_volatilisation",
         ] + [
             name
             for name in map(str, self.data.data.keys())
