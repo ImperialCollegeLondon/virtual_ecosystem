@@ -55,7 +55,9 @@ from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import (
     DevelopmentType,
     DietType,
+    MigrationType,
     ReproductiveEnvironment,
+    ReproductiveType,
 )
 from virtual_ecosystem.models.animal.array_resources import (
     ARRAY_RESOURCES,
@@ -1378,7 +1380,7 @@ class AnimalModel(
             P=-min(total_p, parent.reproductive_mass_cnp.P),
         )
 
-        if parent.functional_group.reproductive_type == "semelparous":
+        if parent.functional_group.reproductive_type is ReproductiveType.SEMELPAROUS:
             self.handle_semelparous_parent_death(parent)
 
     def handle_semelparous_parent_death(self, parent: AnimalCohort) -> None:
@@ -1414,7 +1416,10 @@ class AnimalModel(
         Returns:
             Dictionary of mass loss (C, N, P).
         """
-        if parent.functional_group.reproductive_type != "semelparous":
+        if (
+            parent.functional_group.reproductive_type
+            is not ReproductiveType.SEMELPAROUS
+        ):
             return {"C": 0.0, "N": 0.0, "P": 0.0}
 
         loss_fraction = parent.constants.semelparity_mass_loss
@@ -1481,7 +1486,8 @@ class AnimalModel(
                 not cohort.is_below_mass_threshold(
                     self.model_constants.birth_mass_threshold
                 )
-                and cohort.functional_group.reproductive_type != "nonreproductive"
+                and cohort.functional_group.reproductive_type
+                is not ReproductiveType.NONREPRODUCTIVE
             ):
                 self.birth(cohort)
 
@@ -1798,7 +1804,7 @@ class AnimalModel(
         """
         for cohort in list(self.active_cohorts.values()):
             if (
-                cohort.functional_group.migration_type == "seasonal"
+                cohort.functional_group.migration_type is MigrationType.SEASONAL
                 and cohort.is_migration_season()
             ):
                 self.migrate_external(cohort)

@@ -1723,10 +1723,13 @@ class TestAnimalModel:
         expect_semelparous_death_called,
     ):
         """Test reproductive mass update and parent death handling after birth."""
+        from virtual_ecosystem.models.animal.animal_traits import ReproductiveType
         from virtual_ecosystem.models.animal.cnp import CNP
 
         # Mock parent cohort's reproductive type and initial reproductive mass
-        herbivore_cohort_instance.functional_group.reproductive_type = reproductive_type
+        herbivore_cohort_instance.functional_group.reproductive_type = ReproductiveType(
+            reproductive_type
+        )
         herbivore_cohort_instance.reproductive_mass_cnp = CNP(
             **initial_reproductive_mass
         )
@@ -1827,10 +1830,13 @@ class TestAnimalModel:
         expected_loss,
     ):
         """Test semelparous mass loss calculation with fixed 50% loss."""
+        from virtual_ecosystem.models.animal.animal_traits import ReproductiveType
         from virtual_ecosystem.models.animal.cnp import CNP
 
         # Set parent cohort's functional group and initial mass
-        herbivore_cohort_instance.functional_group.reproductive_type = reproductive_type
+        herbivore_cohort_instance.functional_group.reproductive_type = ReproductiveType(
+            reproductive_type
+        )
         herbivore_cohort_instance.mass_cnp = CNP(**initial_mass_cnp)
 
         # Run the method — since semelparity loss is fixed at 0.5, no need to mock
@@ -1977,10 +1983,16 @@ class TestAnimalModel:
         expect_birth_call,
     ):
         """Test birth_community filters cohorts correctly."""
+        from virtual_ecosystem.models.animal.animal_traits import ReproductiveType
+
         # Create a mock cohort
         cohort = mocker.MagicMock()
         cohort.is_below_mass_threshold.return_value = is_below_mass_threshold
-        cohort.functional_group.reproductive_type = reproductive_type
+
+        # Create a mock cohort
+        cohort = mocker.MagicMock()
+        cohort.is_below_mass_threshold.return_value = is_below_mass_threshold
+        cohort.functional_group.reproductive_type = ReproductiveType(reproductive_type)
 
         # Place this single cohort into the active cohorts dictionary
         animal_model_instance.active_cohorts = {cohort_id: cohort}
@@ -2608,11 +2620,19 @@ class TestAnimalModel:
         migration_check,
         expected_migrations,
     ):
-        """Test whether migrate_external_community correctly triggers migration."""
+        """Test whether migrate_external_community correctly triggers migration.
+
+        The model's active cohorts are replaced with the test cohort alone, since the
+        fixture model contains genuinely seasonal cohorts whose stochastic migration
+        would otherwise be counted.
+        """
+        from virtual_ecosystem.models.animal.animal_traits import MigrationType
 
         # Set up cohort attributes
         cohort = herbivore_cohort_instance
-        cohort.functional_group.migration_type = "seasonal" if is_seasonal else "none"
+        cohort.functional_group.migration_type = (
+            MigrationType.SEASONAL if is_seasonal else MigrationType.NONE
+        )
 
         # Mock is_migration_season to return the given test condition
         mocker.patch.object(cohort, "is_migration_season", return_value=migration_check)
@@ -2622,8 +2642,8 @@ class TestAnimalModel:
             animal_model_instance, "migrate_external"
         )
 
-        # Add the cohort to active cohorts
-        animal_model_instance.active_cohorts[cohort.id] = cohort
+        # Make the test cohort the only active cohort
+        animal_model_instance.active_cohorts = {cohort.id: cohort}
 
         # Run function
         animal_model_instance.migrate_external_community()
