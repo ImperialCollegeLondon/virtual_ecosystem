@@ -1600,44 +1600,43 @@ class AnimalModel(
         self.remove_dead_cohort_community()
 
     def metabolize_community(self, dt: timedelta64) -> None:
-        """This handles metabolize for all cohorts in a community.
+        """Handle metabolism for every active cohort.
 
-        Each cohort metabolizes at the territory-mean temperature stored in
+        Each cohort metabolizes exactly once per timestep at the territory-mean
+        temperature stored in
         :attr:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.current_temperature`,
-        which was set by the preceding call to
-        :meth:`update_activity_windows_community`. This ensures the temperature
-        entering the metabolic rate equation is consistent with the temperature
-        used to derive ``sigma_f_t``, i.e. both reflect the cohort's stratum-
-        and territory-averaged environment rather than the centroid surface layer.
+        set by the preceding call to :meth:`update_activity_windows_community`, so that
+        the temperature in the metabolic rate equation matches the one used to derive
+        ``sigma_f_t``.
 
-        This method generates a total amount of metabolic waste per cohort and
-        passes that waste to handler methods for distinguishing between nitrogenous
-        and carbonaceous wastes as they need depositing in different pools.
-
-        Respiration wastes are totalled because they are CO2 and not tracked
-        spatially. Excretion wastes are handled cohort by cohort because they will
-        need to be spatially explicit with multi-grid occupancy.
+        A cohort is registered in the community of every cell in its territory, so
+        iterating over communities would charge a multi-cell cohort once per cell.
+        Iteration is therefore over :attr:`active_cohorts`. The resulting wastes are
+        spread evenly across the territory: excreta through
+        :meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.excrete`,
+        which divides across the pools it is given, and respired carbon as an equal
+        share to each territory cell.
 
         Args:
             dt: Number of days over which the metabolic costs should be calculated.
-
         """
-        for cell_id, community in self.communities.items():
-            if not community:
-                continue
+        respiration = zeros(self.grid.n_cells)
 
-            total_carbonaceous_waste = 0.0
+        for cohort in self.active_cohorts.values():
+            metabolic_waste_mass = cohort.metabolize(cohort.current_temperature, dt)
 
-            for cohort in community:
-                metabolic_waste_mass = cohort.metabolize(cohort.current_temperature, dt)
+            # Respired carbon is cohort-total; give each territory cell an equal share,
+            # matching the even split excrete applies to the excrement pools.
+            respired = cohort.respire(metabolic_waste_mass)
+            share = respired / len(cohort.territory)
+            for cell_id in cohort.territory:
+                respiration[cell_id] += share
 
-                total_carbonaceous_waste += cohort.respire(metabolic_waste_mass)
-
-                cohort.excrete(metabolic_waste_mass, self.excrement_pools[cell_id])
-
-            self.data["total_animal_respiration"].loc[{"cell_id": cell_id}] += (
-                total_carbonaceous_waste
+            cohort.excrete(
+                metabolic_waste_mass, cohort.get_excrement_pools(self.excrement_pools)
             )
+
+        self.data["total_animal_respiration"].values[:] += respiration
 
     def increase_age_community(self, dt: timedelta64) -> None:
         """This handles age for all cohorts in a community.
