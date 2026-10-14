@@ -1550,14 +1550,11 @@ class TestAnimalCohort:
         """
         from math import exp, isclose
 
-        from numpy import timedelta64
-
         prey = mocker.Mock()
         prey.mass_current = mass_current
         prey.individuals = individuals
 
-        adjusted_dt = timedelta64(8, "D")
-        dt_days = float(adjusted_dt / timedelta64(1, "D"))
+        dt_days = 8.0
         bin_densities = {5: 0.001}
 
         mocker.patch.object(
@@ -1565,7 +1562,7 @@ class TestAnimalCohort:
         )
 
         result = predator_cohort_instance.calculate_consumed_mass_predation(
-            prey, adjusted_dt, 5000.0, 0.1, bin_densities, 1.0
+            prey, dt_days, 5000.0, 0.1, bin_densities, 1.0
         )
 
         if expected_behavior == "formula":
@@ -1582,7 +1579,6 @@ class TestAnimalCohort:
         mocker,
     ):
         """Test that arguments are forwarded correctly to F_i_j_individual."""
-        from numpy import timedelta64
 
         prey = mocker.Mock()
         prey.mass_current = 10.0
@@ -1596,7 +1592,7 @@ class TestAnimalCohort:
 
         predator_cohort_instance.calculate_consumed_mass_predation(
             prey,
-            timedelta64(8, "D"),
+            8.0,
             5000.0,
             0.1,
             bin_densities,
@@ -1989,14 +1985,14 @@ class TestAnimalCohort:
             with pytest.raises(expect_error):
                 herbivore.forage_resource_list(
                     resources=[resource1, resource2],
-                    adjusted_dt=timedelta64(10, "D"),
+                    adjusted_dt=10.0,
                     herbivory_waste_pools=waste_pools,
                     resource_kind="plant_resource",
                 )
         else:
             result_gain, result_unassimilated = herbivore.forage_resource_list(
                 resources=[resource1, resource2],
-                adjusted_dt=timedelta64(10, "D"),
+                adjusted_dt=10.0,
                 herbivory_waste_pools=waste_pools,
                 resource_kind="plant_resource",
             )
@@ -2389,7 +2385,7 @@ class TestAnimalCohort:
 
         # Basic sanity: adjusted_dt is numeric for each call.
         for m in (m_det, m_fungi, m_pom, m_bact):
-            assert isinstance(m.call_args.kwargs["adjusted_dt"], timedelta64)
+            assert isinstance(m.call_args.kwargs["adjusted_dt"], float)
 
     def test_forage_cohort_skips_when_no_individuals(
         self, mocker, herbivore_cohort_instance
@@ -2454,6 +2450,146 @@ class TestAnimalCohort:
 
         mock_delta.assert_not_called()
         mock_eat.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "dt, sigma_f_t, diet_category_count, expected_days",
+        [
+            pytest.param(
+                timedelta64(30, "D"), 0.37, 3, 1.85, id="30d_ectotherm_3_categories"
+            ),
+            pytest.param(
+                timedelta64(30, "D"),
+                0.8,
+                14,
+                6.0 / 7.0,
+                id="30d_omnivore_14_categories",
+            ),
+            pytest.param(timedelta64(1, "D"), 1.0, 1, 0.5, id="1d_full_activity"),
+            pytest.param(
+                timedelta64(1, "D"), 0.37, 3, 0.185 / 3.0, id="1d_partial_activity"
+            ),
+            pytest.param(
+                timedelta64(2629800, "s"),
+                0.37,
+                3,
+                1.8769791666666666,
+                id="monthly_30.4375d_in_seconds",
+            ),
+        ],
+    )
+    def test_forage_cohort_time_available_is_not_truncated(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        array_plant_list_instance,
+        dt: timedelta64,
+        sigma_f_t: float,
+        diet_category_count: int,
+        expected_days: float,
+    ) -> None:
+        """Test foraging time per diet category keeps its fractional days.
+
+        ``timedelta64`` stores an integer count of its unit, so multiplying or
+        dividing it by a float truncates toward zero at every operation. With
+        ``tau_f = 0.5`` the old arithmetic gave 1 day for the first case and 0 days
+        for the last three. The expected values are literals worked out as
+        ``dt_days * 0.5 * sigma_f_t / diet_category_count``, not derived from the
+        implementation.
+        """
+        cohort = herbivore_cohort_instance
+        cohort.constants = cohort.constants.model_copy(update={"tau_f": 0.5})
+        cohort.sigma_f_t = sigma_f_t
+        cohort.diet_category_count = diet_category_count
+
+        empty_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
+        mock_delta_mass = mocker.patch.object(
+            cohort,
+            "delta_mass_herbivory",
+            return_value=(empty_gain, empty_gain),
+        )
+        mocker.patch.object(cohort, "eat")
+
+        cohort.forage_cohort(
+            array_resource_list=array_plant_list_instance,
+            animal_list=[],
+            soil_fungi_list=[],
+            pom_list=[],
+            bacteria_list=[],
+            excrement_pools=[],
+            carcass_pool_map={},
+            scavenge_carcass_pools=[],
+            scavenge_excrement_pools=[],
+            herbivory_waste_pools={},
+            dt=dt,
+        )
+
+        mock_delta_mass.assert_called_once()
+        adjusted_dt = mock_delta_mass.call_args.kwargs["adjusted_dt"]
+
+        # A timedelta64 here means the value has been through integer arithmetic.
+        assert isinstance(adjusted_dt, float)
+        assert adjusted_dt == pytest.approx(expected_days, rel=1e-12)
+
+    def test_forage_resource_list_short_step_still_consumes(
+        self, herbivore_cohort_instance, mocker
+    ) -> None:
+        """Test a sub-day foraging window removes biomass from the resource.
+
+        Under the old truncation a 1-day step gave ``adjusted_dt`` = 0, so
+        ``exp(-F * 0) = 1`` and the requested mass was exactly zero. With
+        ``F = 0.1`` per day, a stock of 10 kg and half a day of foraging, the
+        requested mass is ``10 * (1 - exp(-0.05)) = 0.48770575...`` kg.
+        """
+        cohort = herbivore_cohort_instance
+        cohort.functional_group.conversion_efficiency = 0.5
+
+        mocker.patch.object(cohort, "calculate_alpha", return_value=0.5)
+        mocker.patch.object(
+            cohort, "calculate_total_handling_time_for_herbivory", return_value=0.1
+        )
+        mocker.patch.object(cohort, "F_i_k", return_value=0.1)
+
+        resource = mocker.Mock()
+        resource.mass_current = 10.0
+        resource.cell_id = 1
+        resource.get_eaten.return_value = (
+            {"C": 1.0, "N": 0.5, "P": 0.1},
+            {},
+            0.0,
+        )
+
+        cohort.forage_resource_list(
+            resources=[resource],
+            adjusted_dt=0.5,
+            resource_kind="plant_resource",
+        )
+
+        resource.get_eaten.assert_called_once()
+        requested = resource.get_eaten.call_args.args[0]
+        assert requested > 0.0
+        assert requested == pytest.approx(0.48770575499285984, rel=1e-9)
+
+    def test_calculate_consumed_mass_predation_fractional_day(
+        self, predator_cohort_instance, mocker
+    ) -> None:
+        """Test predation mass for half a day of foraging is non-zero.
+
+        With 5 prey of 2 kg each, ``F = 0.3`` per day and ``adjusted_dt = 0.5``, the
+        mass consumed is ``2 * 5 * (1 - exp(-0.15)) = 1.39292023...`` kg.
+        """
+        prey = mocker.Mock()
+        prey.mass_current = 2.0
+        prey.individuals = 5
+
+        mocker.patch.object(
+            predator_cohort_instance, "F_i_j_individual", return_value=0.3
+        )
+
+        result = predator_cohort_instance.calculate_consumed_mass_predation(
+            prey, 0.5, 5000.0, 0.1, {5: 0.001}, 1.0
+        )
+
+        assert result == pytest.approx(1.392920235749422, rel=1e-9)
 
     @pytest.mark.parametrize(
         "distance_in_cell_sides, expected_probability",
@@ -2616,6 +2752,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional groups
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         predator_group = get_functional_group_by_name(
             functional_group_list_instance, "carnivorous_mammal"
         )
@@ -2707,6 +2845,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional groups
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         predator_group = get_functional_group_by_name(
             functional_group_list_instance, "carnivorous_mammal"
         )
@@ -2786,6 +2926,8 @@ class TestAnimalCohort:
         )
 
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -2845,6 +2987,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -2903,6 +3047,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -2960,6 +3106,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3025,6 +3173,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3096,6 +3246,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3167,6 +3319,8 @@ class TestAnimalCohort:
 
         # Setup grid and functional group
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
         herbivore_group = get_functional_group_by_name(
             functional_group_list_instance, "herbivorous_mammal"
         )
@@ -3257,6 +3411,7 @@ class TestAnimalCohort:
 
         # Setup grid
         grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
 
         # Create functional group with given vertical occupancy
         group = FunctionalGroup(
@@ -4093,3 +4248,45 @@ class TestAnimalCohort:
         """Test _clamp_cnp_noise."""
         result = herbivore_cohort_instance._clamp_cnp_noise(input_cnp)
         assert result == pytest.approx(expected_cnp), f"Failed for scenario: {test_id}"
+
+    def test_get_territory_cells_passes_suitability_through(
+        self, mocker, herbivore_cohort_instance
+    ) -> None:
+        """The suitability array is forwarded to thermal_territory unchanged.
+
+        The cohort holds no reference to the model, so the array supplied by the
+        caller must reach the scaling function as given.
+        """
+        import numpy as np
+
+        mock_thermal = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.thermal_territory",
+            return_value=[0, 1],
+        )
+
+        cohort = herbivore_cohort_instance
+        suitability = np.full(cohort.grid.n_cells, 0.5)
+
+        cohort.get_territory_cells(0, suitability)
+
+        args = mock_thermal.call_args.args
+        assert args[0] == 0
+        assert args[1] == cohort.territory_cells
+        assert args[2] is cohort.grid
+        assert np.array_equal(args[3], suitability)
+
+    def test_get_territory_cells_defaults_to_breadth_first(
+        self, herbivore_cohort_instance
+    ) -> None:
+        """Omitting suitability reproduces the pre-thermal territory exactly.
+
+        This is the guarantee that cohort construction, which supplies no
+        suitability, is unchanged from breadth-first behaviour.
+        """
+        from virtual_ecosystem.models.animal import scaling_functions as sf
+
+        cohort = herbivore_cohort_instance
+
+        expected = sf.bfs_territory(0, cohort.territory_cells, cohort.grid)
+
+        assert cohort.get_territory_cells(0) == expected

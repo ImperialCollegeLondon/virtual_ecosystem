@@ -196,8 +196,11 @@ litter pool size at the end of the model update time step ($\tau$). This solutio
 expressed as
 
 $$
-P_j(\tau) = \frac{I_{C,j}}{K_j(T,\psi,L)} - \left(\frac{I_{C,j}}{K_j(T,\psi,L)} -
-    P_{j,0}\right) e^{-K_j(T,\psi,L)\tau},
+P_j(\tau) = \begin{cases}
+\frac{I_{C,j}}{K_j(T,\psi,L)} - \left(\frac{I_{C,j}}{K_j(T,\psi,L)} -
+  P_{j,0}\right) e^{-K_j(T,\psi,L)\tau}, \quad K_j(T,\psi,L) > 0 \\
+P_{j,0} + I_{C,j}*\tau , \quad K_j(T,\psi,L) = 0
+\end{cases}
 $$
 
 where $P_{j,0}$ is the size of litter pool $j$ at the start of the update interval.

@@ -438,6 +438,9 @@ class PoolData:
     soil_respiration: NDArray[np.floating]
     """Carbon respired by microbes over integration time [kg{C} m-3]."""
 
+    soil_ammonia_volatilisation: NDArray[np.floating]
+    """Ammonia volatilised from the soil over integration time [kg{N} m-3]."""
+
 
 class SoilPools:
     """This class collects all the various soil pools so that they can be updated.
@@ -856,6 +859,7 @@ class SoilPools:
             - self.to_per_volume(self.data["subcanopy_nitrate_uptake"].to_numpy())
             - nutrient_removal_by_water.nitrate
         )
+        delta_pools_ordered["soil_ammonia_volatilisation"] = ammonia_volatilisation_rate
         delta_pools_ordered["soil_cnp_pool_lmwc_phosphorus"] = (
             litter_mineralisation_flux.dop
             + pom_p_mineralisation

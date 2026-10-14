@@ -84,7 +84,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
             1.0,
-            9.116692117764761e-17,
+            8.333909375257098e-17,
             id="ectothermic_small_mass",
         ),
         pytest.param(
@@ -93,7 +93,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
             1.0,
-            1.261354870157637e-16,
+            1.153051681700344e-16,
             id="ectothermic_large_mass",
         ),
         # Asymmetric terms (basal != field) — exercises the sigma FMR/BMR split
@@ -103,7 +103,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
             "endothermic",
             1.0,
-            2.316717571445662e-16,
+            3.5064966949326065e-16,
             id="endothermic_fully_active",
         ),
         pytest.param(
@@ -112,7 +112,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
             "endothermic",
             0.0,
-            1.9480521887285538e-16,
+            1.287066328779035e-16,
             id="endothermic_fully_inactive",
         ),
         pytest.param(
@@ -121,7 +121,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
             "ectothermic",
             1.0,
-            9.078585349134391e-17,
+            1.256116786804866e-16,
             id="ectothermic_fully_active",
         ),
         pytest.param(
@@ -130,7 +130,7 @@ def test_damuths_law_computes_expected_value(mass, terms):
             {"basal": (0.5, 0.02), "field": (0.9, 0.08)},
             "ectothermic",
             0.0,
-            7.633886097261398e-17,
+            4.610600727635162e-17,
             id="ectothermic_fully_inactive",
         ),
     ],
@@ -143,7 +143,141 @@ def test_metabolic_rate(mass, temperature, terms, metabolic_type, sigma_f_t, met
     testing_rate = metabolic_rate(
         mass, temperature, terms, MetabolicType(metabolic_type), sigma_f_t
     )
-    assert testing_rate == pytest.approx(met_rate, rel=1e-6)
+    assert testing_rate == pytest.approx(met_rate, rel=1e-6, abs=0.0)
+
+
+@pytest.mark.parametrize("metabolic_type", ["endothermic", "ectothermic"])
+def test_metabolic_rate_blends_linearly_in_activity_window(
+    metabolic_type: str,
+) -> None:
+    """Rate at intermediate sigma_f_t is the weighted mean of basal and field rates.
+
+    The equation is linear in sigma_f_t, so half-active metabolism must equal the
+    mean of the fully inactive (basal) and fully active (field) rates.
+    """
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
+
+    terms = {"basal": (0.5, 0.02), "field": (0.9, 0.08)}
+    m_type = MetabolicType(metabolic_type)
+
+    def rate_at(sigma_f_t: float) -> float:
+        return metabolic_rate(1.0, 25, terms, m_type, sigma_f_t)
+
+    assert rate_at(0.5) == pytest.approx(
+        0.5 * (rate_at(0.0) + rate_at(1.0)), rel=1e-9, abs=0.0
+    )
+
+
+def test_boltzmann_constant_is_in_ev_per_kelvin() -> None:
+    """The k_B used for metabolism must be in eV/K, matching the activation energy.
+
+    The Madingley activation energy is in eV, so k_B must be in eV/K. The SI value
+    (1.38e-23 J/K) makes the Arrhenius factor underflow to exactly zero.
+    """
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
+
+    assert AnimalConstants().BOLTZMANN_CONSTANT == pytest.approx(8.617333e-5, rel=1e-3)
+
+
+@pytest.mark.parametrize(
+    "metabolic_type, mass, sigma_f_t",
+    [
+        pytest.param("endothermic", 0.001, 1.0, id="endotherm_1g_active"),
+        pytest.param("endothermic", 1.0, 0.0, id="endotherm_1kg_inactive"),
+        pytest.param("endothermic", 70.0, 1.0, id="endotherm_70kg_active"),
+        pytest.param("ectothermic", 0.001, 1.0, id="ectotherm_1g_active"),
+        pytest.param("ectothermic", 1.0, 0.5, id="ectotherm_1kg_half_active"),
+        pytest.param("ectothermic", 70.0, 0.0, id="ectotherm_70kg_inactive"),
+    ],
+)
+def test_metabolic_rate_default_constants_are_nonzero_and_finite(
+    metabolic_type: str, mass: float, sigma_f_t: float
+) -> None:
+    """Metabolic rate from the real default constants must be positive and finite.
+
+    The toy-term tests give rates of order 1e-16, so a rate that has silently
+    collapsed to zero would still pass them. This uses the real Madingley terms.
+    """
+    from math import isfinite
+
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
+    from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
+
+    m_type = MetabolicType(metabolic_type)
+    rate = metabolic_rate(
+        mass=mass,
+        temperature=25.0,
+        terms=AnimalConstants().metabolic_rate_terms[m_type],
+        metabolic_type=m_type,
+        sigma_f_t=sigma_f_t,
+    )
+
+    assert isfinite(rate)
+    assert rate > 0.0
+
+
+@pytest.mark.parametrize(
+    "mass",
+    [0.001, 0.1, 1.0, 70.0],
+    ids=["1g", "100g", "1kg", "70kg"],
+)
+def test_endotherm_field_metabolic_rate_is_physiologically_plausible(
+    mass: float,
+) -> None:
+    """Fully active endotherm metabolism should be a small multiple of Kleiber's BMR.
+
+    The anchor is independent of the model's constants: Kleiber's law gives a basal
+    rate of about 3.4 * M^0.75 W for an endotherm of mass M kg, and free-living
+    field metabolic rate is typically 2-3x basal (Nagy et al. 1999). One watt is
+    86.4 kJ/day, and the Madingley conversion is 0.037 g body mass per kJ. The band
+    of 1-6x is deliberately loose; it catches unit errors (orders of magnitude), not
+    calibration.
+    """
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
+    from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
+
+    kleiber_kg_per_day = 3.4 * mass**0.75 * 86.4 * 0.037 / 1000.0
+
+    rate = metabolic_rate(
+        mass=mass,
+        temperature=25.0,
+        terms=AnimalConstants().metabolic_rate_terms[MetabolicType.ENDOTHERMIC],
+        metabolic_type=MetabolicType.ENDOTHERMIC,
+        sigma_f_t=1.0,
+    )
+
+    assert 1.0 <= rate / kleiber_kg_per_day <= 6.0
+
+
+@pytest.mark.parametrize("sigma_f_t", [0.0, 1.0], ids=["basal", "field"])
+def test_ectotherm_metabolic_rate_temperature_sensitivity_is_physical(
+    sigma_f_t: float,
+) -> None:
+    """A 10 degree rise should raise ectotherm metabolism by a Q10 of about 2-3.
+
+    The Madingley activation energy of 0.69 eV implies a Q10 of about 2.5 near
+    20-30 C. A wrong activation energy or k_B unit shows up as a ratio of 1, nan
+    (0/0), or a huge number, so a loose 1.5-4 band is enough.
+    """
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
+    from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
+
+    terms = AnimalConstants().metabolic_rate_terms[MetabolicType.ECTOTHERMIC]
+
+    def rate_at(temperature: float) -> float:
+        return metabolic_rate(
+            mass=1.0,
+            temperature=temperature,
+            terms=terms,
+            metabolic_type=MetabolicType.ECTOTHERMIC,
+            sigma_f_t=sigma_f_t,
+        )
+
+    assert 1.5 <= rate_at(30.0) / rate_at(20.0) <= 4.0
 
 
 def test_herbivore_prey_group_selection(functional_group_list_instance):
@@ -1651,3 +1785,308 @@ class TestHeterotrophNormalizationSystem:
         actual_density = total_biomass_kg / total_area_m2
 
         assert actual_density == pytest.approx(target, rel=0.05)
+
+
+@pytest.fixture
+def territory_grid():
+    """A 5x5 square grid of 10 m cells with nearest-neighbour adjacency set.
+
+    Uses the same neighbour definition as model startup, so cell ids run row-major
+    from the top-left and each interior cell has four rook neighbours.
+    """
+    from virtual_ecosystem.core.grid import Grid
+
+    grid = Grid(grid_type="square", cell_area=100.0, cell_nx=5, cell_ny=5)
+    grid.set_closest_neighbours()
+    return grid
+
+
+def _is_contiguous(territory: list[int], grid) -> bool:
+    """Check that every cell in a territory is rook-adjacent to another cell in it.
+
+    Adjacency is worked out from row and column rather than read from
+    ``grid.neighbours``, so the check is independent of the neighbour set the
+    functions under test use. A neighbour set that wrongly included diagonals would
+    fail here rather than pass silently.
+
+    Args:
+        territory: The grid cell keys making up the territory.
+        grid: A square grid.
+
+    Returns:
+        True when the territory forms a single orthogonally connected region.
+    """
+
+    cell_nx, cell_ny = grid.cell_nx, grid.cell_ny
+    cells = set(territory)
+    if len(cells) < 2:
+        return True
+
+    for key in cells:
+        row, col = divmod(key, cell_nx)
+        neighbours = [(row - 1, col), (row + 1, col), (row, col - 1), (row, col + 1)]
+        if not any(
+            0 <= r < cell_ny and 0 <= c < cell_nx and (r * cell_nx + c) in cells
+            for r, c in neighbours
+        ):
+            return False
+
+    return True
+
+
+def test_thermal_territory_grows_up_gradient() -> None:
+    """Territory growth follows an eastward suitability gradient.
+
+    Suitability increases with column index, so from a central centroid the
+    territory must extend east rather than expanding evenly. The expected cells are
+    derived by hand from the frontier ordering rather than from the implementation:
+
+    * claim centroid 12 (row 2, col 2); frontier holds keys 7, 17 (0.2), 11 (0.1),
+      13 (0.3)
+    * pop 13 as the most suitable; it contributes keys 8, 18 (0.3) and 14 (0.4)
+    * pop 14; it contributes keys 9 and 19 (0.4)
+    * pop 9, which ties with 19 on suitability but was pushed first
+    """
+    import numpy as np
+
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_territory
+
+    g = Grid(cell_nx=5, cell_ny=5)
+    g.set_neighbours(distance=100)
+
+    # suitability rises with column: 0.0, 0.1, 0.2, 0.3, 0.4 across each row
+    suitability = np.tile(np.arange(5) / 10.0, 5)
+
+    result = thermal_territory(12, 4, g, suitability)
+
+    assert result == [12, 13, 14, 9]
+
+
+@pytest.mark.parametrize(
+    "centroid_key, target, expected",
+    [
+        pytest.param(12, 1, [12], id="single_cell"),
+        pytest.param(12, 5, [12, 7, 11, 13, 17], id="first_ring"),
+        pytest.param(12, 9, [12, 7, 11, 13, 17, 2, 6, 8, 10], id="partial_second_ring"),
+        pytest.param(0, 6, [0, 1, 5, 2, 6, 10], id="corner_centroid"),
+    ],
+)
+def test_bfs_territory_follows_grid_neighbour_order(
+    territory_grid, centroid_key: int, target: int, expected: list[int]
+) -> None:
+    """Breadth-first growth visits neighbours in the order the grid stores them.
+
+    On a square grid ``grid.neighbours`` lists cells in ascending id order, so
+    territories that stop part way through a ring are fixed by that order. The
+    expected cells are derived by hand. From centroid 12, the queue receives 7, 11,
+    13 and 17. Dequeuing 7 adds 2, 6 and 8, and dequeuing 11 adds 10 and 16, so the
+    first nine cells are 12, 7, 11, 13, 17, 2, 6, 8, 10.
+    """
+    from virtual_ecosystem.models.animal.scaling_functions import bfs_territory
+
+    assert bfs_territory(centroid_key, target, territory_grid) == expected
+
+
+@pytest.mark.parametrize(
+    "centroid_key, target",
+    [
+        pytest.param(12, 1, id="single_cell"),
+        pytest.param(12, 5, id="small_territory"),
+        pytest.param(12, 13, id="large_territory"),
+        pytest.param(0, 6, id="corner_centroid"),
+        pytest.param(10, 6, id="edge_centroid"),
+    ],
+)
+def test_thermal_territory_none_matches_bfs(
+    territory_grid, centroid_key: int, target: int
+) -> None:
+    """Passing no suitability reproduces breadth-first territory growth exactly.
+
+    The short-circuit for ``suitability=None`` delegates straight to
+    :func:`bfs_territory`, so the two must be identical for every centroid and
+    target, including at the grid edges and corners.
+    """
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        bfs_territory,
+        thermal_territory,
+    )
+
+    expected = bfs_territory(centroid_key, target, territory_grid)
+    result = thermal_territory(centroid_key, target, territory_grid, None)
+
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "centroid_key, target",
+    [
+        pytest.param(12, 0, id="zero_target"),
+        pytest.param(12, 1, id="single_cell"),
+        pytest.param(12, 5, id="small_territory"),
+        pytest.param(12, 13, id="large_territory"),
+        pytest.param(12, 25, id="whole_grid"),
+        pytest.param(0, 6, id="corner_centroid"),
+        pytest.param(10, 6, id="edge_centroid"),
+    ],
+)
+def test_thermal_territory_uniform_matches_bfs(
+    territory_grid, centroid_key: int, target: int
+) -> None:
+    """Uniform suitability reproduces breadth-first territory growth exactly.
+
+    This is the key regression guard on the priority queue itself: with all cells
+    equally suitable, the monotonic tiebreak makes the heap pop in insertion order,
+    degenerating to FIFO. Any divergence means the frontier ordering or the
+    claim-on-pop logic has broken, independently of the None short-circuit.
+
+    The ``zero_target`` case pins the degenerate behaviour, where both functions
+    return the centroid alone.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        bfs_territory,
+        thermal_territory,
+    )
+
+    uniform = np.full(territory_grid.n_cells, 0.5)
+
+    expected = bfs_territory(centroid_key, target, territory_grid)
+    result = thermal_territory(centroid_key, target, territory_grid, uniform)
+
+    assert result == expected
+
+
+def test_thermal_territory_prefers_suitable_cells_over_bfs(territory_grid) -> None:
+    """A suitability-aware territory is thermally better than a breadth-first one.
+
+    Compared against :func:`bfs_territory` from the same centroid and with the same
+    target, greedy growth must yield a territory whose mean suitability is strictly
+    higher when suitability varies across the neighbourhood.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        bfs_territory,
+        thermal_territory,
+    )
+
+    suitability = np.tile(np.arange(5) / 10.0, 5)
+
+    thermal = thermal_territory(12, 6, territory_grid, suitability)
+    breadth_first = bfs_territory(12, 6, territory_grid)
+
+    assert suitability[thermal].mean() > suitability[breadth_first].mean()
+
+
+@pytest.mark.parametrize(
+    "centroid_key, target",
+    [
+        pytest.param(12, 4, id="central"),
+        pytest.param(12, 10, id="central_large"),
+        pytest.param(0, 6, id="corner"),
+        pytest.param(24, 6, id="far_corner"),
+        pytest.param(10, 6, id="edge"),
+    ],
+)
+def test_thermal_territory_structural_invariants(
+    territory_grid, centroid_key: int, target: int
+) -> None:
+    """Territories are contiguous, centroid-anchored, in bounds and the right size.
+
+    These hold regardless of the suitability surface: greedy growth must never
+    produce a disconnected territory, drop the centroid, wrap around a grid edge,
+    or claim a cell twice.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_territory
+
+    rng = np.random.default_rng(7)
+    suitability = rng.random(territory_grid.n_cells)
+
+    result = thermal_territory(centroid_key, target, territory_grid, suitability)
+
+    assert result[0] == centroid_key
+    assert len(result) == target
+    assert len(result) == len(set(result))
+    assert all(0 <= key < territory_grid.n_cells for key in result)
+    assert _is_contiguous(result, territory_grid)
+
+
+def test_thermal_territory_invariant_under_monotonic_transform(
+    territory_grid,
+) -> None:
+    """Growth depends on the ordering of suitability, not its magnitudes.
+
+    Selection is greedy, so any strictly increasing transform of the suitability
+    surface leaves the cell ordering and therefore the territory unchanged. This is
+    why the dispersal exponent and floor constants are not applied to territory
+    construction.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import thermal_territory
+
+    rng = np.random.default_rng(11)
+    suitability = rng.random(territory_grid.n_cells)
+
+    plain = thermal_territory(12, 8, territory_grid, suitability)
+    transformed = thermal_territory(12, 8, territory_grid, suitability**3)
+
+    assert plain == transformed
+
+
+def test_thermal_territory_all_lethal_still_grows(territory_grid) -> None:
+    """A territory is still built when every cell is entirely unsuitable.
+
+    Zero suitability everywhere is a valid surface, not an error: the cohort has to
+    occupy somewhere. With no ordering signal the result degenerates to
+    breadth-first growth.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        bfs_territory,
+        thermal_territory,
+    )
+
+    lethal = np.zeros(territory_grid.n_cells)
+
+    result = thermal_territory(12, 6, territory_grid, lethal)
+
+    assert result == bfs_territory(12, 6, territory_grid)
+
+
+def test_thermal_territory_on_hexagonal_grid() -> None:
+    """Territory growth works unchanged on a hexagonal grid.
+
+    Both territory functions read adjacency from ``grid.neighbours`` rather than
+    square-grid row and column arithmetic, so a hex grid needs no special handling.
+    Uniform suitability must still reproduce breadth-first growth, and a random
+    surface must still grow contiguously, with each new cell adjacent to one
+    already claimed.
+    """
+    import numpy as np
+
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        bfs_territory,
+        thermal_territory,
+    )
+
+    grid = Grid(grid_type="hexagon", cell_area=100.0, cell_nx=5, cell_ny=5)
+    grid.set_closest_neighbours()
+
+    uniform = np.full(grid.n_cells, 0.5)
+    assert thermal_territory(12, 7, grid, uniform) == bfs_territory(12, 7, grid)
+
+    rng = np.random.default_rng(3)
+    result = thermal_territory(12, 10, grid, rng.random(grid.n_cells))
+
+    assert result[0] == 12
+    assert len(result) == len(set(result)) == 10
+    for i, cell in enumerate(result[1:], start=1):
+        claimed = set(result[:i])
+        assert claimed & set(grid.neighbours[cell].tolist())
