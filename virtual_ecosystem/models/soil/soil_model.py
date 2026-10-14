@@ -222,6 +222,7 @@ class SoilModel(
             "new_emf_p_supply",
             "soil_respiration",
             "soil_ammonia_volatilisation",
+            "soil_denitrification_flux",
         ]
         """List of variables that the model resets for each new integration step.
         
@@ -407,6 +408,8 @@ class SoilModel(
                 for variable in flux_variables
             },
         )
+
+        # TODO - WILL NEED A FUNCTION TO SPLIT DENITRIFICATION FLUX INTO SPECIFIC GASES
 
         # Calculate dissolved amounts of each inorganic nutrients
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
