@@ -1339,7 +1339,8 @@ class PalmsModel(
             )
 
             # Calculate carbon available for growth
-            growth_carbon = unallocated_carbon - (
+            # Subtraction of foliage, root, and branch turnover occurs in pyrealm
+            growth_carbon = stem_allocation.npp - (
                 reproductive_tissue_turnover
                 + reproductive_tissue_respiration
                 + symbiote_allocation
