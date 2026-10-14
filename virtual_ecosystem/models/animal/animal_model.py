@@ -1481,7 +1481,7 @@ class AnimalModel(
         """This handles birth for all cohorts in a community."""
 
         # reproduction occurs for cohorts with sufficient reproductive mass
-        for cohort in self.active_cohorts.values():
+        for cohort in list(self.active_cohorts.values()):
             if (
                 not cohort.is_below_mass_threshold(
                     self.model_constants.birth_mass_threshold
