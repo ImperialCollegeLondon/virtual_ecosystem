@@ -171,8 +171,15 @@ class SoilModel(
         "ectomycorrhizal_p_supply",
         "soil_respiration",
         "soil_ammonia_volatilisation",
+        "soil_dinitrogen_emission",
+        "soil_nitrous_oxide_emission",
     ),
-    vars_populated_by_first_update=("soil_respiration", "soil_ammonia_volatilisation"),
+    vars_populated_by_first_update=(
+        "soil_respiration",
+        "soil_ammonia_volatilisation",
+        "soil_dinitrogen_emission",
+        "soil_nitrous_oxide_emission",
+    ),
 ):
     """A class defining the soil model.
 
@@ -409,7 +416,13 @@ class SoilModel(
             },
         )
 
-        # TODO - WILL NEED A FUNCTION TO SPLIT DENITRIFICATION FLUX INTO SPECIFIC GASES
+        # Split the denitrification gas flux between the relevant gases
+        denitrification_gas_fluxes = self.split_denitrification_fluxes_between_gases(
+            total_denitrification=updated_soil_pools["soil_denitrification_flux"]
+        )
+
+        # Update the data object with these fluxes
+        self.data.add_from_dict(denitrification_gas_fluxes)
 
         # Calculate dissolved amounts of each inorganic nutrients
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
@@ -483,6 +496,8 @@ class SoilModel(
             "fungal_fruiting_bodies_cnp",
             "soil_respiration",
             "soil_ammonia_volatilisation",
+            "soil_dinitrogen_emission",
+            "soil_nitrous_oxide_emission",
         ] + [
             name
             for name in map(str, self.data.data.keys())
@@ -656,6 +671,42 @@ class SoilModel(
             subset = self.data[var]
 
         return bool(~np.all(np.isfinite(subset)))
+
+    def split_denitrification_fluxes_between_gases(
+        self, total_denitrification: DataArray
+    ) -> dict[str, DataArray]:
+        r"""Split the total denitrification into dinitrogen and nitrous oxide fluxes.
+
+        As a simplifying assumption we assume that nitrogen only escapes the soil due to
+        denitrification in the form of dinitrogen (:math:`\ce{N_{2}}`) or nitrous oxide
+        (:math:`\ce{N_{2}O}`).
+
+        Args:
+            total_denitrification: Total nitrogen lost from soil due to denitrification
+                over the simulation time period [kg{N} m-3]
+
+        Returns:
+            The rate at which dinitrogen and nitrous oxide are produced from the soil
+            due to denitrification [kg{N} m-2 day-1]
+        """
+
+        # Convert total denitrification into kg m-2 day-1 units
+        denitrification_flux = (
+            total_denitrification
+            * self.core_constants.microbial_simulation_depth
+            / self.model_timing.update_interval_quantity.to("days").magnitude
+        )
+
+        return {
+            "soil_dinitrogen_emission": (
+                1 - self.model_constants.denitrification_nitrous_oxide_fraction
+            )
+            * denitrification_flux,
+            "soil_nitrous_oxide_emission": (
+                self.model_constants.denitrification_nitrous_oxide_fraction
+                * denitrification_flux
+            ),
+        }
 
     def calculate_dissolved_nutrient_concentrations(self) -> dict[str, DataArray]:
         """Calculate the amount of each inorganic nutrient that is in dissolved form.

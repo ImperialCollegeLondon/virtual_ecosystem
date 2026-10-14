@@ -313,6 +313,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     )
     soil_respiration = [0.01, 0.005, 0.001, 0.2]
     soil_ammonia_volatilisation = [0.005, 0.001, 0.0005, 0.1]
+    soil_denitrification_flux = [0.1, 0.005, 0.001, 0.0005]
 
     mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
@@ -334,6 +335,9 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             soil_respiration=DataArray(soil_respiration, dims="cell_id"),
             soil_ammonia_volatilisation=DataArray(
                 soil_ammonia_volatilisation, dims="cell_id"
+            ),
+            soil_denitrification_flux=DataArray(
+                soil_denitrification_flux, dims="cell_id"
             ),
         )
     )
@@ -392,11 +396,23 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     # Check that soil respiration updates correctly based on what the integrator returns
     final_soil_respiration = [0.005, 0.0025, 0.0005, 0.1]
     assert np.allclose(dummy_carbon_data["soil_respiration"], final_soil_respiration)
-    # Check that soil respiration updates correctly based on what the integrator returns
+    # Check that ammonia volatilisation updates correctly based on what the integrator
+    # returns
     final_soil_ammonia_volatilisation = [0.0025, 0.0005, 0.00025, 0.05]
     assert np.allclose(
         dummy_carbon_data["soil_ammonia_volatilisation"],
         final_soil_ammonia_volatilisation,
+    )
+    # Check that dinitrogen and nitrous oxide fluxes update correctly based on what the
+    # integrator returns
+    final_soil_dinitrogen_emission = [0.0335, 0.001675, 0.000335, 0.0001675]
+    final_soil_nitrous_oxide_emission = [0.0165, 0.000825, 0.000165, 8.25e-5]
+    assert np.allclose(
+        dummy_carbon_data["soil_dinitrogen_emission"], final_soil_dinitrogen_emission
+    )
+    assert np.allclose(
+        dummy_carbon_data["soil_nitrous_oxide_emission"],
+        final_soil_nitrous_oxide_emission,
     )
 
 
