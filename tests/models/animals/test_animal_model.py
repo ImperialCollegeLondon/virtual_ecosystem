@@ -2420,49 +2420,58 @@ class TestAnimalModel:
             not in animal_model_instance.active_cohorts.values()
         ), "Caterpillar cohort should be removed from the model"
 
-    def test_metamorphose_community(self, animal_model_instance, mocker):
-        """Test metamorphose_community."""
+    @pytest.mark.parametrize(
+        "development_type, development_status, mass_current, expect_metamorphosis",
+        [
+            pytest.param("indirect", "larval", 20.0, True, id="larva_at_adult_mass"),
+            pytest.param(
+                "indirect", "larval", 15.0, True, id="larva_exactly_adult_mass"
+            ),
+            pytest.param(
+                "indirect", "larval", 10.0, False, id="larva_below_adult_mass"
+            ),
+            pytest.param("indirect", "adult", 20.0, False, id="indirect_adult"),
+            pytest.param("direct", "adult", 20.0, False, id="direct_adult"),
+        ],
+    )
+    def test_metamorphose_community(
+        self,
+        animal_model_instance,
+        mocker,
+        development_type,
+        development_status,
+        mass_current,
+        expect_metamorphosis,
+    ):
+        """Test that only larval indirect developers at adult mass metamorphose.
 
-        from virtual_ecosystem.models.animal.animal_traits import DevelopmentType
-
-        # Create mock cohorts
-        mock_cohort_1 = mocker.Mock()
-        mock_cohort_2 = mocker.Mock()
-        mock_cohort_3 = mocker.Mock()
-
-        # Setup the animal model with mock cohorts
-        animal_model_instance.active_cohorts = {
-            "cohort_1": mock_cohort_1,
-            "cohort_2": mock_cohort_2,
-            "cohort_3": mock_cohort_3,
-        }
-
-        # Set the properties for each cohort
-        mock_cohort_1.functional_group.development_type = DevelopmentType.INDIRECT
-        mock_cohort_1.mass_current = 20.0
-        mock_cohort_1.functional_group.adult_mass = 15.0  # Ready for metamorphosis
-
-        mock_cohort_2.functional_group.development_type = DevelopmentType.INDIRECT
-        mock_cohort_2.mass_current = 10.0
-        mock_cohort_2.functional_group.adult_mass = 15.0  # Not ready for metamorphosis
-
-        mock_cohort_3.functional_group.development_type = DevelopmentType.DIRECT
-        mock_cohort_3.mass_current = 20.0
-        mock_cohort_3.functional_group.adult_mass = (
-            15.0  # Direct development, should not metamorphose
+        The ``indirect_adult`` case is the butterfly: an indirect developer that has
+        already metamorphosed, and which must not be turned back into its larval
+        offspring group on reaching adult mass.
+        """
+        from virtual_ecosystem.models.animal.animal_traits import (
+            DevelopmentStatus,
+            DevelopmentType,
         )
 
-        # Mock the metamorphose method
+        cohort = mocker.Mock()
+        cohort.functional_group.development_type = DevelopmentType(development_type)
+        cohort.functional_group.development_status = DevelopmentStatus(
+            development_status
+        )
+        cohort.functional_group.adult_mass = 15.0
+        cohort.mass_current = mass_current
+
+        animal_model_instance.active_cohorts = {"cohort": cohort}
+
         mock_metamorphose = mocker.patch.object(animal_model_instance, "metamorphose")
 
-        # Run the metamorphose_community method
         animal_model_instance.metamorphose_community()
 
-        # Assert that metamorphose was called only for cohort that is ready and indirect
-        mock_metamorphose.assert_called_once_with(mock_cohort_1)
-
-        # Assert that the other cohorts did not trigger metamorphosis
-        mock_metamorphose.assert_called_once()  # Ensure it was called exactly once
+        if expect_metamorphosis:
+            mock_metamorphose.assert_called_once_with(cohort)
+        else:
+            mock_metamorphose.assert_not_called()
 
     @pytest.mark.parametrize(
         "cohort_type, initial_time_away, dt_days, expected_time_away,"

@@ -53,6 +53,7 @@ from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.animal.animal_climate import StratumClimate
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import (
+    DevelopmentStatus,
     DevelopmentType,
     DietType,
     MigrationType,
@@ -1729,8 +1730,10 @@ class AnimalModel(
         # Iterate over a static list of cohort values
         for cohort in list(self.active_cohorts.values()):
             if (
-                cohort.functional_group.development_type == DevelopmentType.INDIRECT
-                and (cohort.mass_current >= cohort.functional_group.adult_mass)
+                cohort.functional_group.development_type is DevelopmentType.INDIRECT
+                and cohort.functional_group.development_status
+                is DevelopmentStatus.LARVAL
+                and cohort.mass_current >= cohort.functional_group.adult_mass
             ):
                 self.metamorphose(cohort)
 
