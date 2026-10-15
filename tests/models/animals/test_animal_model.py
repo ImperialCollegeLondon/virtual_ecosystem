@@ -1669,44 +1669,52 @@ class TestAnimalModel:
         assert result == expected_offspring
 
     @pytest.mark.parametrize(
-        "reproductive_type, initial_reproductive_mass, offspring_count, birth_mass_cnp,"
-        "expected_remaining_mass, expect_semelparous_death_called",
+        "reproductive_type, individuals, initial_body, initial_repro, offspring_count,"
+        "expected_body, expected_repro, expect_death",
         [
-            # Iteroparous parent - reproductive mass reduces but parent survives
-            (
+            pytest.param(
                 "iteroparous",
+                1,
+                {"C": 4.0, "N": 1.0, "P": 0.5},
                 {"C": 2.0, "N": 0.5, "P": 0.2},
                 2,
-                (0.5, 0.1, 0.05),  # Per offspring birth mass C, N, P
+                {"C": 4.0, "N": 1.0, "P": 0.5},
                 {"C": 1.0, "N": 0.3, "P": 0.1},
                 False,
+                id="single_parent_two_offspring",
             ),
-            # Semelparous parent - reproductive mass reduces and parent dies
-            (
+            pytest.param(
+                "iteroparous",
+                10,
+                {"C": 4.0, "N": 1.0, "P": 0.5},
+                {"C": 2.0, "N": 0.5, "P": 0.2},
+                10,
+                {"C": 4.0, "N": 1.0, "P": 0.5},
+                {"C": 1.5, "N": 0.4, "P": 0.15},
+                False,
+                id="ten_parents_one_offspring_each",
+            ),
+            pytest.param(
                 "semelparous",
-                {"C": 2.0, "N": 0.5, "P": 0.2},
                 2,
-                (0.5, 0.1, 0.05),
-                {"C": 1.0, "N": 0.3, "P": 0.1},
-                True,
-            ),
-            # More offspring than available reproductive mass - cap at available mass
-            (
-                "iteroparous",
-                {"C": 0.5, "N": 0.2, "P": 0.1},
-                5,
-                (0.5, 0.1, 0.05),
+                {"C": 4.0, "N": 1.0, "P": 0.5},
+                {"C": 1.0, "N": 0.2, "P": 0.1},
+                6,
+                {"C": 3.5, "N": 0.9, "P": 0.45},
                 {"C": 0.0, "N": 0.0, "P": 0.0},
-                False,
+                True,
+                id="semelparous_shortfall_drawn_from_body",
             ),
-            # No offspring at all - nothing should change
-            (
+            pytest.param(
                 "iteroparous",
+                10,
+                {"C": 4.0, "N": 1.0, "P": 0.5},
                 {"C": 2.0, "N": 0.5, "P": 0.2},
                 0,
-                (0.5, 0.1, 0.05),  # Doesn't matter since 0 offspring
+                {"C": 4.0, "N": 1.0, "P": 0.5},
                 {"C": 2.0, "N": 0.5, "P": 0.2},
                 False,
+                id="no_offspring",
             ),
         ],
     )
@@ -1716,93 +1724,181 @@ class TestAnimalModel:
         animal_model_instance,
         herbivore_cohort_instance,
         reproductive_type,
-        initial_reproductive_mass,
+        individuals,
+        initial_body,
+        initial_repro,
         offspring_count,
-        birth_mass_cnp,
-        expected_remaining_mass,
-        expect_semelparous_death_called,
+        expected_body,
+        expected_repro,
+        expect_death,
     ):
-        """Test reproductive mass update and parent death handling after birth."""
+        """Test parent mass draw-down after birth.
+
+        Body and reproductive masses are per-individual while ``offspring_count`` is
+        cohort-total, so mixing the two scales would zero the reproductive mass in the
+        ``ten_parents_one_offspring_each`` case. Expected values are literals, and the
+        mass leaving the cohort is checked against the mass of the offspring produced.
+        """
         from virtual_ecosystem.models.animal.animal_traits import ReproductiveType
         from virtual_ecosystem.models.animal.cnp import CNP
 
-        # Mock parent cohort's reproductive type and initial reproductive mass
-        herbivore_cohort_instance.functional_group.reproductive_type = ReproductiveType(
-            reproductive_type
-        )
-        herbivore_cohort_instance.reproductive_mass_cnp = CNP(
-            **initial_reproductive_mass
-        )
+        birth_mass_cnp = {"C": 0.5, "N": 0.1, "P": 0.05}
 
-        # Mock `calculate_birth_mass_cnp`
+        parent = herbivore_cohort_instance
+        parent.functional_group.reproductive_type = ReproductiveType(reproductive_type)
+        parent.individuals = individuals
+        parent.mass_cnp = CNP(**initial_body)
+        parent.reproductive_mass_cnp = CNP(**initial_repro)
+
         mocker.patch.object(
             animal_model_instance,
             "calculate_birth_mass_cnp",
-            return_value=birth_mass_cnp,
+            return_value=(
+                birth_mass_cnp["C"],
+                birth_mass_cnp["N"],
+                birth_mass_cnp["P"],
+            ),
         )
-
-        # Mock `handle_semelparous_parent_death`
-        mock_semelparous_death = mocker.patch.object(
+        mock_death = mocker.patch.object(
             animal_model_instance, "handle_semelparous_parent_death"
         )
 
-        # Run the method
-        animal_model_instance.handle_post_birth_parent_updates(
-            herbivore_cohort_instance, offspring_count
-        )
+        animal_model_instance.handle_post_birth_parent_updates(parent, offspring_count)
 
-        # Check that the reproductive mass was correctly updated (with float tolerance)
-        assert herbivore_cohort_instance.reproductive_mass_cnp.C == pytest.approx(
-            expected_remaining_mass["C"]
-        )
-        assert herbivore_cohort_instance.reproductive_mass_cnp.N == pytest.approx(
-            expected_remaining_mass["N"]
-        )
-        assert herbivore_cohort_instance.reproductive_mass_cnp.P == pytest.approx(
-            expected_remaining_mass["P"]
-        )
+        for element in ("C", "N", "P"):
+            body_after = getattr(parent.mass_cnp, element)
+            repro_after = getattr(parent.reproductive_mass_cnp, element)
 
-        # Check if semelparous death was correctly triggered or skipped
-        if expect_semelparous_death_called:
-            mock_semelparous_death.assert_called_once_with(herbivore_cohort_instance)
+            assert body_after == pytest.approx(expected_body[element])
+            assert repro_after == pytest.approx(expected_repro[element])
+
+            # Mass leaving the cohort equals the mass of the offspring produced
+            removed = (
+                initial_body[element]
+                + initial_repro[element]
+                - body_after
+                - repro_after
+            ) * individuals
+            assert removed == pytest.approx(offspring_count * birth_mass_cnp[element])
+
+        if expect_death:
+            mock_death.assert_called_once_with(parent)
         else:
-            mock_semelparous_death.assert_not_called()
+            mock_death.assert_not_called()
 
     def test_handle_semelparous_parent_death(
         self, mocker, animal_model_instance, herbivore_cohort_instance
     ):
-        """Test mass loss, death flag, and removal for semelparous parent death."""
+        """Test that a dead semelparous parent's remains all reach the carcass pools.
+
+        The carcass deposit must include the leftover reproductive mass as well as the
+        body mass: (3.0 + 0.2, 0.5 + 0.05, 0.3 + 0.01) per individual x 4 individuals.
+        """
         from virtual_ecosystem.models.animal.cnp import CNP
 
-        # Set initial CNP mass (arbitrary non-zero starting mass)
-        herbivore_cohort_instance.mass_cnp = CNP(C=5.0, N=1.0, P=0.5)
+        parent = herbivore_cohort_instance
+        parent.individuals = 4
+        parent.mass_cnp = CNP(C=3.0, N=0.5, P=0.3)
+        parent.reproductive_mass_cnp = CNP(C=0.2, N=0.05, P=0.01)
 
-        # Mock the loss from calculate_semelparous_mass_loss
-        semelparous_loss = {"C": 2.0, "N": 0.5, "P": 0.2}
-        mocker.patch.object(
-            animal_model_instance,
-            "calculate_semelparous_mass_loss",
-            return_value=semelparous_loss,
+        pools = [mocker.Mock()]
+        mocker.patch.object(parent, "get_carcass_pools", return_value=pools)
+        mock_carcass = mocker.patch.object(parent, "update_carcass_pool")
+        mock_remove = mocker.patch.object(animal_model_instance, "remove_dead_cohort")
+
+        animal_model_instance.handle_semelparous_parent_death(parent)
+
+        mock_carcass.assert_called_once()
+        carbon, nitrogen, phosphorus, called_pools = mock_carcass.call_args.args
+        assert carbon == pytest.approx(12.8)
+        assert nitrogen == pytest.approx(2.2)
+        assert phosphorus == pytest.approx(1.24)
+        assert called_pools is pools
+
+        assert parent.individuals == 0
+        assert parent.reproductive_mass == pytest.approx(0.0)
+        assert parent.is_alive is False
+        mock_remove.assert_called_once_with(parent)
+
+    @pytest.mark.parametrize("reproductive_type", ["iteroparous", "semelparous"])
+    def test_birth_conserves_mass(
+        self, animal_model_instance, functional_group_list_instance, reproductive_type
+    ):
+        """Test that a reproductive event conserves C, N and P.
+
+        Every unit of mass the parent held before birth must afterwards be in the
+        parent, the offspring cohort or, for a semelparous parent, the carcass pools.
+        The parent holds half an adult mass of reproductive potential per individual.
+        """
+        from copy import copy
+
+        from virtual_ecosystem.models.animal.animal_traits import ReproductiveType
+        from virtual_ecosystem.models.animal.cnp import CNP
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
         )
 
-        # Mock remove_dead_cohort
-        mock_remove_dead = mocker.patch.object(
-            animal_model_instance, "remove_dead_cohort"
+        model = animal_model_instance
+        model.active_cohorts = {}
+        model.aquatic_cohorts = {}
+        model.communities = {cell_id: [] for cell_id in model.communities}
+
+        # Copy so that changing the reproductive type cannot leak into other cohorts
+        fg = copy(
+            get_functional_group_by_name(
+                functional_group_list_instance, "herbivorous_mammal"
+            )
+        )
+        fg.reproductive_type = ReproductiveType(reproductive_type)
+
+        parent = model.create_new_cohort(
+            functional_group=fg,
+            mass=fg.adult_mass,
+            age=100.0,
+            individuals=4,
+            centroid_key=0,
+        )
+        parent.reproductive_mass_cnp = CNP(
+            **{e: 0.5 * fg.adult_mass * p for e, p in parent.cnp_proportions.items()}
         )
 
-        # Run the method
-        animal_model_instance.handle_semelparous_parent_death(herbivore_cohort_instance)
+        elements = ("C", "N", "P")
 
-        # Check mass was reduced correctly
-        assert herbivore_cohort_instance.mass_cnp.C == pytest.approx(3.0)
-        assert herbivore_cohort_instance.mass_cnp.N == pytest.approx(0.5)
-        assert herbivore_cohort_instance.mass_cnp.P == pytest.approx(0.3)
+        def carcass_total(element: str) -> float:
+            return sum(
+                pool.scavengeable_cnp[element] + pool.decomposed_cnp[element]
+                for pools in model.carcass_pools.values()
+                for pool in pools
+            )
 
-        # Check parent marked as dead
-        assert herbivore_cohort_instance.is_alive is False
+        def cohort_total(cohort, element: str) -> float:
+            return (
+                getattr(cohort.mass_cnp, element)
+                + getattr(cohort.reproductive_mass_cnp, element)
+            ) * cohort.individuals
 
-        # Check parent was removed from population
-        mock_remove_dead.assert_called_once_with(herbivore_cohort_instance)
+        before = {e: cohort_total(parent, e) + carcass_total(e) for e in elements}
+
+        model.birth(parent)
+
+        offspring = [c for c in model.active_cohorts.values() if c is not parent]
+        assert len(offspring) == 1
+        assert offspring[0].individuals > 0
+
+        after = {
+            e: cohort_total(parent, e)
+            + cohort_total(offspring[0], e)
+            + carcass_total(e)
+            for e in elements
+        }
+        for e in elements:
+            assert after[e] == pytest.approx(before[e])
+
+        if reproductive_type == "semelparous":
+            assert parent.id not in model.active_cohorts
+            assert parent.individuals == 0
+        else:
+            assert parent.id in model.active_cohorts
 
     @pytest.mark.parametrize(
         "reproductive_type, initial_mass_cnp, expected_loss",
