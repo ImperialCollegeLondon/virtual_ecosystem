@@ -66,6 +66,8 @@ class AbioticModel(
         "vapour_pressure_deficit",
         "relative_humidity",
         "wind_speed",
+        "atmospheric_pressure",
+        "atmospheric_co2",
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",

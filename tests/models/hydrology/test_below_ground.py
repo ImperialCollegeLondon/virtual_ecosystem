@@ -102,22 +102,42 @@ def test_update_soil_moisture(fixture_hydrology_constants):
     from virtual_ecosystem.models.hydrology.below_ground import update_soil_moisture
 
     layer_thickness = np.array([[100, 100, 100], [900, 900, 900], [900, 900, 900]])
-    exp_result = np.array(
-        [[20.0, 51.0, 47.0], [289.0, 459.0, 459.0], [300.0, 459.0, 459.0]]
+
+    soil_moisture = np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]])
+    vertical_flow = np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]])
+    transpiration = np.array([10, 2, 3])
+    subsurface_stormflow = np.array([1, 1, 1])
+
+    exp_soil_moisture = np.array(
+        [[20.0, 51.0, 47.0], [289.0, 459.0, 459.0], [295.0, 459.0, 459.0]]
     )
 
     result = update_soil_moisture(
-        soil_moisture=np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]]),
-        vertical_flow=np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]]),
-        transpiration=np.array([10, 2, 3]),
-        subsurface_stormflow=np.array([1, 1, 1]),
+        soil_moisture=soil_moisture,
+        vertical_flow=vertical_flow,
+        transpiration=transpiration,
+        subsurface_stormflow=subsurface_stormflow,
         soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation
         * layer_thickness,
         soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual
         * layer_thickness,
     )
 
-    np.testing.assert_allclose(result, exp_result, rtol=0.001)
+    np.testing.assert_allclose(
+        result["soil_moisture"],
+        exp_soil_moisture,
+        rtol=0.001,
+    )
+    np.testing.assert_allclose(
+        result["vertical_flow"],
+        vertical_flow,
+        rtol=0.001,
+    )
+    np.testing.assert_allclose(
+        result["subsurface_stormflow"],
+        subsurface_stormflow,
+        rtol=0.001,
+    )
 
 
 def test_calculate_matric_potential(fixture_hydrology_constants):
@@ -134,6 +154,7 @@ def test_calculate_matric_potential(fixture_hydrology_constants):
         van_genuchten_nonlinearity_parameter=(
             constants.van_genuchten_nonlinearity_parameter
         ),
+        denominator_tolerance=1e-6,
     )
 
     np.testing.assert_allclose(actual_potentials, expected_potentials, rtol=0.001)
@@ -196,6 +217,55 @@ def test_upper_flow_clamped_to_zero(fixture_hydrology_constants):
     assert np.all(result["subsurface_flow"] >= 0)
     assert np.all(result["baseflow"] >= 0)
     assert np.all(result["groundwater_storage"][0] >= 0)
+
+
+def test_update_groundwater_storage_caps_groundwater_loss() -> None:
+    """Groundwater loss should be capped by available lower-zone storage."""
+    from virtual_ecosystem.models.hydrology.below_ground import (
+        update_groundwater_storage,
+    )
+
+    result = update_groundwater_storage(
+        groundwater_storage=np.array(
+            [
+                [0.0, 0.0, 0.0, 0.0],  # upper zone
+                [5.0, 1.0, 0.5, 0.0],  # lower zone
+            ],
+            dtype=float,
+        ),
+        vertical_flow_to_groundwater=np.array([0.0, 0.0, 0.0, 0.0]),
+        bypass_flow=np.array([0.0, 0.0, 0.0, 0.0]),
+        max_percolation_rate_uzlz=0.0,
+        groundwater_loss=10.0,
+        reservoir_const_upper_groundwater=10.0,
+        reservoir_const_lower_groundwater=10.0,
+    )
+
+    np.testing.assert_allclose(
+        result["groundwater_storage"],
+        np.array(
+            [
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ],
+            dtype=float,
+        ),
+        rtol=1e-05,
+    )
+    np.testing.assert_allclose(
+        result["subsurface_flow"],
+        np.array([0.0, 0.0, 0.0, 0.0], dtype=float),
+        rtol=1e-05,
+    )
+    np.testing.assert_allclose(
+        result["baseflow"],
+        np.array([0.0, 0.0, 0.0, 0.0], dtype=float),
+        rtol=1e-05,
+    )
+
+    assert np.all(result["groundwater_storage"] >= 0.0)
+    assert np.all(result["subsurface_flow"] >= 0.0)
+    assert np.all(result["baseflow"] >= 0.0)
 
 
 @pytest.mark.parametrize(
