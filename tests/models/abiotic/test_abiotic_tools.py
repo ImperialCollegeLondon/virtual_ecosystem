@@ -497,7 +497,7 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
 
     # Check conservation
     monthly_sum_et = np.nansum(forcing["evapotranspiration_hourly"], axis=0) * days
-    daily_mean_sw_abs = np.nanmean(forcing["shortwave_absorption_hourly"], axis=0)
+    monthly_mean_sw_abs = np.nanmean(forcing["shortwave_absorption_hourly"], axis=0)
     monthly_sum_soil_evap = np.nansum(forcing["soil_evaporation_hourly"], axis=0) * days
 
     # Mask for valid monthly
@@ -507,7 +507,7 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
         monthly_sum_et[mask], evapotranspiration.to_numpy()[mask], rtol=1e-5
     )
     assert np.allclose(
-        daily_mean_sw_abs[mask],
+        monthly_mean_sw_abs[mask],
         data["shortwave_absorption"].to_numpy()[mask],
         rtol=1e-5,
     )
