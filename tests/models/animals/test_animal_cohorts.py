@@ -1007,6 +1007,184 @@ class TestAnimalCohort:
             )
 
     @pytest.mark.parametrize(
+        "reproductive_type, threshold, initial_mass, growth_per_individual,"
+        "expected_body, expected_repro, expect_mature",
+        [
+            pytest.param(
+                "iteroparous",
+                1.0,
+                4.0,
+                3.0,
+                7.0,
+                0.0,
+                False,
+                id="below_ceiling_all_to_body",
+            ),
+            pytest.param(
+                "iteroparous",
+                1.0,
+                8.0,
+                3.0,
+                10.0,
+                1.0,
+                True,
+                id="straddles_ceiling",
+            ),
+            pytest.param(
+                "iteroparous",
+                1.0,
+                10.0,
+                3.0,
+                10.0,
+                3.0,
+                True,
+                id="at_ceiling_all_to_repro",
+            ),
+            pytest.param(
+                "iteroparous",
+                1.0,
+                12.0,
+                3.0,
+                12.0,
+                3.0,
+                True,
+                id="above_ceiling_all_to_repro",
+            ),
+            pytest.param(
+                "iteroparous",
+                1.2,
+                8.0,
+                6.0,
+                12.0,
+                2.0,
+                True,
+                id="raised_threshold",
+            ),
+            pytest.param(
+                "nonreproductive",
+                1.0,
+                8.0,
+                3.0,
+                11.0,
+                0.0,
+                False,
+                id="nonreproductive_keeps_all_growth",
+            ),
+            pytest.param(
+                "iteroparous",
+                1.0,
+                8.0,
+                0.0,
+                8.0,
+                0.0,
+                False,
+                id="no_growth",
+            ),
+        ],
+    )
+    def test_grow_allocates_to_reproductive_mass(
+        self,
+        constants_instance,
+        reproductive_type,
+        threshold,
+        initial_mass,
+        growth_per_individual,
+        expected_body,
+        expected_repro,
+        expect_mature,
+    ):
+        """Test that growth beyond the allocation ceiling goes to reproductive mass.
+
+        Adult mass is 10 kg and the cohort has two individuals. Intake is supplied in
+        body proportions so there is no stoichiometric waste. Expected per-individual
+        body and reproductive masses are literals from Madingley eq. 8. Reproductive
+        mass must be stored at body stoichiometry, and intake must be fully accounted
+        for by body growth, reproductive mass and waste.
+        """
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+
+        individuals = 2
+        constants = constants_instance.model_copy(
+            update={"flow_to_reproductive_mass_threshold": threshold}
+        )
+
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
+        group = FunctionalGroup(
+            name="test",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type=reproductive_type,
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="test",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=10.0,
+            constants=constants,
+        )
+
+        cohort = AnimalCohort(
+            functional_group=group,
+            mass=initial_mass,
+            age=100.0,
+            individuals=individuals,
+            centroid_key=0,
+            grid=grid,
+            constants=constants,
+        )
+
+        intake = {
+            e: growth_per_individual * individuals * p
+            for e, p in cohort.cnp_proportions.items()
+        }
+
+        waste = cohort.grow(intake)
+
+        assert cohort.mass_current == pytest.approx(expected_body)
+        assert cohort.reproductive_mass == pytest.approx(expected_repro)
+        assert cohort.is_mature is expect_mature
+
+        for e, p in cohort.cnp_proportions.items():
+            # Reproductive mass is stored at body stoichiometry
+            assert getattr(cohort.reproductive_mass_cnp, e) == pytest.approx(
+                expected_repro * p
+            )
+            # Intake is fully accounted for by body, reproductive mass and waste
+            gained = (
+                getattr(cohort.mass_cnp, e)
+                - initial_mass * p
+                + getattr(cohort.reproductive_mass_cnp, e)
+            ) * individuals
+            assert gained + waste[e] == pytest.approx(intake[e])
+
+    def test_flag_maturity_records_first_maturity_only(self, herbivore_cohort_instance):
+        """Test that maturity is recorded once, at the age it is first reached."""
+        cohort = herbivore_cohort_instance
+        cohort.age = 50.0
+        cohort.is_mature = False
+        cohort.largest_mass_achieved = 1.0
+
+        cohort._flag_maturity()
+
+        assert cohort.is_mature is True
+        assert cohort.time_to_maturity == 50.0
+        assert cohort.largest_mass_achieved == cohort.functional_group.adult_mass
+
+        # A later call must not overwrite the age at maturity
+        cohort.age = 80.0
+        cohort._flag_maturity()
+
+        assert cohort.time_to_maturity == 50.0
+
+    @pytest.mark.parametrize(
         "mass_current, reproductive_mass, adult_mass, threshold, expected_result",
         [
             (50.0, 5.0, 100.0, 0.6, True),  # Below threshold (55 / 100 < 0.6)
