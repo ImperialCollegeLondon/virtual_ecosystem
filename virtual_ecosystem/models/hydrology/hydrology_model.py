@@ -765,6 +765,17 @@ class HydrologyModel(
                 time_interval=self.core_constants.seconds_to_day,
                 pyrealm_core_constants=self.pyrealm_core_constants,
             )
+
+            # Check soil evaporation does not exceed available water in top soil layer
+            hydrology_tools.check_soil_evaporation(
+                soil_evaporation=soil_evaporation["soil_evaporation"],
+                soil_moisture_mm=soil_moisture_infiltrated,
+                soil_moisture_residual_mm=self.model_constants.soil_moisture_residual
+                / self.soil_layer_thickness_mm[0],
+                relative_tolerance=self.model_constants.relative_tolerance,
+                absolute_tolerance=self.model_constants.absolute_tolerance,
+            )
+
             daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
             daily_lists["aerodynamic_resistance_soil"].append(
                 soil_evaporation["aerodynamic_resistance_soil"]

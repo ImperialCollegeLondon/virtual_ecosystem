@@ -389,6 +389,42 @@ def check_canopy_evaporation(
         )
 
 
+def check_soil_evaporation(
+    soil_evaporation: NDArray[np.floating],
+    soil_moisture_mm: NDArray[np.floating],
+    soil_moisture_residual_mm: float | NDArray[np.floating],
+    relative_tolerance: float,
+    absolute_tolerance: float,
+) -> None:
+    """Check that soil evaporation does not exceed available water in the top soil.
+
+    Args:
+        soil_evaporation: Soil evaporation, [mm]
+        soil_moisture_mm: Soil moisture in the top soil layer, [mm]
+        soil_moisture_residual_mm: Residual soil moisture, [mm]
+        relative_tolerance: Relative tolerance for numerical checks
+        absolute_tolerance: Absolute tolerance for numerical checks
+
+    Returns:
+        error if soil evaporation is larger than available water in any grid cell
+    """
+    available_water = np.maximum(soil_moisture_mm - soil_moisture_residual_mm, 0.0)
+    excess = soil_evaporation - available_water
+    violation = excess > absolute_tolerance + relative_tolerance * np.abs(
+        available_water
+    )
+
+    if np.any(violation):
+        LOGGER.critical(
+            "Soil evaporation should not be larger than available water! "
+            "Consider checking that the soil water balance is correct."
+        )
+        raise ValueError(
+            "Soil evaporation should not be larger than available water! "
+            "Consider checking that the soil water balance is correct."
+        )
+
+
 def calculate_effective_saturation(
     soil_moisture: NDArray[np.floating],
     soil_moisture_saturation: float | NDArray[np.floating],

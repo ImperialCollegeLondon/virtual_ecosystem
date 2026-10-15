@@ -393,6 +393,30 @@ def test_check_canopy_evaporation_raises_error():
         )
 
 
+def test_check_soil_evaporation_raises_error():
+    """Test check soil evaporation is not larger than available water."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_soil_evaporation,
+    )
+
+    test_array_soil_moisture = np.array([0.0, 0.5, np.nan, 5.0])
+    test_array_soil_evapo = np.array([0.0, 1.5, np.nan, 5.0])
+
+    with pytest.raises(
+        ValueError,
+        match=r"Soil evaporation should not be larger than available water! "
+        r"Consider checking that the soil water balance is correct.",
+    ):
+        check_soil_evaporation(
+            soil_evaporation=test_array_soil_evapo,
+            soil_moisture_mm=test_array_soil_moisture,
+            soil_moisture_residual_mm=0.1 / 0.25,
+            relative_tolerance=1e-6,
+            absolute_tolerance=1e-6,
+        )
+
+
 def test_calculate_effective_saturation(fixture_hydrology_constants):
     """Test that the calculation the effective saturation works correctly."""
     from virtual_ecosystem.models.hydrology.hydrology_tools import (
