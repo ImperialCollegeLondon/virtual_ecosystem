@@ -176,12 +176,11 @@ class PalmsModel(
     2. A data frame defining the initial cohort inventories for each grid cell. Each row
        in the data frame defines a cohort in one of the grid cells and the fields set:
 
-        * ``palm_cohorts_pft``: The PFT of the cohort, matching an entry in the
-          ``flora``
-        * ``palm_cohorts_cell_id``: The grid cell id containing the cohort
-        * ``palm_cohorts_n``: The number of individuals in the cohort
-        * ``palm_cohorts_stem_height``: The stem height of the individuals in
-          metres.
+    * ``palm_cohorts_pft``: The PFT of the cohort, matching an entry in the flora
+    * ``palm_cohorts_x`` and ``palm_cohorts_y``: Coordinates locating each cohort
+    * ``palm_cohorts_n``: Number of individuals in each cohort
+    * ``palm_cohorts_dbh``: Diameter at breast height of the individuals
+    * ``palm_cohorts_stem_height``: Stem height of the individuals, in metres
 
     These data are used to setup the plant communities within each grid cell, using the
     :class:`~virtual_ecosystem.models.palms.communities.PalmCommunities` class to
