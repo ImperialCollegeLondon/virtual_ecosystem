@@ -206,18 +206,24 @@ def test_calculate_final_pool_size(post_consumption_pools, litter_inputs, decay_
 def test_calculate_final_pool_size_zero_decay(
     post_consumption_pools, litter_inputs, decay_rates
 ):
-    """Test function to find pool size, handles zero decay rate case."""
+    """Test function to find pool size, handles zero decay and input cases."""
     from virtual_ecosystem.models.litter.carbon import calculate_final_pool_size
 
-    expected_pool_size = [0.32214142, 0.1477193, 0.08070902, 0.0712382]
+    expected_pool_size = [0.3, 0.145558257, 0.08070902, 0.0712382]
 
     # Extract decay rates and set two of them to zero
     decay_rate = decay_rates["metabolic_above"]
     decay_rate[0] = 0.0
     decay_rate[2] = 0.0
 
+    # Extract input rates and set two of them to zero (one has to be same as a zero
+    # decay rate to catch the bug)
+    input_rate = litter_inputs.above_metabolic
+    input_rate[0] = 0.0
+    input_rate[1] = 0.0
+
     actual_pool_size = calculate_final_pool_size(
-        input_rate=litter_inputs.above_metabolic,
+        input_rate=input_rate,
         decay_rate=decay_rate,
         initial_pool=post_consumption_pools["above_metabolic"][:, 0],
         update_interval=2.0,

@@ -45,7 +45,7 @@ class SoilConstants(Configuration):
 
     logit_cue_with_temperature: float = -0.039
     """Change in the logit of carbon use efficiency with unit increase in temperature
-    [Celsius^-1]. Parameter estimated from a beta-logit GLMM using the data from 
+    [Celsius-1]. Parameter estimated from a beta-logit GLMM using the data from 
     :cite:t:`Qiao2019`."""
 
     soil_microbe_water_potential_optimum: float = Field(default=-3.0, lt=0.0)
@@ -120,25 +120,25 @@ class SoilConstants(Configuration):
     manner."""
 
     necromass_decay_rate: float = (1 / 3) * np.log(2)
-    """Rate at which microbial necromass decays to low molecular weight carbon [day^-1].
+    """Rate at which microbial necromass decays to low molecular weight carbon [day-1].
     I have not been able to track down any data on this, so for now choosing a rate that
     corresponds to halving every three days. This parameter is a key target for tracking
     down data for and for sensitivity analysis."""
 
     maom_desorption_rate: float = 1e-5
-    """Rate constant for mineral associated organic matter desorption [day^-1]. The
+    """Rate constant for mineral associated organic matter desorption [day-1]. The
     default value of this rate is not based on data. It was instead chosen to be 
     small relative to the rate at which microbes breakdown LMWC. This is another key
     target for sensitivity analysis."""
 
     lmwc_sorption_rate: float = 1e-3
-    """Rate constant for low molecular weight carbon sorption to minerals [day^-1]. The
+    """Rate constant for low molecular weight carbon sorption to minerals [day-1]. The
     default value of this rate is not based on data. It was instead chosen so that 
     the ratio of :term:`LMWC` to :term:`MAOM` would tend to 1/100, in the absence of
     microbes. This is another key target for sensitivity analysis."""
 
     necromass_sorption_rate: float = 1.0 * np.log(2)
-    """Rate constant for necromass sorption to minerals [day^-1]. The default value was
+    """Rate constant for necromass sorption to minerals [day-1]. The default value was
     chosen to be three times the value of :attr:`SoilConstants.necromass_decay_rate`,
     this means that 75% of necromass becomes MAOM with the remainder becoming LMWC.
     Replacing this with a function that depends on environmental conditions is a post
@@ -178,24 +178,24 @@ class SoilConstants(Configuration):
     particularly clear."""
 
     tectonic_uplift_rate_phosphorus: float = 0.0
-    """Rate at which tectonic uplift exposes new primary phosphorus [kg{P} m^-3 day^-1].
+    """Rate at which tectonic uplift exposes new primary phosphorus [kg{P} m-3 day-1].
     This rate is essentially zero for decadal simulations. We have only included to give
     the flexibility to run longer term test scenarios. This variable is site specific,
     you will need to decide on an appropriate value for it if you are setting up a new
     site."""
 
     ammonia_volatilisation_rate_constant: float = 1e-9 * (24 * 60 * 60)
-    """Rate constant for ammonia volatilisation from ammonium [day^-1]. Following
+    """Rate constant for ammonia volatilisation from ammonium [day-1]. Following
     :cite:t:`dickinson_nitrogen_2002`, linear kinetics are assumed. We also take our
     default value from there."""
 
     nitrification_rate_constant: float = 1e-6 * (24 * 60 * 60)
-    """Rate constant for nitrification from ammonium [day^-1]. Following
+    """Rate constant for nitrification from ammonium [day-1]. Following
     :cite:t:`dickinson_nitrogen_2002`, linear kinetics are assumed. We also take our
     default value from there."""
 
     denitrification_rate_constant: float = 2.5e-6 * (24 * 60 * 60)
-    """Rate constant for denitrification from nitrate [day^-1]. Following
+    """Rate constant for denitrification from nitrate [day-1]. Following
     :cite:t:`dickinson_nitrogen_2002`, linear kinetics are assumed. We also take our
     default value from there."""
 
@@ -239,16 +239,22 @@ class SoilConstants(Configuration):
     independently of :attr:`SoilConstants.denitrification_infinite_temperature_factor`
     and :attr:`SoilConstants.denitrification_minimum_temperature`!"""
 
+    denitrification_nitrous_oxide_fraction: float = Field(default=0.33, ge=0.0, le=1.0)
+    r"""Fraction of total nitrogen emission due to denitrification that takes the form
+    of nitrous oxide (:math:`\ce{N_2O}`) [unitless]. The remaining nitrogen is assumed
+    to be emitted in the form of dinitrogen (:math:`\ce{N_2}`). The value for this
+    constant is a global average taken from :cite:t:`pan_global_2022`:."""
+
     nitrogen_fixation_cost_zero_celcius: float = 59.19651970522086
     """Cost (in carbon) that plants pay to their symbiotic partners at zero Celsius
-    [kg{C} kg{N}^-1]. This is cost per unit of nitrogen received, and will be higher 
+    [kg{C} kg{N}-1]. This is cost per unit of nitrogen received, and will be higher 
     than the symbiotic partners actually spend to fix the nitrogen. Value is obtained 
     from :cite:t:`brzostek_modeling_2014`. 
     """
 
     nitrogen_fixation_cost_infinite_temp_offset: float = -0.8034802947791453
     """Difference in nitrogen fixation cost between zero Celsius and infinite limit.
-    Units of [kg{C} kg{N}^-1]. This limit of infinite temperature is not biologically
+    Units of [kg{C} kg{N}-1]. This limit of infinite temperature is not biologically
     meaningful and is instead just a way of characterising the form of the empirical
     function. A negative value means that the cost in the infinite temperature limit is
     higher than at zero Celsius. Value is obtained from
@@ -256,7 +262,7 @@ class SoilConstants(Configuration):
 
     nitrogen_fixation_cost_thermal_sensitivity: float = 0.27
     """Sensitivity of symbiotic nitrogen fixation cost to changes in temperature
-    [Celsius^-1]. Value is obtained from :cite:t:`brzostek_modeling_2014`."""
+    [Celsius-1]. Value is obtained from :cite:t:`brzostek_modeling_2014`."""
 
     nitrogen_fixation_cost_equality_temperature: float = 50.28
     """Positive temperature at which nitrogen fixation cost is the same at zero Celsius.
@@ -279,25 +285,25 @@ class SoilConstants(Configuration):
     :cite:t:`lin_modelling_2000`. """
 
     primary_phosphorus_breakdown_rate: float = 1.0 / 4.38e6
-    """Rate constant for breakdown of primary phosphorus to labile phosphorus [day^-1].
+    """Rate constant for breakdown of primary phosphorus to labile phosphorus [day-1].
     Default value taken from :cite:t:`parton_dynamics_1988`."""
 
     secondary_phosphorus_breakdown_rate: float = 1.0 / 13500
-    """Rate constant for breakdown of secondary mineral to labile phosphorus [day^-1].
+    """Rate constant for breakdown of secondary mineral to labile phosphorus [day-1].
     Default value taken from :cite:t:`parton_dynamics_1988`."""
 
     labile_phosphorus_sorption_rate: float = 1.0 / 600
     """Rate constant for sorption of labile phosphorus to secondary mineral phosphorus
-    [day^-1]. Default value taken from :cite:t:`parton_dynamics_1988`. """
+    [day-1]. Default value taken from :cite:t:`parton_dynamics_1988`. """
 
     ammonium_deposition_rate: float = 1.5e-4 / 365.25
-    """Rate at which ammonium is deposited into the system [kg{N} m^-2 day^-1]. We are
+    """Rate at which ammonium is deposited into the system [kg{N} m-2 day-1]. We are
     assuming that deposition rates won't vary substantially over the area the simulation
     encompasses. Value taken from :cite:t:`vet_global_2014`. This variable is site
     specific, you will need to recalculate it if you are setting up a new site."""
 
     phosphorus_deposition_rate: float = 5e-6 / 365.25
-    """Rate at which phosphorus is deposited into the system [kg{P} m^-2 day^-1].
+    """Rate at which phosphorus is deposited into the system [kg{P} m-2 day-1].
     We are assuming that deposition rates won't vary substantially over the area the
     simulation encompasses. Value taken from :cite:t:`Mahowald2008`.This variable is
     site specific, you will need to recalculate it if you are setting up a new site."""
@@ -311,7 +317,7 @@ class SoilConstants(Configuration):
     [unitless]. The remainder goes to arbuscular mycorrhizal fungi."""
 
     fungal_fruiting_bodies_decay_rate: float = Field(default=np.log(2) / 50.0, gt=0.0)
-    """Rate constant for the decay of fungal fruiting bodies, [day^-1].
+    """Rate constant for the decay of fungal fruiting bodies, [day-1].
         
     The default value is calculated based on the assumption that fungal fruiting bodies
     decay with a half-life of 50 days. This estimate should be improved based on
