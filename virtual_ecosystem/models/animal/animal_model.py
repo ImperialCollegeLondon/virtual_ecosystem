@@ -53,9 +53,12 @@ from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.animal.animal_climate import StratumClimate
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import (
+    DevelopmentStatus,
     DevelopmentType,
     DietType,
+    MigrationType,
     ReproductiveEnvironment,
+    ReproductiveType,
 )
 from virtual_ecosystem.models.animal.array_resources import (
     ARRAY_RESOURCES,
@@ -1355,50 +1358,68 @@ class AnimalModel(
         parent: AnimalCohort,
         offspring_count: int,
     ) -> None:
-        """Update parent's reproductive mass and handle semelparous death if needed.
+        """Draw down parent mass after reproduction and handle semelparous death.
 
-        Reduces the parent's reproductive mass based on offspring produced.
-        Removes semelparous parents after reproduction.
+        ``offspring_count`` is cohort-total, whereas ``reproductive_mass_cnp`` and
+        ``mass_cnp`` hold per-individual masses, so the mass spent on offspring is
+        converted to a per-parent quantity before it is removed. Reproductive mass is
+        drawn first. Any shortfall is met from body mass, which can only be non-zero
+        for semelparous parents, whose available mass includes the χ fraction of body
+        mass added in ``calculate_total_reproductive_mass``.
 
         Args:
             parent: The parent cohort.
-            offspring_count: Number of offspring produced.
+            offspring_count: Cohort-total number of offspring produced.
         """
-        birth_mass = parent.functional_group.birth_mass
-        birth_c, birth_n, birth_p = self.calculate_birth_mass_cnp(birth_mass, parent)
+        if offspring_count == 0 or parent.individuals == 0:
+            return
 
-        total_c = offspring_count * birth_c
-        total_n = offspring_count * birth_n
-        total_p = offspring_count * birth_p
-
-        # TODO: double check that total_c can't be more than available mass
-        parent.reproductive_mass_cnp.update(
-            C=-min(total_c, parent.reproductive_mass_cnp.C),
-            N=-min(total_n, parent.reproductive_mass_cnp.N),
-            P=-min(total_p, parent.reproductive_mass_cnp.P),
+        birth_c, birth_n, birth_p = self.calculate_birth_mass_cnp(
+            parent.functional_group.birth_mass, parent
         )
 
-        if parent.functional_group.reproductive_type == "semelparous":
+        # Per-parent mass spent on offspring. offspring_count is floored from the
+        # limiting element in calculate_offspring_count, so this never exceeds the
+        # per-parent mass made available for reproduction.
+        offspring_per_parent = offspring_count / parent.individuals
+        spent = {
+            "C": offspring_per_parent * birth_c,
+            "N": offspring_per_parent * birth_n,
+            "P": offspring_per_parent * birth_p,
+        }
+        available_repro = {
+            "C": parent.reproductive_mass_cnp.C,
+            "N": parent.reproductive_mass_cnp.N,
+            "P": parent.reproductive_mass_cnp.P,
+        }
+
+        # Reproductive mass first, then body mass (semelparous χ contribution only)
+        from_repro = {e: min(spent[e], available_repro[e]) for e in spent}
+        from_body = {e: spent[e] - from_repro[e] for e in spent}
+
+        parent.reproductive_mass_cnp.update(**{e: -m for e, m in from_repro.items()})
+        parent.mass_cnp.update(**{e: -m for e, m in from_body.items()})
+
+        if parent.functional_group.reproductive_type is ReproductiveType.SEMELPAROUS:
             self.handle_semelparous_parent_death(parent)
 
     def handle_semelparous_parent_death(self, parent: AnimalCohort) -> None:
-        """Apply mass loss and remove parent cohort for semelparous species.
+        """Kill a semelparous parent after reproduction, routing remains to carcasses.
 
-        Semelparous parents die after reproducing, so we:
-        - Apply a mass loss to the parent.
-        - Set parent to `is_alive = False`.
-        - Remove the parent from the population.
+        Body mass not spent on offspring, together with any reproductive mass left
+        over from flooring the offspring count, is deposited in the carcass pools of
+        the parent's territory, so that the reproductive event conserves mass.
 
         Args:
             parent: The parent cohort.
         """
-        # TODO: avoid recalculating this mass loss
-        loss = self.calculate_semelparous_mass_loss(parent)
+        # Fold leftover reproductive mass into the body so die_individual routes both
+        leftover = parent.reproductive_mass_cnp
+        parent.mass_cnp.update(C=leftover.C, N=leftover.N, P=leftover.P)
+        parent.reproductive_mass_cnp = CNP(0.0, 0.0, 0.0)
 
-        parent.mass_cnp.update(
-            C=-loss["C"],
-            N=-loss["N"],
-            P=-loss["P"],
+        parent.die_individual(
+            parent.individuals, parent.get_carcass_pools(self.carcass_pools)
         )
         parent.is_alive = False
         self.remove_dead_cohort(parent)
@@ -1414,7 +1435,10 @@ class AnimalModel(
         Returns:
             Dictionary of mass loss (C, N, P).
         """
-        if parent.functional_group.reproductive_type != "semelparous":
+        if (
+            parent.functional_group.reproductive_type
+            is not ReproductiveType.SEMELPAROUS
+        ):
             return {"C": 0.0, "N": 0.0, "P": 0.0}
 
         loss_fraction = parent.constants.semelparity_mass_loss
@@ -1476,12 +1500,13 @@ class AnimalModel(
         """This handles birth for all cohorts in a community."""
 
         # reproduction occurs for cohorts with sufficient reproductive mass
-        for cohort in self.active_cohorts.values():
+        for cohort in list(self.active_cohorts.values()):
             if (
                 not cohort.is_below_mass_threshold(
                     self.model_constants.birth_mass_threshold
                 )
-                and cohort.functional_group.reproductive_type != "nonreproductive"
+                and cohort.functional_group.reproductive_type
+                is not ReproductiveType.NONREPRODUCTIVE
             ):
                 self.birth(cohort)
 
@@ -1723,8 +1748,10 @@ class AnimalModel(
         # Iterate over a static list of cohort values
         for cohort in list(self.active_cohorts.values()):
             if (
-                cohort.functional_group.development_type == DevelopmentType.INDIRECT
-                and (cohort.mass_current >= cohort.functional_group.adult_mass)
+                cohort.functional_group.development_type is DevelopmentType.INDIRECT
+                and cohort.functional_group.development_status
+                is DevelopmentStatus.LARVAL
+                and cohort.mass_current >= cohort.functional_group.adult_mass
             ):
                 self.metamorphose(cohort)
 
@@ -1798,7 +1825,7 @@ class AnimalModel(
         """
         for cohort in list(self.active_cohorts.values()):
             if (
-                cohort.functional_group.migration_type == "seasonal"
+                cohort.functional_group.migration_type is MigrationType.SEASONAL
                 and cohort.is_migration_season()
             ):
                 self.migrate_external(cohort)

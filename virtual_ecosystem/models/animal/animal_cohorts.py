@@ -16,7 +16,11 @@ import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
-from virtual_ecosystem.models.animal.animal_traits import DietType, VerticalOccupancy
+from virtual_ecosystem.models.animal.animal_traits import (
+    DietType,
+    ReproductiveType,
+    VerticalOccupancy,
+)
 from virtual_ecosystem.models.animal.array_resources import CellResource, ResourcePool
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.decay import (
@@ -302,11 +306,16 @@ class AnimalCohort:
 
         ``resource_intake`` is a cohort-total quantity: the individuals scaling is
         applied upstream in ``F_i_k`` and ``F_i_j_individual``, so the mass arriving
-        here is the sum across all individuals in the cohort. ``mass_cnp``, by
-        contrast, holds the body mass of a *single* individual. The mass used for
-        growth is therefore divided by ``self.individuals`` before being added to
-        ``mass_cnp``, while the returned waste stays at cohort scale for the
-        downstream waste pools.
+        here is the sum across all individuals in the cohort. ``mass_cnp`` and
+        ``reproductive_mass_cnp``, by contrast, hold the masses of a *single*
+        individual. The mass used for growth is therefore divided by
+        ``self.individuals`` before being added, while the returned waste stays at
+        cohort scale for the downstream waste pools.
+
+        Following Madingley eq. 8, growth that would take body mass beyond the
+        allocation ceiling (``flow_to_reproductive_mass_threshold`` x adult mass) is
+        stored as reproductive mass instead. Non-reproductive groups keep all growth
+        in the body, so that larvae can reach their metamorphosis mass.
 
         Args:
             resource_intake: The cohort-total mass of C, N, and P available for
@@ -339,12 +348,36 @@ class AnimalCohort:
             for element, proportion in self.cnp_proportions.items()
         }
 
-        # Convert cohort-total growth to per-individual before updating body mass
-        self.mass_cnp.update(
-            C=used["C"] / self.individuals,
-            N=used["N"] / self.individuals,
-            P=used["P"] / self.individuals,
+        # Per-individual growth, in body C:N:P proportions
+        growth = {element: used[element] / self.individuals for element in used}
+        growth_total = max_growth / self.individuals
+
+        # Madingley eq. 8: growth beyond the allocation ceiling is stored as
+        # reproductive potential rather than body mass,
+        #   ΔR = max(0, M_t + ΔM_growth - M_ceiling),
+        #   M_ceiling = flow_to_reproductive_mass_threshold · M_adult.
+        # Growth is already in fixed body proportions, so splitting it by one scalar
+        # fraction keeps both pools at body stoichiometry.
+        to_body = 1.0
+        if (
+            growth_total > 0.0
+            and self.functional_group.reproductive_type
+            is not ReproductiveType.NONREPRODUCTIVE
+        ):
+            ceiling = (
+                self.constants.flow_to_reproductive_mass_threshold
+                * self.functional_group.adult_mass
+            )
+            headroom = max(0.0, ceiling - self.mass_current)
+            to_body = min(1.0, headroom / growth_total)
+
+        self.mass_cnp.update(**{e: g * to_body for e, g in growth.items()})
+        self.reproductive_mass_cnp.update(
+            **{e: g * (1.0 - to_body) for e, g in growth.items()}
         )
+
+        if to_body < 1.0:
+            self._flag_maturity()
 
         # Cohort-total stoichiometric excess left over after growth
         waste = {
@@ -366,6 +399,19 @@ class AnimalCohort:
                     )
 
         return waste
+
+    def _flag_maturity(self) -> None:
+        """Mark the cohort mature the first time growth reaches the allocation ceiling.
+
+        Once growth is diverted to reproductive mass, body mass is capped at the
+        ceiling and then reduced by metabolism before ``increase_age`` runs, so the
+        body-mass check there can no longer be relied on to detect maturity.
+        """
+        if self.is_mature:
+            return
+        self.is_mature = True
+        self.time_to_maturity = self.age
+        self.largest_mass_achieved = self.functional_group.adult_mass
 
     def metabolize(self, temperature: float, dt: timedelta64) -> dict[str, float]:
         """The function to reduce body carbon mass through metabolism.
