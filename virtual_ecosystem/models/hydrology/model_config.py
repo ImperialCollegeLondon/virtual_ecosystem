@@ -236,6 +236,12 @@ class HydrologyConstants(Configuration):
     specific region and conditions being modeled.
     """
 
+    relative_tolerance: float = 1e-6
+    """Relative tolerance for numerical checks."""
+
+    absolute_tolerance: float = 1e-6
+    """Absolute tolerance for numerical checks."""
+
 
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration class for the hydrology model."""

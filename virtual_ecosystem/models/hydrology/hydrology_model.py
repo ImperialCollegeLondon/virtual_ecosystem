@@ -566,7 +566,7 @@ class HydrologyModel(
         daily_lists: dict = {name: [] for name in self.vars_updated}
 
         for day in np.arange(days):
-            # Interception of water in canopy, [mm]
+            # Interception of water in canopy, before evaporation, [mm]
             interception = above_ground.calculate_interception(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 precipitation=hydro_input["current_precipitation"][:, day],
@@ -602,6 +602,14 @@ class HydrologyModel(
                 extinction_coefficient_global_radiation=(
                     self.model_constants.extinction_coefficient_global_radiation
                 ),
+            )
+
+            # Check evaporation does not exceed interception
+            hydrology_tools.check_canopy_evaporation(
+                canopy_evaporation=canopy_water_update["canopy_evaporation"],
+                interception=interception,
+                relative_tolerance=self.model_constants.relative_tolerance,
+                absolute_tolerance=self.model_constants.absolute_tolerance,
             )
 
             daily_lists["canopy_evaporation"].append(
@@ -672,11 +680,7 @@ class HydrologyModel(
             daily_lists["rain_driven_snowmelt"].append(rain_driven_snowmelt)
 
             # Precipitation, condensation, and not-evaporated intercept that reaches
-            # the surface per day, [mm]
-            incoming_water = (
-                hydro_input["current_precipitation"][:, day]
-                + hydro_input["condensation"]
-            )
+            # the surface per day (no intercept storage!), [mm]
 
             canopy_evaporation = np.nansum(
                 canopy_water_update["canopy_evaporation"], axis=0
@@ -685,10 +689,13 @@ class HydrologyModel(
                 canopy_water_update["remaining_interception"], axis=0
             )
 
-            precipitation_surface = incoming_water - np.minimum(
-                canopy_evaporation + remaining_interception,
-                incoming_water,
+            incoming_water = (
+                hydro_input["current_precipitation"][:, day]
+                + hydro_input["condensation"]
+                + remaining_interception
             )
+
+            precipitation_surface = incoming_water - canopy_evaporation
 
             hydrology_tools.check_precipitation_surface(
                 precipitation_surface=precipitation_surface

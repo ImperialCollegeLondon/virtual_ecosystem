@@ -370,6 +370,29 @@ def test_check_precipitation_surface_raises_error():
         check_precipitation_surface(test_array)
 
 
+def test_check_canopy_evaporation_raises_error():
+    """Test check canopy evaporation is not larger than interception."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_canopy_evaporation,
+    )
+
+    test_array_evap = np.array([0.0, 1.5, np.nan, 0.8])
+    test_array_interception = np.array([0.0, 0.5, np.nan, 0.8])
+
+    with pytest.raises(
+        ValueError,
+        match=r"Canopy evaporation should not be larger than interception! "
+        r"Consider checking that the canopy water balance is correct.",
+    ):
+        check_canopy_evaporation(
+            test_array_evap,
+            test_array_interception,
+            relative_tolerance=1e-6,
+            absolute_tolerance=1e-6,
+        )
+
+
 def test_calculate_effective_saturation(fixture_hydrology_constants):
     """Test that the calculation the effective saturation works correctly."""
     from virtual_ecosystem.models.hydrology.hydrology_tools import (

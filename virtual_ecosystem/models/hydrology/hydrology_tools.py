@@ -358,6 +358,37 @@ def check_precipitation_surface(precipitation_surface: NDArray[np.floating]) -> 
         )
 
 
+def check_canopy_evaporation(
+    canopy_evaporation: NDArray[np.floating],
+    interception: NDArray[np.floating],
+    relative_tolerance: float,
+    absolute_tolerance: float,
+) -> None:
+    """Check that canopy evaporation does not exceed interception.
+
+    Args:
+        canopy_evaporation: Canopy evaporation, [mm]
+        interception: Interception, [mm]
+        absolute_tolerance: Absolute tolerance for numerical checks
+        relative_tolerance: Relative tolerance for numerical checks
+
+    Returns:
+        error if canopy evaporation is larger than interception in any grid cell
+    """
+    excess = canopy_evaporation - interception
+    violation = excess > absolute_tolerance + relative_tolerance * np.abs(interception)
+
+    if np.any(violation):
+        LOGGER.critical(
+            "Canopy evaporation should not be larger than interception! "
+            "Consider checking that the canopy water balance is correct."
+        )
+        raise ValueError(
+            "Canopy evaporation should not be larger than interception! "
+            "Consider checking that the canopy water balance is correct."
+        )
+
+
 def calculate_effective_saturation(
     soil_moisture: NDArray[np.floating],
     soil_moisture_saturation: float | NDArray[np.floating],
