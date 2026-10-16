@@ -226,6 +226,7 @@ ARRAY_RESOURCES = [
         # TODO - Currently subcanopy lignin is just a constant, so using this array
         # works, if lignin becomes more dynamic, this will have to be revisited
         lignin_array="subcanopy_vegetation_litter_lignin",
+        density=True,
     ),
     ArrayResourceDefinition(
         pool_array="subcanopy_seedbank_cnp",
@@ -235,6 +236,7 @@ ARRAY_RESOURCES = [
         # TODO - Currently subcanopy lignin is just a constant, so using this array
         # works, if lignin becomes more dynamic, this will have to be revisited
         lignin_array="subcanopy_seedbank_litter_lignin",
+        density=True,
     ),
     ArrayResourceDefinition(
         pool_array="canopy_foliage_cnp",
