@@ -119,19 +119,6 @@ class DietType(Flag):
         else:
             return DietType.HERBIVORE
 
-    def count_dietary_categories(self) -> int:
-        """Count the number of distinct dietary categories in this flag set.
-
-        Returns:
-            An integer of the number of different type types possessed by the functional
-            group.
-
-        """
-        excluded = {"HERBIVORE", "CARNIVORE", "OMNIVORE", "NONFEEDING"}
-        return len(
-            [flag for flag in DietType if flag in self and flag.name not in excluded]
-        )
-
     def count_foraging_channels(self) -> int:
         """Count the foraging calls this diet triggers in ``forage_cohort``.
 

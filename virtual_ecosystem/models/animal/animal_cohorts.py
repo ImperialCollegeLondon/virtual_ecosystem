@@ -145,10 +145,12 @@ class AnimalCohort:
           cohort, {"C": value, "N": value, "P": value}."""
         self.largest_mass_achieved: float = mass
         """The largest body-mass ever achieved by this cohort [kg]."""
-        self.diet_category_count: int = (
-            self.functional_group.diet.count_dietary_categories()
+        self.foraging_channel_count: int = (
+            self.functional_group.diet.count_foraging_channels()
         )
-        """The number of different diet categories consumed by the cohort."""
+        """The number of foraging channels the cohort's diet engages, i.e. the number
+        of ``delta_mass_*`` calls :meth:`forage_cohort` can make. Foraging time is
+        divided equally between them."""
         self.trophic_record: dict[tuple[str, str], dict[str, float]] = {}
         """A record of the mass transfer from resource to consumer during the
         timestep. tuple["kind", "id"] where kind is a str resource category and
@@ -1576,6 +1578,11 @@ class AnimalCohort:
             LOGGER.warning("No mass left in cohort to forage.")
             return
 
+        if self.foraging_channel_count == 0:
+            # A diet engaging no foraging channel (e.g. NONFEEDING) has no time budget
+            # to divide and nothing to eat; without this the division below would raise.
+            return
+
         # TODO - TEMPORARY SOLUTION THAT TARAN SHOULD IMPROVE UPON
         # Split array resources between herbivory and detritivory
         herbivore_diets = [
@@ -1603,14 +1610,21 @@ class AnimalCohort:
             if resource.resource.diet_type == DietType.MUSHROOMS
         ]
 
-        # Foraging time available to each diet category [days]. dt is converted to float
-        # days before any arithmetic: timedelta64 stores an integer count of its unit,
+        # Foraging time available to each foraging channel [days]. The budget is the
+        # fraction tau_f of the timestep spent foraging, scaled by the activity window
+        # sigma_f_t, and is split equally between the channels the diet engages (one
+        # per delta_mass_* call below), not between diet tags: foliage, fruit and seeds
+        # are all foraged by the single herbivory call. dt is converted to float days
+        # before any arithmetic: timedelta64 stores an integer count of its unit,
         # multiplying or dividing it by a float truncates toward zero at every
         # operation, not just once at the end (e.g. 30 d * 0.5 * 0.37 / 3 gives 1 d,
-        #  not 1.85 d).
+        # not 1.85 d).
         dt_days = float(dt / timedelta64(1, "D"))
-        time_available_per_diet = (
-            dt_days * self.constants.tau_f * self.sigma_f_t / self.diet_category_count
+        time_available_per_channel = (
+            dt_days
+            * self.constants.tau_f
+            * self.sigma_f_t
+            / self.foraging_channel_count
         )
 
         total_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
@@ -1620,7 +1634,7 @@ class AnimalCohort:
         if plant_list:
             gain, unassimilated = self.delta_mass_herbivory(
                 plant_list=plant_list,
-                adjusted_dt=time_available_per_diet,
+                adjusted_dt=time_available_per_channel,
                 herbivory_waste_pools=herbivory_waste_pools,
             )
             for k in total_gain:
@@ -1632,7 +1646,7 @@ class AnimalCohort:
             gain, unassimilated = self.delta_mass_predation(
                 animal_list=animal_list,
                 carcass_pools=carcass_pool_map,
-                adjusted_dt=time_available_per_diet,
+                adjusted_dt=time_available_per_channel,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
@@ -1642,7 +1656,7 @@ class AnimalCohort:
         if fungal_fruit_list:
             gain, unassimilated = self.delta_mass_fruiting_fungivory(
                 fungal_fruit_list=fungal_fruit_list,
-                adjusted_dt=time_available_per_diet,
+                adjusted_dt=time_available_per_channel,
                 herbivory_waste_pools=herbivory_waste_pools,
             )
             for k in total_gain:
@@ -1653,7 +1667,7 @@ class AnimalCohort:
         if soil_fungi_list:
             gain, unassimilated = self.delta_mass_soil_fungivory(
                 soil_fungi_list=soil_fungi_list,
-                adjusted_dt=time_available_per_diet,
+                adjusted_dt=time_available_per_channel,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
@@ -1663,7 +1677,7 @@ class AnimalCohort:
         if pom_list:
             gain, unassimilated = self.delta_mass_pomivory(
                 pom_list=pom_list,
-                adjusted_dt=time_available_per_diet,
+                adjusted_dt=time_available_per_channel,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
@@ -1673,7 +1687,7 @@ class AnimalCohort:
         if bacteria_list:
             gain, unassimilated = self.delta_mass_bacteriophagy(
                 bacteria_list=bacteria_list,
-                adjusted_dt=time_available_per_diet,
+                adjusted_dt=time_available_per_channel,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
@@ -1683,7 +1697,7 @@ class AnimalCohort:
         if litter_pools:
             gain, unassimilated = self.delta_mass_detritivory(
                 litter_pools=litter_pools,
-                adjusted_dt=time_available_per_diet,
+                adjusted_dt=time_available_per_channel,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
@@ -1693,7 +1707,7 @@ class AnimalCohort:
         if scavenge_carcass_pools:
             gain, unassimilated = self.delta_mass_carcass_scavenging(
                 carcass_pools=scavenge_carcass_pools,
-                adjusted_dt=time_available_per_diet,
+                adjusted_dt=time_available_per_channel,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
@@ -1703,7 +1717,7 @@ class AnimalCohort:
         if scavenge_excrement_pools:
             gain, unassimilated = self.delta_mass_excrement_scavenging(
                 excrement_pools=scavenge_excrement_pools,
-                adjusted_dt=time_available_per_diet,
+                adjusted_dt=time_available_per_channel,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]

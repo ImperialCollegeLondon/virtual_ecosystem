@@ -2630,17 +2630,13 @@ class TestAnimalCohort:
         mock_eat.assert_not_called()
 
     @pytest.mark.parametrize(
-        "dt, sigma_f_t, diet_category_count, expected_days",
+        "dt, sigma_f_t, foraging_channel_count, expected_days",
         [
             pytest.param(
-                timedelta64(30, "D"), 0.37, 3, 1.85, id="30d_ectotherm_3_categories"
+                timedelta64(30, "D"), 0.37, 3, 1.85, id="30d_ectotherm_3_channels"
             ),
             pytest.param(
-                timedelta64(30, "D"),
-                0.8,
-                14,
-                6.0 / 7.0,
-                id="30d_omnivore_14_categories",
+                timedelta64(30, "D"), 0.8, 5, 2.4, id="30d_omnivore_5_channels"
             ),
             pytest.param(timedelta64(1, "D"), 1.0, 1, 0.5, id="1d_full_activity"),
             pytest.param(
@@ -2662,22 +2658,22 @@ class TestAnimalCohort:
         array_plant_list_instance,
         dt: timedelta64,
         sigma_f_t: float,
-        diet_category_count: int,
+        foraging_channel_count: int,
         expected_days: float,
     ) -> None:
-        """Test foraging time per diet category keeps its fractional days.
+        """Test foraging time per foraging channel keeps its fractional days.
 
         ``timedelta64`` stores an integer count of its unit, so multiplying or
         dividing it by a float truncates toward zero at every operation. With
         ``tau_f = 0.5`` the old arithmetic gave 1 day for the first case and 0 days
         for the last three. The expected values are literals worked out as
-        ``dt_days * 0.5 * sigma_f_t / diet_category_count``, not derived from the
+        ``dt_days * 0.5 * sigma_f_t / foraging_channel_count``, not derived from the
         implementation.
         """
         cohort = herbivore_cohort_instance
         cohort.constants = cohort.constants.model_copy(update={"tau_f": 0.5})
         cohort.sigma_f_t = sigma_f_t
-        cohort.diet_category_count = diet_category_count
+        cohort.foraging_channel_count = foraging_channel_count
 
         empty_gain = {"C": 0.0, "N": 0.0, "P": 0.0}
         mock_delta_mass = mocker.patch.object(

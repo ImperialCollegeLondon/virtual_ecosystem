@@ -85,29 +85,6 @@ class TestDietType:
         assert combo.coarse_category() == DietType.OMNIVORE
 
     @pytest.mark.parametrize(
-        "flag_str, expected_count",
-        [
-            ("FOLIAGE", 1),
-            ("FOLIAGE | FRUIT | FUNGI", 3),
-            ("NONFEEDING", 0),
-            (
-                "HERBIVORE | CARCASSES | FOLIAGE",
-                9,
-            ),  # includes 9 from HERBIVORE + CARCASSES
-        ],
-    )
-    def test_count_dietary_categories(self, flag_str, expected_count):
-        """Test number of counted dietary categories from a DietType flag."""
-        from virtual_ecosystem.models.animal.functional_group import DietType
-
-        parts = [getattr(DietType, part.strip()) for part in flag_str.split("|")]
-        flag = parts[0]
-        for part in parts[1:]:
-            flag |= part
-
-        assert flag.count_dietary_categories() == expected_count
-
-    @pytest.mark.parametrize(
         "diet_string, expected_count",
         [
             # Single tag, single channel
