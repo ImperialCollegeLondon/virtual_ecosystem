@@ -210,7 +210,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Groundwater loss"
+description = "Groundwater outflow that never rejoins the river and is lost beyond the catchment boundaries or to deep groundwater systems"
 name = "groundwater_loss"
 unit = "mm"
 variable_type = "float"
