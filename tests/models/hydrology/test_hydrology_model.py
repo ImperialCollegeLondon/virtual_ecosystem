@@ -4,6 +4,7 @@ from logging import INFO
 from unittest.mock import patch
 
 import numpy as np
+import pandas as pd
 import pint
 import pytest
 from xarray import DataArray
@@ -190,6 +191,7 @@ def test_setup_and_update_hydrology_model_ranges(
     fixture_configuration,
     update_interval,
     monkeypatch,
+    tmp_path,
 ):
     """Test hydrology model update with ranges."""
 
@@ -201,7 +203,6 @@ def test_setup_and_update_hydrology_model_ranges(
     fixture_configuration.core.timing.__dict__["update_interval_seconds"] = (
         update_interval.to("seconds").magnitude
     )
-
     # Initialize core and model
     core_components = CoreComponents(fixture_configuration.core)
     lyr_strct = core_components.layer_structure
@@ -212,6 +213,7 @@ def test_setup_and_update_hydrology_model_ranges(
         configuration=fixture_configuration,
         core_components=core_components,
     )
+    model.daily_diagnostics_path = tmp_path / "hydrology_daily_diagnostics.csv"
 
     # Test soil moisture and matric potential initial values
     soil_indices = lyr_strct.index_all_soil
@@ -273,6 +275,22 @@ def test_setup_and_update_hydrology_model_ranges(
 
     # Run the update step
     model.update(time_index=1, seed=42)
+
+    daily_diagnostics = pd.read_csv(model.daily_diagnostics_path)
+    assert len(daily_diagnostics) == len(daily_soil_moisture) * model.grid.n_cells
+    assert set(
+        (
+            "update_index",
+            "day_in_update",
+            "cell_id",
+            "precipitation_surface_mm",
+            "surface_runoff_mm",
+            "topsoil_to_subsoil_flow_mm_day",
+            "soil_moisture_start_layer_0_mm",
+            "soil_moisture_end_layer_1_mm",
+        )
+    ).issubset(daily_diagnostics.columns)
+    assert daily_diagnostics["update_index"].eq(1).all()
 
     expected_mean_soil_moisture = np.mean(
         np.stack(daily_soil_moisture, axis=0),

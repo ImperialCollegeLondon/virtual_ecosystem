@@ -246,6 +246,9 @@ class HydrologyConstants(Configuration):
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration class for the hydrology model."""
 
+    save_daily_diagnostics: bool = False
+    """Write daily, per-cell hydrology diagnostics to the output directory."""
+
     initial_soil_moisture: float = Field(ge=0, le=1, default=0.5)
     """Initial soil moisture for all layers"""
     initial_groundwater_saturation: float = Field(ge=0, le=1, default=0.9)

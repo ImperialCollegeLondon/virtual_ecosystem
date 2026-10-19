@@ -315,6 +315,16 @@ partition. Any water that still exceeds topsoil capacity after actual drainage i
 returned to surface runoff. This does not represent rainfall intensity or
 soil-type-specific infiltration capacity.
 
+### Daily diagnostics
+
+Set ``save_daily_diagnostics = true`` in the ``[hydrology]`` configuration to write
+``hydrology_daily_diagnostics.csv`` to the configured core output directory. The file
+contains one row per day and grid cell, including surface water fluxes, transpiration
+demand and actual uptake, start/end soil moisture by layer, effective saturation,
+potential and actual vertical flow by layer, and an explicit topsoil-to-subsoil flow
+column. Fluxes are daily depths in mm, vertical flow is in mm/day, soil moisture is
+in mm, and effective saturation is a fraction.
+
 ### Bypass flow
 
 Bypass flow is here defined as the flow that bypasses the soil matrix and drains

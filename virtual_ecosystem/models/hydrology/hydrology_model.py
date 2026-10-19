@@ -26,9 +26,11 @@ There are still a number of open TODOs related to process implementation and imp
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from xarray import DataArray
@@ -173,6 +175,7 @@ class HydrologyModel(
         abiotic_constants: AbioticConstants = AbioticConstants(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
         static: bool = False,
+        daily_diagnostics_path: Path | None = None,
     ):
         """Hydrology init function.
 
@@ -207,6 +210,8 @@ class HydrologyModel(
         """End-of-update soil moisture used as the next update's initial state, [mm]."""
         self.surface_layer_index: int
         """Surface layer index."""
+        self.daily_diagnostics_path = daily_diagnostics_path
+        """Optional path for daily hydrology diagnostic CSV output."""
 
         # Run the setup if the model is not in deep static mode
         if self._run_setup:
@@ -414,6 +419,12 @@ class HydrologyModel(
             model_constants=hydrology_configuration.constants,
             abiotic_constants=abiotic_constants,
             pyrealm_core_constants=core_configuration.pyrealm.core,
+            daily_diagnostics_path=(
+                core_configuration.data_output_options.out_path
+                / "hydrology_daily_diagnostics.csv"
+                if hydrology_configuration.save_daily_diagnostics
+                else None
+            ),
         )
 
     def spinup(self) -> None:
@@ -586,8 +597,23 @@ class HydrologyModel(
             ),
             axis=0,
         ).copy()
+        daily_diagnostics: dict[str, list[np.ndarray]] = {
+            name: []
+            for name in (
+                "soil_moisture_start",
+                "effective_saturation",
+                "vertical_flow_potential",
+                "vertical_flow_actual",
+                "soil_moisture_end",
+            )
+        }
 
         for day in np.arange(days):
+            if self.daily_diagnostics_path is not None:
+                daily_diagnostics["soil_moisture_start"].append(
+                    hydro_input["current_soil_moisture"].copy()
+                )
+
             daily_storage_start = np.concatenate(
                 (
                     hydro_input["current_soil_moisture"],
@@ -905,6 +931,14 @@ class HydrologyModel(
                 denominator_tolerance=self.model_constants.denominator_tolerance,
             )
 
+            if self.daily_diagnostics_path is not None:
+                daily_diagnostics["effective_saturation"].append(
+                    vertical_flow_potential["effective_saturation"].copy()
+                )
+                daily_diagnostics["vertical_flow_potential"].append(
+                    vertical_flow_potential["vertical_flow"].copy()
+                )
+
             # Keep any excess that did not drain as surface runoff. Remove that
             # excess from the soil input before the mass-conserving soil update.
             additional_surface_runoff = np.maximum(
@@ -970,6 +1004,13 @@ class HydrologyModel(
             daily_lists["vertical_flow"].append(vertical_flow_actual)
             daily_lists["subsurface_stormflow"].append(subsurface_stormflow_actual)
             daily_lists["soil_moisture"].append(soil_moisture_updated)
+            if self.daily_diagnostics_path is not None:
+                daily_diagnostics["vertical_flow_actual"].append(
+                    vertical_flow_actual.copy()
+                )
+                daily_diagnostics["soil_moisture_end"].append(
+                    soil_moisture_updated.copy()
+                )
 
             # Recalculate matric potential based on updated soil moisture
             effective_saturation_new = hydrology_tools.calculate_effective_saturation(
@@ -1128,8 +1169,6 @@ class HydrologyModel(
             period="update interval",
         )
 
-        self._soil_moisture_state = hydro_input["current_soil_moisture"].copy()
-
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
 
@@ -1190,8 +1229,100 @@ class HydrologyModel(
             coords=self.data["groundwater_storage"].coords,
         )
 
+        if self.daily_diagnostics_path is not None:
+            self._write_daily_diagnostics(
+                time_index=time_index,
+                hydro_input=hydro_input,
+                daily_lists=daily_lists,
+                water_balance_fluxes=water_balance_fluxes,
+                daily_diagnostics=daily_diagnostics,
+            )
+
         # Update data object
         self.data.add_from_dict(output_dict=soil_hydrology)
+        self._soil_moisture_state = hydro_input["current_soil_moisture"].copy()
+
+    def _write_daily_diagnostics(
+        self,
+        time_index: int,
+        hydro_input: dict[str, Any],
+        daily_lists: dict[str, list],
+        water_balance_fluxes: dict[str, list[np.ndarray]],
+        daily_diagnostics: dict[str, list[np.ndarray]],
+    ) -> None:
+        """Write daily per-cell water fluxes and soil states to a CSV file."""
+        if self.daily_diagnostics_path is None:
+            return
+
+        n_days = len(daily_diagnostics["soil_moisture_start"])
+        n_cells = len(self.grid.cell_id)
+        rows: dict[str, np.ndarray] = {
+            "update_index": np.full(n_days * n_cells, time_index),
+            "day_in_update": np.repeat(np.arange(1, n_days + 1), n_cells),
+            "cell_id": np.tile(self.grid.cell_id, n_days),
+        }
+
+        daily_flux_names = (
+            "precipitation_surface",
+            "surface_runoff",
+            "bypass_flow",
+            "soil_evaporation",
+        )
+        for name in daily_flux_names:
+            rows[f"{name}_mm"] = np.stack(daily_lists[name], axis=0).reshape(-1)
+
+        for name, values in (
+            ("precipitation", hydro_input["current_precipitation"].T),
+            (
+                "transpiration_demand",
+                np.broadcast_to(
+                    hydro_input["current_transpiration"],
+                    (n_days, n_cells),
+                ),
+            ),
+            (
+                "transpiration_actual",
+                np.stack(water_balance_fluxes["transpiration"], axis=0),
+            ),
+        ):
+            rows[f"{name}_mm"] = np.asarray(values).reshape(-1)
+
+        for name in (
+            "soil_moisture_start",
+            "effective_saturation",
+            "vertical_flow_potential",
+            "vertical_flow_actual",
+            "soil_moisture_end",
+        ):
+            values = np.stack(daily_diagnostics[name], axis=0)
+            for layer_index in range(values.shape[1]):
+                if name.startswith("soil_moisture"):
+                    suffix = "mm"
+                elif name.startswith("vertical_flow"):
+                    suffix = "mm_day"
+                else:
+                    suffix = "fraction"
+                rows[f"{name}_layer_{layer_index}_{suffix}"] = values[
+                    :, layer_index, :
+                ].reshape(-1)
+
+        rows["topsoil_to_subsoil_flow_mm_day"] = rows[
+            "vertical_flow_actual_layer_0_mm_day"
+        ]
+
+        diagnostics = pd.DataFrame(rows)
+        self.daily_diagnostics_path.parent.mkdir(parents=True, exist_ok=True)
+        is_first_update = time_index == 0
+        diagnostics.to_csv(
+            self.daily_diagnostics_path,
+            mode="w" if is_first_update else "a",
+            header=is_first_update or not self.daily_diagnostics_path.exists(),
+            index=False,
+        )
+        LOGGER.info(
+            "Wrote daily hydrology diagnostics to %s",
+            self.daily_diagnostics_path,
+        )
 
     def cleanup(self) -> None:
         """Placeholder function for hydrology model cleanup."""
