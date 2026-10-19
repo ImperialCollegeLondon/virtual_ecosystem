@@ -360,37 +360,6 @@ def test_setup_and_update_hydrology_model_ranges(
     )
 
 
-def test_update_warns_for_fractional_days(
-    fixture_core_components,
-    fixture_hydrology_init_data,
-    dummy_climate_data,
-    fixture_configuration,
-):
-    """Test warning raised if days are not a whole number of days."""
-
-    from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
-
-    model = HydrologyModel.from_config(
-        data=fixture_hydrology_init_data,
-        configuration=fixture_configuration,
-        core_components=fixture_core_components,
-    )
-
-    model.model_timing.update_interval_seconds = 90000  # fractional day
-
-    for var in model.vars_required_for_update:
-        model.data[var] = dummy_climate_data.data[var]
-
-    with patch(
-        "virtual_ecosystem.models.hydrology.hydrology_model.LOGGER.warning"
-    ) as mock_warn:
-        model.update(time_index=0)
-
-    messages = [call.args[0] for call in mock_warn.call_args_list]
-
-    assert any("not a whole number of days" in msg for msg in messages)
-
-
 def test_update_warns_when_transpiration_is_water_limited(
     fixture_core_components,
     fixture_hydrology_init_data,

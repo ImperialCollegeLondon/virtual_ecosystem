@@ -530,13 +530,6 @@ class HydrologyModel(
         )
         days: int = int(days_float // 1)
 
-        # Check if the number of days is exact and warn if not
-        if not np.allclose(days_float % 1, 0):
-            LOGGER.warning(
-                f"Update interval is not a whole number of days ({days_float}),"
-                f" partitioning inputs among {days} days."
-            )
-
         # Set seed for random rainfall generator
         seed: int | None = kwargs.pop("seed", None)
 
