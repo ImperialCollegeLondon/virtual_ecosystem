@@ -132,6 +132,50 @@ class DietType(Flag):
             [flag for flag in DietType if flag in self and flag.name not in excluded]
         )
 
+    def count_foraging_channels(self) -> int:
+        """Count the foraging calls this diet triggers in ``forage_cohort``.
+
+        Foraging time is shared equally between foraging channels, not diet tags.
+        Several tags are served by a single call (e.g. foliage, fruit and seeds are
+        all foraged through herbivory), so the tag count overstates the number of
+        calls and under-allocates time to each. Channels are defined by
+        :data:`FORAGING_CHANNELS`.
+
+        Returns:
+            The number of distinct foraging channels the diet maps onto.
+        """
+        return sum(bool(self & mask) for mask in FORAGING_CHANNELS.values())
+
+
+FORAGING_CHANNELS: dict[str, DietType] = {
+    "herbivory": (
+        DietType.ALGAE
+        | DietType.FLOWERS
+        | DietType.FOLIAGE
+        | DietType.FRUIT
+        | DietType.SEEDS
+        | DietType.NECTAR
+        | DietType.WOOD
+    ),
+    # TODO: BLOOD and FISH are gated as prey in forage_community, but get_prey only
+    # returns invertebrate and vertebrate cohorts, so they cannot yield prey and are
+    # excluded here until a prey route exists for them.
+    "predation": DietType.INVERTEBRATES | DietType.VERTEBRATES,
+    "fruiting_fungivory": DietType.MUSHROOMS,
+    "soil_fungivory": DietType.FUNGI,
+    "pomivory": DietType.POM,
+    "bacteriophagy": DietType.BACTERIA,
+    "detritivory": DietType.DETRITUS,
+    "carcass_scavenging": DietType.CARCASSES,
+    "excrement_scavenging": DietType.WASTE,
+}
+"""Diet flags served by each foraging call in
+:meth:`~virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.forage_cohort`.
+
+A diet engages a channel if it shares at least one flag with that channel's mask.
+The foraging time budget is divided equally across engaged channels.
+"""
+
 
 class TaxaType(Enum):
     """Enumeration for taxa types."""
