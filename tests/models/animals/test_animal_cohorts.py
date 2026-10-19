@@ -2743,6 +2743,235 @@ class TestAnimalCohort:
         assert requested > 0.0
         assert requested == pytest.approx(0.48770575499285984, rel=1e-9)
 
+    @pytest.mark.parametrize(
+        "diet_string, expected_channels, expected_days_per_channel",
+        [
+            pytest.param(
+                "foliage_fruit_seeds",
+                {"delta_mass_herbivory"},
+                12.0,
+                id="three_tags_one_channel",
+            ),
+            pytest.param(
+                "vertebrates_invertebrates_carcasses",
+                {"delta_mass_predation", "delta_mass_carcass_scavenging"},
+                6.0,
+                id="three_tags_two_channels",
+            ),
+            pytest.param(
+                "detritus_fungi_pom_bacteria",
+                {
+                    "delta_mass_detritivory",
+                    "delta_mass_soil_fungivory",
+                    "delta_mass_pomivory",
+                    "delta_mass_bacteriophagy",
+                },
+                3.0,
+                id="four_tags_four_channels",
+            ),
+            pytest.param(
+                "foliage_detritus_mushrooms",
+                {
+                    "delta_mass_herbivory",
+                    "delta_mass_detritivory",
+                    "delta_mass_fruiting_fungivory",
+                },
+                4.0,
+                id="array_resources_split_three_ways",
+            ),
+            pytest.param(
+                "omnivore",
+                {
+                    "delta_mass_herbivory",
+                    "delta_mass_detritivory",
+                    "delta_mass_predation",
+                    "delta_mass_carcass_scavenging",
+                    "delta_mass_excrement_scavenging",
+                },
+                2.4,
+                id="omnivore_five_channels",
+            ),
+        ],
+    )
+    def test_forage_cohort_divides_time_by_foraging_channels(
+        self,
+        mocker,
+        constants_instance,
+        diet_string: str,
+        expected_channels: set[str],
+        expected_days_per_channel: float,
+    ) -> None:
+        """Test the foraging time budget is shared equally between foraging channels.
+
+        With dt = 30 days, tau_f = 0.5 and sigma_f_t = 0.8 the total budget is 12 days,
+        and each foraging call made must receive 12 / n_channels days. The previous
+        divisor counted diet tags, giving 4 days per call for both the herbivore and
+        the carnivore-scavenger cases instead of 12 and 6. The expected channels and
+        per-channel times are worked by hand from the calls in forage_cohort, not from
+        FORAGING_CHANNELS.
+
+        The functional group is built directly, rather than taken from a fixture, so
+        that foraging_channel_count is derived from the diet at cohort initialisation.
+        Each engaged channel gets one non-empty resource list, mirroring the diet
+        gating in AnimalModel.forage_community, and every foraging helper is mocked to
+        record the time it is given.
+        """
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import DietType
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+
+        constants = constants_instance.model_copy(update={"tau_f": 0.5})
+
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
+        group = FunctionalGroup(
+            name="test",
+            taxa="mammal",
+            diet=diet_string,
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="test",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=1.0,
+            adult_mass=10.0,
+            constants=constants,
+        )
+
+        cohort = AnimalCohort(
+            functional_group=group,
+            mass=5.0,
+            age=100.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants,
+        )
+        cohort.sigma_f_t = 0.8
+
+        def array_resource(diet_type: DietType):
+            """A stand-in array resource, routed by forage_cohort on its diet type."""
+            resource = mocker.Mock()
+            resource.resource.diet_type = diet_type
+            return resource
+
+        # The resource list each foraging helper is driven by, and one item for it.
+        channel_inputs = {
+            "delta_mass_herbivory": (
+                "array_resource_list",
+                array_resource(DietType.FOLIAGE),
+            ),
+            "delta_mass_detritivory": (
+                "array_resource_list",
+                array_resource(DietType.DETRITUS),
+            ),
+            "delta_mass_fruiting_fungivory": (
+                "array_resource_list",
+                array_resource(DietType.MUSHROOMS),
+            ),
+            "delta_mass_predation": ("animal_list", mocker.Mock()),
+            "delta_mass_soil_fungivory": ("soil_fungi_list", mocker.Mock()),
+            "delta_mass_pomivory": ("pom_list", mocker.Mock()),
+            "delta_mass_bacteriophagy": ("bacteria_list", mocker.Mock()),
+            "delta_mass_carcass_scavenging": ("scavenge_carcass_pools", mocker.Mock()),
+            "delta_mass_excrement_scavenging": (
+                "scavenge_excrement_pools",
+                mocker.Mock(),
+            ),
+        }
+
+        resource_lists: dict[str, list] = {
+            name: [] for name, _ in channel_inputs.values()
+        }
+        for method in expected_channels:
+            list_name, item = channel_inputs[method]
+            resource_lists[list_name].append(item)
+
+        empty = {"C": 0.0, "N": 0.0, "P": 0.0}
+        helper_mocks = {
+            method: mocker.patch.object(cohort, method, return_value=(empty, empty))
+            for method in channel_inputs
+        }
+        mocker.patch.object(cohort, "eat")
+
+        cohort.forage_cohort(
+            **resource_lists,
+            excrement_pools=[mocker.Mock()],
+            carcass_pool_map={},
+            herbivory_waste_pools={},
+            dt=timedelta64(30, "D"),
+        )
+
+        called = {method for method, mock in helper_mocks.items() if mock.called}
+        assert called == expected_channels
+
+        times = []
+        for method in expected_channels:
+            helper_mocks[method].assert_called_once()
+            adjusted_dt = helper_mocks[method].call_args.kwargs["adjusted_dt"]
+            assert adjusted_dt == pytest.approx(expected_days_per_channel, rel=1e-12)
+            times.append(adjusted_dt)
+
+        # Conservation: the channels together use exactly dt * tau_f * sigma_f_t.
+        assert sum(times) == pytest.approx(12.0, rel=1e-12)
+
+    def test_forage_cohort_skips_when_no_foraging_channels(
+        self, mocker, herbivore_cohort_instance
+    ) -> None:
+        """Test a cohort whose diet engages no foraging channel forages nothing.
+
+        Without the guard the foraging time budget would be divided by zero. Every
+        resource list is non-empty so that any call reaching a foraging helper, or
+        eat, would be recorded.
+        """
+        from virtual_ecosystem.models.animal.animal_traits import DietType
+
+        cohort = herbivore_cohort_instance
+        cohort.foraging_channel_count = 0
+
+        plant = mocker.Mock()
+        plant.resource.diet_type = DietType.FOLIAGE
+
+        helper_mocks = [
+            mocker.patch.object(cohort, method)
+            for method in (
+                "delta_mass_herbivory",
+                "delta_mass_detritivory",
+                "delta_mass_fruiting_fungivory",
+                "delta_mass_predation",
+                "delta_mass_soil_fungivory",
+                "delta_mass_pomivory",
+                "delta_mass_bacteriophagy",
+                "delta_mass_carcass_scavenging",
+                "delta_mass_excrement_scavenging",
+            )
+        ]
+        mock_eat = mocker.patch.object(cohort, "eat")
+
+        cohort.forage_cohort(
+            array_resource_list=[plant],
+            animal_list=[mocker.Mock()],
+            soil_fungi_list=[mocker.Mock()],
+            pom_list=[mocker.Mock()],
+            bacteria_list=[mocker.Mock()],
+            excrement_pools=[mocker.Mock()],
+            carcass_pool_map={},
+            scavenge_carcass_pools=[mocker.Mock()],
+            scavenge_excrement_pools=[mocker.Mock()],
+            herbivory_waste_pools={},
+            dt=timedelta64(30, "D"),
+        )
+
+        for mock in helper_mocks:
+            mock.assert_not_called()
+        mock_eat.assert_not_called()
+
     def test_calculate_consumed_mass_predation_fractional_day(
         self, predator_cohort_instance, mocker
     ) -> None:
