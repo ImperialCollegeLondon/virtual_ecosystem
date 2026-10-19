@@ -298,6 +298,10 @@ def test_setup_hydrology_input_current_timestep(
         result["current_soil_moisture"],
         data["soil_moisture"][lyr_strct.index_all_soil],
     )
+    np.testing.assert_allclose(
+        result["current_transpiration"],
+        np.nansum(data["transpiration"].to_numpy(), axis=0) / 30,
+    )
 
 
 @pytest.mark.parametrize(
@@ -400,8 +404,8 @@ def test_check_soil_evaporation_raises_error():
         check_soil_evaporation,
     )
 
-    test_array_soil_moisture = np.array([0.0, 0.5, np.nan, 5.0])
-    test_array_soil_evapo = np.array([0.0, 1.5, np.nan, 5.0])
+    test_array_soil_moisture = np.array([0.0, 50.0, np.nan, 5.0])
+    test_array_soil_evapo = np.array([0.0, 30.0, np.nan, 5.0])
 
     with pytest.raises(
         ValueError,
@@ -411,7 +415,7 @@ def test_check_soil_evaporation_raises_error():
         check_soil_evaporation(
             soil_evaporation=test_array_soil_evapo,
             soil_moisture_mm=test_array_soil_moisture,
-            soil_moisture_residual_mm=0.1 / 0.25,
+            soil_moisture_residual_mm=25.0,
             relative_tolerance=1e-6,
             absolute_tolerance=1e-6,
         )
@@ -473,6 +477,62 @@ def test_mass_balance_fail():
             surface_channel_inflow_mm=surface_channel_inflow,
             monthly_precipitation_mm=monthly_precipitation,
             monthly_evaporation_mm=monthly_evaporation,
+        )
+
+
+def test_check_water_balance_passes_for_closed_balance():
+    """The check accepts a closed liquid-water balance."""
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_water_balance,
+    )
+
+    result = check_water_balance(
+        drainage_map={0: [], 1: [0]},
+        routed_runoff_mm=np.array([2.0, 6.0]),
+        precipitation_mm=np.array([5.0, 5.0]),
+        condensation_mm=np.array([0.0, 0.0]),
+        canopy_evaporation_mm=np.array([0.5, 0.5]),
+        soil_evaporation_mm=np.array([0.5, 0.5]),
+        transpiration_mm=np.array([0.5, 0.5]),
+        groundwater_loss_mm=np.array([0.1, 0.1]),
+        storage_start_mm=np.array([[10.0, 20.0], [2.0, 3.0]]),
+        storage_end_mm=np.array([[10.4, 20.4], [2.0, 3.0]]),
+        relative_tolerance=1e-6,
+        absolute_tolerance=1e-6,
+        period="day 1",
+    )
+
+    assert result["inputs_mm"] == pytest.approx(10.0)
+    assert result["outlet_runoff_mm"] == pytest.approx(6.0)
+    assert result["outputs_mm"] == pytest.approx(9.2)
+    assert result["storage_change_mm"] == pytest.approx(0.8)
+    assert result["residual_mm"] == pytest.approx(0.0)
+
+
+def test_check_water_balance_fails_for_unaccounted_water():
+    """The check raises when storage and fluxes do not close."""
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_water_balance,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=r"day 1 water balance failed.*transpiration=1 mm",
+    ):
+        check_water_balance(
+            drainage_map={0: [], 1: [0]},
+            routed_runoff_mm=np.array([2.0, 6.0]),
+            precipitation_mm=np.array([5.0, 5.0]),
+            condensation_mm=np.array([0.0, 0.0]),
+            canopy_evaporation_mm=np.array([0.5, 0.5]),
+            soil_evaporation_mm=np.array([0.5, 0.5]),
+            transpiration_mm=np.array([0.5, 0.5]),
+            groundwater_loss_mm=np.array([0.1, 0.1]),
+            storage_start_mm=np.array([[10.0, 20.0], [2.0, 3.0]]),
+            storage_end_mm=np.array([[10.9, 20.9], [2.0, 3.0]]),
+            relative_tolerance=1e-6,
+            absolute_tolerance=1e-6,
+            period="day 1",
         )
 
 

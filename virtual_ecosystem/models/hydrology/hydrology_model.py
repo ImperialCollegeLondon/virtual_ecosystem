@@ -77,6 +77,7 @@ class HydrologyModel(
         "river_discharge_rate",
         "matric_potential",
         "groundwater_storage",
+        "groundwater_loss",
         "subsurface_flow",
         "subsurface_stormflow",
         "baseflow",
@@ -138,6 +139,7 @@ class HydrologyModel(
         "river_discharge_rate",
         "total_runoff",
         "canopy_evaporation",
+        "groundwater_loss",
     ),
 ):
     """A class describing the hydrology model.
@@ -201,6 +203,8 @@ class HydrologyModel(
         """Upstream neighbours for the calculation of horizontal flow."""
         self.soil_layer_thickness_mm: np.ndarray
         """Soil layer thickness in mm."""
+        self._soil_moisture_state: np.ndarray
+        """End-of-update soil moisture used as the next update's initial state, [mm]."""
         self.surface_layer_index: int
         """Surface layer index."""
 
@@ -294,6 +298,11 @@ class HydrologyModel(
             soil_layer_thickness=self.soil_layer_thickness_mm,
             layer_structure=self.layer_structure,
             initial_soil_moisture=self.initial_soil_moisture,
+        )
+        self._soil_moisture_state = (
+            self.data["soil_moisture"][self.layer_structure.index_all_soil]
+            .to_numpy()
+            .copy()
         )
 
         # Make initial guess of the matric potential based on the soil moisture
@@ -548,6 +557,7 @@ class HydrologyModel(
             shape_parameter=self.rainfall_shape_parameter,
             scale_parameter=self.rainfall_scale_parameter,
         )
+        hydro_input["current_soil_moisture"] = self._soil_moisture_state.copy()
 
         #  Initialise snow water equivalent variable for this time_index, [mm]
         snow_water_equivalent = self.data["snow_water_equivalent"].to_numpy().copy()
@@ -564,8 +574,35 @@ class HydrologyModel(
 
         # Create lists for output variables to store daily data
         daily_lists: dict = {name: [] for name in self.vars_updated}
+        water_balance_fluxes: dict[str, list[np.ndarray]] = {
+            name: []
+            for name in (
+                "precipitation",
+                "condensation",
+                "canopy_evaporation",
+                "soil_evaporation",
+                "transpiration",
+                "groundwater_loss",
+                "routed_runoff",
+            )
+        }
+        water_balance_storage_start = np.concatenate(
+            (
+                hydro_input["current_soil_moisture"],
+                hydro_input["groundwater_storage"],
+            ),
+            axis=0,
+        ).copy()
 
         for day in np.arange(days):
+            daily_storage_start = np.concatenate(
+                (
+                    hydro_input["current_soil_moisture"],
+                    hydro_input["groundwater_storage"],
+                ),
+                axis=0,
+            ).copy()
+
             # Interception of water in canopy, before evaporation, [mm]
             interception = above_ground.calculate_interception(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
@@ -766,8 +803,7 @@ class HydrologyModel(
             hydrology_tools.check_soil_evaporation(
                 soil_evaporation=soil_evaporation["soil_evaporation"],
                 soil_moisture_mm=soil_moisture_infiltrated,
-                soil_moisture_residual_mm=self.model_constants.soil_moisture_residual
-                / self.soil_layer_thickness_mm[0],
+                soil_moisture_residual_mm=hydro_input["top_soil_moisture_residual"],
                 relative_tolerance=self.model_constants.relative_tolerance,
                 absolute_tolerance=self.model_constants.absolute_tolerance,
             )
@@ -860,6 +896,23 @@ class HydrologyModel(
             soil_moisture_updated = below_ground_update["soil_moisture"]
             vertical_flow_actual = below_ground_update["vertical_flow"]
             subsurface_stormflow_actual = below_ground_update["subsurface_stormflow"]
+            transpiration_actual = below_ground_update["transpiration"]
+
+            unmet_transpiration = (
+                hydro_input["current_transpiration"] - transpiration_actual
+            )
+            unmet_transpiration = np.maximum(unmet_transpiration, 0.0)
+            if np.any(
+                unmet_transpiration
+                > self.model_constants.absolute_tolerance
+                + self.model_constants.relative_tolerance
+                * np.abs(hydro_input["current_transpiration"])
+            ):
+                LOGGER.warning(
+                    "Transpiration reduced by root-zone water limitation on day "
+                    f"{day + 1}; unmet demand totals "
+                    f"{np.sum(unmet_transpiration):.6g} mm across grid cells."
+                )
 
             daily_lists["vertical_flow"].append(vertical_flow_actual)
             daily_lists["subsurface_stormflow"].append(subsurface_stormflow_actual)
@@ -902,7 +955,12 @@ class HydrologyModel(
                 ),
             )
 
-            for var in ["groundwater_storage", "subsurface_flow", "baseflow"]:
+            for var in [
+                "groundwater_storage",
+                "groundwater_loss",
+                "subsurface_flow",
+                "baseflow",
+            ]:
                 daily_lists[var].append(below_ground_flow[var])
 
             # Calculate horizontal flows between grid cells individually for output
@@ -949,11 +1007,75 @@ class HydrologyModel(
             )
             daily_lists["river_discharge_rate"].append(river_discharge_rate)
 
+            daily_fluxes = {
+                "precipitation": hydro_input["current_precipitation"][:, day],
+                "condensation": hydro_input["condensation"],
+                "canopy_evaporation": canopy_evaporation,
+                "soil_evaporation": soil_evaporation["soil_evaporation"],
+                "transpiration": transpiration_actual,
+                "groundwater_loss": below_ground_flow["groundwater_loss"],
+                "routed_runoff": total_runoff,
+            }
+            for name, values in daily_fluxes.items():
+                water_balance_fluxes[name].append(values)
+
+            daily_storage_end = np.concatenate(
+                (
+                    soil_moisture_updated,
+                    below_ground_flow["groundwater_storage"],
+                ),
+                axis=0,
+            )
+            hydrology_tools.check_water_balance(
+                drainage_map=self.drainage_map,
+                routed_runoff_mm=total_runoff,
+                precipitation_mm=daily_fluxes["precipitation"],
+                condensation_mm=daily_fluxes["condensation"],
+                canopy_evaporation_mm=daily_fluxes["canopy_evaporation"],
+                soil_evaporation_mm=daily_fluxes["soil_evaporation"],
+                transpiration_mm=daily_fluxes["transpiration"],
+                groundwater_loss_mm=daily_fluxes["groundwater_loss"],
+                storage_start_mm=daily_storage_start,
+                storage_end_mm=daily_storage_end,
+                relative_tolerance=self.model_constants.relative_tolerance,
+                absolute_tolerance=self.model_constants.absolute_tolerance,
+                period=f"day {day + 1}",
+            )
+
             # Update other model states for next day
             hydro_input["current_soil_moisture"] = soil_moisture_updated
             hydro_input["groundwater_storage"] = below_ground_flow[
                 "groundwater_storage"
             ]
+
+        monthly_fluxes = {
+            name: np.sum(np.stack(values, axis=0), axis=0)
+            for name, values in water_balance_fluxes.items()
+        }
+        water_balance_storage_end = np.concatenate(
+            (
+                hydro_input["current_soil_moisture"],
+                hydro_input["groundwater_storage"],
+            ),
+            axis=0,
+        )
+        hydrology_tools.check_water_balance(
+            drainage_map=self.drainage_map,
+            routed_runoff_mm=monthly_fluxes["routed_runoff"],
+            precipitation_mm=monthly_fluxes["precipitation"],
+            condensation_mm=monthly_fluxes["condensation"],
+            canopy_evaporation_mm=monthly_fluxes["canopy_evaporation"],
+            soil_evaporation_mm=monthly_fluxes["soil_evaporation"],
+            transpiration_mm=monthly_fluxes["transpiration"],
+            groundwater_loss_mm=monthly_fluxes["groundwater_loss"],
+            storage_start_mm=water_balance_storage_start,
+            storage_end_mm=water_balance_storage_end,
+            relative_tolerance=self.model_constants.relative_tolerance,
+            absolute_tolerance=self.model_constants.absolute_tolerance,
+            period="update interval",
+        )
+
+        self._soil_moisture_state = hydro_input["current_soil_moisture"].copy()
 
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
@@ -971,6 +1093,7 @@ class HydrologyModel(
             "subsurface_flow",
             "subsurface_stormflow",
             "baseflow",
+            "groundwater_loss",
             "bypass_flow",
             "surface_runoff_routed_plus_local",
             "subsurface_runoff_routed_plus_local",

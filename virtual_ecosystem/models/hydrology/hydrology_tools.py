@@ -514,6 +514,177 @@ def check_monthly_mass_balance(
         )
 
 
+def check_water_balance(
+    drainage_map: dict[int, list[int]],
+    routed_runoff_mm: NDArray[np.floating],
+    precipitation_mm: NDArray[np.floating],
+    condensation_mm: NDArray[np.floating],
+    canopy_evaporation_mm: NDArray[np.floating],
+    soil_evaporation_mm: NDArray[np.floating],
+    transpiration_mm: NDArray[np.floating],
+    groundwater_loss_mm: NDArray[np.floating],
+    storage_start_mm: NDArray[np.floating],
+    storage_end_mm: NDArray[np.floating],
+    relative_tolerance: float,
+    absolute_tolerance: float,
+    period: str,
+) -> dict[str, float]:
+    """Check closure of the liquid-water balance over a day or model interval.
+
+    The balance includes rainfall and condensation as inputs; canopy evaporation,
+    soil evaporation, transpiration, groundwater loss and runoff at catchment outlets
+    as outputs; and soil moisture plus groundwater as storage. Snowfall, snow storage,
+    sublimation and snowmelt are deliberately excluded.
+
+    Grid-cell water depths are summed directly, which is valid for the square,
+    equal-area grid used by the hydrology model.
+
+    Args:
+        drainage_map: Mapping from each cell ID to all upstream cell IDs.
+        routed_runoff_mm: Routed runoff at every cell, [mm].
+        precipitation_mm: Liquid precipitation entering the canopy, [mm].
+        condensation_mm: Condensation added to the land surface, [mm].
+        canopy_evaporation_mm: Canopy evaporation, [mm].
+        soil_evaporation_mm: Soil evaporation, [mm].
+        transpiration_mm: Plant transpiration, [mm].
+        groundwater_loss_mm: Water lost from groundwater, [mm].
+        storage_start_mm: Soil and groundwater storage at period start, [mm].
+        storage_end_mm: Soil and groundwater storage at period end, [mm].
+        relative_tolerance: Relative tolerance for the closure check.
+        absolute_tolerance: Absolute tolerance for the closure check, [mm].
+        period: Label used in any error message, e.g. ``"day 1"`` or
+            ``"update interval"``.
+
+    Returns:
+        Water-balance totals and the signed residual, [mm summed over cells].
+
+    Raises:
+        ValueError: If inputs are non-finite, the drainage map has no valid outlets,
+            or the water-balance residual exceeds tolerance.
+    """
+    n_cells = len(drainage_map)
+    runoff = np.asarray(routed_runoff_mm, dtype=float)
+
+    if runoff.shape != (n_cells,):
+        raise ValueError(
+            f"Routed runoff must have shape ({n_cells},), got {runoff.shape}."
+        )
+    if relative_tolerance < 0.0 or absolute_tolerance < 0.0:
+        raise ValueError("Water-balance tolerances must be non-negative.")
+
+    cell_ids = set(drainage_map)
+    if cell_ids != set(range(n_cells)):
+        raise ValueError("Drainage map cell IDs must be contiguous from zero.")
+
+    upstream_cells = {
+        upstream_id
+        for upstream_ids in drainage_map.values()
+        for upstream_id in upstream_ids
+    }
+    if not upstream_cells.issubset(cell_ids):
+        raise ValueError("Drainage map contains an unknown upstream cell ID.")
+
+    outlet_cells = sorted(cell_ids - upstream_cells)
+    if not outlet_cells:
+        raise ValueError("Drainage map has no outlet cells.")
+
+    components = {
+        "precipitation_mm": np.asarray(precipitation_mm, dtype=float),
+        "condensation_mm": np.asarray(condensation_mm, dtype=float),
+        "canopy_evaporation_mm": np.asarray(canopy_evaporation_mm, dtype=float),
+        "soil_evaporation_mm": np.asarray(soil_evaporation_mm, dtype=float),
+        "transpiration_mm": np.asarray(transpiration_mm, dtype=float),
+        "groundwater_loss_mm": np.asarray(groundwater_loss_mm, dtype=float),
+        "storage_start_mm": np.asarray(storage_start_mm, dtype=float),
+        "storage_end_mm": np.asarray(storage_end_mm, dtype=float),
+    }
+    components["routed_runoff_mm"] = runoff
+
+    for name, values in components.items():
+        if not np.all(np.isfinite(values)):
+            raise ValueError(f"{period} water balance contains non-finite {name}.")
+        if name in {
+            "precipitation_mm",
+            "condensation_mm",
+            "canopy_evaporation_mm",
+            "soil_evaporation_mm",
+            "transpiration_mm",
+            "groundwater_loss_mm",
+            "routed_runoff_mm",
+        } and values.shape != (n_cells,):
+            raise ValueError(
+                f"{name} must have shape ({n_cells},), got {values.shape}."
+            )
+        if name in {"storage_start_mm", "storage_end_mm"} and (
+            values.ndim == 0 or values.shape[-1] != n_cells
+        ):
+            raise ValueError(
+                f"{name} must have grid cells on its last axis, got {values.shape}."
+            )
+
+    precipitation_total_mm = float(np.sum(components["precipitation_mm"]))
+    condensation_total_mm = float(np.sum(components["condensation_mm"]))
+    canopy_evaporation_total_mm = float(np.sum(components["canopy_evaporation_mm"]))
+    soil_evaporation_total_mm = float(np.sum(components["soil_evaporation_mm"]))
+    transpiration_total_mm = float(np.sum(components["transpiration_mm"]))
+    groundwater_loss_total_mm = float(np.sum(components["groundwater_loss_mm"]))
+    outlet_runoff_mm = float(np.sum(runoff[outlet_cells]))
+    start_storage_mm = float(np.sum(components["storage_start_mm"]))
+    end_storage_mm = float(np.sum(components["storage_end_mm"]))
+    inputs_mm = precipitation_total_mm + condensation_total_mm
+    outputs_mm = (
+        outlet_runoff_mm
+        + canopy_evaporation_total_mm
+        + soil_evaporation_total_mm
+        + transpiration_total_mm
+        + groundwater_loss_total_mm
+    )
+    storage_change_mm = end_storage_mm - start_storage_mm
+    residual_mm = inputs_mm - outputs_mm - storage_change_mm
+
+    tolerance_mm = absolute_tolerance + relative_tolerance * max(
+        abs(inputs_mm),
+        abs(outputs_mm),
+        abs(storage_change_mm),
+        1.0,
+    )
+
+    result = {
+        "precipitation_mm": precipitation_total_mm,
+        "condensation_mm": condensation_total_mm,
+        "canopy_evaporation_mm": canopy_evaporation_total_mm,
+        "soil_evaporation_mm": soil_evaporation_total_mm,
+        "transpiration_mm": transpiration_total_mm,
+        "groundwater_loss_mm": groundwater_loss_total_mm,
+        "start_storage_mm": start_storage_mm,
+        "end_storage_mm": end_storage_mm,
+        "inputs_mm": inputs_mm,
+        "outlet_runoff_mm": outlet_runoff_mm,
+        "outputs_mm": outputs_mm,
+        "storage_change_mm": storage_change_mm,
+        "residual_mm": float(residual_mm),
+        "tolerance_mm": float(tolerance_mm),
+    }
+
+    if abs(residual_mm) > tolerance_mm:
+        message = (
+            f"{period} water balance failed: residual={residual_mm:.6g} mm "
+            f"(tolerance={tolerance_mm:.6g} mm; inputs={inputs_mm:.6g} mm, "
+            f"precipitation={precipitation_total_mm:.6g} mm, "
+            f"condensation={condensation_total_mm:.6g} mm, "
+            f"outlet runoff={outlet_runoff_mm:.6g} mm, "
+            f"canopy evaporation={canopy_evaporation_total_mm:.6g} mm, "
+            f"soil evaporation={soil_evaporation_total_mm:.6g} mm, "
+            f"transpiration={transpiration_total_mm:.6g} mm, "
+            f"groundwater loss={groundwater_loss_total_mm:.6g} mm, "
+            f"storage change={storage_change_mm:.6g} mm)."
+        )
+        LOGGER.error(message)
+        raise ValueError(message)
+
+    return result
+
+
 def calculate_saturation_vapour_pressure_ice(
     temperature: NDArray[np.floating],
     magnus_coefficients_ice: tuple[float, float, float],

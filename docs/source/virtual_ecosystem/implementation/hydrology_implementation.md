@@ -54,8 +54,9 @@ inputs are totals over more than one day - the hydrology model partitions the in
  into daily values. Precipitation is partitioned between days assuming a gamma
  distribution and the total evapotranspiration is evenly divided across days.
 
-The values returned by the hydrology model are then monthly means or monthly accumulated
-values.
+The values returned by the hydrology model are then update-interval means or accumulated
+values. Soil moisture is returned as the mean across the internal daily steps, while its
+end-of-interval value is retained internally as the starting state for the next update.
 ```
 
 ## Required variables
