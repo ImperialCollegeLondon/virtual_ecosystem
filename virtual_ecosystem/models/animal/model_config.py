@@ -258,7 +258,8 @@ class AnimalConstants(Configuration):
     birth_mass_threshold: float = 1.5
     """Mass threshold for reproduction"""
     flow_to_reproductive_mass_threshold: float = 1.0
-    """Threshold of trophic flow to reproductive mass."""
+    """Ratio of body mass to adult mass above which growth is allocated to
+    reproductive mass (Madingley eq. 8; 1.0 matches Madingley)."""
     dispersal_mass_threshold: float = 0.8
     """Mass threshold for dispersal."""
     energy_percentile_threshold: float = 0.5

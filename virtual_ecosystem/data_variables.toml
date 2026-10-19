@@ -833,6 +833,20 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Rate at which dinitrogen (N2) is emitted from the soil."
+name = "soil_dinitrogen_emission"
+unit = "kg{N} m-2 day-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which nitrous oxide (N2O) is emitted from the soil."
+name = "soil_nitrous_oxide_emission"
+unit = "kg{N} m-2 day-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Proportion of above ground structural litter carbon which is lignin carbon"
 name = "lignin_above_structural"
 unit = "unitless"
@@ -1255,7 +1269,7 @@ variable_type = "float"
 axis = ["spatial"] # elements
 description = "C, N, and P masses for the subcanopy seedbank CNP"
 name = "subcanopy_seedbank_cnp"
-unit = "kg m2"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]

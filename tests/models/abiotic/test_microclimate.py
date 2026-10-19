@@ -238,7 +238,7 @@ def test_generate_hourly_forcing(
         rtol=1e-5,
     )
 
-    monthly_sum_sw_abs = np.nansum(forcing["shortwave_absorption_hourly"], axis=0)
+    monthly_mean_sw_abs = np.nanmean(forcing["shortwave_absorption_hourly"], axis=0)
     total_shortwave_absorption = calculate_total_absorbed_shortwave_radiation(
         downward_shortwave_radiation=data.get_time_slice(
             "downward_shortwave_radiation", time_index
@@ -249,9 +249,10 @@ def test_generate_hourly_forcing(
         par_fraction=abiotic_constants.par_fraction_of_shortwave_radiation,
     )
     np.testing.assert_allclose(
-        np.nansum(total_shortwave_absorption),
-        np.nansum(monthly_sum_sw_abs),
+        monthly_mean_sw_abs,
+        total_shortwave_absorption,
         rtol=1e-5,
+        equal_nan=True,
     )
 
 
