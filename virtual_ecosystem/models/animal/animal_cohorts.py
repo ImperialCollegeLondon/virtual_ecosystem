@@ -418,7 +418,7 @@ class AnimalCohort:
     ) -> tuple[float, dict[str, float]]:
         """Split metabolic waste between respiration and excretion.
 
-        A fraction carbon_excreta_proportion of metabolised carbon is respired to the
+        A fraction carbon_respiration_proportion of metabolised carbon is respired to
         atmosphere and the remainder is excreted alongside any nitrogen and phosphorus,
         so that every unit of carbon lost from the body is routed to exactly one sink.
 
@@ -564,7 +564,7 @@ class AnimalCohort:
             raise ValueError("Carbon mass in excreta_mass cannot be negative.")
 
         # Calculate the carbonaceous waste for respiration
-        respired_mass = excreta_mass["C"] * self.constants.carbon_excreta_proportion
+        respired_mass = excreta_mass["C"] * self.constants.carbon_respiration_proportion
 
         return respired_mass
 

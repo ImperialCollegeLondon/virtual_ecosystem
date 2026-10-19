@@ -344,7 +344,7 @@ class TestAnimalCohort:
 
         # Calculate the expected carbon waste based on the cohort's constants
         expected_carbon_waste = (
-            excreta_mass["C"] * cohort_instance.constants.carbon_excreta_proportion
+            excreta_mass["C"] * cohort_instance.constants.carbon_respiration_proportion
         )
 
         # Call the respire method
