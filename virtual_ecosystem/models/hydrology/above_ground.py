@@ -778,6 +778,7 @@ def calculate_surface_runoff(
     precipitation_surface: NDArray[np.floating],
     top_soil_moisture: NDArray[np.floating],
     top_soil_moisture_saturation: NDArray[np.floating],
+    vertical_drainage_capacity: NDArray[np.floating] | None = None,
 ) -> NDArray[np.floating]:
     """Calculate surface runoff, [mm].
 
@@ -785,7 +786,9 @@ def calculate_surface_runoff(
     :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture saturation
     , the excess water is added to runoff and top soil moisture is set to soil
     moisture saturation value; if the top soil is not saturated, precipitation is
-    added to the current soil moisture level and runoff is set to zero.
+    added to the current soil moisture level and runoff is set to zero. Optional
+    vertical drainage capacity allows water expected to drain from the topsoil during
+    the day to provide additional infiltration capacity.
 
     TODO adjust saturation to account for new set of soil layers #535
 
@@ -793,17 +796,25 @@ def calculate_surface_runoff(
         precipitation_surface: Precipitation that reaches surface, [mm]
         top_soil_moisture: Water content of top soil layer, [mm]
         top_soil_moisture_saturation: Soil mositure saturation of top soil layer, [mm]
+        vertical_drainage_capacity: Expected topsoil drainage during the day, [mm]
     """
 
     # Calculate how much water can be added to soil before saturation is reached, [mm]
     free_saturation_mm = top_soil_moisture_saturation - top_soil_moisture
 
     # Calculate daily surface runoff of each grid cell, [mm]; replace by SPLASH
-    return np.where(
-        precipitation_surface > free_saturation_mm,
+    surface_runoff = np.maximum(
         precipitation_surface - free_saturation_mm,
-        0,
+        0.0,
     )
+
+    if vertical_drainage_capacity is not None:
+        surface_runoff = np.maximum(
+            surface_runoff - np.maximum(vertical_drainage_capacity, 0.0),
+            0.0,
+        )
+
+    return surface_runoff
 
 
 def calculate_temperature_driven_snowmelt(

@@ -267,7 +267,12 @@ Surface runoff is calculated with a simple bucket model based on
 {cite:t}`davis_simple_2017`: if precipitation exceeds top {term}`soil moisture capacity`
 , the excess water is added to runoff and top soil moisture is set to soil
 moisture capacity value; if the top soil is not saturated, precipitation is
-added to the current soil moisture level and runoff is set to zero.
+added to the current soil moisture level and runoff is set to zero. The daily
+bucket overflow is reduced by the potential flow from a saturated topsoil to the
+next layer. After evaporation and the actual vertical flow are calculated, any
+remaining water above topsoil capacity is assigned to runoff. This lets drainage
+during the daily step create limited infiltration capacity without assuming an
+additional sub-daily timestep.
 
 ### Searchable resource
 
@@ -302,9 +307,13 @@ $LAI$ is the total leaf area index.
 
 ### Infiltration
 
-Infiltration is currently handled in a very simplistic way: the water that 'fits in the
-topsoil bucket' is added to the topsoil layer. We aim to implement a more realistic
-process that accounts for soil type specific infiltration capacities.
+Infiltration is currently handled in a very simplistic way: water that fits in the
+topsoil bucket is added to the topsoil layer, with additional capacity allowed for
+potential same-day vertical drainage. The additional rainfall is treated as matrix
+infiltration; preferential bypass is calculated from the original bucket overflow
+partition. Any water that still exceeds topsoil capacity after actual drainage is
+returned to surface runoff. This does not represent rainfall intensity or
+soil-type-specific infiltration capacity.
 
 ### Bypass flow
 

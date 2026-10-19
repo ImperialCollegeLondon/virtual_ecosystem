@@ -549,6 +549,21 @@ def test_calculate_surface_runoff():
     np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)
 
 
+def test_calculate_surface_runoff_accounts_for_same_day_drainage():
+    """Test that drainage capacity reduces runoff without making it negative."""
+
+    from virtual_ecosystem.models.hydrology.above_ground import calculate_surface_runoff
+
+    result = calculate_surface_runoff(
+        precipitation_surface=np.array([100.0, 200.0, 300.0]),
+        top_soil_moisture=np.array([150.0, 150.0, 150.0]),
+        top_soil_moisture_saturation=np.array([200.0, 400.0, 400.0]),
+        vertical_drainage_capacity=np.array([10.0, 5.0, 100.0]),
+    )
+
+    np.testing.assert_allclose(result, np.array([40.0, 0.0, 0.0]))
+
+
 # Physical constants for snowmelt calculations
 heat_capacity_ice = 2090.0  # J kg-1 K-1
 latent_heat_fusion = 334000.0  # J kg-1

@@ -728,41 +728,89 @@ class HydrologyModel(
             )
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
-            # Calculate daily surface runoff of each grid cell, [mm]
-            surface_runoff_local = above_ground.calculate_surface_runoff(
+            # Estimate how much water a saturated topsoil can drain to the next layer
+            # during this day. This gives rainfall that would otherwise run off a
+            # limited opportunity to infiltrate and drain.
+            saturated_topsoil_profile = np.concatenate(
+                (
+                    np.expand_dims(
+                        hydro_input["top_soil_moisture_saturation"],
+                        axis=0,
+                    ),
+                    hydro_input["current_soil_moisture"][1:],
+                )
+            )
+            saturated_topsoil_flow = below_ground.calculate_vertical_flow(
+                soil_moisture=(
+                    saturated_topsoil_profile / self.soil_layer_thickness_mm
+                ),
+                soil_layer_thickness=self.soil_layer_thickness_mm / 1000.0,
+                soil_layer_depth=self.layer_structure.soil_layer_depths,
+                soil_moisture_saturation=self.model_constants.soil_moisture_saturation,
+                soil_moisture_residual=self.model_constants.soil_moisture_residual,
+                saturated_hydraulic_conductivity=(
+                    self.model_constants.saturated_hydraulic_conductivity
+                ),
+                air_entry_potential_inverse=(
+                    self.model_constants.air_entry_potential_inverse
+                ),
+                van_genuchten_nonlinearity_parameter=(
+                    self.model_constants.van_genuchten_nonlinearity_parameter
+                ),
+                pore_connectivity_parameter=(
+                    self.model_constants.pore_connectivity_parameter
+                ),
+                seconds_to_day=self.core_constants.seconds_to_day,
+                denominator_tolerance=self.model_constants.denominator_tolerance,
+            )
+
+            # Calculate the bucket runoff for use in the existing bypass partition.
+            surface_runoff_bucket = above_ground.calculate_surface_runoff(
                 precipitation_surface=precipitation_surface,
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
                 top_soil_moisture_saturation=hydro_input[
                     "top_soil_moisture_saturation"
                 ],
             )
-            daily_lists["surface_runoff"].append(surface_runoff_local)
 
             # Calculate preferential bypass flow, [mm]
             bypass_flow = above_ground.calculate_bypass_flow(
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
                 sat_top_soil_moisture=hydro_input["top_soil_moisture_saturation"],
-                available_water=precipitation_surface - surface_runoff_local,
+                available_water=precipitation_surface - surface_runoff_bucket,
                 bypass_flow_coefficient=(self.model_constants.bypass_flow_coefficient),
             )
             daily_lists["bypass_flow"].append(bypass_flow)
 
+            # Potential drainage opens topsoil storage for part of the rainfall
+            # excess. The actual flow later in the day is checked before finalizing
+            # runoff.
+            surface_runoff_local = above_ground.calculate_surface_runoff(
+                precipitation_surface=precipitation_surface,
+                top_soil_moisture=hydro_input["current_soil_moisture"][0],
+                top_soil_moisture_saturation=hydro_input[
+                    "top_soil_moisture_saturation"
+                ],
+                vertical_drainage_capacity=saturated_topsoil_flow["vertical_flow"][0],
+            )
+
             # Calculate top soil moisture after infiltration, [mm]
-            soil_moisture_infiltrated = np.clip(
-                (
-                    hydro_input["current_soil_moisture"][0]
-                    + precipitation_surface
-                    - surface_runoff_local
-                    - bypass_flow,
-                ),
-                0,
-                hydro_input["top_soil_moisture_saturation"],
-            ).squeeze()
+            soil_moisture_infiltrated = np.maximum(
+                hydro_input["current_soil_moisture"][0]
+                + precipitation_surface
+                - surface_runoff_local
+                - bypass_flow,
+                0.0,
+            )
 
             # Prepare inputs for soil evaporation function
             # TODO currently surface layer, needs to be replaced with 2m above ground
             top_soil_moisture_vol = (
                 soil_moisture_infiltrated / self.soil_layer_thickness_mm[0]
+            )
+            top_soil_moisture_vol = np.minimum(
+                top_soil_moisture_vol,
+                self.model_constants.soil_moisture_saturation,
             )
 
             soil_evaporation = above_ground.calculate_soil_evaporation(
@@ -816,7 +864,7 @@ class HydrologyModel(
                                 - soil_evaporation["soil_evaporation"]
                             ),
                             hydro_input["top_soil_moisture_residual"],
-                            hydro_input["top_soil_moisture_saturation"],
+                            None,
                         ),
                         axis=0,
                     ),
@@ -856,6 +904,18 @@ class HydrologyModel(
                 seconds_to_day=self.core_constants.seconds_to_day,
                 denominator_tolerance=self.model_constants.denominator_tolerance,
             )
+
+            # Keep any excess that did not drain as surface runoff. Remove that
+            # excess from the soil input before the mass-conserving soil update.
+            additional_surface_runoff = np.maximum(
+                soil_moisture_evap_mm[0]
+                - vertical_flow_potential["vertical_flow"][0]
+                - hydro_input["top_soil_moisture_saturation"],
+                0.0,
+            )
+            surface_runoff_local = surface_runoff_local + additional_surface_runoff
+            soil_moisture_evap_mm[0] -= additional_surface_runoff
+            daily_lists["surface_runoff"].append(surface_runoff_local)
 
             # Calculate subsurface stormflow, [mm]
             effective_saturation_ini = vertical_flow_potential["effective_saturation"]
