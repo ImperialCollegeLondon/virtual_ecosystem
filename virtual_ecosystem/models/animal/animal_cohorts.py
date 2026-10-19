@@ -413,6 +413,36 @@ class AnimalCohort:
         self.time_to_maturity = self.age
         self.largest_mass_achieved = self.functional_group.adult_mass
 
+    def partition_metabolic_waste(
+        self, metabolic_waste: dict[str, float]
+    ) -> tuple[float, dict[str, float]]:
+        """Split metabolic waste between respiration and excretion.
+
+        A fraction carbon_excreta_proportion of metabolised carbon is respired to the
+        atmosphere and the remainder is excreted alongside any nitrogen and phosphorus,
+        so that every unit of carbon lost from the body is routed to exactly one sink.
+
+        Args:
+            metabolic_waste: Cohort-total mass of C, N and P lost through metabolism, as
+                returned by :meth:`metabolize` [kg].
+
+        Returns:
+            A tuple of the cohort-total carbon respired [kg] and the cohort-total mass
+            of C, N and P to be excreted [kg].
+        """
+        respired = self.respire(metabolic_waste)
+
+        # Excreted carbon is the remainder after respiration rather than an independent
+        # (1 - p) * C, the respired fraction p is read from the constants in one place
+        # and the two sinks sum to the metabolised carbon by construction.
+        excreta = {
+            "C": metabolic_waste["C"] - respired,
+            "N": metabolic_waste["N"],
+            "P": metabolic_waste["P"],
+        }
+
+        return respired, excreta
+
     def metabolize(self, temperature: float, dt: timedelta64) -> dict[str, float]:
         """The function to reduce body carbon mass through metabolism.
 
