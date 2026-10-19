@@ -1269,7 +1269,7 @@ variable_type = "float"
 axis = ["spatial"] # elements
 description = "C, N, and P masses for the subcanopy seedbank CNP"
 name = "subcanopy_seedbank_cnp"
-unit = "kg m2"
+unit = "kg m^-2"
 variable_type = "float"
 
 [[variable]]
