@@ -104,7 +104,7 @@ def test_hydrology_model_initialization(
     assert model.rainfall_shape_parameter == ini_shape
     assert model.rainfall_scale_parameter == ini_scale
     # TODO: not sure on the value below, test with more expansive drainage maps
-    assert model.drainage_map == {0: [], 1: [], 2: [0, 1, 2, 3], 3: [1]}
+    assert model.drainage_map == {0: [], 1: [], 2: [0], 3: [1]}
 
     # Final check that expected logging entries are produced
     log_check(caplog, MODEL_VAR_CHECK_LOG[1:])

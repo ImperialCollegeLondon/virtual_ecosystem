@@ -203,7 +203,7 @@ def test_find_lowest_neighbour(fixture_core_components, dummy_climate_data):
     grid.set_neighbours(distance=np.sqrt(grid.cell_area))
     result = find_lowest_neighbour(grid.neighbours, data["elevation"].to_numpy())
 
-    exp_result = [2, 3, 2, 2]
+    exp_result = [2, 3, None, None]
     assert result == exp_result
 
 
@@ -212,8 +212,8 @@ def test_find_upstream_cells():
 
     from virtual_ecosystem.models.hydrology.above_ground import find_upstream_cells
 
-    lowest = [1, 2, 2, 5, 7, 7, 7, 7]
-    exp_result = [[], [0], [1, 2], [], [], [3], [], [4, 5, 6, 7]]
+    lowest = [1, 2, 2, 5, 7, 7, 7, None]
+    exp_result = [[], [0], [1, 2], [], [], [3], [], [4, 5, 6]]
     result = find_upstream_cells(lowest)
     assert result == exp_result
 
@@ -226,7 +226,7 @@ def test_route_horizontal_flow_basic():
     drainage_map = {
         0: [],
         1: [0],
-        2: [1, 2],
+        2: [1],
         3: [],
         4: [],
         5: [3],
@@ -239,7 +239,7 @@ def test_route_horizontal_flow_basic():
 
     result = route_horizontal_flow(drainage_map, surface_runoff, subsurface_runoff)
 
-    expected_channel_inflow = np.array([1.5, 3.5, 10.0, 1.5, 2.0, 5.5, 2.5, 10.5])
+    expected_channel_inflow = np.array([1.5, 3.5, 6.0, 1.5, 2.0, 5.5, 2.5, 10.5])
 
     np.testing.assert_array_almost_equal(result, expected_channel_inflow)
 
@@ -335,6 +335,7 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
         result = calculate_drainage_map(grid, elevation)
 
         assert len(result) == grid.n_cells
+        assert all(cell not in upstream_ids for cell, upstream_ids in result.items())
         assert result[1] == [2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14]
 
     # Final check that expected logging entries are produced

@@ -685,14 +685,10 @@ class HydrologyModel(
             canopy_evaporation = np.nansum(
                 canopy_water_update["canopy_evaporation"], axis=0
             )
-            remaining_interception = np.nansum(
-                canopy_water_update["remaining_interception"], axis=0
-            )
 
             incoming_water = (
                 hydro_input["current_precipitation"][:, day]
                 + hydro_input["condensation"]
-                + remaining_interception
             )
 
             precipitation_surface = incoming_water - canopy_evaporation

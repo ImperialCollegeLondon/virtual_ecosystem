@@ -345,7 +345,7 @@ def calculate_soil_evaporation(
 def find_lowest_neighbour(
     neighbours: list[np.ndarray],
     elevation: np.ndarray,
-) -> list[int]:
+) -> list[int | None]:
     """Find lowest neighbour for each grid cell from digital elevation model.
 
     This function finds the cell IDs of the lowest neighbour for each grid cell. This
@@ -356,17 +356,26 @@ def find_lowest_neighbour(
         elevation: Elevation, [m]
 
     Returns:
-        list of lowest neighbour IDs
+        Lowest downstream neighbour ID for each cell, or ``None`` if the cell is a sink
     """
-    lowest_neighbour = []
+    lowest_neighbour: list[int | None] = []
     for cell_id, neighbors_id in enumerate(neighbours):
-        downstream_id_loc = np.argmax(elevation[cell_id] - elevation[neighbors_id])
+        elevation_drop = elevation[cell_id] - elevation[neighbors_id]
+        lower_neighbour = elevation_drop > 0.0
+
+        if not np.any(lower_neighbour):
+            lowest_neighbour.append(None)
+            continue
+
+        downstream_id_loc = np.argmax(elevation_drop)
         lowest_neighbour.append(neighbors_id[downstream_id_loc])
 
     return lowest_neighbour
 
 
-def find_upstream_cells(lowest_neighbour: list[int]) -> list[list[int]]:
+def find_upstream_cells(
+    lowest_neighbour: list[int | None],
+) -> list[list[int]]:
     """Find all upstream cell IDs for all grid cells.
 
     This function identifies all cell IDs that are upstream of each grid cell. This can
@@ -381,7 +390,8 @@ def find_upstream_cells(lowest_neighbour: list[int]) -> list[list[int]]:
     upstream_ids: list = [[] for i in range(len(lowest_neighbour))]
 
     for down_s, up_s in enumerate(lowest_neighbour):
-        upstream_ids[up_s].append(down_s)
+        if up_s is not None:
+            upstream_ids[up_s].append(down_s)
 
     return upstream_ids
 
