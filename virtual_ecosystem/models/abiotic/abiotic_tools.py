@@ -483,8 +483,11 @@ def generate_diurnal_cycle_from_monthly_data(
         hour_fraction /= hour_fraction.sum()
 
     # Shortwave absorption (hours_per_day, layer, cell)
+    # Multiply by hours per day to preserve daily mean absorption
     shortwave_absorption_hourly = (
-        monthly_shortwave_absorption[None, :, :] * hour_fraction[:, None, None]
+        monthly_shortwave_absorption[None, :, :]
+        * hour_fraction[:, None, None]
+        * hours_per_day
     )
 
     # Relative humidity (constant vapour pressure approach)

@@ -184,6 +184,22 @@ rate](./environmental_links.md#denitrification-temperature-factor), $f_{w,d}$ is
 rate](./environmental_links.md#denitrification-moisture-factor) and $\ce{NO_{3}^{-}}$ is
 the concentration of nitrate in the soil.
 
+All nitrogen that is denitrified is assumed to immediately escape the soil. In the real
+world, this happens as dinitrogen ($\ce{N_{2}}$), nitrous oxide ($\ce{N_{2}O}$) or as
+nitrogen oxides ($\ce{NO_{x}}$). However, due to a lack of data for nitrogen oxides and
+the fact that they molecules are short lived, we exclude them from our predictions. We
+instead assume that denitrification only releases dinitrogen and nitrous oxide from the
+soil. The rate at which these are emitted are calculated using
+
+$$ r_{\ce{N_2}} = (1 - f_{\ce{N_{2}O}}) * r_d $$
+
+and
+
+$$r_{\ce{N_{2}O}} = f_{\ce{N_{2}O}} * r_d,$$
+
+respectively, where $f_{\ce{N_{2}O}}$ is a parameter setting the fraction of denitrified
+nitrogen that is emitted as nitrous oxide.
+
 #### Ammonia volatilisation
 
 As well as nitrifying, soil ammonium can also volatilise (as ammonia), leaving the soil
