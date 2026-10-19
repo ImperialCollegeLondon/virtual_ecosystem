@@ -545,9 +545,6 @@ class AnimalCohort:
         This method processes the metabolic waste for carbon and returns the total
         mass respired to the atmosphere as a float. Currently, only carbon is affected.
 
-        TODO: This method needs to be properly fleshed out or it will produce a small
-        error in carbon totals.
-
         Args:
             excreta_mass: A dictionary representing the mass of each nutrient excreted
                 by the cohort: {"C": value, "N": value,
