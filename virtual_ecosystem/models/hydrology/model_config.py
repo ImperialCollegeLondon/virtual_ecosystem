@@ -36,14 +36,14 @@ class HydrologyConstants(Configuration):
     .
     """
 
-    saturated_hydraulic_conductivity: float = 3.5e-5
+    saturated_hydraulic_conductivity: float = 3.5e-7
     """Saturated hydraulic conductivity, [m s-1].
 
     The saturated hydraulic conductivity is the measure of a soil's ability to transmit
     water through its pores. More specifically, is defined as the volumetric flow rate
     of water passing through a unit cross-sectional area of soil under a unit hydraulic
-    gradient (pressure difference). Value for average tropical rainforest taken from
-    :cite:t:`gupta_global_2022`.
+    gradient (pressure difference). Value for average clayed tropical mineral soil taken
+    from :cite:t:`gupta_global_2022`.
     """
 
     van_genuchten_nonlinearity_parameter: float = 1.598
