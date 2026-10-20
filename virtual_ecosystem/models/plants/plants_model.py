@@ -349,7 +349,7 @@ class PlantsModel(
         #       tends to zero rather than retaining a maintenance respiration cost.
 
         updates_per_year = self.model_timing.updates_per_year
-        for resp_rate in ["resp_f", "resp_r", "resp_s", "resp_rt"]:
+        for resp_rate in ["resp_r", "resp_s", "resp_rt"]:
             setattr(
                 self.flora,
                 resp_rate,
