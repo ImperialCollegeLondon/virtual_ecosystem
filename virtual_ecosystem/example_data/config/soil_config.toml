@@ -1,3 +1,6 @@
+[soil]
+enzyme_class_definition_path = "../data/example_enzyme_parameters.csv"
+
 # N.B. Values taken from Wang et al. often have to be transformed from the (mg C/g soil)
 # units used in that paper into the (kg C/m^3) units we use, by multiplying by an
 # estimated bulk density of 1400.0 kg/m^3
@@ -96,51 +99,3 @@ enzyme_production.maom = 0.02 # Complete guess
 reproductive_allocation = 0.1 # Complete guess
 symbiote_nitrogen_uptake_fraction = 0.2 # Complete guess
 symbiote_phosphorus_uptake_fraction = 0.2 # Complete guess
-
-[[soil.enzyme_class_definition]]
-source = "bacteria"
-substrate = "pom"
-maximum_rate = 60.0 # Mean value (for cellulose) from Wang et al. Ecological Applications (2013)
-half_saturation_constant = 70.0  # Mean value from Wang et al. Ecological Applications (2013)
-activation_energy_rate = 37000 # Mean value from Wang et al. Ecological Applications (2013)
-activation_energy_saturation = 30000 # Mean value from Wang et al. Ecological Applications (2013)
-reference_temperature = 12.0
-turnover_rate = 2.4e-2 # Mean value from Wang et al. Ecological Applications (2013)
-c_n_ratio = 5.2 # Chosen to match the stoichiometry of bacteria
-c_p_ratio = 16 # Chosen to match the stoichiometry of bacteria
-
-[[soil.enzyme_class_definition]]
-source = "bacteria"
-substrate = "maom"
-maximum_rate = 24.0 # Mean value from Wang et al. Ecological Applications (2013)
-half_saturation_constant = 350.0 # Mean value from Wang et al. Ecological Applications (2013)
-activation_energy_rate = 47000 # Mean value from Wang et al. Ecological Applications (2013)
-activation_energy_saturation = 30000 # Mean value from Wang et al. Ecological Applications (2013)
-reference_temperature = 12.0
-turnover_rate = 2.4e-2 # Mean value from Wang et al. Ecological Applications (2013)
-c_n_ratio = 5.2 # Chosen to match the stoichiometry of bacteria
-c_p_ratio = 16 # Chosen to match the stoichiometry of bacteria
-
-[[soil.enzyme_class_definition]]
-source = "fungi"
-substrate = "pom"
-maximum_rate = 120.0 # Double bacteria case (so that fungal enzymes are "better")
-half_saturation_constant = 35.0 # half bacteria case (so that fungal enzymes are "better")
-activation_energy_rate = 37000 # Assumed thermal responses are the same as for bacterial enzymes (shaky assumption)
-activation_energy_saturation = 30000 # Assumed thermal responses are the same as for bacterial enzymes (shaky assumption)
-reference_temperature = 12.0
-turnover_rate = 2.4e-2 # Assumed all enzymes have the same turnover rate regardless of source (dubious)
-c_n_ratio = 6.5 # Chosen to match the stoichiometry of saprotrophic fungi
-c_p_ratio = 40.0 # Chosen to match the stoichiometry of saprotrophic fungi
-
-[[soil.enzyme_class_definition]]
-source = "fungi"
-substrate = "maom"
-maximum_rate = 48.0 # Double bacteria case (so that fungal enzymes are "better")
-half_saturation_constant = 175.0 # half bacteria case (so that fungal enzymes are "better")
-activation_energy_rate = 47000 # Assumed thermal responses are the same as for bacterial enzymes (shaky assumption)
-activation_energy_saturation = 30000 # Assumed thermal responses are the same as for bacterial enzymes (shaky assumption)
-reference_temperature = 12.0
-turnover_rate = 2.4e-2 # Assumed all enzymes have the same turnover rate regardless of source (dubious)
-c_n_ratio = 6.5 # Chosen to match the stoichiometry of saprotrophic fungi
-c_p_ratio = 40.0 # Chosen to match the stoichiometry of saprotrophic fungi
