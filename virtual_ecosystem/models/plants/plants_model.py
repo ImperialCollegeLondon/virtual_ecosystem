@@ -343,6 +343,11 @@ class PlantsModel(
 
         # Respiration rates are expressed as proportions of masses per year so need to
         # be reduced proportionately to the number of updates per year
+        # NOTE: this does not apply to `resp_f`: foliage respiration is constant
+        #       proportion of GPP and so does not scale with update length
+        # TODO: This is not robust when GPP is insufficient because foliage respiration
+        #       tends to zero rather than retaining a maintenance respiration cost.
+
         updates_per_year = self.model_timing.updates_per_year
         for resp_rate in ["resp_f", "resp_r", "resp_s", "resp_rt"]:
             setattr(
@@ -1289,14 +1294,8 @@ class PlantsModel(
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
 
-            # Calculate carbon available for growth increment and other uses.
-            unallocated_carbon = stem_allocation.npp - (
-                stem_allocation.branch_turnover
-                + stem_allocation.fine_root_turnover
-                + stem_allocation.foliage_turnover
-            )
-
-            # Calculate carbon costs of fruit
+            # Additional carbon costs of reproductive tissue
+            # TODO - need to handle frugivory and replacement of fruit tissue
             reproductive_tissue_mass = (
                 community.stem_allometry.foliage_mass
                 * cohorts["fruit_seed_foliage_mass_fraction"].to_numpy()
@@ -1309,7 +1308,7 @@ class PlantsModel(
             )
 
             # HACK pyrealm3 - again, passing in reproductive tissue mass as a extra
-            #      attribute on the increment object
+            #      attribute on the increment object for use by downstream methods.
             stem_allocation.fruit_turnover, stem_allocation.seed_turnover = (
                 partition_reproductive_tissue_mass(
                     cohorts=cohorts, mass=reproductive_tissue_turnover
@@ -1318,18 +1317,29 @@ class PlantsModel(
 
             self.stem_allocations[cell_id] = stem_allocation
 
-            # Per stem carbon costs of root exudates
-            symbiote_allocation = (
-                unallocated_carbon * cohorts["root_symbiote_npp_fraction"].to_numpy()
+            # Removal additional reproductive tissue respiration from NPP
+            npp = stem_allocation.npp - reproductive_tissue_respiration
+
+            # Calculate carbon available for growth increment and other uses.
+            unallocated_carbon = npp - (
+                stem_allocation.branch_turnover
+                + stem_allocation.fine_root_turnover
+                + stem_allocation.foliage_turnover
+                + reproductive_tissue_turnover
             )
 
-            # Calculate carbon available for growth
-            # Subtraction of foliage, root, and branch turnover occurs in pyrealm
-            growth_carbon = stem_allocation.npp - (
-                reproductive_tissue_turnover
-                + reproductive_tissue_respiration
-                + symbiote_allocation
+            # Per stem carbon allocation to root exudates if any surplus carbon is
+            # available.
+            symbiote_allocation = np.where(
+                unallocated_carbon > 0,
+                unallocated_carbon * cohorts["root_symbiote_npp_fraction"].to_numpy(),
+                0,
             )
+
+            # Calculate carbon available for growth. Subtraction of foliage, root, and
+            # branch turnover occurs inside GrowthIncrements but need to account for
+            # non T Model reproductive turnover and any symbiote allocation
+            growth_carbon = npp - (reproductive_tissue_turnover + symbiote_allocation)
 
             # Calculate growth increments
             growth_increments = GrowthIncrements(
