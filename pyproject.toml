@@ -6,6 +6,7 @@ authors = [
   {name = "Vivienne Groner", email = "v.groner@imperial.ac.uk"},
   {name = "Taran Rallings", email = "t.rallings@imperial.ac.uk"},
   {name = "Sally Matson", email = "sally.matson21@imperial.ac.uk"},
+  {name = "Tanner Dulay", email = "t.dulay@imperial.ac.uk"},
   {name = "Olivia Daniel", email = "olivia.daniel08@imperial.ac.uk"},
   {name = "Jaideep Joshi", email = "joshi@iiasa.ac.at"},
   {name = "Anna Rallings", email = "a.rallings@imperial.ac.uk"},
@@ -36,7 +37,7 @@ dependencies = [
   "numpy  (>2.0)", # SPEC0
   "openpyxl (>3.1)",
   "pint (>0.24)",
-  "pyrealm (>=3.0.0.rc.4)",
+  "pyrealm (>=3.0.0.rc.5)",
   "scipy (>=1.18.1)", # SPEC0
   "tomli-w  (>1.0)",
   "tqdm (>4.66)",

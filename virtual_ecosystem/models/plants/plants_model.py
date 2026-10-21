@@ -703,14 +703,6 @@ class PlantsModel(
 
         self.reset_update_vars()
 
-        # Apply mortality and recruitment to plant cohorts
-        self.apply_mortality()
-        self.apply_recruitment()
-
-        # Update the stem allometry to reflect applied changes to stem diameter from the
-        # previous time step and to add new cohorts
-        self.update_allometry()
-
         # Get the canopy top shortwave downwelling radiation for the current time slice
         self.set_canopy_top_radiation(time_index=time_index)
 
@@ -771,6 +763,13 @@ class PlantsModel(
 
         # Calculate the subcanopy vegetation dynamics
         self.subcanopy.calculate_dynamics()
+
+        # Apply mortality and recruitment to plant cohorts
+        self.apply_mortality()
+        self.apply_recruitment()
+
+        # Update the stem allometry to account for growth and to add new cohorts.
+        self.update_allometry()
 
         # Run the community data exporter
         self.exporter.dump(
