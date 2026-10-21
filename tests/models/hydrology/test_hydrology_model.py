@@ -410,3 +410,73 @@ def test_update_warns_when_transpiration_is_water_limited(
         "unmet demand totals" in message
         for message in messages
     )
+
+
+def test_update_limits_soil_evaporation_to_available_topsoil_water(
+    fixture_core_components,
+    fixture_hydrology_init_data,
+    dummy_climate_data,
+    fixture_configuration,
+    monkeypatch,
+    tmp_path,
+):
+    """Test that excessive soil evaporation is capped without warnings."""
+    from virtual_ecosystem.models.hydrology import above_ground
+    from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
+
+    model = HydrologyModel.from_config(
+        data=fixture_hydrology_init_data,
+        configuration=fixture_configuration,
+        core_components=fixture_core_components,
+    )
+    model.daily_diagnostics_path = tmp_path / "hydrology_daily_diagnostics.csv"
+
+    for var in model.vars_required_for_update:
+        model.data[var] = dummy_climate_data.data[var]
+
+    calculate_soil_evaporation = above_ground.calculate_soil_evaporation
+    available_water_by_day = []
+
+    def calculate_excessive_soil_evaporation(*args, **kwargs):
+        result = calculate_soil_evaporation(*args, **kwargs)
+        available_water_by_day.append(
+            np.maximum(
+                kwargs["soil_moisture"] - kwargs["soil_moisture_residual"],
+                0.0,
+            )
+            * model.soil_layer_thickness_mm[0]
+        )
+        result["soil_evaporation"] = np.full_like(
+            result["soil_evaporation"],
+            1e6,
+        )
+        return result
+
+    monkeypatch.setattr(
+        above_ground,
+        "calculate_soil_evaporation",
+        calculate_excessive_soil_evaporation,
+    )
+
+    with patch(
+        "virtual_ecosystem.models.hydrology.hydrology_model.LOGGER.warning"
+    ) as mock_warn:
+        model.update(time_index=0, seed=42)
+
+    messages = [call.args[0] for call in mock_warn.call_args_list]
+    assert not any(
+        "Soil evaporation reduced by topsoil water limitation" in message
+        for message in messages
+    )
+
+    daily_diagnostics = pd.read_csv(model.daily_diagnostics_path)
+    for day, available_water in enumerate(available_water_by_day, start=1):
+        daily_evaporation = daily_diagnostics.loc[
+            daily_diagnostics["day_in_update"] == day,
+            "soil_evaporation_mm",
+        ].to_numpy()
+        np.testing.assert_allclose(
+            daily_evaporation,
+            available_water,
+            equal_nan=True,
+        )

@@ -660,14 +660,6 @@ class HydrologyModel(
                 ),
             )
 
-            # Check evaporation does not exceed interception
-            hydrology_tools.check_canopy_evaporation(
-                canopy_evaporation=canopy_water_update["canopy_evaporation"],
-                interception=interception,
-                relative_tolerance=self.model_constants.relative_tolerance,
-                absolute_tolerance=self.model_constants.absolute_tolerance,
-            )
-
             daily_lists["canopy_evaporation"].append(
                 canopy_water_update["canopy_evaporation"]
             )
@@ -866,16 +858,18 @@ class HydrologyModel(
                 pyrealm_core_constants=self.pyrealm_core_constants,
             )
 
-            # Check soil evaporation does not exceed available water in top soil layer
-            hydrology_tools.check_soil_evaporation(
-                soil_evaporation=soil_evaporation["soil_evaporation"],
-                soil_moisture_mm=soil_moisture_infiltrated,
-                soil_moisture_residual_mm=hydro_input["top_soil_moisture_residual"],
-                relative_tolerance=self.model_constants.relative_tolerance,
-                absolute_tolerance=self.model_constants.absolute_tolerance,
+            # Limit soil evaporation to water above residual moisture in the topsoil.
+            soil_evaporation_demand = soil_evaporation["soil_evaporation"]
+            available_topsoil_water = np.maximum(
+                soil_moisture_infiltrated - hydro_input["top_soil_moisture_residual"],
+                0.0,
+            )
+            soil_evaporation_actual = np.minimum(
+                soil_evaporation_demand,
+                available_topsoil_water,
             )
 
-            daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
+            daily_lists["soil_evaporation"].append(soil_evaporation_actual)
             daily_lists["aerodynamic_resistance_soil"].append(
                 soil_evaporation["aerodynamic_resistance_soil"]
             )
@@ -885,10 +879,7 @@ class HydrologyModel(
                 (
                     np.expand_dims(
                         np.clip(
-                            (
-                                soil_moisture_infiltrated
-                                - soil_evaporation["soil_evaporation"]
-                            ),
+                            (soil_moisture_infiltrated - soil_evaporation_actual),
                             hydro_input["top_soil_moisture_residual"],
                             None,
                         ),
@@ -1105,7 +1096,7 @@ class HydrologyModel(
                 "precipitation": hydro_input["current_precipitation"][:, day],
                 "condensation": hydro_input["condensation"],
                 "canopy_evaporation": canopy_evaporation,
-                "soil_evaporation": soil_evaporation["soil_evaporation"],
+                "soil_evaporation": soil_evaporation_actual,
                 "transpiration": transpiration_actual,
                 "groundwater_loss": below_ground_flow["groundwater_loss"],
                 "routed_runoff": total_runoff,

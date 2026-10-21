@@ -305,6 +305,10 @@ $$E_{act} = E_{g} \cdot \exp(-\kappa_{gb} \cdot LAI)$$
 where $\kappa_{gb}$ is the extinction coefficient for global radiation, and
 $LAI$ is the total leaf area index.
 
+The calculated daily soil evaporation is limited to the water available above
+residual moisture in the topsoil; topsoil moisture is therefore not depleted below
+its residual value by evaporation.
+
 ### Infiltration
 
 Infiltration is currently handled in a very simplistic way: water that fits in the
