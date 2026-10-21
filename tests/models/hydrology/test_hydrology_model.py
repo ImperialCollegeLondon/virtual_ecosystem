@@ -314,7 +314,7 @@ def test_setup_and_update_hydrology_model_ranges(
     # Run the update step
     model.update(time_index=1, seed=42)
 
-    assert set(model.vars_updated).issubset(model.data.data_vars)
+    assert set(model.vars_updated).issubset(model.data.data.data_vars)
     expected_mean_soil_moisture = np.mean(
         np.stack(daily_soil_moisture, axis=0),
         axis=0,
