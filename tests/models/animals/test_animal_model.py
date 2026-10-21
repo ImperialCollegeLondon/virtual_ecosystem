@@ -2244,27 +2244,27 @@ class TestAnimalModel:
         "cohort_specs, expected_resp",
         [
             pytest.param(
-                [(22.0, [0], 0.40)],
+                [(22.0, [0], 0.40, 0.04)],
                 {0: 0.40},
                 id="single_cell_cohort",
             ),
             pytest.param(
-                [(22.0, [0], 0.40), (28.0, [0], 0.90)],
+                [(22.0, [0], 0.40, 0.04), (28.0, [0], 0.90, 0.10)],
                 {0: 1.30},
                 id="two_cohorts_sharing_a_cell",
             ),
             pytest.param(
-                [(22.0, [0], 0.40), (15.0, [1], 0.20)],
+                [(22.0, [0], 0.40, 0.04), (15.0, [1], 0.20, 0.02)],
                 {0: 0.40, 1: 0.20},
                 id="cohorts_in_separate_cells",
             ),
             pytest.param(
-                [(22.0, [0, 1, 2], 0.90)],
+                [(22.0, [0, 1, 2], 0.90, 0.10)],
                 {0: 0.30, 1: 0.30, 2: 0.30},
                 id="multi_cell_territory_split_evenly",
             ),
             pytest.param(
-                [(22.0, [0, 1], 0.40), (28.0, [1, 2, 3], 0.90)],
+                [(22.0, [0, 1], 0.40, 0.04), (28.0, [1, 2, 3], 0.90, 0.10)],
                 {0: 0.20, 1: 0.50, 2: 0.30, 3: 0.30},
                 id="overlapping_multi_cell_territories",
             ),
@@ -2277,13 +2277,19 @@ class TestAnimalModel:
     )
     def test_metabolize_community(
         self, animal_model_instance, mocker, cohort_specs, expected_resp
-    ):
-        """Test metabolize_community charges each cohort once and splits its wastes.
+    ) -> None:
+        """Test metabolize_community charges each cohort once and routes its wastes.
 
         Each mock cohort is also registered in the community of every cell in its
-        territory, mirroring update_community_occupancy, so that a regression to
-        iterating over communities would metabolise a multi-cell cohort once per cell
-        and fail the call-count assertions.
+        territory, mirroring update_community_occupancy. If the method regressed to
+        iterating over communities, it would metabolise a multi-cell cohort once per
+        cell and fail the call-count assertions.
+
+        The metabolic waste must pass through ``partition_metabolic_waste`` exactly
+        once. Respiration receives only the respired carbon, and ``excrete`` receives
+        only the partitioned excreta, never the raw waste. Handing the raw waste to
+        both sinks was the double-counting bug. ``respire`` must therefore not be
+        called directly by the model.
 
         Expected respiration is worked by hand: each cohort's respired carbon divided
         equally across its territory cells, summed per cell. Cells absent from
@@ -2292,8 +2298,8 @@ class TestAnimalModel:
         Args:
             animal_model_instance: Animal model fixture.
             mocker: pytest-mock fixture.
-            cohort_specs: One ``(current_temperature, territory, respired_carbon)``
-                tuple per mock cohort.
+            cohort_specs: One ``(current_temperature, territory, respired_carbon,
+                excreted_carbon)`` tuple per mock cohort.
             expected_resp: Expected respiration per cell, for cells that receive any.
         """
         import numpy as np
@@ -2306,11 +2312,16 @@ class TestAnimalModel:
         model.data["total_animal_respiration"].values[:] = 0.0
 
         cohorts = []
-        for index, (temperature, territory, respired) in enumerate(cohort_specs):
+        for index, (temperature, territory, respired, excreted_c) in enumerate(
+            cohort_specs
+        ):
             cohort = mocker.Mock()
             cohort.current_temperature = temperature
             cohort.territory = territory
-            cohort.respire.return_value = respired
+            cohort.partition_metabolic_waste.return_value = (
+                respired,
+                {"C": excreted_c, "N": 0.0, "P": 0.0},
+            )
             cohort.get_excrement_pools.return_value = [mocker.Mock() for _ in territory]
 
             model.active_cohorts[f"cohort_{index}"] = cohort
@@ -2326,15 +2337,21 @@ class TestAnimalModel:
             # however many communities the cohort is registered in.
             cohort.metabolize.assert_called_once_with(cohort.current_temperature, dt)
 
-            # The waste from that single call is threaded to both sinks.
+            # The waste from that single call is partitioned exactly once.
             waste = cohort.metabolize.return_value
-            cohort.respire.assert_called_once_with(waste)
+            cohort.partition_metabolic_waste.assert_called_once_with(waste)
 
-            # Excreta go to the pools of the whole territory, not one cell's pools.
+            # The model never sends raw waste to respiration itself.
+            cohort.respire.assert_not_called()
+
+            # Excreta go to the pools of the whole territory, and are the
+            # partitioned excreta rather than the raw metabolic waste.
+            _, excreta = cohort.partition_metabolic_waste.return_value
             cohort.get_excrement_pools.assert_called_once_with(model.excrement_pools)
             cohort.excrete.assert_called_once_with(
-                waste, cohort.get_excrement_pools.return_value
+                excreta, cohort.get_excrement_pools.return_value
             )
+            assert cohort.excrete.call_args.args[0] is not waste
 
         resp = model.data["total_animal_respiration"]
 
@@ -2348,8 +2365,78 @@ class TestAnimalModel:
 
         # Conservation: the split neither creates nor loses respired carbon.
         assert resp.values.sum() == pytest.approx(
-            sum(respired for _, _, respired in cohort_specs)
+            sum(respired for _, _, respired, _ in cohort_specs)
         )
+
+    @pytest.mark.parametrize(
+        "respiration_proportion",
+        [0.0, 0.9, 1.0],
+        ids=["none_respired", "partial_respiration", "all_respired"],
+    )
+    def test_metabolize_community_conserves_carbon(
+        self, animal_model_instance, respiration_proportion
+    ) -> None:
+        """Test that carbon lost through metabolism reaches exactly one sink.
+
+        A single real cohort metabolises with nothing mocked. Its cohort-total body
+        carbon loss must equal the carbon added to ``total_animal_respiration`` plus
+        the carbon added to the excrement pools. Each sink must receive its own share:
+        p x loss to respiration and (1 - p) x loss to excrement. Under the original
+        bug the sinks summed to (1 + p) x loss.
+
+        Metabolism currently removes carbon only, so the excrement pools must gain no
+        nitrogen or phosphorus.
+
+        Args:
+            animal_model_instance: Animal model fixture.
+            respiration_proportion: Fraction of metabolised carbon respired.
+        """
+        import numpy as np
+
+        model = animal_model_instance
+        dt = np.timedelta64(30, "D")
+
+        cohort = next(iter(model.active_cohorts.values()))
+        cohort.constants = cohort.constants.model_copy(
+            update={"carbon_respiration_proportion": respiration_proportion}
+        )
+        model.active_cohorts = {cohort.id: cohort}
+        model.data["total_animal_respiration"].values[:] = 0.0
+
+        def excrement_total(element: str) -> float:
+            return sum(
+                getattr(pool.scavengeable_cnp, element)
+                + getattr(pool.decomposed_cnp, element)
+                for pools in model.excrement_pools.values()
+                for pool in pools
+            )
+
+        body_c_before = cohort.mass_cnp.C * cohort.individuals
+        excrement_before = {e: excrement_total(e) for e in ("C", "N", "P")}
+
+        model.metabolize_community(dt)
+
+        body_c_lost = body_c_before - cohort.mass_cnp.C * cohort.individuals
+        respired = model.data["total_animal_respiration"].values.sum()
+        excreted = {
+            e: excrement_total(e) - excrement_before[e] for e in ("C", "N", "P")
+        }
+
+        # Guard against a vacuous pass: the cohort must actually have metabolised.
+        assert body_c_lost > 0.0
+
+        # Each sink receives its own share of the metabolised carbon.
+        assert respired == pytest.approx(respiration_proportion * body_c_lost)
+        assert excreted["C"] == pytest.approx(
+            (1.0 - respiration_proportion) * body_c_lost
+        )
+
+        # Conservation: the sinks together account for exactly the carbon lost.
+        assert respired + excreted["C"] == pytest.approx(body_c_lost)
+
+        # Metabolism is carbon-only at present, so no N or P reaches the pools.
+        assert excreted["N"] == pytest.approx(0.0)
+        assert excreted["P"] == pytest.approx(0.0)
 
     def test_increase_age_community(self, animal_model_instance, mocker):
         """Test increase_age."""
