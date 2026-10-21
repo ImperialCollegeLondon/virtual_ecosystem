@@ -14,9 +14,10 @@ jupyter:
 # Baseline estimates for microbial functional group and enzyme class parameters
 
 We provide baseline estimates for each of the soil microbial groups and each of the
-enzyme classes as part of the example data. These values are displayed below, with
-comments indicating the source that we obtained each parameter from:
+enzyme classes as part of the example data. The script used to generate a CSV file
+containing these values is shown below, with comments indicating the source that we
+obtained each parameter from:
 
-```{literalinclude} ../../../../../virtual_ecosystem/example_data/config/soil_config.toml
-:language: toml
+```{literalinclude} ../../../../../virtual_ecosystem/example_data/generation_scripts/microbial_parametrisation_example.py
+:language: python
 ```
