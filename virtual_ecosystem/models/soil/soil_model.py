@@ -45,13 +45,13 @@ from virtual_ecosystem.models.soil.env_factors import (
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
     MicrobialGroupConstants,
-    SoilEnzymeClass,
     make_full_set_of_enzyme_classes,
     make_full_set_of_microbial_groups,
 )
 from virtual_ecosystem.models.soil.model_config import (
     SoilConfiguration,
     SoilConstants,
+    SoilEnzymeClass,
 )
 from virtual_ecosystem.models.soil.pools import SoilPools
 from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
