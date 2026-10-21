@@ -3,6 +3,7 @@ balance in the Virtual Ecosystem.
 """  # noqa: D205
 
 import warnings
+from collections.abc import Hashable
 from types import SimpleNamespace
 from typing import Any
 
@@ -933,6 +934,7 @@ def build_output_from_record(
     static: dict[str, Any],
     layer_structure: LayerStructure,
     vars_updated: tuple[str, ...],
+    time_dim: int | None = None,
 ) -> dict[str, DataArray]:
     """Build model output from hourly record and static/state variables.
 
@@ -944,6 +946,8 @@ def build_output_from_record(
         layer_structure: LayerStructure object
         vars_updated: Tuple containing strings of all variables that are updated by the
             abiotic model
+        time_dim: Number of hourly values, required when all requested outputs are
+            static
 
     Returns:
         Dictionary of DataArray outputs. Raises ValueError when unsupported variable
@@ -952,6 +956,9 @@ def build_output_from_record(
 
     output: dict[str, DataArray] = {}
     vars_set = set(vars_updated)
+    hourly_vars = {
+        name.removesuffix("_hourly") for name in vars_set if name.endswith("_hourly")
+    }
 
     # Static atmospheric layered variables
     atm_index = layer_structure.index_filled_atmosphere
@@ -992,16 +999,79 @@ def build_output_from_record(
                     values_out = np.nanmean(values_arr, axis=0)
 
         # assign dims
+        dims: tuple[Hashable, ...]
         if values_out.ndim == 1:
-            dims = ["cell_id"]
+            dims = ("cell_id",)
         elif values_out.ndim == 2:
-            dims = ["layers", "cell_id"]
+            dims = ("layers", "cell_id")
         else:
             raise ValueError(
                 f"Unsupported dimensions for variable '{var}': {values.shape}"
             )
 
         output[var] = DataArray(values_out, dims=dims)
+
+    for var in hourly_vars:
+        if var in data_record:
+            values = np.asarray(data_record[var])
+            hourly_dims: tuple[Hashable, ...]
+            if var == "diurnal_temperature_range":
+                combined = np.stack(
+                    (
+                        data_record["air_temperature"],
+                        data_record["soil_temperature"],
+                    ),
+                    axis=0,
+                )
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", "All-NaN slice encountered")
+                    minimum = np.nanmin(combined, axis=(0, 2))
+                    maximum = np.nanmax(combined, axis=(0, 2))
+                values = maximum - minimum
+                hourly_dims = ("hour", "cell_id")
+            elif values.ndim == 2:
+                hourly_dims = ("hour", "cell_id")
+            elif values.ndim == 3:
+                hourly_dims = ("hour", "layers", "cell_id")
+            else:
+                raise ValueError(
+                    f"Unsupported hourly dimensions for variable '{var}': "
+                    f"{values.shape}"
+                )
+        elif var in output:
+            n_hours = time_dim
+            if n_hours is None:
+                if not data_record:
+                    raise ValueError(
+                        f"Cannot determine the hour dimension for static output'{var}'."
+                    )
+                n_hours = np.asarray(next(iter(data_record.values()))).shape[0]
+            values = np.broadcast_to(
+                output[var].to_numpy(),
+                (n_hours, *output[var].shape),
+            ).copy()
+            hourly_dims = ("hour", *output[var].dims)
+        else:
+            raise ValueError(
+                f"Hourly output requested for unavailable variable '{var}'."
+            )
+
+        layer_template = layer_structure.from_template()
+        coords: dict[Hashable, Any] = {
+            "hour": np.arange(values.shape[0]),
+            "cell_id": layer_template["cell_id"],
+        }
+        if "layers" in hourly_dims:
+            n_layers = values.shape[hourly_dims.index("layers")]
+            if n_layers == layer_template.sizes["layers"]:
+                coords["layers"] = layer_template["layers"]
+                coords["layer_roles"] = (
+                    "layers",
+                    layer_template["layer_roles"].to_numpy(),
+                )
+            else:
+                coords["layers"] = np.arange(n_layers)
+        output[f"{var}_hourly"] = DataArray(values, dims=hourly_dims, coords=coords)
 
     # check for requested variables that never appeared
     missing = vars_set - output.keys()
@@ -1102,7 +1172,9 @@ def run_microclimate(
     )
 
     # Initialize hourly record for microclimate model
-    vars_hourly_updated = tuple(v for v in vars_updated if v not in static)
+    vars_hourly_updated = tuple(
+        v for v in vars_updated if v not in static and not v.endswith("_hourly")
+    )
 
     data_record = initialize_hourly_record(
         data=data,
@@ -1155,7 +1227,10 @@ def run_microclimate(
         static=static,
         layer_structure=layer_structure,
         vars_updated=vars_updated,
+        time_dim=time_dim,
     )
     output["latent_heat_vapourisation"] /= 1000.0
+    if "latent_heat_vapourisation_hourly" in output:
+        output["latent_heat_vapourisation_hourly"] /= 1000.0
 
     return output

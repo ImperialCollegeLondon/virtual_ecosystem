@@ -331,6 +331,16 @@ def test_setup_and_update_abiotic_model(
         assert np.all(model.data[var] != dummy_climate_data[var])
         assert np.all(model.data[var].shape == dummy_climate_data[var].shape)
 
+    assert set(model.vars_updated).issubset(model.data.data.data_vars)
+    for var in (name for name in model.vars_updated if name.endswith("_hourly")):
+        hourly = model.data[var]
+        assert hourly.dims[0] == "hour"
+        assert hourly.sizes["hour"] == model.core_constants.hours_per_day
+        np.testing.assert_array_equal(
+            hourly["hour"],
+            np.arange(model.core_constants.hours_per_day),
+        )
+
 
 def test_update_warns_for_fractional_days(
     fixture_abiotic_init_data,

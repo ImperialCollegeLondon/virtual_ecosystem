@@ -797,6 +797,27 @@ def test_static_variable_created(fixture_core_components):
     assert "atmospheric_pressure" in output
     assert output["atmospheric_pressure"].dims == ("layers", "cell_id")
 
+    hourly_output = build_output_from_record(
+        data_record={"air_temperature": np.full((24, 14, 4), 25.0)},
+        static=static,
+        layer_structure=layer_structure,
+        vars_updated=("atmospheric_pressure", "atmospheric_pressure_hourly"),
+        time_dim=24,
+    )
+    assert hourly_output["atmospheric_pressure_hourly"].dims == (
+        "hour",
+        "layers",
+        "cell_id",
+    )
+    np.testing.assert_array_equal(
+        hourly_output["atmospheric_pressure_hourly"]["hour"],
+        np.arange(24),
+    )
+    np.testing.assert_allclose(
+        hourly_output["atmospheric_pressure_hourly"].mean(dim="hour"),
+        hourly_output["atmospheric_pressure"],
+    )
+
 
 def test_time_cell_variable_averaged(fixture_core_components):
     """Test time cell variables averaged in update."""
@@ -833,7 +854,7 @@ def test_time_layer_cell_variable_averaged(fixture_core_components):
     layer_structure = fixture_core_components.layer_structure
     static = {}
     data_record = {"soil_moisture": np.random.rand(24, 2, 4)}
-    vars_updated = ("soil_moisture",)
+    vars_updated = ("soil_moisture", "soil_moisture_hourly")
 
     output = build_output_from_record(
         data_record,
@@ -850,6 +871,15 @@ def test_time_layer_cell_variable_averaged(fixture_core_components):
     )
 
     assert output["soil_moisture"].dims == ("layers", "cell_id")
+    assert output["soil_moisture_hourly"].dims == ("hour", "layers", "cell_id")
+    np.testing.assert_array_equal(
+        output["soil_moisture_hourly"]["hour"],
+        np.arange(data_record["soil_moisture"].shape[0]),
+    )
+    np.testing.assert_allclose(
+        output["soil_moisture_hourly"],
+        data_record["soil_moisture"],
+    )
 
 
 def test_unrequested_variable_skipped(fixture_core_components):
