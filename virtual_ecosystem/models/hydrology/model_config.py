@@ -51,13 +51,14 @@ class HydrologyConstants(Configuration):
     same value to every soil layer.
     """
 
-    van_genuchten_nonlinearity_parameter: float = 1.598
+    van_genuchten_nonlinearity_parameter: float = 2.0
     """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model.
 
     This parameter is a fitting shape parameters of soil water retention curve, see
     :cite:p:`van_genuchten_closed-form_1980`. Average value of different soil textures
     across tropical regions 
-    is taken from :cite:t:`hodnett_marked_2002`.
+    is 1.598 :cite:p:`hodnett_marked_2002`; the value here is tuned for realistsic
+    vertical flow.
     """
 
     intercept_parameters: tuple[float, float, float] = (0.935, 0.498, 0.00575)

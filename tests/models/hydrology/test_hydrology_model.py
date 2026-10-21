@@ -260,7 +260,7 @@ def test_setup_and_update_hydrology_model_ranges(
     soil_indices = lyr_strct.index_all_soil
     expected_values = {
         "soil_moisture": (soil_indices, np.full((2, 4), 250.0)),
-        "matric_potential": (soil_indices, np.full((2, 4), -49.673613)),
+        "matric_potential": (soil_indices, np.full((2, 4), -58.35023)),
     }
     for var_name, (indices, values) in expected_values.items():
         exp_var = lyr_strct.from_template()
