@@ -1649,17 +1649,13 @@ class AnimalModel(
 
         for cohort in self.active_cohorts.values():
             metabolic_waste_mass = cohort.metabolize(cohort.current_temperature, dt)
+            respired, excreta = cohort.partition_metabolic_waste(metabolic_waste_mass)
 
-            # Respired carbon is cohort-total; give each territory cell an equal share,
-            # matching the even split excrete applies to the excrement pools.
-            respired = cohort.respire(metabolic_waste_mass)
             share = respired / len(cohort.territory)
             for cell_id in cohort.territory:
                 respiration[cell_id] += share
 
-            cohort.excrete(
-                metabolic_waste_mass, cohort.get_excrement_pools(self.excrement_pools)
-            )
+            cohort.excrete(excreta, cohort.get_excrement_pools(self.excrement_pools))
 
         self.data["total_animal_respiration"].values[:] += respiration
 
