@@ -42,37 +42,6 @@ def test_SoilConstants_pH():
         pytest.param({}, does_not_raise(), id="default provides required"),
         pytest.param(
             {
-                "enzyme_class_definition": [
-                    {"source": "fungi", "substrate": "maom"},
-                    {"source": "fungi", "substrate": "pom"},
-                    {"source": "bacteria", "substrate": "maom"},
-                    {"source": "bacteria", "substrate": "pom"},
-                ]
-            },
-            does_not_raise(),
-            id="user data provides required",
-        ),
-        pytest.param(
-            {"enzyme_class_definition": [{"source": "fungi", "substrate": "maom"}]},
-            pytest.raises(ValidationError),
-            id="user data only provides one",
-        ),
-    ),
-)
-def test_SoilConfiguration_enzyme_class_definition(data, outcome):
-    """Test the custom validation on SoilConfiguration.enzyme_class_definition."""
-    from virtual_ecosystem.models.soil.model_config import SoilConfiguration
-
-    with outcome:
-        _ = SoilConfiguration(**data)
-
-
-@pytest.mark.parametrize(
-    argnames="data, outcome",
-    argvalues=(
-        pytest.param({}, does_not_raise(), id="default provides required"),
-        pytest.param(
-            {
                 "microbial_group_definition": [
                     {"name": "saprotrophic_fungi"},
                     {"name": "ectomycorrhiza"},

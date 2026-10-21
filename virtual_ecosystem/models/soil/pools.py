@@ -37,9 +37,10 @@ from virtual_ecosystem.models.soil.env_factors import (
 from virtual_ecosystem.models.soil.microbial_groups import (
     CarbonSupply,
     MicrobialGroupConstants,
+    SoilEnzymeClass,
     calculate_symbiotic_carbon_supply,
 )
-from virtual_ecosystem.models.soil.model_config import SoilConstants, SoilEnzymeClass
+from virtual_ecosystem.models.soil.model_config import SoilConstants
 from virtual_ecosystem.models.soil.uptake import calculate_nutrient_uptake_rates
 
 

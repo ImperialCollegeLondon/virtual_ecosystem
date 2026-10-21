@@ -3,12 +3,17 @@ the different microbial functional groups used in the soil model.
 """  # noqa: D205
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
 from numpy.typing import NDArray
 
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.soil.model_config import (
+    REQUIRED_ENZYMES,
     SoilConfiguration,
     SoilEnzymeClass,
     SoilMicrobialGroup,
@@ -229,6 +234,120 @@ def make_full_set_of_microbial_groups(
         )
         for group in config.microbial_group_definition
     }
+
+
+def make_full_set_of_enzyme_classes(path_to_csv: str) -> dict[str, SoilEnzymeClass]:
+    """Make the full set of enzyme classes used in the soil model.
+
+    Args:
+        path_to_csv: Path to a csv file containing definitions of the parametrisation of
+            the enzymes used in the soil model.
+
+    Raises:
+        ConfigurationError: If the provided path doesn't point to a csv file.
+        InitialisationError: If a required enzyme parameter isn't included in the csv
+            file, if a required enzyme class isn't defined, or if enzymes classes cannot
+            be created using the values provided in the csv file.
+
+    Returns:
+        A dictionary containing each required enzyme class used in the soil model.
+    """
+
+    # First check path and raise an error if it doesn't point to a csv file
+    enzyme_definition_path = Path(path_to_csv)
+
+    if (
+        not enzyme_definition_path.is_file()
+        or not enzyme_definition_path.suffix.lower() == ".csv"
+    ):
+        error_to_raise = ConfigurationError(
+            "The file path provided to the enzyme class definition file doesn't point "
+            f"to a csv file: {enzyme_definition_path}"
+        )
+        LOGGER.error(error_to_raise)
+        raise error_to_raise
+
+    # Then check that the csv has the expected headers (and if not error)
+    required_headers = [f for f in SoilEnzymeClass.model_fields]
+
+    enzyme_definitions = pd.read_csv(enzyme_definition_path)
+    actual_headers = enzyme_definitions.columns.tolist()
+
+    missing = set(required_headers) - set(actual_headers)
+    surplus = set(actual_headers) - set(required_headers)
+
+    if missing:
+        to_raise = InitialisationError(
+            "The following expected headers are missing from the enzyme class "
+            f"definition file: {missing}"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    # Surplus headers aren't a big enough issue to warrant killing the simulation, but
+    # are still worth emitting a warning for
+    if surplus:
+        msg = (
+            "The following additional headers are provided in the enzyme class "
+            f"definition file, and were ignored: {surplus}"
+        )
+        LOGGER.warning(msg)
+
+    # Check that all expected enzymes are defined in the csv (otherwise log an error)
+    defined_enzymes = pd.MultiIndex.from_frame(
+        enzyme_definitions[["source", "substrate"]].drop_duplicates()
+    )
+    missing_enzymes = REQUIRED_ENZYMES.difference(defined_enzymes)
+    # Also should check for unexpected or duplicate enzymes
+    unexpected_enzymes = set(defined_enzymes.difference(REQUIRED_ENZYMES))
+    duplicated_enzymes = enzyme_definitions.duplicated(subset=["source", "substrate"])
+
+    if missing_enzymes:
+        to_raise = InitialisationError(
+            "The following required enzymes are not defined in the enzyme class "
+            f"definition file: {missing_enzymes}"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    if unexpected_enzymes:
+        to_raise = InitialisationError(
+            "The following enzyme class are provided in the definition file but are "
+            f"not expected by the simulation: {unexpected_enzymes}"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    if any(duplicated_enzymes):
+        to_raise = InitialisationError(
+            "Enzyme definition file contains duplicate copies of enzymes!"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    enzyme_classes = {}
+    failed_rows = []
+
+    for idx, row in enzyme_definitions.iterrows():
+        try:
+            data = row[required_headers].to_dict()
+
+            enzyme = SoilEnzymeClass(**data)
+            enzyme_name = f"{row['source']}_{row['substrate']}"
+            enzyme_classes[enzyme_name] = enzyme
+
+        except (ValueError, TypeError):
+            failed_rows.append(idx)
+
+    if failed_rows:
+        to_raise = InitialisationError(
+            "The following rows in the enzyme class definition file contained bad data:"
+            f" {failed_rows}"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    return enzyme_classes
 
 
 @dataclass

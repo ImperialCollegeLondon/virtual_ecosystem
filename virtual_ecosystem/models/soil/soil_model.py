@@ -45,12 +45,13 @@ from virtual_ecosystem.models.soil.env_factors import (
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
     MicrobialGroupConstants,
+    SoilEnzymeClass,
+    make_full_set_of_enzyme_classes,
     make_full_set_of_microbial_groups,
 )
 from virtual_ecosystem.models.soil.model_config import (
     SoilConfiguration,
     SoilConstants,
-    SoilEnzymeClass,
 )
 from virtual_ecosystem.models.soil.pools import SoilPools
 from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
@@ -323,10 +324,9 @@ class SoilModel(
         )
 
         # Extract enzyme classes to a dictionary
-        enzyme_classes: dict[str, SoilEnzymeClass] = {
-            f"{enzyme.source}_{enzyme.substrate}": enzyme
-            for enzyme in soil_configuration.enzyme_class_definition
-        }
+        enzyme_classes = make_full_set_of_enzyme_classes(
+            path_to_csv=soil_configuration.enzyme_class_definition_path
+        )
 
         microbial_groups = make_full_set_of_microbial_groups(
             config=soil_configuration,

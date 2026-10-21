@@ -24,7 +24,6 @@ HIGHER_TAXONOMIC_GROUPS = Literal["fungi", "bacteria"]
 SUBSTRATES = Literal["pom", "maom"]
 """Permitted substrate types in the soil model"""
 
-
 REQUIRED_ENZYMES: set[tuple[HIGHER_TAXONOMIC_GROUPS, SUBSTRATES]] = set(
     product(get_args(HIGHER_TAXONOMIC_GROUPS), get_args(SUBSTRATES))
 )
@@ -353,29 +352,32 @@ class SoilConstants(Configuration):
 
 
 class SoilEnzymeClass(Configuration):
-    """Soil enzyme constants."""
+    """Container for the set of constants associated with a soil enzyme class.
 
-    source: HIGHER_TAXONOMIC_GROUPS = Field(default="bacteria")
+    This sets out the constants which must be defined for each soil enzyme class.
+    """
+
+    source: HIGHER_TAXONOMIC_GROUPS = Field()
     """The higher microbial group which produces the enzyme."""
-    substrate: SUBSTRATES = Field(default="pom")
+    substrate: SUBSTRATES = Field()
     """The substrate which the enzyme acts upon."""
-    maximum_rate: float = Field(default=60.0)
-    """The maximum rate of the enzyme at the reference temperature [day^-1]."""
-    half_saturation_constant: float = Field(default=70.0)
+    maximum_rate: float = Field()
+    """The maximum rate of the enzyme at the reference temperature [day-1]."""
+    half_saturation_constant: float = Field()
     """The half saturation constant for the enzyme at the reference temperature. Units
-    of [kg{C} m^-3]."""
-    activation_energy_rate: float = Field(default=37000)
-    """Activation energy for enzyme rate with temperature [J Kelvin^-1]."""
-    activation_energy_saturation: float = Field(default=30000)
-    """Activation energy for enzyme saturation with temperature [J Kelvin^-1]."""
+    of [kg{C} m-3]."""
+    activation_energy_rate: float = Field()
+    """Activation energy for enzyme rate with temperature [J Kelvin-1]."""
+    activation_energy_saturation: float = Field()
+    """Activation energy for enzyme saturation with temperature [J Kelvin-1]."""
     # TODO - This should change to Kelvin when we change the default units to Kelvin
-    reference_temperature: float = Field(default=12.0)
+    reference_temperature: float = Field()
     """The temperature that enzyme rate and saturation were measured at [Celsius]."""
-    turnover_rate: float = Field(default=0.024)
-    """The turnover rate of the enzyme [day^-1]."""
-    c_n_ratio: float = Field(default=5.2)
+    turnover_rate: float = Field()
+    """The turnover rate of the enzyme [day-1]."""
+    c_n_ratio: float = Field()
     """Ratio of carbon to nitrogen for the enzyme [unitless]."""
-    c_p_ratio: float = Field(default=16)
+    c_p_ratio: float = Field()
     """Ratio of carbon to phosphorus for the enzyme [unitless]."""
 
 
@@ -463,7 +465,7 @@ class SoilConfiguration(ModelConfigurationRoot):
     """Root configuration class for the soil model."""
 
     enzyme_class_definition_path: str = ""
-    """Path to a CSV file of microbial enzyme class definitions. Not yet implemented."""
+    """Path to a CSV file of microbial enzyme class definitions."""
 
     microbial_group_definition_path: str = ""
     """Path to a CSV file of microbial functional group definitions. Not yet
@@ -471,16 +473,6 @@ class SoilConfiguration(ModelConfigurationRoot):
 
     constants: SoilConstants = SoilConstants()
     """Constants values for soil model."""
-
-    enzyme_class_definition: list[SoilEnzymeClass] = Field(
-        default=[
-            SoilEnzymeClass(source="fungi", substrate="pom"),
-            SoilEnzymeClass(source="fungi", substrate="maom"),
-            SoilEnzymeClass(source="bacteria", substrate="pom"),
-            SoilEnzymeClass(source="bacteria", substrate="maom"),
-        ]
-    )
-    """Definition of enzyme classes for soil model."""
 
     microbial_group_definition: list[SoilMicrobialGroup] = Field(
         default=[
@@ -492,32 +484,10 @@ class SoilConfiguration(ModelConfigurationRoot):
     )
     """Definition of microbial groups for soil model."""
 
-    _required_enzymes: ClassVar[set[tuple[HIGHER_TAXONOMIC_GROUPS, SUBSTRATES]]] = (
-        REQUIRED_ENZYMES
-    )
-    """Required enzyme classes, provided as all pairs of higher taxon source and
-    substrates."""
-
     _required_microbial_groups: ClassVar[set[REQUIRED_MICROBIAL_GROUPS]] = {
         *get_args(REQUIRED_MICROBIAL_GROUPS)
     }
     """Required named microbial groups."""
-
-    @field_validator("enzyme_class_definition")
-    def _enforce_required_enzymes(
-        cls, enzymes: list[SoilEnzymeClass]
-    ) -> list[SoilEnzymeClass]:
-        """Validates the provided sets of enzyme classes."""
-        provided_enzymes = {(e.source, e.substrate) for e in enzymes}
-
-        if not provided_enzymes == cls._required_enzymes:
-            raise ValueError(
-                f"The source/substrate pairs provided in enzyme class definitions "
-                f"({provided_enzymes!r}) do not match the required set of pairs "
-                f"({cls._required_enzymes!r})"
-            )
-
-        return enzymes
 
     @field_validator("microbial_group_definition")
     def _enforce_required_microbial_groups(
