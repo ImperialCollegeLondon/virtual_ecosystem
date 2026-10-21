@@ -344,7 +344,7 @@ class TestAnimalCohort:
 
         # Calculate the expected carbon waste based on the cohort's constants
         expected_carbon_waste = (
-            excreta_mass["C"] * cohort_instance.constants.carbon_excreta_proportion
+            excreta_mass["C"] * cohort_instance.constants.carbon_respiration_proportion
         )
 
         # Call the respire method
@@ -4693,3 +4693,119 @@ class TestAnimalCohort:
         expected = sf.bfs_territory(0, cohort.territory_cells, cohort.grid)
 
         assert cohort.get_territory_cells(0) == expected
+
+    @pytest.mark.parametrize(
+        "cohort_type, respiration_proportion, metabolic_waste, expected_respired,"
+        "expected_excreta",
+        [
+            pytest.param(
+                "herbivore",
+                0.9,
+                {"C": 100.0, "N": 0.0, "P": 0.0},
+                90.0,
+                {"C": 10.0, "N": 0.0, "P": 0.0},
+                id="herbivore_partial_respiration",
+            ),
+            pytest.param(
+                "ectotherm",
+                0.9,
+                {"C": 50.0, "N": 0.0, "P": 0.0},
+                45.0,
+                {"C": 5.0, "N": 0.0, "P": 0.0},
+                id="ectotherm_partial_respiration",
+            ),
+            pytest.param(
+                "herbivore",
+                1.0,
+                {"C": 100.0, "N": 0.0, "P": 0.0},
+                100.0,
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                id="all_carbon_respired",
+            ),
+            pytest.param(
+                "herbivore",
+                0.0,
+                {"C": 100.0, "N": 0.0, "P": 0.0},
+                0.0,
+                {"C": 100.0, "N": 0.0, "P": 0.0},
+                id="no_carbon_respired",
+            ),
+            pytest.param(
+                "herbivore",
+                0.9,
+                {"C": 100.0, "N": 4.0, "P": 0.5},
+                90.0,
+                {"C": 10.0, "N": 4.0, "P": 0.5},
+                id="nitrogen_phosphorus_pass_through",
+            ),
+            pytest.param(
+                "herbivore",
+                0.9,
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                0.0,
+                {"C": 0.0, "N": 0.0, "P": 0.0},
+                id="zero_waste",
+            ),
+        ],
+    )
+    def test_partition_metabolic_waste(
+        self,
+        herbivore_cohort_instance,
+        ectotherm_cohort_instance,
+        cohort_type,
+        respiration_proportion,
+        metabolic_waste,
+        expected_respired,
+        expected_excreta,
+    ) -> None:
+        """Test that metabolic waste is split between respiration and excretion.
+
+        Expected values are worked by hand from the respiration proportion: the
+        respired carbon is p x C, the excreted carbon is the remainder, and nitrogen
+        and phosphorus are excreted unchanged. Each unit of metabolised carbon must
+        reach exactly one sink, so the two carbon outputs must sum to the input.
+
+        The input dictionary must not be returned or modified. The double-counting
+        bug came from passing one shared waste object to both sinks.
+
+        Args:
+            herbivore_cohort_instance: Herbivore cohort fixture.
+            ectotherm_cohort_instance: Ectotherm cohort fixture.
+            cohort_type: Which cohort fixture to use.
+            respiration_proportion: Fraction of metabolised carbon respired.
+            metabolic_waste: Cohort-total metabolic waste passed in [kg].
+            expected_respired: Expected cohort-total respired carbon [kg].
+            expected_excreta: Expected cohort-total excreted C, N and P [kg].
+        """
+        cohort = (
+            herbivore_cohort_instance
+            if cohort_type == "herbivore"
+            else ectotherm_cohort_instance
+        )
+        cohort.constants = cohort.constants.model_copy(
+            update={"carbon_respiration_proportion": respiration_proportion}
+        )
+
+        waste_before = dict(metabolic_waste)
+
+        respired, excreta = cohort.partition_metabolic_waste(metabolic_waste)
+
+        assert respired == pytest.approx(expected_respired)
+        for element in ("C", "N", "P"):
+            assert excreta[element] == pytest.approx(expected_excreta[element])
+
+        # Conservation: carbon goes to exactly one sink, nothing created or lost.
+        assert respired + excreta["C"] == pytest.approx(metabolic_waste["C"])
+
+        # The excreta are a new object, and the input is left untouched.
+        assert excreta is not metabolic_waste
+        assert metabolic_waste == waste_before
+
+    def test_partition_metabolic_waste_negative_carbon(
+        self, herbivore_cohort_instance
+    ) -> None:
+        """Test that negative metabolised carbon is rejected before partitioning."""
+        with pytest.raises(ValueError, match="cannot be negative"):
+            herbivore_cohort_instance.partition_metabolic_waste(
+                {"C": -1.0, "N": 0.0, "P": 0.0}
+            )
