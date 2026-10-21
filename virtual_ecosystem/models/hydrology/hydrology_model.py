@@ -26,9 +26,11 @@ There are still a number of open TODOs related to process implementation and imp
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from xarray import DataArray
@@ -77,6 +79,7 @@ class HydrologyModel(
         "river_discharge_rate",
         "matric_potential",
         "groundwater_storage",
+        "groundwater_loss",
         "subsurface_flow",
         "subsurface_stormflow",
         "baseflow",
@@ -138,6 +141,7 @@ class HydrologyModel(
         "river_discharge_rate",
         "total_runoff",
         "canopy_evaporation",
+        "groundwater_loss",
     ),
 ):
     """A class describing the hydrology model.
@@ -171,6 +175,7 @@ class HydrologyModel(
         abiotic_constants: AbioticConstants = AbioticConstants(),
         pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
         static: bool = False,
+        daily_diagnostics_path: Path | None = None,
     ):
         """Hydrology init function.
 
@@ -201,8 +206,14 @@ class HydrologyModel(
         """Upstream neighbours for the calculation of horizontal flow."""
         self.soil_layer_thickness_mm: np.ndarray
         """Soil layer thickness in mm."""
+        self.saturated_hydraulic_conductivity: np.ndarray
+        """Layer-specific saturated hydraulic conductivity, [m s-1]."""
+        self._soil_moisture_state: np.ndarray
+        """End-of-update soil moisture used as the next update's initial state, [mm]."""
         self.surface_layer_index: int
         """Surface layer index."""
+        self.daily_diagnostics_path = daily_diagnostics_path
+        """Optional path for daily hydrology diagnostic CSV output."""
 
         # Run the setup if the model is not in deep static mode
         if self._run_setup:
@@ -269,6 +280,21 @@ class HydrologyModel(
             )[:, None],
             self.grid.n_cells,
         )
+        configured_ksat = self.model_constants.saturated_hydraulic_conductivity
+        if isinstance(configured_ksat, tuple):
+            topsoil_ksat, subsoil_ksat = configured_ksat
+            self.saturated_hydraulic_conductivity = np.full_like(
+                self.soil_layer_thickness_mm,
+                subsoil_ksat,
+                dtype=float,
+            )
+            self.saturated_hydraulic_conductivity[0, :] = topsoil_ksat
+        else:
+            self.saturated_hydraulic_conductivity = np.full_like(
+                self.soil_layer_thickness_mm,
+                configured_ksat,
+                dtype=float,
+            )
 
         # Select aboveground layer for surface evaporation calculation
         # TODO this needs to be replaced with 2m above ground value
@@ -294,6 +320,11 @@ class HydrologyModel(
             soil_layer_thickness=self.soil_layer_thickness_mm,
             layer_structure=self.layer_structure,
             initial_soil_moisture=self.initial_soil_moisture,
+        )
+        self._soil_moisture_state = (
+            self.data["soil_moisture"][self.layer_structure.index_all_soil]
+            .to_numpy()
+            .copy()
         )
 
         # Make initial guess of the matric potential based on the soil moisture
@@ -405,6 +436,12 @@ class HydrologyModel(
             model_constants=hydrology_configuration.constants,
             abiotic_constants=abiotic_constants,
             pyrealm_core_constants=core_configuration.pyrealm.core,
+            daily_diagnostics_path=(
+                core_configuration.data_output_options.out_path
+                / "hydrology_daily_diagnostics.csv"
+                if hydrology_configuration.save_daily_diagnostics
+                else None
+            ),
         )
 
     def spinup(self) -> None:
@@ -521,13 +558,6 @@ class HydrologyModel(
         )
         days: int = int(days_float // 1)
 
-        # Check if the number of days is exact and warn if not
-        if not np.allclose(days_float % 1, 0):
-            LOGGER.warning(
-                f"Update interval is not a whole number of days ({days_float}),"
-                f" partitioning inputs among {days} days."
-            )
-
         # Set seed for random rainfall generator
         seed: int | None = kwargs.pop("seed", None)
 
@@ -548,6 +578,7 @@ class HydrologyModel(
             shape_parameter=self.rainfall_shape_parameter,
             scale_parameter=self.rainfall_scale_parameter,
         )
+        hydro_input["current_soil_moisture"] = self._soil_moisture_state.copy()
 
         #  Initialise snow water equivalent variable for this time_index, [mm]
         snow_water_equivalent = self.data["snow_water_equivalent"].to_numpy().copy()
@@ -564,9 +595,51 @@ class HydrologyModel(
 
         # Create lists for output variables to store daily data
         daily_lists: dict = {name: [] for name in self.vars_updated}
+        water_balance_fluxes: dict[str, list[np.ndarray]] = {
+            name: []
+            for name in (
+                "precipitation",
+                "condensation",
+                "canopy_evaporation",
+                "soil_evaporation",
+                "transpiration",
+                "groundwater_loss",
+                "routed_runoff",
+            )
+        }
+        water_balance_storage_start = np.concatenate(
+            (
+                hydro_input["current_soil_moisture"],
+                hydro_input["groundwater_storage"],
+            ),
+            axis=0,
+        ).copy()
+        daily_diagnostics: dict[str, list[np.ndarray]] = {
+            name: []
+            for name in (
+                "soil_moisture_start",
+                "effective_saturation",
+                "vertical_flow_potential",
+                "vertical_flow_actual",
+                "soil_moisture_end",
+            )
+        }
 
         for day in np.arange(days):
-            # Interception of water in canopy, [mm]
+            if self.daily_diagnostics_path is not None:
+                daily_diagnostics["soil_moisture_start"].append(
+                    hydro_input["current_soil_moisture"].copy()
+                )
+
+            daily_storage_start = np.concatenate(
+                (
+                    hydro_input["current_soil_moisture"],
+                    hydro_input["groundwater_storage"],
+                ),
+                axis=0,
+            ).copy()
+
+            # Interception of water in canopy, before evaporation, [mm]
             interception = above_ground.calculate_interception(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 precipitation=hydro_input["current_precipitation"][:, day],
@@ -672,64 +745,105 @@ class HydrologyModel(
             daily_lists["rain_driven_snowmelt"].append(rain_driven_snowmelt)
 
             # Precipitation, condensation, and not-evaporated intercept that reaches
-            # the surface per day, [mm]
+            # the surface per day (no intercept storage!), [mm]
+
+            canopy_evaporation = np.nansum(
+                canopy_water_update["canopy_evaporation"], axis=0
+            )
+
             incoming_water = (
                 hydro_input["current_precipitation"][:, day]
                 + hydro_input["condensation"]
             )
 
-            canopy_evaporation = np.nansum(
-                canopy_water_update["canopy_evaporation"], axis=0
-            )
-            remaining_interception = np.nansum(
-                canopy_water_update["remaining_interception"], axis=0
-            )
-
-            precipitation_surface = incoming_water - np.minimum(
-                canopy_evaporation + remaining_interception,
-                incoming_water,
-            )
+            precipitation_surface = incoming_water - canopy_evaporation
 
             hydrology_tools.check_precipitation_surface(
                 precipitation_surface=precipitation_surface
             )
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
-            # Calculate daily surface runoff of each grid cell, [mm]
-            surface_runoff_local = above_ground.calculate_surface_runoff(
+            # Estimate how much water a saturated topsoil can drain to the next layer
+            # during this day. This gives rainfall that would otherwise run off a
+            # limited opportunity to infiltrate and drain.
+            saturated_topsoil_profile = np.concatenate(
+                (
+                    np.expand_dims(
+                        hydro_input["top_soil_moisture_saturation"],
+                        axis=0,
+                    ),
+                    hydro_input["current_soil_moisture"][1:],
+                )
+            )
+            saturated_topsoil_flow = below_ground.calculate_vertical_flow(
+                soil_moisture=(
+                    saturated_topsoil_profile / self.soil_layer_thickness_mm
+                ),
+                soil_layer_thickness=self.soil_layer_thickness_mm / 1000.0,
+                soil_layer_depth=self.layer_structure.soil_layer_depths,
+                soil_moisture_saturation=self.model_constants.soil_moisture_saturation,
+                soil_moisture_residual=self.model_constants.soil_moisture_residual,
+                saturated_hydraulic_conductivity=self.saturated_hydraulic_conductivity,
+                air_entry_potential_inverse=(
+                    self.model_constants.air_entry_potential_inverse
+                ),
+                van_genuchten_nonlinearity_parameter=(
+                    self.model_constants.van_genuchten_nonlinearity_parameter
+                ),
+                pore_connectivity_parameter=(
+                    self.model_constants.pore_connectivity_parameter
+                ),
+                seconds_to_day=self.core_constants.seconds_to_day,
+                denominator_tolerance=self.model_constants.denominator_tolerance,
+            )
+
+            # Calculate the bucket runoff for use in the existing bypass partition.
+            surface_runoff_bucket = above_ground.calculate_surface_runoff(
                 precipitation_surface=precipitation_surface,
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
                 top_soil_moisture_saturation=hydro_input[
                     "top_soil_moisture_saturation"
                 ],
             )
-            daily_lists["surface_runoff"].append(surface_runoff_local)
 
             # Calculate preferential bypass flow, [mm]
             bypass_flow = above_ground.calculate_bypass_flow(
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
                 sat_top_soil_moisture=hydro_input["top_soil_moisture_saturation"],
-                available_water=precipitation_surface - surface_runoff_local,
+                available_water=precipitation_surface - surface_runoff_bucket,
                 bypass_flow_coefficient=(self.model_constants.bypass_flow_coefficient),
             )
             daily_lists["bypass_flow"].append(bypass_flow)
 
+            # Potential drainage opens topsoil storage for part of the rainfall
+            # excess. The actual flow later in the day is checked before finalizing
+            # runoff.
+            surface_runoff_local = above_ground.calculate_surface_runoff(
+                precipitation_surface=precipitation_surface,
+                top_soil_moisture=hydro_input["current_soil_moisture"][0],
+                top_soil_moisture_saturation=hydro_input[
+                    "top_soil_moisture_saturation"
+                ],
+                vertical_drainage_capacity=saturated_topsoil_flow["vertical_flow"][0],
+            )
+
             # Calculate top soil moisture after infiltration, [mm]
-            soil_moisture_infiltrated = np.clip(
-                (
-                    hydro_input["current_soil_moisture"][0]
-                    + precipitation_surface
-                    - surface_runoff_local
-                    - bypass_flow,
-                ),
-                0,
-                hydro_input["top_soil_moisture_saturation"],
-            ).squeeze()
+            soil_moisture_infiltrated = np.maximum(
+                hydro_input["current_soil_moisture"][0]
+                + precipitation_surface
+                - surface_runoff_local
+                - bypass_flow,
+                0.0,
+            )
 
             # Prepare inputs for soil evaporation function
             # TODO currently surface layer, needs to be replaced with 2m above ground
             top_soil_moisture_vol = (
                 soil_moisture_infiltrated / self.soil_layer_thickness_mm[0]
+            )
+            top_soil_moisture_vol = np.minimum(
+                top_soil_moisture_vol,
+                self.model_constants.soil_moisture_saturation,
             )
 
             soil_evaporation = above_ground.calculate_soil_evaporation(
@@ -758,7 +872,19 @@ class HydrologyModel(
                 time_interval=self.core_constants.seconds_to_day,
                 pyrealm_core_constants=self.pyrealm_core_constants,
             )
-            daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
+
+            # Limit soil evaporation to water above residual moisture in the topsoil.
+            soil_evaporation_demand = soil_evaporation["soil_evaporation"]
+            available_topsoil_water = np.maximum(
+                soil_moisture_infiltrated - hydro_input["top_soil_moisture_residual"],
+                0.0,
+            )
+            soil_evaporation_actual = np.minimum(
+                soil_evaporation_demand,
+                available_topsoil_water,
+            )
+
+            daily_lists["soil_evaporation"].append(soil_evaporation_actual)
             daily_lists["aerodynamic_resistance_soil"].append(
                 soil_evaporation["aerodynamic_resistance_soil"]
             )
@@ -768,12 +894,9 @@ class HydrologyModel(
                 (
                     np.expand_dims(
                         np.clip(
-                            (
-                                soil_moisture_infiltrated
-                                - soil_evaporation["soil_evaporation"]
-                            ),
+                            (soil_moisture_infiltrated - soil_evaporation_actual),
                             hydro_input["top_soil_moisture_residual"],
-                            hydro_input["top_soil_moisture_saturation"],
+                            None,
                         ),
                         axis=0,
                     ),
@@ -798,9 +921,7 @@ class HydrologyModel(
                 soil_moisture_residual=(
                     self.model_constants.soil_moisture_residual
                 ),  # vol
-                saturated_hydraulic_conductivity=(
-                    self.model_constants.saturated_hydraulic_conductivity
-                ),  # m/s
+                saturated_hydraulic_conductivity=self.saturated_hydraulic_conductivity,
                 air_entry_potential_inverse=(
                     self.model_constants.air_entry_potential_inverse
                 ),  # m/m
@@ -813,6 +934,26 @@ class HydrologyModel(
                 seconds_to_day=self.core_constants.seconds_to_day,
                 denominator_tolerance=self.model_constants.denominator_tolerance,
             )
+
+            if self.daily_diagnostics_path is not None:
+                daily_diagnostics["effective_saturation"].append(
+                    vertical_flow_potential["effective_saturation"].copy()
+                )
+                daily_diagnostics["vertical_flow_potential"].append(
+                    vertical_flow_potential["vertical_flow"].copy()
+                )
+
+            # Keep any excess that did not drain as surface runoff. Remove that
+            # excess from the soil input before the mass-conserving soil update.
+            additional_surface_runoff = np.maximum(
+                soil_moisture_evap_mm[0]
+                - vertical_flow_potential["vertical_flow"][0]
+                - hydro_input["top_soil_moisture_saturation"],
+                0.0,
+            )
+            surface_runoff_local = surface_runoff_local + additional_surface_runoff
+            soil_moisture_evap_mm[0] -= additional_surface_runoff
+            daily_lists["surface_runoff"].append(surface_runoff_local)
 
             # Calculate subsurface stormflow, [mm]
             effective_saturation_ini = vertical_flow_potential["effective_saturation"]
@@ -846,10 +987,34 @@ class HydrologyModel(
             soil_moisture_updated = below_ground_update["soil_moisture"]
             vertical_flow_actual = below_ground_update["vertical_flow"]
             subsurface_stormflow_actual = below_ground_update["subsurface_stormflow"]
+            transpiration_actual = below_ground_update["transpiration"]
+
+            unmet_transpiration = (
+                hydro_input["current_transpiration"] - transpiration_actual
+            )
+            unmet_transpiration = np.maximum(unmet_transpiration, 0.0)
+            if np.any(
+                unmet_transpiration
+                > self.model_constants.absolute_tolerance
+                + self.model_constants.relative_tolerance
+                * np.abs(hydro_input["current_transpiration"])
+            ):
+                LOGGER.warning(
+                    "Transpiration reduced by root-zone water limitation on day "
+                    f"{day + 1}; unmet demand totals "
+                    f"{np.sum(unmet_transpiration):.6g} mm across grid cells."
+                )
 
             daily_lists["vertical_flow"].append(vertical_flow_actual)
             daily_lists["subsurface_stormflow"].append(subsurface_stormflow_actual)
             daily_lists["soil_moisture"].append(soil_moisture_updated)
+            if self.daily_diagnostics_path is not None:
+                daily_diagnostics["vertical_flow_actual"].append(
+                    vertical_flow_actual.copy()
+                )
+                daily_diagnostics["soil_moisture_end"].append(
+                    soil_moisture_updated.copy()
+                )
 
             # Recalculate matric potential based on updated soil moisture
             effective_saturation_new = hydrology_tools.calculate_effective_saturation(
@@ -888,7 +1053,12 @@ class HydrologyModel(
                 ),
             )
 
-            for var in ["groundwater_storage", "subsurface_flow", "baseflow"]:
+            for var in [
+                "groundwater_storage",
+                "groundwater_loss",
+                "subsurface_flow",
+                "baseflow",
+            ]:
                 daily_lists[var].append(below_ground_flow[var])
 
             # Calculate horizontal flows between grid cells individually for output
@@ -935,11 +1105,73 @@ class HydrologyModel(
             )
             daily_lists["river_discharge_rate"].append(river_discharge_rate)
 
+            daily_fluxes = {
+                "precipitation": hydro_input["current_precipitation"][:, day],
+                "condensation": hydro_input["condensation"],
+                "canopy_evaporation": canopy_evaporation,
+                "soil_evaporation": soil_evaporation_actual,
+                "transpiration": transpiration_actual,
+                "groundwater_loss": below_ground_flow["groundwater_loss"],
+                "routed_runoff": total_runoff,
+            }
+            for name, values in daily_fluxes.items():
+                water_balance_fluxes[name].append(values)
+
+            daily_storage_end = np.concatenate(
+                (
+                    soil_moisture_updated,
+                    below_ground_flow["groundwater_storage"],
+                ),
+                axis=0,
+            )
+            hydrology_tools.check_water_balance(
+                drainage_map=self.drainage_map,
+                routed_runoff_mm=total_runoff,
+                precipitation_mm=daily_fluxes["precipitation"],
+                condensation_mm=daily_fluxes["condensation"],
+                canopy_evaporation_mm=daily_fluxes["canopy_evaporation"],
+                soil_evaporation_mm=daily_fluxes["soil_evaporation"],
+                transpiration_mm=daily_fluxes["transpiration"],
+                groundwater_loss_mm=daily_fluxes["groundwater_loss"],
+                storage_start_mm=daily_storage_start,
+                storage_end_mm=daily_storage_end,
+                relative_tolerance=self.model_constants.relative_tolerance,
+                absolute_tolerance=self.model_constants.absolute_tolerance,
+                period=f"day {day + 1}",
+            )
+
             # Update other model states for next day
             hydro_input["current_soil_moisture"] = soil_moisture_updated
             hydro_input["groundwater_storage"] = below_ground_flow[
                 "groundwater_storage"
             ]
+
+        monthly_fluxes = {
+            name: np.sum(np.stack(values, axis=0), axis=0)
+            for name, values in water_balance_fluxes.items()
+        }
+        water_balance_storage_end = np.concatenate(
+            (
+                hydro_input["current_soil_moisture"],
+                hydro_input["groundwater_storage"],
+            ),
+            axis=0,
+        )
+        hydrology_tools.check_water_balance(
+            drainage_map=self.drainage_map,
+            routed_runoff_mm=monthly_fluxes["routed_runoff"],
+            precipitation_mm=monthly_fluxes["precipitation"],
+            condensation_mm=monthly_fluxes["condensation"],
+            canopy_evaporation_mm=monthly_fluxes["canopy_evaporation"],
+            soil_evaporation_mm=monthly_fluxes["soil_evaporation"],
+            transpiration_mm=monthly_fluxes["transpiration"],
+            groundwater_loss_mm=monthly_fluxes["groundwater_loss"],
+            storage_start_mm=water_balance_storage_start,
+            storage_end_mm=water_balance_storage_end,
+            relative_tolerance=self.model_constants.relative_tolerance,
+            absolute_tolerance=self.model_constants.absolute_tolerance,
+            period="update interval",
+        )
 
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
@@ -957,6 +1189,7 @@ class HydrologyModel(
             "subsurface_flow",
             "subsurface_stormflow",
             "baseflow",
+            "groundwater_loss",
             "bypass_flow",
             "surface_runoff_routed_plus_local",
             "subsurface_runoff_routed_plus_local",
@@ -1000,8 +1233,100 @@ class HydrologyModel(
             coords=self.data["groundwater_storage"].coords,
         )
 
+        if self.daily_diagnostics_path is not None:
+            self._write_daily_diagnostics(
+                time_index=time_index,
+                hydro_input=hydro_input,
+                daily_lists=daily_lists,
+                water_balance_fluxes=water_balance_fluxes,
+                daily_diagnostics=daily_diagnostics,
+            )
+
         # Update data object
         self.data.add_from_dict(output_dict=soil_hydrology)
+        self._soil_moisture_state = hydro_input["current_soil_moisture"].copy()
+
+    def _write_daily_diagnostics(
+        self,
+        time_index: int,
+        hydro_input: dict[str, Any],
+        daily_lists: dict[str, list],
+        water_balance_fluxes: dict[str, list[np.ndarray]],
+        daily_diagnostics: dict[str, list[np.ndarray]],
+    ) -> None:
+        """Write daily per-cell water fluxes and soil states to a CSV file."""
+        if self.daily_diagnostics_path is None:
+            return
+
+        n_days = len(daily_diagnostics["soil_moisture_start"])
+        n_cells = len(self.grid.cell_id)
+        rows: dict[str, np.ndarray] = {
+            "update_index": np.full(n_days * n_cells, time_index),
+            "day_in_update": np.repeat(np.arange(1, n_days + 1), n_cells),
+            "cell_id": np.tile(self.grid.cell_id, n_days),
+        }
+
+        daily_flux_names = (
+            "precipitation_surface",
+            "surface_runoff",
+            "bypass_flow",
+            "soil_evaporation",
+        )
+        for name in daily_flux_names:
+            rows[f"{name}_mm"] = np.stack(daily_lists[name], axis=0).reshape(-1)
+
+        for name, values in (
+            ("precipitation", hydro_input["current_precipitation"].T),
+            (
+                "transpiration_demand",
+                np.broadcast_to(
+                    hydro_input["current_transpiration"],
+                    (n_days, n_cells),
+                ),
+            ),
+            (
+                "transpiration_actual",
+                np.stack(water_balance_fluxes["transpiration"], axis=0),
+            ),
+        ):
+            rows[f"{name}_mm"] = np.asarray(values).reshape(-1)
+
+        for name in (
+            "soil_moisture_start",
+            "effective_saturation",
+            "vertical_flow_potential",
+            "vertical_flow_actual",
+            "soil_moisture_end",
+        ):
+            values = np.stack(daily_diagnostics[name], axis=0)
+            for layer_index in range(values.shape[1]):
+                if name.startswith("soil_moisture"):
+                    suffix = "mm"
+                elif name.startswith("vertical_flow"):
+                    suffix = "mm_day"
+                else:
+                    suffix = "fraction"
+                rows[f"{name}_layer_{layer_index}_{suffix}"] = values[
+                    :, layer_index, :
+                ].reshape(-1)
+
+        rows["topsoil_to_subsoil_flow_mm_day"] = rows[
+            "vertical_flow_actual_layer_0_mm_day"
+        ]
+
+        diagnostics = pd.DataFrame(rows)
+        self.daily_diagnostics_path.parent.mkdir(parents=True, exist_ok=True)
+        is_first_update = time_index == 0
+        diagnostics.to_csv(
+            self.daily_diagnostics_path,
+            mode="w" if is_first_update else "a",
+            header=is_first_update or not self.daily_diagnostics_path.exists(),
+            index=False,
+        )
+        LOGGER.info(
+            "Wrote daily hydrology diagnostics to %s",
+            self.daily_diagnostics_path,
+        )
 
     def cleanup(self) -> None:
         """Placeholder function for hydrology model cleanup."""
