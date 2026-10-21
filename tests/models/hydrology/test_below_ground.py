@@ -140,6 +140,23 @@ def test_update_soil_moisture(fixture_hydrology_constants):
     )
 
 
+def test_update_soil_moisture_limits_transpiration_to_available_root_water():
+    """Root uptake cannot consume water below residual soil moisture."""
+    from virtual_ecosystem.models.hydrology.below_ground import update_soil_moisture
+
+    result = update_soil_moisture(
+        soil_moisture=np.array([[10.0], [11.0], [20.0]]),
+        vertical_flow=np.zeros((3, 1)),
+        transpiration=np.array([5.0]),
+        subsurface_stormflow=np.zeros(1),
+        soil_moisture_saturation=np.array([[20.0], [20.0], [30.0]]),
+        soil_moisture_residual=np.array([[5.0], [10.0], [10.0]]),
+    )
+
+    np.testing.assert_allclose(result["transpiration"], np.array([1.0]))
+    np.testing.assert_allclose(result["soil_moisture"][1], np.array([10.0]))
+
+
 def test_calculate_matric_potential(fixture_hydrology_constants):
     """Test that function to convert soil moisture to a water potential works."""
     from virtual_ecosystem.models.hydrology.below_ground import (
@@ -147,7 +164,7 @@ def test_calculate_matric_potential(fixture_hydrology_constants):
     )
 
     constants = fixture_hydrology_constants
-    expected_potentials = np.repeat(-68.197326, 3)
+    expected_potentials = np.repeat(-41.2393049, 3)
     actual_potentials = calculate_matric_potential(
         effective_saturation=np.repeat(0.5, 3),
         air_entry_potential_inverse=constants.air_entry_potential_inverse,
@@ -255,6 +272,11 @@ def test_update_groundwater_storage_caps_groundwater_loss() -> None:
     np.testing.assert_allclose(
         result["subsurface_flow"],
         np.array([0.0, 0.0, 0.0, 0.0], dtype=float),
+        rtol=1e-05,
+    )
+    np.testing.assert_allclose(
+        result["groundwater_loss"],
+        np.array([5.0, 1.0, 0.5, 0.0], dtype=float),
         rtol=1e-05,
     )
     np.testing.assert_allclose(
