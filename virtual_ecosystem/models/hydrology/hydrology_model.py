@@ -206,6 +206,8 @@ class HydrologyModel(
         """Upstream neighbours for the calculation of horizontal flow."""
         self.soil_layer_thickness_mm: np.ndarray
         """Soil layer thickness in mm."""
+        self.saturated_hydraulic_conductivity: np.ndarray
+        """Layer-specific saturated hydraulic conductivity, [m s-1]."""
         self._soil_moisture_state: np.ndarray
         """End-of-update soil moisture used as the next update's initial state, [mm]."""
         self.surface_layer_index: int
@@ -278,6 +280,21 @@ class HydrologyModel(
             )[:, None],
             self.grid.n_cells,
         )
+        configured_ksat = self.model_constants.saturated_hydraulic_conductivity
+        if isinstance(configured_ksat, tuple):
+            topsoil_ksat, subsoil_ksat = configured_ksat
+            self.saturated_hydraulic_conductivity = np.full_like(
+                self.soil_layer_thickness_mm,
+                subsoil_ksat,
+                dtype=float,
+            )
+            self.saturated_hydraulic_conductivity[0, :] = topsoil_ksat
+        else:
+            self.saturated_hydraulic_conductivity = np.full_like(
+                self.soil_layer_thickness_mm,
+                configured_ksat,
+                dtype=float,
+            )
 
         # Select aboveground layer for surface evaporation calculation
         # TODO this needs to be replaced with 2m above ground value
@@ -766,9 +783,7 @@ class HydrologyModel(
                 soil_layer_depth=self.layer_structure.soil_layer_depths,
                 soil_moisture_saturation=self.model_constants.soil_moisture_saturation,
                 soil_moisture_residual=self.model_constants.soil_moisture_residual,
-                saturated_hydraulic_conductivity=(
-                    self.model_constants.saturated_hydraulic_conductivity
-                ),
+                saturated_hydraulic_conductivity=self.saturated_hydraulic_conductivity,
                 air_entry_potential_inverse=(
                     self.model_constants.air_entry_potential_inverse
                 ),
@@ -906,9 +921,7 @@ class HydrologyModel(
                 soil_moisture_residual=(
                     self.model_constants.soil_moisture_residual
                 ),  # vol
-                saturated_hydraulic_conductivity=(
-                    self.model_constants.saturated_hydraulic_conductivity
-                ),  # m/s
+                saturated_hydraulic_conductivity=self.saturated_hydraulic_conductivity,
                 air_entry_potential_inverse=(
                     self.model_constants.air_entry_potential_inverse
                 ),  # m/m

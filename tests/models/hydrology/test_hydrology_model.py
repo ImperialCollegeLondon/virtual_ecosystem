@@ -104,11 +104,52 @@ def test_hydrology_model_initialization(
     assert model.p_wet_dry == ini_dry
     assert model.rainfall_shape_parameter == ini_shape
     assert model.rainfall_scale_parameter == ini_scale
+    np.testing.assert_array_equal(
+        model.saturated_hydraulic_conductivity[:, 0],
+        np.array([3.5e-5, 3.5e-7]),
+    )
     # TODO: not sure on the value below, test with more expansive drainage maps
     assert model.drainage_map == {0: [], 1: [], 2: [0], 3: [1]}
 
     # Final check that expected logging entries are produced
     log_check(caplog, MODEL_VAR_CHECK_LOG[1:])
+
+
+@pytest.mark.parametrize(
+    "configured_ksat, expected_ksat",
+    [
+        ([4e-5, 2e-7], (4e-5, 2e-7)),
+        (1e-7, (1e-7, 1e-7)),
+    ],
+)
+def test_hydrology_model_resolves_layer_ksat(
+    fixture_hydrology_init_data,
+    fixture_core_components,
+    configured_ksat,
+    expected_ksat,
+):
+    """Test pair-valued and legacy scalar Ksat configuration."""
+    from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
+    from virtual_ecosystem.models.hydrology.model_config import HydrologyConstants
+
+    model = HydrologyModel(
+        data=fixture_hydrology_init_data,
+        core_components=fixture_core_components,
+        initial_soil_moisture=0.5,
+        initial_groundwater_saturation=0.9,
+        p_wet_wet=0.6,
+        p_wet_dry=0.3,
+        rainfall_shape_parameter=1.5,
+        rainfall_scale_parameter=1.0,
+        model_constants=HydrologyConstants(
+            saturated_hydraulic_conductivity=configured_ksat
+        ),
+    )
+
+    np.testing.assert_array_equal(
+        model.saturated_hydraulic_conductivity[:, 0],
+        np.asarray(expected_ksat),
+    )
 
 
 @pytest.mark.parametrize(

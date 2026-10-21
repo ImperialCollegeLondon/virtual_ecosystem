@@ -374,6 +374,19 @@ $L$ is the pore connectivity parameter (assumed to be 0.5 in most of studies),
 and $m=1-1/n$ is a
 shape parameter derived from the non-linearity parameter $n$.
 
+Saturated hydraulic conductivity can differ between topsoil and deeper soil layers.
+Configure a pair in ``[hydrology.constants]``; the first value applies to the topsoil
+and the second to every deeper soil layer. For example:
+
+```toml
+[hydrology.constants]
+saturated_hydraulic_conductivity = [3.5e-5, 3.5e-7]
+```
+
+These are exploratory defaults for testing a more conductive topsoil, not a calibrated
+site-specific parameterization. A scalar value remains supported for configurations
+that use the same saturated conductivity in every soil layer.
+
 The soil matric potential $\Psi_{m}$ is calculated as follows:
 
 $$\Psi_{m} = - \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}$$
