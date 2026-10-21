@@ -309,6 +309,12 @@ The calculated daily soil evaporation is limited to the water available above
 residual moisture in the topsoil; topsoil moisture is therefore not depleted below
 its residual value by evaporation.
 
+Daily hydrology outputs are retained in the data object with a ``_daily`` suffix and a
+separate ``day`` dimension. The day coordinate is numbered from 1 within each model
+update, independently of the simulation ``time_index``. These arrays are replaced at
+the next hydrology update; the unsuffixed variables continue to contain the usual
+update-interval totals or means.
+
 ### Infiltration
 
 Infiltration is currently handled in a very simplistic way: water that fits in the

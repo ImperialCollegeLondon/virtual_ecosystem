@@ -314,6 +314,7 @@ def test_setup_and_update_hydrology_model_ranges(
     # Run the update step
     model.update(time_index=1, seed=42)
 
+    assert set(model.vars_updated).issubset(model.data.data_vars)
     expected_mean_soil_moisture = np.mean(
         np.stack(daily_soil_moisture, axis=0),
         axis=0,
@@ -322,6 +323,56 @@ def test_setup_and_update_hydrology_model_ranges(
         model.data["soil_moisture"][soil_indices],
         expected_mean_soil_moisture,
     )
+    assert model.data["soil_moisture_daily"].dims == ("day", "layers", "cell_id")
+    np.testing.assert_array_equal(
+        model.data["soil_moisture_daily"]["day"],
+        np.arange(1, len(daily_soil_moisture) + 1),
+    )
+    np.testing.assert_allclose(
+        model.data["soil_moisture_daily"][:, soil_indices],
+        np.stack(daily_soil_moisture, axis=0),
+    )
+    np.testing.assert_array_equal(
+        model.data["soil_moisture_daily"]["layers"],
+        model.layer_structure.from_template()["layers"],
+    )
+    for variable in ("soil_moisture", "matric_potential", "vertical_flow"):
+        daily_variable = model.data[f"{variable}_daily"]
+        assert daily_variable.sizes["layers"] == len(lyr_strct.layer_roles)
+        assert daily_variable.dims == ("day", "layers", "cell_id")
+        np.testing.assert_array_equal(
+            daily_variable["layers"],
+            model.layer_structure.from_template()["layers"],
+        )
+        np.testing.assert_array_equal(
+            daily_variable[:, ~soil_indices].isnull(),
+            np.ones(daily_variable[:, ~soil_indices].shape, dtype=bool),
+        )
+        np.testing.assert_allclose(
+            daily_variable[:, soil_indices].mean(dim="day"),
+            model.data[variable][soil_indices],
+        )
+
+    for variable in ("interception", "canopy_evaporation"):
+        daily_variable = model.data[f"{variable}_daily"]
+        assert daily_variable.dims == ("day", "layers", "cell_id")
+        np.testing.assert_array_equal(
+            daily_variable["layers"],
+            model.layer_structure.from_template()["layers"],
+        )
+    for variable in (
+        name for name in model.vars_updated if not name.endswith("_daily")
+    ):
+        regular_variable = model.data[variable]
+        daily_variable = model.data[f"{variable}_daily"]
+        assert daily_variable.dims == ("day", *regular_variable.dims)
+        for dimension in regular_variable.dims:
+            assert daily_variable.sizes[dimension] == regular_variable.sizes[dimension]
+            if dimension in regular_variable.coords:
+                np.testing.assert_array_equal(
+                    daily_variable[dimension],
+                    regular_variable[dimension],
+                )
     end_soil_moisture = daily_soil_moisture[-1]
     np.testing.assert_allclose(model._soil_moisture_state, end_soil_moisture)
     np.testing.assert_allclose(

@@ -26,6 +26,7 @@ There are still a number of open TODOs related to process implementation and imp
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from typing import Any
 
 import numpy as np
@@ -88,6 +89,30 @@ class HydrologyModel(
         "rain_driven_snowmelt",
         "sublimation_snow",
         "snowfall",
+        "interception_daily",
+        "canopy_evaporation_daily",
+        "precipitation_surface_daily",
+        "soil_moisture_daily",
+        "surface_runoff_daily",
+        "vertical_flow_daily",
+        "soil_evaporation_daily",
+        "surface_runoff_routed_plus_local_daily",
+        "subsurface_runoff_routed_plus_local_daily",
+        "total_runoff_daily",
+        "river_discharge_rate_daily",
+        "matric_potential_daily",
+        "groundwater_storage_daily",
+        "groundwater_loss_daily",
+        "subsurface_flow_daily",
+        "subsurface_stormflow_daily",
+        "baseflow_daily",
+        "bypass_flow_daily",
+        "aerodynamic_resistance_soil_daily",
+        "snow_water_equivalent_daily",
+        "temperature_driven_snowmelt_daily",
+        "rain_driven_snowmelt_daily",
+        "sublimation_snow_daily",
+        "snowfall_daily",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -140,6 +165,30 @@ class HydrologyModel(
         "total_runoff",
         "canopy_evaporation",
         "groundwater_loss",
+        "interception_daily",
+        "canopy_evaporation_daily",
+        "precipitation_surface_daily",
+        "soil_moisture_daily",
+        "surface_runoff_daily",
+        "vertical_flow_daily",
+        "soil_evaporation_daily",
+        "surface_runoff_routed_plus_local_daily",
+        "subsurface_runoff_routed_plus_local_daily",
+        "total_runoff_daily",
+        "river_discharge_rate_daily",
+        "matric_potential_daily",
+        "groundwater_storage_daily",
+        "groundwater_loss_daily",
+        "subsurface_flow_daily",
+        "subsurface_stormflow_daily",
+        "baseflow_daily",
+        "bypass_flow_daily",
+        "aerodynamic_resistance_soil_daily",
+        "snow_water_equivalent_daily",
+        "temperature_driven_snowmelt_daily",
+        "rain_driven_snowmelt_daily",
+        "sublimation_snow_daily",
+        "snowfall_daily",
     ),
 ):
     """A class describing the hydrology model.
@@ -583,7 +632,9 @@ class HydrologyModel(
         )
 
         # Create lists for output variables to store daily data
-        daily_lists: dict = {name: [] for name in self.vars_updated}
+        daily_lists: dict[str, list[np.ndarray]] = {
+            name: [] for name in self.vars_updated if not name.endswith("_daily")
+        }
         water_balance_fluxes: dict[str, list[np.ndarray]] = {
             name: []
             for name in (
@@ -1190,6 +1241,43 @@ class HydrologyModel(
             dims=self.data["groundwater_storage"].dims,
             coords=self.data["groundwater_storage"].coords,
         )
+
+        for name, values in daily_lists.items():
+            daily_values = np.stack(values, axis=0)
+            template = soil_hydrology[name]
+            if name in ("soil_moisture", "matric_potential", "vertical_flow"):
+                full_layer_values = np.full(
+                    (len(values), *template.shape),
+                    np.nan,
+                    dtype=np.result_type(daily_values.dtype, float),
+                )
+                full_layer_values[:, self.layer_structure.index_all_soil, :] = (
+                    daily_values
+                )
+                daily_values = full_layer_values
+
+            coordinates: dict[Hashable, np.ndarray | DataArray] = {
+                "day": np.arange(1, len(values) + 1)
+            }
+            for axis, dim in enumerate(template.dims, start=1):
+                dimension_size = daily_values.shape[axis]
+                if template.sizes[dim] == dimension_size:
+                    coordinates[dim] = (
+                        template.coords[dim]
+                        if dim in template.coords
+                        else np.arange(dimension_size)
+                    )
+                else:
+                    raise ValueError(
+                        f"Daily hydrology output '{name}' has {dimension_size} "
+                        f"values on dimension '{dim}', expected {template.sizes[dim]}."
+                    )
+
+            soil_hydrology[f"{name}_daily"] = DataArray(
+                daily_values,
+                dims=("day", *template.dims),
+                coords=coordinates,
+            )
 
         # Update data object
         self.data.add_from_dict(output_dict=soil_hydrology)
