@@ -1257,7 +1257,7 @@ class HydrologyModel(
                 daily_values = full_layer_values
 
             coordinates: dict[Hashable, np.ndarray | DataArray] = {
-                "day": np.arange(1, len(values) + 1)
+                "day": np.arange(len(values))
             }
             for axis, dim in enumerate(template.dims, start=1):
                 dimension_size = daily_values.shape[axis]

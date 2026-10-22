@@ -326,7 +326,7 @@ def test_setup_and_update_hydrology_model_ranges(
     assert model.data["soil_moisture_daily"].dims == ("day", "layers", "cell_id")
     np.testing.assert_array_equal(
         model.data["soil_moisture_daily"]["day"],
-        np.arange(1, len(daily_soil_moisture) + 1),
+        np.arange(len(daily_soil_moisture)),
     )
     np.testing.assert_allclose(
         model.data["soil_moisture_daily"][:, soil_indices],
