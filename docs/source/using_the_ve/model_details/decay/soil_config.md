@@ -61,10 +61,9 @@ The Soil model configuration is used to provide:
 
 * A set of soil model constants using the `soil.constants` configuration.
 
-* A path to enzyme class parametrisation CSV file using the
+* A path to [enzyme class parametrisation CSV
+  file](./microbial_parameterisation.md#enzyme-classes) using the
   `soil.enzyme_class_definition_path` setting.
-
-TODO - ADD AN APPROPRIATE LINK HERE
 
 ## Soil microbial groups
 

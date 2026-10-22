@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from itertools import product
 from math import exp
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -45,13 +46,13 @@ from virtual_ecosystem.models.soil.env_factors import (
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
     MicrobialGroupConstants,
-    make_full_set_of_enzyme_classes,
     make_full_set_of_microbial_groups,
 )
 from virtual_ecosystem.models.soil.model_config import (
     SoilConfiguration,
     SoilConstants,
-    SoilEnzymeClass,
+    SoilEnzyme,
+    load_enzymes,
 )
 from virtual_ecosystem.models.soil.pools import SoilPools
 from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
@@ -205,7 +206,7 @@ class SoilModel(
         data: Data,
         core_components: CoreComponents,
         microbial_groups: dict[str, MicrobialGroupConstants],
-        enzyme_classes: dict[str, SoilEnzymeClass],
+        enzyme_classes: dict[str, SoilEnzyme],
         soil_moisture_saturation: float,
         soil_moisture_residual: float,
         model_constants: SoilConstants = SoilConstants(),
@@ -252,7 +253,7 @@ class SoilModel(
         self,
         model_constants: SoilConstants,
         microbial_groups: dict[str, MicrobialGroupConstants],
-        enzyme_classes: dict[str, SoilEnzymeClass],
+        enzyme_classes: dict[str, SoilEnzyme],
         soil_moisture_saturation: float,
         soil_moisture_residual: float,
     ) -> None:
@@ -324,8 +325,8 @@ class SoilModel(
         )
 
         # Extract enzyme classes to a dictionary
-        enzyme_classes = make_full_set_of_enzyme_classes(
-            path_to_csv=soil_configuration.enzyme_class_definition_path
+        enzyme_classes = load_enzymes(
+            path=Path(soil_configuration.enzyme_class_definition_path)
         )
 
         microbial_groups = make_full_set_of_microbial_groups(
@@ -992,7 +993,7 @@ def construct_full_soil_model(
     delta_pools_ordered: dict[str, NDArray[np.floating]],
     model_constants: SoilConstants,
     functional_groups: dict[str, MicrobialGroupConstants],
-    enzyme_classes: dict[str, SoilEnzymeClass],
+    enzyme_classes: dict[str, SoilEnzyme],
     core_constants: CoreConstants,
     soil_moisture_saturation: float,
     soil_moisture_residual: float,

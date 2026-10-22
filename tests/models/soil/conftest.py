@@ -507,12 +507,12 @@ def functional_groups(fixture_configuration, enzyme_classes, fixture_core_consta
 @pytest.fixture
 def enzyme_classes(fixture_configuration):
     """Set of enzyme classes based on the fixture csv file."""
-    from virtual_ecosystem.models.soil.microbial_groups import (
-        make_full_set_of_enzyme_classes,
-    )
+    from pathlib import Path
 
-    return make_full_set_of_enzyme_classes(
-        path_to_csv=fixture_configuration.soil.enzyme_class_definition_path
+    from virtual_ecosystem.models.soil.model_config import load_enzymes
+
+    return load_enzymes(
+        path=Path(fixture_configuration.soil.enzyme_class_definition_path)
     )
 
 

@@ -1,8 +1,9 @@
 """Configuration classes for the soil model."""
 
+# TODO - THIS ONLY SHOULD STICK AROUND UNTIL I'VE MIGRATE EVERYTHING OVER TO ANOTHER
+# MODULE
 from __future__ import annotations
 
-from itertools import product
 from pathlib import Path
 from typing import ClassVar, Literal, get_args
 
@@ -21,150 +22,6 @@ REQUIRED_MICROBIAL_GROUPS = Literal[
 
 HIGHER_TAXONOMIC_GROUPS = Literal["fungi", "bacteria"]
 """Permitted higher taxonomic group names in the soil model."""
-
-SUBSTRATES = Literal["pom", "maom"]
-"""Permitted substrate types in the soil model"""
-
-
-REQUIRED_ENZYMES: set[tuple[HIGHER_TAXONOMIC_GROUPS, SUBSTRATES]] = set(
-    product(get_args(HIGHER_TAXONOMIC_GROUPS), get_args(SUBSTRATES))
-)
-"""Required enzyme classes as all pairs of higher taxon source and substrate."""
-
-
-class SoilEnzymeClass(Configuration):
-    """Soil enzyme constants."""
-
-    source: HIGHER_TAXONOMIC_GROUPS
-    """The higher microbial group which produces the enzyme."""
-    substrate: SUBSTRATES
-    """The substrate which the enzyme acts upon."""
-    maximum_rate: float
-    """The maximum rate of the enzyme at the reference temperature [day^-1]."""
-    half_saturation_constant: float
-    """The half saturation constant for the enzyme at the reference temperature. Units
-    of [kg{C} m^-3]."""
-    activation_energy_rate: float
-    """Activation energy for enzyme rate with temperature [J Kelvin^-1]."""
-    activation_energy_saturation: float
-    """Activation energy for enzyme saturation with temperature [J Kelvin^-1]."""
-    # TODO - This should change to Kelvin when we change the default units to Kelvin
-    reference_temperature: float
-    """The temperature that enzyme rate and saturation were measured at [Celsius]."""
-    turnover_rate: float
-    """The turnover rate of the enzyme [day^-1]."""
-    c_n_ratio: float
-    """Ratio of carbon to nitrogen for the enzyme [unitless]."""
-    c_p_ratio: float
-    """Ratio of carbon to phosphorus for the enzyme [unitless]."""
-
-
-class SoilEnzymes(Configuration):
-    """Root configuration class for the soil model."""
-
-    _required_enzymes: ClassVar[set[tuple[HIGHER_TAXONOMIC_GROUPS, SUBSTRATES]]] = (
-        REQUIRED_ENZYMES
-    )
-    """Required enzyme classes, provided as all pairs of higher taxon source and
-    substrates."""
-
-    enzyme_class_definition: dict[str, SoilEnzymeClass]
-    """Definition of enzyme classes for soil model."""
-
-    @field_validator("enzyme_class_definition")
-    def _enforce_required_enzymes(
-        cls, enzymes: dict[str, SoilEnzymeClass]
-    ) -> dict[str, SoilEnzymeClass]:
-        """Validates the provided sets of enzyme classes."""
-        provided_enzymes = [(e.source, e.substrate) for e in enzymes.values()]
-        set_provided_enzymes = set(provided_enzymes)
-
-        if len(set_provided_enzymes) != len(provided_enzymes):
-            raise ValueError(
-                "Duplicated enzyme source/substrate combinations in enzyme data"
-            )
-
-        if not set_provided_enzymes == cls._required_enzymes:
-            raise ValueError(
-                f"The source/substrate pairs provided in enzyme class definitions "
-                f"({provided_enzymes!r}) do not match the required set of pairs "
-                f"({cls._required_enzymes!r})"
-            )
-
-        return enzymes
-
-
-def load_enzymes(path: Path) -> SoilEnzymes:
-    """Load and validate a soil enzyme CSV file."""
-
-    # Try and load the data
-    try:
-        data = pd.read_csv(path)
-    except (FileNotFoundError, IsADirectoryError):
-        raise ValueError(f"Enzyme CSV path not found or a directory: {path}")
-    except pd.errors.ParserError as excep:
-        raise ValueError(f"Could not parse enzyme data from: {path}: {excep!s}")
-
-    # Try and validate the data
-    try:
-        # Validate the CSV records
-        enzymes = [
-            SoilEnzymeClass.model_validate(rec)
-            for rec in data.to_dict(orient="records")
-        ]
-
-        # Package into a dict for the wrapper class
-        enzymes_dict = {f"{r.source}_{r.substrate}": r for r in enzymes}
-
-        # Validate the whole enzyme model
-        enzyme_model = SoilEnzymes.model_validate(
-            {"enzyme_class_definition": enzymes_dict}
-        )
-    except ValidationError as excep:
-        raise ValueError(f"Invalid data in enzyme CSV file: {excep!s}")
-
-    return enzyme_model
-
-
-def load_enzymes_2(path: Path) -> dict[str, SoilEnzymeClass]:
-    """Load and validate a soil enzyme CSV file."""
-
-    # Try and load the data
-    try:
-        data = pd.read_csv(path)
-    except (FileNotFoundError, IsADirectoryError):
-        raise ValueError(f"Enzyme CSV path not found or a directory: {path}")
-    except pd.errors.ParserError as excep:
-        raise ValueError(f"Could not parse enzyme data from: {path}: {excep!s}")
-
-    # Validate the data
-    try:
-        # Validate the CSV records
-        enzymes = [
-            SoilEnzymeClass.model_validate(rec)
-            for rec in data.to_dict(orient="records")
-        ]
-    except ValidationError as excep:
-        raise ValueError(f"Invalid data in enzyme CSV file: {excep!s}")
-
-    # Check the set of enzymes
-    provided_enzymes = [(e.source, e.substrate) for e in enzymes]
-    set_provided_enzymes = set(provided_enzymes)
-
-    if len(set_provided_enzymes) != len(provided_enzymes):
-        raise ValueError(
-            "Duplicated enzyme source/substrate combinations in enzyme data"
-        )
-
-    if not set_provided_enzymes == REQUIRED_ENZYMES:
-        raise ValueError(
-            f"The source/substrate pairs provided in enzyme class definitions "
-            f"({provided_enzymes!r}) do not match the required set of pairs "
-            f"({REQUIRED_ENZYMES!r})"
-        )
-
-    # Package into a dict and return
-    return {f"{r.source}_{r.substrate}": r for r in enzymes}
 
 
 class SoilMicrobialGroup(Configuration):

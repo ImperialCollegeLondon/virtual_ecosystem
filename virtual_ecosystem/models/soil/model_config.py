@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from itertools import product
+from pathlib import Path
 from typing import ClassVar, Literal, get_args
 
 import numpy as np
-from pydantic import Field, field_validator, model_validator
+import pandas as pd
+from pydantic import Field, ValidationError, field_validator, model_validator
 
 from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
@@ -351,34 +353,87 @@ class SoilConstants(Configuration):
         return self
 
 
-class SoilEnzymeClass(Configuration):
+class SoilEnzyme(Configuration):
     """Container for the set of constants associated with a soil enzyme class.
 
     This sets out the constants which must be defined for each soil enzyme class.
     """
 
-    source: HIGHER_TAXONOMIC_GROUPS = Field()
+    source: HIGHER_TAXONOMIC_GROUPS
     """The higher microbial group which produces the enzyme."""
-    substrate: SUBSTRATES = Field()
+    substrate: SUBSTRATES
     """The substrate which the enzyme acts upon."""
-    maximum_rate: float = Field()
+    maximum_rate: float
     """The maximum rate of the enzyme at the reference temperature [day-1]."""
-    half_saturation_constant: float = Field()
+    half_saturation_constant: float
     """The half saturation constant for the enzyme at the reference temperature. Units
     of [kg{C} m-3]."""
-    activation_energy_rate: float = Field()
+    activation_energy_rate: float
     """Activation energy for enzyme rate with temperature [J Kelvin-1]."""
-    activation_energy_saturation: float = Field()
+    activation_energy_saturation: float
     """Activation energy for enzyme saturation with temperature [J Kelvin-1]."""
     # TODO - This should change to Kelvin when we change the default units to Kelvin
-    reference_temperature: float = Field()
+    reference_temperature: float
     """The temperature that enzyme rate and saturation were measured at [Celsius]."""
-    turnover_rate: float = Field()
+    turnover_rate: float
     """The turnover rate of the enzyme [day-1]."""
-    c_n_ratio: float = Field()
+    c_n_ratio: float
     """Ratio of carbon to nitrogen for the enzyme [unitless]."""
-    c_p_ratio: float = Field()
+    c_p_ratio: float
     """Ratio of carbon to phosphorus for the enzyme [unitless]."""
+
+
+def load_enzymes(path: Path) -> dict[str, SoilEnzyme]:
+    """Load and validate a soil enzyme CSV file.
+
+    Args:
+        path: Path to csv file containing parametrisation for the required enzymes.
+
+    Raises:
+        ValueError: If the path doesn't point to a readable csv file, or if that csv
+            file is missing headers, contains surplus headers, is missing required
+            enzymes, contains duplicate enzymes or contains enzymes that aren't expected
+            by the simulation.
+
+    Returns:
+        The full set of enzymes required by the soil model.
+    """
+
+    # Try and load the data
+    try:
+        data = pd.read_csv(path)
+    except (FileNotFoundError, IsADirectoryError):
+        raise ValueError(f"Enzyme CSV path not found or a directory: {path}")
+    except pd.errors.ParserError as excep:
+        raise ValueError(f"Could not parse enzyme data from: {path}: {excep!s}")
+
+    # Validate the data
+    try:
+        # Validate the CSV records
+        enzymes = [
+            SoilEnzyme.model_validate(rec) for rec in data.to_dict(orient="records")
+        ]
+    except ValidationError as excep:
+        raise ValueError(f"Invalid data in enzyme CSV file: {excep!s}")
+
+    # Check the set of enzymes
+    provided_enzymes = [(e.source, e.substrate) for e in enzymes]
+    set_provided_enzymes = set(provided_enzymes)
+
+    if len(set_provided_enzymes) != len(provided_enzymes):
+        raise ValueError(
+            "Duplicated enzyme source/substrate combinations in enzyme data"
+        )
+
+    if not set_provided_enzymes == REQUIRED_ENZYMES:
+        raise ValueError(
+            f"The source/substrate pairs provided in enzyme class definitions "
+            f"({provided_enzymes!r}) do not match the required set of pairs "
+            f"({REQUIRED_ENZYMES!r})"
+        )
+
+    # Package into a dict and return
+    return {f"{r.source}_{r.substrate}": r for r in enzymes}
 
 
 class SoilMicrobialGroup(Configuration):

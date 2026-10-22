@@ -78,11 +78,11 @@ import re
 
 from IPython.display import display_markdown
 
-from virtual_ecosystem.models.soil.model_config import SoilEnzymeClass
+from virtual_ecosystem.models.soil.model_config import SoilEnzyme
 
 rows = ["Field name,Description"]
 
-for field_name, field in SoilEnzymeClass.model_fields.items():
+for field_name, field in SoilEnzyme.model_fields.items():
     # Tidy descriptions: remove newlines, convert Sphinx maths, and quote
     # descriptions so commas are handled correctly by the CSV table.
     description = field.description or ""
