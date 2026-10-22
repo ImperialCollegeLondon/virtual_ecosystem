@@ -525,13 +525,21 @@ class TestExporterDump:
         self.expected_n = dict(cohort=0, community_canopy=0, stem_canopy=0)
 
     def increment_expected_n(self, communities, canopies) -> None:
-        """Increment expected numbers of rows in the three data files."""
+        """Increment expected numbers of rows in the three data files.
+
+        The expected number of cohorts differs between outputs: cohorts include new
+        recruits but the stem canopy data does not.
+        """
+
         cht_by_cell = np.array([len(c.cohorts) for c in communities.values()])
         lyrs_by_cell = np.array([len(cpy.heights) for cpy in canopies.values()])
+        canopy_cht_by_cell = np.array(
+            [len(cpy.cohort_ids) for cpy in canopies.values()]
+        )
 
         self.expected_n["cohort"] += cht_by_cell.sum()
         self.expected_n["community_canopy"] += lyrs_by_cell.sum()
-        self.expected_n["stem_canopy"] += (cht_by_cell * lyrs_by_cell).sum()
+        self.expected_n["stem_canopy"] += (canopy_cht_by_cell * lyrs_by_cell).sum()
 
     def check_output(self, path, exporter):
         """Shared validation function."""
