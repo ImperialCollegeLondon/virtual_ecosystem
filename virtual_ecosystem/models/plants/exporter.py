@@ -576,12 +576,12 @@ class CommunityDataExporter:
             return
 
         stem_canopy_data = []
-        for (cell_id, canopy), community in zip(canopies.items(), communities.values()):
+        for cell_id, canopy in canopies.items():
             data = canopy.cohort_data.to_dataframe()
             n_heights = len(canopy.heights)
             full_data = pd.DataFrame(
                 dict(
-                    cohort_id=np.tile(community.cohorts.cohort_id, n_heights),
+                    cohort_id=np.tile(canopy.cohort_ids, n_heights),
                     cell_id=cell_id,
                     time=time,
                     time_index=time_index,
