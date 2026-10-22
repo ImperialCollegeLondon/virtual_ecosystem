@@ -59,16 +59,11 @@ The Soil model configuration is used to provide:
   `soil.microbial_group_definition` configuration option but this may move to loading
   from a CSV file using the `soil.microbial_group_definition_path` setting.
 
-* Enzyme kinetics data for the enzymes produced by the taxonomic groups. Data is
-  required for each pair of the higher taxonomic groups of microbes (fungi or bacteria)
-  and the enzyme substrates targeted in the model (particulate organic matter or mineral
-  associated organic matter): {glue:text}`soil_required_enzymes`
-
-  These are currently configured directly in the TOML file using the
-  `soil.enzyme_class_definition` configuration option but this may move to loading from
-  a CSV file using the `soil.enzyme_class_definition_path` setting.
-
 * A set of soil model constants using the `soil.constants` configuration.
+
+* A path to [enzyme class parametrisation CSV
+  file](./microbial_parameterisation.md#enzyme-classes) using the
+  `soil.enzyme_class_definition_path` setting.
 
 ## Soil microbial groups
 
@@ -83,21 +78,6 @@ from virtual_ecosystem.models.soil.model_config import SoilMicrobialGroup
 config_object = SoilMicrobialGroup()
 dump_config_toml("soil.microbial_group_definition", config_object)
 model_config_to_deflist("soil.microbial_group_definition", config_object)
-```
-
-## Soil enzyme classes
-
-The soil enzyme classes are defined as a set of traits associated with each pair of
-higher taxon and substrate
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.soil.model_config import SoilEnzymeClass
-
-config_object = SoilEnzymeClass()
-dump_config_toml("soil.enzyme_class_definition", config_object)
-model_config_to_deflist("soil.enzyme_class_definition", config_object)
 ```
 
 ## Soil constants

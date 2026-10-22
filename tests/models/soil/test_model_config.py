@@ -6,8 +6,6 @@ from itertools import permutations
 import pytest
 from pydantic import ValidationError
 
-from virtual_ecosystem.core.exceptions import ConfigurationError
-
 
 def test_SoilConstants_pH():
     """Test the custom validation on SoilConstants model.
@@ -34,37 +32,6 @@ def test_SoilConstants_pH():
 
         with outcome:
             _ = SoilConstants(**dict(zip(keys, perm)))
-
-
-@pytest.mark.parametrize(
-    argnames="data, outcome",
-    argvalues=(
-        pytest.param({}, does_not_raise(), id="default provides required"),
-        pytest.param(
-            {
-                "enzyme_class_definition": [
-                    {"source": "fungi", "substrate": "maom"},
-                    {"source": "fungi", "substrate": "pom"},
-                    {"source": "bacteria", "substrate": "maom"},
-                    {"source": "bacteria", "substrate": "pom"},
-                ]
-            },
-            does_not_raise(),
-            id="user data provides required",
-        ),
-        pytest.param(
-            {"enzyme_class_definition": [{"source": "fungi", "substrate": "maom"}]},
-            pytest.raises(ValidationError),
-            id="user data only provides one",
-        ),
-    ),
-)
-def test_SoilConfiguration_enzyme_class_definition(data, outcome):
-    """Test the custom validation on SoilConfiguration.enzyme_class_definition."""
-    from virtual_ecosystem.models.soil.model_config import SoilConfiguration
-
-    with outcome:
-        _ = SoilConfiguration(**data)
 
 
 @pytest.mark.parametrize(
@@ -127,135 +94,226 @@ def test_SoilMicrobialGroup(data, outcome):
         _ = SoilMicrobialGroup(**data)
 
 
-@pytest.mark.parametrize(
-    argnames=["cfg_strings"],
-    argvalues=[
-        pytest.param(
-            """
-            [[soil.enzyme_class_definition]]
-            source = "bacteria"
-            substrate = "pom"
-            [[soil.enzyme_class_definition]]
-            source = "bacteria"
-            substrate = "maom"
-            [[soil.enzyme_class_definition]]
-            source = "fungi"
-            substrate = "pom"
-            """,
-            id="missing_fungi_maom",
-        ),
-        pytest.param(  # archaea included but they shouldn't be
-            """
-            [[soil.enzyme_class_definition]]
-            source = "bacteria"
-            substrate = "pom"
-            [[soil.enzyme_class_definition]]
-            source = "bacteria"
-            substrate = "maom"
-            [[soil.enzyme_class_definition]]
-            source = "fungi"
-            substrate = "pom"
-            [[soil.enzyme_class_definition]]
-            source = "fungi"
-            substrate = "maom"
-            [[soil.enzyme_class_definition]]
-            source = "fungi"
-            substrate = "phosphate"
-            """,
-            id="unexpected_phosphatase",
-        ),
-        pytest.param(
-            """
-            [[soil.enzyme_class_definition]]
-            source = "bacteria"
-            substrate = "pom"
+def test_load_enzymes(fixture_configuration):
+    """Test that the function to load all the enzyme classes works."""
+    from pathlib import Path
 
-            [[soil.enzyme_class_definition]]
-            source = "fungi"
-            substrate = "phosphate"
-            """,
-            id="missing_most_enzymes_and_unexpected_phosphatase",
-        ),
-    ],
-)
-def test_soil_enzyme_definition_via_toml(caplog, cfg_strings):
-    """Check that bad configs generate errors during enzyme class generation.
-
-    This is a cut down version of testing of the old make_full_set_of_enzymes_errors
-    function, retained as a bit of a belt and braces test for testing the full path from
-    TOML.
-    """
-
-    from virtual_ecosystem.core.config_builder import (
-        ConfigurationLoader,
-        generate_configuration,
+    from virtual_ecosystem.models.soil.model_config import (
+        REQUIRED_ENZYMES,
+        SoilEnzyme,
+        load_enzymes,
     )
 
-    config_data = ConfigurationLoader(cfg_strings=cfg_strings)
-    caplog.clear()
-
-    with pytest.raises(ConfigurationError):
-        _ = generate_configuration(config_data.data)
-
-
-@pytest.mark.parametrize(
-    argnames="cfg_strings",
-    argvalues=[
-        pytest.param(
-            """
-            [[soil.microbial_group_definition]]
-            name = "bacteria"
-            taxonomic_group = "bacteria"
-            """,
-            id="missing_fungi",
-        ),
-        pytest.param(
-            """
-            [[soil.microbial_group_definition]]
-            name = "bacteria"
-            taxonomic_group = "bacteria"
-            [[soil.microbial_group_definition]]
-            name = "saprotrophic_fungi"
-            taxonomic_group = "fungi"
-            [[soil.microbial_group_definition]]
-            name = "arbuscular_mycorrhiza"
-            taxonomic_group = "fungi"
-            [[soil.microbial_group_definition]]
-            name = "ectomycorrhiza"
-            taxonomic_group = "fungi"
-            [[soil.microbial_group_definition]]
-            name = "archaea"
-            taxonomic_group = "archaea"
-            """,
-            id="unexpected_archaea",
-        ),
-        pytest.param(
-            """
-            [[soil.microbial_group_definition]]
-            name = "bacteria"
-            taxonomic_group = "bacteria"
-            [[soil.microbial_group_definition]]
-            name = "archaea"
-            taxonomic_group = "archaea"
-
-            """,
-            id="missing_fungi_and_unexpected_archaea",
-        ),
-    ],
-)
-def test_make_full_set_of_microbial_groups_errors(cfg_strings):
-    """Check that bad configs generate errors during microbial group generation.
-
-    This is a cut down version of testing of the old
-    test_make_full_set_of_microbial_groups_errors function, retained as a bit of a belt
-    and braces test for testing the full path from TOML.
-    """
-    from virtual_ecosystem.core.config_builder import (
-        ConfigurationLoader,
-        generate_configuration,
+    enzyme_classes = load_enzymes(
+        path=Path(fixture_configuration.soil.enzyme_class_definition_path)
     )
 
-    config_data = ConfigurationLoader(cfg_strings=cfg_strings)
+    expected_enzymes = {
+        f"{source}_{substrate}" for source, substrate in REQUIRED_ENZYMES
+    }
 
-    with pytest.raises(ConfigurationError):
-        _ = generate_configuration(config_data.data)
+    assert expected_enzymes == set(enzyme_classes.keys())
+
+    for enzyme_class in enzyme_classes.values():
+        assert type(enzyme_class) is SoilEnzyme
+
+    assert enzyme_classes["bacteria_pom"].maximum_rate == 60.0
+    assert enzyme_classes["bacteria_maom"].maximum_rate == 24.0
+    assert enzyme_classes["fungi_pom"].maximum_rate == 120.0
+    assert enzyme_classes["fungi_maom"].maximum_rate == 48.0
+
+
+def test_load_enzymes_no_file(fixture_root_data_dir_path):
+    """Test function to load all the enzyme classes fails for non-existent file."""
+    from virtual_ecosystem.models.soil.model_config import load_enzymes
+
+    path_to_file = fixture_root_data_dir_path / "does_not_exist.csv"
+
+    with pytest.raises(
+        ValueError,
+        match="Enzyme CSV path not found or a directory:",
+    ):
+        _ = load_enzymes(path=path_to_file)
+
+
+def test_load_enzymes_bad_csv_file(tmp_path):
+    """Test function to load all the enzyme classes fails for bad csv files."""
+    from virtual_ecosystem.models.soil.model_config import load_enzymes
+
+    path_to_file = tmp_path / "enzyme_definitions.txt"
+    path_to_file.write_text('a,b\n1,"unterminated')
+
+    with pytest.raises(ValueError, match="Could not parse enzyme data from:"):
+        _ = load_enzymes(path=path_to_file)
+
+
+def test_load_enzymes_missing_header(
+    fixture_configuration,
+    tmp_path,
+):
+    """Test function to load all the enzyme classes fails if a column is missing."""
+    import pandas as pd
+
+    from virtual_ecosystem.models.soil.model_config import load_enzymes
+
+    # Read definitions in and then drop a required header
+    enzyme_definitions = pd.read_csv(
+        fixture_configuration.soil.enzyme_class_definition_path
+    )
+    enzyme_definitions = enzyme_definitions.drop(columns=["maximum_rate"])
+
+    # Write file out to temporary location
+    output_path = tmp_path / "enzyme_definitions.csv"
+    enzyme_definitions.to_csv(output_path, index=False)
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid data in enzyme CSV file: 1 validation error for SoilEnzyme",
+    ):
+        load_enzymes(output_path)
+
+
+def test_load_enzymes_surplus_header(
+    fixture_configuration,
+    tmp_path,
+):
+    """Test function to load all the enzyme classes fails for extra headers."""
+    import pandas as pd
+
+    from virtual_ecosystem.models.soil.model_config import load_enzymes
+
+    enzyme_definitions = pd.read_csv(
+        fixture_configuration.soil.enzyme_class_definition_path
+    )
+    enzyme_definitions["unused_column"] = "ignored"
+
+    # Write file out to temporary location
+    output_path = tmp_path / "enzyme_definitions.csv"
+    enzyme_definitions.to_csv(output_path, index=False)
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid data in enzyme CSV file: 1 validation error for SoilEnzyme",
+    ):
+        load_enzymes(output_path)
+
+
+def test_load_enzymes_missing_required_enzyme(
+    fixture_configuration,
+    tmp_path,
+):
+    """Test function to load the enzyme classes fails if required enzyme is missing."""
+    import pandas as pd
+
+    from virtual_ecosystem.models.soil.model_config import (
+        REQUIRED_ENZYMES,
+        load_enzymes,
+    )
+
+    enzyme_definitions = pd.read_csv(
+        fixture_configuration.soil.enzyme_class_definition_path
+    )
+
+    # Remove one enzyme definition from the dataframe
+    source, substrate = next(iter(REQUIRED_ENZYMES))
+
+    mask = ~(
+        (enzyme_definitions["source"] == source)
+        & (enzyme_definitions["substrate"] == substrate)
+    )
+    enzyme_definitions = enzyme_definitions.loc[mask]
+
+    # Write file out to temporary location
+    output_path = tmp_path / "enzyme_definitions.csv"
+    enzyme_definitions.to_csv(output_path, index=False)
+
+    with pytest.raises(
+        ValueError,
+        match="The source/substrate pairs provided in enzyme class definitions",
+    ):
+        load_enzymes(output_path)
+
+
+def test_load_enzymes_unexpected_enzyme(fixture_configuration, tmp_path):
+    """Test function to load enzyme classes fails if unexpected enzyme is included."""
+    import pandas as pd
+
+    from virtual_ecosystem.models.soil.model_config import load_enzymes
+
+    enzyme_definitions = pd.read_csv(
+        fixture_configuration.soil.enzyme_class_definition_path
+    )
+
+    # Copy a valid row but change its source/substrate combination.
+    unexpected_row = enzyme_definitions.iloc[[0]].copy()
+    unexpected_row.loc[:, "source"] = "unexpected_source"
+    unexpected_row.loc[:, "substrate"] = "unexpected_substrate"
+
+    enzyme_definitions = pd.concat(
+        [enzyme_definitions, unexpected_row],
+        ignore_index=True,
+    )
+
+    # Write file out to temporary location
+    output_path = tmp_path / "enzyme_definitions.csv"
+    enzyme_definitions.to_csv(output_path, index=False)
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid data in enzyme CSV file: 2 validation errors for SoilEnzyme",
+    ):
+        load_enzymes(output_path)
+
+
+def test_load_enzymes_duplicate_enzyme(fixture_configuration, tmp_path):
+    """Test function to load the enzyme classes fails an enzyme is duplicated."""
+    import pandas as pd
+
+    from virtual_ecosystem.models.soil.model_config import load_enzymes
+
+    enzyme_definitions = pd.read_csv(
+        fixture_configuration.soil.enzyme_class_definition_path
+    )
+
+    # Duplicate one of the rows so that there are two copies of the same enzyme in the
+    # input data
+    enzyme_definitions = pd.concat(
+        [enzyme_definitions, enzyme_definitions.loc[[2]]], ignore_index=True
+    )
+
+    # Write file out to temporary location
+    output_path = tmp_path / "enzyme_definitions.csv"
+    enzyme_definitions.to_csv(output_path, index=False)
+
+    with pytest.raises(
+        ValueError,
+        match="Duplicated enzyme source/substrate combinations in enzyme data",
+    ):
+        load_enzymes(output_path)
+
+
+def test_load_enzymes_bad_enzyme_data(fixture_configuration, tmp_path):
+    """Test function to load enzyme classes fails if csv data is non-numeric."""
+    import pandas as pd
+
+    from virtual_ecosystem.models.soil.model_config import load_enzymes
+
+    enzyme_definitions = pd.read_csv(
+        fixture_configuration.soil.enzyme_class_definition_path
+    )
+
+    # Replace a parameter value with a string
+    enzyme_definitions["maximum_rate"] = enzyme_definitions["maximum_rate"].astype(
+        object
+    )
+    enzyme_definitions.loc[0, "maximum_rate"] = "this_is_nonsense"
+
+    # Write file out to temporary location
+    output_path = tmp_path / "enzyme_definitions.csv"
+    enzyme_definitions.to_csv(output_path, index=False)
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid data in enzyme CSV file: 1 validation error for SoilEnzyme",
+    ):
+        load_enzymes(output_path)

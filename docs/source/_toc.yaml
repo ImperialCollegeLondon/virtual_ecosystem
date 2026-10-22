@@ -91,6 +91,7 @@ subtrees:
                 entries:
                   - file: using_the_ve/model_details/decay/litter_config
                   - file: using_the_ve/model_details/decay/soil_config
+                  - file: using_the_ve/model_details/decay/microbial_parameterisation
                   - file: using_the_ve/model_details/decay/default_microbial_params
 
       - file: development/contributing

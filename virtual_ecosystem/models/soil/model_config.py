@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from itertools import product
+from pathlib import Path
 from typing import ClassVar, Literal, get_args
 
 import numpy as np
-from pydantic import Field, field_validator, model_validator
+import pandas as pd
+from pydantic import Field, ValidationError, field_validator, model_validator
 
 from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
@@ -23,7 +25,6 @@ HIGHER_TAXONOMIC_GROUPS = Literal["fungi", "bacteria"]
 
 SUBSTRATES = Literal["pom", "maom"]
 """Permitted substrate types in the soil model"""
-
 
 REQUIRED_ENZYMES: set[tuple[HIGHER_TAXONOMIC_GROUPS, SUBSTRATES]] = set(
     product(get_args(HIGHER_TAXONOMIC_GROUPS), get_args(SUBSTRATES))
@@ -352,31 +353,87 @@ class SoilConstants(Configuration):
         return self
 
 
-class SoilEnzymeClass(Configuration):
-    """Soil enzyme constants."""
+class SoilEnzyme(Configuration):
+    """Container for the set of constants associated with a soil enzyme class.
 
-    source: HIGHER_TAXONOMIC_GROUPS = Field(default="bacteria")
+    This sets out the constants which must be defined for each soil enzyme class.
+    """
+
+    source: HIGHER_TAXONOMIC_GROUPS
     """The higher microbial group which produces the enzyme."""
-    substrate: SUBSTRATES = Field(default="pom")
+    substrate: SUBSTRATES
     """The substrate which the enzyme acts upon."""
-    maximum_rate: float = Field(default=60.0)
-    """The maximum rate of the enzyme at the reference temperature [day^-1]."""
-    half_saturation_constant: float = Field(default=70.0)
+    maximum_rate: float
+    """The maximum rate of the enzyme at the reference temperature [day-1]."""
+    half_saturation_constant: float
     """The half saturation constant for the enzyme at the reference temperature. Units
-    of [kg{C} m^-3]."""
-    activation_energy_rate: float = Field(default=37000)
-    """Activation energy for enzyme rate with temperature [J Kelvin^-1]."""
-    activation_energy_saturation: float = Field(default=30000)
-    """Activation energy for enzyme saturation with temperature [J Kelvin^-1]."""
+    of [kg{C} m-3]."""
+    activation_energy_rate: float
+    """Activation energy for enzyme rate with temperature [J Kelvin-1]."""
+    activation_energy_saturation: float
+    """Activation energy for enzyme saturation with temperature [J Kelvin-1]."""
     # TODO - This should change to Kelvin when we change the default units to Kelvin
-    reference_temperature: float = Field(default=12.0)
+    reference_temperature: float
     """The temperature that enzyme rate and saturation were measured at [Celsius]."""
-    turnover_rate: float = Field(default=0.024)
-    """The turnover rate of the enzyme [day^-1]."""
-    c_n_ratio: float = Field(default=5.2)
+    turnover_rate: float
+    """The turnover rate of the enzyme [day-1]."""
+    c_n_ratio: float
     """Ratio of carbon to nitrogen for the enzyme [unitless]."""
-    c_p_ratio: float = Field(default=16)
+    c_p_ratio: float
     """Ratio of carbon to phosphorus for the enzyme [unitless]."""
+
+
+def load_enzymes(path: Path) -> dict[str, SoilEnzyme]:
+    """Load and validate a soil enzyme CSV file.
+
+    Args:
+        path: Path to csv file containing parametrisation for the required enzymes.
+
+    Raises:
+        ValueError: If the path doesn't point to a readable csv file, or if that csv
+            file is missing headers, contains surplus headers, is missing required
+            enzymes, contains duplicate enzymes or contains enzymes that aren't expected
+            by the simulation.
+
+    Returns:
+        The full set of enzymes required by the soil model.
+    """
+
+    # Try and load the data
+    try:
+        data = pd.read_csv(path)
+    except (FileNotFoundError, IsADirectoryError):
+        raise ValueError(f"Enzyme CSV path not found or a directory: {path}")
+    except pd.errors.ParserError as excep:
+        raise ValueError(f"Could not parse enzyme data from: {path}: {excep!s}")
+
+    # Validate the data
+    try:
+        # Validate the CSV records
+        enzymes = [
+            SoilEnzyme.model_validate(rec) for rec in data.to_dict(orient="records")
+        ]
+    except ValidationError as excep:
+        raise ValueError(f"Invalid data in enzyme CSV file: {excep!s}")
+
+    # Check the set of enzymes
+    provided_enzymes = [(e.source, e.substrate) for e in enzymes]
+    set_provided_enzymes = set(provided_enzymes)
+
+    if len(set_provided_enzymes) != len(provided_enzymes):
+        raise ValueError(
+            "Duplicated enzyme source/substrate combinations in enzyme data"
+        )
+
+    if not set_provided_enzymes == REQUIRED_ENZYMES:
+        raise ValueError(
+            f"The source/substrate pairs provided in enzyme class definitions "
+            f"({provided_enzymes!r}) do not match the required set of pairs "
+            f"({REQUIRED_ENZYMES!r})"
+        )
+
+    # Package into a dict and return
+    return {f"{r.source}_{r.substrate}": r for r in enzymes}
 
 
 class SoilMicrobialGroup(Configuration):
@@ -463,7 +520,7 @@ class SoilConfiguration(ModelConfigurationRoot):
     """Root configuration class for the soil model."""
 
     enzyme_class_definition_path: str = ""
-    """Path to a CSV file of microbial enzyme class definitions. Not yet implemented."""
+    """Path to a CSV file of microbial enzyme class definitions."""
 
     microbial_group_definition_path: str = ""
     """Path to a CSV file of microbial functional group definitions. Not yet
@@ -471,16 +528,6 @@ class SoilConfiguration(ModelConfigurationRoot):
 
     constants: SoilConstants = SoilConstants()
     """Constants values for soil model."""
-
-    enzyme_class_definition: list[SoilEnzymeClass] = Field(
-        default=[
-            SoilEnzymeClass(source="fungi", substrate="pom"),
-            SoilEnzymeClass(source="fungi", substrate="maom"),
-            SoilEnzymeClass(source="bacteria", substrate="pom"),
-            SoilEnzymeClass(source="bacteria", substrate="maom"),
-        ]
-    )
-    """Definition of enzyme classes for soil model."""
 
     microbial_group_definition: list[SoilMicrobialGroup] = Field(
         default=[
@@ -492,32 +539,10 @@ class SoilConfiguration(ModelConfigurationRoot):
     )
     """Definition of microbial groups for soil model."""
 
-    _required_enzymes: ClassVar[set[tuple[HIGHER_TAXONOMIC_GROUPS, SUBSTRATES]]] = (
-        REQUIRED_ENZYMES
-    )
-    """Required enzyme classes, provided as all pairs of higher taxon source and
-    substrates."""
-
     _required_microbial_groups: ClassVar[set[REQUIRED_MICROBIAL_GROUPS]] = {
         *get_args(REQUIRED_MICROBIAL_GROUPS)
     }
     """Required named microbial groups."""
-
-    @field_validator("enzyme_class_definition")
-    def _enforce_required_enzymes(
-        cls, enzymes: list[SoilEnzymeClass]
-    ) -> list[SoilEnzymeClass]:
-        """Validates the provided sets of enzyme classes."""
-        provided_enzymes = {(e.source, e.substrate) for e in enzymes}
-
-        if not provided_enzymes == cls._required_enzymes:
-            raise ValueError(
-                f"The source/substrate pairs provided in enzyme class definitions "
-                f"({provided_enzymes!r}) do not match the required set of pairs "
-                f"({cls._required_enzymes!r})"
-            )
-
-        return enzymes
 
     @field_validator("microbial_group_definition")
     def _enforce_required_microbial_groups(

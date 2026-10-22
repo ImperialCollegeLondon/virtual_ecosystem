@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.soil.model_config import (
     SoilConfiguration,
-    SoilEnzymeClass,
+    SoilEnzyme,
     SoilMicrobialGroup,
 )
 
@@ -119,7 +119,7 @@ class MicrobialGroupConstants:
     def build_microbial_group(
         cls,
         group_config: SoilMicrobialGroup,
-        enzyme_classes: dict[str, SoilEnzymeClass],
+        enzyme_classes: dict[str, SoilEnzyme],
         core_constants: CoreConstants,
     ):
         """Class method to build the microbial group including enzyme information.
@@ -158,7 +158,7 @@ def calculate_new_biomass_average_nutrient_ratios(
     c_p_ratio: float,
     enzyme_production: dict[str, float],
     reproductive_allocation: float,
-    enzyme_classes: dict[str, SoilEnzymeClass],
+    enzyme_classes: dict[str, SoilEnzyme],
 ) -> dict[str, float]:
     """Calculate average carbon nutrient ratios of the newly synthesised biomass.
 
@@ -207,7 +207,7 @@ def calculate_new_biomass_average_nutrient_ratios(
 
 def make_full_set_of_microbial_groups(
     config: SoilConfiguration,
-    enzyme_classes: dict[str, SoilEnzymeClass],
+    enzyme_classes: dict[str, SoilEnzyme],
     core_constants: CoreConstants,
 ) -> dict[str, MicrobialGroupConstants]:
     """Make the full set of functional groups used in the soil model.
