@@ -126,6 +126,47 @@ def load_enzymes(path: Path) -> SoilEnzymes:
     return enzyme_model
 
 
+def load_enzymes_2(path: Path) -> dict[str, SoilEnzymeClass]:
+    """Load and validate a soil enzyme CSV file."""
+
+    # Try and load the data
+    try:
+        data = pd.read_csv(path)
+    except (FileNotFoundError, IsADirectoryError):
+        raise ValueError(f"Enzyme CSV path not found or a directory: {path}")
+    except pd.errors.ParserError as excep:
+        raise ValueError(f"Could not parse enzyme data from: {path}: {excep!s}")
+
+    # Validate the data
+    try:
+        # Validate the CSV records
+        enzymes = [
+            SoilEnzymeClass.model_validate(rec)
+            for rec in data.to_dict(orient="records")
+        ]
+    except ValidationError as excep:
+        raise ValueError(f"Invalid data in enzyme CSV file: {excep!s}")
+
+    # Check the set of enzymes
+    provided_enzymes = [(e.source, e.substrate) for e in enzymes]
+    set_provided_enzymes = set(provided_enzymes)
+
+    if len(set_provided_enzymes) != len(provided_enzymes):
+        raise ValueError(
+            "Duplicated enzyme source/substrate combinations in enzyme data"
+        )
+
+    if not set_provided_enzymes == REQUIRED_ENZYMES:
+        raise ValueError(
+            f"The source/substrate pairs provided in enzyme class definitions "
+            f"({provided_enzymes!r}) do not match the required set of pairs "
+            f"({REQUIRED_ENZYMES!r})"
+        )
+
+    # Package into a dict and return
+    return {f"{r.source}_{r.substrate}": r for r in enzymes}
+
+
 class SoilMicrobialGroup(Configuration):
     """Microbial functional group definitions."""
 
