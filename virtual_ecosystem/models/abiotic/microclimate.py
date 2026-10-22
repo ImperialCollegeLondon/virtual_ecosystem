@@ -303,7 +303,7 @@ def generate_hourly_forcing(
         latitude_deg=latitude,
         month=month,
         days=days,
-        daily_temp_amplitude=data.get_time_slice(
+        daily_temp_range=data.get_time_slice(
             "diurnal_temperature_range_ref", time_index
         ).to_numpy(),
     )
@@ -1015,21 +1015,7 @@ def build_output_from_record(
         if var in data_record:
             values = np.asarray(data_record[var])
             hourly_dims: tuple[Hashable, ...]
-            if var == "diurnal_temperature_range":
-                combined = np.stack(
-                    (
-                        data_record["air_temperature"],
-                        data_record["soil_temperature"],
-                    ),
-                    axis=0,
-                )
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", "All-NaN slice encountered")
-                    minimum = np.nanmin(combined, axis=(0, 2))
-                    maximum = np.nanmax(combined, axis=(0, 2))
-                values = maximum - minimum
-                hourly_dims = ("hour", "cell_id")
-            elif values.ndim == 2:
+            if values.ndim == 2:
                 hourly_dims = ("hour", "cell_id")
             elif values.ndim == 3:
                 hourly_dims = ("hour", "layers", "cell_id")

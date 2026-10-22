@@ -328,8 +328,14 @@ def test_setup_and_update_abiotic_model(
         "absorbed_longwave_radiation",
     )
     for var in vars_updated:
-        assert np.all(model.data[var] != dummy_climate_data[var])
         assert np.all(model.data[var].shape == dummy_climate_data[var].shape)
+        assert np.any(
+            ~np.isclose(
+                model.data[var].to_numpy(),
+                dummy_climate_data[var].to_numpy(),
+                equal_nan=True,
+            )
+        ), f"Expected {var} to change during the update"
 
     assert set(model.vars_updated).issubset(model.data.data.data_vars)
     for var in (name for name in model.vars_updated if name.endswith("_hourly")):

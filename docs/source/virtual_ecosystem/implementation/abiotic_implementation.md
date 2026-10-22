@@ -74,8 +74,9 @@ Monthly mean climate variables at reference height above the canopy are converte
 hourly values over a 24-hour period using simplified, physically motivated assumptions.
 
 **Air temperature** follows a sinusoidal cycle, peaking in the early afternoon (~14:00).
-The amplitude is defined by a prescribed daily temperature range (currently part of
-the model configuration), which produces a smooth oscillation around the monthly mean.
+The sine-wave amplitude is half the prescribed daily temperature range, so the
+maximum minus minimum of the 24 hourly temperatures equals that range. This produces a
+smooth oscillation around the monthly mean.
 
 **Incoming shortwave radiation** is distributed across daylight hours using a half-sine
 curve which is zero at night and peaks at midday. The resulting hourly fractions are

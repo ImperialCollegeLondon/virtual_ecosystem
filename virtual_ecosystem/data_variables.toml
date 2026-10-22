@@ -784,13 +784,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Hourly air and soil temperature range"
-name = "diurnal_temperature_range_hourly"
-unit = "C"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Hourly water condensed from atmospheric supersaturation"
 name = "condensation_hourly"
 unit = "mm"
