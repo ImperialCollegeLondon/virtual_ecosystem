@@ -68,15 +68,15 @@ class SoilEnzymes(Configuration):
     """Required enzyme classes, provided as all pairs of higher taxon source and
     substrates."""
 
-    enzyme_class_definition: list[SoilEnzymeClass]
+    enzyme_class_definition: dict[str, SoilEnzymeClass]
     """Definition of enzyme classes for soil model."""
 
     @field_validator("enzyme_class_definition")
     def _enforce_required_enzymes(
-        cls, enzymes: list[SoilEnzymeClass]
-    ) -> list[SoilEnzymeClass]:
+        cls, enzymes: dict[str, SoilEnzymeClass]
+    ) -> dict[str, SoilEnzymeClass]:
         """Validates the provided sets of enzyme classes."""
-        provided_enzymes = [(e.source, e.substrate) for e in enzymes]
+        provided_enzymes = [(e.source, e.substrate) for e in enzymes.values()]
         set_provided_enzymes = set(provided_enzymes)
 
         if len(set_provided_enzymes) != len(provided_enzymes):
@@ -84,7 +84,7 @@ class SoilEnzymes(Configuration):
                 "Duplicated enzyme source/substrate combinations in enzyme data"
             )
 
-        if not provided_enzymes == cls._required_enzymes:
+        if not set_provided_enzymes == cls._required_enzymes:
             raise ValueError(
                 f"The source/substrate pairs provided in enzyme class definitions "
                 f"({provided_enzymes!r}) do not match the required set of pairs "
@@ -97,6 +97,7 @@ class SoilEnzymes(Configuration):
 def load_enzymes(path: Path) -> SoilEnzymes:
     """Load and validate a soil enzyme CSV file."""
 
+    # Try and load the data
     try:
         data = pd.read_csv(path)
     except (FileNotFoundError, IsADirectoryError):
@@ -104,18 +105,25 @@ def load_enzymes(path: Path) -> SoilEnzymes:
     except pd.errors.ParserError as excep:
         raise ValueError(f"Could not parse enzyme data from: {path}: {excep!s}")
 
+    # Try and validate the data
     try:
-        enzyme_definitions = [
+        # Validate the CSV records
+        enzymes = [
             SoilEnzymeClass.model_validate(rec)
             for rec in data.to_dict(orient="records")
         ]
-        enzymes = SoilEnzymes.model_validate(
-            {"enzyme_class_definition": enzyme_definitions}
+
+        # Package into a dict for the wrapper class
+        enzymes_dict = {f"{r.source}_{r.substrate}": r for r in enzymes}
+
+        # Validate the whole enzyme model
+        enzyme_model = SoilEnzymes.model_validate(
+            {"enzyme_class_definition": enzymes_dict}
         )
     except ValidationError as excep:
         raise ValueError(f"Invalid data in enzyme CSV file: {excep!s}")
 
-    return enzymes
+    return enzyme_model
 
 
 class SoilMicrobialGroup(Configuration):
