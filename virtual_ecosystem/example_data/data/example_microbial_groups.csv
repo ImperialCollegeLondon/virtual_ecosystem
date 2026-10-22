@@ -1,0 +1,5 @@
+name,taxonomic_group,max_uptake_rate_labile_C,activation_energy_uptake_rate,half_sat_labile_C_uptake,activation_energy_uptake_saturation,max_uptake_rate_ammonium,half_sat_ammonium_uptake,max_uptake_rate_nitrate,half_sat_nitrate_uptake,max_uptake_rate_labile_p,half_sat_labile_p_uptake,turnover_rate,activation_energy_turnover,reference_temperature,c_n_ratio,c_p_ratio,enzyme_production_pom,enzyme_production_maom,reproductive_allocation,symbiote_nitrogen_uptake_fraction,symbiote_phosphorus_uptake_fraction
+bacteria,bacteria,0.04,47000,0.364,30000,0.005,0.02275,0.0005,0.02275,0.0025,0.02275,0.005,20000,12.0,5.2,16,0.005,0.005,0.0,0.0,0.0
+saprotrophic_fungi,fungi,0.02,47000,0.15,30000,0.0025,0.01,0.00025,0.01,0.001,0.01,0.002,20000,12.0,6.5,40.0,0.005,0.005,0.1,0.0,0.0
+arbuscular_mycorrhiza,fungi,0.01,47000,0.4,30000,0.005,0.005,0.0005,0.005,0.0025,0.005,0.0012,20000,12.0,18.0,120.0,0.0,0.0,0.1,0.2,0.2
+ectomycorrhiza,fungi,0.01,47000,0.4,30000,0.005,0.005,0.0005,0.005,0.0025,0.005,0.0012,20000,12.0,18.0,120.0,0.02,0.02,0.1,0.2,0.2
