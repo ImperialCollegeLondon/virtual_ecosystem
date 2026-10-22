@@ -309,6 +309,12 @@ The calculated daily soil evaporation is limited to the water available above
 residual moisture in the topsoil; topsoil moisture is therefore not depleted below
 its residual value by evaporation.
 
+Daily hydrology outputs are retained in the data object with a ``_daily`` suffix and a
+separate ``day`` dimension. The day coordinate is numbered from 0 within each model
+update, independently of the simulation ``time_index``. These arrays are replaced at
+the next hydrology update; the unsuffixed variables continue to contain the usual
+update-interval totals or means.
+
 ### Infiltration
 
 Infiltration is currently handled in a very simplistic way: water that fits in the
@@ -318,16 +324,6 @@ infiltration; preferential bypass is calculated from the original bucket overflo
 partition. Any water that still exceeds topsoil capacity after actual drainage is
 returned to surface runoff. This does not represent rainfall intensity or
 soil-type-specific infiltration capacity.
-
-### Daily diagnostics
-
-Set ``save_daily_diagnostics = true`` in the ``[hydrology]`` configuration to write
-``hydrology_daily_diagnostics.csv`` to the configured core output directory. The file
-contains one row per day and grid cell, including surface water fluxes, transpiration
-demand and actual uptake, start/end soil moisture by layer, effective saturation,
-potential and actual vertical flow by layer, and an explicit topsoil-to-subsoil flow
-column. Fluxes are daily depths in mm, vertical flow is in mm/day, soil moisture is
-in mm, and effective saturation is a fraction.
 
 ### Bypass flow
 

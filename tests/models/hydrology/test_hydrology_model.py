@@ -4,7 +4,6 @@ from logging import INFO
 from unittest.mock import patch
 
 import numpy as np
-import pandas as pd
 import pint
 import pytest
 from xarray import DataArray
@@ -232,7 +231,6 @@ def test_setup_and_update_hydrology_model_ranges(
     fixture_configuration,
     update_interval,
     monkeypatch,
-    tmp_path,
 ):
     """Test hydrology model update with ranges."""
 
@@ -254,7 +252,6 @@ def test_setup_and_update_hydrology_model_ranges(
         configuration=fixture_configuration,
         core_components=core_components,
     )
-    model.daily_diagnostics_path = tmp_path / "hydrology_daily_diagnostics.csv"
 
     # Test soil moisture and matric potential initial values
     soil_indices = lyr_strct.index_all_soil
@@ -317,22 +314,7 @@ def test_setup_and_update_hydrology_model_ranges(
     # Run the update step
     model.update(time_index=1, seed=42)
 
-    daily_diagnostics = pd.read_csv(model.daily_diagnostics_path)
-    assert len(daily_diagnostics) == len(daily_soil_moisture) * model.grid.n_cells
-    assert set(
-        (
-            "update_index",
-            "day_in_update",
-            "cell_id",
-            "precipitation_surface_mm",
-            "surface_runoff_mm",
-            "topsoil_to_subsoil_flow_mm_day",
-            "soil_moisture_start_layer_0_mm",
-            "soil_moisture_end_layer_1_mm",
-        )
-    ).issubset(daily_diagnostics.columns)
-    assert daily_diagnostics["update_index"].eq(1).all()
-
+    assert set(model.vars_updated).issubset(model.data.data.data_vars)
     expected_mean_soil_moisture = np.mean(
         np.stack(daily_soil_moisture, axis=0),
         axis=0,
@@ -341,6 +323,56 @@ def test_setup_and_update_hydrology_model_ranges(
         model.data["soil_moisture"][soil_indices],
         expected_mean_soil_moisture,
     )
+    assert model.data["soil_moisture_daily"].dims == ("day", "layers", "cell_id")
+    np.testing.assert_array_equal(
+        model.data["soil_moisture_daily"]["day"],
+        np.arange(len(daily_soil_moisture)),
+    )
+    np.testing.assert_allclose(
+        model.data["soil_moisture_daily"][:, soil_indices],
+        np.stack(daily_soil_moisture, axis=0),
+    )
+    np.testing.assert_array_equal(
+        model.data["soil_moisture_daily"]["layers"],
+        model.layer_structure.from_template()["layers"],
+    )
+    for variable in ("soil_moisture", "matric_potential", "vertical_flow"):
+        daily_variable = model.data[f"{variable}_daily"]
+        assert daily_variable.sizes["layers"] == len(lyr_strct.layer_roles)
+        assert daily_variable.dims == ("day", "layers", "cell_id")
+        np.testing.assert_array_equal(
+            daily_variable["layers"],
+            model.layer_structure.from_template()["layers"],
+        )
+        np.testing.assert_array_equal(
+            daily_variable[:, ~soil_indices].isnull(),
+            np.ones(daily_variable[:, ~soil_indices].shape, dtype=bool),
+        )
+        np.testing.assert_allclose(
+            daily_variable[:, soil_indices].mean(dim="day"),
+            model.data[variable][soil_indices],
+        )
+
+    for variable in ("interception", "canopy_evaporation"):
+        daily_variable = model.data[f"{variable}_daily"]
+        assert daily_variable.dims == ("day", "layers", "cell_id")
+        np.testing.assert_array_equal(
+            daily_variable["layers"],
+            model.layer_structure.from_template()["layers"],
+        )
+    for variable in (
+        name for name in model.vars_updated if not name.endswith("_daily")
+    ):
+        regular_variable = model.data[variable]
+        daily_variable = model.data[f"{variable}_daily"]
+        assert daily_variable.dims == ("day", *regular_variable.dims)
+        for dimension in regular_variable.dims:
+            assert daily_variable.sizes[dimension] == regular_variable.sizes[dimension]
+            if dimension in regular_variable.coords:
+                np.testing.assert_array_equal(
+                    daily_variable[dimension],
+                    regular_variable[dimension],
+                )
     end_soil_moisture = daily_soil_moisture[-1]
     np.testing.assert_allclose(model._soil_moisture_state, end_soil_moisture)
     np.testing.assert_allclose(
@@ -459,7 +491,6 @@ def test_update_limits_soil_evaporation_to_available_topsoil_water(
     dummy_climate_data,
     fixture_configuration,
     monkeypatch,
-    tmp_path,
 ):
     """Test that excessive soil evaporation is capped without warnings."""
     from virtual_ecosystem.models.hydrology import above_ground
@@ -470,7 +501,6 @@ def test_update_limits_soil_evaporation_to_available_topsoil_water(
         configuration=fixture_configuration,
         core_components=fixture_core_components,
     )
-    model.daily_diagnostics_path = tmp_path / "hydrology_daily_diagnostics.csv"
 
     for var in model.vars_required_for_update:
         model.data[var] = dummy_climate_data.data[var]
@@ -510,14 +540,9 @@ def test_update_limits_soil_evaporation_to_available_topsoil_water(
         for message in messages
     )
 
-    daily_diagnostics = pd.read_csv(model.daily_diagnostics_path)
-    for day, available_water in enumerate(available_water_by_day, start=1):
-        daily_evaporation = daily_diagnostics.loc[
-            daily_diagnostics["day_in_update"] == day,
-            "soil_evaporation_mm",
-        ].to_numpy()
-        np.testing.assert_allclose(
-            daily_evaporation,
-            available_water,
-            equal_nan=True,
-        )
+    expected_evaporation = np.sum(np.stack(available_water_by_day, axis=0), axis=0)
+    np.testing.assert_allclose(
+        model.data["soil_evaporation"].to_numpy(),
+        expected_evaporation,
+        equal_nan=True,
+    )

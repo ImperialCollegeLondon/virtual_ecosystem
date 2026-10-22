@@ -431,7 +431,7 @@ def generate_diurnal_cycle_from_monthly_data(
     monthly_relative_humidity: NDArray[np.floating],
     monthly_evapotranspiration: NDArray[np.floating],
     monthly_soil_evaporation: NDArray[np.floating],
-    daily_temp_amplitude: NDArray[np.floating],
+    daily_temp_range: NDArray[np.floating],
     latitude_deg: float,
     month: int,
     days: int,
@@ -444,7 +444,7 @@ def generate_diurnal_cycle_from_monthly_data(
         monthly_relative_humidity: Monthly mean relative humidity [%]
         monthly_evapotranspiration: Monthly total evapotranspiration [mm/month]
         monthly_soil_evaporation: Monthly total soil evaporation [mm/month]
-        daily_temp_amplitude: typical diurnal temperature swing [C]
+        daily_temp_range: maximum-minus-minimum daily air temperature [C]
         latitude_deg: Latitude for daylength calculation [deg]
         month: Month number [1-12]
         days: Number of days in month
@@ -458,10 +458,11 @@ def generate_diurnal_cycle_from_monthly_data(
     hours_per_day = 24
     hours = np.arange(hours_per_day)
 
-    # Air temperature (sine wave, max at 14:00), (hours_per_day, cell)
-    air_temperature_hourly = monthly_air_temperature[
-        None, :
-    ] + daily_temp_amplitude * np.sin(2 * np.pi * (hours[:, None] - 8) / hours_per_day)
+    # Air temperature (sine wave, max at 14:00). The sine amplitude is half
+    # the daily range so the hourly maximum minus minimum equals daily_temp_range.
+    air_temperature_hourly = monthly_air_temperature[None, :] + (
+        daily_temp_range / 2
+    ) * np.sin(2 * np.pi * (hours[:, None] - 8) / hours_per_day)
 
     # Daylength (simple climatology)
     daylength = 12 + 4 * np.cos((month - 1) * np.pi / 6) * np.cos(
