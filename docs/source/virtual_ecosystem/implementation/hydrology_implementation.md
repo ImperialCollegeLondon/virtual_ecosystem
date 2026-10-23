@@ -54,8 +54,9 @@ inputs are totals over more than one day - the hydrology model partitions the in
  into daily values. Precipitation is partitioned between days assuming a gamma
  distribution and the total evapotranspiration is evenly divided across days.
 
-The values returned by the hydrology model are then monthly means or monthly accumulated
-values.
+The values returned by the hydrology model are then update-interval means or accumulated
+values. Soil moisture is returned as the mean across the internal daily steps, while its
+end-of-interval value is retained internally as the starting state for the next update.
 ```
 
 ## Required variables
@@ -266,7 +267,12 @@ Surface runoff is calculated with a simple bucket model based on
 {cite:t}`davis_simple_2017`: if precipitation exceeds top {term}`soil moisture capacity`
 , the excess water is added to runoff and top soil moisture is set to soil
 moisture capacity value; if the top soil is not saturated, precipitation is
-added to the current soil moisture level and runoff is set to zero.
+added to the current soil moisture level and runoff is set to zero. The daily
+bucket overflow is reduced by the potential flow from a saturated topsoil to the
+next layer. After evaporation and the actual vertical flow are calculated, any
+remaining water above topsoil capacity is assigned to runoff. This lets drainage
+during the daily step create limited infiltration capacity without assuming an
+additional sub-daily timestep.
 
 ### Searchable resource
 
@@ -299,11 +305,29 @@ $$E_{act} = E_{g} \cdot \exp(-\kappa_{gb} \cdot LAI)$$
 where $\kappa_{gb}$ is the extinction coefficient for global radiation, and
 $LAI$ is the total leaf area index.
 
+The calculated daily soil evaporation is limited to the water available above
+residual moisture in the topsoil; topsoil moisture is therefore not depleted below
+its residual value by evaporation.
+
 ### Infiltration
 
-Infiltration is currently handled in a very simplistic way: the water that 'fits in the
-topsoil bucket' is added to the topsoil layer. We aim to implement a more realistic
-process that accounts for soil type specific infiltration capacities.
+Infiltration is currently handled in a very simplistic way: water that fits in the
+topsoil bucket is added to the topsoil layer, with additional capacity allowed for
+potential same-day vertical drainage. The additional rainfall is treated as matrix
+infiltration; preferential bypass is calculated from the original bucket overflow
+partition. Any water that still exceeds topsoil capacity after actual drainage is
+returned to surface runoff. This does not represent rainfall intensity or
+soil-type-specific infiltration capacity.
+
+### Daily diagnostics
+
+Set ``save_daily_diagnostics = true`` in the ``[hydrology]`` configuration to write
+``hydrology_daily_diagnostics.csv`` to the configured core output directory. The file
+contains one row per day and grid cell, including surface water fluxes, transpiration
+demand and actual uptake, start/end soil moisture by layer, effective saturation,
+potential and actual vertical flow by layer, and an explicit topsoil-to-subsoil flow
+column. Fluxes are daily depths in mm, vertical flow is in mm/day, soil moisture is
+in mm, and effective saturation is a fraction.
 
 ### Bypass flow
 
@@ -349,6 +373,19 @@ where $K_{s}$ is the saturated hydraulic conductivity,
 $L$ is the pore connectivity parameter (assumed to be 0.5 in most of studies),
 and $m=1-1/n$ is a
 shape parameter derived from the non-linearity parameter $n$.
+
+Saturated hydraulic conductivity can differ between topsoil and deeper soil layers.
+Configure a pair in ``[hydrology.constants]``; the first value applies to the topsoil
+and the second to every deeper soil layer. For example:
+
+```toml
+[hydrology.constants]
+saturated_hydraulic_conductivity = [3.5e-5, 3.5e-7]
+```
+
+These are exploratory defaults for testing a more conductive topsoil, not a calibrated
+site-specific parameterization. A scalar value remains supported for configurations
+that use the same saturated conductivity in every soil layer.
 
 The soil matric potential $\Psi_{m}$ is calculated as follows:
 

@@ -7,7 +7,7 @@ Note that soil parameters vary strongly with soil type and can change over time.
 current default values are average best estimates within reasonable bounds.
 """  # noqa: D205
 
-from pydantic import Field
+from pydantic import Field, PositiveFloat
 
 from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
@@ -36,23 +36,29 @@ class HydrologyConstants(Configuration):
     .
     """
 
-    saturated_hydraulic_conductivity: float = 3.5e-5
+    saturated_hydraulic_conductivity: (
+        PositiveFloat | tuple[PositiveFloat, PositiveFloat]
+    ) = (3.5e-5, 3.5e-7)
     """Saturated hydraulic conductivity, [m s-1].
 
     The saturated hydraulic conductivity is the measure of a soil's ability to transmit
     water through its pores. More specifically, is defined as the volumetric flow rate
     of water passing through a unit cross-sectional area of soil under a unit hydraulic
-    gradient (pressure difference). Value for average tropical rainforest taken from
-    :cite:t:`gupta_global_2022`.
+    gradient (pressure difference). A pair gives values for topsoil and all deeper soil
+    layers, respectively. The defaults are an exploratory test scenario with a more
+    conductive topsoil; the subsoil value for average clayed tropical mineral soil is
+    taken from :cite:t:`gupta_global_2022`. A scalar remains accepted and applies the
+    same value to every soil layer.
     """
 
-    van_genuchten_nonlinearity_parameter: float = 1.598
+    van_genuchten_nonlinearity_parameter: float = 2.0
     """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model.
 
     This parameter is a fitting shape parameters of soil water retention curve, see
     :cite:p:`van_genuchten_closed-form_1980`. Average value of different soil textures
     across tropical regions 
-    is taken from :cite:t:`hodnett_marked_2002`.
+    is 1.598 :cite:p:`hodnett_marked_2002`; the value here is tuned for realistsic
+    vertical flow.
     """
 
     intercept_parameters: tuple[float, float, float] = (0.935, 0.498, 0.00575)
@@ -236,9 +242,18 @@ class HydrologyConstants(Configuration):
     specific region and conditions being modeled.
     """
 
+    relative_tolerance: float = 1e-6
+    """Relative tolerance for numerical checks."""
+
+    absolute_tolerance: float = 1e-6
+    """Absolute tolerance for numerical checks."""
+
 
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration class for the hydrology model."""
+
+    save_daily_diagnostics: bool = False
+    """Write daily, per-cell hydrology diagnostics to the output directory."""
 
     initial_soil_moisture: float = Field(ge=0, le=1, default=0.5)
     """Initial soil moisture for all layers"""

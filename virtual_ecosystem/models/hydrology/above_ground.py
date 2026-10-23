@@ -345,7 +345,7 @@ def calculate_soil_evaporation(
 def find_lowest_neighbour(
     neighbours: list[np.ndarray],
     elevation: np.ndarray,
-) -> list[int]:
+) -> list[int | None]:
     """Find lowest neighbour for each grid cell from digital elevation model.
 
     This function finds the cell IDs of the lowest neighbour for each grid cell. This
@@ -356,17 +356,26 @@ def find_lowest_neighbour(
         elevation: Elevation, [m]
 
     Returns:
-        list of lowest neighbour IDs
+        Lowest downstream neighbour ID for each cell, or ``None`` if the cell is a sink
     """
-    lowest_neighbour = []
+    lowest_neighbour: list[int | None] = []
     for cell_id, neighbors_id in enumerate(neighbours):
-        downstream_id_loc = np.argmax(elevation[cell_id] - elevation[neighbors_id])
+        elevation_drop = elevation[cell_id] - elevation[neighbors_id]
+        lower_neighbour = elevation_drop > 0.0
+
+        if not np.any(lower_neighbour):
+            lowest_neighbour.append(None)
+            continue
+
+        downstream_id_loc = np.argmax(elevation_drop)
         lowest_neighbour.append(neighbors_id[downstream_id_loc])
 
     return lowest_neighbour
 
 
-def find_upstream_cells(lowest_neighbour: list[int]) -> list[list[int]]:
+def find_upstream_cells(
+    lowest_neighbour: list[int | None],
+) -> list[list[int]]:
     """Find all upstream cell IDs for all grid cells.
 
     This function identifies all cell IDs that are upstream of each grid cell. This can
@@ -381,7 +390,8 @@ def find_upstream_cells(lowest_neighbour: list[int]) -> list[list[int]]:
     upstream_ids: list = [[] for i in range(len(lowest_neighbour))]
 
     for down_s, up_s in enumerate(lowest_neighbour):
-        upstream_ids[up_s].append(down_s)
+        if up_s is not None:
+            upstream_ids[up_s].append(down_s)
 
     return upstream_ids
 
@@ -768,6 +778,7 @@ def calculate_surface_runoff(
     precipitation_surface: NDArray[np.floating],
     top_soil_moisture: NDArray[np.floating],
     top_soil_moisture_saturation: NDArray[np.floating],
+    vertical_drainage_capacity: NDArray[np.floating] | None = None,
 ) -> NDArray[np.floating]:
     """Calculate surface runoff, [mm].
 
@@ -775,7 +786,9 @@ def calculate_surface_runoff(
     :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture saturation
     , the excess water is added to runoff and top soil moisture is set to soil
     moisture saturation value; if the top soil is not saturated, precipitation is
-    added to the current soil moisture level and runoff is set to zero.
+    added to the current soil moisture level and runoff is set to zero. Optional
+    vertical drainage capacity allows water expected to drain from the topsoil during
+    the day to provide additional infiltration capacity.
 
     TODO adjust saturation to account for new set of soil layers #535
 
@@ -783,17 +796,25 @@ def calculate_surface_runoff(
         precipitation_surface: Precipitation that reaches surface, [mm]
         top_soil_moisture: Water content of top soil layer, [mm]
         top_soil_moisture_saturation: Soil mositure saturation of top soil layer, [mm]
+        vertical_drainage_capacity: Expected topsoil drainage during the day, [mm]
     """
 
     # Calculate how much water can be added to soil before saturation is reached, [mm]
     free_saturation_mm = top_soil_moisture_saturation - top_soil_moisture
 
     # Calculate daily surface runoff of each grid cell, [mm]; replace by SPLASH
-    return np.where(
-        precipitation_surface > free_saturation_mm,
+    surface_runoff = np.maximum(
         precipitation_surface - free_saturation_mm,
-        0,
+        0.0,
     )
+
+    if vertical_drainage_capacity is not None:
+        surface_runoff = np.maximum(
+            surface_runoff - np.maximum(vertical_drainage_capacity, 0.0),
+            0.0,
+        )
+
+    return surface_runoff
 
 
 def calculate_temperature_driven_snowmelt(
