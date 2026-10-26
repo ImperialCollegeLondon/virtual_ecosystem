@@ -315,14 +315,10 @@ def test_setup_and_update_hydrology_model_ranges(
     model.update(time_index=1, seed=42)
 
     assert set(model.vars_updated).issubset(model.data.data.data_vars)
-    from virtual_ecosystem.models.hydrology.hydrology_tools import (
-        HydrologyOutputTemplate,
-    )
-
-    assert set(model.output_templates) == set(model.vars_updated)
+    assert set(model.data_object_templates) == set(model.vars_updated)
     for variable in model.vars_updated:
-        template = model.output_templates[variable]
-        assert isinstance(template, HydrologyOutputTemplate)
+        template = model.data_object_templates[variable]
+        assert isinstance(template, DataArray)
         output = model.data[variable]
         assert template.dims == output.dims
         assert template.shape == output.shape

@@ -807,6 +807,7 @@ def test_static_variable_created(fixture_core_components):
         static,
         vars_updated,
         output_templates,
+        layer_structure,
     )
 
     assert "atmospheric_pressure" in output
@@ -835,6 +836,7 @@ def test_static_variable_created(fixture_core_components):
                 layer_structure=layer_structure,
                 time_dim=24,
             ),
+            layer_structure=layer_structure,
         )
 
 
@@ -860,6 +862,7 @@ def test_time_cell_variable_averaged(fixture_core_components):
         static,
         vars_updated,
         output_templates,
+        layer_structure,
     )
 
     expected = np.nanmean(data_record["ground_heat_flux"], axis=0)
@@ -900,6 +903,7 @@ def test_time_layer_cell_variable_averaged(fixture_core_components):
         static,
         vars_updated,
         output_templates,
+        layer_structure,
     )
 
     expected = np.nanmean(data_record["soil_temperature"], axis=0)
@@ -962,15 +966,26 @@ def test_output_templates_and_recorded_values_across_dimensions(
         layer_structure=layer_structure,
         time_dim=24,
     )
+    assert all(isinstance(template, DataArray) for template in templates.values())
 
     outputs = build_output_from_record(
         data_record=data_record,
         static={},
         vars_updated=vars_updated,
         output_templates=templates,
+        layer_structure=layer_structure,
     )
 
     assert set(outputs) == set(vars_updated)
+    for name in vars_updated:
+        assert templates[name].dims == outputs[name].dims
+        assert templates[name].shape == outputs[name].shape
+        for coordinate in outputs[name].coords:
+            np.testing.assert_array_equal(
+                templates[name].coords[coordinate],
+                outputs[name][coordinate],
+            )
+
     assert outputs["air_temperature"].dims == ("cell_id",)
     assert outputs["air_temperature_hourly"].dims == ("hour", "cell_id")
     assert outputs["soil_temperature"].dims == ("layers", "cell_id")
@@ -1054,6 +1069,7 @@ def test_nan_slices_do_not_emit_runtime_warnings(fixture_core_components):
             static={},
             vars_updated=vars_updated,
             output_templates=templates,
+            layer_structure=layer_structure,
         )
 
     assert caught_warnings == []
@@ -1088,13 +1104,14 @@ def test_unrequested_variable_skipped(fixture_core_components):
         static,
         vars_updated,
         output_templates,
+        layer_structure,
     )
 
     assert "temperature" in output
     assert "humidity" not in output
 
 
-def test_missing_requested_variable_raises():
+def test_missing_requested_variable_raises(fixture_core_components):
     """Test missing variables raised in update."""
 
     from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
@@ -1109,6 +1126,7 @@ def test_missing_requested_variable_raises():
             static,
             vars_updated,
             {},
+            fixture_core_components.layer_structure,
         )
 
 

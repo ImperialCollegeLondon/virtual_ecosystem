@@ -6,10 +6,8 @@ TODO cross-check with pyrealm for duplication/ different implementation
 TODO change temperatures to Kelvin
 """  # noqa: D205
 
-from collections.abc import Hashable, Iterable
-from dataclasses import dataclass
+from collections.abc import Iterable
 from types import SimpleNamespace
-from typing import Any
 
 import bottleneck as bn
 import numpy as np
@@ -23,33 +21,21 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic.wind import next_valid_below
 
 
-@dataclass(frozen=True)
-class AbioticOutputTemplate:
-    """Dimension and coordinate metadata for one abiotic model output."""
-
-    dims: tuple[Hashable, ...]
-    shape: tuple[int, ...]
-    coords: dict[Hashable, Any]
-    atmospheric_layers: tuple[int, ...]
-
-
 def create_output_templates(
     variable_data: dict[str, DataArray],
     vars_updated: tuple[str, ...],
     layer_structure: LayerStructure,
     time_dim: int,
-) -> dict[str, AbioticOutputTemplate]:
-    """Create output dimension templates once for all abiotic model variables.
+) -> dict[str, DataArray]:
+    """Create DataArray templates once for all abiotic model variables.
 
     Hourly outputs use the spatial dimensions of their unsuffixed variable, while
     regular outputs retain that variable's dimensions and coordinates.
     """
 
     layer_template = layer_structure.from_template()
-    templates: dict[str, AbioticOutputTemplate] = {}
-    template_cache: dict[
-        tuple[bool, tuple[Hashable, ...], tuple[int, ...]], AbioticOutputTemplate
-    ] = {}
+    templates: dict[str, DataArray] = {}
+    template_cache: dict[tuple[bool, tuple[str, ...], tuple[int, ...]], DataArray] = {}
 
     for name in vars_updated:
         is_hourly = name.endswith("_hourly")
@@ -70,7 +56,7 @@ def create_output_templates(
             templates[name] = template_cache[template_key]
             continue
 
-        coords: dict[Hashable, Any] = {
+        coords = {
             dim: source.coords[dim] for dim in source.dims if dim in source.coords
         }
         if "cell_id" not in coords:
@@ -91,14 +77,10 @@ def create_output_templates(
         if is_hourly:
             coords["hour"] = np.arange(time_dim)
 
-        template = AbioticOutputTemplate(
+        template = DataArray(
+            data=np.zeros(shape),
             dims=dims,
-            shape=shape,
             coords=coords,
-            atmospheric_layers=tuple(
-                int(index)
-                for index in np.flatnonzero(layer_structure.index_filled_atmosphere)
-            ),
         )
         template_cache[template_key] = template
         templates[name] = template

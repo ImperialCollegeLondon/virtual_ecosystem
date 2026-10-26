@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 from pyrealm.constants import CoreConst as PyrealmCoreConst
+from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.configuration import CompiledConfiguration
@@ -18,7 +19,6 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
-    AbioticOutputTemplate,
     create_output_templates,
 )
 from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -203,8 +203,8 @@ class AbioticModel(
         """Pyrealm core constants."""
         self.latitude: float
         """Latitude in degrees. This is required to generate the diurnal cycle."""
-        self.output_templates: dict[str, AbioticOutputTemplate] = {}
-        """Output dimension and coordinate templates created during setup."""
+        self.data_object_templates: dict[str, DataArray] = {}
+        """Output DataArray templates created during setup."""
 
         # Run the setup if the model is not in deep static mode
         if self._run_setup:
@@ -278,7 +278,7 @@ class AbioticModel(
         ):
             self.data.add_from_dict(output_dict=output_dict)
 
-        self.output_templates = create_output_templates(
+        self.data_object_templates = create_output_templates(
             variable_data={
                 name: self.data[name]
                 for name in self.vars_updated
@@ -378,7 +378,7 @@ class AbioticModel(
             core_constants=self.core_constants,
             pyrealm_core_constants=self.pyrealm_core_constants,
             abiotic_bounds=self.bounds,
-            output_templates=self.output_templates,
+            output_templates=self.data_object_templates,
         )
 
         self.data.add_from_dict(output_dict=update_dict)

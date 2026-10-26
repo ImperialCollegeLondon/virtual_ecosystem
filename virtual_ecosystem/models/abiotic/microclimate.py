@@ -16,7 +16,6 @@ from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance, wind
-from virtual_ecosystem.models.abiotic.abiotic_tools import AbioticOutputTemplate
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
@@ -933,7 +932,8 @@ def build_output_from_record(
     data_record: dict[str, Any],
     static: dict[str, Any],
     vars_updated: tuple[str, ...],
-    output_templates: dict[str, AbioticOutputTemplate],
+    output_templates: dict[str, DataArray],
+    layer_structure: LayerStructure,
 ) -> dict[str, DataArray]:
     """Build model output from hourly record and static/state variables.
 
@@ -944,7 +944,9 @@ def build_output_from_record(
         static: Static inputs
         vars_updated: Tuple containing strings of all variables that are updated by the
             abiotic model
-        output_templates: Dimension and coordinate templates created during model setup
+        output_templates: DataArray templates created during model setup
+        layer_structure: Layer structure used to select atmospheric layers for static
+            outputs
 
     Returns:
         Dictionary of DataArray outputs. Raises ValueError when unsupported variable
@@ -974,9 +976,9 @@ def build_output_from_record(
                 f"Static output '{name}' has shape {np.asarray(static[name]).shape}, "
                 f"expected {template.shape}."
             )
-        atmospheric_layers = list(template.atmospheric_layers)
+        atmospheric_layers = layer_structure.index_filled_atmosphere
         values[atmospheric_layers, :] = static[name][atmospheric_layers, :]
-        output[name] = DataArray(values, dims=template.dims, coords=template.coords)
+        output[name] = template.copy(data=values)
 
     # Hourly recorded variables
     record_names = list(data_record)
@@ -1012,7 +1014,7 @@ def build_output_from_record(
                 f"Output '{var}' has shape {values_out.shape}, expected "
                 f"{template.shape}."
             )
-        output[var] = DataArray(values_out, dims=template.dims, coords=template.coords)
+        output[var] = template.copy(data=values_out)
 
     for hourly_name in (name for name in vars_updated if name.endswith("_hourly")):
         source_name = hourly_name.removesuffix("_hourly")
@@ -1028,9 +1030,7 @@ def build_output_from_record(
                 f"Hourly output '{hourly_name}' has shape {values.shape}, expected "
                 f"{template.shape}."
             )
-        output[hourly_name] = DataArray(
-            values, dims=template.dims, coords=template.coords
-        )
+        output[hourly_name] = template.copy(data=values)
 
     # check for requested variables that never appeared
     missing = vars_set - output.keys()
@@ -1054,7 +1054,7 @@ def run_microclimate(
     core_constants: CoreConstants,
     pyrealm_core_constants: PyrealmCoreConst,
     abiotic_bounds: AbioticSimpleBounds,
-    output_templates: dict[str, AbioticOutputTemplate],
+    output_templates: dict[str, DataArray],
 ) -> dict[str, Any]:
     """Run the microclimate model for one day, iterating through hourly time steps.
 
@@ -1078,8 +1078,7 @@ def run_microclimate(
         core_constants: Set of constants that are shared across all models
         pyrealm_core_constants: Set of constants from pyrealm
         abiotic_bounds: Bounds for air temperature to ensure physical realism
-        output_templates: Templates for output DataArrays, including dimensions and
-            coordinates
+        output_templates: DataArray templates for model outputs
     Returns:
         Dictionary with updated state variables and hourly record for the day
     """
@@ -1180,6 +1179,7 @@ def run_microclimate(
         static=static,
         vars_updated=vars_updated,
         output_templates=output_templates,
+        layer_structure=layer_structure,
     )
     output["latent_heat_vapourisation"] /= 1000.0
     if "latent_heat_vapourisation_hourly" in output:
