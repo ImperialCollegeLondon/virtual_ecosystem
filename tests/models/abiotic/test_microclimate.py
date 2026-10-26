@@ -288,7 +288,7 @@ def test_initialize_hourly_record(dummy_climate_data, fixture_core_components):
     layer_structure = fixture_core_components.layer_structure
 
     # Variables we want to track
-    vars_updated = ("air_temperature", "soil_moisture")
+    vars_updated = ("air_temperature", "soil_temperature")
 
     # Initialize hourly record for 24 hours
     hourly_record = initialize_hourly_record(
@@ -894,11 +894,11 @@ def test_time_layer_cell_variable_averaged(fixture_core_components):
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
-    data_record = {"soil_moisture": np.random.rand(24, 2, 4)}
-    vars_updated = ("soil_moisture", "soil_moisture_hourly")
+    data_record = {"soil_temperature": np.random.rand(24, 2, 4)}
+    vars_updated = ("soil_temperature", "soil_temperature_hourly")
     output_templates = create_output_templates(
         variable_data={
-            "soil_moisture": DataArray(
+            "soil_temperature": DataArray(
                 np.empty((2, 4)),
                 dims=("layers", "cell_id"),
                 coords={"layers": [0, 1], "cell_id": [0, 1, 2, 3]},
@@ -916,22 +916,22 @@ def test_time_layer_cell_variable_averaged(fixture_core_components):
         output_templates,
     )
 
-    expected = np.nanmean(data_record["soil_moisture"], axis=0)
+    expected = np.nanmean(data_record["soil_temperature"], axis=0)
 
     np.testing.assert_allclose(
-        output["soil_moisture"].values,
+        output["soil_temperature"].values,
         expected,
     )
 
-    assert output["soil_moisture"].dims == ("layers", "cell_id")
-    assert output["soil_moisture_hourly"].dims == ("hour", "layers", "cell_id")
+    assert output["soil_temperature"].dims == ("layers", "cell_id")
+    assert output["soil_temperature_hourly"].dims == ("hour", "layers", "cell_id")
     np.testing.assert_array_equal(
-        output["soil_moisture_hourly"]["hour"],
-        np.arange(data_record["soil_moisture"].shape[0]),
+        output["soil_temperature_hourly"]["hour"],
+        np.arange(data_record["soil_temperature"].shape[0]),
     )
     np.testing.assert_allclose(
-        output["soil_moisture_hourly"],
-        data_record["soil_moisture"],
+        output["soil_temperature_hourly"],
+        data_record["soil_temperature"],
     )
 
 
