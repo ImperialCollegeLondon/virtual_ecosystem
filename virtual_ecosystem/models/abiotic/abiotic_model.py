@@ -86,9 +86,6 @@ class AbioticModel(
         "vapour_pressure_hourly",
         "vapour_pressure_deficit_hourly",
         "relative_humidity_hourly",
-        "wind_speed_hourly",
-        "atmospheric_pressure_hourly",
-        "atmospheric_co2_hourly",
         "sensible_heat_flux_hourly",
         "latent_heat_flux_hourly",
         "ground_heat_flux_hourly",
@@ -99,7 +96,6 @@ class AbioticModel(
         "net_radiation_hourly",
         "longwave_emission_hourly",
         "condensation_hourly",
-        "absorbed_longwave_radiation_hourly",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -149,9 +145,6 @@ class AbioticModel(
         "vapour_pressure_hourly",
         "vapour_pressure_deficit_hourly",
         "relative_humidity_hourly",
-        "wind_speed_hourly",
-        "atmospheric_pressure_hourly",
-        "atmospheric_co2_hourly",
         "sensible_heat_flux_hourly",
         "latent_heat_flux_hourly",
         "ground_heat_flux_hourly",
@@ -162,7 +155,6 @@ class AbioticModel(
         "net_radiation_hourly",
         "longwave_emission_hourly",
         "condensation_hourly",
-        "absorbed_longwave_radiation_hourly",
     ),
 ):
     """A class describing the abiotic model.

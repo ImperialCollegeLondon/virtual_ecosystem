@@ -700,27 +700,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Hourly wind profile within and below canopy"
-name = "wind_speed_hourly"
-unit = "m s-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Hourly atmospheric pressure profile"
-name = "atmospheric_pressure_hourly"
-unit = "kPa"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Hourly atmospheric CO2 concentration profile"
-name = "atmospheric_co2_hourly"
-unit = "ppm"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Hourly sensible heat flux profile"
 name = "sensible_heat_flux_hourly"
 unit = "W m-2"
@@ -787,13 +766,6 @@ axis = ["spatial"]
 description = "Hourly water condensed from atmospheric supersaturation"
 name = "condensation_hourly"
 unit = "mm"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Hourly absorbed longwave radiation"
-name = "absorbed_longwave_radiation_hourly"
-unit = "W m-2"
 variable_type = "float"
 
 [[variable]]

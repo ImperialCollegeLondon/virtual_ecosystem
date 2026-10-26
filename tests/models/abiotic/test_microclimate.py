@@ -797,26 +797,16 @@ def test_static_variable_created(fixture_core_components):
     assert "atmospheric_pressure" in output
     assert output["atmospheric_pressure"].dims == ("layers", "cell_id")
 
-    hourly_output = build_output_from_record(
-        data_record={"air_temperature": np.full((24, 14, 4), 25.0)},
-        static=static,
-        layer_structure=layer_structure,
-        vars_updated=("atmospheric_pressure", "atmospheric_pressure_hourly"),
-        time_dim=24,
-    )
-    assert hourly_output["atmospheric_pressure_hourly"].dims == (
-        "hour",
-        "layers",
-        "cell_id",
-    )
-    np.testing.assert_array_equal(
-        hourly_output["atmospheric_pressure_hourly"]["hour"],
-        np.arange(24),
-    )
-    np.testing.assert_allclose(
-        hourly_output["atmospheric_pressure_hourly"].mean(dim="hour"),
-        hourly_output["atmospheric_pressure"],
-    )
+    with pytest.raises(
+        ValueError,
+        match="Hourly output requested for unavailable variable 'atmospheric_pressure'",
+    ):
+        build_output_from_record(
+            data_record={"air_temperature": np.full((24, 14, 4), 25.0)},
+            static=static,
+            layer_structure=layer_structure,
+            vars_updated=("atmospheric_pressure", "atmospheric_pressure_hourly"),
+        )
 
 
 def test_time_cell_variable_averaged(fixture_core_components):

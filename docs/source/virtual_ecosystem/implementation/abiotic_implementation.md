@@ -64,9 +64,10 @@ variables required by other models.
 The hourly records are also retained in the data object as variables with a ``_hourly``
 suffix and a separate ``hour`` dimension, numbered from 0 to 23. These represent the
 model's reconstructed day for the current update, not 24 additional simulation time
-steps. Variables held constant during the hourly loop are repeated across the hour
-dimension. The unsuffixed variables continue to contain the existing update-interval
-means or derived ranges.
+steps. Variables held constant during the hourly loop, including wind speed,
+atmospheric pressure, atmospheric CO2, and absorbed longwave radiation, are not
+duplicated across the hour dimension. The unsuffixed variables continue to contain the
+existing update-interval means.
 
 ### Diurnal cycle reconstruction
 

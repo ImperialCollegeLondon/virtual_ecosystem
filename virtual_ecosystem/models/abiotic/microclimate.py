@@ -934,7 +934,6 @@ def build_output_from_record(
     static: dict[str, Any],
     layer_structure: LayerStructure,
     vars_updated: tuple[str, ...],
-    time_dim: int | None = None,
 ) -> dict[str, DataArray]:
     """Build model output from hourly record and static/state variables.
 
@@ -946,8 +945,6 @@ def build_output_from_record(
         layer_structure: LayerStructure object
         vars_updated: Tuple containing strings of all variables that are updated by the
             abiotic model
-        time_dim: Number of hourly values, required when all requested outputs are
-            static
 
     Returns:
         Dictionary of DataArray outputs. Raises ValueError when unsupported variable
@@ -1024,19 +1021,6 @@ def build_output_from_record(
                     f"Unsupported hourly dimensions for variable '{var}': "
                     f"{values.shape}"
                 )
-        elif var in output:
-            n_hours = time_dim
-            if n_hours is None:
-                if not data_record:
-                    raise ValueError(
-                        f"Cannot determine the hour dimension for static output'{var}'."
-                    )
-                n_hours = np.asarray(next(iter(data_record.values()))).shape[0]
-            values = np.broadcast_to(
-                output[var].to_numpy(),
-                (n_hours, *output[var].shape),
-            ).copy()
-            hourly_dims = ("hour", *output[var].dims)
         else:
             raise ValueError(
                 f"Hourly output requested for unavailable variable '{var}'."
@@ -1213,7 +1197,6 @@ def run_microclimate(
         static=static,
         layer_structure=layer_structure,
         vars_updated=vars_updated,
-        time_dim=time_dim,
     )
     output["latent_heat_vapourisation"] /= 1000.0
     if "latent_heat_vapourisation_hourly" in output:

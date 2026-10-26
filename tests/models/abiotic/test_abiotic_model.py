@@ -338,6 +338,14 @@ def test_setup_and_update_abiotic_model(
         ), f"Expected {var} to change during the update"
 
     assert set(model.vars_updated).issubset(model.data.data.data_vars)
+    for static_variable in (
+        "wind_speed",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+        "absorbed_longwave_radiation",
+    ):
+        assert f"{static_variable}_hourly" not in model.vars_updated
+        assert f"{static_variable}_hourly" not in model.data.data.data_vars
     for var in (name for name in model.vars_updated if name.endswith("_hourly")):
         hourly = model.data[var]
         assert hourly.dims[0] == "hour"
