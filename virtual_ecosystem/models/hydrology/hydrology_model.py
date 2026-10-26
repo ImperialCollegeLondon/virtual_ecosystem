@@ -427,14 +427,12 @@ class HydrologyModel(
         self.data.add_from_dict(output_dict=atmosphere_setup)
 
         # Build output templates once so updates only replace data, not coordinates.
-        cell_template = self.data["elevation"].copy(
-            data=np.zeros(self.data["elevation"].shape)
+        cell_template = HydrologyOutputTemplate.from_data_array(self.data["elevation"])
+        layer_template = HydrologyOutputTemplate.from_data_array(
+            self.layer_structure.from_template()
         )
-        layer_template = self.layer_structure.from_template().copy(
-            data=np.zeros(self.layer_structure.from_template().shape)
-        )
-        groundwater_template = self.data["groundwater_storage"].copy(
-            data=np.zeros(self.data["groundwater_storage"].shape)
+        groundwater_template = HydrologyOutputTemplate.from_data_array(
+            self.data["groundwater_storage"]
         )
         layer_variables = {
             "interception",
@@ -448,14 +446,12 @@ class HydrologyModel(
             if name.endswith("_daily"):
                 continue
             if name == "groundwater_storage":
-                template = groundwater_template
+                output_template = groundwater_template
             elif name in layer_variables:
-                template = layer_template
+                output_template = layer_template
             else:
-                template = cell_template
-            self.output_templates[name] = HydrologyOutputTemplate.from_data_array(
-                template
-            )
+                output_template = cell_template
+            self.output_templates[name] = output_template
 
         days = int(
             self.model_timing.update_interval_seconds
