@@ -1,8 +1,11 @@
 """Test microclimate.py."""
 
+import warnings
+
 import numpy as np
 import pytest
 from pyrealm.constants import CoreConst as PyrealmCoreConst
+from xarray import DataArray
 
 from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
@@ -780,22 +783,50 @@ def test_run_hour_step_orchestration(
 def test_static_variable_created(fixture_core_components):
     """Test static variables created in update."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        build_output_from_record,
+        create_output_templates,
+    )
 
     layer_structure = fixture_core_components.layer_structure
     static = {"atmospheric_pressure": np.full((14, 4), 96)}
     data_record = {}
     vars_updated = ("atmospheric_pressure",)
+    variable_data = {
+        "atmospheric_pressure": DataArray(
+            static["atmospheric_pressure"], dims=("layers", "cell_id")
+        )
+    }
+    output_templates = create_output_templates(
+        variable_data=variable_data,
+        vars_updated=vars_updated,
+        layer_structure=layer_structure,
+        time_dim=24,
+    )
 
     output = build_output_from_record(
         data_record,
         static,
-        layer_structure,
         vars_updated,
+        output_templates,
     )
 
     assert "atmospheric_pressure" in output
     assert output["atmospheric_pressure"].dims == ("layers", "cell_id")
+    atmosphere_layers = layer_structure.index_filled_atmosphere
+    np.testing.assert_allclose(
+        output["atmospheric_pressure"].to_numpy()[atmosphere_layers],
+        static["atmospheric_pressure"][atmosphere_layers],
+    )
+    assert np.isnan(output["atmospheric_pressure"].to_numpy()[~atmosphere_layers]).all()
+    np.testing.assert_array_equal(
+        output["atmospheric_pressure"]["layers"],
+        layer_structure.from_template()["layers"],
+    )
+    np.testing.assert_array_equal(
+        output["atmospheric_pressure"]["cell_id"],
+        layer_structure.from_template()["cell_id"],
+    )
 
     with pytest.raises(
         ValueError,
@@ -804,26 +835,43 @@ def test_static_variable_created(fixture_core_components):
         build_output_from_record(
             data_record={"air_temperature": np.full((24, 14, 4), 25.0)},
             static=static,
-            layer_structure=layer_structure,
             vars_updated=("atmospheric_pressure", "atmospheric_pressure_hourly"),
+            output_templates=create_output_templates(
+                variable_data=variable_data,
+                vars_updated=(
+                    "atmospheric_pressure",
+                    "atmospheric_pressure_hourly",
+                ),
+                layer_structure=layer_structure,
+                time_dim=24,
+            ),
         )
 
 
 def test_time_cell_variable_averaged(fixture_core_components):
     """Test time cell variables averaged in update."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        build_output_from_record,
+        create_output_templates,
+    )
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
     data_record = {"temperature": np.random.rand(24, 4)}
     vars_updated = ("temperature",)
+    output_templates = create_output_templates(
+        variable_data={"temperature": DataArray(np.empty(4), dims=("cell_id",))},
+        vars_updated=vars_updated,
+        layer_structure=layer_structure,
+        time_dim=24,
+    )
 
     output = build_output_from_record(
         data_record,
         static,
-        layer_structure,
         vars_updated,
+        output_templates,
     )
 
     expected = np.nanmean(data_record["temperature"], axis=0)
@@ -839,18 +887,33 @@ def test_time_cell_variable_averaged(fixture_core_components):
 def test_time_layer_cell_variable_averaged(fixture_core_components):
     """Test time layer cell variables averaged in update."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        build_output_from_record,
+        create_output_templates,
+    )
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
     data_record = {"soil_moisture": np.random.rand(24, 2, 4)}
     vars_updated = ("soil_moisture", "soil_moisture_hourly")
+    output_templates = create_output_templates(
+        variable_data={
+            "soil_moisture": DataArray(
+                np.empty((2, 4)),
+                dims=("layers", "cell_id"),
+                coords={"layers": [0, 1], "cell_id": [0, 1, 2, 3]},
+            )
+        },
+        vars_updated=vars_updated,
+        layer_structure=layer_structure,
+        time_dim=24,
+    )
 
     output = build_output_from_record(
         data_record,
         static,
-        layer_structure,
         vars_updated,
+        output_templates,
     )
 
     expected = np.nanmean(data_record["soil_moisture"], axis=0)
@@ -872,10 +935,159 @@ def test_time_layer_cell_variable_averaged(fixture_core_components):
     )
 
 
+def test_output_templates_and_recorded_values_across_dimensions(
+    fixture_core_components,
+):
+    """Check output dimensions, coordinates, and values for all output shapes."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        build_output_from_record,
+        create_output_templates,
+    )
+
+    layer_structure = fixture_core_components.layer_structure
+    cell_ids = layer_structure.from_template()["cell_id"].to_numpy()
+    layers = layer_structure.from_template()["layers"].to_numpy()
+    data_record = {
+        "air_temperature": np.arange(24 * len(cell_ids), dtype=float).reshape(
+            24, len(cell_ids)
+        ),
+        "soil_temperature": np.arange(
+            24 * len(layers) * len(cell_ids), dtype=float
+        ).reshape(24, len(layers), len(cell_ids)),
+    }
+    variables = {
+        "air_temperature": DataArray(
+            np.empty(len(cell_ids)), dims=("cell_id",), coords={"cell_id": cell_ids}
+        ),
+        "soil_temperature": DataArray(
+            np.empty((len(layers), len(cell_ids))),
+            dims=("layers", "cell_id"),
+            coords={"layers": layers, "cell_id": cell_ids},
+        ),
+    }
+    vars_updated = (
+        "air_temperature",
+        "air_temperature_hourly",
+        "soil_temperature",
+        "soil_temperature_hourly",
+    )
+    templates = create_output_templates(
+        variable_data=variables,
+        vars_updated=vars_updated,
+        layer_structure=layer_structure,
+        time_dim=24,
+    )
+
+    outputs = build_output_from_record(
+        data_record=data_record,
+        static={},
+        vars_updated=vars_updated,
+        output_templates=templates,
+    )
+
+    assert set(outputs) == set(vars_updated)
+    assert outputs["air_temperature"].dims == ("cell_id",)
+    assert outputs["air_temperature_hourly"].dims == ("hour", "cell_id")
+    assert outputs["soil_temperature"].dims == ("layers", "cell_id")
+    assert outputs["soil_temperature_hourly"].dims == (
+        "hour",
+        "layers",
+        "cell_id",
+    )
+
+    for name, expected_dims in (
+        ("air_temperature_hourly", ("hour", "cell_id")),
+        ("soil_temperature_hourly", ("hour", "layers", "cell_id")),
+    ):
+        for dim in expected_dims:
+            np.testing.assert_array_equal(
+                outputs[name][dim],
+                np.arange(24)
+                if dim == "hour"
+                else variables[name.removesuffix("_hourly")][dim],
+            )
+
+    np.testing.assert_allclose(
+        outputs["air_temperature"],
+        np.mean(data_record["air_temperature"], axis=0),
+    )
+    np.testing.assert_allclose(
+        outputs["air_temperature_hourly"],
+        data_record["air_temperature"],
+    )
+    np.testing.assert_allclose(
+        outputs["soil_temperature"],
+        np.mean(data_record["soil_temperature"], axis=0),
+    )
+    np.testing.assert_allclose(
+        outputs["soil_temperature_hourly"],
+        data_record["soil_temperature"],
+    )
+
+
+def test_nan_slices_do_not_emit_runtime_warnings(fixture_core_components):
+    """All-NaN cells remain NaN without leaking NumPy reduction warnings."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        build_output_from_record,
+        create_output_templates,
+    )
+
+    layer_structure = fixture_core_components.layer_structure
+    cell_ids = layer_structure.from_template()["cell_id"].to_numpy()
+    layers = layer_structure.from_template()["layers"].to_numpy()
+    air_temperature = np.full((24, len(layers), len(cell_ids)), np.nan)
+    soil_temperature = np.full_like(air_temperature, np.nan)
+    air_temperature[:, :, 0] = 20.0
+    soil_temperature[:, :, 0] = 15.0
+    record = {
+        "air_temperature": air_temperature,
+        "soil_temperature": soil_temperature,
+    }
+    variables = {
+        name: DataArray(
+            np.empty((len(layers), len(cell_ids))),
+            dims=("layers", "cell_id"),
+            coords={"layers": layers, "cell_id": cell_ids},
+        )
+        for name in ("air_temperature", "soil_temperature", "diurnal_temperature_range")
+    }
+    vars_updated = (
+        "air_temperature",
+        "soil_temperature",
+        "diurnal_temperature_range",
+    )
+    templates = create_output_templates(
+        variable_data=variables,
+        vars_updated=vars_updated,
+        layer_structure=layer_structure,
+        time_dim=24,
+    )
+
+    with warnings.catch_warnings(record=True) as caught_warnings:
+        warnings.simplefilter("always")
+        outputs = build_output_from_record(
+            data_record=record,
+            static={},
+            vars_updated=vars_updated,
+            output_templates=templates,
+        )
+
+    assert caught_warnings == []
+    assert np.isnan(outputs["air_temperature"].to_numpy()[:, 1:]).all()
+    assert np.isnan(outputs["soil_temperature"].to_numpy()[:, 1:]).all()
+    assert np.isnan(outputs["diurnal_temperature_range"].to_numpy()[:, 1:]).all()
+    np.testing.assert_allclose(outputs["diurnal_temperature_range"][:, 0], 5.0)
+
+
 def test_unrequested_variable_skipped(fixture_core_components):
     """Test unrequested variable skipped in update."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        build_output_from_record,
+        create_output_templates,
+    )
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
@@ -884,12 +1096,18 @@ def test_unrequested_variable_skipped(fixture_core_components):
         "humidity": np.random.rand(24, 4),
     }
     vars_updated = ("temperature",)
+    output_templates = create_output_templates(
+        variable_data={"temperature": DataArray(np.empty(4), dims=("cell_id",))},
+        vars_updated=vars_updated,
+        layer_structure=layer_structure,
+        time_dim=24,
+    )
 
     output = build_output_from_record(
         data_record,
         static,
-        layer_structure,
         vars_updated,
+        output_templates,
     )
 
     assert "temperature" in output
@@ -901,7 +1119,6 @@ def test_missing_requested_variable_raises(fixture_core_components):
 
     from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
-    layer_structure = fixture_core_components.layer_structure
     static = {}
     data_record = {}
     vars_updated = ("temperature",)
@@ -910,8 +1127,8 @@ def test_missing_requested_variable_raises(fixture_core_components):
         build_output_from_record(
             data_record,
             static,
-            layer_structure,
             vars_updated,
+            {},
         )
 
 
@@ -923,7 +1140,10 @@ def test_run_microclimate(
 ):
     """Full integration test microclimate."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import run_microclimate
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        create_output_templates,
+        run_microclimate,
+    )
 
     data = dummy_climate_data
     vars_updated = (
@@ -947,6 +1167,9 @@ def test_run_microclimate(
         "net_radiation",
         "diurnal_temperature_range",
         "condensation",
+        "air_temperature_hourly",
+        "soil_temperature_hourly",
+        "net_radiation_hourly",
     )
     time_interval = 3600
     time_index = 0
@@ -958,6 +1181,14 @@ def test_run_microclimate(
     core_constants = fixture_core_constants
     pyrealm_core_constants = PyrealmCoreConst()
     abiotic_bounds = AbioticSimpleBounds()
+    output_templates = create_output_templates(
+        variable_data={
+            name: data[name] for name in vars_updated if not name.endswith("_hourly")
+        },
+        vars_updated=vars_updated,
+        layer_structure=fixture_core_components.layer_structure,
+        time_dim=time_dim,
+    )
 
     result = run_microclimate(
         data=data,
@@ -973,11 +1204,30 @@ def test_run_microclimate(
         core_constants=core_constants,
         abiotic_bounds=abiotic_bounds,
         pyrealm_core_constants=pyrealm_core_constants,
+        output_templates=output_templates,
     )
 
+    assert set(result) == set(vars_updated)
     for var in vars_updated:
-        assert var in result
-        assert result[var].shape == data[var].shape
+        if var.endswith("_hourly"):
+            source_name = var.removesuffix("_hourly")
+            assert result[var].shape == (time_dim, *data[source_name].shape)
+        else:
+            assert result[var].shape == data[var].shape
+
+    for name, source_name in (
+        ("air_temperature_hourly", "air_temperature"),
+        ("soil_temperature_hourly", "soil_temperature"),
+        ("net_radiation_hourly", "net_radiation"),
+    ):
+        hourly = result[name]
+        assert hourly.dims[0] == "hour"
+        np.testing.assert_array_equal(hourly["hour"], np.arange(time_dim))
+        np.testing.assert_allclose(
+            hourly.mean(dim="hour"),
+            result[source_name],
+            equal_nan=True,
+        )
 
     for var in ["air_temperature", "relative_humidity"]:
         assert np.all(result[var] != data[var])
