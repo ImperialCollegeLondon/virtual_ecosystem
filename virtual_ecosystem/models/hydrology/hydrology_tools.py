@@ -1,5 +1,11 @@
 """Functions to set up hydrology model and select data for current time step."""
 
+from __future__ import annotations
+
+from collections.abc import Hashable
+from dataclasses import dataclass
+from typing import Any
+
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.core.hygro import calculate_specific_heat
@@ -13,6 +19,43 @@ from virtual_ecosystem.models.abiotic import abiotic_tools
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.hydrology import above_ground
 from virtual_ecosystem.models.hydrology.model_config import HydrologyConstants
+
+
+@dataclass(frozen=True)
+class HydrologyOutputTemplate:
+    """Dimension and coordinate metadata for one hydrology model output."""
+
+    dims: tuple[Hashable, ...]
+    shape: tuple[int, ...]
+    coords: dict[Hashable, Any]
+
+    @classmethod
+    def from_data_array(cls, template: DataArray) -> HydrologyOutputTemplate:
+        """Create a hydrology output template from an xarray data array."""
+
+        return cls(
+            dims=template.dims,
+            shape=template.shape,
+            coords={name: coordinate for name, coordinate in template.coords.items()},
+        )
+
+    def with_day_dimension(self, days: int) -> HydrologyOutputTemplate:
+        """Return a daily template with a zero-based day coordinate."""
+
+        return HydrologyOutputTemplate(
+            dims=("day", *self.dims),
+            shape=(days, *self.shape),
+            coords={"day": np.arange(days), **self.coords},
+        )
+
+    def create_data_array(self, values: np.ndarray) -> DataArray:
+        """Create a DataArray from values after checking the expected shape."""
+
+        if values.shape != self.shape:
+            raise ValueError(
+                f"Hydrology output has shape {values.shape}, expected {self.shape}."
+            )
+        return DataArray(data=values, dims=self.dims, coords=self.coords)
 
 
 def initialise_atmosphere_for_hydrology(

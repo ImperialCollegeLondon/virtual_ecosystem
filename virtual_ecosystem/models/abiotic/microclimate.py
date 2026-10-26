@@ -3,8 +3,6 @@ balance in the Virtual Ecosystem.
 """  # noqa: D205
 
 import warnings
-from collections.abc import Hashable
-from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any
 
@@ -18,91 +16,9 @@ from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance, wind
+from virtual_ecosystem.models.abiotic.abiotic_tools import AbioticOutputTemplate
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
-
-
-@dataclass(frozen=True)
-class AbioticOutputTemplate:
-    """Dimension and coordinate metadata for one abiotic model output."""
-
-    dims: tuple[Hashable, ...]
-    shape: tuple[int, ...]
-    coords: dict[Hashable, Any]
-    atmospheric_layers: tuple[int, ...]
-
-
-def create_output_templates(
-    variable_data: dict[str, DataArray],
-    vars_updated: tuple[str, ...],
-    layer_structure: LayerStructure,
-    time_dim: int,
-) -> dict[str, AbioticOutputTemplate]:
-    """Create output dimension templates once for all abiotic model variables.
-
-    Hourly outputs use the spatial dimensions of their unsuffixed variable, while
-    regular outputs retain that variable's dimensions and coordinates.
-    """
-
-    layer_template = layer_structure.from_template()
-    templates: dict[str, AbioticOutputTemplate] = {}
-    template_cache: dict[
-        tuple[bool, tuple[Hashable, ...], tuple[int, ...]], AbioticOutputTemplate
-    ] = {}
-
-    for name in vars_updated:
-        is_hourly = name.endswith("_hourly")
-        variable_name = name.removesuffix("_hourly") if is_hourly else name
-        if variable_name not in variable_data:
-            raise ValueError(
-                f"Cannot create output template for '{name}': "
-                f"no source variable '{variable_name}'."
-            )
-
-        source = variable_data[variable_name]
-        if source.dims not in (("cell_id",), ("layers", "cell_id")):
-            raise ValueError(
-                f"Unsupported spatial dimensions for output '{name}': {source.dims}."
-            )
-        template_key = (is_hourly, source.dims, source.shape)
-        if template_key in template_cache:
-            templates[name] = template_cache[template_key]
-            continue
-
-        coords: dict[Hashable, Any] = {
-            dim: source.coords[dim] for dim in source.dims if dim in source.coords
-        }
-        if "cell_id" not in coords:
-            coords["cell_id"] = layer_template["cell_id"]
-
-        if "layers" in source.dims:
-            if source.sizes["layers"] == layer_template.sizes["layers"]:
-                coords["layers"] = layer_template["layers"]
-                coords["layer_roles"] = (
-                    "layers",
-                    layer_template["layer_roles"].to_numpy(),
-                )
-            elif "layers" not in coords:
-                coords["layers"] = np.arange(source.sizes["layers"])
-
-        dims = (("hour",) if is_hourly else ()) + source.dims
-        shape = ((time_dim,) if is_hourly else ()) + source.shape
-        if is_hourly:
-            coords["hour"] = np.arange(time_dim)
-
-        template = AbioticOutputTemplate(
-            dims=dims,
-            shape=shape,
-            coords=coords,
-            atmospheric_layers=tuple(
-                int(index)
-                for index in np.flatnonzero(layer_structure.index_filled_atmosphere)
-            ),
-        )
-        template_cache[template_key] = template
-        templates[name] = template
-
-    return templates
 
 
 def prepare_static_inputs(

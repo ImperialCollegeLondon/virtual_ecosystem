@@ -783,10 +783,8 @@ def test_run_hour_step_orchestration(
 def test_static_variable_created(fixture_core_components):
     """Test static variables created in update."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        build_output_from_record,
-        create_output_templates,
-    )
+    from virtual_ecosystem.models.abiotic.abiotic_tools import create_output_templates
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     static = {"atmospheric_pressure": np.full((14, 4), 96)}
@@ -843,10 +841,8 @@ def test_static_variable_created(fixture_core_components):
 def test_time_cell_variable_averaged(fixture_core_components):
     """Test time cell variables averaged in update."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        build_output_from_record,
-        create_output_templates,
-    )
+    from virtual_ecosystem.models.abiotic.abiotic_tools import create_output_templates
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
@@ -879,10 +875,8 @@ def test_time_cell_variable_averaged(fixture_core_components):
 def test_time_layer_cell_variable_averaged(fixture_core_components):
     """Test time layer cell variables averaged in update."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        build_output_from_record,
-        create_output_templates,
-    )
+    from virtual_ecosystem.models.abiotic.abiotic_tools import create_output_templates
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
@@ -932,10 +926,8 @@ def test_output_templates_and_recorded_values_across_dimensions(
 ):
     """Check output dimensions, coordinates, and values for all output shapes."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        build_output_from_record,
-        create_output_templates,
-    )
+    from virtual_ecosystem.models.abiotic.abiotic_tools import create_output_templates
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     cell_ids = layer_structure.from_template()["cell_id"].to_numpy()
@@ -1021,10 +1013,8 @@ def test_output_templates_and_recorded_values_across_dimensions(
 def test_nan_slices_do_not_emit_runtime_warnings(fixture_core_components):
     """All-NaN cells remain NaN without leaking NumPy reduction warnings."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        build_output_from_record,
-        create_output_templates,
-    )
+    from virtual_ecosystem.models.abiotic.abiotic_tools import create_output_templates
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     cell_ids = layer_structure.from_template()["cell_id"].to_numpy()
@@ -1076,10 +1066,8 @@ def test_nan_slices_do_not_emit_runtime_warnings(fixture_core_components):
 def test_unrequested_variable_skipped(fixture_core_components):
     """Test unrequested variable skipped in update."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        build_output_from_record,
-        create_output_templates,
-    )
+    from virtual_ecosystem.models.abiotic.abiotic_tools import create_output_templates
+    from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
@@ -1132,10 +1120,8 @@ def test_run_microclimate(
 ):
     """Full integration test microclimate."""
 
-    from virtual_ecosystem.models.abiotic.microclimate import (
-        create_output_templates,
-        run_microclimate,
-    )
+    from virtual_ecosystem.models.abiotic.abiotic_tools import create_output_templates
+    from virtual_ecosystem.models.abiotic.microclimate import run_microclimate
 
     data = dummy_climate_data
     vars_updated = (

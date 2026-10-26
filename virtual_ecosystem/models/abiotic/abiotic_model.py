@@ -17,12 +17,14 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
+    AbioticOutputTemplate,
+    create_output_templates,
+)
 from virtual_ecosystem.models.abiotic.energy_balance import (
     initialise_canopy_and_soil_fluxes,
 )
 from virtual_ecosystem.models.abiotic.microclimate import (
-    AbioticOutputTemplate,
-    create_output_templates,
     run_microclimate,
 )
 from virtual_ecosystem.models.abiotic.model_config import (

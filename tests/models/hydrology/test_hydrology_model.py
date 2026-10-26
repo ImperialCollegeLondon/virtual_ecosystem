@@ -315,7 +315,7 @@ def test_setup_and_update_hydrology_model_ranges(
     model.update(time_index=1, seed=42)
 
     assert set(model.vars_updated).issubset(model.data.data.data_vars)
-    from virtual_ecosystem.models.hydrology.hydrology_model import (
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
         HydrologyOutputTemplate,
     )
 
