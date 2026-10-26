@@ -26,7 +26,6 @@ There are still a number of open TODOs related to process implementation and imp
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from typing import Any
 
 import numpy as np
@@ -236,6 +235,8 @@ class HydrologyModel(
         cells identical."""
         self.initial_groundwater_saturation: float
         """Initial level of groundwater saturation for all layers identical."""
+        self.data_object_templates: dict[str, DataArray] = {}
+        """Output dimension and coordinate templates created during setup."""
         self.p_wet_wet: float
         """Probability a wet day follows a wet day."""
         self.p_wet_dry: float
@@ -423,6 +424,45 @@ class HydrologyModel(
             layer_structure=self.layer_structure,
         )
         self.data.add_from_dict(output_dict=atmosphere_setup)
+
+        # Build output templates once so updates only replace data, not coordinates.
+        cell_template = self.data["elevation"].copy(
+            data=np.zeros(self.data["elevation"].shape)
+        )
+        layer_template = self.layer_structure.from_template().copy(
+            data=np.zeros(self.layer_structure.from_template().shape)
+        )
+        groundwater_template = self.data["groundwater_storage"].copy(
+            data=np.zeros(self.data["groundwater_storage"].shape)
+        )
+        layer_variables = {
+            "interception",
+            "canopy_evaporation",
+            "soil_moisture",
+            "vertical_flow",
+            "matric_potential",
+        }
+        self.data_object_templates = {}
+        for name in self.vars_updated:
+            if name.endswith("_daily"):
+                continue
+            if name == "groundwater_storage":
+                template = groundwater_template
+            elif name in layer_variables:
+                template = layer_template
+            else:
+                template = cell_template
+            self.data_object_templates[name] = template
+
+        days = int(
+            self.model_timing.update_interval_seconds
+            // self.core_constants.seconds_to_day
+        )
+        for name, template in tuple(self.data_object_templates.items()):
+            self.data_object_templates[f"{name}_daily"] = template.expand_dims(
+                day=np.arange(days),
+                axis=0,
+            )
 
     @classmethod
     def from_config(
@@ -1204,50 +1244,49 @@ class HydrologyModel(
             "subsurface_runoff_routed_plus_local",
             "total_runoff",
         ]:
-            soil_hydrology[var] = DataArray(
-                np.nansum(np.stack(daily_lists[var], axis=1), axis=1),
-                dims="cell_id",
-                coords={"cell_id": self.grid.cell_id},
+            soil_hydrology[var] = self.data_object_templates[var].copy(
+                data=np.nansum(np.stack(daily_lists[var], axis=1), axis=1)
             )
 
         # Canopy evaporation/intercept is accumulated over days, [mm]
         for var in ["canopy_evaporation", "interception"]:
-            soil_hydrology[var] = self.layer_structure.from_template()
-            soil_hydrology[var][:,] = np.where(
-                np.isnan(self.data["leaf_area_index"]),
-                np.nan,
-                np.nansum(daily_lists[var], axis=0),
+            soil_hydrology[var] = self.data_object_templates[var].copy(
+                data=np.where(
+                    np.isnan(self.data["leaf_area_index"]),
+                    np.nan,
+                    np.nansum(daily_lists[var], axis=0),
+                )
             )
 
         # Calculate monthly mean values for river discharge rate and soil resistance
         for var in ["river_discharge_rate", "aerodynamic_resistance_soil"]:
-            soil_hydrology[var] = DataArray(
-                np.mean(np.stack(daily_lists[var], axis=1), axis=1),
-                dims="cell_id",
-                coords={"cell_id": self.grid.cell_id},
+            soil_hydrology[var] = self.data_object_templates[var].copy(
+                data=np.mean(np.stack(daily_lists[var], axis=1), axis=1)
             )
 
         # Return mean soil moisture, [mm], and soil matric potential, [kPa], and add
         # atmospheric layers (nan)
         for var in ["soil_moisture", "matric_potential", "vertical_flow"]:
-            soil_hydrology[var] = self.layer_structure.from_template()
-            soil_hydrology[var][self.layer_structure.index_all_soil] = np.mean(
+            values = np.full(
+                self.data_object_templates[var].shape,
+                np.nan,
+                dtype=np.result_type(daily_lists[var][0].dtype, float),
+            )
+            values[self.layer_structure.index_all_soil] = np.mean(
                 np.stack(daily_lists[var], axis=0), axis=0
             )
+            soil_hydrology[var] = self.data_object_templates[var].copy(data=values)
 
         # Save last state of groundwater storage, [mm]
-        soil_hydrology["groundwater_storage"] = DataArray(
-            daily_lists["groundwater_storage"][day],
-            dims=self.data["groundwater_storage"].dims,
-            coords=self.data["groundwater_storage"].coords,
-        )
+        soil_hydrology["groundwater_storage"] = self.data_object_templates[
+            "groundwater_storage"
+        ].copy(data=daily_lists["groundwater_storage"][day])
 
         for name, values in daily_lists.items():
             daily_values = np.stack(values, axis=0)
-            template = soil_hydrology[name]
             if name in ("soil_moisture", "matric_potential", "vertical_flow"):
                 full_layer_values = np.full(
-                    (len(values), *template.shape),
+                    (len(values), *self.data_object_templates[name].shape),
                     np.nan,
                     dtype=np.result_type(daily_values.dtype, float),
                 )
@@ -1256,28 +1295,13 @@ class HydrologyModel(
                 )
                 daily_values = full_layer_values
 
-            coordinates: dict[Hashable, np.ndarray | DataArray] = {
-                "day": np.arange(len(values))
-            }
-            for axis, dim in enumerate(template.dims, start=1):
-                dimension_size = daily_values.shape[axis]
-                if template.sizes[dim] == dimension_size:
-                    coordinates[dim] = (
-                        template.coords[dim]
-                        if dim in template.coords
-                        else np.arange(dimension_size)
-                    )
-                else:
-                    raise ValueError(
-                        f"Daily hydrology output '{name}' has {dimension_size} "
-                        f"values on dimension '{dim}', expected {template.sizes[dim]}."
-                    )
-
-            soil_hydrology[f"{name}_daily"] = DataArray(
-                daily_values,
-                dims=("day", *template.dims),
-                coords=coordinates,
-            )
+            template = self.data_object_templates[f"{name}_daily"]
+            if daily_values.shape != template.shape:
+                raise ValueError(
+                    f"Daily hydrology output '{name}' has shape "
+                    f"{daily_values.shape}, expected {template.shape}."
+                )
+            soil_hydrology[f"{name}_daily"] = template.copy(data=daily_values)
 
         # Update data object
         self.data.add_from_dict(output_dict=soil_hydrology)

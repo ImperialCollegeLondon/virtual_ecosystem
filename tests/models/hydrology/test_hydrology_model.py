@@ -315,6 +315,15 @@ def test_setup_and_update_hydrology_model_ranges(
     model.update(time_index=1, seed=42)
 
     assert set(model.vars_updated).issubset(model.data.data.data_vars)
+    assert set(model.data_object_templates) == set(model.vars_updated)
+    for variable in model.vars_updated:
+        template = model.data_object_templates[variable]
+        output = model.data[variable]
+        assert template.dims == output.dims
+        assert template.shape == output.shape
+        for coordinate in output.coords:
+            np.testing.assert_array_equal(template[coordinate], output[coordinate])
+
     expected_mean_soil_moisture = np.mean(
         np.stack(daily_soil_moisture, axis=0),
         axis=0,
