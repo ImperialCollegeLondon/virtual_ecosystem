@@ -6,8 +6,10 @@ managing pools of stoichiometric explicit mass: carbon (C), nitrogen (N), and ph
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from virtual_ecosystem.core.configuration import CompiledConfiguration
+from virtual_ecosystem.models.soil.microbial_groups import load_enzymes, load_microbes
 from virtual_ecosystem.models.soil.model_config import SoilConfiguration
 
 
@@ -137,8 +139,9 @@ def find_microbial_stoichiometries(
 ) -> dict[str, dict[str, float]]:
     """Find the stoichiometries of each microbial functional group.
 
-    This extracts the soil configuration from the simulation configuration and then
-    compiles a dictionary of CN and CP ratios for each microbial group.
+    This extracts the paths to the soil enzyme and microbe definition files from the
+    simulation configuration, loads them in and then uses them to compile a dictionary
+    of CN and CP ratios for each microbial group.
 
     Args:
         config: A compiled Virtual Ecosystem configuration instance.
@@ -152,7 +155,13 @@ def find_microbial_stoichiometries(
         "soil", SoilConfiguration
     )
 
+    soil_enzymes = load_enzymes(path=Path(soil_config.enzyme_class_definition_path))
+    soil_microbes = load_microbes(
+        path=Path(soil_config.microbial_group_definition_path),
+        enzyme_classes=soil_enzymes,
+    )
+
     return {
-        group.name: {"N": group.c_n_ratio, "P": group.c_p_ratio}
-        for group in soil_config.microbial_group_definition
+        name: {"N": parameters.c_n_ratio, "P": parameters.c_p_ratio}
+        for name, parameters in soil_microbes.items()
     }

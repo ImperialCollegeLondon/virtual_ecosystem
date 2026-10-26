@@ -275,7 +275,6 @@ soil_enzyme_definitions = [
 
 # With both sets of parameters defined write them out
 microbial_group_fieldnames = [
-    # TODO
     "name",
     "taxonomic_group",
     "max_uptake_rate_labile_C",

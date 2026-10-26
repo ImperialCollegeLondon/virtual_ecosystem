@@ -33,7 +33,7 @@ from virtual_ecosystem.core.core_components import CoreComponents, LayerStructur
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.model_config import CoreConfiguration, CoreConstants
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.hydrology.model_config import (
     HydrologyConfiguration,
 )
@@ -45,14 +45,14 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_environmental_effect_factors,
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
-    MicrobialGroupConstants,
-    make_full_set_of_microbial_groups,
+    SoilEnzyme,
+    SoilMicrobe,
+    load_enzymes,
+    load_microbes,
 )
 from virtual_ecosystem.models.soil.model_config import (
     SoilConfiguration,
     SoilConstants,
-    SoilEnzyme,
-    load_enzymes,
 )
 from virtual_ecosystem.models.soil.pools import SoilPools
 from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
@@ -205,7 +205,7 @@ class SoilModel(
         self,
         data: Data,
         core_components: CoreComponents,
-        microbial_groups: dict[str, MicrobialGroupConstants],
+        microbial_groups: dict[str, SoilMicrobe],
         enzyme_classes: dict[str, SoilEnzyme],
         soil_moisture_saturation: float,
         soil_moisture_residual: float,
@@ -252,7 +252,7 @@ class SoilModel(
     def _setup(
         self,
         model_constants: SoilConstants,
-        microbial_groups: dict[str, MicrobialGroupConstants],
+        microbial_groups: dict[str, SoilMicrobe],
         enzyme_classes: dict[str, SoilEnzyme],
         soil_moisture_saturation: float,
         soil_moisture_residual: float,
@@ -313,9 +313,6 @@ class SoilModel(
         soil_configuration: SoilConfiguration = configuration.get_subconfiguration(
             "soil", SoilConfiguration
         )
-        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
-            "core", CoreConfiguration
-        )
         hydrology_configuration: HydrologyConfiguration = (
             configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
         )
@@ -329,10 +326,9 @@ class SoilModel(
             path=Path(soil_configuration.enzyme_class_definition_path)
         )
 
-        microbial_groups = make_full_set_of_microbial_groups(
-            config=soil_configuration,
+        microbial_groups = load_microbes(
+            path=Path(soil_configuration.microbial_group_definition_path),
             enzyme_classes=enzyme_classes,
-            core_constants=core_configuration.constants,
         )
 
         return cls(
@@ -920,7 +916,7 @@ def estimate_past_mycorrhizal_supply(
     soil_p_pool_labile: NDArray[np.floating],
     microbe_pool_size: NDArray[np.floating],
     soil_temp: NDArray[np.floating],
-    microbial_group: MicrobialGroupConstants,
+    microbial_group: SoilMicrobe,
     env_factors: EnvironmentalEffectFactors,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Estimate nutrient supply by mycorrhizal fungi for the previous time step.
@@ -992,7 +988,7 @@ def construct_full_soil_model(
     layer_structure: LayerStructure,
     delta_pools_ordered: dict[str, NDArray[np.floating]],
     model_constants: SoilConstants,
-    functional_groups: dict[str, MicrobialGroupConstants],
+    functional_groups: dict[str, SoilMicrobe],
     enzyme_classes: dict[str, SoilEnzyme],
     core_constants: CoreConstants,
     soil_moisture_saturation: float,
