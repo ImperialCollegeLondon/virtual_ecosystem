@@ -59,9 +59,9 @@ class SoilEnzyme(Configuration):
     """The half saturation constant for the enzyme at the reference temperature. Units
     of [kg{C} m-3]."""
     activation_energy_rate: float
-    """Activation energy for enzyme rate with temperature [J Kelvin-1]."""
+    """Activation energy for enzyme rate with temperature [J mol-1]."""
     activation_energy_saturation: float
-    """Activation energy for enzyme saturation with temperature [J Kelvin-1]."""
+    """Activation energy for enzyme saturation with temperature [J mol-1]."""
     # TODO - This should change to Kelvin when we change the default units to Kelvin
     reference_temperature: float
     """The temperature that enzyme rate and saturation were measured at [Celsius]."""
@@ -136,11 +136,11 @@ class SoilMicrobe(Configuration):
     max_uptake_rate_labile_C: float
     """Maximum rate at the reference temperature of labile carbon uptake [day-1]."""
     activation_energy_uptake_rate: float
-    """Activation energy for nutrient uptake [J Kelvin-1]."""
+    """Activation energy for nutrient uptake [J mol-1]."""
     half_sat_labile_C_uptake: float
     """Half saturation constant for uptake of labile carbon (LMWC) [kg{C} m-3]."""
     activation_energy_uptake_saturation: float
-    """Activation energy for nutrient uptake saturation constants [J Kelvin-1]."""
+    """Activation energy for nutrient uptake saturation constants [J mol-1]."""
     max_uptake_rate_ammonium: float
     """Maximum possible rate for ammonium uptake [day-1]."""
     half_sat_ammonium_uptake: float
@@ -157,7 +157,7 @@ class SoilMicrobe(Configuration):
     turnover_rate: float
     """Microbial maintenance turnover rate at reference temperature [day-1]."""
     activation_energy_turnover: float
-    """Activation energy for microbial maintenance turnover rate [J Kelvin-1]."""
+    """Activation energy for microbial maintenance turnover rate [J mol-1]."""
     reference_temperature: float
     """The temperature that turnover and uptake rates were measured at [Celsius]."""
     c_n_ratio: float
