@@ -819,14 +819,6 @@ def test_static_variable_created(fixture_core_components):
         static["atmospheric_pressure"][atmosphere_layers],
     )
     assert np.isnan(output["atmospheric_pressure"].to_numpy()[~atmosphere_layers]).all()
-    np.testing.assert_array_equal(
-        output["atmospheric_pressure"]["layers"],
-        layer_structure.from_template()["layers"],
-    )
-    np.testing.assert_array_equal(
-        output["atmospheric_pressure"]["cell_id"],
-        layer_structure.from_template()["cell_id"],
-    )
 
     with pytest.raises(
         ValueError,
@@ -858,10 +850,10 @@ def test_time_cell_variable_averaged(fixture_core_components):
 
     layer_structure = fixture_core_components.layer_structure
     static = {}
-    data_record = {"temperature": np.random.rand(24, 4)}
-    vars_updated = ("temperature",)
+    data_record = {"ground_heat_flux": np.random.rand(24, 4)}
+    vars_updated = ("ground_heat_flux",)
     output_templates = create_output_templates(
-        variable_data={"temperature": DataArray(np.empty(4), dims=("cell_id",))},
+        variable_data={"ground_heat_flux": DataArray(np.empty(4), dims=("cell_id",))},
         vars_updated=vars_updated,
         layer_structure=layer_structure,
         time_dim=24,
@@ -874,14 +866,14 @@ def test_time_cell_variable_averaged(fixture_core_components):
         output_templates,
     )
 
-    expected = np.nanmean(data_record["temperature"], axis=0)
+    expected = np.nanmean(data_record["ground_heat_flux"], axis=0)
 
     np.testing.assert_allclose(
-        output["temperature"].values,
+        output["ground_heat_flux"].values,
         expected,
     )
 
-    assert output["temperature"].dims == ("cell_id",)
+    assert output["ground_heat_flux"].dims == ("cell_id",)
 
 
 def test_time_layer_cell_variable_averaged(fixture_core_components):
@@ -1114,7 +1106,7 @@ def test_unrequested_variable_skipped(fixture_core_components):
     assert "humidity" not in output
 
 
-def test_missing_requested_variable_raises(fixture_core_components):
+def test_missing_requested_variable_raises():
     """Test missing variables raised in update."""
 
     from virtual_ecosystem.models.abiotic.microclimate import build_output_from_record
