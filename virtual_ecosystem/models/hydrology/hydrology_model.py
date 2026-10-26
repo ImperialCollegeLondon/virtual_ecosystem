@@ -29,6 +29,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import xarray as xr
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 from xarray import DataArray
@@ -235,8 +236,8 @@ class HydrologyModel(
         cells identical."""
         self.initial_groundwater_saturation: float
         """Initial level of groundwater saturation for all layers identical."""
-        self.data_object_templates: dict[str, DataArray] = {}
-        """Output dimension and coordinate templates created during setup."""
+        self.data_object_templates: dict[str, xr.DataArray] = {}
+        """Output array templates created during setup."""
         self.p_wet_wet: float
         """Probability a wet day follows a wet day."""
         self.p_wet_dry: float

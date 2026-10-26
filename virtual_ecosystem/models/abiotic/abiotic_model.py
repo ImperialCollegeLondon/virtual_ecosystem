@@ -9,8 +9,8 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import xarray as xr
 from pyrealm.constants import CoreConst as PyrealmCoreConst
-from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.configuration import CompiledConfiguration
@@ -203,8 +203,8 @@ class AbioticModel(
         """Pyrealm core constants."""
         self.latitude: float
         """Latitude in degrees. This is required to generate the diurnal cycle."""
-        self.data_object_templates: dict[str, DataArray] = {}
-        """Output DataArray templates created during setup."""
+        self.data_object_templates: dict[str, xr.DataArray] = {}
+        """Output array templates created during setup."""
 
         # Run the setup if the model is not in deep static mode
         if self._run_setup:
