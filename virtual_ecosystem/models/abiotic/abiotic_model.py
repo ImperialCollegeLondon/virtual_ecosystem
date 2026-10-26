@@ -21,7 +21,7 @@ from virtual_ecosystem.models.abiotic.energy_balance import (
     initialise_canopy_and_soil_fluxes,
 )
 from virtual_ecosystem.models.abiotic.microclimate import (
-    OutputTemplate,
+    AbioticOutputTemplate,
     create_output_templates,
     run_microclimate,
 )
@@ -201,7 +201,7 @@ class AbioticModel(
         """Pyrealm core constants."""
         self.latitude: float
         """Latitude in degrees. This is required to generate the diurnal cycle."""
-        self.output_templates: dict[str, OutputTemplate] = {}
+        self.output_templates: dict[str, AbioticOutputTemplate] = {}
         """Output dimension and coordinate templates created during setup."""
 
         # Run the setup if the model is not in deep static mode

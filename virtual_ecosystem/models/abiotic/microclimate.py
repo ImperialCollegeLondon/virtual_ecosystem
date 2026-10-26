@@ -23,7 +23,7 @@ from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBo
 
 
 @dataclass(frozen=True)
-class OutputTemplate:
+class AbioticOutputTemplate:
     """Dimension and coordinate metadata for one abiotic model output."""
 
     dims: tuple[Hashable, ...]
@@ -37,7 +37,7 @@ def create_output_templates(
     vars_updated: tuple[str, ...],
     layer_structure: LayerStructure,
     time_dim: int,
-) -> dict[str, OutputTemplate]:
+) -> dict[str, AbioticOutputTemplate]:
     """Create output dimension templates once for all abiotic model variables.
 
     Hourly outputs use the spatial dimensions of their unsuffixed variable, while
@@ -45,9 +45,9 @@ def create_output_templates(
     """
 
     layer_template = layer_structure.from_template()
-    templates: dict[str, OutputTemplate] = {}
+    templates: dict[str, AbioticOutputTemplate] = {}
     template_cache: dict[
-        tuple[bool, tuple[Hashable, ...], tuple[int, ...]], OutputTemplate
+        tuple[bool, tuple[Hashable, ...], tuple[int, ...]], AbioticOutputTemplate
     ] = {}
 
     for name in vars_updated:
@@ -90,7 +90,7 @@ def create_output_templates(
         if is_hourly:
             coords["hour"] = np.arange(time_dim)
 
-        template = OutputTemplate(
+        template = AbioticOutputTemplate(
             dims=dims,
             shape=shape,
             coords=coords,
@@ -1017,7 +1017,7 @@ def build_output_from_record(
     data_record: dict[str, Any],
     static: dict[str, Any],
     vars_updated: tuple[str, ...],
-    output_templates: dict[str, OutputTemplate],
+    output_templates: dict[str, AbioticOutputTemplate],
 ) -> dict[str, DataArray]:
     """Build model output from hourly record and static/state variables.
 
@@ -1138,7 +1138,7 @@ def run_microclimate(
     core_constants: CoreConstants,
     pyrealm_core_constants: PyrealmCoreConst,
     abiotic_bounds: AbioticSimpleBounds,
-    output_templates: dict[str, OutputTemplate],
+    output_templates: dict[str, AbioticOutputTemplate],
 ) -> dict[str, Any]:
     """Run the microclimate model for one day, iterating through hourly time steps.
 
