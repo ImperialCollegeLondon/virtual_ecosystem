@@ -4,7 +4,7 @@ the different microbial functional groups used in the soil model.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import InitVar, dataclass
 from functools import cached_property
 from itertools import product
 from pathlib import Path
@@ -13,13 +13,8 @@ from typing import Literal, get_args
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
-from pydantic import (
-    Field,
-    PrivateAttr,
-    ValidationError,
-    computed_field,
-    model_validator,
-)
+from pydantic import ConfigDict, Field, ValidationError, computed_field, model_validator
+from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from virtual_ecosystem.core.configuration import Configuration
 
@@ -126,8 +121,12 @@ def load_enzymes(path: Path) -> dict[str, SoilEnzyme]:
     return {f"{r.source}_{r.substrate}": r for r in enzymes}
 
 
-class SoilMicrobe(Configuration):
+@pydantic_dataclass(config=ConfigDict(extra="forbid"))
+class SoilMicrobe:
     """Microbial functional group definitions."""
+
+    # No docstring for this attribute as it disappears after the class is initialised
+    enzyme_classes: InitVar[dict[str, SoilEnzyme]]
 
     name: REQUIRED_MICROBIAL_GROUPS
     """The name of the microbial group functional type."""
@@ -183,7 +182,14 @@ class SoilMicrobe(Configuration):
     """Fraction of nitrogen uptake that is supplied to symbiotic (plant) partners.
     [unitless]. This should only have a non-zero value for mycorrhizal fungi."""
 
-    _enzyme_details: dict[str, SoilEnzyme] = PrivateAttr()
+    synthesis_nutrient_ratios: dict[str, float] = Field(init=False)
+    """Average carbon nutrient ratios of the newly synthesised biomass [unitless].
+    Microbes synthesis biomass for three different purposes: cell growth, extra-cellular
+    enzyme production and in some cases fungal fruiting body production. The
+    stoichiometry of each of these types of biomass is different, so the average
+    stoichiometry of the biomass produced by each microbial group needs to be
+    calculated.
+    """
 
     @model_validator(mode="after")
     def _only_fungi_fruit(self) -> SoilMicrobe:
@@ -223,27 +229,6 @@ class SoilMicrobe(Configuration):
 
     @computed_field(repr=False)  # type: ignore[prop-decorator]
     @cached_property
-    def synthesis_nutrient_ratios(self) -> dict[str, float]:
-        """Average carbon nutrient ratios of the newly synthesised biomass.
-
-        Microbes synthesis biomass for three different purposes: cell growth,
-        extra-cellular enzyme production and in some cases fungal fruiting body
-        production. The stoichiometry of each of these types of biomass is different, so
-        the average stoichiometry of the biomass produced by each microbial group needs
-        to be calculated.
-        """
-
-        return calculate_new_biomass_average_nutrient_ratios(
-            taxonomic_group=self.taxonomic_group,
-            c_n_ratio=self.c_n_ratio,
-            c_p_ratio=self.c_p_ratio,
-            enzyme_production=self.enzyme_production,
-            reproductive_allocation=self.reproductive_allocation,
-            enzyme_classes=self._enzyme_details,
-        )
-
-    @computed_field(repr=False)  # type: ignore[prop-decorator]
-    @cached_property
     def enzyme_substrates(self) -> list[str]:
         """Substrates that the microbial group produces enzymes for."""
 
@@ -252,6 +237,26 @@ class SoilMicrobe(Configuration):
             for substrate, production in self.enzyme_production.items()
             if production > 0.0
         ]
+
+    def __post_init__(self, enzyme_classes: dict[str, SoilEnzyme]) -> None:
+        """Populate the ``SoilMicrobe`` instance.
+
+        This method populates the ``SoilMicrobe`` attributes that require information
+        about the enzymes included in the soil model.
+
+        Args:
+            enzyme_classes: The full set of parameters for all enzymes included in the
+                soil model.
+        """
+
+        self.synthesis_nutrient_ratios = calculate_new_biomass_average_nutrient_ratios(
+            taxonomic_group=self.taxonomic_group,
+            c_n_ratio=self.c_n_ratio,
+            c_p_ratio=self.c_p_ratio,
+            enzyme_production=self.enzyme_production,
+            reproductive_allocation=self.reproductive_allocation,
+            enzyme_classes=enzyme_classes,
+        )
 
 
 def load_microbes(
@@ -284,10 +289,9 @@ def load_microbes(
 
     try:
         microbes = [
-            SoilMicrobe.model_validate(rec) for rec in data.to_dict(orient="records")
+            SoilMicrobe(**rec, enzyme_classes=enzyme_classes)
+            for rec in data.to_dict(orient="records")
         ]
-        for microbe in microbes:
-            microbe._enzyme_details = enzyme_classes
     except ValidationError as excep:
         raise ValueError(f"Invalid data in microbe parametrisation CSV file: {excep!s}")
 
