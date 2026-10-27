@@ -29,9 +29,8 @@ table](../../variables/variables.md)).
 The `soil` model also requires a large number of array variables (again consult the
 [variables table](../../variables/variables.md)). However, in this case you also need to
 provide parametrisation for the [soil microbial
-groups](./soil_config.md#soil-microbial-groups) included in the model, which should be
-provided as part of the configuration (`.toml`) files. Further, you will need to provide
-parametrisation for the [enzymes microbes
-produce](./microbial_parameterisation.md#enzyme-classes) as a CSV file. [We provide
-baseline estimates for the microbial group parameters, along with comments describing
-the source of each estimate.](./default_microbial_params.md)
+groups](./microbial_parameterisation.md#microbial-functional-groups) and for the
+[enzymes microbes produce](./microbial_parameterisation.md#enzyme-classes). Both of
+these should be provided as a CSV files. [We provide baseline estimates for the
+microbial group parameters, along with comments describing the source of each
+estimate.](./default_microbial_params.md)

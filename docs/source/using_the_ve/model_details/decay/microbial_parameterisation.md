@@ -35,7 +35,60 @@ required microbial groups and enzymes (these are described below).
 
 ## Microbial functional groups
 
-TODO - THE NEW SYSTEM FOR THIS IS YET TO BE IMPLEMENTED SO THIS SECTION IS LEFT BLANK
+Microbial groups in the soil model are defined by a set of parameter values that
+describe the functional traits of each group. These functional group definitions need to
+be stored in a CSV file, an example of this is shown below:
+
+````{dropdown} example_microbial_groups.csv
+```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/example_microbial_groups.csv
+```
+````
+
+The [configuration of the soil model](./soil_config.md) must then provide the
+`microbial_group_definition_path` setting with a path to the CSV file:
+
+```toml
+[soil]
+microbial_group_definition_path = '/path/to/microbial_groups.csv'
+```
+
+The microbial group definitions file needs to include the following fields (the order
+doesn't matter) defining the values for all microbial trait parameters:
+
+```{code-cell} ipython3
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+# This cell generates a CSV table from the pydantic validation object for soil microbial
+# functional group data, ensuring that the description stays up to date with the
+# codebase.
+
+import re
+
+from IPython.display import display_markdown
+
+from virtual_ecosystem.models.soil.microbial_groups import SoilMicrobe
+
+rows = ["Field name,Description"]
+
+for field_name, field in SoilMicrobe.model_fields.items():
+    # Tidy descriptions: remove newlines, convert Sphinx maths, and quote
+    # descriptions so commas are handled correctly by the CSV table.
+    description = field.description or ""
+    description = re.sub(r":math:`\\(.+)`", r"$\\\\\1$", description)
+    description = re.sub(r":math:`(.+)`", r"$\1$", description)
+    description = f'"{description.replace(chr(10), " ")}"'
+
+    rows.append(f"`{field_name}`,{description}")
+
+# Display as markdown
+display_markdown(
+    f"```{{csv-table}}\n:header-rows: 1\n:quote: '\"'\n\n{"\n".join(rows)}\n```",
+    raw=True,
+)
+```
 
 ## Enzyme classes
 
@@ -51,7 +104,7 @@ source and substrate, an example of this is shown below:
 ````{dropdown} example_enzyme_parameters.csv
 ```{literalinclude} ../../../../../virtual_ecosystem/example_data/data/example_enzyme_parameters.csv
 ```
-`````
+````
 
 The [configuration of the soil model](./soil_config.md) must then provide the
 `enzyme_class_definition_path` setting with a path to the CSV file:
@@ -78,7 +131,7 @@ import re
 
 from IPython.display import display_markdown
 
-from virtual_ecosystem.models.soil.model_config import SoilEnzyme
+from virtual_ecosystem.models.soil.microbial_groups import SoilEnzyme
 
 rows = ["Field name,Description"]
 
