@@ -231,7 +231,7 @@ def dummy_carbon_data(fixture_core_components):
 
 
 @pytest.fixture
-def fixture_soil_configuration(microbial_groups_cfg):
+def fixture_soil_configuration(microbial_groups_cfg, fixture_root_data_dir_path):
     """Create a soil config with faster update interval."""
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
@@ -243,6 +243,8 @@ def fixture_soil_configuration(microbial_groups_cfg):
             "[core.grid]\ncell_nx = 2\ncell_ny=2\n"
             "[core.timing]\nupdate_interval = '12 hours'",
             "[hydrology]",
+            "[soil]\nenzyme_class_definition_path = "
+            f"'{(fixture_root_data_dir_path / 'enzyme_parameters.csv')!s}'",
             microbial_groups_cfg,
         ]
     )
@@ -504,12 +506,14 @@ def functional_groups(fixture_configuration, enzyme_classes, fixture_core_consta
 
 @pytest.fixture
 def enzyme_classes(fixture_configuration):
-    """Set of functional groups based on the soil model constants."""
+    """Set of enzyme classes based on the fixture csv file."""
+    from pathlib import Path
 
-    return {
-        f"{e.source}_{e.substrate}": e
-        for e in fixture_configuration.soil.enzyme_class_definition
-    }
+    from virtual_ecosystem.models.soil.model_config import load_enzymes
+
+    return load_enzymes(
+        path=Path(fixture_configuration.soil.enzyme_class_definition_path)
+    )
 
 
 @pytest.fixture

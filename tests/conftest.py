@@ -219,53 +219,6 @@ reproductive_allocation = 0.1
 symbiote_nitrogen_uptake_fraction = 0.2
 symbiote_phosphorus_uptake_fraction = 0.2
 
-[[soil.enzyme_class_definition]]
-source = "bacteria"
-substrate = "pom"
-maximum_rate = 60.0
-half_saturation_constant = 70.0
-activation_energy_rate = 37000
-activation_energy_saturation = 30000
-reference_temperature = 12.0
-turnover_rate = 2.4e-2
-c_n_ratio = 5.2
-c_p_ratio = 16
-
-[[soil.enzyme_class_definition]]
-source = "bacteria"
-substrate = "maom"
-maximum_rate = 24.0
-half_saturation_constant = 350.0
-activation_energy_rate = 47000
-activation_energy_saturation = 30000
-reference_temperature = 12.0
-turnover_rate = 2.4e-2
-c_n_ratio = 5.2
-c_p_ratio = 16
-
-[[soil.enzyme_class_definition]]
-source = "fungi"
-substrate = "pom"
-maximum_rate = 120.0
-half_saturation_constant = 35.0
-activation_energy_rate = 37000
-activation_energy_saturation = 30000
-reference_temperature = 12.0
-turnover_rate = 2.4e-2
-c_n_ratio = 6.5
-c_p_ratio = 40.0
-
-[[soil.enzyme_class_definition]]
-source = "fungi"
-substrate = "maom"
-maximum_rate = 48.0
-half_saturation_constant = 175.0
-activation_energy_rate = 47000
-activation_energy_saturation = 30000
-reference_temperature = 12.0
-turnover_rate = 2.4e-2
-c_n_ratio = 6.5
-c_p_ratio = 40.0
 """
 
 
@@ -273,6 +226,12 @@ c_p_ratio = 40.0
 def microbial_groups_cfg():
     """Configuration string containing full set of required microbial groups."""
     return MICROBE_CONFIG_TOML
+
+
+@pytest.fixture
+def fixture_root_data_dir_path():
+    """Configuration string containing the path to the root data directory."""
+    return FIXTURE_ROOT_DATA_DIR
 
 
 def generate_config_strings(
@@ -330,6 +289,9 @@ def generate_config_strings(
         [hydrology]
         [litter]
         [abiotic]
+        [soil]
+        enzyme_class_definition_path = '''
+{(fixture_root_data_dir / "enzyme_parameters.csv")!s}'''
     """
 
     return [cfg_string, additional_toml]

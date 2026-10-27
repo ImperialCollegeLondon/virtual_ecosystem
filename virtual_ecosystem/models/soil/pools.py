@@ -39,7 +39,7 @@ from virtual_ecosystem.models.soil.microbial_groups import (
     MicrobialGroupConstants,
     calculate_symbiotic_carbon_supply,
 )
-from virtual_ecosystem.models.soil.model_config import SoilConstants, SoilEnzymeClass
+from virtual_ecosystem.models.soil.model_config import SoilConstants, SoilEnzyme
 from virtual_ecosystem.models.soil.uptake import calculate_nutrient_uptake_rates
 
 
@@ -460,7 +460,7 @@ class SoilPools:
         pools: dict[str, NDArray[np.floating]],
         model_constants: SoilConstants,
         functional_groups: dict[str, MicrobialGroupConstants],
-        enzyme_classes: dict[str, SoilEnzymeClass],
+        enzyme_classes: dict[str, SoilEnzyme],
         core_constants: CoreConstants,
         fungal_fruiting_body_decay: DataArray,
     ):
@@ -950,7 +950,7 @@ def calculate_microbial_changes(
     env_factors: EnvironmentalEffectFactors,
     constants: SoilConstants,
     microbial_groups: dict[str, MicrobialGroupConstants],
-    enzyme_classes: dict[str, SoilEnzymeClass],
+    enzyme_classes: dict[str, SoilEnzyme],
     carbon_supply: CarbonSupply,
 ) -> MicrobialChanges:
     """Calculate the changes for the microbial biomass and enzyme pools.
@@ -1210,7 +1210,7 @@ def calculate_enzyme_mediated_rates(
     pools: PoolData,
     soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
-    enzyme_classes: dict[str, SoilEnzymeClass],
+    enzyme_classes: dict[str, SoilEnzyme],
 ) -> EnzymeMediatedRates:
     """Calculate the rates of each enzyme mediated reaction.
 
@@ -1337,7 +1337,7 @@ def calculate_nutrient_removal_by_water(
 def calculate_enzyme_changes(
     pools: PoolData,
     enzyme_production: dict[str, NDArray[np.floating]],
-    enzyme_classes: dict[str, SoilEnzymeClass],
+    enzyme_classes: dict[str, SoilEnzyme],
 ) -> EnzymePoolChanges:
     """Calculate the change in each of the soil enzyme pools.
 
@@ -1557,7 +1557,7 @@ def calculate_enzyme_mediated_decomposition(
     soil_enzyme: NDArray[np.floating],
     soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
-    enzyme_class: SoilEnzymeClass,
+    enzyme_class: SoilEnzyme,
 ) -> NDArray[np.floating]:
     """Calculate rate of a enzyme mediated decomposition process.
 
@@ -1806,7 +1806,7 @@ def calculate_nutrient_flows_to_necromass(
     biomass_losses: BiomassLosses,
     enzyme_changes: EnzymePoolChanges,
     microbial_groups: dict[str, MicrobialGroupConstants],
-    enzyme_classes: dict[str, SoilEnzymeClass],
+    enzyme_classes: dict[str, SoilEnzyme],
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Calculate the rate at which nutrients flow into the necromass pool.
 
