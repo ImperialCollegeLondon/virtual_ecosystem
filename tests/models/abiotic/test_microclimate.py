@@ -937,7 +937,7 @@ def test_output_templates_and_recorded_values_across_dimensions(
     cell_ids = layer_structure.from_template()["cell_id"].to_numpy()
     layers = layer_structure.from_template()["layers"].to_numpy()
     data_record = {
-        "air_temperature": np.arange(24 * len(cell_ids), dtype=float).reshape(
+        "ground_heat_flux": np.arange(24 * len(cell_ids), dtype=float).reshape(
             24, len(cell_ids)
         ),
         "soil_temperature": np.arange(
@@ -945,7 +945,7 @@ def test_output_templates_and_recorded_values_across_dimensions(
         ).reshape(24, len(layers), len(cell_ids)),
     }
     variables = {
-        "air_temperature": DataArray(
+        "ground_heat_flux": DataArray(
             np.empty(len(cell_ids)), dims=("cell_id",), coords={"cell_id": cell_ids}
         ),
         "soil_temperature": DataArray(
@@ -955,8 +955,8 @@ def test_output_templates_and_recorded_values_across_dimensions(
         ),
     }
     vars_updated = (
-        "air_temperature",
-        "air_temperature_hourly",
+        "ground_heat_flux",
+        "ground_heat_flux_hourly",
         "soil_temperature",
         "soil_temperature_hourly",
     )
@@ -986,8 +986,8 @@ def test_output_templates_and_recorded_values_across_dimensions(
                 outputs[name][coordinate],
             )
 
-    assert outputs["air_temperature"].dims == ("cell_id",)
-    assert outputs["air_temperature_hourly"].dims == ("hour", "cell_id")
+    assert outputs["ground_heat_flux"].dims == ("cell_id",)
+    assert outputs["ground_heat_flux_hourly"].dims == ("hour", "cell_id")
     assert outputs["soil_temperature"].dims == ("layers", "cell_id")
     assert outputs["soil_temperature_hourly"].dims == (
         "hour",
@@ -996,7 +996,7 @@ def test_output_templates_and_recorded_values_across_dimensions(
     )
 
     for name, expected_dims in (
-        ("air_temperature_hourly", ("hour", "cell_id")),
+        ("ground_heat_flux_hourly", ("hour", "cell_id")),
         ("soil_temperature_hourly", ("hour", "layers", "cell_id")),
     ):
         for dim in expected_dims:
@@ -1008,12 +1008,12 @@ def test_output_templates_and_recorded_values_across_dimensions(
             )
 
     np.testing.assert_allclose(
-        outputs["air_temperature"],
-        np.mean(data_record["air_temperature"], axis=0),
+        outputs["ground_heat_flux"],
+        np.mean(data_record["ground_heat_flux"], axis=0),
     )
     np.testing.assert_allclose(
-        outputs["air_temperature_hourly"],
-        data_record["air_temperature"],
+        outputs["ground_heat_flux_hourly"],
+        data_record["ground_heat_flux"],
     )
     np.testing.assert_allclose(
         outputs["soil_temperature"],
