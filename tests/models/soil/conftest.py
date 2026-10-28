@@ -231,7 +231,7 @@ def dummy_carbon_data(fixture_core_components):
 
 
 @pytest.fixture
-def fixture_soil_configuration(microbial_groups_cfg):
+def fixture_soil_configuration(fixture_root_data_dir_path):
     """Create a soil config with faster update interval."""
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
@@ -243,7 +243,10 @@ def fixture_soil_configuration(microbial_groups_cfg):
             "[core.grid]\ncell_nx = 2\ncell_ny=2\n"
             "[core.timing]\nupdate_interval = '12 hours'",
             "[hydrology]",
-            microbial_groups_cfg,
+            "[soil]\nenzyme_class_definition_path = "
+            f"'{(fixture_root_data_dir_path / 'enzyme_parameters.csv')!s}'\n"
+            "microbial_group_definition_path = "
+            f"'{(fixture_root_data_dir_path / 'microbe_parameters.csv')!s}'",
         ]
     )
     return generate_configuration(config_data.data)
@@ -489,27 +492,30 @@ def maom_desorption(dummy_carbon_data, fixture_soil_constants):
 
 
 @pytest.fixture
-def functional_groups(fixture_configuration, enzyme_classes, fixture_core_constants):
-    """Set of functional groups based on the soil model constants."""
+def functional_groups(fixture_configuration, enzyme_classes):
+    """Set of microbial functional groups based on fixture csv file."""
+    from pathlib import Path
+
     from virtual_ecosystem.models.soil.microbial_groups import (
-        make_full_set_of_microbial_groups,
+        load_microbes,
     )
 
-    return make_full_set_of_microbial_groups(
-        config=fixture_configuration.soil,
+    return load_microbes(
+        path=Path(fixture_configuration.soil.microbial_group_definition_path),
         enzyme_classes=enzyme_classes,
-        core_constants=fixture_core_constants,
     )
 
 
 @pytest.fixture
 def enzyme_classes(fixture_configuration):
-    """Set of functional groups based on the soil model constants."""
+    """Set of enzyme classes based on the fixture csv file."""
+    from pathlib import Path
 
-    return {
-        f"{e.source}_{e.substrate}": e
-        for e in fixture_configuration.soil.enzyme_class_definition
-    }
+    from virtual_ecosystem.models.soil.microbial_groups import load_enzymes
+
+    return load_enzymes(
+        path=Path(fixture_configuration.soil.enzyme_class_definition_path)
+    )
 
 
 @pytest.fixture

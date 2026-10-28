@@ -88,7 +88,9 @@ def model_config_to_deflist(
             # the parent definitions
             if recurse:
                 definitions += model_config_to_deflist(
-                    field_name, field_info.annotation, display=False
+                    field_name,
+                    field_info.annotation,  # type: ignore[arg-type]
+                    display=False,
                 )
 
         else:
