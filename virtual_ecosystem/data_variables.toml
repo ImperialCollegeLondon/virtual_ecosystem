@@ -210,6 +210,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Groundwater outflow that never rejoins the river and is lost beyond the catchment boundaries or to deep groundwater systems"
+name = "groundwater_loss"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Latent heat flux profile"
 name = "latent_heat_flux"
 unit = "W m-2"
@@ -238,7 +245,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Intercepted rainfall in canopy"
+description = "Intercepted rainfall in canopy before evaporation"
 name = "interception"
 unit = "mm"
 variable_type = "float"

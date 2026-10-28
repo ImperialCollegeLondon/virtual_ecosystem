@@ -212,6 +212,8 @@ def test_setup_and_update_abiotic_simple_model(
         "atmospheric_co2",
         "wind_speed",
         "net_radiation",
+        "canopy_temperature",
+        "diurnal_temperature_range",
     ]:
         assert var in model.data
 

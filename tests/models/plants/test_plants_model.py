@@ -689,6 +689,28 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
+def test_PlantsModel_allocate_gpp_symbiote_allocation_guarded_against_negatives(
+    fxt_plants_model, tricky_plant_cohorts
+):
+    """Test the allocate_gpp method."""
+
+    # Populate the data variables required for update
+    fxt_plants_model.reset_update_vars()
+
+    # Pin GPP at zero to force plants into carbon debt and therefore have no carbon for
+    # allocation to root symbiotes.
+    fxt_plants_model.per_stem_gpp = {
+        cell_id: np.array([0]) for cell_id in fxt_plants_model.communities.keys()
+    }
+
+    # Allocate GPP
+    fxt_plants_model.allocate_gpp()
+
+    assert np.allclose(fxt_plants_model.data["root_carbohydrate_exudation"], 0)
+    assert np.allclose(fxt_plants_model.data["plant_symbiote_carbon_supply"], 0)
+
+
+@pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
 def test_PlantsModel_update(
     fxt_plants_model, fixture_canopy_layer_data, tricky_plant_cohorts
 ):

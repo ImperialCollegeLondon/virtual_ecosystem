@@ -57,6 +57,8 @@ class AbioticSimpleModel(
         "wind_speed",
         "net_radiation",
         "vapour_pressure",
+        "canopy_temperature",
+        "diurnal_temperature_range",
     ),
     vars_required_for_update=(
         "air_temperature_ref",

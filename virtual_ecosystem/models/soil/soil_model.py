@@ -355,9 +355,8 @@ class SoilModel(
 
         # Find fungal fruit pool size after animal consumption and calculate the decay
         # of the remainder
-        post_consumption_fungal_fruit = (
-            self.data["fungal_fruiting_bodies_cnp"]
-            - self.data["fungal_fruiting_bodies_consumed_cnp"]
+        post_consumption_fungal_fruit = self.data["fungal_fruiting_bodies_cnp"] - (
+            self.data["fungal_fruiting_bodies_consumed_cnp"] / self.grid.cell_area
         )
         fungal_fruit_decay = self.calculate_fungal_fruiting_body_decay(
             fungal_fruit_cnp=post_consumption_fungal_fruit,

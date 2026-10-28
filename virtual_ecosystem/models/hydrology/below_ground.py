@@ -282,6 +282,7 @@ def update_soil_moisture(
     soil_moisture_updated = np.zeros_like(soil_moisture, dtype=float)
     vertical_flow_actual = np.zeros_like(vertical_flow, dtype=float)
     subsurface_stormflow_actual = np.array(subsurface_stormflow, copy=True, dtype=float)
+    transpiration_actual = np.zeros_like(transpiration, dtype=float)
 
     available_outflow = np.maximum(
         soil_moisture[0] - soil_moisture_residual[0],
@@ -299,8 +300,13 @@ def update_soil_moisture(
             0.0,
         )
 
+        transpiration_actual = np.minimum(
+            np.maximum(transpiration, 0.0),
+            root_available_outflow,
+        )
+
         root_available_for_removable_fluxes = np.maximum(
-            root_available_outflow - transpiration,
+            root_available_outflow - transpiration_actual,
             0.0,
         )
 
@@ -323,7 +329,7 @@ def update_soil_moisture(
         soil_moisture_updated[1] = (
             root_storage_before_outflow
             - vertical_flow_actual[1]
-            - transpiration
+            - transpiration_actual
             - subsurface_stormflow_actual
         )
 
@@ -349,6 +355,7 @@ def update_soil_moisture(
         "soil_moisture": soil_moisture_updated,
         "vertical_flow": vertical_flow_actual,
         "subsurface_stormflow": subsurface_stormflow_actual,
+        "transpiration": transpiration_actual,
     }
 
 
@@ -480,7 +487,8 @@ def update_groundwater_storage(
 
     Returns:
         updated amount of water stored in upper and lower zone, outflow from the upper
-        zone to the channel, and outflow from the lower zone to the channel
+        zone to the channel, outflow from the lower zone to the channel, and actual
+        groundwater loss
     """
 
     output = {}
@@ -512,6 +520,7 @@ def update_groundwater_storage(
 
     # Groundwater loss cannot exceed available water in lower zone, [mm]
     groundwater_loss = np.minimum(groundwater_loss, lower_zone)
+    output["groundwater_loss"] = groundwater_loss
 
     # Apply groundwater loss
     lower_zone = lower_zone - groundwater_loss
