@@ -121,7 +121,7 @@ def load_enzymes(path: Path) -> dict[str, SoilEnzyme]:
     return {f"{r.source}_{r.substrate}": r for r in enzymes}
 
 
-@pydantic_dataclass(config=ConfigDict(extra="forbid"))
+@pydantic_dataclass(config=ConfigDict(extra="forbid", use_attribute_docstrings=True))
 class SoilMicrobe:
     """Microbial functional group definitions."""
 

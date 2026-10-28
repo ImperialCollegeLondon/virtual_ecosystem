@@ -67,13 +67,20 @@ mystnb:
 
 import re
 
+from dataclasses import fields
 from IPython.display import display_markdown
 
 from virtual_ecosystem.models.soil.microbial_groups import SoilMicrobe
 
 rows = ["Field name,Description"]
 
-for field_name, field in SoilMicrobe.model_fields.items():
+# Only regular dataclass fields; InitVars are excluded.
+regular_fields = {field.name for field in fields(SoilMicrobe) if field.init}
+
+for field_name, field in SoilMicrobe.__pydantic_fields__.items():
+    if field_name not in regular_fields:
+        continue
+
     # Tidy descriptions: remove newlines, convert Sphinx maths, and quote
     # descriptions so commas are handled correctly by the CSV table.
     description = field.description or ""
