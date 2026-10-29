@@ -3146,7 +3146,7 @@ class TestAnimalCohort:
             ([1], {1: [1, 2, 3]}, 3),
         ],
     )
-    def test_get_excrement_pools(
+    def test_get_destination_excrement_pools(
         self,
         territory,
         cell_pool_map,
@@ -3154,7 +3154,7 @@ class TestAnimalCohort:
         functional_group_list_instance,
         constants_instance,
     ):
-        """Test get_excrement_pools returns all pools in the territory."""
+        """Test get_destination_excrement_pools returns all pools in the territory."""
 
         from virtual_ecosystem.core.grid import Grid
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
@@ -3189,7 +3189,82 @@ class TestAnimalCohort:
             for cell_id, pool_ids in cell_pool_map.items()
         }
 
-        result = cohort.get_excrement_pools(excrement_pools)
+        result = cohort.get_destination_excrement_pools(excrement_pools)
+
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_pool_map, expected, group_name",
+        [  # Single pool in one cell
+            ([1], {1: [1]}, 1, "herbivorous_mammal"),
+            # Pools in multiple cells
+            ([1, 2], {1: [1], 2: [2]}, 2, "herbivorous_mammal"),
+            # Territory includes a cell with no pools
+            ([1, 2], {1: [1]}, 1, "herbivorous_mammal"),
+            # Territory with no matching cells
+            ([3], {1: [1], 2: [2]}, 0, "herbivorous_mammal"),
+            # Multiple pools in a single cell
+            ([1], {1: [1, 2, 3]}, 3, "herbivorous_mammal"),
+            # Repeat for a canopy dwelling group (which should have all zeros)
+            ([1], {1: [1]}, 0, "caterpillar"),
+            ([1, 2], {1: [1], 2: [2]}, 0, "caterpillar"),
+            ([1, 2], {1: [1]}, 0, "caterpillar"),
+            ([3], {1: [1], 2: [2]}, 0, "caterpillar"),
+            ([1], {1: [1, 2, 3]}, 0, "caterpillar"),
+            # Now try for a soil dwelling group (which should have identical results to
+            # the original ground dwelling taxa)
+            ([1], {1: [1]}, 1, "omnivorous_terrestrial_larvae"),
+            ([1, 2], {1: [1], 2: [2]}, 2, "omnivorous_terrestrial_larvae"),
+            ([1, 2], {1: [1]}, 1, "omnivorous_terrestrial_larvae"),
+            ([3], {1: [1], 2: [2]}, 0, "omnivorous_terrestrial_larvae"),
+            ([1], {1: [1, 2, 3]}, 3, "omnivorous_terrestrial_larvae"),
+        ],
+    )
+    def test_get_consumption_excrement_pools(
+        self,
+        territory,
+        cell_pool_map,
+        expected,
+        functional_group_list_instance,
+        group_name,
+        constants_instance,
+    ):
+        """Test get_consumption_excrement_pools returns only the accessible pools."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import ExcrementPool
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
+        functional_group = get_functional_group_by_name(
+            functional_group_list_instance, group_name
+        )
+
+        # Create cohort with a known territory
+        cohort = AnimalCohort(
+            functional_group=functional_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Create dummy excrement pools from simple integers
+        excrement_pools = {
+            cell_id: [ExcrementPool() for _ in pool_ids]
+            for cell_id, pool_ids in cell_pool_map.items()
+        }
+
+        result = cohort.get_consumption_excrement_pools(excrement_pools)
 
         assert len(result) == expected
 
@@ -3265,7 +3340,7 @@ class TestAnimalCohort:
             ([1], {1: [1, 2, 3]}, 3),
         ],
     )
-    def test_get_carcass_pools(
+    def test_get_destination_carcass_pools(
         self,
         territory,
         cell_pool_map,
@@ -3273,7 +3348,7 @@ class TestAnimalCohort:
         functional_group_list_instance,
         constants_instance,
     ):
-        """Test get_carcass_pools returns all pools in the territory."""
+        """Test get_destination_carcass_pools returns all pools in the territory."""
 
         from virtual_ecosystem.core.grid import Grid
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
@@ -3308,7 +3383,83 @@ class TestAnimalCohort:
             for cell_id, pool_ids in cell_pool_map.items()
         }
 
-        result = cohort.get_carcass_pools(carcass_pools)
+        result = cohort.get_destination_carcass_pools(carcass_pools)
+
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_pool_map, expected, group_name",
+        [
+            # Single pool in one cell
+            ([1], {1: [1]}, 1, "herbivorous_mammal"),
+            # Pools in multiple cells
+            ([1, 2], {1: [1], 2: [2]}, 2, "herbivorous_mammal"),
+            # Territory includes a cell with no pool
+            ([1, 2], {1: [1]}, 1, "herbivorous_mammal"),
+            # Territory with no matching cells
+            ([3], {1: [1], 2: [2]}, 0, "herbivorous_mammal"),
+            # Multiple pools in a single cell
+            ([1], {1: [1, 2, 3]}, 3, "herbivorous_mammal"),
+            # Repeat for a canopy dwelling group (which should have all zeros)
+            ([1], {1: [1]}, 0, "caterpillar"),
+            ([1, 2], {1: [1], 2: [2]}, 0, "caterpillar"),
+            ([1, 2], {1: [1]}, 0, "caterpillar"),
+            ([3], {1: [1], 2: [2]}, 0, "caterpillar"),
+            ([1], {1: [1, 2, 3]}, 0, "caterpillar"),
+            # Now try for a soil dwelling group (which should have identical results to
+            # the original ground dwelling taxa)
+            ([1], {1: [1]}, 1, "omnivorous_terrestrial_larvae"),
+            ([1, 2], {1: [1], 2: [2]}, 2, "omnivorous_terrestrial_larvae"),
+            ([1, 2], {1: [1]}, 1, "omnivorous_terrestrial_larvae"),
+            ([3], {1: [1], 2: [2]}, 0, "omnivorous_terrestrial_larvae"),
+            ([1], {1: [1, 2, 3]}, 3, "omnivorous_terrestrial_larvae"),
+        ],
+    )
+    def test_get_consumption_carcass_pools(
+        self,
+        territory,
+        cell_pool_map,
+        expected,
+        group_name,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_consumption_carcass_pools returns only the accessible pools."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import CarcassPool
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        grid.set_closest_neighbours()
+
+        functional_group = get_functional_group_by_name(
+            functional_group_list_instance, group_name
+        )
+
+        # Create cohort with a known territory
+        cohort = AnimalCohort(
+            functional_group=functional_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Create dummy carcass pools from simple identifiers
+        carcass_pools = {
+            cell_id: [CarcassPool() for _ in pool_ids]
+            for cell_id, pool_ids in cell_pool_map.items()
+        }
+
+        result = cohort.get_consumption_carcass_pools(carcass_pools)
 
         assert len(result) == expected
 

@@ -2079,10 +2079,10 @@ class AnimalCohort:
         """
         return self._get_resources_in_territory(plant_resources, self.can_forage_on)
 
-    def get_excrement_pools(
+    def get_destination_excrement_pools(
         self, excrement_pools: dict[int, list[ExcrementPool]]
     ) -> list[ExcrementPool]:
-        """Return excrement pools within the cohort's territory.
+        """Return excrement pools that the cohort will excrete into.
 
         This method returns all ExcrementPool objects that are located in grid
         cells occupied by the cohort.
@@ -2096,10 +2096,27 @@ class AnimalCohort:
         """
         return self._get_resources_in_territory(excrement_pools)
 
-    def get_carcass_pools(
+    def get_consumption_excrement_pools(
+        self, excrement_pools: dict[int, list[ExcrementPool]]
+    ) -> list[ExcrementPool]:
+        """Return excrement pools that the cohort can consume from.
+
+        This method returns all ExcrementPools objects that are both located in grid
+        cells occupied by the cohort and in a habitat strata the cohort can forage from.
+
+        Args:
+            excrement_pools: A dictionary mapping cell IDs to lists of ExcrementPool
+                objects.
+
+        Returns:
+            A list of ExcrementPool objects that the cohort can forage from.
+        """
+        return self._get_resources_in_territory(excrement_pools, self.can_forage_on)
+
+    def get_destination_carcass_pools(
         self, carcass_pools: dict[int, list[CarcassPool]]
     ) -> list[CarcassPool]:
-        """Return carcass pools within the cohort's territory.
+        """Return carcass pools that the cohort can die into.
 
         This method returns all CarcassPool objects located in grid cells
         that the cohort occupies.
@@ -2112,6 +2129,23 @@ class AnimalCohort:
             A list of CarcassPool objects in the cohort's territory.
         """
         return self._get_resources_in_territory(carcass_pools)
+
+    def get_consumption_carcass_pools(
+        self, carcass_pools: dict[int, list[CarcassPool]]
+    ) -> list[CarcassPool]:
+        """Return carcass pools that the cohort can consume from.
+
+        This method returns all CarcassPool objects that are both located in grid
+        cells occupied by the cohort and in a habitat strata the cohort can forage from.
+
+        Args:
+            carcass_pools: A dictionary mapping cell IDs to lists of CarcassPool
+                objects.
+
+        Returns:
+            A list of CarcassPool objects that the cohort can forage from.
+        """
+        return self._get_resources_in_territory(carcass_pools, self.can_forage_on)
 
     def get_soil_fungi_pools(
         self, soil_pools: dict[int, dict[str, SoilPool]]

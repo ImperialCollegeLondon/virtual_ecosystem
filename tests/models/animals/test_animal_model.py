@@ -1802,7 +1802,7 @@ class TestAnimalModel:
         parent.reproductive_mass_cnp = CNP(C=0.2, N=0.05, P=0.01)
 
         pools = [mocker.Mock()]
-        mocker.patch.object(parent, "get_carcass_pools", return_value=pools)
+        mocker.patch.object(parent, "get_destination_carcass_pools", return_value=pools)
         mock_carcass = mocker.patch.object(parent, "update_carcass_pool")
         mock_remove = mocker.patch.object(animal_model_instance, "remove_dead_cohort")
 
@@ -2123,10 +2123,10 @@ class TestAnimalModel:
         # Mock the methods for herbivore and predator cohorts using the mocker fixture
         mock_forage_herbivore = mocker.Mock()
         mock_forage_predator = mocker.Mock()
-        mock_get_excrement_pools_herbivore = mocker.Mock(
+        mock_get_destination_excrement_pools_herbivore = mocker.Mock(
             return_value=["excrement_pools_herbivore"]
         )
-        mock_get_excrement_pools_predator = mocker.Mock(
+        mock_get_destination_excrement_pools_predator = mocker.Mock(
             return_value=["excrement_pools_predator"]
         )
         mock_get_array_resources = mocker.Mock(return_value=["array_resources"])
@@ -2142,8 +2142,8 @@ class TestAnimalModel:
         mocker.patch.object(herbivore_cohort_instance, "get_prey", mocker.Mock())
         mocker.patch.object(
             herbivore_cohort_instance,
-            "get_excrement_pools",
-            mock_get_excrement_pools_herbivore,
+            "get_destination_excrement_pools",
+            mock_get_destination_excrement_pools_herbivore,
         )
         mocker.patch.object(
             herbivore_cohort_instance, "forage_cohort", mock_forage_herbivore
@@ -2157,8 +2157,8 @@ class TestAnimalModel:
         mocker.patch.object(predator_cohort_instance, "get_prey", mock_get_prey)
         mocker.patch.object(
             predator_cohort_instance,
-            "get_excrement_pools",
-            mock_get_excrement_pools_predator,
+            "get_destination_excrement_pools",
+            mock_get_destination_excrement_pools_predator,
         )
         mocker.patch.object(
             predator_cohort_instance, "forage_cohort", mock_forage_predator
@@ -2322,7 +2322,9 @@ class TestAnimalModel:
                 respired,
                 {"C": excreted_c, "N": 0.0, "P": 0.0},
             )
-            cohort.get_excrement_pools.return_value = [mocker.Mock() for _ in territory]
+            cohort.get_destination_excrement_pools.return_value = [
+                mocker.Mock() for _ in territory
+            ]
 
             model.active_cohorts[f"cohort_{index}"] = cohort
             for cell_id in territory:
@@ -2347,9 +2349,11 @@ class TestAnimalModel:
             # Excreta go to the pools of the whole territory, and are the
             # partitioned excreta rather than the raw metabolic waste.
             _, excreta = cohort.partition_metabolic_waste.return_value
-            cohort.get_excrement_pools.assert_called_once_with(model.excrement_pools)
+            cohort.get_destination_excrement_pools.assert_called_once_with(
+                model.excrement_pools
+            )
             cohort.excrete.assert_called_once_with(
-                excreta, cohort.get_excrement_pools.return_value
+                excreta, cohort.get_destination_excrement_pools.return_value
             )
             assert cohort.excrete.call_args.args[0] is not waste
 
@@ -2481,8 +2485,8 @@ class TestAnimalModel:
         }
 
         # Mock return values for cohort methods
-        mock_cohort_1.get_carcass_pools.return_value = "carcass_pool_1"
-        mock_cohort_2.get_carcass_pools.return_value = "carcass_pool_2"
+        mock_cohort_1.get_destination_carcass_pools.return_value = "carcass_pool_1"
+        mock_cohort_2.get_destination_carcass_pools.return_value = "carcass_pool_2"
 
         # Define the number of individuals
         mock_cohort_1.individuals = 100
