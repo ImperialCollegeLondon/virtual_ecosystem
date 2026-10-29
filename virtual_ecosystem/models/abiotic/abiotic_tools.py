@@ -21,6 +21,73 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic.wind import next_valid_below
 
 
+def create_output_templates(
+    variable_data: dict[str, DataArray],
+    vars_updated: tuple[str, ...],
+    layer_structure: LayerStructure,
+    time_dim: int,
+) -> dict[str, DataArray]:
+    """Create DataArray templates once for all abiotic model variables.
+
+    Hourly outputs use the spatial dimensions of their unsuffixed variable, while
+    regular outputs retain that variable's dimensions and coordinates.
+    """
+
+    layer_template = layer_structure.from_template()
+    templates: dict[str, DataArray] = {}
+    template_cache: dict[tuple[bool, tuple[str, ...], tuple[int, ...]], DataArray] = {}
+
+    for name in vars_updated:
+        is_hourly = name.endswith("_hourly")
+        variable_name = name.removesuffix("_hourly") if is_hourly else name
+        if variable_name not in variable_data:
+            raise ValueError(
+                f"Cannot create output template for '{name}': "
+                f"no source variable '{variable_name}'."
+            )
+
+        source = variable_data[variable_name]
+        if source.dims not in (("cell_id",), ("layers", "cell_id")):
+            raise ValueError(
+                f"Unsupported spatial dimensions for output '{name}': {source.dims}."
+            )
+        template_key = (is_hourly, source.dims, source.shape)
+        if template_key in template_cache:
+            templates[name] = template_cache[template_key]
+            continue
+
+        coords = {
+            dim: source.coords[dim] for dim in source.dims if dim in source.coords
+        }
+        if "cell_id" not in coords:
+            coords["cell_id"] = layer_template["cell_id"]
+
+        if "layers" in source.dims:
+            if source.sizes["layers"] == layer_template.sizes["layers"]:
+                coords["layers"] = layer_template["layers"]
+                coords["layer_roles"] = (
+                    "layers",
+                    layer_template["layer_roles"].to_numpy(),
+                )
+            elif "layers" not in coords:
+                coords["layers"] = np.arange(source.sizes["layers"])
+
+        dims = (("hour",) if is_hourly else ()) + source.dims
+        shape = ((time_dim,) if is_hourly else ()) + source.shape
+        if is_hourly:
+            coords["hour"] = np.arange(time_dim)
+
+        template = DataArray(
+            data=np.zeros(shape),
+            dims=dims,
+            coords=coords,
+        )
+        template_cache[template_key] = template
+        templates[name] = template
+
+    return templates
+
+
 def build_indices(data: Data, layer_structure: LayerStructure) -> SimpleNamespace:
     """Build indices for different layers and variables for easier access.
 
@@ -431,7 +498,7 @@ def generate_diurnal_cycle_from_monthly_data(
     monthly_relative_humidity: NDArray[np.floating],
     monthly_evapotranspiration: NDArray[np.floating],
     monthly_soil_evaporation: NDArray[np.floating],
-    daily_temp_amplitude: NDArray[np.floating],
+    daily_temp_range: NDArray[np.floating],
     latitude_deg: float,
     month: int,
     days: int,
@@ -444,7 +511,7 @@ def generate_diurnal_cycle_from_monthly_data(
         monthly_relative_humidity: Monthly mean relative humidity [%]
         monthly_evapotranspiration: Monthly total evapotranspiration [mm/month]
         monthly_soil_evaporation: Monthly total soil evaporation [mm/month]
-        daily_temp_amplitude: typical diurnal temperature swing [C]
+        daily_temp_range: maximum-minus-minimum daily air temperature [C]
         latitude_deg: Latitude for daylength calculation [deg]
         month: Month number [1-12]
         days: Number of days in month
@@ -458,10 +525,11 @@ def generate_diurnal_cycle_from_monthly_data(
     hours_per_day = 24
     hours = np.arange(hours_per_day)
 
-    # Air temperature (sine wave, max at 14:00), (hours_per_day, cell)
-    air_temperature_hourly = monthly_air_temperature[
-        None, :
-    ] + daily_temp_amplitude * np.sin(2 * np.pi * (hours[:, None] - 8) / hours_per_day)
+    # Air temperature (sine wave, max at 14:00). The sine amplitude is half
+    # the daily range so the hourly maximum minus minimum equals daily_temp_range.
+    air_temperature_hourly = monthly_air_temperature[None, :] + (
+        daily_temp_range / 2
+    ) * np.sin(2 * np.pi * (hours[:, None] - 8) / hours_per_day)
 
     # Daylength (simple climatology)
     daylength = 12 + 4 * np.cos((month - 1) * np.pi / 6) * np.cos(

@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import xarray as xr
 from pyrealm.constants import CoreConst as PyrealmCoreConst
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -17,10 +18,15 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
+    create_output_templates,
+)
 from virtual_ecosystem.models.abiotic.energy_balance import (
     initialise_canopy_and_soil_fluxes,
 )
-from virtual_ecosystem.models.abiotic.microclimate import run_microclimate
+from virtual_ecosystem.models.abiotic.microclimate import (
+    run_microclimate,
+)
 from virtual_ecosystem.models.abiotic.model_config import (
     AbioticConfiguration,
     AbioticConstants,
@@ -80,6 +86,22 @@ class AbioticModel(
         "diurnal_temperature_range",
         "condensation",
         "absorbed_longwave_radiation",
+        "air_temperature_hourly",
+        "canopy_temperature_hourly",
+        "soil_temperature_hourly",
+        "vapour_pressure_hourly",
+        "vapour_pressure_deficit_hourly",
+        "relative_humidity_hourly",
+        "sensible_heat_flux_hourly",
+        "latent_heat_flux_hourly",
+        "ground_heat_flux_hourly",
+        "density_air_hourly",
+        "specific_heat_air_hourly",
+        "latent_heat_vapourisation_hourly",
+        "aerodynamic_resistance_canopy_hourly",
+        "net_radiation_hourly",
+        "longwave_emission_hourly",
+        "condensation_hourly",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -122,7 +144,24 @@ class AbioticModel(
         "diurnal_temperature_range",
         "absorbed_longwave_radiation",
     ),
-    vars_populated_by_first_update=(),
+    vars_populated_by_first_update=(
+        "air_temperature_hourly",
+        "canopy_temperature_hourly",
+        "soil_temperature_hourly",
+        "vapour_pressure_hourly",
+        "vapour_pressure_deficit_hourly",
+        "relative_humidity_hourly",
+        "sensible_heat_flux_hourly",
+        "latent_heat_flux_hourly",
+        "ground_heat_flux_hourly",
+        "density_air_hourly",
+        "specific_heat_air_hourly",
+        "latent_heat_vapourisation_hourly",
+        "aerodynamic_resistance_canopy_hourly",
+        "net_radiation_hourly",
+        "longwave_emission_hourly",
+        "condensation_hourly",
+    ),
 ):
     """A class describing the abiotic model.
 
@@ -164,6 +203,8 @@ class AbioticModel(
         """Pyrealm core constants."""
         self.latitude: float
         """Latitude in degrees. This is required to generate the diurnal cycle."""
+        self.data_object_templates: dict[str, xr.DataArray] = {}
+        """Output array templates created during setup."""
 
         # Run the setup if the model is not in deep static mode
         if self._run_setup:
@@ -236,6 +277,17 @@ class AbioticModel(
             initial_canopy_and_soil,
         ):
             self.data.add_from_dict(output_dict=output_dict)
+
+        self.data_object_templates = create_output_templates(
+            variable_data={
+                name: self.data[name]
+                for name in self.vars_updated
+                if not name.endswith("_hourly")
+            },
+            vars_updated=self.vars_updated,
+            layer_structure=self.layer_structure,
+            time_dim=self.core_constants.hours_per_day,
+        )
 
     @classmethod
     def from_config(
@@ -326,6 +378,7 @@ class AbioticModel(
             core_constants=self.core_constants,
             pyrealm_core_constants=self.pyrealm_core_constants,
             abiotic_bounds=self.bounds,
+            output_templates=self.data_object_templates,
         )
 
         self.data.add_from_dict(output_dict=update_dict)
