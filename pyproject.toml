@@ -105,8 +105,7 @@ requires = ["poetry-core>=1.2.0"]
 addopts = """	
   -v
   -p no:warnings
-  -m "not profiling"
-  -m "not integration"
+  -m "not profiling and not integration"
   -n auto
   --cov=virtual_ecosystem
   --cov-report=html:htmlcov/coverage
