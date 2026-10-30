@@ -154,3 +154,36 @@ def test_proof_of_concept_workflow():
     #        overwritten but the next write_consumption.
     for res_pool in resource_pools:
         assert np.allclose(res_pool.consumed_total_mass, 0)
+
+
+def test_array_resources_each_map_to_one_array_foraging_channel() -> None:
+    """Test every array resource is foraged through exactly one foraging channel.
+
+    forage_cohort splits array resources between channels with a bitwise test against
+    each channel mask. A resource whose diet type overlaps two masks would land in two
+    lists and be foraged twice per timestep, and one overlapping none, or only a
+    channel that does not draw on array resources, would be fetched by
+    get_array_resources and then silently never foraged.
+    """
+    from virtual_ecosystem.models.animal.animal_traits import FORAGING_CHANNELS
+    from virtual_ecosystem.models.animal.array_resources import ARRAY_RESOURCES
+
+    # The channels forage_cohort routes array resources to.
+    array_channels = {"herbivory", "detritivory", "fruiting_fungivory"}
+
+    for definition in ARRAY_RESOURCES:
+        matched = {
+            channel
+            for channel, mask in FORAGING_CHANNELS.items()
+            if definition.diet_type & mask
+        }
+
+        assert len(matched) == 1, (
+            f"{definition.pool_array} ({definition.diet_type}) matches "
+            f"{len(matched)} foraging channels: {sorted(matched)}"
+        )
+        assert matched <= array_channels, (
+            f"{definition.pool_array} ({definition.diet_type}) is routed to "
+            f"{matched.pop()}, which forage_cohort does not forage array resources "
+            "through"
+        )
