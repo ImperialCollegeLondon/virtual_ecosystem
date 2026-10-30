@@ -17,6 +17,7 @@ from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.animal.animal_traits import (
+    FORAGING_CHANNELS,
     DietType,
     ReproductiveType,
     VerticalOccupancy,
@@ -1610,31 +1611,25 @@ class AnimalCohort:
             # to divide and nothing to eat; without this the division below would raise.
             return
 
-        # TODO - TEMPORARY SOLUTION THAT TARAN SHOULD IMPROVE UPON
-        # Split array resources between herbivory and detritivory
-        herbivore_diets = [
-            DietType.ALGAE,
-            DietType.FLOWERS,
-            DietType.FOLIAGE,
-            DietType.FRUIT,
-            DietType.SEEDS,
-            DietType.NECTAR,
-            DietType.WOOD,
-        ]
+        # Split the array resources between the three foraging channels that draw on
+        # them, using the same masks that set the foraging time budget below. Every
+        # array resource carries a single diet flag (see ARRAY_RESOURCES in
+        # array_resources.py) and the masks are disjoint, so each resource lands in
+        # exactly one list.
         plant_list = [
             resource
             for resource in array_resource_list
-            if resource.resource.diet_type in herbivore_diets
+            if resource.resource.diet_type & FORAGING_CHANNELS["herbivory"]
         ]
         litter_pools = [
             resource
             for resource in array_resource_list
-            if resource.resource.diet_type == DietType.DETRITUS
+            if resource.resource.diet_type & FORAGING_CHANNELS["detritivory"]
         ]
         fungal_fruit_list = [
             resource
             for resource in array_resource_list
-            if resource.resource.diet_type == DietType.MUSHROOMS
+            if resource.resource.diet_type & FORAGING_CHANNELS["fruiting_fungivory"]
         ]
 
         # Foraging time available to each foraging channel [days]. The budget is the

@@ -53,6 +53,7 @@ from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.animal.animal_climate import StratumClimate
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import (
+    FORAGING_CHANNELS,
     DevelopmentStatus,
     DevelopmentType,
     DietType,
@@ -1514,21 +1515,25 @@ class AnimalModel(
         """Loop through each active cohort and trigger resource consumption.
 
         Diet flags on a cohort determine which resource lists are assembled and
-        forwarded to ``cohort.forage_cohort``:
+        forwarded to ``cohort.forage_cohort``. The gates use the channel masks in
+        :data:`~virtual_ecosystem.models.animal.animal_traits.FORAGING_CHANNELS`, the
+        same definition ``forage_cohort`` uses to divide its foraging time, so a list
+        is only built for a channel the cohort is budgeted for:
 
-        * ``FOLIAGE`` / ``FRUIT`` / ``SEEDS`` → live plant resources
-        * ``VERTEBRATES`` / ``INVERTEBRATES`` → live prey cohorts
-        * ``DETRITUS``                        → plant-litter pools (detritivory)
-        * ``CARCASSES``                       → carcass pools (scavenging)
-        * ``WASTE``                           → excrement pools (coprophagy)
-        * ``MUSHROOMS``                       → fungal fruiting bodies
-        * ``FUNGI``                           → soil fungi
-        * ``POM``                             → soil POM
-        * ``BACTERIA``                        → soil bacteria
+        * ``herbivory`` (ALGAE, FLOWERS, FOLIAGE, FRUIT, SEEDS, NECTAR, WOOD),
+          ``detritivory`` (DETRITUS) and ``fruiting_fungivory`` (MUSHROOMS) → array
+          resources (live plants, plant litter, fungal fruiting bodies)
+        * ``predation`` (VERTEBRATES, INVERTEBRATES) → live prey cohorts
+        * ``soil_fungivory`` (FUNGI) → soil fungi
+        * ``pomivory`` (POM) → soil POM
+        * ``bacteriophagy`` (BACTERIA) → soil bacteria
+        * ``carcass_scavenging`` (CARCASSES) → carcass pools
+        * ``excrement_scavenging`` (WASTE) → excrement pools
 
         Args:
             dt: Time step duration.
         """
+
         for cohort in list(self.active_cohorts.values()):
             # Safety check territory must be defined
             if cohort.territory is None:
@@ -1549,35 +1554,18 @@ class AnimalModel(
             excrement_pools = cohort.get_excrement_pools(self.excrement_pools)
             carcass_pool_map = self.carcass_pools
 
-            # Array resources
-            # TODO - this needs to be wired into cohort.forage_cohort below
-            # array_resource_list =
-            # cohort.get_array_resources(self.array_resource_pools)
-
-            # All resources that currently use the array resources framework (living
-            # plant matter, and plant detritus)
+            # Array resources: live plants, plant litter and fungal fruiting bodies
             if diet & (
-                DietType.ALGAE
-                | DietType.FLOWERS
-                | DietType.FOLIAGE
-                | DietType.FRUIT
-                | DietType.SEEDS
-                | DietType.NECTAR
-                | DietType.WOOD
-                | DietType.DETRITUS
-                | DietType.MUSHROOMS
+                FORAGING_CHANNELS["herbivory"]
+                | FORAGING_CHANNELS["detritivory"]
+                | FORAGING_CHANNELS["fruiting_fungivory"]
             ):
                 array_resource_list = cohort.get_array_resources(
                     self.array_resource_pools
                 )
 
             # Live prey (taxonomically filtered)
-            prey_flags = diet & (
-                DietType.BLOOD
-                | DietType.INVERTEBRATES
-                | DietType.FISH
-                | DietType.VERTEBRATES
-            )
+            prey_flags = diet & FORAGING_CHANNELS["predation"]
             if prey_flags:
                 prey_list = cohort.get_prey(
                     communities=self.communities,
@@ -1585,25 +1573,25 @@ class AnimalModel(
                 )
 
             # Soil fungi
-            if diet & DietType.FUNGI:
+            if diet & FORAGING_CHANNELS["soil_fungivory"]:
                 soil_fungi_list = cohort.get_soil_fungi_pools(self.soil_pools)
 
             # Soil POM
-            if diet & DietType.POM:
+            if diet & FORAGING_CHANNELS["pomivory"]:
                 pom_list = cohort.get_pom_pools(self.soil_pools)
 
             # Soil bacteria
-            if diet & DietType.BACTERIA:
+            if diet & FORAGING_CHANNELS["bacteriophagy"]:
                 bacteria_list = cohort.get_bacteria_pools(self.soil_pools)
 
             # Carcass scavenging
-            if diet & DietType.CARCASSES:
+            if diet & FORAGING_CHANNELS["carcass_scavenging"]:
                 scavenge_carcass_pools = cast(
                     list[Resource], cohort.get_carcass_pools(self.carcass_pools)
                 )
 
             # Coprophagy
-            if diet & DietType.WASTE:
+            if diet & FORAGING_CHANNELS["excrement_scavenging"]:
                 scavenge_waste_pools = cast(list[Resource], excrement_pools)
 
             # Delegate to cohort-level foraging
