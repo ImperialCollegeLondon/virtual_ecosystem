@@ -6029,21 +6029,21 @@ viz = ["cartopy (>=0.24)", "matplotlib (>=3.10)", "nc-time-axis", "seaborn"]
 
 [[package]]
 name = "zarr"
-version = "3.4.1"
+version = "3.4.2"
 description = "An implementation of chunked, compressed, N-dimensional arrays for Python"
 optional = false
 python-versions = ">=3.12"
 groups = ["main"]
 files = [
-    {file = "zarr-3.4.1-py3-none-any.whl", hash = "sha256:38b540578a119352bdce02a720d7bfd99846e77f0728c58b1bab3d1f547526a0"},
-    {file = "zarr-3.4.1.tar.gz", hash = "sha256:b34bda11ceb199c81ee78ecd42cd02f46c7f67a6d8a1e9bc501cafd5a1795356"},
+    {file = "zarr-3.4.2-py3-none-any.whl", hash = "sha256:a21530a931ac3123b4a4aa17146d11eb9ace227733650d5efbebbbfe38053428"},
+    {file = "zarr-3.4.2.tar.gz", hash = "sha256:645d64f292f457120fc0ca18dbe38f665b4c21aaea38a2a88b5eead8f06f3d28"},
 ]
 
 [package.dependencies]
 donfig = ">=0.8"
 google-crc32c = ">=1.5"
 msgspec = ">=0.19"
-numcodecs = ">=0.16"
+numcodecs = ">=0.16.6,!=0.17.0"
 numpy = ">=2"
 packaging = ">=22.0"
 typing-extensions = ">=4.14"
@@ -6078,4 +6078,4 @@ type = ["pytest-mypy (>=1.0.1) ; platform_python_implementation != \"PyPy\""]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "39f2d8e0ac5be2e443f214c7319ea5240db1148091c1cac319029dcfdcc67371"
+content-hash = "95031fbed715d0d3e47c4b5744d43985ac1fddd94afb05d934d6f373828f3cc3"
