@@ -1179,13 +1179,17 @@ class PalmsModel(
             # Calculate and store whole stem GPP in kg C
             self.per_stem_gpp[cell_id] = per_layer_gpp.sum(axis=0) * 1e-9
 
-            # Pyrealm supplies VPD and pressure in Pa; their ratio is dimensionless.
-            # IWUE is intrinsic efficiency, so transpiration also scales with VPD/P.
+            # Transpiration follows E = A / IWUE * VPD / P. Pyrealm supplies VPD and
+            # atmospheric pressure in Pa; their ratio is dimensionless.
             vp_gradient = (
                 self.pmodel.env.vpd[:, [cell_id]] / self.pmodel.env.patm[:, [cell_id]]
             )
 
-            # Convert GPP [µg C stem-1] to transpired water [µmol H2O stem-1].
+            # Convert GPP to transpired water using IWUE [µmol CO2 mol-1 H2O]:
+            #   per_layer_gpp [µg C stem-1 layer-1] / molar mass [g C mol-1]
+            #       -> µmol C stem-1 layer-1
+            #   µmol C / IWUE -> mol H2O; * 1e6 -> µmol H2O
+            #   * VPD/P -> transpiration at the local vapour-pressure gradient
             per_layer_transpiration_micromolar = (
                 (
                     per_layer_gpp
@@ -1198,8 +1202,9 @@ class PalmsModel(
                 * vp_gradient
             )
 
-            # The converter returns mm per m2, numerically litres. Since input water
-            # moles are per stem, this is litres per stem until divided by cell area.
+            # Pyrealm converts moles to mm per m2 (equivalent to litres). Here input
+            # water is per stem, so the result is litres per stem. After multiplying
+            # by stem counts, divide by cell area to obtain the per-cell depth in mm.
             per_layer_transpiration_litres = convert_water_moles_to_mm(
                 water_moles=per_layer_transpiration_micromolar * 1e-6,
                 tc=self.pmodel.env.tc[:, [cell_id]],
