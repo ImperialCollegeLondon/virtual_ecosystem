@@ -270,8 +270,9 @@ class PlantsModel(
         """A dictionary keyed by cell id giving the GPP values over the course of a 
         model update for each stem within the cohorts in the community (µg C)."""
         self.per_stem_transpiration: dict[int, NDArray[np.floating]]
-        """A dictionary keyed by cell id giving an array of per stem transpiration
-        values in for each cohort in the cell community (mm H2O)"""
+        """Per-cohort water volume per representative stem over the update interval
+        [L H2O stem-1]. These are summed across stems and divided by cell area before
+        being passed to hydrology as a water depth."""
         self.pmodel: PModel
         """A P Model instance providing estimates of light use efficiency through the
         canopy and across cells."""
@@ -1168,18 +1169,33 @@ class PlantsModel(
             # Calculate and store whole stem GPP in kg C
             self.per_stem_gpp[cell_id] = per_layer_gpp.sum(axis=0) * 1e-9
 
-            # The per layer transpiration associated with that GPP then needs GPP in
-            # moles of Carbon  (GPP in µg C / (Molar mass carbon * 1e6))):
-            #   GPP in mols   (n_layer, n_cohorts)  [mol C]
-            #   * IWUE        (n_layer, 1)          [µmol mol -1]
-            # Units:
-            #    mol C  * µmol H2O mol C -1 = µmol H2O
-            per_layer_transpiration_micromolar = (
-                per_layer_gpp / (self.pyrealm_core_consts.k_c_molmass * 1e6)
-            ) * self.pmodel.iwue[:, [cell_id]]
+            # Transpiration follows E = A / IWUE * VPD / P. Pyrealm supplies VPD and
+            # atmospheric pressure in Pa; their ratio is dimensionless.
+            vp_gradient = (
+                self.pmodel.env.vpd[:, [cell_id]] / self.pmodel.env.patm[:, [cell_id]]
+            )
 
-            # Convert to mm
-            per_layer_transpiration_mm = convert_water_moles_to_mm(
+            # Convert GPP to water using IWUE [µmol CO2 mol-1 H2O]:
+            #   per_layer_gpp [µg C stem-1 layer-1] / molar mass [g C mol-1]
+            #       -> µmol C stem-1 layer-1
+            #   µmol C / IWUE -> mol H2O; * 1e6 -> µmol H2O
+            #   * VPD/P -> transpiration at the local vapour-pressure gradient
+            per_layer_transpiration_micromolar = (
+                (
+                    per_layer_gpp
+                    / (
+                        self.pyrealm_core_consts.k_c_molmass
+                        * self.pmodel.iwue[:, [cell_id]]
+                    )
+                )
+                * 1e6
+                * vp_gradient
+            )
+
+            # Pyrealm converts moles to mm per m2 (equivalent to litres). Here input
+            # water is per stem, so the result is litres per stem. After multiplying
+            # by stem counts, divide by cell area to obtain the per-cell depth in mm.
+            per_layer_transpiration_litres = convert_water_moles_to_mm(
                 water_moles=per_layer_transpiration_micromolar * 1e-6,
                 tc=self.pmodel.env.tc[:, [cell_id]],
                 patm=self.pmodel.env.patm[:, [cell_id]],
@@ -1188,18 +1204,18 @@ class PlantsModel(
 
             # Calculate and store total stem transpiration in mm per stem
             self.per_stem_transpiration[cell_id] = np.nansum(
-                per_layer_transpiration_mm, axis=0
+                per_layer_transpiration_litres, axis=0
             )
 
-            # Calculate the total transpiration per layer in m2 in mm, replacing
-            # unfilled canopy cells with np.nan. Note that this does not replace
-            # non-estimable GPP with np.nan: those stay as zero.
+            # Aggregate cohort volumes into per-cell depths, replacing unfilled canopy
+            # cells with np.nan. Non-estimable GPP values remain zero.
             self.data["transpiration"][:, cell_id] = np.where(
                 self.filled_canopy_mask[:, cell_id],
                 (
                     community.cohorts["n_individuals"].to_numpy()
-                    * per_layer_transpiration_mm
-                ).sum(axis=1),
+                    * per_layer_transpiration_litres
+                ).sum(axis=1)
+                / self.grid.cell_area,
                 np.nan,
             )
 
@@ -1216,7 +1232,7 @@ class PlantsModel(
             total_canopy_demand[cell_id] = (
                 self.per_stem_transpiration[cell_id]
                 * cmty.cohorts["n_individuals"].to_numpy()
-            ).sum()
+            ).sum() / self.grid.cell_area
 
         # Calculate per cell limitation factor as available water over total daily
         # demand, capping at 1. Note that that this uses an explicit integer number of
@@ -1231,28 +1247,37 @@ class PlantsModel(
     def apply_water_limitation(self) -> None:
         """Apply water limitation to canopy and subcanopy growth.
 
-        This method compares the total water demand in cells to the plant accessible
-        soil moisture. If the total water demand exceeds the available water, it
-        calculates a soil moisture limitation factor as the simple ratio of
-        available water over total demand. This factor is then applied to per stem
-        GPP and transpiration estimates and to subcanopy GPP and transpiration.
+        This temporary approximation scales GPP and transpiration linearly with root
+        soil moisture between 20% and 80% of the residual-to-saturation interval.
+        The same cell-level factor is applied to canopy and subcanopy vegetation.
         """
 
         # NOTE: The current bucket hydrology model expects all uptake to be from the
         # first subsoil layer (below surface soil) but this could change in future
         # to include deeper layers (see #1771)
 
-        water_limitation_factor = np.minimum(
-            1,
-            (
-                self.data["soil_moisture"]
-                .sel(
-                    layers=np.argmax(self.layer_structure.index_subsoil)
-                )  # 1st subsoil layer
-                .to_numpy()
-                - self.soil_water_residual
-            )
-            / self.total_daily_water_demand,
+        root_soil_moisture = (
+            self.data["soil_moisture"]
+            .sel(layers=np.argmax(self.layer_structure.index_subsoil))
+            .to_numpy()
+        )
+        saturated_storage = (
+            self.layer_structure.soil_layer_thickness[1]
+            * 1000
+            * self.hydrology_constants.soil_moisture_saturation
+        ).item()
+
+        # Temporary hack: throttle uptake gradually over a broad soil-moisture range
+        # to reduce the risk of plants drying soil to residual and locking conductivity.
+        # This is not a calibrated physiological response or a guaranteed water budget:
+        # the shared soil moisture is the previous hydrology interval's mean.
+        # TODO: Reconcile monthly plant demand/GPP with hydrology's daily realized
+        # uptake for a permanent fix to the plant-hydrology timing mismatch.
+        relative_water = (root_soil_moisture - self.soil_water_residual) / (
+            saturated_storage - self.soil_water_residual
+        )
+        water_limitation_factor = np.clip(
+            (relative_water - 0.20) / (0.80 - 0.20), 0.0, 1.0
         )
 
         # Apply limitation

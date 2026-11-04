@@ -315,12 +315,31 @@ class Subcanopy:
             * self.model_timing.update_interval_seconds
         )
 
-        # Calculate the transpiration associated with the GPP in moles
-        subcanopy_transpiration_micromolar = (
-            self.subcanopy_gpp / (self.pyrealm_core_constants.k_c_molmass * 1e6)
-        ) * pmodel.iwue[self.layer_index, :]
+        # Transpiration follows E = A / IWUE * VPD / P. Pyrealm supplies VPD and
+        # atmospheric pressure in Pa; their ratio is dimensionless.
+        vp_gradient = (
+            pmodel.env.vpd[self.layer_index, :] / pmodel.env.patm[self.layer_index, :]
+        )
 
-        # Convert to mm using the local subcanopy environment
+        # GPP is per square metre of ground area. Using IWUE [µmol CO2 mol-1 H2O]:
+        #   GPP [µg C m-2] / molar mass [g C mol-1] -> µmol C m-2
+        #   µmol C / IWUE -> mol H2O m-2; * 1e6 -> µmol H2O m-2
+        #   * VPD/P -> transpiration at the local vapour-pressure gradient
+        subcanopy_transpiration_micromolar = (
+            (
+                self.subcanopy_gpp
+                / (
+                    self.pyrealm_core_constants.k_c_molmass
+                    * pmodel.iwue[self.layer_index, :]
+                )
+            )
+            * 1e6
+            * vp_gradient
+        )
+
+        # Convert mol H2O m-2 to mm of water over ground area. Unlike canopy
+        # transpiration, this already has a per-area basis and needs no cell-area
+        # division.
         self.subcanopy_transpiration = convert_water_moles_to_mm(
             water_moles=subcanopy_transpiration_micromolar * 1e-6,
             tc=pmodel.env.tc[self.layer_index, :],
