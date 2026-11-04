@@ -315,10 +315,21 @@ class Subcanopy:
             * self.model_timing.update_interval_seconds
         )
 
-        # Calculate the transpiration associated with the GPP in moles
+        # Calculate transpiration in micromoles of water per square metre.
+        vp_gradient = (
+            pmodel.env.vpd[self.layer_index, :] / pmodel.env.patm[self.layer_index, :]
+        )
         subcanopy_transpiration_micromolar = (
-            self.subcanopy_gpp / (self.pyrealm_core_constants.k_c_molmass * 1e6)
-        ) * pmodel.iwue[self.layer_index, :]
+            (
+                self.subcanopy_gpp
+                / (
+                    self.pyrealm_core_constants.k_c_molmass
+                    * pmodel.iwue[self.layer_index, :]
+                )
+            )
+            * 1e6
+            * vp_gradient
+        )
 
         # Convert to mm using the local subcanopy environment
         self.subcanopy_transpiration = convert_water_moles_to_mm(
