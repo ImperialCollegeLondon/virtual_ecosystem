@@ -507,74 +507,36 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, tricky_plant_cohorts):
         cid: len(vals) for cid, vals in fxt_plants_model.per_stem_transpiration.items()
     }
 
-    # Check transpiration from GPP using IWUE and the local VPD/P gradient. The
-    # converter returns litres for the cohort's stems; divide by cell area to obtain
-    # the depth supplied to hydrology.
-    from pyrealm.core.water import convert_water_moles_to_mm
-
-    canopy_top_ppfd = (
-        fxt_plants_model.canopy_top_radiation
-        * fxt_plants_model.model_constants.dsr_to_ppfd
-    )
-    expected_transpiration = fxt_plants_model.layer_structure.from_template()
-
-    for cell_id, canopy in fxt_plants_model.canopies.items():
-        if canopy is None:
-            continue
-
-        n_layers_below_canopy = (
-            fxt_plants_model.layer_structure.n_layers - len(canopy.heights) - 1
-        )
-        padding = ((1, n_layers_below_canopy), (0, 0))
-        fapar = np.pad(canopy.cohort_data.fapar, padding)
-        stem_leaf_area = np.pad(canopy.cohort_data.stem_leaf_area, padding)
-        per_layer_gpp = (
-            fxt_plants_model.pmodel.lue[:, [cell_id]]
-            * fapar
-            * canopy_top_ppfd[cell_id]
-            * stem_leaf_area
-            * fxt_plants_model.model_timing.update_interval_seconds
-        )
-        per_layer_gpp = np.nan_to_num(per_layer_gpp)
-        vpd_over_pressure = (
-            fxt_plants_model.pmodel.env.vpd[:, [cell_id]]
-            / fxt_plants_model.pmodel.env.patm[:, [cell_id]]
-        )
-        water_moles = (
-            per_layer_gpp
-            / (
-                fxt_plants_model.pyrealm_core_consts.k_c_molmass
-                * fxt_plants_model.pmodel.iwue[:, [cell_id]]
-            )
-        ) * vpd_over_pressure
-        per_layer_water = convert_water_moles_to_mm(
-            water_moles=water_moles,
-            tc=fxt_plants_model.pmodel.env.tc[:, [cell_id]],
-            patm=fxt_plants_model.pmodel.env.patm[:, [cell_id]],
-            core_const=fxt_plants_model.pyrealm_core_consts,
-        )
+    # Benchmark transpiration volume per stem [L] and hydrology depth per cell [mm].
+    stem_transpiration_bench = {
+        0: np.array([1.37882773e03, 7.79926924e00, 9.17389624e-02]),
+        1: np.array([1.75437616e03, 1.86318386e01]),
+        2: np.array([2.33506095e03, 5.23904028e-01]),
+        3: np.array([3.27610929e03, 1.06444217e02, 1.12396273e00]),
+    }
+    assert {
         assert_allclose(
-            fxt_plants_model.per_stem_transpiration[cell_id],
-            np.nansum(per_layer_water, axis=0),
+            fxt_plants_model.per_stem_transpiration[cell_id], expected_transpiration
         )
-        expected_transpiration[:, cell_id] = np.where(
-            fxt_plants_model.filled_canopy_mask[:, cell_id],
-            (
-                fxt_plants_model.communities[cell_id]
-                .cohorts["n_individuals"]
-                .to_numpy()
-                * per_layer_water
-            ).sum(axis=1)
-            / fxt_plants_model.grid.cell_area,
-            np.nan,
-        )
+        for cell_id, expected_transpiration in stem_transpiration_bench.items()
+    }
 
     # Check the transpiration data array shape and ground-area depth.
     assert fxt_plants_model.data["transpiration"].shape == (
         fxt_plants_model.layer_structure.n_layers,
         fxt_plants_model.grid.n_cells,
     )
-    assert_allclose(fxt_plants_model.data["transpiration"], expected_transpiration)
+    transpiration_by_layer_benchmark = fxt_plants_model.layer_structure.from_template()
+    transpiration_by_layer_benchmark[1:5] = [
+        [4.09364087e01, 4.09361597e01, 4.09376204e01, 4.17727126e01],
+        [1.71309952e01, 1.71348344e01, 1.67246735e01, 1.08341934e-03],
+        [7.16725070e00, 7.13592353e00, np.nan, np.nan],
+        [2.95302349e00, np.nan, np.nan, np.nan],
+    ]
+    transpiration_by_layer_benchmark[11] = 0
+    assert_allclose(
+        fxt_plants_model.data["transpiration"], transpiration_by_layer_benchmark
+    )
 
 
 @pytest.mark.parametrize(argnames="tricky_plant_cohorts", argvalues=[False])
