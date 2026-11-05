@@ -47,6 +47,17 @@ $$f_c = d / (s + d),$$
 where $d$ is the rate at which the resource decays due to microbial activity and $s$ is
 the rate at which animals discover and remove the resource.
 
+:::{note}
+
+For each grid cell, there is only one carcass pool and one excrement pool. These pools
+are accessible for consumption to functional groups occupying the soil or ground strata.
+Functional groups that only inhabit the canopy strata cannot consume from the excrement
+and carcass pools, and their excreta/carcasses are added to the soil/ground based pools.
+In reality, excrement and carcasses do exist in the canopy, but we ignore them for the
+sake of model simplicity.
+
+:::
+
 :::{admonition} Future directions 🔭
 
 * We currently only have one class of carcasses, but this may well be split into
