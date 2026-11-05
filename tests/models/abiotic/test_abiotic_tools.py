@@ -451,7 +451,7 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
     data = dummy_climate_data
     n_layers, n_cells = data["canopy_evaporation"].shape
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
-    daily_temp_amplitude = data.get_time_slice(
+    daily_temp_range = data.get_time_slice(
         "diurnal_temperature_range_ref", 1
     ).to_numpy()
 
@@ -469,7 +469,7 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
         latitude_deg=latitude_deg,
         month=month,
         days=days,
-        daily_temp_amplitude=daily_temp_amplitude,
+        daily_temp_range=daily_temp_range,
     )
 
     # Shape checks
@@ -482,8 +482,14 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
     # Air temperature bounds
     air_temp = forcing["air_temperature_hourly"]
     air_temp_monthly = data.get_time_slice("air_temperature_ref", 1).to_numpy()
-    assert np.all(air_temp >= air_temp_monthly - daily_temp_amplitude - 1e-6)
-    assert np.all(air_temp <= air_temp_monthly + daily_temp_amplitude + 1e-6)
+    assert np.all(air_temp >= air_temp_monthly - daily_temp_range / 2 - 1e-6)
+    assert np.all(air_temp <= air_temp_monthly + daily_temp_range / 2 + 1e-6)
+    np.testing.assert_allclose(
+        np.ptp(air_temp, axis=0),
+        daily_temp_range,
+        rtol=1e-6,
+        atol=1e-6,
+    )
 
     # Relative humidity bounds
     rh = forcing["relative_humidity_hourly"]
