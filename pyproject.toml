@@ -152,6 +152,7 @@ convention = "google"
 
 [tool.mypy]
 ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
 
 [tool.jupytext]
 # Stop jupytext from removing mystnb and other settings in MyST Notebook YAML headers

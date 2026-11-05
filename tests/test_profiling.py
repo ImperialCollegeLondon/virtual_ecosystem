@@ -54,7 +54,7 @@ def test_ve_run_with_profiling(capsys):
                     "--logfile",
                     str(logfile),
                     "--config",
-                    "core.debug.truncate_run_at_update=1",
+                    "core.debug.truncate_run_at_update=9",
                 ]
             )
 
