@@ -1419,7 +1419,7 @@ class AnimalModel(
         parent.reproductive_mass_cnp = CNP(0.0, 0.0, 0.0)
 
         parent.die_individual(
-            parent.individuals, parent.get_carcass_pools(self.carcass_pools)
+            parent.individuals, parent.get_destination_carcass_pools(self.carcass_pools)
         )
         parent.is_alive = False
         self.remove_dead_cohort(parent)
@@ -1546,7 +1546,9 @@ class AnimalModel(
             scavenge_waste_pools: list[Resource] = []
 
             # Deposition targets (always passed)
-            excrement_pools = cohort.get_excrement_pools(self.excrement_pools)
+            excrement_pools = cohort.get_destination_excrement_pools(
+                self.excrement_pools
+            )
             carcass_pool_map = self.carcass_pools
 
             # Array resources
@@ -1599,12 +1601,17 @@ class AnimalModel(
             # Carcass scavenging
             if diet & DietType.CARCASSES:
                 scavenge_carcass_pools = cast(
-                    list[Resource], cohort.get_carcass_pools(self.carcass_pools)
+                    list[Resource],
+                    cohort.get_consumption_carcass_pools(self.carcass_pools),
                 )
 
             # Coprophagy
             if diet & DietType.WASTE:
-                scavenge_waste_pools = cast(list[Resource], excrement_pools)
+                # TODO - THIS NEEDS A DIFFERENT CARCASS POOL FUNCTION CALL
+                scavenge_waste_pools = cast(
+                    list[Resource],
+                    cohort.get_consumption_excrement_pools(self.excrement_pools),
+                )
 
             # Delegate to cohort-level foraging
             cohort.forage_cohort(
@@ -1655,7 +1662,9 @@ class AnimalModel(
             for cell_id in cohort.territory:
                 respiration[cell_id] += share
 
-            cohort.excrete(excreta, cohort.get_excrement_pools(self.excrement_pools))
+            cohort.excrete(
+                excreta, cohort.get_destination_excrement_pools(self.excrement_pools)
+            )
 
         self.data["total_animal_respiration"].values[:] += respiration
 
@@ -1692,7 +1701,7 @@ class AnimalModel(
         number_of_days = float(dt / timedelta64(1, "D"))
         for cohort in list(self.active_cohorts.values()):
             cohort.inflict_non_predation_mortality(
-                number_of_days, cohort.get_carcass_pools(self.carcass_pools)
+                number_of_days, cohort.get_destination_carcass_pools(self.carcass_pools)
             )
             if cohort.individuals <= 0:
                 cohort.is_alive = False
@@ -1717,7 +1726,7 @@ class AnimalModel(
             larval_cohort.individuals * larval_cohort.constants.metamorph_mortality
         )
         larval_cohort.die_individual(
-            number_dead, larval_cohort.get_carcass_pools(self.carcass_pools)
+            number_dead, larval_cohort.get_destination_carcass_pools(self.carcass_pools)
         )
         # collect the adult functional group
         adult_functional_group = get_functional_group_by_name(
