@@ -966,11 +966,7 @@ def build_output_from_record(
 
         template = output_templates[name]
         values = np.full(template.shape, np.nan)
-        if template.dims != ("layers", "cell_id"):
-            raise ValueError(
-                f"Static atmospheric output '{name}' must have dimensions "
-                "('layers', 'cell_id')."
-            )
+
         if np.asarray(static[name]).shape != template.shape:
             raise ValueError(
                 f"Static output '{name}' has shape {np.asarray(static[name]).shape}, "
