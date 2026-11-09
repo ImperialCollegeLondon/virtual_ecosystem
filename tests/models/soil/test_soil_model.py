@@ -214,7 +214,7 @@ def test_soil_model_all_pools_positive(
 def test_generate_soil_model(
     caplog,
     dummy_carbon_data,
-    microbial_groups_cfg,
+    fixture_root_data_dir_path,
     cfg_string,
     solub_coeff,
     raises,
@@ -234,7 +234,10 @@ def test_generate_soil_model(
         "[core.grid]\ncell_nx = 2\ncell_ny=2\n"
         "[core.timing]\nupdate_interval = '12 hours'",
         "[hydrology]",
-        microbial_groups_cfg,
+        "[soil]\nenzyme_class_definition_path = "
+        f"'{(fixture_root_data_dir_path / 'enzyme_parameters.csv')!s}'\n"
+        "microbial_group_definition_path = "
+        f"'{(fixture_root_data_dir_path / 'microbe_parameters.csv')!s}'\n",
         cfg_string,
     ]
 
