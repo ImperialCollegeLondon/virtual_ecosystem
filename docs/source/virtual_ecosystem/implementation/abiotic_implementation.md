@@ -216,6 +216,16 @@ We account for the fact that some of the absorbed shortwave radiation is used by
 plants to photosyntheses and is therefore not available for the generation of heat
 fluxes.
 
+The plants model provides light use efficiency (LUE) in grams of carbon fixed per mole
+of photons. The abiotic model converts absorbed broadband shortwave radiation to photon
+flux using ``dsr_to_ppfd`` (default 2.04 $\mu$mol photons J$^{-1}$ of broadband
+shortwave), the same broadband-shortwave-to-PPFD conversion used by the plant model.
+It then converts the LUE-based carbon assimilation to chemical energy using
+``photosynthetic_energy_content_of_carbon`` (default 39,000 J gC$^{-1}$). This
+photosynthetic energy is subtracted from absorbed PAR when calculating the energy
+available for heat in the canopy energy balance. Missing or non-estimable LUE in other
+layers contributes no photosynthetic energy.
+
 ```{Note}
 In the future, we aim to implement a more advance radiative transfer scheme, including:
 - the effects of topography on sun angle, and
