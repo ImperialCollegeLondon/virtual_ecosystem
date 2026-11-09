@@ -854,13 +854,16 @@ def test_total_absorbed_shortwave_radiation(
 
     downward_sw = data.get_time_slice("downward_shortwave_radiation", 0).to_numpy()
     canopy_absorption = data["shortwave_absorption"][canopy_index].to_numpy()
+    light_use_efficiency = data["light_use_efficiency"][canopy_index].to_numpy()
 
     weights = compute_weights_from_absorbed_radiation(radiation=canopy_absorption)
     result = calculate_total_absorbed_shortwave_radiation(
         downward_shortwave_radiation=downward_sw,
         shortwave_absorption_by_canopy=canopy_absorption,
         par_fraction=0.48,
-        fraction_par_used=0.1,
+        light_use_efficiency=light_use_efficiency,
+        photosynthetic_energy_content_of_carbon=39000.0,
+        dsr_to_ppfd=2.04,
         leaf_absorptance_non_par=0.5,
     )
 
@@ -869,13 +872,21 @@ def test_total_absorbed_shortwave_radiation(
     # Compute upper bound
     shortwave_non_par = downward_sw * (1 - 0.48)
     max_nir_absorbed = 0.5 * shortwave_non_par * weights
-    total_available = canopy_absorption + max_nir_absorbed
+    absorbed_par = canopy_absorption * 0.48
+    photosynthesis_energy = np.minimum(
+        0.5 * canopy_absorption * 2.04 * 1e-6 * 39000.0,
+        absorbed_par,
+    )
+    expected_result = absorbed_par - photosynthesis_energy + max_nir_absorbed
 
     # Build mask: only test where all relevant values are finite
     valid_mask = np.isfinite(canopy_absorption)
 
-    # Energy conservation (only on valid points)
-    assert np.all(result[valid_mask] <= total_available[valid_mask] + 1e-6)
+    np.testing.assert_allclose(
+        result[valid_mask],
+        expected_result[valid_mask],
+        rtol=1e-6,
+    )
 
     # Non-negative check
     assert np.all(result[valid_mask] >= 0)
