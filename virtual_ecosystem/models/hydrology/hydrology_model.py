@@ -874,8 +874,8 @@ class HydrologyModel(
                 vertical_drainage_capacity=saturated_topsoil_flow["vertical_flow"][0],
             )
 
-            # Calculate preferential bypass flow , [mm], from water remaining after
-            # runoff, including the infiltration capacity opened by potential drainage.
+            # Calculate bypass from water left after runoff, including capacity opened
+            # by potential same-day drainage.
             bypass_flow = above_ground.calculate_bypass_flow(
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
                 sat_top_soil_moisture=hydro_input["top_soil_moisture_saturation"],
