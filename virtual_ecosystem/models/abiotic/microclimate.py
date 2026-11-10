@@ -631,7 +631,6 @@ def calculate_soil_fluxes(
     static: dict[str, Any],
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
-    time_interval: float,
     idx: SimpleNamespace,
 ) -> dict[str, NDArray[np.floating]]:
     """Calculate soil fluxes for microclimate model.
@@ -643,10 +642,8 @@ def calculate_soil_fluxes(
     Args:
         state: Current state variables for microclimate model
         static: Prepared static inputs for microclimate model
-        hourly_forcing: Generated hourly profiles for atmospheric forcing variables
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
-        time_interval: Time interval for flux calculations, [s]
         idx: SimpleNamespace with layer indices
 
     Returns:
@@ -677,7 +674,7 @@ def calculate_soil_fluxes(
     latent_heat_flux_soil = energy_balance.calculate_latent_heat_flux(
         evapotranspiration=state["soil_evaporation"],
         latent_heat_vapourisation=state["latent_heat_vapourisation"][idx.surface],
-        time_interval=time_interval,
+        time_interval=core_constants.seconds_to_hour,
     )
     out["latent_heat_flux_soil"] = -latent_heat_flux_soil
 
@@ -885,7 +882,6 @@ def run_hour_step(
         static=static,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
-        time_interval=time_interval,
         idx=idx,
     )
     state["sensible_heat_flux"][idx.topsoil] = soil_fluxes["sensible_heat_flux_soil"]

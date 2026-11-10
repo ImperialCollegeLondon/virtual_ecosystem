@@ -552,14 +552,12 @@ def test_calculate_soil_fluxes(
     abiotic_constants = fixture_abiotic_constants
     core_constants = fixture_core_constants
     idx = fixture_abiotic_indices
-    time_interval = 3600
 
     result = calculate_soil_fluxes(
         state=state,
         static=static,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
-        time_interval=time_interval,
         idx=idx,
     )
 
