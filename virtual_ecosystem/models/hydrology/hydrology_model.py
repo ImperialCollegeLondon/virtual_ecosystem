@@ -88,6 +88,7 @@ class HydrologyModel(
         "temperature_driven_snowmelt",
         "rain_driven_snowmelt",
         "sublimation_snow",
+        "actual_transpiration",
         "snowfall",
         "interception_daily",
         "canopy_evaporation_daily",
@@ -112,6 +113,7 @@ class HydrologyModel(
         "temperature_driven_snowmelt_daily",
         "rain_driven_snowmelt_daily",
         "sublimation_snow_daily",
+        "actual_transpiration_daily",
         "snowfall_daily",
     ),
     vars_required_for_update=(
@@ -164,6 +166,7 @@ class HydrologyModel(
         "river_discharge_rate",
         "total_runoff",
         "canopy_evaporation",
+        "actual_transpiration",
         "groundwater_loss",
         "interception_daily",
         "canopy_evaporation_daily",
@@ -188,6 +191,7 @@ class HydrologyModel(
         "temperature_driven_snowmelt_daily",
         "rain_driven_snowmelt_daily",
         "sublimation_snow_daily",
+        "actual_transpiration_daily",
         "snowfall_daily",
     ),
 ):
@@ -534,6 +538,7 @@ class HydrologyModel(
 
         * interception, [mm]
         * canopy_evaporation, [mm]
+        * actual_transpiration, [mm]
         * snowfall, [mm]
         * snow_water_equivalent, [mm]
         * temperature_driven_snowmelt, [mm]
@@ -1065,6 +1070,7 @@ class HydrologyModel(
             daily_lists["vertical_flow"].append(vertical_flow_actual)
             daily_lists["subsurface_stormflow"].append(subsurface_stormflow_actual)
             daily_lists["soil_moisture"].append(soil_moisture_updated)
+            daily_lists["actual_transpiration"].append(transpiration_actual)
 
             # Recalculate matric potential based on updated soil moisture
             effective_saturation_new = hydrology_tools.calculate_effective_saturation(
@@ -1244,6 +1250,7 @@ class HydrologyModel(
             "surface_runoff_routed_plus_local",
             "subsurface_runoff_routed_plus_local",
             "total_runoff",
+            "actual_transpiration",
         ]:
             soil_hydrology[var] = self.data_object_templates[var].copy(
                 data=np.nansum(np.stack(daily_lists[var], axis=1), axis=1)
