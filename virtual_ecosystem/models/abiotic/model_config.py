@@ -223,9 +223,6 @@ class AbioticConstants(AbioticSharedConstants):
     understorey_ventilation_rate: float = 0.001
     """Understorey ventilation rate, comes into place when there is no canopy, [s-1]."""
 
-    extinction_coefficient_longwave: float = 0.5
-    """Extinction coefficient for longwave radiation, dimensionless."""
-
     minimum_mixing_depth: float = 1.5
     """Minimum mixing depth for lowest canopy layer, [m].
     
