@@ -873,7 +873,19 @@ def run_hour_step(
     )
 
     state["canopy_temperature"] = canopy_temperature
-    state["air_temperature"] = air_temperature
+
+    # Vertical mixing and ventilation of air temperature above the canopy, with limits
+    mixing_limits = (
+        abiotic_bounds.air_temperature[0],
+        np.repeat(abiotic_bounds.air_temperature[1], len(state["ventilation_rate"])),
+    )
+    state["air_temperature"] = wind.mix_and_ventilate(
+        input_variable=air_temperature,
+        mixing_coefficient=static["mixing_coefficient"],
+        ventilation_rate=state["ventilation_rate"],
+        limits=mixing_limits,
+        surface_index=idx.surface,
+    )
     state.update(canopy_fluxes)
 
     # Calculate soil fluxes
