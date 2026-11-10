@@ -182,7 +182,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Monthly total actual transpiration after soil water limitation"
+description = "Update-interval total actual transpiration after soil water limitation"
 name = "actual_transpiration"
 unit = "mm"
 variable_type = "float"
