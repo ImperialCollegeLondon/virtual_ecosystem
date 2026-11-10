@@ -664,6 +664,7 @@ def test_run_hour_step_orchestration(
     fixture_core_constants,
     fixture_static_inputs,
     fixture_core_components,
+    monkeypatch,
 ):
     """Test that one hourly microclimate step runs and returns expected outputs.
 
@@ -673,12 +674,31 @@ def test_run_hour_step_orchestration(
     to be dynamically equilibrated for the fully coupled hourly solve.
     """
 
+    from virtual_ecosystem.models.abiotic import wind
     from virtual_ecosystem.models.abiotic.microclimate import (
         calculate_wind_profiles,
         generate_hourly_forcing,
         initialize_state,
         run_hour_step,
     )
+
+    original_mix_and_ventilate = wind.mix_and_ventilate
+    mixing_results = []
+
+    def record_mixing(
+        input_variable, mixing_coefficient, ventilation_rate, limits, surface_index
+    ):
+        mixed_variable = original_mix_and_ventilate(
+            input_variable=input_variable,
+            mixing_coefficient=mixing_coefficient,
+            ventilation_rate=ventilation_rate,
+            limits=limits,
+            surface_index=surface_index,
+        )
+        mixing_results.append((input_variable.copy(), mixed_variable.copy()))
+        return mixed_variable
+
+    monkeypatch.setattr(wind, "mix_and_ventilate", record_mixing)
 
     # Setup
     data = dummy_climate_data
@@ -778,6 +798,16 @@ def test_run_hour_step_orchestration(
         arr = state.get(key)
         assert arr is not None, f"{key} missing from state output"
         assert arr.shape == shape, f"{key} shape mismatch: {arr.shape} != {shape}"
+
+    assert len(mixing_results) >= 2
+    air_temperature_before_mixing, mixed_air_temperature = mixing_results[0]
+    assert np.any(
+        np.isfinite(air_temperature_before_mixing)
+        & (air_temperature_before_mixing != mixed_air_temperature)
+    )
+    np.testing.assert_allclose(
+        state["air_temperature"], mixed_air_temperature, equal_nan=True
+    )
 
 
 def test_static_variable_created(fixture_core_components):
