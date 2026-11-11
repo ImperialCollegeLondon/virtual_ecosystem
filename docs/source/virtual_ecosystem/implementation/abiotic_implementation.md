@@ -408,6 +408,8 @@ Here, $G$ is positive downward into the soil. $H_s$ and $L_v E_s$ are positive w
 heat is transferred away from the soil surface to the air or through evaporation,
 respectively. The absorbed radiation term includes the longwave radiation absorbed by
 the soil surface; no separate understorey conductive-heat term is applied here.
+In the model's reported sensible- and latent-heat-flux arrays, these outward fluxes are
+stored as negative values; the positive outward magnitudes are used in this residual.
 
 ### Soil temperature update
 
