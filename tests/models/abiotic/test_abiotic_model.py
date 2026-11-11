@@ -432,8 +432,8 @@ def test_setup_and_update_abiotic_model_below_zero(
     expected_soil_temp = lyr_strct.from_template()
     expected_soil_temp[lyr_strct.index_all_soil] = np.array(
         [
-            [-9.14822 , -8.564734, -7.91557 , -6.974428],
-            [-2.117712, -1.136269, -0.166883,  0.821044],
+            [-9.14822, -8.564734, -7.91557, -6.974428],
+            [-2.117712, -1.136269, -0.166883, 0.821044],
         ]
     )
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp)
