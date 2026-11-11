@@ -442,11 +442,11 @@ def test_setup_and_update_abiotic_model_below_zero(
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
         [
-            [-5.0, -4.0, -3.0, -2.0],
-            [-13.179444, -11.405123, -9.522494, np.nan],
-            [-12.464722, -10.672986, np.nan, np.nan],
-            [-12.179462, np.nan, np.nan, np.nan],
-            [-15.150519, -14.485521, -13.012876, -10.368617],
+            [-5.120881, -4.180844, -3.220348, -2.01899],
+            [-12.404011, -10.421426, -8.366685, np.nan],
+            [-12.396705, -10.670142, np.nan, np.nan],
+            [-12.216207, np.nan, np.nan, np.nan],
+            [-14.74026, -13.645153, -12.413296, -9.927392],
         ]
     )
     xr.testing.assert_allclose(
