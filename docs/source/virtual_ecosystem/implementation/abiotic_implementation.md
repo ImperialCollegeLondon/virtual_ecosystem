@@ -146,7 +146,7 @@ of transfer of energy normal to a surface of unit area (in $\mathrm{W\,m^{-2}}$)
 The energy balance of a surface layer of finite depth and unit horizontal area can be
 written as:
 
-$$\frac{dQ}{dt} = R_n - G - H - \lambda E - PP$$
+$$\frac{dQ}{dt} = R_N - G - H - L_v E - PP$$
 
 where each term is later expanded for the [canopy](#canopy-energy-balance), and
 [soil surface](#soil-energy-balance).
@@ -156,7 +156,7 @@ where each term is later expanded for the [canopy](#canopy-energy-balance), and
 $Q$:
 Total heat energy stored in the surface layer.
 
-$R_n$:
+$R_N$:
 Net surface irradiance (commonly referred to as the net radiation). It
 represents the gain of energy by the surface from radiation. It is a positive number
 when it is towards the surface. This includes long- and shortwave radiation.
@@ -171,9 +171,9 @@ Sensible Heat Flux. It represents the loss of energy by the
 surface by heat transfer to the atmosphere. It is positive when directed
 away from the surface into the atmosphere.
 
-$\lambda E$:
+$L_v E$:
 Latent Heat Flux. It represents a loss of energy from the
-surface due to evaporation and/or transpiration. ($\lambda$ is the specific latent heat
+surface due to evaporation and/or transpiration. ($L_v$ is the specific latent heat
 of evaporation,
 units $\mathrm{J\,kg^{-1}}$ and E is the evaporation rate, with units
 $\mathrm{kg\,m^{-2}\,s^{-1}}$).
@@ -185,10 +185,10 @@ Primary productivity, represents the energy that plants use to photosynthesize.
 
 ### Net radiation
 
-The net radiation $R_n$ ($\mathrm{W\,m^{-2}}$) at the leaf or soil surface is
+The net radiation $R_N$ ($\mathrm{W\,m^{-2}}$) at the leaf or soil surface is
 calculated as:
 
-$$R_n = S_0 \cdot (1 - \alpha) + LW_{down} - \epsilon_{s} \sigma T^{4}$$
+$$R_N = S_0 \cdot (1 - \alpha) + LW_{down} - \epsilon_{s} \sigma T^{4}$$
 
 where:
 
@@ -236,10 +236,10 @@ layer is as follows:
 
 ```{math}
     & \frac{dQ}{dt} \\
-    & = R_{n} - H_l - \lambda E_l (- PP)\\
+    & = R_N - H_l - L_v E_l - PP\\
     & = R_{\text{abs}} - \epsilon_{l} \sigma T_{l}^{4} -
     \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})
-    - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} - PP\\
+    - L_v g_{v} \frac {e_{l} - e_{a}}{p_{a}} - PP\\
     & = 0
 ```
 
@@ -254,7 +254,7 @@ Emitted longwave radiation from the canopy ($\mathrm{W\,m^{-2}}$)
 $H_{l}$:
 Sensible heat flux from the canopy to the air ($\mathrm{W\,m^{-2}}$)
 
-$\lambda E_{l}$:
+$L_v E_{l}$:
 Latent heat flux associated with transpiration from the canopy to the air
 ($\mathrm{W\,m^{-2}}$)
 
@@ -270,7 +270,7 @@ Temperature of the leaf (°C)
 $T_{a}$:
 Temperature of the air surrounding the leaf (°C)
 
-$\lambda$:
+$L_v$:
 Latent heat of vapourisation of water ($\mathrm{kJ\,kg^{-1}}$)
 
 $e_{l}$:
@@ -400,27 +400,31 @@ The **latent heat flux** is derived by conversion of surface evaporation as
 calculated by the hydrology model.
 
 The **ground heat flux** is calculated as the residual of the energy balance at the
-soil surface plus the conductive heat from the understorey layer:
+soil surface:
 
-$$G = R_{n} - H_{s} - \lambda E_{s} + G_{u}$$
+$$G = R_N - H_s - L_v E_s$$
+
+Here, $G$ is positive downward into the soil. $H_s$ and $L_v E_s$ are positive when
+heat is transferred away from the soil surface to the air or through evaporation,
+respectively. The absorbed radiation term includes the longwave radiation absorbed by
+the soil surface; no separate understorey conductive-heat term is applied here.
 
 ### Soil temperature update
 
 After the energy fluxes at the land surface have been partitioned, we simulate how heat
 is transported vertically through the soil profile by updating the temperature of each
-soil layer over time. This is done using an explicit finite-difference approach, which
-numerically solves the one-dimensional heat diffusion equation while allowing thermal
-properties to vary with soil moisture. Moisture influences temperature evolution through
-both the soil volumetric heat capacity and thermal conductivity.
+soil layer over time. This is done using an explicit finite-volume approach to the
+one-dimensional heat-conduction equation. Moisture influences temperature evolution
+through both the soil volumetric heat capacity and thermal conductivity.
 
 The **soil volumetric heat capacity** $C_{\mathrm{vol}}$ ($\mathrm{J,m^{-3},K^{-1}}$)
 determines how much energy is required to change soil temperature and is represented as:
 
-$$C_{vol}=\rho_b c_{s} + \theta \rho_w c_w​$$
+$$C_{\mathrm{vol}}=\rho_b c_s + \theta\rho_w c_w$$
 
 where:
 
-$\rho_b$: Soil bulk density ($\mathrm{kg,m^{-3}}$)
+$\rho_b$: Dry soil bulk density ($\mathrm{kg,m^{-3}}$)
 
 $c_s$: Specific heat capacity of soil solids ($\mathrm{J,kg^{-1},K^{-1}}$)
 
@@ -430,93 +434,121 @@ $\rho_w$: Water density ($\mathrm{kg,m^{-3}}$)
 
 $c_w$: Specific heat capacity of water ($\mathrm{J,kg^{-1},K^{-1}}$)
 
-The **soil thermal conductivity** $\lambda$ ($\mathrm{W,m^{-1},K^{-1}}$) is estimated
+The heat capacity of soil air is neglected.
+
+The **soil thermal conductivity** $k_s$ ($\mathrm{W,m^{-1},K^{-1}}$) is estimated
 following a Johansen-style unfrozen-soil parameterisation
-{cite:p}`johansen_thermal_1975`, using the Kersten number $K_{e}$, which scales
-between the dry ($\lambda_\mathrm{dry}$) and saturated ($\lambda_\mathrm{sat}$)
+{cite:p}`johansen_thermal_1977`, using the Kersten number $K_{e}$, which scales
+between the dry ($k_\mathrm{dry}$) and saturated ($k_\mathrm{sat}$)
 conductivity limits.
 
 The saturated volumetric water content ($\theta_{s}$) is taken equal to the porosity and
-the degree of saturation ($\theta$) is then:
+the degree of saturation ($S_r$) is:
 
-$$S_{r} = \frac{\theta}{\theta_{s}}$$
+$$S_r = \operatorname{clip}\left(\frac{\theta}{\theta_s},0,1\right), \quad \theta_s>0$$
 
 The Kersten number $K_{e}$ depends on soil texture:
 
 ```{math}
     K_{e} =
     \begin{cases}
-        \kappa \log_{10}(S_{r}) + 1, & \text{coarse-textured soils} \\
-        \log_{10}(S_{r}) + 1,        & \text{fine-textured soils}
+        \kappa \log_{10}(S_r) + 1, & \text{coarse-textured soils} \\
+        \log_{10}(S_r) + 1,        & \text{fine-textured soils}
     \end{cases}
 ```
 
 where $\kappa$ is the ``coarse_kersten_factor`` parameter.
-{cite:t}`johansen_thermal_1975` gives $\kappa = 0.7$ for coarse mineral soils.
+{cite:t}`johansen_thermal_1977` gives $\kappa = 0.7$ for coarse mineral soils.
 
 Thermal conductivity is then obtained by linear interpolation between the
 dry and saturated limits:
 
 ```{math}
-\lambda = K_{e} \left( \lambda_\mathrm{sat} - \lambda_\mathrm{dry} \right)
-+ \lambda_\mathrm{dry}
+k_s = K_e \left( k_\mathrm{sat} - k_\mathrm{dry} \right)
++ k_\mathrm{dry}
 ```
 
 ```{note}
-This formulation is valid for unfrozen mineral soils with $S_{r} > 0.1$. Below
-this threshold the Kersten number becomes negative, which is physically unrealistic;
-implementations should clamp $S_{r}$ or $K_{e}$ accordingly.
+This formulation is for unfrozen mineral soils. As an implementation modification,
+$K_e$ is set to zero for $S_r \leq 0.1$ and clipped to $[0,1]$. This cutoff can cause a
+discontinuity for coarse-textured soils at $S_r=0.1$.
 ```
 
-**Soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2},s^{-1}}$) is then calculated as:
+#### Temperature update scheme
 
-$$\alpha = \frac{\lambda}{C_{vol}}$$
-
-#### Temperature Update Scheme
-
-Let $T_i^t$ represent the temperature (°C) of the $i^{\text{th}}$ soil layer at time
-$t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z_i$ (m),
-and time advances in steps of $\Delta t$ (s).
-
-**Top layer update** (surface boundary condition):
-
-The topmost layer ($i = 0$) is updated using the net ground heat flux $G$
-($\mathrm{W\,m^{-2}}$):
-
-$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{C_{\mathrm{vol},0}\,\Delta z_{m}}\right)G$$
-
-**Interior layers update**:
-
-Each interior layer ($i = 1, \dots, n-2$) exchanges heat with adjacent layers following
-the diffusion equation:
+Let $T_i^t$ represent the temperature (°C) of soil layer $i$ at time $t$.
+The soil column is
+discretized into $n$ layers of thickness $\Delta z_i$ (m), and time advances in steps
+of $\Delta t$ (s). Heat fluxes at interfaces are positive downward. The one-dimensional
+heat equation that the scheme discretizes is:
 
 ```{math}
-\begin{aligned}
-T_i^{t+\Delta t} =
-& T_i^t + (\frac{\Delta t}{\Delta z_i^2}) \alpha_i
-(T_{i+1}^t - 2T_i^t + T_{i-1}^t)
-\end{aligned}
+C_{\mathrm{vol}}\frac{\partial T}{\partial t} =
+\frac{\partial}{\partial z}\left(k_s\frac{\partial T}{\partial z}\right)
 ```
 
-This term approximates vertical conduction using the second spatial derivative of
-temperature, with moisture-dependent thermal diffusivity.
-
-**Bottom layer update** (no-flux boundary condition):
-
-A zero heat flux is assumed at the bottom boundary ($i = n-1$), so the bottom layer only
-exchanges heat with the layer above:
+It combines Fourier's law (heat flows from warmer to cooler regions, opposite to the
+temperature gradient) with conservation of energy; see the standard heat-transfer
+derivation in
+{cite:t}`incropera_fundamentals_2007`. Between the centres of adjacent layers $i$ and
+$i+1$, the conductive heat flux is:
 
 ```{math}
-\begin{aligned}
-T_{n-1}^{t+\Delta t} =
-& T_{n-1}^t + (\frac{\Delta t}{\Delta z_{n-1}^2}) \alpha_{n-1}
-(T_{n-2}^t - T_{n-1}^t)
-\end{aligned}
+q_{i+1/2} =
+- \frac{T_{i+1}^t - T_i^t}
+{\frac{\Delta z_i}{2k_{s,i}} + \frac{\Delta z_{i+1}}{2k_{s,i+1}}}
 ```
 
-All layer updates are calculated from the temperature profile at the previous timestep,
-so the scheme is consistent with a forward-in-time, centred-in-space explicit
-finite-difference method.
+The denominator is the sum of the half-layer thermal resistances. It allows adjacent
+layers to have different thicknesses and conductivities. The same interface flux is
+used in the update for both neighbouring layers:
+
+```{math}
+T_i^{t+\Delta t} = T_i^t +
+\frac{\Delta t}{C_{\mathrm{vol},i}\Delta z_i}
+\left(q_{i-1/2} - q_{i+1/2}\right)
+```
+
+At the upper boundary, $q_{-1/2}=G$ is the ground heat flux into the soil. At the lower
+boundary, $q_{n-1/2}=0$, so no heat crosses the base of the soil profile. Consequently,
+internal fluxes cancel when the layer heat changes are summed: the only net change in
+column heat is the energy supplied at the surface. This shared-flux finite-volume
+formulation conserves energy between neighbouring layers.
+
+All interface fluxes are calculated from the temperature profile at the previous
+substep, with soil properties held fixed during that substep, so this is an explicit
+update. The substep is limited using
+
+```{math}
+\Delta t_{\mathrm{sub}} \leq
+\frac{1}{2}\min_i
+\left(
+\frac{C_{\mathrm{vol},i}\Delta z_i}
+{\sum_j G_{ij}}
+\right)
+```
+
+where $G_{ij}$ is the conductance per unit area between layers $i$ and $j$:
+
+```{math}
+G_{ij} =
+\left(
+\frac{\Delta z_i}{2k_{s,i}} +
+\frac{\Delta z_j}{2k_{s,j}}
+\right)^{-1}
+```
+
+Its units are $\mathrm{W\,m^{-2}\,K^{-1}}$. The factor of $1/2$ is an additional
+conservative stability margin; without it, the positivity limit is approximately
+$\Delta t \leq \min_i(C_{\mathrm{vol},i}\Delta z_i/\sum_jG_{ij})$. The implementation
+automatically subcycles longer timesteps when needed.
+
+In simple terms, heat flows from a warmer layer into a cooler neighbour, spreading
+surface heating down the soil. Because the current lower boundary does not allow heat
+out of the modeled column, this prevents heat from accumulating only in the top layer,
+but does not remove net energy from the whole soil profile. Longer simulations with a
+persistent net energy imbalance would need a deeper soil column or a specified
+deep-soil temperature boundary.
 
 ## Atmospheric moisture
 
@@ -883,26 +915,26 @@ aerodynamic resistance $r_{a}$​.
 
 ### Snow surface temperature
 
-The net energy flux at the snow surface ($R_{net}​, \mathrm{W\, m^{−2}}$) is the sum of
+The net energy flux at the snow surface ($R_N$, $\mathrm{W\,m^{-2}}$) is the sum of
 absorbed shortwave radiation, net longwave radiation, and turbulent sensible and latent
 heat fluxes. In our simple one layer approach, the single snow layer is treated as a
 thermal slab with a conductive flux ($G,\mathrm{W\, m^{−2}}$) to the soil surface below:
 
-$$G=k_{s} D_{s} (T_{s} − T_{soil})$$
+$$G=k_{\mathrm{snow}} D_{s} (T_{s} − T_{soil})$$
 
-where $k_{s}$​ ($\mathrm{W\, m^{−1}, K^{-1}}$) is the thermal conductivity of snow,
-and $T_{soil}$​ ($K$) is the temperature of the topsoil layer. The snow surface
+where $k_{\mathrm{snow}}$ ($\mathrm{W\,m^{-1}\,K^{-1}}$) is the thermal conductivity of
+snow, and $T_{soil}$​ ($K$) is the temperature of the topsoil layer. The snow surface
 temperature is then obtained by solving the energy balance:
 
-$$R_{net} = G$$
+$$R_N = G$$
 
 Snow thermal conductivity is calculated from snow density as:
 
-$$k_s = 0.0442 \exp(5.151 \rho_{s})$$
+$$k_{\mathrm{snow}} = 0.0442 \exp(5.151 \rho_{s})$$
 
 following {cite:t}`anderson_apoint_1976`. Denser, older snow conducts heat more
-efficiently than fresh powder, so $k_{s}$​ increases as the snowpack compacts over
-time.
+efficiently than fresh powder, so $k_{\mathrm{snow}}$ increases as the snowpack compacts
+over time.
 
 ```{note}
 Note that this slab conductance approach is a deliberate simplification consistent with
