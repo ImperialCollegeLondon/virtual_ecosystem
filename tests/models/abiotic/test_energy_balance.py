@@ -577,6 +577,106 @@ def test_update_soil_temperature(
             assert np.all(updated_temperature[0, :] > initial_temperature[0, :])
 
 
+def test_update_soil_temperature_conserves_heat_between_layers(
+    dummy_climate_data,
+    fixture_core_components,
+    fixture_abiotic_constants,
+    fixture_core_constants,
+):
+    """Test internal heat transfer conserves energy with an insulated soil base."""
+    from virtual_ecosystem.models.abiotic.energy_balance import update_soil_temperature
+
+    data = dummy_climate_data
+    layer_structure = fixture_core_components.layer_structure
+    soil_temperature = data["soil_temperature"][
+        layer_structure.index_all_soil
+    ].to_numpy()
+    soil_layer_thickness = layer_structure.soil_layer_thickness
+    soil_moisture_volumetric = (
+        data["soil_moisture"][layer_structure.index_all_soil].to_numpy() / 1000.0
+    ) / soil_layer_thickness[:, np.newaxis]
+    time_interval = 3600.0
+    ground_heat_flux = data["ground_heat_flux"].to_numpy()
+
+    updated_temperature = update_soil_temperature(
+        ground_heat_flux=ground_heat_flux,
+        soil_temperature=soil_temperature,
+        soil_layer_thickness=soil_layer_thickness,
+        soil_moisture_volumetric=soil_moisture_volumetric,
+        soil_porosity=fixture_abiotic_constants.soil_porosity,
+        soil_thermal_conductivity_dry=(
+            fixture_abiotic_constants.soil_thermal_conductivity_dry
+        ),
+        soil_thermal_conductivity_saturated=(
+            fixture_abiotic_constants.soil_thermal_conductivity_saturated
+        ),
+        soil_bulk_density=fixture_abiotic_constants.bulk_density_soil,
+        specific_heat_capacity_soil=(
+            fixture_abiotic_constants.specific_heat_capacity_soil
+        ),
+        time_interval=time_interval,
+        density_water=fixture_core_constants.density_water,
+        specific_heat_capacity_water=(
+            fixture_core_constants.specific_heat_capacity_water
+        ),
+        coarse_kersten_factor=fixture_abiotic_constants.coarse_kersten_factor,
+    )
+
+    volumetric_heat_capacity = (
+        fixture_abiotic_constants.bulk_density_soil
+        * fixture_abiotic_constants.specific_heat_capacity_soil
+        + soil_moisture_volumetric
+        * fixture_core_constants.density_water
+        * fixture_core_constants.specific_heat_capacity_water
+    )
+    initial_heat = np.sum(
+        volumetric_heat_capacity * soil_layer_thickness[:, None] * soil_temperature,
+        axis=0,
+    )
+    updated_heat = np.sum(
+        volumetric_heat_capacity * soil_layer_thickness[:, None] * updated_temperature,
+        axis=0,
+    )
+
+    np.testing.assert_allclose(
+        updated_heat - initial_heat,
+        time_interval * ground_heat_flux,
+    )
+    assert updated_temperature[0, 0] < soil_temperature[0, 0]
+    assert updated_temperature[-1, 0] > soil_temperature[-1, 0]
+
+
+def test_update_soil_temperature_subcycles_to_remain_stable():
+    """Test explicit diffusion subcycles for a thin, highly conductive soil profile."""
+    from virtual_ecosystem.models.abiotic.energy_balance import update_soil_temperature
+
+    soil_temperature = np.array([[30.0], [10.0], [0.0]])
+    soil_layer_thickness = np.full(3, 0.01)
+    soil_moisture_volumetric = np.full_like(soil_temperature, 0.2)
+
+    updated_temperature = update_soil_temperature(
+        ground_heat_flux=np.array([0.0]),
+        soil_temperature=soil_temperature,
+        soil_layer_thickness=soil_layer_thickness,
+        soil_moisture_volumetric=soil_moisture_volumetric,
+        soil_porosity=0.45,
+        soil_thermal_conductivity_dry=0.25,
+        soil_thermal_conductivity_saturated=2.5,
+        soil_bulk_density=1300.0,
+        specific_heat_capacity_soil=800.0,
+        time_interval=3600.0,
+        density_water=1000.0,
+        specific_heat_capacity_water=4180.0,
+        coarse_kersten_factor=0.7,
+    )
+
+    assert np.all(updated_temperature <= np.max(soil_temperature))
+    assert np.all(updated_temperature >= np.min(soil_temperature))
+    np.testing.assert_allclose(
+        updated_temperature.mean(), soil_temperature.mean(), atol=1e-12
+    )
+
+
 def test_energy_balance_residual_only(
     dummy_climate_data,
     fixture_abiotic_constants,
