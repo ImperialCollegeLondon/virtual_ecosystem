@@ -61,14 +61,23 @@ hourly time steps.
 The resulting hourly values are then used to derive monthly means and ranges of state
 variables required by other models.
 
+The hourly records are also retained in the data object as variables with a ``_hourly``
+suffix and a separate ``hour`` dimension, numbered from 0 to 23. These represent the
+model's reconstructed day for the current update, not 24 additional simulation time
+steps. Variables held constant during the hourly loop, including wind speed,
+atmospheric pressure, atmospheric CO2, and absorbed longwave radiation, are not
+duplicated across the hour dimension. The unsuffixed variables continue to contain the
+existing update-interval means.
+
 ### Diurnal cycle reconstruction
 
 Monthly mean climate variables at reference height above the canopy are converted into
 hourly values over a 24-hour period using simplified, physically motivated assumptions.
 
 **Air temperature** follows a sinusoidal cycle, peaking in the early afternoon (~14:00).
-The amplitude is defined by a prescribed daily temperature range (currently part of
-the model configuration), which produces a smooth oscillation around the monthly mean.
+The sine-wave amplitude is half the prescribed daily temperature range, so the
+maximum minus minimum of the 24 hourly temperatures equals that range. This produces a
+smooth oscillation around the monthly mean.
 
 **Incoming shortwave radiation** is distributed across daylight hours using a half-sine
 curve which is zero at night and peaks at midday. The resulting hourly fractions are

@@ -328,8 +328,32 @@ def test_setup_and_update_abiotic_model(
         "absorbed_longwave_radiation",
     )
     for var in vars_updated:
-        assert np.all(model.data[var] != dummy_climate_data[var])
         assert np.all(model.data[var].shape == dummy_climate_data[var].shape)
+        assert np.any(
+            ~np.isclose(
+                model.data[var].to_numpy(),
+                dummy_climate_data[var].to_numpy(),
+                equal_nan=True,
+            )
+        ), f"Expected {var} to change during the update"
+
+    assert set(model.vars_updated).issubset(model.data.data.data_vars)
+    for static_variable in (
+        "wind_speed",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+        "absorbed_longwave_radiation",
+    ):
+        assert f"{static_variable}_hourly" not in model.vars_updated
+        assert f"{static_variable}_hourly" not in model.data.data.data_vars
+    for var in (name for name in model.vars_updated if name.endswith("_hourly")):
+        hourly = model.data[var]
+        assert hourly.dims[0] == "hour"
+        assert hourly.sizes["hour"] == model.core_constants.hours_per_day
+        np.testing.assert_array_equal(
+            hourly["hour"],
+            np.arange(model.core_constants.hours_per_day),
+        )
 
 
 def test_update_warns_for_fractional_days(
@@ -408,8 +432,8 @@ def test_setup_and_update_abiotic_model_below_zero(
     expected_soil_temp = lyr_strct.from_template()
     expected_soil_temp[lyr_strct.index_all_soil] = np.array(
         [
-            [-9.471514, -8.964489, -8.221828, -7.200472],
-            [-2.638079, -1.742053, -0.821946, 0.160886],
+            [-9.454331, -8.886409, -8.248684, -7.309709],
+            [-2.635088, -1.731582, -0.822101, 0.154794],
         ]
     )
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp)
@@ -418,11 +442,11 @@ def test_setup_and_update_abiotic_model_below_zero(
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
         [
-            [-5.0, -4.0, -3.0, -2.0],
-            [-13.179444, -11.405123, -9.522494, np.nan],
-            [-12.464722, -10.672986, np.nan, np.nan],
-            [-12.179462, np.nan, np.nan, np.nan],
-            [-15.150519, -14.485521, -13.012876, -10.368617],
+            [-5.120881, -4.180844, -3.220348, -2.01899],
+            [-12.404011, -10.421426, -8.366685, np.nan],
+            [-12.396705, -10.670142, np.nan, np.nan],
+            [-12.216207, np.nan, np.nan, np.nan],
+            [-14.74026, -13.645153, -12.413296, -9.927392],
         ]
     )
     xr.testing.assert_allclose(

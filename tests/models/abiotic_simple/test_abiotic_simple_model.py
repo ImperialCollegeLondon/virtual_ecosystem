@@ -260,11 +260,11 @@ def test_setup_and_update_abiotic_simple_model(
 
     exp_netrad = lyr_strct.from_template()
     exp_netrad[lyr_strct.index_flux_layers] = [
-        [9.985148, 17.98221, 21.978714, np.nan],
-        [6.989112, 7.98633, np.nan, np.nan],
-        [2.993541, np.nan, np.nan, np.nan],
-        [9.997471, 11.992901, 13.982868, 17.974606],
-        [1.991153, 2.988293, 3.984548, 5.980574],
+        [-24.352820, -22.480261, -22.142420, np.nan],
+        [-16.343724, -19.157685, np.nan, np.nan],
+        [-8.203034, np.nan, np.nan, np.nan],
+        [19.622339, 4.507448, -19.455651, -31.185788],
+        [-3.233728, -2.209642, -22.712443, -51.104853],
     ]
 
     xr.testing.assert_allclose(model.data["net_radiation"], exp_netrad)
