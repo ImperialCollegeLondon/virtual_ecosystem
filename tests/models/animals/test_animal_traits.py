@@ -85,27 +85,73 @@ class TestDietType:
         assert combo.coarse_category() == DietType.OMNIVORE
 
     @pytest.mark.parametrize(
-        "flag_str, expected_count",
+        "diet_string, expected_count",
         [
-            ("FOLIAGE", 1),
-            ("FOLIAGE | FRUIT | FUNGI", 3),
-            ("NONFEEDING", 0),
-            (
-                "HERBIVORE | CARCASSES | FOLIAGE",
-                9,
-            ),  # includes 9 from HERBIVORE + CARCASSES
+            # Single tag, single channel
+            pytest.param("foliage", 1, id="foliage"),
+            pytest.param("invertebrates", 1, id="invertebrates"),
+            pytest.param("detritus", 1, id="detritus"),
+            pytest.param("waste", 1, id="waste"),
+            pytest.param("carcasses", 1, id="carcasses"),
+            pytest.param("mushrooms", 1, id="mushrooms"),
+            # Several tags sharing one channel: the bug case, where tags != calls
+            pytest.param("foliage_fruit", 1, id="foliage_fruit"),
+            pytest.param("foliage_fruit_seeds", 1, id="foliage_fruit_seeds"),
+            pytest.param("vertebrates_invertebrates", 1, id="vert_invert"),
+            pytest.param(
+                "vertebrates_invertebrates_carcasses", 2, id="vert_invert_carcasses"
+            ),
+            # Several tags each with their own channel
+            pytest.param(
+                "detritus_fungi_pom_bacteria", 4, id="detritus_fungi_pom_bacteria"
+            ),
+            # Both array resources, but foraged by separate calls
+            pytest.param("foliage_detritus", 2, id="foliage_detritus"),
+            # Fruiting bodies and soil fungi are distinct channels
+            pytest.param("mushrooms_fungi", 2, id="mushrooms_fungi"),
+            # Composites: herbivory, detritivory
+            pytest.param("herbivore", 2, id="herbivore"),
+            # Composites: predation, carcasses, excrement (BLOOD/FISH add nothing)
+            pytest.param("carnivore", 3, id="carnivore"),
+            # Composites: herbivory, detritivory, predation, carcasses, excrement
+            pytest.param("omnivore", 5, id="omnivore"),
+            # No foraging route
+            pytest.param("nonfeeding", 0, id="nonfeeding"),
+            pytest.param("blood", 0, id="blood"),
+            pytest.param("fish", 0, id="fish"),
         ],
     )
-    def test_count_dietary_categories(self, flag_str, expected_count):
-        """Test number of counted dietary categories from a DietType flag."""
-        from virtual_ecosystem.models.animal.functional_group import DietType
+    def test_count_foraging_channels(
+        self, diet_string: str, expected_count: int
+    ) -> None:
+        """Test the number of foraging channels engaged by a diet.
 
-        parts = [getattr(DietType, part.strip()) for part in flag_str.split("|")]
-        flag = parts[0]
-        for part in parts[1:]:
-            flag |= part
+        Expected values are counted by hand from the foraging calls made in
+        AnimalCohort.forage_cohort, not from FORAGING_CHANNELS, so that a wrong mask
+        is caught rather than reproduced.
+        """
+        from virtual_ecosystem.models.animal.animal_traits import DietType
 
-        assert flag.count_dietary_categories() == expected_count
+        diet = DietType.parse(diet_string)
+
+        assert diet.count_foraging_channels() == expected_count
+
+    def test_foraging_channels_are_disjoint(self) -> None:
+        """Test that no diet flag is served by more than one foraging channel.
+
+        A flag in two masks would engage two channels for a single tag and divide the
+        foraging time budget by one too many.
+        """
+        from virtual_ecosystem.models.animal.animal_traits import (
+            FORAGING_CHANNELS,
+            DietType,
+        )
+
+        masks = list(FORAGING_CHANNELS.values())
+
+        for i, first in enumerate(masks):
+            for second in masks[i + 1 :]:
+                assert first & second == DietType(0)
 
 
 class TestVerticalOccupancy:
