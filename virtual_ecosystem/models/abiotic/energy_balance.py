@@ -13,16 +13,16 @@ follows (after :cite:t:`maclean_microclimc_2021`):
 
 .. math::
     \frac{dQ}{dt}
-    = R_{abs} - R_{em} - H - \lambda E - PP
+    = R_{abs} - R_{em} - H - L_v E - PP
     = R_{abs} - \epsilon_{l} \sigma T_{l}^{4} - \frac{\rho_{a} c_p}{r_a}(T_{l} - T_{a})
-    - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} - PP = 0
+    - L_v g_{v} \frac {e_{l} - e_{a}}{p_{a}} - PP = 0
 
 where :math:`R_{abs}` is absorbed shortwave and longwave radiation, :math:`R_{em}`
 emitted radiation, :math:`H`
-the sensible heat flux, :math:`\lambda E` the latent heat flux, :math:`\epsilon_{l}` the
+the sensible heat flux, :math:`L_v E` the latent heat flux, :math:`\epsilon_{l}` the
 emissivity of the leaf, :math:`\sigma` the Stefan-Boltzmann constant, :math:`T_{l}` the
 absolute temperature of the leaf, :math:`T_{a}` the absolute temperature of the air
-surrounding the leaf, :math:`\lambda` the latent heat of vapourisation of water,
+surrounding the leaf, :math:`L_v` the latent heat of vapourisation of water,
 :math:`e_{l}` the effective vapour pressure of the leaf, :math:`e_{a}` the vapour
 pressure of air and :math:`p_{a}` atmospheric pressure. :math:`\rho_a` is the density of
 air, :math:`c_{p}` is the specific heat capacity of air
@@ -410,7 +410,7 @@ def johansen_unfrozen_thermal_conductivity(
 ) -> NDArray[np.floating]:
     r"""Compute unfrozen-soil thermal conductivity using a Johansen-style scheme.
 
-    This implementation follows the Johansen-style model :cite:p:`johansen_thermal_1975`
+    This implementation follows the Johansen-style model :cite:p:`johansen_thermal_1977`
     in which soil thermal conductivity is estimated by interpolating nonlinearly between
     the conductivity of dry soil and the conductivity of saturated soil using a Kersten
     number based on degree of saturation.
@@ -493,58 +493,13 @@ def update_soil_temperature(
     coarse_kersten_factor: float,
     is_coarse_textured: bool | NDArray[np.bool_] = False,
 ) -> NDArray[np.floating]:
-    r"""Update soil temperature using moisture-dependent heat diffusion.
+    """Update soil temperatures using moisture-dependent heat diffusion.
 
-    This function applies an explicit finite-difference temperature update for
-    soil while allowing thermal properties to vary with soil moisture. Moisture
-    influences temperature evolution through both volumetric heat capacity and
-    thermal conductivity.
-
-    Volumetric heat capacity is represented as:
-
-    .. math::
-        C_{vol} = \rho_b c_s + \theta \rho_w c_w
-
-    where ``rho_b`` is soil bulk density, ``c_s`` is the specific heat capacity
-    of soil solids, ``theta`` is volumetric soil moisture, ``rho_w`` is water
-    density and ``c_w`` is the specific heat capacity of water.
-
-    Soil thermal conductivity is estimated using a Johansen-style unfrozen-soil
-    parameterisation. Conductivity is interpolated nonlinearly between the conductivity
-    of dry soil and the conductivity of saturated soil using a Kersten number based on
-    degree of saturation, with separate empirical forms for coarse- and fine-textured
-    soils.
-
-    Soil thermal diffusivity is then:
-
-    .. math::
-        \alpha = \lambda / C_{vol}
-
-    Internal layer update:
-
-    .. math::
-        T_i^{t+\Delta t} = T_i^t + (\Delta t / \Delta z_i^2)
-        \alpha_i (T_{i+1}^t - 2T_i^t + T_{i-1}^t)
-
-    Top layer update with ground heat flux:
-
-    .. math::
-        T_0^{t+\Delta t} = T_0^t +
-        \frac{\Delta t}{C_{vol,0} \Delta z_0} G
-
-    Bottom boundary condition:
-
-    .. math::
-        \frac{\partial T}{\partial z} = 0
-
-    implemented as a no-heat-flux lower boundary.
-
-    The update is performed using a forward-in-time, centred-in-space explicit
-    finite-difference scheme for the one-dimensional heat equation following
-    :cite:t:`incropera_fundamentals_2007`.
-
-    The timestep should satisfy the usual stability condition for diffusion problems,
-    approximately ``alpha * dt / dz**2 \lesssim 0.5`` for each layer.
+    Heat is exchanged between adjacent soil layers, with the ground heat flux
+    applied at the surface and no heat transfer through the bottom boundary.
+    Longer timesteps are split into stable substeps. For details,see the
+    :doc:`soil temperature update documentation
+    </virtual_ecosystem/implementation/abiotic_implementation>`.
 
     Args:
         ground_heat_flux: Ground heat flux into the top soil layer, [W m-2].
@@ -577,6 +532,11 @@ def update_soil_temperature(
             are produced.
     """
 
+    soil_temperature = np.asarray(soil_temperature, dtype=float)
+    ground_heat_flux = np.asarray(ground_heat_flux, dtype=float)
+    soil_layer_thickness = np.asarray(soil_layer_thickness, dtype=float)
+    soil_moisture_volumetric = np.asarray(soil_moisture_volumetric, dtype=float)
+
     # Convert float inputs to arrays of the same shape as soil_temperature
     shape = soil_temperature.shape
     n_layers = shape[0]
@@ -600,7 +560,7 @@ def update_soil_temperature(
         "is_coarse_textured",
     ).astype(bool)
 
-    # Calculate volumetric heat capacity, thermal conductivity, and thermal diffusivity
+    # Calculate volumetric heat capacity and thermal conductivity
     volumetric_heat_capacity = (
         soil_bulk_density * specific_heat_capacity_soil
         + soil_moisture_volumetric * density_water * specific_heat_capacity_water
@@ -615,43 +575,56 @@ def update_soil_temperature(
         is_coarse_textured=is_coarse_textured,
     )
 
-    soil_thermal_diffusivity = soil_thermal_conductivity / volumetric_heat_capacity
-
-    # Update soil temperature using explicit finite-difference scheme
+    # Positive flux is directed downward. Internal interface fluxes are shared by both
+    # adjacent layers; the bottom boundary is insulated.
     old_temperature = soil_temperature.copy()
-    new_temperature = old_temperature.copy()
+    interface_conductance = np.zeros(
+        (n_layers + 1, old_temperature.shape[1]), dtype=float
+    )
+    if n_layers > 1:
+        layer_thickness_above = soil_layer_thickness[:-1, np.newaxis]
+        layer_thickness_below = soil_layer_thickness[1:, np.newaxis]
+        center_distance = (layer_thickness_above + layer_thickness_below) / 2
+        interface_conductivity = (layer_thickness_above + layer_thickness_below) / (
+            layer_thickness_above / soil_thermal_conductivity[:-1, :]
+            + layer_thickness_below / soil_thermal_conductivity[1:, :]
+        )
+        interface_conductance[1:-1, :] = interface_conductivity / center_distance
 
-    for i in range(1, n_layers - 1):
-        new_temperature[i, :] = old_temperature[i, :] + (
-            (time_interval / soil_layer_thickness[i] ** 2)
-            * soil_thermal_diffusivity[i, :]
-            * (
-                old_temperature[i + 1, :]
-                - 2.0 * old_temperature[i, :]
-                + old_temperature[i - 1, :]
+    areal_heat_capacity = volumetric_heat_capacity * soil_layer_thickness[:, np.newaxis]
+    outgoing_conductance = interface_conductance[:-1, :] + interface_conductance[1:, :]
+    active_layers = outgoing_conductance > 0
+    if np.any(active_layers):
+        maximum_stable_interval = 0.5 * np.min(
+            areal_heat_capacity[active_layers] / outgoing_conductance[active_layers]
+        )
+        number_of_substeps = max(
+            1, int(np.ceil(time_interval / maximum_stable_interval))
+        )
+    else:
+        number_of_substeps = 1
+
+    substep_interval = time_interval / number_of_substeps
+    interface_heat_flux = np.zeros_like(interface_conductance)
+    interface_heat_flux[0, :] = ground_heat_flux
+    for _ in range(number_of_substeps):
+        interface_heat_flux[1:-1, :] = interface_conductance[1:-1, :] * (
+            old_temperature[:-1, :] - old_temperature[1:, :]
+        )
+        new_temperature = old_temperature + (
+            substep_interval
+            * (interface_heat_flux[:-1, :] - interface_heat_flux[1:, :])
+            / areal_heat_capacity
+        )
+
+        if not np.all(np.isfinite(new_temperature)):
+            raise ValueError(
+                "Soil temperature is not finite; check soil properties and "
+                "integration time step."
             )
-        )
+        old_temperature = new_temperature
 
-    new_temperature[0, :] = (
-        old_temperature[0, :]
-        + (time_interval / (volumetric_heat_capacity[0, :] * soil_layer_thickness[0]))
-        * ground_heat_flux
-    )
-
-    new_temperature[-1, :] = old_temperature[-1, :] + (
-        (time_interval / soil_layer_thickness[-1] ** 2)
-        * soil_thermal_diffusivity[-1, :]
-        * (old_temperature[-2, :] - old_temperature[-1, :])
-    )
-
-    if not np.all(np.isfinite(new_temperature)):
-        raise ValueError(
-            "Soil temperature is not finite, consider reducing the initial ",
-            "integration time step or the integration time modifier for air ",
-            "temperature in secant method.",
-        )
-
-    return new_temperature
+    return old_temperature
 
 
 def calculate_energy_balance_residual(
@@ -675,12 +648,12 @@ def calculate_energy_balance_residual(
     The energy balance residual (:math:`\frac{dQ}{dt}`) for the canopy is given by:
 
     .. math::
-        \frac{dQ}{dt} = R_{abs} - \epsilon_{l} \sigma T_{l}^{4} - H - \lambda E - PP
+        \frac{dQ}{dt} = R_{abs} - \epsilon_{l} \sigma T_{l}^{4} - H - L_v E - PP
 
     Where :math:`R_abs` is the absorbed shortwave and longwave radiation by the canopy,
     :math:`\epsilon_{l}` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
     constant, :math:`T_{l}` is the leaf temperature, :math:`H` is the sensible heat
-    flux from the canopy, :math:`\lambda E` is the latent heat flux from the canopy,
+    flux from the canopy, :math:`L_v E` is the latent heat flux from the canopy,
     :math:`PP` is a fraction of the absorbed light is used in photosynthesis (PAR).
 
     Args:

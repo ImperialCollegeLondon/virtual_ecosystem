@@ -105,7 +105,7 @@ where $\frac{dQ}{dt}$ is the change in heat storage, $\alpha$ is the surface alb
 $S_\downarrow$ and $L_\downarrow$ are downwelling shortwave and longwave radiation,
 respectively. $\epsilon$ is the emissivity of the surface, $\sigma$ is the
 Stefan-Boltzmann constant, and $T_sfc$ is the surface temperature in Celsius. $H$ is the
-sensible heat flux, $\lambda E$ is the latent heat flux, $G$ is the ground heat flux,
+sensible heat flux, $L_v E$ is the latent heat flux, $G$ is the ground heat flux,
 and $PP$ stands for primary productivity.
 
 * **Radiation balance**: The radiation balance refers to the equilibrium between
