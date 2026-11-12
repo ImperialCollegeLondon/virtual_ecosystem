@@ -507,37 +507,32 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, tricky_plant_cohorts):
         cid: len(vals) for cid, vals in fxt_plants_model.per_stem_transpiration.items()
     }
 
-    # Benchmark values to detect code behaviour change
+    # Benchmark transpiration volume per stem [L] and hydrology depth per cell [mm].
     stem_transpiration_bench = {
-        0: np.array([1.21441867e-03, 6.86929773e-06, 8.08001656e-08]),
-        1: np.array([1.54518735e-03, 1.64102100e-05]),
-        2: np.array([2.05663228e-03, 4.61434609e-07]),
-        3: np.array([2.88547163e-03, 9.37519909e-05, 9.89943337e-07]),
+        0: np.array([1.37882773e03, 7.79926924e00, 9.17389624e-02]),
+        1: np.array([1.75437616e03, 1.86318386e01]),
+        2: np.array([2.33506095e03, 5.23904028e-01]),
+        3: np.array([3.27610929e03, 1.06444217e02, 1.12396273e00]),
     }
-
     assert {
         assert_allclose(
-            fxt_plants_model.per_stem_transpiration[cid], stem_transpiration_bench[cid]
+            fxt_plants_model.per_stem_transpiration[cell_id], expected_transpiration
         )
-        for cid in stem_gpp_bench
+        for cell_id, expected_transpiration in stem_transpiration_bench.items()
     }
 
-    # Check the transpiration data array shape
+    # Check the transpiration data array shape and ground-area depth.
     assert fxt_plants_model.data["transpiration"].shape == (
         fxt_plants_model.layer_structure.n_layers,
         fxt_plants_model.grid.n_cells,
     )
-
     transpiration_by_layer_benchmark = fxt_plants_model.layer_structure.from_template()
-
-    # Benchmark values to detect code behaviour change
     transpiration_by_layer_benchmark[1:5] = [
-        [2.92047294e-01, 2.92045517e-01, 2.92055938e-01, 2.98013627e-01],
-        [1.22215429e-01, 1.22242819e-01, 1.19316662e-01, 7.72929761e-06],
-        [5.11323840e-02, 5.09088906e-02, np.nan, np.nan],
-        [2.10673712e-02, np.nan, np.nan, np.nan],
+        [4.09364087e01, 4.09361597e01, 4.09376204e01, 4.17727126e01],
+        [1.71309952e01, 1.71348344e01, 1.67246735e01, 1.08341934e-03],
+        [7.16725070e00, 7.13592353e00, np.nan, np.nan],
+        [2.95302349e00, np.nan, np.nan, np.nan],
     ]
-    # Add zero defaults from subcanopy
     transpiration_by_layer_benchmark[11] = 0
     assert_allclose(
         fxt_plants_model.data["transpiration"], transpiration_by_layer_benchmark
@@ -576,20 +571,24 @@ def test_PlantsModel_apply_water_limitation(fxt_plants_model, tricky_plant_cohor
     )
     original_transpiration = fxt_plants_model.data["transpiration"].copy()
 
-    # Modify available water to induce a range of penalties
-    severity = np.array([2, 1, 0.5, 0.25])
-    fxt_plants_model.data["soil_moisture"][:,] = (
+    # Set root-zone water at known fractions of the residual-to-saturation range.
+    relative_water = np.array([0.1, 0.2, 0.5, 0.8])
+    root_layer = np.argmax(fxt_plants_model.layer_structure.index_subsoil)
+    saturated_storage = (
+        fxt_plants_model.layer_structure.soil_layer_thickness[1]
+        * 1000
+        * fxt_plants_model.hydrology_constants.soil_moisture_saturation
+    )
+    fxt_plants_model.data["soil_moisture"][root_layer, :] = (
         fxt_plants_model.soil_water_residual
-        + fxt_plants_model.total_daily_water_demand * severity
+        + relative_water * (saturated_storage - fxt_plants_model.soil_water_residual)
     )
 
     # Apply water limitation
     fxt_plants_model.apply_water_limitation()
 
     # Check the expected water limitation factor
-    assert_allclose(
-        fxt_plants_model.water_limitation_factor, np.array([1, 1, 0.5, 0.25])
-    )
+    assert_allclose(fxt_plants_model.water_limitation_factor, np.array([0, 0, 0.5, 1]))
 
     # Check the penalties are all applied
     assert_allclose(
