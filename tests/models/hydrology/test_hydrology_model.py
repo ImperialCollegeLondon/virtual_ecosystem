@@ -292,6 +292,7 @@ def test_setup_and_update_hydrology_model_ranges(
     from virtual_ecosystem.models.hydrology import below_ground
 
     daily_soil_moisture = []
+    daily_actual_transpiration = []
     daily_groundwater_loss = []
     update_soil_moisture = below_ground.update_soil_moisture
     update_groundwater_storage = below_ground.update_groundwater_storage
@@ -299,6 +300,7 @@ def test_setup_and_update_hydrology_model_ranges(
     def record_soil_moisture(*args, **kwargs):
         result = update_soil_moisture(*args, **kwargs)
         daily_soil_moisture.append(result["soil_moisture"].copy())
+        daily_actual_transpiration.append(result["transpiration"].copy())
         return result
 
     def record_groundwater_loss(*args, **kwargs):
@@ -344,6 +346,23 @@ def test_setup_and_update_hydrology_model_ranges(
     np.testing.assert_allclose(
         model.data["soil_moisture_daily"][:, soil_indices],
         np.stack(daily_soil_moisture, axis=0),
+    )
+    expected_daily_actual_transpiration = np.stack(
+        daily_actual_transpiration,
+        axis=0,
+    )
+    assert model.data["actual_transpiration_daily"].dims == ("day", "cell_id")
+    np.testing.assert_allclose(
+        model.data["actual_transpiration_daily"],
+        expected_daily_actual_transpiration,
+    )
+    np.testing.assert_allclose(
+        model.data["actual_transpiration"],
+        np.sum(expected_daily_actual_transpiration, axis=0),
+    )
+    assert np.all(
+        model.data["actual_transpiration"].to_numpy()
+        <= np.nansum(model.data["transpiration"].to_numpy(), axis=0) + 1e-10
     )
     np.testing.assert_array_equal(
         model.data["soil_moisture_daily"]["layers"],
