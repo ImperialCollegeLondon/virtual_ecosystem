@@ -11,7 +11,7 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_carbon_use_efficiency,
     calculate_temperature_effect_on_microbes,
 )
-from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroupConstants
+from virtual_ecosystem.models.soil.microbial_groups import SoilMicrobe
 from virtual_ecosystem.models.soil.model_config import SoilConstants
 
 
@@ -84,7 +84,7 @@ def calculate_nutrient_uptake_rates(
     pH_factor: NDArray[np.floating],
     soil_temp: NDArray[np.floating],
     constants: SoilConstants,
-    functional_group: MicrobialGroupConstants,
+    functional_group: SoilMicrobe,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating], NetNutrientConsumption]:
     """Calculate the rate at which microbes uptake each nutrient.
 
@@ -225,7 +225,7 @@ def find_net_nutrient_consumptions_free_living(
     max_uptake_rates: MaxUptakeRates,
     actual_carbon_gain: NDArray[np.floating],
     carbon_use_efficiency: NDArray[np.floating],
-    functional_group: MicrobialGroupConstants,
+    functional_group: SoilMicrobe,
     ammonium_mineralisation_proportion: float,
 ) -> NetNutrientConsumption:
     """Find net consumption of each nutrient class for a free-living microbial group.
@@ -340,7 +340,7 @@ def find_net_nutrient_consumptions_symbiotic(
     actual_carbon_gain: NDArray[np.floating],
     external_carbon_supply: NDArray[np.floating],
     carbon_use_efficiency: NDArray[np.floating],
-    functional_group: MicrobialGroupConstants,
+    functional_group: SoilMicrobe,
 ) -> NetNutrientConsumption:
     """Find net consumption of each nutrient class for a symbiotic microbial group.
 
@@ -427,7 +427,7 @@ def calculate_actual_carbon_gain(
     max_uptake_rates: MaxUptakeRates,
     external_carbon_supply: NDArray[np.floating] | None,
     carbon_use_efficiency: NDArray[np.floating],
-    functional_group: MicrobialGroupConstants,
+    functional_group: SoilMicrobe,
 ) -> NDArray[np.floating]:
     """Calculate the rate at which carbon is assimilated by microbes.
 
@@ -497,7 +497,7 @@ def calculate_maximum_uptake_rates(
     water_factor: NDArray[np.floating],
     pH_factor: NDArray[np.floating],
     soil_temp: NDArray[np.floating],
-    functional_group: MicrobialGroupConstants,
+    functional_group: SoilMicrobe,
 ) -> MaxUptakeRates:
     """Calculate the maximum uptake rate for each category of nutrient.
 

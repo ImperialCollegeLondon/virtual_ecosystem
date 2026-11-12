@@ -29,6 +29,9 @@ class AbioticSharedConstants(Configuration):
     measurement_height: float = 1.5
     """Height below canopy at which atmospheric variables are measured, [m]."""
 
+    extinction_coefficient_longwave: float = 0.5
+    """Extinction coefficient for longwave radiation, dimensionless."""
+
 
 class AbioticSimpleConstants(AbioticSharedConstants):
     """Dataclass to store all constants for the `abiotic_simple` model."""

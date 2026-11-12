@@ -84,7 +84,9 @@ class CarcassPool(ScavengeableMixin):
     """A CNP object storing decomposed nutrients in the carcass pool."""
     cell_id: int = -1
     """Grid position of carcass pool."""
-    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    vertical_occupancy: VerticalOccupancy = (
+        VerticalOccupancy.SOIL | VerticalOccupancy.GROUND
+    )
     """Vertical position of carcass pool."""
 
     @property
@@ -157,7 +159,9 @@ class ExcrementPool(ScavengeableMixin):
     """A CNP object storing decomposed nutrients in the excrement pool."""
     cell_id: int = -1
     """Grid position of carcass pool."""
-    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    vertical_occupancy: VerticalOccupancy = (
+        VerticalOccupancy.SOIL | VerticalOccupancy.GROUND
+    )
     """Vertical position of carcass pool."""
 
     @property

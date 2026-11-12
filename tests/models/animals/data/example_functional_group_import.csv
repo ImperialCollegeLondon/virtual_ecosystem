@@ -19,3 +19,4 @@ fungivorous_mammal,mammal,mushrooms,endothermic,terrestrial,iteroparous,direct,a
 herbivorous_lizard,reptile,foliage_fruit,ectothermic,terrestrial,iteroparous,direct,adult,herbivorous_lizard,uricotelic,none,ground_canopy,0.01,0.5,None,None,None,None
 carnivorous_snake,reptile,vertebrates_invertebrates_carcasses,ectothermic,terrestrial,iteroparous,direct,adult,carnivorous_snake,uricotelic,none,ground,0.02,1.0,None,None,None,None
 thermophilic_lizard,reptile,foliage_fruit,ectothermic,terrestrial,iteroparous,direct,adult,thermophilic_lizard,uricotelic,none,ground,0.01,0.3,0.005,35.0,42.0,30.0
+omnivorous_terrestrial_larvae,invertebrate,waste_detritus,ectothermic,terrestrial,nonreproductive,indirect,larval,omnivorous_terrestrial_beetles,uricotelic,none,soil,2.74E-06,0.00044114,,,,

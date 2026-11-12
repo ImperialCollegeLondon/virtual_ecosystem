@@ -1,5 +1,7 @@
 """Functions to set up hydrology model and select data for current time step."""
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.core.hygro import calculate_specific_heat
