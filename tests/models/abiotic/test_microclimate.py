@@ -247,7 +247,11 @@ def test_generate_hourly_forcing(
             "downward_shortwave_radiation", time_index
         ).to_numpy(),
         shortwave_absorption_by_canopy=data["shortwave_absorption"].to_numpy(),
-        fraction_par_used=abiotic_constants.fraction_par_used_for_photosynthesis,
+        light_use_efficiency=data["light_use_efficiency"].to_numpy(),
+        photosynthetic_energy_content_of_carbon=(
+            abiotic_constants.photosynthetic_energy_content_of_carbon
+        ),
+        dsr_to_ppfd=abiotic_constants.dsr_to_ppfd,
         leaf_absorptance_non_par=abiotic_constants.leaf_absorptance_non_par,
         par_fraction=abiotic_constants.par_fraction_of_shortwave_radiation,
     )

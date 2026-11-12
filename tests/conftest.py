@@ -942,6 +942,12 @@ def dummy_climate_data(fixture_core_components):
             [30.0, 15.0, 8.0],
             [0.0, 0.0, 0.0],
         ],
+        "light_use_efficiency": [
+            [0.5, 0.5, 0.5],
+            [0.5, 0.5, 0.5],
+            [0.5, 0.5, 0.5],
+            [0.5, 0.5, 0.5],
+        ],
     }
     canopy_surface_values = {
         "leaf_area_index": [0.07, 0.08, 0.09, 0.10],
@@ -950,6 +956,7 @@ def dummy_climate_data(fixture_core_components):
         "stomatal_conductance": [6.0, 5.0, 4.0, 2.5],
         "condensation": [1.2, 0.9, 0.6, 0.3],
         "transpiration": [20.0, 14.0, 8.0, 3.0],
+        "light_use_efficiency": [0.5, 0.5, 0.5, 0.5],
     }
     for var, profiles in canopy_profiles.items():
         set_canopy_surface_variable(var, profiles, canopy_surface_values[var])
@@ -1512,6 +1519,13 @@ def dummy_cold_climate_data(fixture_core_components):
             [0.05, 0.02, 0.01],
             [0.00, 0.00, 0.00],
         ],
+        # Light use efficiency same as in dummy climate data
+        "light_use_efficiency": [
+            [0.5, 0.5, 0.5],
+            [0.5, 0.5, 0.5],
+            [0.5, 0.5, 0.5],
+            [0.5, 0.5, 0.5],
+        ],
     }
     canopy_surface_values = {
         # Surface LAI — low ground cover under snow
@@ -1522,6 +1536,7 @@ def dummy_cold_climate_data(fixture_core_components):
         "stomatal_conductance": [0.2, 0.2, 0.1, 0.1],
         "condensation": [0.03, 0.02, 0.02, 0.01],
         "transpiration": [0.5, 0.4, 0.3, 0.1],
+        "light_use_efficiency": [0.5, 0.5, 0.5, 0.5],
     }
     for var, profiles in canopy_profiles.items():
         set_canopy_surface_variable(var, profiles, canopy_surface_values[var])
