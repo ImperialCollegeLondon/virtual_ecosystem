@@ -1596,7 +1596,6 @@ class AnimalModel(
             # Coprophagy
             # Coprophagy
             if diet & FORAGING_CHANNELS["excrement_scavenging"]:
-                # TODO - THIS NEEDS A DIFFERENT CARCASS POOL FUNCTION CALL
                 scavenge_waste_pools = cast(
                     list[Resource],
                     cohort.get_consumption_excrement_pools(self.excrement_pools),
