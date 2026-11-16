@@ -13,6 +13,11 @@ authors = [
   {name = "Priyanga Amarasekare", email = "pamarasekare@gmail.com"},
   {name = "Diego Alonso Alvarez", email = "d.alonso-alvarez@imperial.ac.uk"},
   {name = "Alex Dewar", email = "a.dewar@imperial.ac.uk"},
+  {name = "Lelavathy Samikan Mazilamani", email = "lelavathy11@gmail.com"},
+  {name = "Nicholas Wei Cheng Tan", email = "nicholas.wei.cheng.tan@gmail.com"},
+  {name = "Baizurah Malik", email = "sitinorbaizurahabdulmalik@gmail.com"},
+  {name = "Arne Scheire", email = "scheirearne@gmail.com"},
+  {name = "Hao Ran Lai", email = "hrlai.ecology@gmail.com"},
 ]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
