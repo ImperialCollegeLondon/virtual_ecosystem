@@ -127,13 +127,15 @@ def initialise_models(
             data_vars_after_init = [str(i) for i in data.data.data_vars]
 
             # If there are mismatches in the variable specifications, fail.
-            check_added_variables(
-                before=data_vars_before_init,
-                after=data_vars_after_init,
-                claimed=model_class.vars_populated_by_init,
-                model=model_name,
-                attr="vars_populated_by_init",
-            )
+            # This check only applies to non-static models
+            if not this_model._static:
+                check_added_variables(
+                    before=data_vars_before_init,
+                    after=data_vars_after_init,
+                    claimed=model_class.vars_populated_by_init,
+                    model=model_name,
+                    attr="vars_populated_by_init",
+                )
 
         except (InitialisationError, ConfigurationError):
             LOGGER.critical(
