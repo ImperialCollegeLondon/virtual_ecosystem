@@ -179,7 +179,7 @@ class SoilMicrobe:
     """Fraction of nitrogen uptake that is supplied to symbiotic (plant) partners.
     [unitless]. This should only have a non-zero value for mycorrhizal fungi."""
     symbiote_phosphorus_uptake_fraction: float = Field(ge=0.0, le=1.0)
-    """Fraction of nitrogen uptake that is supplied to symbiotic (plant) partners.
+    """Fraction of phosphorus uptake that is supplied to symbiotic (plant) partners.
     [unitless]. This should only have a non-zero value for mycorrhizal fungi."""
 
     synthesis_nutrient_ratios: dict[str, float] = Field(init=False)
