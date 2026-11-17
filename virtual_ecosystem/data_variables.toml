@@ -657,6 +657,286 @@ unit = "m s-1"
 variable_type = "float"
 
 [[variable]]
+axis = ["spatial"]
+description = "Hourly air temperature profile"
+name = "air_temperature_hourly"
+unit = "C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly canopy temperature profile"
+name = "canopy_temperature_hourly"
+unit = "C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly soil temperature profile"
+name = "soil_temperature_hourly"
+unit = "C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly vapour pressure profile"
+name = "vapour_pressure_hourly"
+unit = "kPa"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly vapour pressure deficit profile"
+name = "vapour_pressure_deficit_hourly"
+unit = "kPa"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly relative humidity profile"
+name = "relative_humidity_hourly"
+unit = "%"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly sensible heat flux profile"
+name = "sensible_heat_flux_hourly"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly latent heat flux profile"
+name = "latent_heat_flux_hourly"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly ground heat flux"
+name = "ground_heat_flux_hourly"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly temperature-dependent air density"
+name = "density_air_hourly"
+unit = "kg m-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly specific heat of air"
+name = "specific_heat_air_hourly"
+unit = "J kg-1 K-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly latent heat of vapourisation"
+name = "latent_heat_vapourisation_hourly"
+unit = "kJ kg-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly canopy aerodynamic resistance"
+name = "aerodynamic_resistance_canopy_hourly"
+unit = "s m-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly net radiation"
+name = "net_radiation_hourly"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly longwave emission from canopy and soil"
+name = "longwave_emission_hourly"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Hourly water condensed from atmospheric supersaturation"
+name = "condensation_hourly"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily interception in canopy before evaporation"
+name = "interception_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily canopy evaporation"
+name = "canopy_evaporation_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily precipitation reaching the surface"
+name = "precipitation_surface_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily soil moisture"
+name = "soil_moisture_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily surface runoff"
+name = "surface_runoff_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily vertical water flow through the soil column"
+name = "vertical_flow_daily"
+unit = "mm per time step (currently day)"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily soil evaporation"
+name = "soil_evaporation_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily surface runoff routed to each cell and local runoff"
+name = "surface_runoff_routed_plus_local_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily subsurface runoff routed to each cell and local runoff"
+name = "subsurface_runoff_routed_plus_local_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily total runoff"
+name = "total_runoff_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily river discharge rate"
+name = "river_discharge_rate_daily"
+unit = "m3 s-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily soil matric potential"
+name = "matric_potential_daily"
+unit = "kPa"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily groundwater storage"
+name = "groundwater_storage_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily groundwater loss"
+name = "groundwater_loss_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily subsurface flow"
+name = "subsurface_flow_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily subsurface stormflow"
+name = "subsurface_stormflow_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily baseflow"
+name = "baseflow_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily bypass flow to groundwater"
+name = "bypass_flow_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily soil aerodynamic resistance"
+name = "aerodynamic_resistance_soil_daily"
+unit = "s m-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily snow water equivalent"
+name = "snow_water_equivalent_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily temperature-driven snowmelt"
+name = "temperature_driven_snowmelt_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily rain-driven snowmelt"
+name = "rain_driven_snowmelt_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily snow sublimation"
+name = "sublimation_snow_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily snowfall"
+name = "snowfall_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
 axis = ["spatial", "time"]
 description = "Wind speed at reference height (10m)"
 name = "wind_speed_ref"

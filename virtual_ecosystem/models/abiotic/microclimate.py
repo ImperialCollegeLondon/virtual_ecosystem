@@ -302,7 +302,7 @@ def generate_hourly_forcing(
         latitude_deg=latitude,
         month=month,
         days=days,
-        daily_temp_amplitude=data.get_time_slice(
+        daily_temp_range=data.get_time_slice(
             "diurnal_temperature_range_ref", time_index
         ).to_numpy(),
     )
@@ -631,7 +631,6 @@ def calculate_soil_fluxes(
     static: dict[str, Any],
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
-    time_interval: float,
     idx: SimpleNamespace,
 ) -> dict[str, NDArray[np.floating]]:
     """Calculate soil fluxes for microclimate model.
@@ -643,10 +642,8 @@ def calculate_soil_fluxes(
     Args:
         state: Current state variables for microclimate model
         static: Prepared static inputs for microclimate model
-        hourly_forcing: Generated hourly profiles for atmospheric forcing variables
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
-        time_interval: Time interval for flux calculations, [s]
         idx: SimpleNamespace with layer indices
 
     Returns:
@@ -677,7 +674,7 @@ def calculate_soil_fluxes(
     latent_heat_flux_soil = energy_balance.calculate_latent_heat_flux(
         evapotranspiration=state["soil_evaporation"],
         latent_heat_vapourisation=state["latent_heat_vapourisation"][idx.surface],
-        time_interval=time_interval,
+        time_interval=core_constants.seconds_to_hour,
     )
     out["latent_heat_flux_soil"] = -latent_heat_flux_soil
 
@@ -876,7 +873,19 @@ def run_hour_step(
     )
 
     state["canopy_temperature"] = canopy_temperature
-    state["air_temperature"] = air_temperature
+
+    # Vertical mixing and ventilation of air temperature above the canopy, with limits
+    mixing_limits = (
+        abiotic_bounds.air_temperature[0],
+        np.repeat(abiotic_bounds.air_temperature[1], len(state["ventilation_rate"])),
+    )
+    state["air_temperature"] = wind.mix_and_ventilate(
+        input_variable=air_temperature,
+        mixing_coefficient=static["mixing_coefficient"],
+        ventilation_rate=state["ventilation_rate"],
+        limits=mixing_limits,
+        surface_index=idx.surface,
+    )
     state.update(canopy_fluxes)
 
     # Calculate soil fluxes
@@ -885,7 +894,6 @@ def run_hour_step(
         static=static,
         abiotic_constants=abiotic_constants,
         core_constants=core_constants,
-        time_interval=time_interval,
         idx=idx,
     )
     state["sensible_heat_flux"][idx.topsoil] = soil_fluxes["sensible_heat_flux_soil"]
@@ -931,8 +939,9 @@ def run_hour_step(
 def build_output_from_record(
     data_record: dict[str, Any],
     static: dict[str, Any],
-    layer_structure: LayerStructure,
     vars_updated: tuple[str, ...],
+    output_templates: dict[str, DataArray],
+    layer_structure: LayerStructure,
 ) -> dict[str, DataArray]:
     """Build model output from hourly record and static/state variables.
 
@@ -941,80 +950,96 @@ def build_output_from_record(
     Args:
         data_record: Hourly data record
         static: Static inputs
-        layer_structure: LayerStructure object
         vars_updated: Tuple containing strings of all variables that are updated by the
             abiotic model
+        output_templates: DataArray templates created during model setup
+        layer_structure: Layer structure used to select atmospheric layers for static
+            outputs
 
     Returns:
         Dictionary of DataArray outputs. Raises ValueError when unsupported variable
             dimensions are provided and when requested variables could not be produced
+    Raises:
+        ValueError: If unsupported variable dimensions are provided or if requested
+            variables could not be produced
     """
 
     output: dict[str, DataArray] = {}
     vars_set = set(vars_updated)
 
     # Static atmospheric layered variables
-    atm_index = layer_structure.index_filled_atmosphere
     for name in static:
         if name not in vars_set:
             continue
 
-        temp = layer_structure.from_template()
-        temp[atm_index] = static[name][atm_index]
-        output[name] = temp
+        template = output_templates[name]
+        values = np.full(template.shape, np.nan)
+
+        if np.asarray(static[name]).shape != template.shape:
+            raise ValueError(
+                f"Static output '{name}' has shape {np.asarray(static[name]).shape}, "
+                f"expected {template.shape}."
+            )
+        atmospheric_layers = layer_structure.index_filled_atmosphere
+        values[atmospheric_layers, :] = static[name][atmospheric_layers, :]
+        output[name] = template.copy(data=values)
 
     # Hourly recorded variables
-    for var, values in data_record.items():
+    record_names = list(data_record)
+    if (
+        "diurnal_temperature_range" in vars_set
+        and "diurnal_temperature_range" not in data_record
+    ):
+        record_names.append("diurnal_temperature_range")
+
+    for var in record_names:
         # skip variables we don't want
         if var not in vars_set:
             continue
 
-        values_arr = np.asarray(values)
-
-        # detect time dimension
-        if values_arr.ndim > 1:
-            if var == "diurnal_temperature_range":
-                air = data_record["air_temperature"]
-                soil = data_record["soil_temperature"]
-
-                combined = np.stack([air, soil], axis=0)
-
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", "All-NaN slice encountered")
-                    min_value = np.nanmin(combined, axis=(0, 1))
-                    max_value = np.nanmax(combined, axis=(0, 1))
-
-                values_out = max_value - min_value
-
-            else:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", "Mean of empty slice")
-                    values_out = np.nanmean(values_arr, axis=0)
-
-        # assign dims
-        if values_out.ndim == 1:
-            dims = ["cell_id"]
-        elif values_out.ndim == 2:
-            dims = ["layers", "cell_id"]
+        if var == "diurnal_temperature_range":
+            combined = np.stack(
+                (data_record["air_temperature"], data_record["soil_temperature"]),
+                axis=0,
+            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "All-NaN slice encountered")
+                values_out = np.nanmax(combined, axis=(0, 1)) - np.nanmin(
+                    combined, axis=(0, 1)
+                )
         else:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "Mean of empty slice")
+                values_out = np.nanmean(np.asarray(data_record[var]), axis=0)
+
+        template = output_templates[var]
+        if values_out.shape != template.shape:
             raise ValueError(
-                f"Unsupported dimensions for variable '{var}': {values.shape}"
+                f"Output '{var}' has shape {values_out.shape}, expected "
+                f"{template.shape}."
+            )
+        output[var] = template.copy(data=values_out)
+
+    for hourly_name in (name for name in vars_updated if name.endswith("_hourly")):
+        source_name = hourly_name.removesuffix("_hourly")
+        if source_name not in data_record:
+            raise ValueError(
+                f"Hourly output requested for unavailable variable '{source_name}'."
             )
 
-        output[var] = DataArray(values_out, dims=dims)
+        template = output_templates[hourly_name]
+        values = np.asarray(data_record[source_name])
+        if values.shape != template.shape:
+            raise ValueError(
+                f"Hourly output '{hourly_name}' has shape {values.shape}, expected "
+                f"{template.shape}."
+            )
+        output[hourly_name] = template.copy(data=values)
 
     # check for requested variables that never appeared
     missing = vars_set - output.keys()
     if missing:
-        # only raise error if missing variable is not in static
-        missing_not_in_static = [v for v in missing if v not in static]
-        if missing_not_in_static:
-            raise ValueError(
-                f"Requested variables not produced: {missing_not_in_static}"
-            )
-
-    if missing:
-        raise ValueError(f"Requested variables not produced: {missing}")
+        raise ValueError(f"Requested variables not produced: {sorted(missing)}")
 
     return output
 
@@ -1033,6 +1058,7 @@ def run_microclimate(
     core_constants: CoreConstants,
     pyrealm_core_constants: PyrealmCoreConst,
     abiotic_bounds: AbioticSimpleBounds,
+    output_templates: dict[str, DataArray],
 ) -> dict[str, Any]:
     """Run the microclimate model for one day, iterating through hourly time steps.
 
@@ -1056,7 +1082,7 @@ def run_microclimate(
         core_constants: Set of constants that are shared across all models
         pyrealm_core_constants: Set of constants from pyrealm
         abiotic_bounds: Bounds for air temperature to ensure physical realism
-
+        output_templates: DataArray templates for model outputs
     Returns:
         Dictionary with updated state variables and hourly record for the day
     """
@@ -1102,7 +1128,9 @@ def run_microclimate(
     )
 
     # Initialize hourly record for microclimate model
-    vars_hourly_updated = tuple(v for v in vars_updated if v not in static)
+    vars_hourly_updated = tuple(
+        v for v in vars_updated if v not in static and not v.endswith("_hourly")
+    )
 
     data_record = initialize_hourly_record(
         data=data,
@@ -1153,9 +1181,12 @@ def run_microclimate(
     output = build_output_from_record(
         data_record=data_record,
         static=static,
-        layer_structure=layer_structure,
         vars_updated=vars_updated,
+        output_templates=output_templates,
+        layer_structure=layer_structure,
     )
     output["latent_heat_vapourisation"] /= 1000.0
+    if "latent_heat_vapourisation_hourly" in output:
+        output["latent_heat_vapourisation_hourly"] /= 1000.0
 
     return output

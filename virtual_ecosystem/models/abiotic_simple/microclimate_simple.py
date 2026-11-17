@@ -210,9 +210,27 @@ def run_simple_microclimate(
         valid_mask
     )
 
-    # Calculate net radiation, [W m-2].
+    # Calculate longwave radiation and net radiation, [W m-2].
+    idx = abiotic_tools.build_indices(data=data, layer_structure=layer_structure)
+
+    absorbed_longwave_radiation = energy_balance.calculate_absorbed_longwave_radiation(
+        downward_longwave=data.get_time_slice(
+            "downward_longwave_radiation", time_index
+        ).to_numpy(),
+        leaf_area_index=data["leaf_area_index"].to_numpy(),
+        canopy_temperature=output["canopy_temperature"].to_numpy(),
+        soil_temperature=output["soil_temperature"].to_numpy(),
+        leaf_emissivity=constants.leaf_emissivity,
+        soil_emissivity=constants.soil_emissivity,
+        stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+        zero_Celsius=core_constants.zero_Celsius,
+        extinction_coefficient_lw=constants.extinction_coefficient_longwave,
+        idx=idx,
+    )
+
     canopy_longwave_emission = energy_balance.calculate_longwave_emission(
-        temperature=output["canopy_temperature"].to_numpy(),
+        temperature=output["canopy_temperature"].to_numpy()
+        + core_constants.zero_Celsius,
         emissivity=constants.leaf_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
@@ -220,21 +238,25 @@ def run_simple_microclimate(
     soil_longwave_emission = energy_balance.calculate_longwave_emission(
         temperature=output["soil_temperature"][
             layer_structure.index_topsoil_scalar
-        ].to_numpy(),
+        ].to_numpy()
+        + core_constants.zero_Celsius,
         emissivity=constants.soil_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
     net_radiation_canopy = (
         data["shortwave_absorption"][layer_structure.index_filled_canopy].to_numpy()
+        + absorbed_longwave_radiation[layer_structure.index_filled_canopy]
         - canopy_longwave_emission[layer_structure.index_filled_canopy]
     )
     net_radiation_understorey = (
         data["shortwave_absorption"][layer_structure.index_surface_scalar].to_numpy()
+        + absorbed_longwave_radiation[layer_structure.index_surface_scalar]
         - canopy_longwave_emission[layer_structure.index_surface_scalar]
     )
     net_radiation_soil = (
         data["shortwave_absorption"][layer_structure.index_topsoil_scalar].to_numpy()
+        + absorbed_longwave_radiation[layer_structure.index_topsoil_scalar]
         - soil_longwave_emission
     )
 

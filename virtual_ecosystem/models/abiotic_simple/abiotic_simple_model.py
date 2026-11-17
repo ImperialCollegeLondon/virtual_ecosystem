@@ -46,6 +46,7 @@ class AbioticSimpleModel(
         "shortwave_absorption",
         "wind_speed_ref",
         "diurnal_temperature_range_ref",
+        "downward_longwave_radiation",
     ),
     vars_updated=(
         "air_temperature",
@@ -68,6 +69,7 @@ class AbioticSimpleModel(
         "atmospheric_co2_ref",
         "wind_speed_ref",
         "diurnal_temperature_range_ref",
+        "downward_longwave_radiation",
         "leaf_area_index",
         "layer_heights",
         "mean_annual_temperature",
