@@ -315,16 +315,28 @@ class Subcanopy:
             * self.model_timing.update_interval_seconds
         )
 
-        # Transpiration follows E = A / IWUE * VPD / P. Pyrealm supplies VPD and
-        # atmospheric pressure in Pa; their ratio is dimensionless.
+        # Calculate the associated transpiration (E) per layer using the P-model's
+        # definition of intrinsic water use efficiency (iWUE) and Fick's law:
+        #   iWUE = A / g_sw
+        #   E = g_sw * (VPD / P)
+        # where A is assimilated Carbon. Combining gives:
+        #   E = (A / iWUE) * (VPD / P)
+        # where VPD/P is the dimensionless vapour-pressure gradient.
+        # Pyrealm provides VPD and atmospheric pressure in [Pa]:
         vp_gradient = (
             pmodel.env.vpd[self.layer_index, :] / pmodel.env.patm[self.layer_index, :]
         )
 
-        # GPP is per square metre of ground area. Using IWUE [µmol CO2 mol-1 H2O]:
-        #   GPP [µg C m-2] / molar mass [g C mol-1] -> µmol C m-2
-        #   µmol C / IWUE -> mol H2O m-2; * 1e6 -> µmol H2O m-2
-        #   * VPD/P -> transpiration at the local vapour-pressure gradient
+        # GPP is per square metre of ground area. Using GPP as A:
+        #   GPP [µg C m-2]
+        #       / C molar mass [g C mol-1]
+        #       -> µmol C m-2
+        #   / iWUE [µmol CO2 mol-1 H2O]
+        #       -> mol H2O equivalent m-2
+        #   * 1e6
+        #       -> µmol H2O m-2
+        #   * (VPD / P) [-]
+        #       -> transpiration [µmol H2O m-2]
         subcanopy_transpiration_micromolar = (
             (
                 self.subcanopy_gpp
@@ -337,9 +349,9 @@ class Subcanopy:
             * vp_gradient
         )
 
-        # Convert mol H2O m-2 to mm of water over ground area. Unlike canopy
-        # transpiration, this already has a per-area basis and needs no cell-area
-        # division.
+        # Convert transpiration per ground area from µmol H2O to mm of water over
+        # ground area. Unlike canopy transpiration, this already has a per-area basis
+        # and needs no cell-area division.
         self.subcanopy_transpiration = convert_water_moles_to_mm(
             water_moles=subcanopy_transpiration_micromolar * 1e-6,
             tc=pmodel.env.tc[self.layer_index, :],

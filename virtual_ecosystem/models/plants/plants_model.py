@@ -1147,7 +1147,7 @@ class PlantsModel(
             #    LUE                (n_layers, 1)           [gC mol-1]
             #    * cohort fAPAR     (n_layers, n_cohorts)   [-]
             #    * canopy top PPFD  scalar                  [µmol m-2 s-1]
-            #    * stem leaf area   (n__layers, n_cohorts)  [m2]
+            #    * stem leaf area   (n_layers, n_cohorts)  [m2]
             #    * time elapsed     scalar                  [s]
             # Units:
             #    g C mol-1 * (-) * µmol m-2 s-1 * m2 * s = µg C
@@ -1169,17 +1169,28 @@ class PlantsModel(
             # Calculate and store whole stem GPP in kg C
             self.per_stem_gpp[cell_id] = per_layer_gpp.sum(axis=0) * 1e-9
 
-            # Transpiration follows E = A / IWUE * VPD / P. Pyrealm supplies VPD and
-            # atmospheric pressure in Pa; their ratio is dimensionless.
+            # Calculate the associated transpiration (E) per layer using the P-model's
+            # definition of intrinsic water use efficiency (iWUE) and Fick's law:
+            #   iWUE = A / g_sw
+            #   E = g_sw * (VPD / P)
+            # where A is assimilated Carbon. Combining gives:
+            #   E = (A / iWUE) * (VPD / P)
+            # where VPD/P is the dimensionless vapour-pressure gradient.
+            # Pyrealm provides VPD and atmospheric pressure in [Pa]:
             vp_gradient = (
                 self.pmodel.env.vpd[:, [cell_id]] / self.pmodel.env.patm[:, [cell_id]]
             )
 
-            # Convert GPP to water using IWUE [µmol CO2 mol-1 H2O]:
-            #   per_layer_gpp [µg C stem-1 layer-1] / molar mass [g C mol-1]
-            #       -> µmol C stem-1 layer-1
-            #   µmol C / IWUE -> mol H2O; * 1e6 -> µmol H2O
-            #   * VPD/P -> transpiration at the local vapour-pressure gradient
+            # Using GPP as A:
+            #   per_layer_gpp [µg C stem⁻¹ layer⁻¹]
+            #       / C molar mass [g C mol⁻¹]
+            #       -> µmol C stem⁻¹ layer⁻¹
+            #   / iWUE [µmol CO2 mol⁻¹ H2O]
+            #       -> mol H2O equivalent
+            #   * 1e6
+            #       -> µmol H2O
+            #   * (VPD / P) [-]
+            #       -> transpiration [µmol H2O stem⁻¹ layer⁻¹]
             per_layer_transpiration_micromolar = (
                 (
                     per_layer_gpp
@@ -1192,9 +1203,9 @@ class PlantsModel(
                 * vp_gradient
             )
 
-            # Pyrealm converts moles to mm per m2 (equivalent to litres). Here input
-            # water is per stem, so the result is litres per stem. After multiplying
-            # by stem counts, divide by cell area to obtain the per-cell depth in mm.
+            # Convert transpiration per layer per stem from µmol H2O to volume of water.
+            # This Pyrealm function converts moles to depth in mm over a single m2,
+            # equivalent to volume in litres:
             per_layer_transpiration_litres = convert_water_moles_to_mm(
                 water_moles=per_layer_transpiration_micromolar * 1e-6,
                 tc=self.pmodel.env.tc[:, [cell_id]],
@@ -1202,12 +1213,13 @@ class PlantsModel(
                 core_const=self.pyrealm_core_consts,
             )
 
-            # Calculate and store total stem transpiration in mm per stem
+            # Calculate and store total stem transpiration in litres per stem:
             self.per_stem_transpiration[cell_id] = np.nansum(
                 per_layer_transpiration_litres, axis=0
             )
 
-            # Aggregate cohort volumes into per-cell depths, replacing unfilled canopy
+            # Aggregate cohort volumes into per layer volumes per cell [L], divide by
+            # cell area to get per-cell mm depth per layer, replacing unfilled canopy
             # cells with np.nan. Non-estimable GPP values remain zero.
             self.data["transpiration"][:, cell_id] = np.where(
                 self.filled_canopy_mask[:, cell_id],
