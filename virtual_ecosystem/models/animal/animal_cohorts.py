@@ -509,12 +509,19 @@ class AnimalCohort:
     ) -> None:
         """Transfers metabolic wastes to the excrement pools.
 
+        Metabolic excreta are treated like faeces: they are split evenly across the
+        supplied pools, and within each pool between the scavengeable and decomposed
+        fractions by ``decay_fraction_excrement``. This is a deliberate simplification.
+        Urinary nitrogen and phosphorus are not food for coprophages, and should
+        eventually bypass the scavengeable pool and be routed by excretion type.
+
         Args:
-            excreta_mass: Mass of C, N, and P to be excreted as a dictionary.
-            excrement_pools: List of excrement pools for distributing waste.
+            excreta_mass: Cohort-total mass of C, N and P to be excreted [kg].
+            excrement_pools: Excrement pools in the cohort's territory.
 
         Raises:
-            ValueError: For invalid keys or negative values in excreta_mass.
+            ValueError: If ``excreta_mass`` is missing keys or has negative values, or
+                if no excrement pools are provided.
         """
         required_keys = {"C", "N", "P"}
         if not required_keys.issubset(excreta_mass.keys()):
