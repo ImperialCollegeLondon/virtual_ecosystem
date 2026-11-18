@@ -447,30 +447,37 @@ class AnimalCohort:
         return respired, excreta
 
     def metabolize(self, temperature: float, dt: timedelta64) -> dict[str, float]:
-        """The function to reduce body carbon mass through metabolism.
+        """Remove body mass lost to metabolism over a timestep.
 
-        This method reduces the carbon component of the cohort's body mass through
-        metabolic activity. Metabolism is a function of environmental temperature
-        for ectotherms, while endotherms are unaffected by temperature changes.
+        Following Madingley, the metabolic loss is body mass, not carbon alone. Tissue
+        is broken down in the cohort's fixed C:N:P body proportions, so the body keeps
+        its stoichiometry and the nitrogen and phosphorus of the catabolised tissue
+        leave the body alongside the carbon. The loss is capped at the whole body mass.
 
-        TODO: Update with stoichiometry for nitrogen and phosphorus.
+        Metabolic rate depends on temperature for ectotherms and is scaled by the
+        activity window ``sigma_f_t`` for both metabolic types.
 
         Args:
-            temperature: Current air temperature (K).
-            dt: Number of days over which the metabolic costs should be calculated.
+            temperature: Mean territory temperature [°C]. Conversion to Kelvin is
+                handled inside ``sf.metabolic_rate``.
+            dt: Length of the timestep over which metabolic costs accrue.
 
         Returns:
-            The total carbon mass metabolized by the cohort.
+            The cohort-total mass of C, N and P removed from the body [kg].
+
+        Raises:
+            ValueError: If ``dt`` is negative or any element of body mass is negative.
         """
 
         if dt < timedelta64(0, "D"):
             raise ValueError("dt cannot be negative.")
 
-        if self.mass_cnp.C < 0:
-            raise ValueError("Carbon mass (C) cannot be negative.")
+        if any(self.mass_cnp[e] < 0.0 for e in ("C", "N", "P")):
+            raise ValueError(f"Body mass elements cannot be negative: {self.mass_cnp}.")
 
-        # Calculate potential carbon metabolized (kg/day * number of days)
-        potential_carbon_metabolized = sf.metabolic_rate(
+        # Potential per-individual body mass metabolised over the step
+        # (kg/day * days).
+        potential_mass_metabolized = sf.metabolic_rate(
             mass=self.mass_current,
             temperature=temperature,
             terms=self.functional_group.metabolic_rate_terms,
@@ -480,18 +487,22 @@ class AnimalCohort:
             boltzmann_constant=self.constants.BOLTZMANN_CONSTANT,
         ) * float(dt / timedelta64(1, "D"))
 
-        # Ensure metabolized carbon does not exceed available carbon
-        actual_carbon_metabolized = min(self.mass_cnp.C, potential_carbon_metabolized)
+        # The cap is on whole body mass, not on any one element.
+        loss = min(self.mass_current, potential_mass_metabolized)
 
-        # Subtract metabolized carbon directly from mass_cnp
-        self.mass_cnp.update(C=-actual_carbon_metabolized)
-
-        # Return the total metabolized carbon mass for the entire cohort
-        return {
-            "C": actual_carbon_metabolized * self.individuals,
-            "N": 0.0,
-            "P": 0.0,
+        # Break tissue down in body proportions, but never remove more of an element
+        # than the body holds. With the body at fixed proportions this only binds at
+        # floating-point noise when loss == mass_current: mass_current is a re-summed
+        # float, so loss * p can exceed the stored element by ~1e-17, which
+        # CNP.update would reject as a negative mass. The min leaves it at exactly 0.
+        lost = {
+            e: min(loss * p, self.mass_cnp[e]) for e, p in self.cnp_proportions.items()
         }
+
+        self.mass_cnp.update(**{e: -m for e, m in lost.items()})
+
+        # Return what was actually removed, so downstream sinks conserve mass exactly.
+        return {e: m * self.individuals for e, m in lost.items()}
 
     def excrete(
         self, excreta_mass: dict[str, float], excrement_pools: list[ExcrementPool]
