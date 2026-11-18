@@ -185,10 +185,34 @@ def test_subcanopy_vegetation_dynamics(
     subcanopy.estimate_gpp(
         pmodel=SimpleNamespace(
             lue=np.ones(shape),
-            iwue=np.ones(shape),
-            env=SimpleNamespace(tc=np.full(shape, 20), patm=np.full(shape, 101235)),
+            iwue=np.full(shape, 100),
+            env=SimpleNamespace(
+                tc=np.full(shape, 20),
+                patm=np.full(shape, 101235),
+                vpd=np.broadcast_to([0, 500, 1000, 2000], shape),
+            ),
         ),
         swd=np.ones(4),
+    )
+
+    from pyrealm.core.water import convert_water_moles_to_mm
+
+    expected_water_moles = (
+        subcanopy.subcanopy_gpp
+        / fixture_pyrealm_config.core.k_c_molmass
+        / 100
+        * np.array([0, 500, 1000, 2000])
+        / 101235
+    )
+    expected_transpiration = convert_water_moles_to_mm(
+        water_moles=expected_water_moles,
+        tc=np.full(4, 20),
+        patm=np.full(4, 101235),
+        core_const=fixture_pyrealm_config.core,
+    )
+    assert_allclose(subcanopy.subcanopy_transpiration, expected_transpiration)
+    assert_allclose(
+        plants_data["transpiration"][subcanopy.layer_index], expected_transpiration
     )
 
     subcanopy.calculate_dynamics()
