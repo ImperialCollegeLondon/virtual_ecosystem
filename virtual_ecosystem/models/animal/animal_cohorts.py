@@ -494,8 +494,7 @@ class AnimalCohort:
         # than the body holds. With the body at fixed proportions this only binds at
         # floating-point noise when loss == mass_current: mass_current is a re-summed
         # float, so loss * p can exceed the stored element by ~1e-17, which
-        # CNP.update would reject as a negative mass. The min stops the element going
-        # below zero; any positive residue is noise, handled by the zero-mass removal.
+        # CNP.update would reject as a negative mass.
         lost = {
             e: min(loss * p, self.mass_cnp[e]) for e, p in self.cnp_proportions.items()
         }
@@ -554,31 +553,29 @@ class AnimalCohort:
                 P=decomposed_mass["P"],
             )
 
-    def respire(self, excreta_mass: dict[str, float]) -> float:
-        """Transfers carbonaceous metabolic wastes to the atmosphere.
+    def respire(self, metabolic_waste: dict[str, float]) -> float:
+        """Return the carbon respired to the atmosphere from metabolic waste.
 
-        This method processes the metabolic waste for carbon and returns the total
-        mass respired to the atmosphere as a float. Currently, only carbon is affected.
+        A fraction ``carbon_respiration_proportion`` of the metabolised carbon is
+        respired. Nitrogen and phosphorus are not respired: they are excreted in full
+        by :meth:`partition_metabolic_waste`.
 
         Args:
-            excreta_mass: A dictionary representing the mass of each nutrient excreted
-                by the cohort: {"C": value, "N": value,
-                "P": value}.
+            metabolic_waste: Cohort-total mass of C, N and P lost through metabolism
+                [kg]. Only carbon is used.
 
         Returns:
-            A float representing the total carbon mass respired to the atmosphere.
+            The cohort-total carbon respired [kg].
+
+        Raises:
+            ValueError: If carbon is missing from, or negative in, ``metabolic_waste``.
         """
+        if "C" not in metabolic_waste:
+            raise ValueError("metabolic_waste must contain the key 'C' for carbon.")
+        if metabolic_waste["C"] < 0:
+            raise ValueError("Carbon mass in metabolic_waste cannot be negative.")
 
-        # Validate the input dictionary
-        if "C" not in excreta_mass:
-            raise ValueError("excreta_mass must contain the key 'C' for carbon.")
-        if excreta_mass["C"] < 0:
-            raise ValueError("Carbon mass in excreta_mass cannot be negative.")
-
-        # Calculate the carbonaceous waste for respiration
-        respired_mass = excreta_mass["C"] * self.constants.carbon_respiration_proportion
-
-        return respired_mass
+        return metabolic_waste["C"] * self.constants.carbon_respiration_proportion
 
     def defecate(
         self, excrement_pools: list[ExcrementPool], waste_mass: dict[str, float]

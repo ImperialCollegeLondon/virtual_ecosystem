@@ -536,6 +536,7 @@ class TestAnimalCohort:
                 "ectotherm",
                 {"C": 0.0, "N": 0.0, "P": 0.0},
             ),  # Zero excreta
+            ("herbivore", {"C": 100.0, "N": 30.0, "P": 20.0}),  # N, P not respired
         ],
     )
     def test_respire(
