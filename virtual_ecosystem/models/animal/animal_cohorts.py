@@ -494,7 +494,8 @@ class AnimalCohort:
         # than the body holds. With the body at fixed proportions this only binds at
         # floating-point noise when loss == mass_current: mass_current is a re-summed
         # float, so loss * p can exceed the stored element by ~1e-17, which
-        # CNP.update would reject as a negative mass. The min leaves it at exactly 0.
+        # CNP.update would reject as a negative mass. The min stops the element going
+        # below zero; any positive residue is noise, handled by the zero-mass removal.
         lost = {
             e: min(loss * p, self.mass_cnp[e]) for e, p in self.cnp_proportions.items()
         }

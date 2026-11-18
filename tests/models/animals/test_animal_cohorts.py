@@ -4,7 +4,7 @@ import uuid
 from math import exp
 
 import pytest
-from numpy import isclose, timedelta64
+from numpy import timedelta64
 
 
 @pytest.fixture
@@ -141,59 +141,63 @@ class TestAnimalCohort:
         )
 
     @pytest.mark.parametrize(
-        "cohort_type, dt, initial_mass, temperature, expected_final_mass, error_type,"
-        "metabolic_rate_return_value",
+        "cohort_type, dt, initial_mass, metabolic_rate_return_value, expected_loss,"
+        "expected_final_mass",
         [
-            (
+            pytest.param(
                 "herbivore",
                 timedelta64(1, "D"),
                 1000.0,
-                298.0,
-                998.5205247106326,
-                None,
                 1.4794752893674,
+                1.4794752893674,
+                998.5205247106326,
+                id="endotherm_one_day",
             ),
-            ("herbivore", timedelta64(1, "D"), 0.0, 298.0, 0.0, None, 0.0),
-            (
+            pytest.param(
                 "herbivore",
                 timedelta64(3, "D"),
                 1000.0,
-                298.0,
-                995.5615741318977,
-                None,
                 1.4794752893674,
+                4.4384258681022,
+                995.5615741318978,
+                id="endotherm_three_days",
             ),
-            (
-                "ectotherm",
+            pytest.param(
+                "herbivore",
                 timedelta64(1, "D"),
-                100.0,
-                20.0,
-                99.95896219913648,
-                None,
-                0.04103780086352,
-            ),
-            ("ectotherm", timedelta64(1, "D"), 0.0, 20.0, 0.0, None, 0.0),
-            (
-                "ectotherm",
-                timedelta64(1, "D"),
-                100.0,
                 0.0,
-                99.99436706014961,
-                None,
-                0.00563293985039,
+                0.0,
+                0.0,
+                0.0,
+                id="endotherm_zero_mass",
             ),
-            ("herbivore", timedelta64(-1, "D"), 100.0, 298.0, None, ValueError, 1.0),
-            ("herbivore", timedelta64(1, "D"), -100.0, 298.0, None, ValueError, 1.0),
-        ],
-        ids=[
-            "endotherm_normal",
-            "endotherm_zero_mass",
-            "endotherm_three_days",
-            "ectotherm_normal",
-            "ectotherm_zero_mass",
-            "ectotherm_zero_temp",
-            "invalid_negative_dt",
-            "invalid_negative_mass",
+            pytest.param(
+                "ectotherm",
+                timedelta64(1, "D"),
+                100.0,
+                0.04103780086352,
+                0.04103780086352,
+                99.95896219913648,
+                id="ectotherm_one_day",
+            ),
+            pytest.param(
+                "ectotherm",
+                timedelta64(1, "D"),
+                100.0,
+                0.00563293985039,
+                0.00563293985039,
+                99.99436706014961,
+                id="ectotherm_low_rate",
+            ),
+            pytest.param(
+                "ectotherm",
+                timedelta64(1, "D"),
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                id="ectotherm_zero_mass",
+            ),
         ],
     )
     def test_metabolize(
@@ -201,39 +205,247 @@ class TestAnimalCohort:
         mocker,
         herbivore_cohort_instance,
         ectotherm_cohort_instance,
-        cohort_type,
-        dt,
-        initial_mass,
-        temperature,
-        expected_final_mass,
-        error_type,
-        metabolic_rate_return_value,
-    ):
-        """Testing metabolize method for various scenarios."""
+        cohort_type: str,
+        dt: timedelta64,
+        initial_mass: float,
+        metabolic_rate_return_value: float,
+        expected_loss: float,
+        expected_final_mass: float,
+    ) -> None:
+        """Test that metabolism removes body mass in body proportions.
+
+        The metabolic rate is mocked, so the per-individual loss is the rate times the
+        number of days and the expected values are literals. Each element must end at
+        the final body mass times its body proportion, so the body keeps its
+        stoichiometry. The returned waste must be the cohort-total loss of each
+        element, also in body proportions.
+
+        The rate must be calculated on whole body mass at the temperature passed in.
+        That temperature is in °C and goes through to ``sf.metabolic_rate`` unchanged.
+
+        Args:
+            mocker: pytest-mock fixture.
+            herbivore_cohort_instance: Endothermic cohort fixture.
+            ectotherm_cohort_instance: Ectothermic cohort fixture.
+            cohort_type: Which cohort fixture to use.
+            dt: Timestep length.
+            initial_mass: Per-individual body mass before metabolism [kg].
+            metabolic_rate_return_value: Mocked per-individual rate [kg/day].
+            expected_loss: Expected per-individual body mass lost [kg].
+            expected_final_mass: Expected per-individual body mass after [kg].
+        """
         from virtual_ecosystem.models.animal.cnp import CNP
 
-        # Select the appropriate cohort instance
-        cohort_instance = (
+        cohort = (
             herbivore_cohort_instance
             if cohort_type == "herbivore"
             else ectotherm_cohort_instance
         )
+        proportions = cohort.cnp_proportions
+        cohort.mass_cnp = CNP(**{e: initial_mass * p for e, p in proportions.items()})
 
-        # Set initial mass using CNP object
-        cohort_instance.mass_cnp = CNP(initial_mass, 0.0, 0.0)
-
-        # Mock metabolic_rate to return a specific value
-        mocker.patch(
+        mock_rate = mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
             return_value=metabolic_rate_return_value,
         )
 
-        if error_type:
-            with pytest.raises(error_type):
-                cohort_instance.metabolize(temperature, dt)
-        else:
-            cohort_instance.metabolize(temperature, dt)
-            assert isclose(cohort_instance.mass_cnp.C, expected_final_mass, rtol=1e-9)
+        waste = cohort.metabolize(25.0, dt)
+
+        # Rate calculated on whole body mass, temperature passed through in °C
+        assert mock_rate.call_args.kwargs["mass"] == pytest.approx(
+            initial_mass, rel=1e-12, abs=0.0
+        )
+        assert mock_rate.call_args.kwargs["temperature"] == 25.0
+
+        assert cohort.mass_current == pytest.approx(
+            expected_final_mass, rel=1e-12, abs=0.0
+        )
+
+        for element, proportion in proportions.items():
+            # Body keeps its stoichiometry
+            assert cohort.mass_cnp[element] == pytest.approx(
+                expected_final_mass * proportion, rel=1e-12, abs=0.0
+            )
+            # Waste is the cohort-total loss of each element, in body proportions
+            assert waste[element] == pytest.approx(
+                expected_loss * proportion * cohort.individuals, rel=1e-12, abs=0.0
+            )
+
+    @pytest.mark.parametrize(
+        "dt, body_cnp",
+        [
+            pytest.param(
+                timedelta64(-1, "D"), {"C": 1.0, "N": 0.5, "P": 0.2}, id="negative_dt"
+            ),
+            pytest.param(
+                timedelta64(1, "D"),
+                {"C": -1.0, "N": 0.5, "P": 0.2},
+                id="negative_carbon",
+            ),
+            pytest.param(
+                timedelta64(1, "D"),
+                {"C": 1.0, "N": -0.5, "P": 0.2},
+                id="negative_nitrogen",
+            ),
+            pytest.param(
+                timedelta64(1, "D"),
+                {"C": 1.0, "N": 0.5, "P": -0.2},
+                id="negative_phosphorus",
+            ),
+        ],
+    )
+    def test_metabolize_invalid_inputs(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        dt: timedelta64,
+        body_cnp: dict[str, float],
+    ) -> None:
+        """Test that metabolize rejects a negative timestep or negative body mass.
+
+        The old guard checked carbon only, so the nitrogen and phosphorus cases would
+        not have raised.
+
+        Args:
+            mocker: pytest-mock fixture.
+            herbivore_cohort_instance: Cohort fixture.
+            dt: Timestep length.
+            body_cnp: Per-individual body mass by element [kg].
+        """
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        herbivore_cohort_instance.mass_cnp = CNP(**body_cnp)
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=1.0,
+        )
+
+        with pytest.raises(ValueError):
+            herbivore_cohort_instance.metabolize(25.0, dt)
+
+    @pytest.mark.parametrize(
+        "potential_multiple",
+        [
+            pytest.param(1.0, id="exactly_body_mass"),
+            pytest.param(1.0 + 1e-9, id="just_exceeds_body_mass"),
+            pytest.param(1.0e6, id="far_exceeds_body_mass"),
+        ],
+    )
+    def test_metabolize_caps_at_total_body_mass(
+        self, mocker, herbivore_cohort_instance, potential_multiple: float
+    ) -> None:
+        """Test that the metabolic loss is capped at total body mass, not body carbon.
+
+        The old code capped the loss at body carbon, which silently cut the cost. Now
+        a potential loss at or above body mass must remove the whole body in body
+        proportions.
+
+        Removing ``loss * p`` from each element can leave floating-point residue of
+        either sign. The per-element guard must stop it going negative, otherwise
+        ``CNP.update`` raises. Any positive residue must be negligible relative to the
+        starting mass.
+
+        Args:
+            mocker: pytest-mock fixture.
+            herbivore_cohort_instance: Cohort fixture.
+            potential_multiple: Potential one-day loss as a multiple of body mass.
+        """
+        cohort = herbivore_cohort_instance
+        initial_mass = cohort.mass_current
+        initial_cnp = {e: cohort.mass_cnp[e] for e in ("C", "N", "P")}
+
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=initial_mass * potential_multiple,
+        )
+
+        waste = cohort.metabolize(25.0, timedelta64(1, "D"))
+
+        for element in ("C", "N", "P"):
+            assert cohort.mass_cnp[element] >= 0.0
+            assert cohort.mass_cnp[element] == pytest.approx(
+                0.0, abs=1e-12 * initial_mass
+            )
+            # The whole of each element leaves the body
+            assert waste[element] == pytest.approx(
+                initial_cnp[element] * cohort.individuals, rel=1e-12, abs=0.0
+            )
+
+        assert sum(waste.values()) == pytest.approx(
+            initial_mass * cohort.individuals, rel=1e-12, abs=0.0
+        )
+
+    @pytest.mark.parametrize("cohort_type", ["herbivore", "ectotherm"])
+    @pytest.mark.parametrize(
+        "respiration_proportion",
+        [0.0, 0.9, 1.0],
+        ids=["none_respired", "partial_respiration", "all_respired"],
+    )
+    def test_metabolize_conserves_mass(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        ectotherm_cohort_instance,
+        cohort_type: str,
+        respiration_proportion: float,
+    ) -> None:
+        """Test that body mass lost to metabolism equals respiration plus excreta.
+
+        The mocked rate is 1% of body mass per day, so 30 days removes 30% of the
+        body. Every unit of each element lost from the body must reach exactly one
+        sink. Carbon is split between respiration and excreta. Nitrogen and
+        phosphorus all go to excreta, so excreta must now carry non-zero N and P,
+        which they never did under carbon-only metabolism.
+
+        Args:
+            mocker: pytest-mock fixture.
+            herbivore_cohort_instance: Endothermic cohort fixture.
+            ectotherm_cohort_instance: Ectothermic cohort fixture.
+            cohort_type: Which cohort fixture to use.
+            respiration_proportion: Fraction of metabolised carbon respired.
+        """
+        cohort = (
+            herbivore_cohort_instance
+            if cohort_type == "herbivore"
+            else ectotherm_cohort_instance
+        )
+        cohort.constants = cohort.constants.model_copy(
+            update={"carbon_respiration_proportion": respiration_proportion}
+        )
+
+        # Guard against a vacuous N/P check: the fixture must hold N and P
+        assert cohort.cnp_proportions["N"] > 0.0
+        assert cohort.cnp_proportions["P"] > 0.0
+
+        individuals = cohort.individuals
+        initial_mass = cohort.mass_current
+        before = {e: cohort.mass_cnp[e] * individuals for e in ("C", "N", "P")}
+
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=0.01 * initial_mass,
+        )
+
+        waste = cohort.metabolize(25.0, timedelta64(30, "D"))
+        respired, excreta = cohort.partition_metabolic_waste(waste)
+
+        lost = {
+            e: before[e] - cohort.mass_cnp[e] * individuals for e in ("C", "N", "P")
+        }
+
+        # 30 days at 1% per day removes 30% of cohort-total body mass
+        assert sum(lost.values()) == pytest.approx(
+            0.3 * initial_mass * individuals, rel=1e-12, abs=0.0
+        )
+
+        # Each element reaches exactly one sink
+        assert respired + excreta["C"] == pytest.approx(lost["C"], rel=1e-12, abs=0.0)
+        assert excreta["N"] == pytest.approx(lost["N"], rel=1e-12, abs=0.0)
+        assert excreta["P"] == pytest.approx(lost["P"], rel=1e-12, abs=0.0)
+
+        # Excreta now carry nitrogen and phosphorus
+        assert excreta["N"] > 0.0
+        assert excreta["P"] > 0.0
 
     @pytest.mark.parametrize(
         "cohort_type, excreta_mass, num_pools",
