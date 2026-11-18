@@ -3342,6 +3342,7 @@ class TestAnimalCohort:
             (10.0, 0, True, False, False),  # No individuals
             (10.0, 5, False, False, False),  # No vertical match
             (10.0, 5, True, True, False),  # Same object
+            (0.0, 5, True, False, False),  # Zero mass: below every prey range
         ],
     )
     def test_can_prey_on(
