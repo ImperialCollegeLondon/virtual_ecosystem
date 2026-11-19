@@ -482,7 +482,12 @@ class AnimalCohort:
 
         return respired, excreta
 
-    def metabolize(self, temperature: float, dt: timedelta64) -> dict[str, float]:
+    def metabolize(
+        self,
+        temperature: float,
+        dt: timedelta64,
+        rate_mass: float | None = None,
+    ) -> dict[str, float]:
         """Remove body mass lost to metabolism over a timestep.
 
         Following Madingley, the metabolic loss is body mass, not carbon alone. Tissue
@@ -493,16 +498,25 @@ class AnimalCohort:
         Metabolic rate depends on temperature for ectotherms and is scaled by the
         activity window ``sigma_f_t`` for both metabolic types.
 
+        The metabolic rate is calculated from ``rate_mass`` when given, and from the
+        current body mass otherwise. Madingley calculates metabolism from body mass at
+        the start of the timestep, so the model passes the start-of-step mass, which
+        differs from the current mass once foraging has added growth. The cap on the
+        loss is always the current body mass, since that is what is there to remove.
+
         Args:
             temperature: Mean territory temperature [°C]. Conversion to Kelvin is
                 handled inside ``sf.metabolic_rate``.
             dt: Length of the timestep over which metabolic costs accrue.
+            rate_mass: Per-individual body mass from which to calculate the
+                metabolic rate [kg]. Defaults to the current body mass.
 
         Returns:
             The cohort-total mass of C, N and P removed from the body [kg].
 
         Raises:
-            ValueError: If ``dt`` is negative or any element of body mass is negative.
+            ValueError: If ``dt`` or ``rate_mass`` is negative, or any element of body
+                mass is negative.
         """
 
         if dt < timedelta64(0, "D"):
@@ -511,10 +525,13 @@ class AnimalCohort:
         if any(self.mass_cnp[e] < 0.0 for e in ("C", "N", "P")):
             raise ValueError(f"Body mass elements cannot be negative: {self.mass_cnp}.")
 
+        if rate_mass is not None and rate_mass < 0.0:
+            raise ValueError(f"rate_mass cannot be negative: {rate_mass}.")
+
         # Potential per-individual body mass metabolised over the step
-        # (kg/day * days).
+        # (kg/day * days), calculated from the start-of-step mass when given.
         potential_mass_metabolized = sf.metabolic_rate(
-            mass=self.mass_current,
+            mass=self.mass_current if rate_mass is None else rate_mass,
             temperature=temperature,
             terms=self.functional_group.metabolic_rate_terms,
             metabolic_type=self.functional_group.metabolic_type,
