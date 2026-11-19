@@ -2377,19 +2377,20 @@ class TestAnimalModel:
         [0.0, 0.9, 1.0],
         ids=["none_respired", "partial_respiration", "all_respired"],
     )
-    def test_metabolize_community_conserves_carbon(
-        self, animal_model_instance, respiration_proportion
+    def test_metabolize_community_conserves_mass(
+        self, animal_model_instance, respiration_proportion: float
     ) -> None:
-        """Test that carbon lost through metabolism reaches exactly one sink.
+        """Test that body mass lost through metabolism reaches exactly one sink.
 
-        A single real cohort metabolises with nothing mocked. Its cohort-total body
-        carbon loss must equal the carbon added to ``total_animal_respiration`` plus
-        the carbon added to the excrement pools. Each sink must receive its own share:
-        p x loss to respiration and (1 - p) x loss to excrement. Under the original
-        bug the sinks summed to (1 + p) x loss.
+        A single real cohort metabolises with nothing mocked. Its cohort-total loss of
+        each element must equal what reaches the sinks. Carbon is split between
+        ``total_animal_respiration`` (p x loss) and the excrement pools
+        ((1 - p) x loss). Nitrogen and phosphorus go entirely to the excrement pools.
+        Metabolic excreta currently go through the normal excrement split, so the
+        scavengeable and decomposed fractions are summed.
 
-        Metabolism currently removes carbon only, so the excrement pools must gain no
-        nitrogen or phosphorus.
+        The cohort must not metabolise to zero mass, otherwise the zero-mass removal
+        would also send mass to the carcass pools. That case is tested separately.
 
         Args:
             animal_model_instance: Animal model fixture.
@@ -2398,7 +2399,8 @@ class TestAnimalModel:
         import numpy as np
 
         model = animal_model_instance
-        dt = np.timedelta64(30, "D")
+        dt = np.timedelta64(1, "D")
+        elements = ("C", "N", "P")
 
         cohort = next(iter(model.active_cohorts.values()))
         cohort.constants = cohort.constants.model_copy(
@@ -2409,38 +2411,46 @@ class TestAnimalModel:
 
         def excrement_total(element: str) -> float:
             return sum(
-                getattr(pool.scavengeable_cnp, element)
-                + getattr(pool.decomposed_cnp, element)
+                pool.scavengeable_cnp[element] + pool.decomposed_cnp[element]
                 for pools in model.excrement_pools.values()
                 for pool in pools
             )
 
-        body_c_before = cohort.mass_cnp.C * cohort.individuals
-        excrement_before = {e: excrement_total(e) for e in ("C", "N", "P")}
+        body_before = {e: cohort.mass_cnp[e] * cohort.individuals for e in elements}
+        excrement_before = {e: excrement_total(e) for e in elements}
 
         model.metabolize_community(dt)
 
-        body_c_lost = body_c_before - cohort.mass_cnp.C * cohort.individuals
-        respired = model.data["total_animal_respiration"].values.sum()
-        excreted = {
-            e: excrement_total(e) - excrement_before[e] for e in ("C", "N", "P")
+        body_lost = {
+            e: body_before[e] - cohort.mass_cnp[e] * cohort.individuals
+            for e in elements
         }
+        respired = model.data["total_animal_respiration"].values.sum()
+        excreted = {e: excrement_total(e) - excrement_before[e] for e in elements}
 
-        # Guard against a vacuous pass: the cohort must actually have metabolised.
-        assert body_c_lost > 0.0
+        # Guard against vacuous passes: the cohort metabolised, but not to zero.
+        assert body_lost["C"] > 0.0
+        assert cohort.mass_current > 0.0
 
-        # Each sink receives its own share of the metabolised carbon.
-        assert respired == pytest.approx(respiration_proportion * body_c_lost)
+        # Carbon: each sink receives its own share
+        assert respired == pytest.approx(
+            respiration_proportion * body_lost["C"], rel=1e-12, abs=0.0
+        )
         assert excreted["C"] == pytest.approx(
-            (1.0 - respiration_proportion) * body_c_lost
+            (1.0 - respiration_proportion) * body_lost["C"], rel=1e-12, abs=0.0
         )
 
-        # Conservation: the sinks together account for exactly the carbon lost.
-        assert respired + excreted["C"] == pytest.approx(body_c_lost)
+        # Nitrogen and phosphorus: all excreted, and non-zero
+        for element in ("N", "P"):
+            assert body_lost[element] > 0.0
+            assert excreted[element] == pytest.approx(
+                body_lost[element], rel=1e-12, abs=0.0
+            )
 
-        # Metabolism is carbon-only at present, so no N or P reaches the pools.
-        assert excreted["N"] == pytest.approx(0.0)
-        assert excreted["P"] == pytest.approx(0.0)
+        # Total conservation across all elements
+        assert respired + sum(excreted.values()) == pytest.approx(
+            sum(body_lost.values()), rel=1e-12, abs=0.0
+        )
 
     def test_increase_age_community(self, animal_model_instance, mocker):
         """Test increase_age."""
