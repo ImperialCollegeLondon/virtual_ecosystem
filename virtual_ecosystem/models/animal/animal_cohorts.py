@@ -146,6 +146,9 @@ class AnimalCohort:
           cohort, {"C": value, "N": value, "P": value}."""
         self.largest_mass_achieved: float = mass
         """The largest body-mass ever achieved by this cohort [kg]."""
+        self.start_of_step_mass: float = mass
+        """Per-individual body mass at the start of the current timestep [kg],
+        recorded before the cohort forages and used to calculate its metabolic cost."""
         self.foraging_channel_count: int = (
             self.functional_group.diet.count_foraging_channels()
         )

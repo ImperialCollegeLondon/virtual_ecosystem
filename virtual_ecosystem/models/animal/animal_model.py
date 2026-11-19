@@ -1535,6 +1535,11 @@ class AnimalModel(
         """
 
         for cohort in list(self.active_cohorts.values()):
+            # Record the start-of-step mass for the metabolic rate before this cohort
+            # eats. Cohorts earlier in the loop eating this one remove individuals, not
+            # per-individual mass, so this is still the start-of-step value.
+            cohort.start_of_step_mass = cohort.mass_current
+
             # Safety check territory must be defined
             if cohort.territory is None:
                 raise ValueError("The cohort's territory hasn't been defined.")
