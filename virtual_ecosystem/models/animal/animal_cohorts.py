@@ -351,10 +351,10 @@ class AnimalCohort:
         ``self.individuals`` before being added, while the returned waste stays at
         cohort scale for the downstream waste pools.
 
-        Following Madingley eq. 8, growth that would take body mass beyond the
-        allocation ceiling (``flow_to_reproductive_mass_threshold`` x adult mass) is
-        stored as reproductive mass instead. Non-reproductive groups keep all growth
-        in the body, so that larvae can reach their metamorphosis mass.
+        All growth is added to the body. Allocation of mass above the ceiling to
+        reproduction happens later in the timestep, in
+        :meth:`allocate_to_reproduction`, after metabolism has been applied, so that
+        it is net of metabolic cost.
 
         Args:
             resource_intake: The cohort-total mass of C, N, and P available for
@@ -387,36 +387,11 @@ class AnimalCohort:
             for element, proportion in self.cnp_proportions.items()
         }
 
-        # Per-individual growth, in body C:N:P proportions
+        # Per-individual growth, in body C:N:P proportions. All growth goes to the
+        # body: allocation to reproductive mass happens after metabolism, in
+        # allocate_to_reproduction, so that it is net of the metabolic cost.
         growth = {element: used[element] / self.individuals for element in used}
-        growth_total = max_growth / self.individuals
-
-        # Madingley eq. 8: growth beyond the allocation ceiling is stored as
-        # reproductive potential rather than body mass,
-        #   ΔR = max(0, M_t + ΔM_growth - M_ceiling),
-        #   M_ceiling = flow_to_reproductive_mass_threshold · M_adult.
-        # Growth is already in fixed body proportions, so splitting it by one scalar
-        # fraction keeps both pools at body stoichiometry.
-        to_body = 1.0
-        if (
-            growth_total > 0.0
-            and self.functional_group.reproductive_type
-            is not ReproductiveType.NONREPRODUCTIVE
-        ):
-            ceiling = (
-                self.constants.flow_to_reproductive_mass_threshold
-                * self.functional_group.adult_mass
-            )
-            headroom = max(0.0, ceiling - self.mass_current)
-            to_body = min(1.0, headroom / growth_total)
-
-        self.mass_cnp.update(**{e: g * to_body for e, g in growth.items()})
-        self.reproductive_mass_cnp.update(
-            **{e: g * (1.0 - to_body) for e, g in growth.items()}
-        )
-
-        if to_body < 1.0:
-            self._flag_maturity()
+        self.mass_cnp.update(**growth)
 
         # Cohort-total stoichiometric excess left over after growth
         waste = {
