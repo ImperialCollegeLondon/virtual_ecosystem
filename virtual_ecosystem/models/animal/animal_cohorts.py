@@ -418,12 +418,17 @@ class AnimalCohort:
         return waste
 
     def _flag_maturity(self) -> None:
-        """Mark the cohort mature the first time growth reaches the allocation ceiling.
+        """Mark the cohort mature the first time it allocates mass to reproduction.
 
-        Once growth is diverted to reproductive mass, body mass is capped at the
-        ceiling and then reduced by metabolism before ``increase_age`` runs, so the
-        body-mass check there can no longer be relied on to detect maturity.
+        Maturity is reached in the first timestep in which the body, after growth and
+        metabolism, exceeds the allocation ceiling and the surplus is moved to
+        reproductive mass by :meth:`allocate_to_reproduction`. The body-mass check in
+        :meth:`increase_age` cannot be relied on to detect this: allocation leaves the
+        body at the ceiling only to within floating-point rounding, which can fall just
+        below adult mass at the default threshold of 1, and a threshold below 1 would
+        keep the body below adult mass altogether.
         """
+
         if self.is_mature:
             return
         self.is_mature = True

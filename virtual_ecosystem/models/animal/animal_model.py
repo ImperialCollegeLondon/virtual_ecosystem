@@ -547,6 +547,12 @@ class AnimalModel(
         events would be simultaneous. The ordering within the method is less a question
         of the science and more a question of computational logic and stability.
 
+        Metabolism runs immediately after foraging so that reproductive allocation,
+        made at the end of :meth:`metabolize_community`, is net of both assimilation
+        and metabolic cost. Birth and metamorphosis therefore see post-metabolism
+        mass, and cohorts created by them are not charged metabolism in the timestep
+        they appear.
+
         Args:
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
