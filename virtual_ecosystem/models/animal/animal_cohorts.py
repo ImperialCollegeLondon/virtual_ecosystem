@@ -300,6 +300,42 @@ class AnimalCohort:
         entry["N"] += delta.N
         entry["P"] += delta.P
 
+    def allocate_to_reproduction(self) -> None:
+        """Move body mass above the allocation ceiling to reproductive mass.
+
+        Implements Madingley's reproductive allocation net of metabolism,
+
+            ΔR = max(0, M_t + ΔM_assimilation - ΔM_metabolism - M_ceiling),
+            M_ceiling = flow_to_reproductive_mass_threshold · M_adult,
+
+        by being called after both growth and metabolism have been applied to the
+        body. The excess is moved in body proportions, so both pools keep body
+        stoichiometry. Non-reproductive groups keep all body mass, so that larvae can
+        reach their metamorphosis mass.
+
+        The first allocation marks the cohort mature.
+        """
+        if self.functional_group.reproductive_type is ReproductiveType.NONREPRODUCTIVE:
+            return
+
+        ceiling = (
+            self.constants.flow_to_reproductive_mass_threshold
+            * self.functional_group.adult_mass
+        )
+        excess = self.mass_current - ceiling
+
+        if excess <= 0.0:
+            return
+
+        # The body is at fixed proportions, so moving excess * p of each element
+        # leaves the body at exactly the ceiling in body stoichiometry.
+        moved = {e: excess * p for e, p in self.cnp_proportions.items()}
+
+        self.mass_cnp.update(**{e: -m for e, m in moved.items()})
+        self.reproductive_mass_cnp.update(**moved)
+
+        self._flag_maturity()
+
     def grow(self, resource_intake: dict[str, float]) -> dict[str, float]:
         """Handles growth based on resource intake, enforcing stoichiometry.
 
