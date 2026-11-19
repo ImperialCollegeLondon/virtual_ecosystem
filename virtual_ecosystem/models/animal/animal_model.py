@@ -1634,6 +1634,13 @@ class AnimalModel(
         the temperature in the metabolic rate equation matches the one used to derive
         ``sigma_f_t``.
 
+        Metabolism runs immediately after foraging. The metabolic rate is calculated
+        from each cohort's start-of-step mass, recorded in :meth:`forage_community`,
+        as in Madingley. Once the cost is removed, any body mass above the allocation
+        ceiling is moved to reproductive mass, so that reproductive allocation is net
+        of metabolism. Birth and metamorphosis, which run afterwards, therefore see
+        post-metabolism mass.
+
         A cohort is registered in the community of every cell in its territory, so
         iterating over communities would charge a multi-cell cohort once per cell.
         Iteration is therefore over :attr:`active_cohorts`. The resulting wastes are
@@ -1648,7 +1655,9 @@ class AnimalModel(
         respiration = zeros(self.grid.n_cells)
 
         for cohort in self.active_cohorts.values():
-            metabolic_waste_mass = cohort.metabolize(cohort.current_temperature, dt)
+            metabolic_waste_mass = cohort.metabolize(
+                cohort.current_temperature, dt, rate_mass=cohort.start_of_step_mass
+            )
             respired, excreta = cohort.partition_metabolic_waste(metabolic_waste_mass)
 
             share = respired / len(cohort.territory)
@@ -1658,6 +1667,10 @@ class AnimalModel(
             cohort.excrete(
                 excreta, cohort.get_destination_excrement_pools(self.excrement_pools)
             )
+
+            # With growth and metabolism both applied, body mass above the ceiling is
+            # the net surplus, which is allocated to reproduction.
+            cohort.allocate_to_reproduction()
 
         self.data["total_animal_respiration"].values[:] += respiration
 
