@@ -146,6 +146,9 @@ class AnimalCohort:
           cohort, {"C": value, "N": value, "P": value}."""
         self.largest_mass_achieved: float = mass
         """The largest body-mass ever achieved by this cohort [kg]."""
+        self.start_of_step_mass: float = mass
+        """Per-individual body mass at the start of the current timestep [kg],
+        recorded before the cohort forages and used to calculate its metabolic cost."""
         self.foraging_channel_count: int = (
             self.functional_group.diet.count_foraging_channels()
         )
@@ -300,6 +303,42 @@ class AnimalCohort:
         entry["N"] += delta.N
         entry["P"] += delta.P
 
+    def allocate_to_reproduction(self) -> None:
+        """Move body mass above the allocation ceiling to reproductive mass.
+
+        Implements Madingley's reproductive allocation net of metabolism,
+
+            ΔR = max(0, M_t + ΔM_assimilation - ΔM_metabolism - M_ceiling),
+            M_ceiling = flow_to_reproductive_mass_threshold · M_adult,
+
+        by being called after both growth and metabolism have been applied to the
+        body. The excess is moved in body proportions, so both pools keep body
+        stoichiometry. Non-reproductive groups keep all body mass, so that larvae can
+        reach their metamorphosis mass.
+
+        The first allocation marks the cohort mature.
+        """
+        if self.functional_group.reproductive_type is ReproductiveType.NONREPRODUCTIVE:
+            return
+
+        ceiling = (
+            self.constants.flow_to_reproductive_mass_threshold
+            * self.functional_group.adult_mass
+        )
+        excess = self.mass_current - ceiling
+
+        if excess <= 0.0:
+            return
+
+        # The body is at fixed proportions, so moving excess * p of each element
+        # leaves the body at exactly the ceiling in body stoichiometry.
+        moved = {e: excess * p for e, p in self.cnp_proportions.items()}
+
+        self.mass_cnp.update(**{e: -m for e, m in moved.items()})
+        self.reproductive_mass_cnp.update(**moved)
+
+        self._flag_maturity()
+
     def grow(self, resource_intake: dict[str, float]) -> dict[str, float]:
         """Handles growth based on resource intake, enforcing stoichiometry.
 
@@ -315,10 +354,10 @@ class AnimalCohort:
         ``self.individuals`` before being added, while the returned waste stays at
         cohort scale for the downstream waste pools.
 
-        Following Madingley eq. 8, growth that would take body mass beyond the
-        allocation ceiling (``flow_to_reproductive_mass_threshold`` x adult mass) is
-        stored as reproductive mass instead. Non-reproductive groups keep all growth
-        in the body, so that larvae can reach their metamorphosis mass.
+        All growth is added to the body. Allocation of mass above the ceiling to
+        reproduction happens later in the timestep, in
+        :meth:`allocate_to_reproduction`, after metabolism has been applied, so that
+        it is net of metabolic cost.
 
         Args:
             resource_intake: The cohort-total mass of C, N, and P available for
@@ -351,36 +390,11 @@ class AnimalCohort:
             for element, proportion in self.cnp_proportions.items()
         }
 
-        # Per-individual growth, in body C:N:P proportions
+        # Per-individual growth, in body C:N:P proportions. All growth goes to the
+        # body: allocation to reproductive mass happens after metabolism, in
+        # allocate_to_reproduction, so that it is net of the metabolic cost.
         growth = {element: used[element] / self.individuals for element in used}
-        growth_total = max_growth / self.individuals
-
-        # Madingley eq. 8: growth beyond the allocation ceiling is stored as
-        # reproductive potential rather than body mass,
-        #   ΔR = max(0, M_t + ΔM_growth - M_ceiling),
-        #   M_ceiling = flow_to_reproductive_mass_threshold · M_adult.
-        # Growth is already in fixed body proportions, so splitting it by one scalar
-        # fraction keeps both pools at body stoichiometry.
-        to_body = 1.0
-        if (
-            growth_total > 0.0
-            and self.functional_group.reproductive_type
-            is not ReproductiveType.NONREPRODUCTIVE
-        ):
-            ceiling = (
-                self.constants.flow_to_reproductive_mass_threshold
-                * self.functional_group.adult_mass
-            )
-            headroom = max(0.0, ceiling - self.mass_current)
-            to_body = min(1.0, headroom / growth_total)
-
-        self.mass_cnp.update(**{e: g * to_body for e, g in growth.items()})
-        self.reproductive_mass_cnp.update(
-            **{e: g * (1.0 - to_body) for e, g in growth.items()}
-        )
-
-        if to_body < 1.0:
-            self._flag_maturity()
+        self.mass_cnp.update(**growth)
 
         # Cohort-total stoichiometric excess left over after growth
         waste = {
@@ -404,12 +418,17 @@ class AnimalCohort:
         return waste
 
     def _flag_maturity(self) -> None:
-        """Mark the cohort mature the first time growth reaches the allocation ceiling.
+        """Mark the cohort mature the first time it allocates mass to reproduction.
 
-        Once growth is diverted to reproductive mass, body mass is capped at the
-        ceiling and then reduced by metabolism before ``increase_age`` runs, so the
-        body-mass check there can no longer be relied on to detect maturity.
+        Maturity is reached in the first timestep in which the body, after growth and
+        metabolism, exceeds the allocation ceiling and the surplus is moved to
+        reproductive mass by :meth:`allocate_to_reproduction`. The body-mass check in
+        :meth:`increase_age` cannot be relied on to detect this: allocation leaves the
+        body at the ceiling only to within floating-point rounding, which can fall just
+        below adult mass at the default threshold of 1, and a threshold below 1 would
+        keep the body below adult mass altogether.
         """
+
         if self.is_mature:
             return
         self.is_mature = True
@@ -446,7 +465,12 @@ class AnimalCohort:
 
         return respired, excreta
 
-    def metabolize(self, temperature: float, dt: timedelta64) -> dict[str, float]:
+    def metabolize(
+        self,
+        temperature: float,
+        dt: timedelta64,
+        rate_mass: float | None = None,
+    ) -> dict[str, float]:
         """Remove body mass lost to metabolism over a timestep.
 
         Following Madingley, the metabolic loss is body mass, not carbon alone. Tissue
@@ -457,16 +481,25 @@ class AnimalCohort:
         Metabolic rate depends on temperature for ectotherms and is scaled by the
         activity window ``sigma_f_t`` for both metabolic types.
 
+        The metabolic rate is calculated from ``rate_mass`` when given, and from the
+        current body mass otherwise. Madingley calculates metabolism from body mass at
+        the start of the timestep, so the model passes the start-of-step mass, which
+        differs from the current mass once foraging has added growth. The cap on the
+        loss is always the current body mass, since that is what is there to remove.
+
         Args:
             temperature: Mean territory temperature [°C]. Conversion to Kelvin is
                 handled inside ``sf.metabolic_rate``.
             dt: Length of the timestep over which metabolic costs accrue.
+            rate_mass: Per-individual body mass from which to calculate the
+                metabolic rate [kg]. Defaults to the current body mass.
 
         Returns:
             The cohort-total mass of C, N and P removed from the body [kg].
 
         Raises:
-            ValueError: If ``dt`` is negative or any element of body mass is negative.
+            ValueError: If ``dt`` or ``rate_mass`` is negative, or any element of body
+                mass is negative.
         """
 
         if dt < timedelta64(0, "D"):
@@ -475,10 +508,13 @@ class AnimalCohort:
         if any(self.mass_cnp[e] < 0.0 for e in ("C", "N", "P")):
             raise ValueError(f"Body mass elements cannot be negative: {self.mass_cnp}.")
 
+        if rate_mass is not None and rate_mass < 0.0:
+            raise ValueError(f"rate_mass cannot be negative: {rate_mass}.")
+
         # Potential per-individual body mass metabolised over the step
-        # (kg/day * days).
+        # (kg/day * days), calculated from the start-of-step mass when given.
         potential_mass_metabolized = sf.metabolic_rate(
-            mass=self.mass_current,
+            mass=self.mass_current if rate_mass is None else rate_mass,
             temperature=temperature,
             terms=self.functional_group.metabolic_rate_terms,
             metabolic_type=self.functional_group.metabolic_type,

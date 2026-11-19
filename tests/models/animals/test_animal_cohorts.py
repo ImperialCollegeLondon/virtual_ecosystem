@@ -85,6 +85,56 @@ def prey_cohort_instance(
     )
 
 
+def make_test_cohort(
+    constants, reproductive_type: str, mass: float, individuals: int = 2
+):
+    """Build a cohort with adult mass 10 kg on a 3x3 grid, for allocation tests.
+
+    Args:
+        constants: An AnimalConstants instance.
+        reproductive_type: The functional group's reproductive type.
+        mass: Per-individual body mass [kg].
+        individuals: Number of individuals.
+
+    Returns:
+        The AnimalCohort.
+    """
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+
+    grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+    grid.set_closest_neighbours()
+
+    group = FunctionalGroup(
+        name="test",
+        taxa="mammal",
+        diet="herbivore",
+        metabolic_type="endothermic",
+        reproductive_environment="terrestrial",
+        reproductive_type=reproductive_type,
+        development_type="direct",
+        development_status="adult",
+        offspring_functional_group="test",
+        excretion_type="ureotelic",
+        migration_type="none",
+        vertical_occupancy="ground",
+        birth_mass=1.0,
+        adult_mass=10.0,
+        constants=constants,
+    )
+
+    return AnimalCohort(
+        functional_group=group,
+        mass=mass,
+        age=100.0,
+        individuals=individuals,
+        centroid_key=0,
+        grid=grid,
+        constants=constants,
+    )
+
+
 @pytest.mark.usefixtures("mocker")
 class TestAnimalCohort:
     """Test AnimalCohort class."""
@@ -269,6 +319,63 @@ class TestAnimalCohort:
             # Waste is the cohort-total loss of each element, in body proportions
             assert waste[element] == pytest.approx(
                 expected_loss * proportion * cohort.individuals, rel=1e-12, abs=0.0
+            )
+
+    @pytest.mark.parametrize(
+        "rate_per_day, expected_final_mass",
+        [
+            pytest.param(1.0, 14.0, id="rate_from_start_mass"),
+            pytest.param(20.0, 0.0, id="cap_is_current_mass"),
+        ],
+    )
+    def test_metabolize_rate_mass(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        rate_per_day: float,
+        expected_final_mass: float,
+    ) -> None:
+        """Test that rate_mass sets the rate mass but not the cap.
+
+        The body holds 15 kg after growth and the start-of-step mass is 10 kg. The
+        rate must be calculated from 10 kg. The cap must be the 15 kg actually
+        present: a 20 kg potential loss removes the whole body, not just 10 kg.
+
+        Args:
+            mocker: pytest-mock fixture.
+            herbivore_cohort_instance: Cohort fixture.
+            rate_per_day: Mocked per-individual metabolic rate [kg/day].
+            expected_final_mass: Expected per-individual body mass after [kg].
+        """
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        cohort = herbivore_cohort_instance
+        cohort.mass_cnp = CNP(
+            **{e: 15.0 * p for e, p in cohort.cnp_proportions.items()}
+        )
+        mock_rate = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=rate_per_day,
+        )
+
+        cohort.metabolize(25.0, timedelta64(1, "D"), rate_mass=10.0)
+
+        assert mock_rate.call_args.kwargs["mass"] == 10.0
+        assert cohort.mass_current == pytest.approx(
+            expected_final_mass, abs=1e-12 * 15.0
+        )
+
+    def test_metabolize_negative_rate_mass(
+        self, mocker, herbivore_cohort_instance
+    ) -> None:
+        """Test that a negative rate_mass is rejected."""
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=1.0,
+        )
+        with pytest.raises(ValueError, match="rate_mass cannot be negative"):
+            herbivore_cohort_instance.metabolize(
+                25.0, timedelta64(1, "D"), rate_mass=-1.0
             )
 
     @pytest.mark.parametrize(
@@ -1220,163 +1327,126 @@ class TestAnimalCohort:
             )
 
     @pytest.mark.parametrize(
-        "reproductive_type, threshold, initial_mass, growth_per_individual,"
-        "expected_body, expected_repro, expect_mature",
+        "reproductive_type, initial_mass, growth_per_individual, expected_body",
         [
-            pytest.param(
-                "iteroparous",
-                1.0,
-                4.0,
-                3.0,
-                7.0,
-                0.0,
-                False,
-                id="below_ceiling_all_to_body",
-            ),
-            pytest.param(
-                "iteroparous",
-                1.0,
-                8.0,
-                3.0,
-                10.0,
-                1.0,
-                True,
-                id="straddles_ceiling",
-            ),
-            pytest.param(
-                "iteroparous",
-                1.0,
-                10.0,
-                3.0,
-                10.0,
-                3.0,
-                True,
-                id="at_ceiling_all_to_repro",
-            ),
-            pytest.param(
-                "iteroparous",
-                1.0,
-                12.0,
-                3.0,
-                12.0,
-                3.0,
-                True,
-                id="above_ceiling_all_to_repro",
-            ),
-            pytest.param(
-                "iteroparous",
-                1.2,
-                8.0,
-                6.0,
-                12.0,
-                2.0,
-                True,
-                id="raised_threshold",
-            ),
-            pytest.param(
-                "nonreproductive",
-                1.0,
-                8.0,
-                3.0,
-                11.0,
-                0.0,
-                False,
-                id="nonreproductive_keeps_all_growth",
-            ),
-            pytest.param(
-                "iteroparous",
-                1.0,
-                8.0,
-                0.0,
-                8.0,
-                0.0,
-                False,
-                id="no_growth",
-            ),
+            pytest.param("iteroparous", 4.0, 3.0, 7.0, id="below_ceiling"),
+            pytest.param("iteroparous", 8.0, 3.0, 11.0, id="crosses_ceiling"),
+            pytest.param("iteroparous", 12.0, 3.0, 15.0, id="above_ceiling"),
+            pytest.param("nonreproductive", 8.0, 3.0, 11.0, id="nonreproductive"),
+            pytest.param("iteroparous", 8.0, 0.0, 8.0, id="no_growth"),
         ],
     )
-    def test_grow_allocates_to_reproductive_mass(
+    def test_grow_adds_all_growth_to_body(
         self,
         constants_instance,
-        reproductive_type,
-        threshold,
-        initial_mass,
-        growth_per_individual,
-        expected_body,
-        expected_repro,
-        expect_mature,
-    ):
-        """Test that growth beyond the allocation ceiling goes to reproductive mass.
+        reproductive_type: str,
+        initial_mass: float,
+        growth_per_individual: float,
+        expected_body: float,
+    ) -> None:
+        """Test that grow adds all growth to the body, whatever the ceiling."""
 
-        Adult mass is 10 kg and the cohort has two individuals. Intake is supplied in
-        body proportions so there is no stoichiometric waste. Expected per-individual
-        body and reproductive masses are literals from Madingley eq. 8. Reproductive
-        mass must be stored at body stoichiometry, and intake must be fully accounted
-        for by body growth, reproductive mass and waste.
-        """
-        from virtual_ecosystem.core.grid import Grid
-        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
-
-        individuals = 2
-        constants = constants_instance.model_copy(
-            update={"flow_to_reproductive_mass_threshold": threshold}
-        )
-
-        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
-        grid.set_closest_neighbours()
-
-        group = FunctionalGroup(
-            name="test",
-            taxa="mammal",
-            diet="herbivore",
-            metabolic_type="endothermic",
-            reproductive_environment="terrestrial",
-            reproductive_type=reproductive_type,
-            development_type="direct",
-            development_status="adult",
-            offspring_functional_group="test",
-            excretion_type="ureotelic",
-            migration_type="none",
-            vertical_occupancy="ground",
-            birth_mass=1.0,
-            adult_mass=10.0,
-            constants=constants,
-        )
-
-        cohort = AnimalCohort(
-            functional_group=group,
-            mass=initial_mass,
-            age=100.0,
-            individuals=individuals,
-            centroid_key=0,
-            grid=grid,
-            constants=constants,
-        )
-
+        cohort = make_test_cohort(constants_instance, reproductive_type, initial_mass)
         intake = {
-            e: growth_per_individual * individuals * p
+            e: growth_per_individual * cohort.individuals * p
             for e, p in cohort.cnp_proportions.items()
         }
 
         waste = cohort.grow(intake)
 
-        assert cohort.mass_current == pytest.approx(expected_body)
-        assert cohort.reproductive_mass == pytest.approx(expected_repro)
+        assert cohort.mass_current == pytest.approx(expected_body, rel=1e-12, abs=0.0)
+        assert cohort.reproductive_mass == 0.0
+        assert cohort.is_mature is False
+
+        for element, proportion in cohort.cnp_proportions.items():
+            assert cohort.mass_cnp[element] == pytest.approx(
+                expected_body * proportion, rel=1e-12, abs=0.0
+            )
+            assert waste[element] == pytest.approx(0.0, abs=1e-12 * initial_mass)
+
+    @pytest.mark.parametrize(
+        "reproductive_type, threshold, initial_body, initial_repro, expected_body,"
+        "expected_repro, expect_mature",
+        [
+            pytest.param(
+                "iteroparous", 1.0, 7.0, 0.0, 7.0, 0.0, False, id="below_ceiling"
+            ),
+            pytest.param(
+                "iteroparous", 1.0, 10.0, 0.0, 10.0, 0.0, False, id="at_ceiling"
+            ),
+            pytest.param(
+                "iteroparous", 1.0, 13.0, 0.0, 10.0, 3.0, True, id="above_ceiling"
+            ),
+            pytest.param(
+                "iteroparous",
+                1.0,
+                13.0,
+                2.0,
+                10.0,
+                5.0,
+                True,
+                id="adds_to_existing_reproductive_mass",
+            ),
+            pytest.param(
+                "iteroparous", 1.2, 13.0, 0.0, 12.0, 1.0, True, id="raised_threshold"
+            ),
+            pytest.param(
+                "semelparous", 1.0, 13.0, 0.0, 10.0, 3.0, True, id="semelparous"
+            ),
+            pytest.param(
+                "nonreproductive",
+                1.0,
+                13.0,
+                0.0,
+                13.0,
+                0.0,
+                False,
+                id="nonreproductive_keeps_all",
+            ),
+        ],
+    )
+    def test_allocate_to_reproduction(
+        self,
+        constants_instance,
+        reproductive_type: str,
+        threshold: float,
+        initial_body: float,
+        initial_repro: float,
+        expected_body: float,
+        expected_repro: float,
+        expect_mature: bool,
+    ) -> None:
+        """Test that body mass above the ceiling moves to reproductive mass."""
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        constants = constants_instance.model_copy(
+            update={"flow_to_reproductive_mass_threshold": threshold}
+        )
+        cohort = make_test_cohort(constants, reproductive_type, initial_body)
+        proportions = cohort.cnp_proportions
+        cohort.reproductive_mass_cnp = CNP(
+            **{e: initial_repro * p for e, p in proportions.items()}
+        )
+
+        cohort.allocate_to_reproduction()
+
+        assert cohort.mass_current == pytest.approx(expected_body, rel=1e-12, abs=0.0)
+        assert cohort.reproductive_mass == pytest.approx(
+            expected_repro, rel=1e-12, abs=0.0
+        )
         assert cohort.is_mature is expect_mature
 
-        for e, p in cohort.cnp_proportions.items():
-            # Reproductive mass is stored at body stoichiometry
-            assert getattr(cohort.reproductive_mass_cnp, e) == pytest.approx(
-                expected_repro * p
+        for element, proportion in proportions.items():
+            # Both pools keep body stoichiometry
+            assert cohort.reproductive_mass_cnp[element] == pytest.approx(
+                expected_repro * proportion, rel=1e-12, abs=0.0
             )
-            # Intake is fully accounted for by body, reproductive mass and waste
-            gained = (
-                getattr(cohort.mass_cnp, e)
-                - initial_mass * p
-                + getattr(cohort.reproductive_mass_cnp, e)
-            ) * individuals
-            assert gained + waste[e] == pytest.approx(intake[e])
+            # Conservation: mass is moved between pools, never created or lost
+            assert cohort.mass_cnp[element] + cohort.reproductive_mass_cnp[
+                element
+            ] == pytest.approx(
+                (initial_body + initial_repro) * proportion, rel=1e-12, abs=0.0
+            )
 
     def test_flag_maturity_records_first_maturity_only(self, herbivore_cohort_instance):
         """Test that maturity is recorded once, at the age it is first reached."""
@@ -5173,4 +5243,78 @@ class TestAnimalCohort:
         with pytest.raises(ValueError, match="cannot be negative"):
             herbivore_cohort_instance.partition_metabolic_waste(
                 {"C": -1.0, "N": 0.0, "P": 0.0}
+            )
+
+    @pytest.mark.parametrize(
+        "growth_per_individual, cost_per_individual, expected_body, expected_repro",
+        [
+            pytest.param(5.0, 2.0, 10.0, 3.0, id="surplus_beyond_ceiling"),
+            pytest.param(2.0, 2.0, 10.0, 0.0, id="growth_exactly_covers_cost"),
+            pytest.param(1.0, 2.0, 9.0, 0.0, id="growth_below_cost"),
+            pytest.param(0.0, 2.0, 8.0, 0.0, id="no_growth"),
+        ],
+    )
+    def test_reproductive_allocation_is_net_of_metabolism(
+        self,
+        mocker,
+        constants_instance,
+        growth_per_individual: float,
+        cost_per_individual: float,
+        expected_body: float,
+        expected_repro: float,
+    ) -> None:
+        """Test Madingley's ΔR = max(0, M + ΔAss - ΔMetab - M_ceiling).
+
+        A cohort at the 10 kg ceiling grows, metabolises a cost calculated from its
+        start-of-step mass, and then allocates. In the surplus case the old order
+        gave body 8 kg and reproductive mass 5 kg; the correct result is body at the
+        ceiling and reproductive mass equal to intake minus metabolism.
+
+        All intake must be accounted for by body change, reproductive mass and
+        metabolic waste (intake is in body proportions, so there is no
+        stoichiometric waste).
+
+        Args:
+            mocker: pytest-mock fixture.
+            constants_instance: AnimalConstants fixture.
+            growth_per_individual: Per-individual growth supplied [kg].
+            cost_per_individual: Per-individual metabolic cost over the step [kg].
+            expected_body: Expected per-individual body mass after [kg].
+            expected_repro: Expected per-individual reproductive mass after [kg].
+        """
+        constants = constants_instance.model_copy(
+            update={"flow_to_reproductive_mass_threshold": 1.0}
+        )
+        cohort = make_test_cohort(constants, "iteroparous", 10.0)
+        individuals = cohort.individuals
+        proportions = cohort.cnp_proportions
+        start_mass = cohort.mass_current
+
+        intake = {
+            e: growth_per_individual * individuals * p for e, p in proportions.items()
+        }
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=cost_per_individual,
+        )
+
+        cohort.grow(intake)
+        waste = cohort.metabolize(25.0, timedelta64(1, "D"), rate_mass=start_mass)
+        cohort.allocate_to_reproduction()
+
+        assert cohort.mass_current == pytest.approx(expected_body, rel=1e-12, abs=0.0)
+        assert cohort.reproductive_mass == pytest.approx(
+            expected_repro, abs=1e-12 * start_mass
+        )
+        assert cohort.is_mature is (expected_repro > 0.0)
+
+        # Conservation per element: intake = Δbody + Δrepro + metabolic waste
+        for element, proportion in proportions.items():
+            gained = (
+                cohort.mass_cnp[element]
+                - start_mass * proportion
+                + cohort.reproductive_mass_cnp[element]
+            ) * individuals
+            assert gained + waste[element] == pytest.approx(
+                intake[element], abs=1e-12 * start_mass * individuals
             )
