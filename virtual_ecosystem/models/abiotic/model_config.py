@@ -179,9 +179,15 @@ class AbioticConstants(AbioticSharedConstants):
     """Maximum turbulent mixing coefficients, [m2 s-1].
     """
 
-    fraction_par_used_for_photosynthesis: float = 0.5
-    """Fraction of photosynthetically active radiation used for photosynthesis,
-    dimensionless."""
+    photosynthetic_energy_content_of_carbon: float = 39000.0
+    """Chemical energy stored per gram of photosynthetically fixed carbon, [J gC-1].
+
+    This converts plant light use efficiency to an energy flux for the energy balance.
+    The default approximates the energy content of carbohydrate.
+    """
+
+    dsr_to_ppfd: float = 2.04
+    """Convert broadband shortwave radiation [W m-2] to PPFD [µmol photons m-2 s-1]."""
 
     leaf_absorptance_non_par: float = 0.5
     """Leaf absorptance for non-photosynthetically active radiation, dimensionless."""
