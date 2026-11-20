@@ -32,7 +32,7 @@ inputs, state variables, and processes are illustrated in {numref}`hydrology`.
 The processes [within a grid cell](#within-grid-cell-hydrology) are loosely based
 on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`. These structure and flows of
 this '4-Bucket Model' are summarised in {numref}`bucket_model`. The processes
-[across the model grid](#across-grid-hydrology) are loosely based on
+{ref}`across the model grid <across-grid-hydrology>` are loosely based on
 the [pysheds](https://github.com/mdbartos/pysheds) package.
 
 :::{figure} ../../_static/images/hydrology.svg
@@ -51,8 +51,8 @@ Calculating hydrological processes at coarse time scales is problematic and so t
 hydrology model uses an internal daily time step to model hydrology. When the model is
 run with a coarser update interval - and hence the precipitation and transpiration
 inputs are totals over more than one day - the hydrology model partitions the input data
- into daily values. Precipitation is partitioned between days assuming a gamma
- distribution and the total evapotranspiration is evenly divided across days.
+into daily values. Precipitation is partitioned between days assuming a gamma
+distribution, while plant transpiration demand is divided evenly across days.
 
 The values returned by the hydrology model are then update-interval means or accumulated
 values. Soil moisture is returned as the mean across the internal daily steps, while its
@@ -444,13 +444,15 @@ storage–discharge relationship.
 To maintain consistency with the existing bucket-based architecture of the Virtual
 Ecosystem hydrology model, the original storage–discharge relationship is modified as:
 
-$$Q2 = k_{Q2} S_{e} \beta (S2-T)$$
+$$Q2 = k_{Q2} S_{e}^{\beta} \max(S2-T, 0)$$
 
 where $Q2$ is the lateral subsurface stormflow (mm timestep-1), $k_{Q2}$ is the
 empirical lateral flow coefficient, $S_{e}$ is the effective saturation of the middle
-soil layer (-), $\beta$ is the non-linearity exponent, $S2$ is the middle soil water
-storage (mm), an $T$ is the transpiration extracted from the middle soil layer during
-the current timestep (mm).
+soil layer (-), $\beta$ is the non-linearity exponent, $S2$ is the root-layer soil
+moisture after soil evaporation (seconds layer, mm), and $T$ is the daily transpiration
+demand (mm).
+This gives a potential stormflow; the soil-moisture update may reduce it if the
+available water is insufficient.
 
 #### Adaptation from Ye et al. (2014)
 
@@ -478,30 +480,63 @@ hydrology model. This is consistent with conceptual subsurface runoff parameteri
 in TOPMODEL and other storage–discharge models, where runoff increases non-linearly with
 soil saturation {cite}`beven_on_1982`;{cite}`ye_regionalization_2014`.
 
-**Why use ($S2-T$)?**
+**Why use $\max(S2-T, 0)$?**
 
-The term $(S2-T)$ represents the remaining mobile water in the middle soil layer after
-transpiration has been satisfied.
+The term $\max(S2-T, 0)$ represents the non-negative estimate of water remaining in the
+root layer after meeting transpiration demand.
 
-Within the current Virtual Ecosystem architecture, transpiration is extracted from the
-middle soil layer before vertical drainage occurs. Therefore, only the water remaining
-after transpiration should be available to generate lateral subsurface flow.
-Using ($S2-T$):
+In the soil-moisture update, topsoil drainage first flows into the root layer.
+Transpiration is then limited by the root-layer water available above residual moisture.
+Only after that uptake are root-layer vertical drainage and subsurface stormflow
+removed. Using $\max(S2-T, 0)$ to calculate potential stormflow:
 
 * maintains mass conservation,
 * prevents transpired water from contributing to runoff,
+* makes transpired water unavailable for subsurface stormflow,
+* prevents negative available water when demand exceeds root-layer moisture,
 * follows the existing process sequence in the Virtual Ecosystem, and
 * requires minimal modification to the current bucket-model implementation.
 
-Consequently, $Q2$ represents the fraction of the remaining soil water that is
-diverted laterally before draining vertically to the lower soil layer.
+The resulting stormflow is subsequently reduced, together with root-layer vertical
+drainage, if their combined outflow would lower root-layer moisture below its residual
+value.
+
+### Root water uptake
+
+The hydrology model treats plant transpiration as a demand for root water uptake from
+the second soil layer. It sums the plant model's transpiration across canopy layers and
+divides that demand evenly across the days in the update interval. For each day, water
+that has drained from the topsoil into the root layer is added to its existing soil
+moisture. The requested transpiration is then limited to the water available above the
+root layer's residual soil moisture:
+
+$$T_{\mathrm{actual}} =
+\min\left(\max(T_{\mathrm{demand}}, 0),
+ \max\left(S_{\mathrm{root}} + F_{\mathrm{top}\rightarrow\mathrm{root}} -
+S_{\mathrm{root,residual}}, 0\right)\right)$$
+
+where $T_{\mathrm{demand}}$ is the daily plant demand, $S_{\mathrm{root}}$ is the
+root-layer soil moisture after soil evaporation and before that day's vertical inflow,
+and $F_{\mathrm{top}\rightarrow\mathrm{root}}$ is the actual vertical flow from the
+topsoil to the root layer. The remaining water above residual moisture is available
+for root-layer vertical drainage and subsurface stormflow; those fluxes are reduced if
+their combined demand exceeds what remains after actual transpiration.
+
+The model stores this water-limited uptake as ``actual_transpiration_daily``. The
+unsuffixed ``actual_transpiration`` is the sum over the update interval. Both are in
+millimetres of water. The input ``transpiration`` remains the plant model's demand; the
+hydrology model does not currently feed its actual-uptake output back to the plant
+model.
 
 ### Soil moisture redistribution
 
-Soil moisture is updated for each layer by removing the vertical flow
-of the current layer and adding it to the layer below. The implementation is based
-on {cite:t}`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration is
-removed from the second soil layer.
+Soil moisture is updated for each layer by removing the actual vertical flow from the
+layer and adding it to the layer below. In the topsoil, vertical flow is limited by
+water available above residual moisture. In the root layer, the update accounts for
+incoming topsoil drainage, then removes actual transpiration, vertical drainage, and
+subsurface stormflow. Transpiration is prioritized; the latter two fluxes are scaled
+down together if they would take the root layer below residual moisture. The
+implementation is based on {cite:t}`van_der_knijff_lisflood_2010`.
 
 ```{note}
 We do currently NOT include any horizontal flows from the soil layers towards the stream
@@ -567,6 +602,7 @@ the value of $GW_{loss}$, the larger the amount of water that leaves the system.
 The actual groundwater loss is capped by the water available in the lower zone so
 that groundwater storage cannot become negative.
 
+(across-grid-hydrology)=
 ## Across grid hydrology
 
 The second part of the hydrology model calculates the horizontal water movement across

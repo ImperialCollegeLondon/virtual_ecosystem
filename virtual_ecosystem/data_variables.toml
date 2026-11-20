@@ -182,6 +182,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Update-interval total actual transpiration after soil water limitation"
+name = "actual_transpiration"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Friction velocity"
 name = "friction_velocity"
 unit = "m s-1"
@@ -779,6 +786,13 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Daily canopy evaporation"
 name = "canopy_evaporation_daily"
+unit = "mm"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Daily actual transpiration after soil water limitation"
+name = "actual_transpiration_daily"
 unit = "mm"
 variable_type = "float"
 
