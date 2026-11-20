@@ -862,24 +862,6 @@ class HydrologyModel(
                 denominator_tolerance=self.model_constants.denominator_tolerance,
             )
 
-            # Calculate the bucket runoff for use in the existing bypass partition.
-            surface_runoff_bucket = above_ground.calculate_surface_runoff(
-                precipitation_surface=precipitation_surface,
-                top_soil_moisture=hydro_input["current_soil_moisture"][0],
-                top_soil_moisture_saturation=hydro_input[
-                    "top_soil_moisture_saturation"
-                ],
-            )
-
-            # Calculate preferential bypass flow, [mm]
-            bypass_flow = above_ground.calculate_bypass_flow(
-                top_soil_moisture=hydro_input["current_soil_moisture"][0],
-                sat_top_soil_moisture=hydro_input["top_soil_moisture_saturation"],
-                available_water=precipitation_surface - surface_runoff_bucket,
-                bypass_flow_coefficient=(self.model_constants.bypass_flow_coefficient),
-            )
-            daily_lists["bypass_flow"].append(bypass_flow)
-
             # Potential drainage opens topsoil storage for part of the rainfall
             # excess. The actual flow later in the day is checked before finalizing
             # runoff.
@@ -891,6 +873,16 @@ class HydrologyModel(
                 ],
                 vertical_drainage_capacity=saturated_topsoil_flow["vertical_flow"][0],
             )
+
+            # Calculate bypass from water left after runoff, including capacity opened
+            # by potential same-day drainage.
+            bypass_flow = above_ground.calculate_bypass_flow(
+                top_soil_moisture=hydro_input["current_soil_moisture"][0],
+                sat_top_soil_moisture=hydro_input["top_soil_moisture_saturation"],
+                available_water=precipitation_surface - surface_runoff_local,
+                bypass_flow_coefficient=(self.model_constants.bypass_flow_coefficient),
+            )
+            daily_lists["bypass_flow"].append(bypass_flow)
 
             # Calculate top soil moisture after infiltration, [mm]
             soil_moisture_infiltrated = np.maximum(

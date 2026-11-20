@@ -318,10 +318,12 @@ variables continue to contain the usual update-interval totals or means.
 
 Infiltration is currently handled in a very simplistic way: water that fits in the
 topsoil bucket is added to the topsoil layer, with additional capacity allowed for
-potential same-day vertical drainage. The additional rainfall is treated as matrix
-infiltration; preferential bypass is calculated from the original bucket overflow
-partition. Any water that still exceeds topsoil capacity after actual drainage is
-returned to surface runoff. This does not represent rainfall intensity or
+potential same-day vertical drainage. Surface runoff is estimated after allowing for
+that drainage capacity, and preferential bypass is then calculated from the water
+remaining after the estimated runoff. The bypass fraction therefore applies to water
+that could otherwise infiltrate the soil matrix, including water accommodated by the
+potential drainage capacity. Any water that still exceeds topsoil capacity after actual
+drainage is returned to surface runoff. This does not represent rainfall intensity or
 soil-type-specific infiltration capacity.
 
 ### Bypass flow

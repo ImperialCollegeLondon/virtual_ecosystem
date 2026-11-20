@@ -498,6 +498,79 @@ def test_update_warns_when_transpiration_is_water_limited(
     )
 
 
+def test_bypass_uses_water_after_drainage_capacity_runoff(
+    fixture_core_components,
+    fixture_hydrology_init_data,
+    dummy_climate_data,
+    fixture_configuration,
+    monkeypatch,
+):
+    """Test that bypass flow uses water available after drainage capacity."""
+    from virtual_ecosystem.models.hydrology import above_ground
+    from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
+
+    model = HydrologyModel.from_config(
+        data=fixture_hydrology_init_data,
+        configuration=fixture_configuration,
+        core_components=fixture_core_components,
+    )
+
+    for var in model.vars_required_for_update:
+        model.data[var] = dummy_climate_data.data[var]
+
+    drainage_adjusted_available_water = []
+    bucket_available_water = []
+    bypass_available_water = []
+    calculate_surface_runoff = above_ground.calculate_surface_runoff
+    calculate_bypass_flow = above_ground.calculate_bypass_flow
+
+    def calculate_runoff_with_drainage_capacity(*args, **kwargs):
+        runoff = calculate_surface_runoff(*args, **kwargs)
+        if kwargs["vertical_drainage_capacity"] is not None:
+            bucket_runoff = calculate_surface_runoff(
+                precipitation_surface=kwargs["precipitation_surface"],
+                top_soil_moisture=kwargs["top_soil_moisture"],
+                top_soil_moisture_saturation=kwargs["top_soil_moisture_saturation"],
+            )
+            runoff = np.maximum(runoff - 10.0, 0.0)
+            drainage_adjusted_available_water.append(
+                kwargs["precipitation_surface"] - runoff
+            )
+            bucket_available_water.append(
+                kwargs["precipitation_surface"] - bucket_runoff
+            )
+        return runoff
+
+    def record_bypass_available_water(*args, **kwargs):
+        bypass_available_water.append(kwargs["available_water"].copy())
+        return calculate_bypass_flow(*args, **kwargs)
+
+    monkeypatch.setattr(
+        above_ground,
+        "calculate_surface_runoff",
+        calculate_runoff_with_drainage_capacity,
+    )
+    monkeypatch.setattr(
+        above_ground, "calculate_bypass_flow", record_bypass_available_water
+    )
+
+    model.update(time_index=0, seed=42)
+
+    assert len(bypass_available_water) == len(drainage_adjusted_available_water)
+    assert any(
+        not np.allclose(drainage_adjusted, bucket, equal_nan=True)
+        for drainage_adjusted, bucket in zip(
+            drainage_adjusted_available_water,
+            bucket_available_water,
+            strict=True,
+        )
+    )
+    for actual, expected in zip(
+        bypass_available_water, drainage_adjusted_available_water, strict=True
+    ):
+        np.testing.assert_allclose(actual, expected, equal_nan=True)
+
+
 def test_update_limits_soil_evaporation_to_available_topsoil_water(
     fixture_core_components,
     fixture_hydrology_init_data,
