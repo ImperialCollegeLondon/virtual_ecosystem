@@ -1705,43 +1705,48 @@ class PalmsModel(
         )
 
         for cell_id in self.communities.keys():
+            individual_counts = (
+                self.communities[cell_id].cohorts["n_individuals"].to_numpy()
+            )
+
             # Calculate N/P uptake (g N/P per stem) due to transpiration. Multiply:
-            # - Per stem transpiration (µmol H2O per stem)
-            # - Conversion factor from µmol H2O to m^3 (1.08015*10^-11)
+            # - Per stem transpiration (litres H2O per stem)
+            # - Conversion factor from litres H2O to m^3 (1.0e-3)
             # - Concentration of N/P uptake (kg m^-3)
-            # - Kg to g (1000)
+            # - Kg to g (1000) -> cancels prior conversion factor numerically
             # TODO: scale by atmospheric pressure and temperature (#927)
             ammonium_uptake = (
                 self.data["dissolved_ammonium"][cell_id].item()
                 * self.per_stem_transpiration[cell_id]
-                * 1.8015e-11
-                * 1000
             )
             nitrate_uptake = (
                 self.data["dissolved_nitrate"][cell_id].item()
                 * self.per_stem_transpiration[cell_id]
-                * 1.8015e-11
-                * 1000
             )
             phosphorous_uptake = (
                 self.data["dissolved_phosphorus"][cell_id].item()
                 * self.per_stem_transpiration[cell_id]
-                * 1.8015e-11
-                * 1000
             )
 
-            # Add per-cell, per-plant uptake to the data object
-            self.data["plant_ammonium_uptake"][cell_id] = sum(ammonium_uptake)
-            self.data["plant_nitrate_uptake"][cell_id] = sum(nitrate_uptake)
-            self.data["plant_phosphorus_uptake"][cell_id] = sum(phosphorous_uptake)
+            # Aggregate cohort uptake across all individuals and convert the total
+            # cell mass in grams per update to a soil-facing rate [kg m-2 day-1].
+            self.data["plant_ammonium_uptake"][cell_id] = self.convert_to_soil_units(
+                input_mass=np.asarray(np.sum(ammonium_uptake * individual_counts))
+            )
+            self.data["plant_nitrate_uptake"][cell_id] = self.convert_to_soil_units(
+                input_mass=np.asarray(np.sum(nitrate_uptake * individual_counts))
+            )
+            self.data["plant_phosphorus_uptake"][cell_id] = self.convert_to_soil_units(
+                input_mass=np.asarray(np.sum(phosphorous_uptake * individual_counts))
+            )
 
             # Add per-stem uptake to the biomass surplus pools
             self.biomasses[cell_id]._adjust_surpluses(
                 np.stack(
                     [
                         np.zeros_like(phosphorous_uptake),  # No carbon
-                        ammonium_uptake + nitrate_uptake,
-                        phosphorous_uptake,
+                        (ammonium_uptake + nitrate_uptake) * 1e-3,
+                        phosphorous_uptake * 1e-3,
                     ],
                     axis=1,
                 )
@@ -1800,14 +1805,14 @@ class PalmsModel(
     ) -> NDArray[np.floating]:
         """Helper function to convert plant quantities into soil model units.
 
-        The plant model records the GPP allocations (summed over stems) in units of mass
-        (g), whereas the soil model expects inputs into the soil to be expressed as rate
-        per area units (i.e. kg m^-2 day^-1). As well as converting to per area and rate
-        units this function also converts from g to kg.
+        The plant model records GPP allocations and nutrient uptake as mass in grams.
+        The soil model expects inputs into the soil to be expressed as a rate per area
+        (i.e. kg m^-2 day^-1). As well as converting to per area and rate units, this
+        function also converts from g to kg.
 
         Args:
-            input_mass: The mass (of carbon) being passed from the plant model to the
-                soil model [g]
+            input_mass: The mass (of carbon or nutrients) being passed from the plant
+                model to the soil model [g]
 
         Returns:
             The input mass converted to the density rate units that the soil model uses

@@ -1477,23 +1477,23 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Uptake of ammonium by subcanopy transpiration"
+description = "Rate of ammonium uptake by subcanopy transpiration"
 name = "subcanopy_ammonium_uptake"
-unit = "kg"
+unit = "kg{N} m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Uptake of nitrate by subcanopy transpiration"
+description = "Rate of nitrate uptake by subcanopy transpiration"
 name = "subcanopy_nitrate_uptake"
-unit = "kg"
+unit = "kg{N} m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Uptake of phosphorous by subcanopy transpiration"
+description = "Rate of phosphorus uptake by subcanopy transpiration"
 name = "subcanopy_phosphorus_uptake"
-unit = "kg"
+unit = "kg{P} m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
