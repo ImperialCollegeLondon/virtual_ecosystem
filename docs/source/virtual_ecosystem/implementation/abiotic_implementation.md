@@ -74,20 +74,26 @@ existing update-interval means.
 Monthly mean climate variables at reference height above the canopy are converted into
 hourly values over a 24-hour period using simplified, physically motivated assumptions.
 
-**Air temperature** follows a sinusoidal cycle, peaking in the early afternoon (~14:00).
-The sine-wave amplitude is half the prescribed daily temperature range, so the
-maximum minus minimum of the 24 hourly temperatures equals that range. This produces a
-smooth oscillation around the monthly mean.
+**Air temperature** follows a sinusoidal cycle, peaking approximately four hours before
+sunset. The sine wave is scaled over the hourly samples so that its maximum minus
+minimum equals the prescribed daily temperature range, with the monthly mean at its
+midpoint.
 
-**Incoming shortwave radiation** is distributed across daylight hours using a half-sine
-curve which is zero at night and peaks at midday. The resulting hourly fractions are
-normalised and used to distribute monthly shortwave absorption across hours, layers,
-and grid cells. **Incoming longwave radiation** is assumed to be constant throughout the
-day.
+**Incoming shortwave radiation** is distributed over daylight using the Liu and Jordan
+hourly irradiation model evaluated by {cite:t}`tham_estimation_2010`. It uses the
+sunset hour angle to define daylight and a solar-hour-angle profile to estimate each
+hour's share of the daily total. The profile is sampled at hourly midpoints, clipped to
+non-negative values, and normalised before distributing the monthly mean shortwave
+absorption across hours, layers, and grid cells. Thus, for days with daylight, the
+hourly values preserve the input daily mean when averaged over 24 hours.
+**Incoming longwave radiation** is assumed to be constant throughout the day.
 
 ```{note}
-Daylength is estimated from month and latitude and is constrained between 6 and 18
-hours. Sunrise and sunset are then calculated symmetrically around noon.
+Daylength is calculated from latitude and an approximate solar declination for the
+midpoint of each month, using the standard sunset-hour-angle relationship. Sunrise and
+sunset are symmetric around local solar noon. Polar day and polar night are handled
+explicitly; there is no 6-to-18-hour daylength clamp. Solar noon is assumed to be
+12:00, without longitude or time-zone corrections.
 
 The mean latitude of the grid has to be provided to the model configuration. In the
 future, this will be determined internally from the input model data projection and
@@ -99,10 +105,9 @@ Saturation vapour pressure depends on temperature, actual vapour pressure is der
 from monthly mean humidity, and hourly humidity is computed from their ratio. Values are
 constrained between 0 and 100%.
 
-**Evapotranspiration** is distributed hourly proportional to absorbed radiation when
-present and uniform when radiation is absent. **Soil evaporation** follows the same
-approach, using total absorbed radiation across layers
-to determine hourly scaling.
+**Evapotranspiration** and **soil evaporation** are distributed using the same
+normalised daylight profile as shortwave radiation. In polar night, the profile is zero,
+so these hourly fluxes are zero.
 
 ### Numerical workflow
 
