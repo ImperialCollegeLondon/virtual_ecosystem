@@ -437,7 +437,9 @@ def test_calculate_atmospheric_layer_geometry(
     )
 
 
-def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
+def test_generate_diurnal_cycle_from_monthly_data(
+    dummy_climate_data, fixture_abiotic_constants
+):
     """Test generation of a single-day diurnal cycle from monthly means."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import (
@@ -470,6 +472,7 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
         month=month,
         days=days,
         daily_temp_range=daily_temp_range,
+        abiotic_constants=fixture_abiotic_constants,
     )
 
     # Shape checks
@@ -522,6 +525,84 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
         data["soil_evaporation"].to_numpy(),
         rtol=1e-5,
     )
+
+
+def test_generate_diurnal_cycle_tham_profile(fixture_abiotic_constants):
+    """Test the hourly profile ."""
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        generate_diurnal_cycle_from_monthly_data,
+    )
+
+    forcing = generate_diurnal_cycle_from_monthly_data(
+        monthly_air_temperature=np.array([20.0]),
+        monthly_shortwave_absorption=np.array([[200.0]]),
+        monthly_relative_humidity=np.array([70.0]),
+        monthly_evapotranspiration=np.array([[3.0]]),
+        monthly_soil_evaporation=np.array([2.0]),
+        daily_temp_range=np.array([8.0]),
+        latitude_deg=0.0,
+        month=2,
+        days=30,
+        abiotic_constants=fixture_abiotic_constants,
+    )
+
+    hours = np.arange(24, dtype=float) + 0.5
+    omega_s = np.pi / 2.0
+    hour_angle = 2.0 * np.pi * (hours - 12.0) / 24.0
+    daylight = np.abs(hour_angle) <= omega_s
+    phase = np.pi / 3.0
+    a_prime = 0.409 + 0.5016 * np.sin(omega_s - phase)
+    b_prime = 0.6609 - 0.4767 * np.sin(omega_s - phase)
+    denominator = np.sin(omega_s) - omega_s * np.cos(omega_s)
+    expected = np.zeros(24)
+    expected[daylight] = (
+        (np.pi / 24.0)
+        * (a_prime + b_prime * np.cos(hour_angle[daylight]))
+        * (np.cos(hour_angle[daylight]) - np.cos(omega_s))
+        / denominator
+    )
+    expected /= expected.sum()
+
+    np.testing.assert_allclose(
+        forcing["shortwave_absorption_hourly"][:, 0, 0],
+        24.0 * 200.0 * expected,
+        rtol=1e-12,
+        atol=1e-12,
+    )
+
+
+@pytest.mark.parametrize(
+    ("month", "latitude", "has_daylight"),
+    [(1, 90.0, False), (6, 90.0, True)],
+)
+def test_generate_diurnal_cycle_polar_regions(
+    fixture_abiotic_constants, month, latitude, has_daylight
+):
+    """Test explicit polar-day and polar-night handling."""
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        generate_diurnal_cycle_from_monthly_data,
+    )
+
+    forcing = generate_diurnal_cycle_from_monthly_data(
+        monthly_air_temperature=np.array([10.0]),
+        monthly_shortwave_absorption=np.array([[100.0]]),
+        monthly_relative_humidity=np.array([70.0]),
+        monthly_evapotranspiration=np.array([[3.0]]),
+        monthly_soil_evaporation=np.array([2.0]),
+        daily_temp_range=np.array([6.0]),
+        latitude_deg=latitude,
+        month=month,
+        days=30,
+        abiotic_constants=fixture_abiotic_constants,
+    )
+
+    shortwave = forcing["shortwave_absorption_hourly"][:, 0, 0]
+    if has_daylight:
+        assert np.all(shortwave > 0.0)
+        assert np.isclose(shortwave.mean(), 100.0)
+    else:
+        assert np.all(shortwave == 0.0)
+        assert np.all(forcing["evapotranspiration_hourly"][:, 0, 0] == 0.0)
 
 
 def test_fill_layer_template(fixture_core_components, fixture_abiotic_indices):
