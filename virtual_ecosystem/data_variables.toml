@@ -1479,21 +1479,21 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Rate of ammonium uptake by subcanopy transpiration"
 name = "subcanopy_ammonium_uptake"
-unit = "kg{N} m^-2 day^-1"
+unit = "kg{N} m-2 day-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Rate of nitrate uptake by subcanopy transpiration"
 name = "subcanopy_nitrate_uptake"
-unit = "kg{N} m^-2 day^-1"
+unit = "kg{N} m-2 day-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Rate of phosphorus uptake by subcanopy transpiration"
 name = "subcanopy_phosphorus_uptake"
-unit = "kg{P} m^-2 day^-1"
+unit = "kg{P} m-2 day-1"
 variable_type = "float"
 
 [[variable]]
@@ -1535,7 +1535,7 @@ variable_type = "float"
 axis = ["spatial"]
 description = "C, N, and P masses of subcanopy vegetation consumed by animals."
 name = "subcanopy_vegetation_cnp_consumed"
-unit = "kg C m^-2"
+unit = "kg C m-2"
 variable_type = "float"
 
 [[variable]]
