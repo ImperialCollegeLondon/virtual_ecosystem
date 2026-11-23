@@ -136,12 +136,17 @@ class AnimalCohort:
         self.wet_per_cnp: float = self.functional_group.body_composition.wet_per_cnp
         """Wet body mass per unit CNP mass [kg/kg]."""
 
+        # The mass argument is wet body mass. Only its CNP share is stored; other dry
+        # mass and water are derived from it through the body composition.
+        cnp_mass = mass / self.wet_per_cnp
+
         self.mass_cnp = CNP(
-            C=mass * self.cnp_proportions["C"],
-            N=mass * self.cnp_proportions["N"],
-            P=mass * self.cnp_proportions["P"],
+            C=cnp_mass * self.cnp_proportions["C"],
+            N=cnp_mass * self.cnp_proportions["N"],
+            P=cnp_mass * self.cnp_proportions["P"],
         )
-        """The mass of C, N, and P in the cohort, from total mass and proportions."""
+        """The per-individual mass of C, N, and P in the cohort [kg], from wet body
+        mass, body composition and stoichiometric proportions."""
 
         self.reproductive_mass_cnp = CNP(0.0, 0.0, 0.0)
         """The reproductive mass of each stoichiometric element found in the animal
@@ -342,6 +347,8 @@ class AnimalCohort:
         stored as reproductive mass instead. Non-reproductive groups keep all growth
         in the body, so that larvae can reach their metamorphosis mass.
 
+        West mass grows by growth x wet_per_cnp.
+
         Args:
             resource_intake: The cohort-total mass of C, N, and P available for
                 growth [kg].
@@ -394,7 +401,9 @@ class AnimalCohort:
                 * self.functional_group.adult_mass
             )
             headroom = max(0.0, ceiling - self.mass_current)
-            to_body = min(1.0, headroom / growth_total)
+            # Headroom is wet mass; growth_total is CNP mass. Converting growth to wet
+            #  gives the fraction of this step's growth that fits under the ceiling.
+            to_body = min(1.0, headroom / (growth_total * self.wet_per_cnp))
 
         self.mass_cnp.update(**{e: g * to_body for e, g in growth.items()})
         self.reproductive_mass_cnp.update(
