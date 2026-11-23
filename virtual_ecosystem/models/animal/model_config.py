@@ -255,6 +255,17 @@ class AnimalConstants(Configuration):
     )
     """Stoichiometric proportions structured by taxon type."""
 
+    body_composition_terms: dict[TaxaType, dict[str, float]] = Field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0},
+            TaxaType.BIRD: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0},
+            TaxaType.INVERTEBRATE: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0},
+            TaxaType.AMPHIBIAN: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0},
+            TaxaType.REPTILE: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0},
+        }
+    )
+    """Dry mass and water mass proportions structured by taxon type."""
+
     birth_mass_threshold: float = 1.5
     """Mass threshold for reproduction"""
     flow_to_reproductive_mass_threshold: float = 1.0
