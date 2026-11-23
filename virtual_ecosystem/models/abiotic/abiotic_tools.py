@@ -618,7 +618,7 @@ def generate_diurnal_cycle_from_monthly_data(
         temperature_peak = sunset - abiotic_constants.temperature_peak_before_sunset
 
     temperature_phase = 2.0 * np.pi * (hours - temperature_peak) / hours_per_day
-    temperature_sine = np.sin(temperature_phase[:, None])
+    temperature_sine = np.sin(temperature_phase[:, None] + np.pi / 2.0)
     temperature_sine_min = temperature_sine.min(axis=0)
     temperature_sine_max = temperature_sine.max(axis=0)
     temperature_sine_range = temperature_sine_max - temperature_sine_min
