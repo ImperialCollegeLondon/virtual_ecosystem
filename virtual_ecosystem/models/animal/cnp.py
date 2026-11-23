@@ -201,6 +201,9 @@ class BodyComposition:
 
     @property
     def wet_per_cnp(self) -> float:
-        """Wet mass per unit CNP mass [kg/kg]."""
+        """Wet mass per unit CNP mass [kg/kg].
+
+        includes other dry mass via cnp_fraction_of_dry and water via water_fraction
+        """
         # dry = cnp / f and wet = dry / (1 - w), so wet = cnp / (f * (1 - w)).
         return 1.0 / (self.cnp_fraction_of_dry * (1.0 - self.water_fraction))
