@@ -74,7 +74,7 @@ class AbioticConstants(AbioticSharedConstants):
         1.0471975511965976,
     )
     """Bundled coefficients and 60-degree phase offset for the Liu and Jordan
-    hourly profile evaluated by :cite:t:`tham:2010`."""  # codespell:ignore
+    hourly profile evaluated by :cite:t:`tham_estimation_2010`."""  # codespell:ignore
 
     leaf_albedo: float = 0.15
     """Leaf albedo, unitless.
