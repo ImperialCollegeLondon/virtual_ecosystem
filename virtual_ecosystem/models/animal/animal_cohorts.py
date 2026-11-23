@@ -488,13 +488,15 @@ class AnimalCohort:
         Metabolic rate depends on temperature for ectotherms and is scaled by the
         activity window ``sigma_f_t`` for both metabolic types.
 
+        It returns a mass in CNP *not* wet mass.
+
         Args:
             temperature: Mean territory temperature [°C]. Conversion to Kelvin is
                 handled inside ``sf.metabolic_rate``.
             dt: Length of the timestep over which metabolic costs accrue.
 
         Returns:
-            The cohort-total mass of C, N and P removed from the body [kg].
+            The cohort-total mass of C, N and P removed from the body [kg CNP].
 
         Raises:
             ValueError: If ``dt`` is negative or any element of body mass is negative.
@@ -519,15 +521,15 @@ class AnimalCohort:
         ) * float(dt / timedelta64(1, "D"))
 
         # The cap is on whole body mass, not on any one element.
-        loss = min(self.mass_current, potential_mass_metabolized)
+        loss = min(self.mass_current, potential_mass_metabolized)  # wet [kg]
 
-        # Break tissue down in body proportions, but never remove more of an element
-        # than the body holds. With the body at fixed proportions this only binds at
-        # floating-point noise when loss == mass_current: mass_current is a re-summed
-        # float, so loss * p can exceed the stored element by ~1e-17, which
-        # CNP.update would reject as a negative mass.
+        # Only the CNP share of the lost wet mass leaves through respiration and
+        # excreta; the water and other dry mass in that tissue disappear.
+        cnp_loss = loss / self.wet_per_cnp
+
         lost = {
-            e: min(loss * p, self.mass_cnp[e]) for e, p in self.cnp_proportions.items()
+            e: min(cnp_loss * p, self.mass_cnp[e])
+            for e, p in self.cnp_proportions.items()
         }
 
         self.mass_cnp.update(**{e: -m for e, m in lost.items()})
