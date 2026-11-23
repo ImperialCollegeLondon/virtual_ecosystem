@@ -257,14 +257,34 @@ class AnimalConstants(Configuration):
 
     body_composition_terms: dict[TaxaType, dict[str, float]] = Field(
         default_factory=lambda: {
-            TaxaType.MAMMAL: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0},
-            TaxaType.BIRD: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0},
-            TaxaType.INVERTEBRATE: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0},
-            TaxaType.AMPHIBIAN: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0},
-            TaxaType.REPTILE: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0},
+            # Placeholder adult whole-body values. cnp_fraction_of_dry is
+            # (%C + %N + %P) of dry mass; water_fraction is water / wet mass.
+            # Vertebrate N and P from the non-fish vertebrate meta-analysis
+            # (N ~10.5%, P ~1.9% of dry mass); C per taxon as noted.
+            TaxaType.MAMMAL: {  # snowshoe hare C 43.6, N 11.2, P 3.0
+                "cnp_fraction_of_dry": 0.58,
+                "water_fraction": 0.65,
+            },
+            TaxaType.BIRD: {  # adult birds ~60% water regardless of size
+                "cnp_fraction_of_dry": 0.60,
+                "water_fraction": 0.60,
+            },
+            TaxaType.REPTILE: {  # C assumed ~40%; weakest-supported row
+                "cnp_fraction_of_dry": 0.52,
+                "water_fraction": 0.70,
+            },
+            TaxaType.AMPHIBIAN: {  # Rana pipiens ~82% water
+                "cnp_fraction_of_dry": 0.55,
+                "water_fraction": 0.80,
+            },
+            TaxaType.INVERTEBRATE: {  # insects C ~50, N ~9.3, P ~0.8; ~70% water
+                "cnp_fraction_of_dry": 0.61,
+                "water_fraction": 0.70,
+            },
         }
     )
-    """Other dry mass and water mass proportions structured by taxon type."""
+    """Fixed body composition by taxon: CNP fraction of dry mass and water fraction
+    of wet mass. Used to convert between stored CNP mass and wet body mass."""
 
     birth_mass_threshold: float = 1.5
     """Mass threshold for reproduction"""
