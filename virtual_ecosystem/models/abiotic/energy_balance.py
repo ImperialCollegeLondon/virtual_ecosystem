@@ -1002,7 +1002,9 @@ def calculate_latent_heat_flux(
 def calculate_total_absorbed_shortwave_radiation(
     downward_shortwave_radiation: NDArray[np.floating],
     shortwave_absorption_by_canopy: NDArray[np.floating],
-    fraction_par_used: float,
+    light_use_efficiency: NDArray[np.floating],
+    photosynthetic_energy_content_of_carbon: float,
+    dsr_to_ppfd: float,
     leaf_absorptance_non_par: float,
     par_fraction: float,
 ) -> NDArray[np.floating]:
@@ -1012,10 +1014,11 @@ def calculate_total_absorbed_shortwave_radiation(
       - PAR (photosynthetically active radiation)
       - non-PAR (primarily near-infrared, NIR)
 
-    The plant model provides absorbed PAR. A fraction of this PAR is used
-    in photosynthesis, while the remainder contributes to heat. Non-PAR radiation
-    is assumed not to be used in photosynthesis and contributes entirely to heat
-    after accounting for leaf absorptance.
+    The plant model provides absorbed broadband shortwave radiation and light use
+    efficiency (g C per mol photons). The plant model's broadband-shortwave-to-PPFD
+    conversion is applied to absorbed shortwave radiation, and the LUE-derived carbon
+    assimilation is converted to chemical energy. This energy is removed from absorbed
+    PAR; remaining PAR and absorbed non-PAR contribute to heat.
 
     This function calculates the total absorbed shortwave radiation that contributes to
     the leaf energy balance by combining the absorbed PAR (adjusted for photosynthesis)
@@ -1024,8 +1027,12 @@ def calculate_total_absorbed_shortwave_radiation(
 
     Args:
         downward_shortwave_radiation: Incoming shortwave radiation [W m-2]
-        shortwave_absorption_by_canopy: Absorbed PAR by canopy [W m-2]
-        fraction_par_used: Fraction of absorbed PAR used in photosynthesis (0-1).
+        shortwave_absorption_by_canopy: Absorbed shortwave radiation by canopy [W m-2]
+        light_use_efficiency: Plant light use efficiency [g C mol-1 photons]
+        photosynthetic_energy_content_of_carbon: Chemical energy stored per gram of
+            fixed carbon [J gC-1]
+        dsr_to_ppfd: Conversion from broadband downward shortwave radiation [W m-2] to
+            PPFD [µmol photons m-2 s-1]
         leaf_absorptance_non_par: Fraction of non-PAR radiation absorbed by the leaf
             (0-1).
         par_fraction: Fraction of total shortwave radiation that is PAR (0-1).
@@ -1034,7 +1041,7 @@ def calculate_total_absorbed_shortwave_radiation(
         Total absorbed shortwave radiation contributing to heat [W m-2]
     """
 
-    # Compute vertical distribution weights based on absorbed PAR
+    # Compute vertical distribution weights based on absorbed shortwave radiation
     weights = compute_weights_from_absorbed_radiation(
         radiation=shortwave_absorption_by_canopy
     )
@@ -1044,12 +1051,23 @@ def calculate_total_absorbed_shortwave_radiation(
     shortwave_non_par = downward_shortwave_radiation * (1 - par_fraction)
     shortwave_non_par_absorbed = leaf_absorptance_non_par * shortwave_non_par * weights
 
-    # Calculate the portion of absorbed PAR that contributes to heat after accounting
-    # for photosynthesis
-    # TODO: #1533 we want to use light use efficiency from the plant model to determine
-    # the fraction of absorbed PAR used in photosynthesis; for now we use a constant
-    # fraction.
-    par_heat = shortwave_absorption_by_canopy * (1 - fraction_par_used)
+    absorbed_par = shortwave_absorption_by_canopy * par_fraction
+    absorbed_photon_flux = shortwave_absorption_by_canopy * dsr_to_ppfd
+    # Soil has no plant LUE, so its missing LUE must contribute no photosynthetic energy
+    light_use_efficiency = np.nan_to_num(
+        light_use_efficiency,
+        nan=0.0,
+        posinf=0.0,
+        neginf=0.0,
+    )
+    photosynthesis_energy = (
+        np.maximum(light_use_efficiency, 0.0)
+        * absorbed_photon_flux
+        * 1e-6
+        * photosynthetic_energy_content_of_carbon
+    )
+    photosynthesis_energy = np.minimum(photosynthesis_energy, absorbed_par)
+    par_heat = absorbed_par - photosynthesis_energy
 
     # Total absorbed shortwave radiation contributing to heat
     total_abs = par_heat + shortwave_non_par_absorbed
