@@ -74,10 +74,10 @@ existing update-interval means.
 Monthly mean climate variables at reference height above the canopy are converted into
 hourly values over a 24-hour period using simplified, physically motivated assumptions.
 
-**Air temperature** follows a sinusoidal cycle, peaking approximately four hours before
-sunset. The sine wave is scaled over the hourly samples so that its maximum minus
-minimum equals the prescribed daily temperature range, with the monthly mean at its
-midpoint.
+**Air temperature** follows a sinusoidal diurnal cycle, with the timing of its maximum
+determined from the daily solar geometry. The sine wave is scaled over the hourly
+samples so that its maximum minus minimum equals the prescribed daily temperature range,
+with the monthly mean at its midpoint.
 
 **Incoming shortwave radiation** is distributed over daylight using the Liu and Jordan
 hourly irradiation model evaluated by {cite:t}`tham_estimation_2010`. It uses the

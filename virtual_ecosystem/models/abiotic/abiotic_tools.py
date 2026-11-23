@@ -507,9 +507,25 @@ def generate_diurnal_cycle_from_monthly_data(
 ) -> dict[str, NDArray[np.floating]]:
     """Generate synthetic hourly forcing for one day from monthly averages.
 
-    Solar geometry follows a standard sunset-hour-angle approach. The hourly
-    shortwave distribution uses the Liu and Jordan profile as evaluated by
-    :cite:t:`tham_estimation_2010`.
+    Solar geometry is calculated from latitude and the approximate solar
+    declination for the middle of the selected month. Day length and daylight
+    hours are determined using the standard sunset-hour-angle approach, including
+    explicit handling of polar day and polar night.
+
+    Hourly shortwave absorption is distributed across daylight hours using the
+    Liu and Jordan profile as evaluated by :cite:t:`tham_estimation_2010`. The
+    resulting profile is normalized so that its daily average equals the supplied
+    monthly shortwave absorption.
+
+    Air temperature follows a sinusoidal diurnal cycle scaled to the prescribed
+    daily temperature range, with the monthly air temperature at the midpoint
+    between the hourly minimum and maximum. The temperature peaks in the afternoon.
+    Relative humidity is calculated by assuming constant actual vapour pressure derived
+    from the monthly air temperature and relative humidity.
+
+    Monthly evapotranspiration and soil evaporation totals are converted to daily
+    values and distributed across daylight hours using the same normalized
+    shortwave profile.
 
     Args:
         monthly_air_temperature: Monthly mean air temperature [C]
