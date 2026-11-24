@@ -283,7 +283,7 @@ class AnimalConstants(Configuration):
             },
         }
     )
-    """Fixed body composition by taxon: CNP fraction of dry mass and water fraction
+    """Fixed body composition by taxon, CNP fraction of dry mass and water fraction
     of wet mass. Used to convert between stored CNP mass and wet body mass."""
 
     birth_mass_threshold: float = 1.5

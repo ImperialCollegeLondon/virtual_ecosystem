@@ -177,7 +177,7 @@ class AnimalCohort:
 
     @property
     def dry_mass(self) -> float:
-        """Dry body mass per individual: CNP plus other dry mass [kg]."""
+        """Dry body mass per individual, CNP plus other dry mass [kg]."""
         return (
             self.mass_cnp.total
             / self.functional_group.body_composition.cnp_fraction_of_dry
