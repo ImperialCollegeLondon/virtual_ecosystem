@@ -5174,3 +5174,531 @@ class TestAnimalCohort:
             herbivore_cohort_instance.partition_metabolic_waste(
                 {"C": -1.0, "N": 0.0, "P": 0.0}
             )
+
+
+class TestWetBodyMass:
+    """Tests for wet body mass under a non-trivial body composition."""
+
+    def test_initialisation_from_wet_mass(self, wet_cohort_factory) -> None:
+        """Test that a wet mass argument is split into CNP, other dry mass and water.
+
+        16 kg wet / 8 = 2 kg CNP; dry = 2 / 0.5 = 4 kg; other dry = 2 kg;
+        water = 16 - 4 = 12 kg.
+        """
+        cohort = wet_cohort_factory(mass=16.0)
+
+        assert cohort.wet_per_cnp == pytest.approx(8.0)
+        assert cohort.mass_cnp.total == pytest.approx(2.0)
+        for element, proportion in cohort.cnp_proportions.items():
+            assert cohort.mass_cnp[element] == pytest.approx(2.0 * proportion)
+
+        assert cohort.mass_current == pytest.approx(16.0)
+        assert cohort.dry_mass == pytest.approx(4.0)
+        assert cohort.other_dry_mass == pytest.approx(2.0)
+        assert cohort.water_mass == pytest.approx(12.0)
+        assert cohort.largest_mass_achieved == pytest.approx(16.0)
+
+        # The components add back up to wet mass and recover the input fractions
+        assert (
+            cohort.mass_cnp.total + cohort.other_dry_mass + cohort.water_mass
+        ) == pytest.approx(cohort.mass_current)
+        assert cohort.water_mass / cohort.mass_current == pytest.approx(0.75)
+        assert cohort.mass_cnp.total / cohort.dry_mass == pytest.approx(0.5)
+
+    def test_reproductive_mass_is_wet_equivalent(self, wet_cohort_factory) -> None:
+        """Test that 1.5 kg of reproductive CNP reports as 12 kg wet-equivalent."""
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        cohort = wet_cohort_factory(mass=16.0)
+        cohort.reproductive_mass_cnp = CNP(
+            **{e: 1.5 * p for e, p in cohort.cnp_proportions.items()}
+        )
+
+        assert cohort.reproductive_mass == pytest.approx(12.0)
+
+    @pytest.mark.parametrize(
+        "reproductive_type, initial_wet, growth_cnp, expected_body_wet,"
+        "expected_repro_wet, expect_mature",
+        [
+            pytest.param(
+                "iteroparous", 32.0, 3.0, 56.0, 0.0, False, id="below_ceiling"
+            ),
+            pytest.param(
+                "iteroparous", 64.0, 3.0, 80.0, 8.0, True, id="straddles_ceiling"
+            ),
+            pytest.param("iteroparous", 80.0, 3.0, 80.0, 24.0, True, id="at_ceiling"),
+            pytest.param(
+                "nonreproductive", 64.0, 3.0, 88.0, 0.0, False, id="nonreproductive"
+            ),
+            pytest.param("iteroparous", 64.0, 0.0, 64.0, 0.0, False, id="no_growth"),
+        ],
+    )
+    def test_grow_in_wet_mass(
+        self,
+        wet_cohort_factory,
+        reproductive_type: str,
+        initial_wet: float,
+        growth_cnp: float,
+        expected_body_wet: float,
+        expected_repro_wet: float,
+        expect_mature: bool,
+    ) -> None:
+        """Test that CNP growth raises wet mass by growth x 8, split at the ceiling.
+
+        3 kg CNP per individual is 24 kg wet. In the straddling case the headroom
+        is 80 - 64 = 16 kg wet, so 2 kg CNP go to the body and 1 kg CNP (8 kg wet)
+        to reproduction. Without the wet conversion the headroom would be compared
+        with 3 kg of CNP and the body would overshoot to 88 kg. Intake is supplied in
+        body proportions, so there is no stoichiometric waste, and CNP must be
+        conserved exactly.
+        """
+        individuals = 2
+        cohort = wet_cohort_factory(
+            mass=initial_wet,
+            individuals=individuals,
+            reproductive_type=reproductive_type,
+        )
+        initial_cnp = {e: cohort.mass_cnp[e] for e in ("C", "N", "P")}
+
+        intake = {
+            e: growth_cnp * individuals * p for e, p in cohort.cnp_proportions.items()
+        }
+
+        waste = cohort.grow(intake)
+
+        assert cohort.mass_current == pytest.approx(expected_body_wet)
+        assert cohort.reproductive_mass == pytest.approx(expected_repro_wet)
+        assert cohort.is_mature is expect_mature
+
+        # CNP is conserved: body gain + reproductive gain + waste = intake
+        for element in ("C", "N", "P"):
+            gained = (
+                cohort.mass_cnp[element]
+                - initial_cnp[element]
+                + cohort.reproductive_mass_cnp[element]
+            ) * individuals
+            assert gained + waste[element] == pytest.approx(intake[element])
+
+    def test_metabolize_removes_cnp_share_of_wet_loss(
+        self, mocker, wet_cohort_factory
+    ) -> None:
+        """Test that a wet metabolic loss removes only its CNP share from the body.
+
+        Body 80 kg wet (10 kg CNP), rate 8 kg wet per day for 1 day: 8 kg wet is
+        lost, of which 1 kg is CNP. Final body is 72 kg wet (9 kg CNP). The returned
+        waste is the cohort-total CNP lost, 1 kg x p x 2 individuals. Without the
+        conversion, 8 kg of CNP would be removed and the body would fall to 16 kg wet.
+        """
+        cohort = wet_cohort_factory(mass=80.0, individuals=2)
+
+        mock_rate = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=8.0,
+        )
+
+        waste = cohort.metabolize(25.0, timedelta64(1, "D"))
+
+        # The rate is calculated on wet body mass
+        assert mock_rate.call_args.kwargs["mass"] == pytest.approx(80.0)
+
+        assert cohort.mass_current == pytest.approx(72.0)
+        assert cohort.mass_cnp.total == pytest.approx(9.0)
+        for element, proportion in cohort.cnp_proportions.items():
+            assert waste[element] == pytest.approx(1.0 * proportion * 2)
+
+    def test_metabolize_cap_returns_cnp_not_wet(
+        self, mocker, wet_cohort_factory
+    ) -> None:
+        """Test that a loss capped at the whole body returns its CNP only.
+
+        Body 80 kg wet (10 kg CNP) x 2 individuals: the cohort-total waste must be
+        20 kg of CNP, not 160 kg of wet mass.
+        """
+        cohort = wet_cohort_factory(mass=80.0, individuals=2)
+
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=1.0e6,
+        )
+
+        waste = cohort.metabolize(25.0, timedelta64(1, "D"))
+
+        assert sum(waste.values()) == pytest.approx(20.0, rel=1e-12)
+        for element in ("C", "N", "P"):
+            assert cohort.mass_cnp[element] >= 0.0
+            assert cohort.mass_cnp[element] == pytest.approx(0.0, abs=1e-12)
+
+    @pytest.mark.parametrize(
+        "threshold, expected",
+        [
+            pytest.param(0.8, True, id="below"),
+            pytest.param(0.75, False, id="equal"),
+            pytest.param(0.7, False, id="above"),
+        ],
+    )
+    def test_is_below_mass_threshold_compares_wet(
+        self, wet_cohort_factory, threshold: float, expected: bool
+    ) -> None:
+        """Test that the mass threshold compares wet body + reproductive mass.
+
+        5 kg body CNP (40 kg wet) and 2.5 kg reproductive CNP (20 kg wet) against an
+        80 kg wet adult gives a ratio of 0.75. A CNP-on-wet comparison would give
+        7.5 / 80 = 0.094 and report "below" for every case.
+        """
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        cohort = wet_cohort_factory(mass=40.0)
+        cohort.reproductive_mass_cnp = CNP(
+            **{e: 2.5 * p for e, p in cohort.cnp_proportions.items()}
+        )
+
+        assert cohort.is_below_mass_threshold(threshold) is expected
+
+    def test_die_individual_sends_cnp_only_to_carcasses(
+        self, wet_cohort_factory
+    ) -> None:
+        """Test that carcass pools receive the CNP of the dead, not their wet mass.
+
+        Three deaths at 16 kg wet (2 kg CNP) each must deposit 6 kg of CNP, while
+        48 kg of wet mass leaves the cohort.
+        """
+        from virtual_ecosystem.models.animal.cnp import CNP
+        from virtual_ecosystem.models.animal.decay import CarcassPool
+
+        cohort = wet_cohort_factory(mass=16.0, individuals=10)
+        pool = CarcassPool(
+            scavengeable_cnp=CNP(0.0, 0.0, 0.0), decomposed_cnp=CNP(0.0, 0.0, 0.0)
+        )
+
+        cohort.die_individual(3, [pool])
+
+        assert cohort.individuals == 7
+        deposited = pool.scavengeable_cnp.total + pool.decomposed_cnp.total
+        assert deposited == pytest.approx(6.0)
+
+    def test_get_eaten_conserves_cnp_under_wet_mass(
+        self, mocker, wet_cohort_factory
+    ) -> None:
+        """Test that predation on wet mass passes on and deposits CNP only.
+
+        Prey are 16 kg wet (2 kg CNP). A request of 32 kg wet kills two. With
+        mechanical efficiency 0.5 the predator consumes 16 kg wet, which is 2 kg of
+        CNP, and the 16 kg wet remainder deposits 2 kg of CNP as carcass. Consumed
+        plus carcass CNP must equal the 4 kg of CNP killed.
+        """
+        from virtual_ecosystem.models.animal.cnp import CNP
+        from virtual_ecosystem.models.animal.decay import CarcassPool
+
+        prey = wet_cohort_factory(mass=16.0, individuals=10)
+        predator = mocker.Mock()
+        predator.functional_group.mechanical_efficiency = 0.5
+
+        pool = CarcassPool(
+            scavengeable_cnp=CNP(0.0, 0.0, 0.0), decomposed_cnp=CNP(0.0, 0.0, 0.0)
+        )
+        mocker.patch.object(
+            prey, "find_intersecting_carcass_pools", return_value=[pool]
+        )
+
+        consumed = prey.get_eaten(32.0, predator, {})
+
+        assert prey.individuals == 8
+        for element, proportion in prey.cnp_proportions.items():
+            assert consumed[element] == pytest.approx(2.0 * proportion)
+
+        carcass = pool.scavengeable_cnp.total + pool.decomposed_cnp.total
+        assert carcass == pytest.approx(2.0)
+        assert sum(consumed.values()) + carcass == pytest.approx(4.0)
+
+    @pytest.mark.parametrize(
+        "respiration_proportion",
+        [
+            pytest.param(0.0, id="none_respired"),
+            pytest.param(0.9, id="partial_respiration"),
+            pytest.param(1.0, id="all_respired"),
+        ],
+    )
+    def test_metabolic_loss_reaches_sinks_as_cnp(
+        self, mocker, wet_cohort_factory, respiration_proportion: float
+    ) -> None:
+        """Test that wet metabolic loss reaches respiration and excreta as CNP only.
+
+        Body 80 kg wet (10 kg CNP) per individual, two individuals. The mocked rate is
+        1% of body mass per day, 0.8 kg wet per day, so 30 days removes 24 kg wet per
+        individual. Of that, 3 kg is CNP (24 / 8), so the cohort loses 6 kg of CNP in
+        total and its body falls to 56 kg wet. Respiration plus excreta must carry
+        exactly that 6 kg of CNP, split by element in body proportions, and the
+        excrement pools must receive exactly the excreta. Without the conversion,
+        48 kg would reach the sinks.
+        """
+        from virtual_ecosystem.models.animal.cnp import CNP
+        from virtual_ecosystem.models.animal.decay import ExcrementPool
+
+        cohort = wet_cohort_factory(mass=80.0, individuals=2)
+        cohort.constants = cohort.constants.model_copy(
+            update={"carbon_respiration_proportion": respiration_proportion}
+        )
+        proportions = cohort.cnp_proportions
+
+        pools = [
+            ExcrementPool(
+                scavengeable_cnp=CNP(0.0, 0.0, 0.0),
+                decomposed_cnp=CNP(0.0, 0.0, 0.0),
+            )
+            for _ in range(2)
+        ]
+
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=0.8,
+        )
+
+        waste = cohort.metabolize(25.0, timedelta64(30, "D"))
+        respired, excreta = cohort.partition_metabolic_waste(waste)
+        cohort.excrete(excreta, pools)
+
+        # Body loses 24 kg wet per individual
+        assert cohort.mass_current == pytest.approx(56.0, rel=1e-12)
+
+        # Cohort-total CNP lost is 6 kg, in body proportions
+        expected_lost = {e: 6.0 * p for e, p in proportions.items()}
+
+        # Each element reaches exactly one sink
+        assert respired == pytest.approx(
+            expected_lost["C"] * respiration_proportion, rel=1e-12, abs=1e-12
+        )
+        assert respired + excreta["C"] == pytest.approx(expected_lost["C"], rel=1e-12)
+        assert excreta["N"] == pytest.approx(expected_lost["N"], rel=1e-12)
+        assert excreta["P"] == pytest.approx(expected_lost["P"], rel=1e-12)
+
+        # The excrement pools receive exactly the excreta
+        for element in ("C", "N", "P"):
+            deposited = sum(
+                pool.scavengeable_cnp[element] + pool.decomposed_cnp[element]
+                for pool in pools
+            )
+            assert deposited == pytest.approx(excreta[element], rel=1e-12, abs=1e-12)
+
+        # Everything that left the body is CNP: 6 kg in total, not 48 kg wet
+        assert respired + sum(excreta.values()) == pytest.approx(6.0, rel=1e-12)
+
+    @pytest.mark.parametrize(
+        "taxa", ["mammal", "bird", "reptile", "amphibian", "invertebrate"]
+    )
+    def test_real_default_compositions_hold_invariants(
+        self, mocker, wet_cohort_factory, taxa: str
+    ) -> None:
+        """Test the wet/CNP invariants for every taxon under the real default values.
+
+        The per-taxon values are expected to be revised, so no per-taxon numbers are
+        pinned here. Instead, for each taxon:
+
+        * the composition is non-trivial (wet_per_cnp > 1);
+        * a 16 kg wet cohort recovers the input water and CNP fractions, and its
+          components add back up to wet mass;
+        * growth of 1 kg CNP per individual raises wet mass by exactly
+          wet_per_cnp kg and conserves CNP;
+        * a 1.6 kg wet metabolic loss removes exactly 1.6 / wet_per_cnp kg of CNP
+          per individual;
+        * wet mass equals mass_cnp.total * wet_per_cnp after each step.
+        """
+        from virtual_ecosystem.models.animal.animal_traits import TaxaType
+        from virtual_ecosystem.models.animal.model_config import AnimalConstants
+
+        constants = AnimalConstants()
+        terms = constants.body_composition_terms[TaxaType(taxa)]
+        f = terms["cnp_fraction_of_dry"]
+        w = terms["water_fraction"]
+
+        individuals = 2
+        cohort = wet_cohort_factory(
+            mass=16.0,
+            individuals=individuals,
+            taxa=taxa,
+            composition=None,
+            constants=constants,
+        )
+        wpc = cohort.wet_per_cnp
+
+        # The real values are non-trivial
+        assert wpc > 1.0
+
+        # Initialisation: wet mass in, input fractions recovered
+        assert cohort.mass_current == pytest.approx(16.0, rel=1e-12)
+        assert cohort.water_mass / cohort.mass_current == pytest.approx(w, rel=1e-12)
+        assert cohort.mass_cnp.total / cohort.dry_mass == pytest.approx(f, rel=1e-12)
+        assert (
+            cohort.mass_cnp.total + cohort.other_dry_mass + cohort.water_mass
+        ) == pytest.approx(cohort.mass_current, rel=1e-12)
+
+        # Growth: 1 kg CNP per individual, in body proportions, well below the ceiling
+        cnp_before = cohort.mass_cnp.total
+        intake = {e: 1.0 * individuals * p for e, p in cohort.cnp_proportions.items()}
+
+        waste = cohort.grow(intake)
+
+        assert cohort.mass_current == pytest.approx(16.0 + wpc, rel=1e-12)
+        assert cohort.mass_cnp.total - cnp_before == pytest.approx(1.0, rel=1e-12)
+        assert sum(waste.values()) == pytest.approx(0.0, abs=1e-12)
+        assert cohort.mass_current == pytest.approx(
+            cohort.mass_cnp.total * wpc, rel=1e-12
+        )
+
+        # Metabolism: 1.6 kg wet per individual over one day
+        wet_before = cohort.mass_current
+        cnp_before = cohort.mass_cnp.total
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=1.6,
+        )
+
+        metabolic_waste = cohort.metabolize(25.0, timedelta64(1, "D"))
+
+        assert wet_before - cohort.mass_current == pytest.approx(1.6, rel=1e-12)
+        assert cnp_before - cohort.mass_cnp.total == pytest.approx(1.6 / wpc, rel=1e-12)
+        assert sum(metabolic_waste.values()) == pytest.approx(
+            1.6 / wpc * individuals, rel=1e-12
+        )
+        assert cohort.mass_current == pytest.approx(
+            cohort.mass_cnp.total * wpc, rel=1e-12
+        )
+
+    def test_predation_converts_with_each_cohorts_own_composition(
+        self, mocker, wet_cohort_factory
+    ) -> None:
+        """Test predation uses the prey's factor for loss and the predator's for gain.
+
+        Prey: 16 kg wet each at wet_per_cnp = 8 (2 kg CNP), 10 individuals.
+        Predator: 16 kg wet each at wet_per_cnp = 4 (4 kg CNP), 2 individuals.
+
+        The predator requests 32 kg wet, which kills two prey (32 kg wet, 4 kg CNP).
+        With mechanical efficiency 0.5 it ingests 16 kg wet, which is 2 kg CNP at the
+        prey's factor, and the other 2 kg CNP go to the carcass pool. With conversion
+        efficiency 0.5, 1 kg CNP is assimilated and 1 kg is unassimilated.
+
+        Growing on 1 kg CNP across 2 predators adds 0.5 kg CNP each, which is 2 kg wet
+        at the predator's factor, so each predator ends at 18 kg wet. Using the prey's
+        factor would give 20 kg; using no conversion would give 16.5 kg.
+        """
+        from virtual_ecosystem.models.animal.cnp import CNP
+        from virtual_ecosystem.models.animal.decay import CarcassPool
+
+        prey = wet_cohort_factory(
+            mass=16.0, individuals=10, composition=(0.5, 0.75), name="prey"
+        )
+        predator = wet_cohort_factory(
+            mass=16.0, individuals=2, composition=(0.5, 0.5), name="predator"
+        )
+
+        assert prey.wet_per_cnp == pytest.approx(8.0)
+        assert predator.wet_per_cnp == pytest.approx(4.0)
+
+        predator.functional_group.mechanical_efficiency = 0.5
+        predator.functional_group.conversion_efficiency = 0.5
+
+        pool = CarcassPool(
+            scavengeable_cnp=CNP(0.0, 0.0, 0.0), decomposed_cnp=CNP(0.0, 0.0, 0.0)
+        )
+        mocker.patch.object(
+            prey, "find_intersecting_carcass_pools", return_value=[pool]
+        )
+
+        # Mock the encounter set-up so the predator requests exactly 32 kg wet
+        mocker.patch.object(predator, "calculate_theta_opt_i", return_value=0.1)
+        mocker.patch.object(
+            predator, "get_territory_intersection", return_value=(set(), 5000.0)
+        )
+        mocker.patch.object(
+            predator, "_build_prey_bin_densities", return_value={5: 0.001}
+        )
+        mocker.patch.object(
+            predator,
+            "calculate_total_handling_time_for_predation",
+            return_value=1.0,
+        )
+        mocker.patch.object(
+            predator, "calculate_consumed_mass_predation", return_value=32.0
+        )
+
+        gain, unassimilated = predator.delta_mass_predation([prey], {}, 1.0)
+
+        # Prey lose two individuals: 32 kg wet, 4 kg CNP
+        assert prey.individuals == 8
+
+        # Ingested CNP is converted with the prey's factor and split by efficiency
+        assert sum(gain.values()) == pytest.approx(1.0, rel=1e-12)
+        assert sum(unassimilated.values()) == pytest.approx(1.0, rel=1e-12)
+        carcass = pool.scavengeable_cnp.total + pool.decomposed_cnp.total
+        assert carcass == pytest.approx(2.0, rel=1e-12)
+
+        # CNP is conserved: killed = assimilated + unassimilated + carcass
+        assert sum(gain.values()) + sum(unassimilated.values()) + carcass == (
+            pytest.approx(4.0, rel=1e-12)
+        )
+
+        # Growth uses the predator's own factor
+        waste = predator.grow(gain)
+
+        assert predator.mass_current == pytest.approx(18.0, rel=1e-12)
+        assert predator.mass_cnp.total == pytest.approx(4.5, rel=1e-12)
+        assert sum(waste.values()) == pytest.approx(0.0, abs=1e-12)
+
+    def test_birth_conserves_cnp_under_wet_mass(
+        self, animal_model_instance, wet_cohort_factory
+    ) -> None:
+        """Test that the CNP leaving the parent equals the CNP in the new offspring.
+
+        Composition f = 0.5, w = 0.75 (wet_per_cnp = 8). Each offspring is 8 kg wet at
+        birth, so it costs 1 kg of CNP. Two parents each hold 3.25 kg of reproductive
+        CNP (26 kg wet-equivalent), so 3.25 offspring per parent are possible and
+        int(3.25 * 2) = 6 are produced. Each parent spends 3 kg of CNP and keeps
+        0.25 kg left over because the count is floored. Body mass is unchanged
+        (iteroparous).
+
+        Without the wet-to-CNP conversion each offspring would cost 8 kg of CNP and
+        no offspring would be produced.
+        """
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        model = animal_model_instance
+        parent = wet_cohort_factory(
+            mass=80.0,
+            individuals=2,
+            name="wet_birth_test",
+            grid=model.data.grid,
+        )
+        model.functional_groups.append(parent.functional_group)
+
+        proportions = parent.cnp_proportions
+        parent.reproductive_mass_cnp = CNP(
+            **{e: 3.25 * p for e, p in proportions.items()}
+        )
+
+        body_before = parent.mass_current
+        repro_cnp_before = parent.reproductive_mass_cnp.total * parent.individuals
+        existing_ids = set(model.active_cohorts)
+
+        model.birth(parent)
+
+        new_ids = set(model.active_cohorts) - existing_ids
+        assert len(new_ids) == 1
+        offspring = model.active_cohorts[new_ids.pop()]
+
+        # Six offspring at 8 kg wet, each holding 1 kg of CNP
+        assert offspring.individuals == 6
+        assert offspring.mass_current == pytest.approx(8.0, rel=1e-12)
+        assert offspring.mass_cnp.total == pytest.approx(1.0, rel=1e-12)
+        for element, proportion in proportions.items():
+            assert offspring.mass_cnp[element] == pytest.approx(proportion, rel=1e-12)
+
+        # Each parent keeps 0.25 kg of reproductive CNP; body is untouched
+        assert parent.reproductive_mass_cnp.total == pytest.approx(0.25, rel=1e-12)
+        assert parent.mass_current == pytest.approx(body_before, rel=1e-12)
+
+        # Conservation: CNP leaving the parents equals CNP in the offspring cohort
+        repro_cnp_after = parent.reproductive_mass_cnp.total * parent.individuals
+        offspring_cnp = offspring.mass_cnp.total * offspring.individuals
+        assert repro_cnp_before - repro_cnp_after == pytest.approx(
+            offspring_cnp, rel=1e-12
+        )
+        assert offspring_cnp == pytest.approx(6.0, rel=1e-12)
