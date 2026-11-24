@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.19.6
+    jupytext_version: 1.19.7
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -202,7 +202,7 @@ will talk about the ones that aren't later). Data is stored in the data object o
 a format similar to [`netCDF`](https://www.unidata.ucar.edu/software/netcdf), i.e. this
 is what the {term}`LMWC` soil variable looks like in the example data:
 
-```{code-cell} ipython3
+```{code-cell} bash
 :tags: [remove-cell]
 
 %%bash

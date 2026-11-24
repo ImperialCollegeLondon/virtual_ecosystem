@@ -305,6 +305,7 @@ def generate_hourly_forcing(
         daily_temp_range=data.get_time_slice(
             "diurnal_temperature_range_ref", time_index
         ).to_numpy(),
+        abiotic_constants=abiotic_constants,
     )
 
 
