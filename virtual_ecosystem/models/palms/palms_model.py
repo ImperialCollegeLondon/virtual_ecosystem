@@ -676,8 +676,6 @@ class PalmsModel(
 
         # Initialize variables that are stored per cell and per element
         cnp_vars = [
-            "stem_turnover_cnp",
-            "root_turnover_cnp",
             "subcanopy_vegetation_litter_cnp",
             "subcanopy_vegetation_cnp",
             "subcanopy_seedbank_litter_cnp",
@@ -691,6 +689,8 @@ class PalmsModel(
             "canopy_foliage_cnp",
             "canopy_seed_cnp",
             "canopy_fruit_cnp",
+            "stem_turnover_cnp",
+            "root_turnover_cnp",
             "foliage_turnover_cnp",
             "seed_turnover_cnp",
             "fruit_turnover_cnp",
@@ -1430,19 +1430,12 @@ class PalmsModel(
             # HANDLE ALLOCATION TO TURNOVER:
             tissue_turnovers = biomasses.apply_turnover(allocation=stem_allocation)
 
-            # Store turnover quantities for tissues aggregated across cohorts in the
-            # data object:
-            # * scale per stem quantities up to the number of individuals,
-            # * sum across cohorts
-            for aggregated_tissue in ("stem", "foliage", "root"):
-                self.data[f"{aggregated_tissue}_turnover_cnp"][cell_id] += (
-                    tissue_turnovers[aggregated_tissue]
-                    * cohorts["n_individuals"].to_numpy()[:, None]
-                ).sum(axis=0)
+            # Turnover values are stored as quantities per grid cell per pft.
+            # Some turnover arrays _require_ partitioning by PFT (for example to support
+            # herbivory of turnover pools) all turnover arrays are exported to the data
+            # object with PFT structure, partly for a more consistent interface and
+            # partly to support more detailed validation and analyses.
 
-            # Expose biomasses that are affected by herbivory and which are currently
-            # structured by PFT: foliage, seed and fruit
-            #
             # Get boolean indices for each pft giving the columns of the cohort biomass
             # data that belong to the PFT.
             #
@@ -1457,27 +1450,30 @@ class PalmsModel(
                 cohorts["pft_name"] == pft for pft in self.flora.pft_name
             ]
 
-            for by_pft_tissue in ("fruit", "seed", "foliage"):
+            # Populate tissue biomasses from turnover
+            for tissue in ("stem", "root", "foliage", "fruit", "seed"):
                 # Calculate the total turnover and standing biomass in each cohort
                 total_turnover_biomass = (
-                    tissue_turnovers[by_pft_tissue]
-                    * cohorts["n_individuals"].to_numpy()[:, None]
-                )
-                total_standing_biomass = (
-                    self.biomasses[cell_id].get_tissue(by_pft_tissue).elemental_masses
+                    tissue_turnovers[tissue]
                     * cohorts["n_individuals"].to_numpy()[:, None]
                 )
 
                 for pft_idx, row_idx in enumerate(cohort_pft_bool_idx):
                     # Extract the cohorts for this PFT and sum across them and insert
                     # into xxx_turnover_cnp arrays
-                    self.data[f"{by_pft_tissue}_turnover_cnp"][cell_id][pft_idx] = (
+                    self.data[f"{tissue}_turnover_cnp"][cell_id][pft_idx] = (
                         total_turnover_biomass[row_idx, :].sum(axis=0)
                     )
 
-                    # Same but for the standing canopy biomass inserted into
-                    # canopy_xxx_cnp arrays
-                    self.data[f"canopy_{by_pft_tissue}_cnp"][cell_id][pft_idx] = (
+            # Populate tissue biomasses in canopy
+            for canopy_tissue in ("foliage", "fruit", "seed"):
+                total_standing_biomass = (
+                    self.biomasses[cell_id].get_tissue(canopy_tissue).elemental_masses
+                    * cohorts["n_individuals"].to_numpy()[:, None]
+                )
+
+                for pft_idx, row_idx in enumerate(cohort_pft_bool_idx):
+                    self.data[f"canopy_{canopy_tissue}_cnp"][cell_id][pft_idx] = (
                         total_standing_biomass[row_idx, :].sum(axis=0)
                     )
 
@@ -1590,26 +1586,15 @@ class PalmsModel(
                 # Get the biomasses of the tissues in the dead stems
                 biomasses_of_dead_stems = self.biomasses[cell_id]
 
-                # Iterate over the tissues moving biomass into the turnover CNP arrays:
-                # 1. For stem and root biomass multiply stem biomasses by the
-                #    number of dead individuals and then sum across cohorts to give
-                #    total aggregated elemental contributions:
-                for aggregated_tissue in ("stem", "root"):
-                    self.data[f"{aggregated_tissue}_turnover_cnp"][cell_id] += (
-                        biomasses_of_dead_stems.get_tissue(
-                            aggregated_tissue
-                        ).elemental_masses
-                        * mortality[:, None]
-                    ).sum(axis=0)
-
-                # 2. Fruit and seed biomasses are stored by PFT so need pooling by PFT.
+                # Iterate over the tissues moving biomass into the turnover CNP arrays
+                # structured by PFT:
                 #    TODO - Some structural overlap here with allocate turnover in GPP.
                 #           Can we share code here? Need a collapse_by_pft method?
                 cohort_pft_bool_idx = [
                     cohorts["pft_name"] == pft for pft in self.flora.pft_name
                 ]
 
-                for by_pft_tissue in ("fruit", "foliage", "seed"):
+                for by_pft_tissue in ("fruit", "foliage", "seed", "stem", "root"):
                     # Calculate the total turnover and standing biomass in each cohort
                     total_turnover_biomass = (
                         biomasses_of_dead_stems.get_tissue(

@@ -634,6 +634,12 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
         for cell_id in fxt_plants_model.communities.keys()
     }
 
+    # Impose finite branch turnover to check for positively valued branch turnover. The
+    # default PFTs set tau_b=Inf and hence turnover is always zero, so tweak to test
+    # that there are small amounts of turnover when PFTs are present in a cell.
+    for community in fxt_plants_model.communities.values():
+        community.cohorts["tau_b"] = 1e6
+
     # Allocate GPP
     fxt_plants_model.allocate_gpp()
 
@@ -649,18 +655,12 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
             )
         )
 
-    # Ensure that currently non PFT turnovers are > 0 ...
-    assert np.all(np.greater(fxt_plants_model.data["root_turnover_cnp"], 0))
-    # ... except for stem turnover which currently has no turnover
-    # (NOTE - this could change if we add branchfall)
-    assert np.allclose(fxt_plants_model.data["stem_turnover_cnp"], 0)
-
     # Check carbon supply to soil
     assert np.all(np.greater(fxt_plants_model.data["root_carbohydrate_exudation"], 0))
     assert np.all(np.greater(fxt_plants_model.data["plant_symbiote_carbon_supply"], 0))
 
-    # Check the PFT structured arrays - These are trickier because values can and should
-    # be zero if the PFT is not in a cell but that's a good feature of the test
+    # Check the PFT structured arrays - here values can and should be zero if the PFT is
+    # not in a cell but that's a good feature to test
 
     # Calculate a boolean mask that shows which cells are expected to be populated
     mask = fxt_plants_model.data_object_templates["cnp_pft"].copy().astype(bool)
@@ -670,6 +670,8 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, tricky_plant_cohorts):
     default_out = np.ones_like(mask)
 
     for var in [
+        "root_turnover_cnp",
+        "stem_turnover_cnp",
         "foliage_turnover_cnp",
         "fruit_turnover_cnp",
         "seed_turnover_cnp",
@@ -910,17 +912,9 @@ def test_PlantsModel_apply_mortality(mocker, fxt_plants_model, tricky_plant_coho
             fxt_plants_model.communities[cell_id].cohorts.n_individuals + 1,
         )
 
-        # Check the turnovers are now equal to the sums of a single stem of each cohort
-        for var in ["stem", "root"]:
-            tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
-            assert_allclose(
-                fxt_plants_model.data[f"{var}_turnover_cnp"][cell_id],
-                tissue.elemental_masses.sum(axis=0),
-            )
-
         # More complex for fruit and seed - need to calculate per PFT values so need to
         # sum across the columns in the tissue biomasses for each PFT
-        for var in ["fruit", "foliage", "seed"]:
+        for var in ["fruit", "foliage", "seed", "root", "stem"]:
             tissue = fxt_plants_model.biomasses[cell_id].get_tissue(var)
 
             # Check tissue by pft
