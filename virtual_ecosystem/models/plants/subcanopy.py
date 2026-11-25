@@ -425,21 +425,19 @@ class Subcanopy:
 
         # Transpiration and nutrient acquisition
 
-        # Calculate the volume of water from µmol to m3 to convert soil water nutrient
-        # concentrations in kg m3 into uptake nutrient mass.  Water has 1e6 g / 18.015 g
-        # mol ~ 55509.2 moles per m3, so transpiration in µmol is (T * 1e-6) / (1e6 /
-        # 18.015) = T * 1.8015e-11 metres cubed.
-        subcanopy_volume_m3 = self.subcanopy_transpiration * 18.015e-11
+        # Subcanopy transpiration is mm per m2 per update, equivalent to L m-2.
+        # Convert it to m3 m-2 before multiplying by nutrient concentrations [kg m-3].
+        subcanopy_volume_m3_per_area = self.subcanopy_transpiration * 1e-3
 
         # Now calculate uptakes of nutrients through transpired water
-        ammonium_uptake_kg = (
-            subcanopy_volume_m3 * self.data["dissolved_ammonium"].to_numpy()
+        ammonium_uptake_kg_per_area = (
+            subcanopy_volume_m3_per_area * self.data["dissolved_ammonium"].to_numpy()
         )
-        nitrate_uptake_kg = (
-            subcanopy_volume_m3 * self.data["dissolved_nitrate"].to_numpy()
+        nitrate_uptake_kg_per_area = (
+            subcanopy_volume_m3_per_area * self.data["dissolved_nitrate"].to_numpy()
         )
-        phosphorus_uptake_kg = (
-            subcanopy_volume_m3 * self.data["dissolved_phosphorus"].to_numpy()
+        phosphorus_uptake_kg_per_area = (
+            subcanopy_volume_m3_per_area * self.data["dissolved_phosphorus"].to_numpy()
         )
 
         # Assimilate the gained masses into the vegetation first to update the
@@ -447,8 +445,8 @@ class Subcanopy:
         nutrient_uptake = np.hstack(
             [
                 subcanopy_npp[:, None],
-                (ammonium_uptake_kg + nitrate_uptake_kg)[:, None],
-                phosphorus_uptake_kg[:, None],
+                (ammonium_uptake_kg_per_area + nitrate_uptake_kg_per_area)[:, None],
+                phosphorus_uptake_kg_per_area[:, None],
             ]
         )
 
@@ -490,12 +488,13 @@ class Subcanopy:
         self.write_biomasses_pools_to_data()
 
         coords = {"cell_id": self.data["cell_id"].data}
+        update_days = self.model_timing.update_interval_quantity.to("days").magnitude
         for name, values in (
-            ("subcanopy_ammonium_uptake", ammonium_uptake_kg),
-            ("subcanopy_nitrate_uptake", nitrate_uptake_kg),
-            ("subcanopy_phosphorus_uptake", phosphorus_uptake_kg),
+            ("subcanopy_ammonium_uptake", ammonium_uptake_kg_per_area),
+            ("subcanopy_nitrate_uptake", nitrate_uptake_kg_per_area),
+            ("subcanopy_phosphorus_uptake", phosphorus_uptake_kg_per_area),
         ):
-            self.data[name] = DataArray(values, coords=coords)
+            self.data[name] = DataArray(values / update_days, coords=coords)
 
     def set_light_capture(self, below_canopy_light_fraction: NDArray) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.
