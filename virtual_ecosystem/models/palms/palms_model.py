@@ -1192,15 +1192,15 @@ class PalmsModel(
             )
 
             # Using GPP as A:
-            #   per_layer_gpp [µg C stem⁻¹ layer⁻¹]
-            #       / C molar mass [g C mol⁻¹]
-            #       -> µmol C stem⁻¹ layer⁻¹
-            #   / iWUE [µmol CO2 mol⁻¹ H2O]
+            #   per_layer_gpp [µg C stem-1 layer-1]
+            #       / C molar mass [g C mol-1]
+            #       -> µmol C stem-1 layer-1
+            #   / iWUE [µmol CO2 mol-1 H2O]
             #       -> mol H2O equivalent
             #   * 1e6
             #       -> µmol H2O
             #   * (VPD / P) [-]
-            #       -> transpiration [µmol H2O stem⁻¹ layer⁻¹]
+            #       -> transpiration [µmol H2O stem-1 layer-1]
             per_layer_transpiration_micromolar = (
                 (
                     per_layer_gpp
@@ -1711,8 +1711,8 @@ class PalmsModel(
 
             # Calculate N/P uptake (g N/P per stem) due to transpiration. Multiply:
             # - Per stem transpiration (litres H2O per stem)
-            # - Conversion factor from litres H2O to m^3 (1.0e-3)
-            # - Concentration of N/P uptake (kg m^-3)
+            # - Conversion factor from litres H2O to m3 (1.0e-3)
+            # - Concentration of N/P uptake (kg m-3)
             # - Kg to g (1000) -> cancels prior conversion factor numerically
             # TODO: scale by atmospheric pressure and temperature (#927)
             ammonium_uptake = (
