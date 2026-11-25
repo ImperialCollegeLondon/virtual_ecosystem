@@ -437,7 +437,9 @@ def test_calculate_atmospheric_layer_geometry(
     )
 
 
-def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
+def test_generate_diurnal_cycle_from_monthly_data(
+    dummy_climate_data, fixture_abiotic_constants
+):
     """Test generation of a single-day diurnal cycle from monthly means."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import (
@@ -448,28 +450,33 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
     month = 2
     days = 30
 
+    # Select input data for time_index 1
     data = dummy_climate_data
     n_layers, n_cells = data["canopy_evaporation"].shape
-    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+
+    monthly_air_temperature = data.get_time_slice("air_temperature_ref", 1).to_numpy()
+    monthly_relative_humidity = data.get_time_slice(
+        "relative_humidity_ref", 1
+    ).to_numpy()
+    monthly_shortwave = data["shortwave_absorption"].to_numpy()
+    monthly_et = (data["canopy_evaporation"] + data["transpiration"]).to_numpy()
+    monthly_soil = data["soil_evaporation"].to_numpy()
     daily_temp_range = data.get_time_slice(
         "diurnal_temperature_range_ref", 1
     ).to_numpy()
 
     # Generate diurnal cycle
     forcing = generate_diurnal_cycle_from_monthly_data(
-        monthly_air_temperature=data.get_time_slice(
-            "air_temperature_ref", 1
-        ).to_numpy(),
-        monthly_relative_humidity=data.get_time_slice(
-            "relative_humidity_ref", 1
-        ).to_numpy(),
-        monthly_shortwave_absorption=data["shortwave_absorption"].to_numpy(),
-        monthly_evapotranspiration=evapotranspiration.to_numpy(),
-        monthly_soil_evaporation=data["soil_evaporation"].to_numpy(),
+        monthly_air_temperature=monthly_air_temperature,
+        monthly_relative_humidity=monthly_relative_humidity,
+        monthly_shortwave_absorption=monthly_shortwave,
+        monthly_evapotranspiration=monthly_et,
+        monthly_soil_evaporation=monthly_soil,
+        daily_temp_range=daily_temp_range,
         latitude_deg=latitude_deg,
         month=month,
         days=days,
-        daily_temp_range=daily_temp_range,
+        abiotic_constants=fixture_abiotic_constants,
     )
 
     # Shape checks
@@ -481,15 +488,21 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
 
     # Air temperature bounds
     air_temp = forcing["air_temperature_hourly"]
-    air_temp_monthly = data.get_time_slice("air_temperature_ref", 1).to_numpy()
-    assert np.all(air_temp >= air_temp_monthly - daily_temp_range / 2 - 1e-6)
-    assert np.all(air_temp <= air_temp_monthly + daily_temp_range / 2 + 1e-6)
+    assert np.all(air_temp >= monthly_air_temperature - daily_temp_range / 2 - 1e-6)
+    assert np.all(air_temp <= monthly_air_temperature + daily_temp_range / 2 + 1e-6)
     np.testing.assert_allclose(
         np.ptp(air_temp, axis=0),
         daily_temp_range,
         rtol=1e-6,
         atol=1e-6,
     )
+    # Temperature peak should occur during the afternoon
+    hours = np.arange(24) + 0.5
+    peak_hours = hours[np.argmax(air_temp, axis=0)]
+
+    # For this test case at the equator in February, sunset is approximately 18:00.
+    assert np.all(peak_hours > fixture_abiotic_constants.solar_noon_hour)
+    assert np.all(peak_hours < 18.0)
 
     # Relative humidity bounds
     rh = forcing["relative_humidity_hourly"]
@@ -507,11 +520,9 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
     monthly_sum_soil_evap = np.nansum(forcing["soil_evaporation_hourly"], axis=0) * days
 
     # Mask for valid monthly
-    mask = ~np.isnan(evapotranspiration.to_numpy())
+    mask = ~np.isnan(monthly_et)
 
-    assert np.allclose(
-        monthly_sum_et[mask], evapotranspiration.to_numpy()[mask], rtol=1e-5
-    )
+    assert np.allclose(monthly_sum_et[mask], monthly_et[mask], rtol=1e-5)
     assert np.allclose(
         monthly_mean_sw_abs[mask],
         data["shortwave_absorption"].to_numpy()[mask],
@@ -521,6 +532,118 @@ def test_generate_diurnal_cycle_from_monthly_data(dummy_climate_data):
         monthly_sum_soil_evap,
         data["soil_evaporation"].to_numpy(),
         rtol=1e-5,
+    )
+
+
+def test_generate_diurnal_cycle_tham_profile(fixture_abiotic_constants):
+    """Check that shortwave has a sensible daylight profile and sum."""
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        generate_diurnal_cycle_from_monthly_data,
+    )
+
+    monthly_shortwave = np.array([[200.0]])
+    forcing = generate_diurnal_cycle_from_monthly_data(
+        monthly_air_temperature=np.array([20.0]),
+        monthly_shortwave_absorption=monthly_shortwave,
+        monthly_relative_humidity=np.array([70.0]),
+        monthly_evapotranspiration=np.array([[3.0]]),
+        monthly_soil_evaporation=np.array([2.0]),
+        daily_temp_range=np.array([8.0]),
+        latitude_deg=0.0,
+        month=2,
+        days=30,
+        abiotic_constants=fixture_abiotic_constants,
+    )
+
+    shortwave = forcing["shortwave_absorption_hourly"][:, 0, 0]
+    hours = np.arange(24) + 0.5
+    solar_noon = fixture_abiotic_constants.solar_noon_hour
+
+    # At the equator in February, there should be 12 daylight hours.
+    daylight = (hours >= 6.0) & (hours < 18.0)
+    nighttime = ~daylight
+
+    # Radiation is zero at night and positive throughout daylight.
+    assert np.all(shortwave[nighttime] == 0.0)
+    assert np.all(shortwave[daylight] > 0.0)
+    assert np.count_nonzero(shortwave) == 12
+
+    # The monthly daily mean is conserved:
+    # sum(hourly values) / 24 == monthly daily mean.
+    np.testing.assert_allclose(
+        shortwave.mean(),
+        monthly_shortwave,
+        rtol=1e-12,
+        atol=1e-12,
+    )
+
+    # The daylight profile should peak at solar noon. With hourly midpoints,
+    # the two central bins are equally close to noon and may both be maxima.
+    peak_hours = hours[np.isclose(shortwave, shortwave.max())]
+    assert np.all(np.abs(peak_hours - solar_noon) <= 0.5)
+
+    # Radiation should increase toward noon and decrease afterward.
+    daylight_values = shortwave[daylight]
+    midpoint = daylight_values.size // 2
+    np.testing.assert_array_equal(
+        np.diff(daylight_values[:midpoint]) > 0.0,
+        np.ones(midpoint - 1, dtype=bool),
+    )
+    np.testing.assert_array_equal(
+        np.diff(daylight_values[midpoint:]) < 0.0,
+        np.ones(midpoint - 1, dtype=bool),
+    )
+
+
+@pytest.mark.parametrize(
+    ("month", "latitude", "has_daylight"),
+    [(1, 90.0, False), (6, 90.0, True)],
+)
+def test_generate_diurnal_cycle_polar_regions(
+    fixture_abiotic_constants, month, latitude, has_daylight
+):
+    """Check polar-night and polar-day radiation and flux handling."""
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        generate_diurnal_cycle_from_monthly_data,
+    )
+
+    monthly_sw = 100.0
+    monthly_et = 3.0
+    monthly_soil = 2.0
+    days = 30
+
+    forcing = generate_diurnal_cycle_from_monthly_data(
+        monthly_air_temperature=np.array([10.0]),
+        monthly_shortwave_absorption=np.array([[monthly_sw]]),
+        monthly_relative_humidity=np.array([70.0]),
+        monthly_evapotranspiration=np.array([[monthly_et]]),
+        monthly_soil_evaporation=np.array([monthly_soil]),
+        daily_temp_range=np.array([6.0]),
+        latitude_deg=latitude,
+        month=month,
+        days=days,
+        abiotic_constants=fixture_abiotic_constants,
+    )
+
+    shortwave = forcing["shortwave_absorption_hourly"][:, 0, 0]
+    et = forcing["evapotranspiration_hourly"][:, 0, 0]
+    soil = forcing["soil_evaporation_hourly"][:, 0]
+
+    if has_daylight:
+        assert np.all(shortwave > 0.0)
+        assert np.all(et > 0.0)
+        assert np.all(soil > 0.0)
+        assert np.isclose(shortwave.mean(), monthly_sw)
+        assert np.isclose(et.sum() * days, monthly_et)
+        assert np.isclose(soil.sum() * days, monthly_soil)
+    else:
+        assert np.all(shortwave == 0.0)
+        assert np.all(et == 0.0)
+        assert np.all(soil == 0.0)
+
+    assert np.all(
+        (forcing["relative_humidity_hourly"] >= 0.0)
+        & (forcing["relative_humidity_hourly"] <= 100.0)
     )
 
 

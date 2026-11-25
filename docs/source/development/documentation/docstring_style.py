@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.19.6
+#       jupytext_version: 1.19.7
 # ---
 
 """This is the documentation for the module. It does not start with a header line
