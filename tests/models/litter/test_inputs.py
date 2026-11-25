@@ -148,7 +148,9 @@ def test_convert_to_input_masses_to_rates_per_area(
     expected_input_rate = [0.0375, 0.0495, 0.0315, 0.0165]
 
     actual_input_rate = convert_to_input_masses_to_rates_per_area(
-        input_mass=dummy_litter_data["stem_turnover_cnp"].sel(element="C"),
+        input_mass=dummy_litter_data["stem_turnover_cnp"]
+        .sel(element="C")
+        .sum(dim="pft"),
         cell_area=fixture_litter_model.grid.cell_area,
         update_interval=2.0,
     )
@@ -557,8 +559,12 @@ def test_find_nutrient_split_between_litter_pools(
     expected_n_struct = np.array([0.8858875316, 0.91902302, 0.009277350, 1.214462735])
 
     actual_n_meta, actual_n_struct = find_nutrient_split_between_litter_pools(
-        input_carbon_rate=dummy_litter_data["root_turnover_cnp"].sel(element="C"),
-        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].sel(element="N"),
+        input_carbon_rate=dummy_litter_data["root_turnover_cnp"]
+        .sel(element="C")
+        .sum(dim="pft"),
+        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"]
+        .sel(element="N")
+        .sum(dim="pft"),
         metabolic_split=litter_inputs.root_meta_split,
         meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
     )
@@ -590,7 +596,9 @@ def test_find_nutrient_split_between_litter_pools_bad_input(
 
     actual_n_meta, actual_n_struct = find_nutrient_split_between_litter_pools(
         input_carbon_rate=input_carbon_rate,
-        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
+        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"]
+        .sel(element="N")
+        .sum(dim="pft"),
         metabolic_split=metabolic_split,
         meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
     )
@@ -610,11 +618,17 @@ def test_calculate_nutrient_split(
     expected_n_struct = np.array([0.8858875316, 0.91902302, 0.009277350, 1.214462735])
 
     actual_n_meta, actual_n_struct = calculate_nutrient_split(
-        carbon_input_meta=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
+        carbon_input_meta=dummy_litter_data["root_turnover_cnp"]
+        .sel(element="C")
+        .sum(dim="pft")
         * litter_inputs.root_meta_split,
-        carbon_input_struct=dummy_litter_data["root_turnover_cnp"].loc[:, "C"]
+        carbon_input_struct=dummy_litter_data["root_turnover_cnp"]
+        .sel(element="C")
+        .sum(dim="pft")
         * (1 - litter_inputs.root_meta_split),
-        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"].loc[:, "N"],
+        input_nutrient_rate=dummy_litter_data["root_turnover_cnp"]
+        .sel(element="N")
+        .sum(dim="pft"),
         meta_to_struct_nutrient_ratio=fixture_litter_constants.metabolic_to_structural_n_ratio,
     )
 
