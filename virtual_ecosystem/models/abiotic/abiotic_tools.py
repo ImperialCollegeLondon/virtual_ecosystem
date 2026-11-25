@@ -18,6 +18,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic.wind import next_valid_below
 
 
@@ -502,8 +503,29 @@ def generate_diurnal_cycle_from_monthly_data(
     latitude_deg: float,
     month: int,
     days: int,
+    abiotic_constants: AbioticConstants,
 ) -> dict[str, NDArray[np.floating]]:
     """Generate synthetic hourly forcing for one day from monthly averages.
+
+    Solar geometry is calculated from latitude and the approximate solar
+    declination for the middle of the selected month. Day length and daylight
+    hours are determined using the standard sunset-hour-angle approach, including
+    explicit handling of polar day and polar night.
+
+    Hourly shortwave absorption is distributed across daylight hours using the
+    Liu and Jordan profile as evaluated by :cite:t:`tham_estimation_2010`. The
+    resulting profile is normalized so that its daily average equals the supplied
+    monthly shortwave absorption.
+
+    Air temperature follows a sinusoidal diurnal cycle scaled to the prescribed
+    daily temperature range, with the monthly air temperature at the midpoint
+    between the hourly minimum and maximum. The temperature peaks in the afternoon.
+    Relative humidity is calculated by assuming constant actual vapour pressure derived
+    from the monthly air temperature and relative humidity.
+
+    Monthly evapotranspiration and soil evaporation totals are converted to daily
+    values and distributed across daylight hours using the same normalized
+    shortwave profile.
 
     Args:
         monthly_air_temperature: Monthly mean air temperature [C]
@@ -515,83 +537,156 @@ def generate_diurnal_cycle_from_monthly_data(
         latitude_deg: Latitude for daylength calculation [deg]
         month: Month number [1-12]
         days: Number of days in month
+        abiotic_constants: Constants controlling the diurnal cycle
 
 
     Returns:
         dict of arrays air_temperature_hourly, shortwave_absorption_hourly,
         relative_humidity_hourly, evapotranspiration_hourly, soil_evaporation_hourly
     """
+    # codespell:ignore
 
-    hours_per_day = 24
-    hours = np.arange(hours_per_day)
+    hours_per_day = abiotic_constants.hours_per_day
 
-    # Air temperature (sine wave, max at 14:00). The sine amplitude is half
-    # the daily range so the hourly maximum minus minimum equals daily_temp_range.
-    air_temperature_hourly = monthly_air_temperature[None, :] + (
-        daily_temp_range / 2
-    ) * np.sin(2 * np.pi * (hours[:, None] - 8) / hours_per_day)
+    # Hourly midpoints provide a better approximation to the integral of
+    # radiation over each hourly interval than hour-start values.
+    hours = np.arange(hours_per_day, dtype=float) + 0.5
 
-    # Daylength (simple climatology)
-    daylength = 12 + 4 * np.cos((month - 1) * np.pi / 6) * np.cos(
-        np.radians(latitude_deg)
+    # Approximate day of year using the middle day of each month.
+    month_midpoints = np.asarray(abiotic_constants.month_midpoints, dtype=float)
+    day_of_year = month_midpoints[month - 1]
+
+    latitude_rad = np.radians(latitude_deg)
+
+    # Solar declination approximation.
+    solar_declination_rad = np.radians(
+        abiotic_constants.solar_declination_max
+    ) * np.sin(
+        2.0
+        * np.pi
+        * (day_of_year - abiotic_constants.solar_declination_offset)
+        / abiotic_constants.solar_declination_year_days
     )
-    daylength = np.clip(daylength, 6.0, 18.0)
 
-    sunrise = 12 - daylength / 2
-    sunset = 12 + daylength / 2
+    # Sunset hour angle. Handle polar day and polar night explicitly rather
+    # than relying only on clipping before arccos.
+    cos_sunset_hour_angle = -np.tan(latitude_rad) * np.tan(solar_declination_rad)
+    polar_night = cos_sunset_hour_angle >= 1.0
+    polar_day = cos_sunset_hour_angle <= -1.0
 
-    # Shortwave radiation (half-sine over daylight), shape (hours_per_day,)
-    hour_fraction = np.zeros(hours_per_day)
-    for h in range(hours_per_day):
-        if sunrise <= h <= sunset:
-            hour_fraction[h] = np.sin(np.pi * (h - sunrise) / daylength)
+    if polar_night:
+        sunset_hour_angle_rad = 0.0
+    elif polar_day:
+        sunset_hour_angle_rad = np.pi
+    else:
+        sunset_hour_angle_rad = np.arccos(np.clip(cos_sunset_hour_angle, -1.0, 1.0))
 
-    # Normalise so daytime hours sum to 1 — night hours remain 0
-    if hour_fraction.sum() > 0:
+    daylength = hours_per_day * sunset_hour_angle_rad / np.pi
+    sunset = abiotic_constants.solar_noon_hour + daylength / 2.0
+
+    # Solar hour angle at hourly midpoints. This assumes local solar noon is
+    # 12:00; longitude/time-zone corrections can be added if civil clock time
+    # is required.
+    hour_angle_rad = (
+        2.0 * np.pi * (hours - abiotic_constants.solar_noon_hour) / hours_per_day
+    )
+
+    # Tham et al. daylight radiation profile describes the relative # codespell:ignore
+    # distribution of daily shortwave radiation over daylight hours while the
+    # monthly shortwave input below determines the total daily magnitude.
+    hour_fraction = np.zeros(hours_per_day, dtype=float)
+
+    if not polar_night:
+        omega_s = sunset_hour_angle_rad
+        (
+            a_constant,
+            a_sine,
+            b_constant,
+            b_sine,
+            profile_phase,
+        ) = abiotic_constants.tham_daylight_profile_parameters
+        a_prime = a_constant + a_sine * np.sin(omega_s - profile_phase)
+        b_prime = b_constant - b_sine * np.sin(omega_s - profile_phase)
+
+        daylight = np.abs(hour_angle_rad) <= omega_s
+        denominator = np.sin(omega_s) - omega_s * np.cos(omega_s)
+
+        if denominator > 0.0:
+            hour_fraction[daylight] = (
+                (np.pi / hours_per_day)
+                * (a_prime + b_prime * np.cos(hour_angle_rad[daylight]))
+                * (np.cos(hour_angle_rad[daylight]) - np.cos(omega_s))
+                / denominator
+            )
+
+    # Remove tiny negative values caused by floating-point arithmetic and
+    # normalize so the distribution sums to one. Night hours remain zero.
+    hour_fraction = np.maximum(hour_fraction, 0.0)
+    if hour_fraction.sum() > 0.0:
         hour_fraction /= hour_fraction.sum()
 
-    # Shortwave absorption (hours_per_day, layer, cell)
-    # Multiply by hours per day to preserve daily mean absorption
+    # Air temperature: use a sunrise/sunset-aware sinusoid. The maximum is
+    # approximately four hours before sunset, consistent with the simple
+    # Microclimate sine temperature formulation.
+    if polar_night:
+        temperature_peak = abiotic_constants.polar_night_temperature_peak
+    else:
+        temperature_peak = sunset - abiotic_constants.temperature_peak_before_sunset
+
+    temperature_phase = 2.0 * np.pi * (hours - temperature_peak) / hours_per_day
+    temperature_sine = np.sin(temperature_phase[:, None] + np.pi / 2.0)
+    temperature_sine_min = temperature_sine.min(axis=0)
+    temperature_sine_max = temperature_sine.max(axis=0)
+    temperature_sine_range = temperature_sine_max - temperature_sine_min
+    temperature_sine = np.where(
+        temperature_sine_range[None, :] > 0.0,
+        2.0
+        * (temperature_sine - temperature_sine_min[None, :])
+        / temperature_sine_range[None, :]
+        - 1.0,
+        0.0,
+    )
+    air_temperature_hourly = (
+        monthly_air_temperature[None, :] + (daily_temp_range / 2.0) * temperature_sine
+    )
+
+    # Shortwave absorption: preserve the monthly daily mean when averaged over
+    # 24 hours. Radiation is zero at night.
     shortwave_absorption_hourly = (
         monthly_shortwave_absorption[None, :, :]
         * hour_fraction[:, None, None]
         * hours_per_day
     )
 
-    # Relative humidity (constant vapour pressure approach)
+    # Relative humidity using constant actual vapour pressure.
     e_s_mean = calculate_vp_sat(monthly_air_temperature)
     e_a = monthly_relative_humidity / 100.0 * e_s_mean
     e_s_hourly = calculate_vp_sat(air_temperature_hourly)
-    relative_humidity_hourly = np.clip(100.0 * e_a[None, :] / e_s_hourly, 0.0, 100.0)
+    relative_humidity_hourly = np.clip(
+        100.0 * e_a[None, :] / e_s_hourly,
+        0.0,
+        100.0,
+    )
 
-    # Evapotranspiration — conserve monthly total, distribute by radiation.
-    # hour_fraction is already normalised to sum=1 over daytime hours and
-    # is 0 at night, so multiplying by it gives zero ET at night AND
-    # preserves the daily total exactly.
-    #
-    # Shape: (hours_per_day, layer, cell)
-    monthly_et = monthly_evapotranspiration[None, :, :]  # (1, layer, cell)
-    daily_et = monthly_et / days  # (1, layer, cell)
-
-    # Distribute daily ET by hour_fraction (zero at night, sums to 1 over day)
+    # Evapotranspiration -  conserve the monthly total and distribute it using
+    # the daylight shortwave profile.
+    daily_et = monthly_evapotranspiration[None, :, :] / days
     evapotranspiration_hourly = daily_et * hour_fraction[:, None, None]
 
     # Preserve NaN structure from input (unoccupied canopy layers)
-    canopy_nan_mask = np.isnan(monthly_evapotranspiration)  # (layer, cell)
+    canopy_nan_mask = np.isnan(monthly_evapotranspiration)
     evapotranspiration_hourly = np.where(
         canopy_nan_mask[None, :, :],
         np.nan,
         evapotranspiration_hourly,
     )
 
-    # Soil evaporation — same approach, shape (hours_per_day, cell)
-    monthly_soil = monthly_soil_evaporation[None, :]  # (1, cell)
-    daily_soil = monthly_soil / days  # (1, cell)
-
+    # Soil evaporation: same daylight-weighted allocation.
+    daily_soil = monthly_soil_evaporation[None, :] / days
     soil_evaporation_hourly = daily_soil * hour_fraction[:, None]
 
     # Preserve NaN structure from input
-    soil_nan_mask = np.isnan(monthly_soil_evaporation)  # (cell,)
+    soil_nan_mask = np.isnan(monthly_soil_evaporation)
     soil_evaporation_hourly = np.where(
         soil_nan_mask[None, :],
         np.nan,

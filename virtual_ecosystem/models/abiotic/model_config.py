@@ -16,6 +16,66 @@ from virtual_ecosystem.models.abiotic_simple.model_config import (
 class AbioticConstants(AbioticSharedConstants):
     """Dataclass to store all constants for the `abiotic` model."""
 
+    hours_per_day: int = 24
+    """Number of hourly samples in a diurnal cycle."""
+
+    month_midpoints: tuple[
+        float,
+        float,
+        float,
+        float,
+        float,
+        float,
+        float,
+        float,
+        float,
+        float,
+        float,
+        float,
+    ] = (
+        15.0,
+        46.0,
+        74.0,
+        105.0,
+        135.0,
+        166.0,
+        196.0,
+        227.0,
+        258.0,
+        288.0,
+        319.0,
+        349.0,
+    )
+    """Approximate day of year at the middle of each month."""
+
+    solar_declination_max: float = 23.44
+    """Maximum solar declination, [degrees]."""
+
+    solar_declination_year_days: float = 365.25
+    """Length of year used in the solar declination approximation, [days]."""
+
+    solar_declination_offset: float = 81.0
+    """Day-of-year offset used in the solar declination approximation, [days]."""
+
+    solar_noon_hour: float = 12.0
+    """Hour corresponding to local solar noon."""
+
+    polar_night_temperature_peak: float = 14.0
+    """Fallback temperature peak hour during polar night."""
+
+    temperature_peak_before_sunset: float = 4.0
+    """Offset from sunset for the daily temperature maximum, [hours]."""
+
+    tham_daylight_profile_parameters: tuple[float, float, float, float, float] = (
+        0.409,
+        0.5016,
+        0.6609,
+        0.4767,
+        1.0471975511965976,
+    )
+    """Bundled coefficients and 60-degree phase offset for the Liu and Jordan
+    hourly profile evaluated by :cite:t:`tham_estimation_2010`."""  # codespell:ignore
+
     leaf_albedo: float = 0.15
     """Leaf albedo, unitless.
     
