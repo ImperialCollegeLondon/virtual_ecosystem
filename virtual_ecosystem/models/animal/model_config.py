@@ -490,10 +490,6 @@ class AnimalConstants(Configuration):
     """The proportion of carbon metabolic wastes that are carbonaceous and respired to
     the atmosphere as opposed to excreted."""
 
-    nitrogen_excreta_proportion: float = 0.1  # toy [unitless]
-    """The proportion of metabolic wastes that are nitrogenous. This is a temporary
-    fix to facilitate building the machinery and will be updated with stoichiometry."""
-
     decay_rate_excrement: float = 0.25
     """Rate at which excrement decays due to microbial activity [day^-1].
     
