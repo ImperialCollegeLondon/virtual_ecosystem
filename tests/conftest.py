@@ -484,29 +484,6 @@ def dummy_litter_data(fixture_core_components):
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
-    data["stem_turnover_cnp"] = DataArray(
-        data=np.stack(
-            [
-                [607.5, 801.9, 510.3, 267.3],
-                [10.00823, 13.84974, 6.98085, 4.85118],
-                [0.70928196, 1.187296, 0.546828, 0.3007426],
-            ],
-            axis=1,
-        ),
-        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
-    )
-
-    data["root_turnover_cnp"] = DataArray(
-        data=np.stack(
-            [
-                [218.7, 170.1, 2.43, 201.69],
-                [7.2178, 3.73026, 0.05612, 5.43639],
-                [0.333029, 0.377497, 0.0055568, 0.5423232],
-            ],
-            axis=1,
-        ),
-        coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
-    )
     data["subcanopy_vegetation_litter_cnp"] = DataArray(
         data=np.stack(
             [
@@ -530,8 +507,8 @@ def dummy_litter_data(fixture_core_components):
         coords={"cell_id": data["cell_id"], "element": ["C", "N", "P"]},
     )
 
-    # Split the foliage turnover 80/20 between two PFTs to give the expected
-    # dimensionality
+    # Split the foliage, root and stem turnover 80/20 between two PFTs to give the
+    # expected dimensionality
     total_foliage_turnover_cnp = np.stack(
         [
             [218.7, 2.43, 170.1, 230.85],
@@ -544,6 +521,45 @@ def dummy_litter_data(fixture_core_components):
     data["foliage_turnover_cnp"] = DataArray(
         data=np.stack(
             [total_foliage_turnover_cnp * 0.8, total_foliage_turnover_cnp * 0.2], axis=1
+        ),
+        coords={
+            "cell_id": data["cell_id"],
+            "pft": ["broadleaf", "shrub"],
+            "element": ["C", "N", "P"],
+        },
+    )
+
+    total_root_turnover_cnp = np.stack(
+        [
+            [218.7, 170.1, 2.43, 201.69],
+            [7.2178, 3.73026, 0.05612, 5.43639],
+            [0.333029, 0.377497, 0.0055568, 0.5423232],
+        ],
+        axis=1,
+    )
+
+    data["root_turnover_cnp"] = DataArray(
+        data=np.stack(
+            [total_root_turnover_cnp * 0.8, total_root_turnover_cnp * 0.2], axis=1
+        ),
+        coords={
+            "cell_id": data["cell_id"],
+            "pft": ["broadleaf", "shrub"],
+            "element": ["C", "N", "P"],
+        },
+    )
+
+    total_stem_turnover_cnp = np.stack(
+        [
+            [607.5, 801.9, 510.3, 267.3],
+            [10.00823, 13.84974, 6.98085, 4.85118],
+            [0.70928196, 1.187296, 0.546828, 0.3007426],
+        ],
+        axis=1,
+    )
+    data["stem_turnover_cnp"] = DataArray(
+        data=np.stack(
+            [total_stem_turnover_cnp * 0.8, total_stem_turnover_cnp * 0.2], axis=1
         ),
         coords={
             "cell_id": data["cell_id"],

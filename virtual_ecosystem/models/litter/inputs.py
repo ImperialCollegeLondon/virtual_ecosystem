@@ -164,16 +164,9 @@ def combine_input_sources(data: Data, update_interval: float) -> dict[str, DataA
         C} kg{C}^-1] of each of these pools.
     """
 
-    # Calculate totals for each plant matter type, collapsing PFTs for leaf inputs
-    leaf_rates = convert_to_input_masses_to_rates_per_area(
-        data["foliage_turnover_cnp"].sum(dim="pft"),
-        cell_area=data.grid.cell_area,
-        update_interval=update_interval,
-    )
-
-    # The other input streams are not broken up by pft so don't need special handling
-    # (just name conversion)
-    other_input_streams = (
+    # All input streams require name conversion
+    input_streams = (
+        ("foliage_turnover_cnp", "leaf_mass"),
         ("stem_turnover_cnp", "deadwood_mass"),
         ("root_turnover_cnp", "root_mass"),
         ("subcanopy_vegetation_litter_cnp", "subcanopy_veg_mass"),
@@ -182,17 +175,24 @@ def combine_input_sources(data: Data, update_interval: float) -> dict[str, DataA
         ("herbivory_waste_below_cnp", "herbivore_waste_below_mass"),
     )
 
+    # Calculate totals for each plant matter type, collapsing PFTs for PFT specific
+    # cases
     rates = {
         new_name: convert_to_input_masses_to_rates_per_area(
+            data[old_name].sum(dim="pft"),
+            cell_area=data.grid.cell_area,
+            update_interval=update_interval,
+        )
+        if "pft" in data[old_name].dims
+        else convert_to_input_masses_to_rates_per_area(
             data[old_name],
             cell_area=data.grid.cell_area,
             update_interval=update_interval,
         )
-        for old_name, new_name in other_input_streams
+        for old_name, new_name in input_streams
     }
 
     return {
-        "leaf_mass": leaf_rates,
         **rates,
         "leaf_lignin": data["senesced_leaf_lignin"],
         "root_lignin": data["root_lignin"],
