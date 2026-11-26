@@ -1991,6 +1991,39 @@ class TestAnimalModel:
         assert result[2] == pytest.approx(expected_birth_cnp[2])
 
     @pytest.mark.parametrize(
+        "birth_mass, wet_per_cnp, expected_cnp_total",
+        [
+            pytest.param(8.0, 1.0, 8.0, id="identity_composition"),
+            pytest.param(8.0, 8.0, 1.0, id="wet_birth_mass_to_cnp"),
+        ],
+    )
+    def test_calculate_birth_mass_cnp_converts_wet_to_cnp(
+        self,
+        mocker,
+        animal_model_instance,
+        birth_mass: float,
+        wet_per_cnp: float,
+        expected_cnp_total: float,
+    ) -> None:
+        """Test that the offspring cost is the CNP content of the wet birth mass.
+
+        An 8 kg wet offspring at wet_per_cnp = 8 costs 1 kg of CNP, split by the
+        parent's body proportions.
+        """
+        proportions = {"C": 0.5, "N": 0.3, "P": 0.2}
+        parent = mocker.Mock()
+        parent.wet_per_cnp = wet_per_cnp
+        parent.cnp_proportions = proportions
+
+        birth_c, birth_n, birth_p = animal_model_instance.calculate_birth_mass_cnp(
+            birth_mass, parent
+        )
+
+        assert birth_c == pytest.approx(expected_cnp_total * 0.5)
+        assert birth_n == pytest.approx(expected_cnp_total * 0.3)
+        assert birth_p == pytest.approx(expected_cnp_total * 0.2)
+
+    @pytest.mark.parametrize(
         "parent_group_name, reproductive_environment",
         [
             (

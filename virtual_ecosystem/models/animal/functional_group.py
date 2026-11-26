@@ -23,6 +23,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
     TaxaType,
     VerticalOccupancy,
 )
+from virtual_ecosystem.models.animal.cnp import BodyComposition
 from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
 
@@ -126,6 +127,11 @@ class FunctionalGroup:
         self.cnp_proportions = self.constants.cnp_proportion_terms[self.taxa]
         """The proportions of carbon/nitrogen/phosphorus in the functional group,
             example {"C": 0.8, "N": 0.15, "P": 0.05}."""
+        self.body_composition = BodyComposition(
+            **self.constants.body_composition_terms[self.taxa]
+        )
+        """Fixed other dry mass and water content of the functional group, relative to
+            CNP mass."""
         self.metabolic_rate_terms = self.constants.metabolic_rate_terms[
             self.metabolic_type
         ]

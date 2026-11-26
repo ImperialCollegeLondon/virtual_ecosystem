@@ -133,13 +133,20 @@ class AnimalCohort:
         """The normalized stoichiometric proportions that constrains growth."""
         if not abs(sum(self.cnp_proportions.values()) - 1.0) < 1e-6:
             raise ValueError("CNP proportions must sum to 1.")
+        self.wet_per_cnp: float = self.functional_group.body_composition.wet_per_cnp
+        """Wet body mass per unit CNP mass [kg/kg]."""
+
+        # The mass argument is wet body mass. Only its CNP share is stored; other dry
+        # mass and water are derived from it through the body composition.
+        cnp_mass = mass / self.wet_per_cnp
 
         self.mass_cnp = CNP(
-            C=mass * self.cnp_proportions["C"],
-            N=mass * self.cnp_proportions["N"],
-            P=mass * self.cnp_proportions["P"],
+            C=cnp_mass * self.cnp_proportions["C"],
+            N=cnp_mass * self.cnp_proportions["N"],
+            P=cnp_mass * self.cnp_proportions["P"],
         )
-        """The mass of C, N, and P in the cohort, from total mass and proportions."""
+        """The per-individual mass of C, N, and P in the cohort [kg], from wet body
+        mass, body composition and stoichiometric proportions."""
 
         self.reproductive_mass_cnp = CNP(0.0, 0.0, 0.0)
         """The reproductive mass of each stoichiometric element found in the animal
@@ -163,13 +170,33 @@ class AnimalCohort:
 
     @property
     def mass_current(self) -> float:
-        """Dynamically calculate the current total body mass from CNP object."""
-        return self.mass_cnp.total
+        """Wet body mass per individual [kg]."""
+        return self.mass_cnp.total * self.wet_per_cnp
 
     @property
     def reproductive_mass(self) -> float:
-        """Dynamically calculate the current reproductive mass from CNP object."""
-        return self.reproductive_mass_cnp.total
+        """Wet-equivalent reproductive mass per individual [kg]."""
+        return self.reproductive_mass_cnp.total * self.wet_per_cnp
+
+    @property
+    def dry_mass(self) -> float:
+        """Dry body mass per individual, CNP plus other dry mass [kg]."""
+        return (
+            self.mass_cnp.total
+            / self.functional_group.body_composition.cnp_fraction_of_dry
+        )
+
+    @property
+    def other_dry_mass(self) -> float:
+        """Non-CNP dry body mass per individual, mostly O and H [kg]."""
+        return self.dry_mass - self.mass_cnp.total
+
+    @property
+    def water_mass(self) -> float:
+        """Water mass per individual [kg]."""
+        w = self.functional_group.body_composition.water_fraction
+        # water / wet = w and wet = dry + water, so water = dry * w / (1 - w).
+        return self.dry_mass * w / (1.0 - w)
 
     def update_largest_mass(self) -> None:
         """Update the record of the largest body-mass achieved by this cohort.
@@ -306,17 +333,13 @@ class AnimalCohort:
     def allocate_to_reproduction(self) -> None:
         """Move body mass above the allocation ceiling to reproductive mass.
 
-        Implements Madingley's reproductive allocation net of metabolism,
-
-            ΔR = max(0, M_t + ΔM_assimilation - ΔM_metabolism - M_ceiling),
-            M_ceiling = flow_to_reproductive_mass_threshold · M_adult,
-
-        by being called after both growth and metabolism have been applied to the
-        body. The excess is moved in body proportions, so both pools keep body
-        stoichiometry. Non-reproductive groups keep all body mass, so that larvae can
-        reach their metamorphosis mass.
-
-        The first allocation marks the cohort mature.
+        Implements Madingley eq. 8 after metabolism, so the allocation is net of
+        metabolic cost: ΔR = max(0, M - M_ceiling), with
+        M_ceiling = flow_to_reproductive_mass_threshold x adult mass. Both are wet
+        masses. Only CNP is stored, so the wet excess is converted to CNP before it is
+        moved, and it is moved in body proportions so that both pools keep body
+        stoichiometry. Non-reproductive groups keep all their mass in the body, so that
+        larvae can reach their metamorphosis mass.
         """
         if self.functional_group.reproductive_type is ReproductiveType.NONREPRODUCTIVE:
             return
@@ -325,18 +348,15 @@ class AnimalCohort:
             self.constants.flow_to_reproductive_mass_threshold
             * self.functional_group.adult_mass
         )
-        excess = self.mass_current - ceiling
-
+        excess = self.mass_current - ceiling  # wet [kg]
         if excess <= 0.0:
             return
 
-        # The body is at fixed proportions, so moving excess * p of each element
-        # leaves the body at exactly the ceiling in body stoichiometry.
-        moved = {e: excess * p for e, p in self.cnp_proportions.items()}
+        excess_cnp = excess / self.wet_per_cnp
+        moved = {e: excess_cnp * p for e, p in self.cnp_proportions.items()}
 
         self.mass_cnp.update(**{e: -m for e, m in moved.items()})
         self.reproductive_mass_cnp.update(**moved)
-
         self._flag_maturity()
 
     def grow(self, resource_intake: dict[str, float]) -> dict[str, float]:
@@ -358,6 +378,8 @@ class AnimalCohort:
         reproduction happens later in the timestep, in
         :meth:`allocate_to_reproduction`, after metabolism has been applied, so that
         it is net of metabolic cost.
+
+        West mass grows by growth x wet_per_cnp.
 
         Args:
             resource_intake: The cohort-total mass of C, N, and P available for
@@ -476,26 +498,25 @@ class AnimalCohort:
         Following Madingley, the metabolic loss is body mass, not carbon alone. Tissue
         is broken down in the cohort's fixed C:N:P body proportions, so the body keeps
         its stoichiometry and the nitrogen and phosphorus of the catabolised tissue
-        leave the body alongside the carbon. The loss is capped at the whole body mass.
+        leave the body alongside the carbon.
+
+        The rate is calculated on ``rate_mass`` if given, otherwise on current body
+        mass. Both are wet mass. The loss is capped at current wet body mass, and only
+        its CNP share leaves through respiration and excreta; the water and other dry
+        mass in that tissue disappear.
 
         Metabolic rate depends on temperature for ectotherms and is scaled by the
         activity window ``sigma_f_t`` for both metabolic types.
-
-        The metabolic rate is calculated from ``rate_mass`` when given, and from the
-        current body mass otherwise. Madingley calculates metabolism from body mass at
-        the start of the timestep, so the model passes the start-of-step mass, which
-        differs from the current mass once foraging has added growth. The cap on the
-        loss is always the current body mass, since that is what is there to remove.
 
         Args:
             temperature: Mean territory temperature [°C]. Conversion to Kelvin is
                 handled inside ``sf.metabolic_rate``.
             dt: Length of the timestep over which metabolic costs accrue.
-            rate_mass: Per-individual body mass from which to calculate the
-                metabolic rate [kg]. Defaults to the current body mass.
+            rate_mass: Wet body mass per individual used to calculate the metabolic
+                rate [kg]. Defaults to current body mass.
 
         Returns:
-            The cohort-total mass of C, N and P removed from the body [kg].
+            The cohort-total mass of C, N and P removed from the body [kg CNP].
 
         Raises:
             ValueError: If ``dt`` or ``rate_mass`` is negative, or any element of body
@@ -511,8 +532,7 @@ class AnimalCohort:
         if rate_mass is not None and rate_mass < 0.0:
             raise ValueError(f"rate_mass cannot be negative: {rate_mass}.")
 
-        # Potential per-individual body mass metabolised over the step
-        # (kg/day * days), calculated from the start-of-step mass when given.
+        # Potential per-individual wet mass metabolised over the step (kg/day * days).
         potential_mass_metabolized = sf.metabolic_rate(
             mass=self.mass_current if rate_mass is None else rate_mass,
             temperature=temperature,
@@ -523,16 +543,17 @@ class AnimalCohort:
             boltzmann_constant=self.constants.BOLTZMANN_CONSTANT,
         ) * float(dt / timedelta64(1, "D"))
 
-        # The cap is on whole body mass, not on any one element.
-        loss = min(self.mass_current, potential_mass_metabolized)
+        # The cap is on whole current body mass, not on any one element.
+        loss = min(self.mass_current, potential_mass_metabolized)  # wet [kg]
 
-        # Break tissue down in body proportions, but never remove more of an element
-        # than the body holds. With the body at fixed proportions this only binds at
-        # floating-point noise when loss == mass_current: mass_current is a re-summed
-        # float, so loss * p can exceed the stored element by ~1e-17, which
-        # CNP.update would reject as a negative mass.
+        # Only the CNP share of the lost wet mass leaves through respiration and
+        # excreta; the water and other dry mass in that tissue disappear.
+        cnp_loss = loss / self.wet_per_cnp
+
+        # The min stops an element going below zero; any positive residue is noise.
         lost = {
-            e: min(loss * p, self.mass_cnp[e]) for e, p in self.cnp_proportions.items()
+            e: min(cnp_loss * p, self.mass_cnp[e])
+            for e, p in self.cnp_proportions.items()
         }
 
         self.mass_cnp.update(**{e: -m for e, m in lost.items()})

@@ -1469,10 +1469,11 @@ class AnimalModel(
             Tuple of (birth_carbon, birth_nitrogen, birth_phosphorus).
         """
         proportions = parent.cnp_proportions
+        cnp_birth_mass = birth_mass / parent.wet_per_cnp  # convert wet mass to CNP
         return (
-            birth_mass * proportions["C"],
-            birth_mass * proportions["N"],
-            birth_mass * proportions["P"],
+            cnp_birth_mass * proportions["C"],
+            cnp_birth_mass * proportions["N"],
+            cnp_birth_mass * proportions["P"],
         )
 
     def create_offspring(
