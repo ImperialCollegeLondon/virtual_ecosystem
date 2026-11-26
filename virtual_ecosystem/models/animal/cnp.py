@@ -165,3 +165,45 @@ def find_microbial_stoichiometries(
         name: {"N": parameters.c_n_ratio, "P": parameters.c_p_ratio}
         for name, parameters in soil_microbes.items()
     }
+
+
+@dataclass(frozen=True)
+class BodyComposition:
+    """Fixed non-elemental components of body mass, scaled from CNP mass.
+
+    C, N and P are the only components with explicit flows. Other dry mass (mostly
+    O and H) and water are held in fixed proportion to CNP mass: they appear when
+    the body grows and disappear when it loses mass.
+
+    Attributes:
+        cnp_fraction_of_dry: Fraction of dry mass made up of C, N and P [unitless].
+        water_fraction: Fraction of wet mass made up of water [unitless].
+    """
+
+    cnp_fraction_of_dry: float = 1.0
+    water_fraction: float = 0.0
+
+    def __post_init__(self) -> None:
+        """Validate the composition fractions.
+
+        Raises:
+            ValueError: If ``cnp_fraction_of_dry`` is not in (0, 1] or
+                ``water_fraction`` is not in [0, 1).
+        """
+        if not 0.0 < self.cnp_fraction_of_dry <= 1.0:
+            raise ValueError(
+                f"cnp_fraction_of_dry must be (0, 1], got {self.cnp_fraction_of_dry}."
+            )
+        if not 0.0 <= self.water_fraction < 1.0:
+            raise ValueError(
+                f"water_fraction must be in [0, 1), got {self.water_fraction}."
+            )
+
+    @property
+    def wet_per_cnp(self) -> float:
+        """Wet mass per unit CNP mass [kg/kg].
+
+        includes other dry mass via cnp_fraction_of_dry and water via water_fraction
+        """
+        # dry = cnp / f and wet = dry / (1 - w), so wet = cnp / (f * (1 - w)).
+        return 1.0 / (self.cnp_fraction_of_dry * (1.0 - self.water_fraction))

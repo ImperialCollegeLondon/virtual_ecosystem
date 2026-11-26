@@ -228,3 +228,15 @@ def test_subcanopy_vegetation_dynamics(
             plants_data["subcanopy_seedbank_cnp"].to_numpy(), np.zeros((4, 3))
         )
     )
+
+    update_days = subcanopy.model_timing.update_interval_quantity.to("days").magnitude
+    water_volume_m3_per_area = expected_transpiration * 1e-3
+    for nutrient in ("ammonium", "nitrate", "phosphorus"):
+        expected_uptake_rate = (
+            water_volume_m3_per_area
+            * plants_data[f"dissolved_{nutrient}"].to_numpy()
+            / update_days
+        )
+        assert_allclose(
+            plants_data[f"subcanopy_{nutrient}_uptake"], expected_uptake_rate
+        )

@@ -516,10 +516,20 @@ def animal_data_for_cohorts_instance(fixture_core_components):
 
 @pytest.fixture
 def constants_instance():
-    """Fixture for an instance of animal constants."""
+    """Fixture for an instance of animal constants.
+
+    Body composition is set to the identity (f = 1, w = 0, so wet_per_cnp = 1) so
+    that mechanism tests can set mass_cnp and read the same value back from
+    mass_current. Tests of wet-mass behaviour build their own composition.
+    """
+    from virtual_ecosystem.models.animal.animal_traits import TaxaType
     from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
-    return AnimalConstants(density_scaling_method="madingley")
+    constants = AnimalConstants(density_scaling_method="madingley")
+    identity = {
+        taxa: {"cnp_fraction_of_dry": 1.0, "water_fraction": 0.0} for taxa in TaxaType
+    }
+    return constants.model_copy(update={"body_composition_terms": identity})
 
 
 @pytest.fixture
@@ -1378,3 +1388,80 @@ def bacteria_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
         )
         for cell_id in litter_soil_data_instance.grid.cell_id
     ]
+
+
+@pytest.fixture
+def wet_cohort_factory(constants_instance):
+    """Factory for cohorts with a chosen body composition.
+
+    By default this builds a mammal with f = 0.5 and w = 0.75, so
+    wet_per_cnp = 1 / (0.5 * 0.25) = 8: each kg of CNP carries 1 kg of other dry
+    mass and 6 kg of water. Adult mass is 80 kg wet and birth mass 8 kg wet.
+
+    Passing ``composition=None`` leaves the body composition terms of ``constants``
+    unchanged, so that the real defaults can be tested with ``AnimalConstants()``.
+    """
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.animal_traits import TaxaType
+    from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+
+    default_grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+    default_grid.set_closest_neighbours()
+
+    def _make(
+        mass: float,
+        individuals: int = 2,
+        reproductive_type: str = "iteroparous",
+        taxa: str = "mammal",
+        composition: tuple[float, float] | None = (0.5, 0.75),
+        constants=None,
+        grid=None,
+        name: str = "test",
+        adult_mass: float = 80.0,
+        birth_mass: float = 8.0,
+    ) -> AnimalCohort:
+        base = constants if constants is not None else constants_instance
+        update: dict = {"flow_to_reproductive_mass_threshold": 1.0}
+
+        if composition is not None:
+            terms = dict(base.body_composition_terms)
+            terms[TaxaType(taxa)] = {
+                "cnp_fraction_of_dry": composition[0],
+                "water_fraction": composition[1],
+            }
+            update["body_composition_terms"] = terms
+
+        cohort_constants = base.model_copy(update=update)
+
+        metabolic_type = "endothermic" if taxa in ("mammal", "bird") else "ectothermic"
+
+        group = FunctionalGroup(
+            name=name,
+            taxa=taxa,
+            diet="herbivore",
+            metabolic_type=metabolic_type,
+            reproductive_environment="terrestrial",
+            reproductive_type=reproductive_type,
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group=name,
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=birth_mass,
+            adult_mass=adult_mass,
+            constants=cohort_constants,
+        )
+
+        return AnimalCohort(
+            functional_group=group,
+            mass=mass,
+            age=100.0,
+            individuals=individuals,
+            centroid_key=0,
+            grid=grid if grid is not None else default_grid,
+            constants=cohort_constants,
+        )
+
+    return _make

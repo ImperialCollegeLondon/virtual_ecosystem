@@ -845,20 +845,26 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model, tricky_plant_co
     fxt_plants_model.per_stem_transpiration = {
         cell_id: np.array([10]) for cell_id in fxt_plants_model.communities.keys()
     }
-    # Check reset
     fxt_plants_model.calculate_nutrient_uptake()
 
-    expected_ammonium = (
-        10 * fxt_plants_model.data["dissolved_ammonium"] * 1.8015e-11 * 1000
+    update_days = fxt_plants_model.model_timing.update_interval_quantity.to(
+        "days"
+    ).magnitude
+    stem_counts = np.array(
+        [
+            fxt_plants_model.communities[cell_id].cohorts["n_individuals"].sum()
+            for cell_id in fxt_plants_model.grid.cell_id
+        ]
     )
-    expected_nitrate = (
-        10 * fxt_plants_model.data["dissolved_nitrate"] * 1.8015e-11 * 1000
-    )
+    rate_scale = stem_counts / (1000 * fxt_plants_model.grid.cell_area * update_days)
+
+    expected_ammonium = 10 * fxt_plants_model.data["dissolved_ammonium"] * rate_scale
+    expected_nitrate = 10 * fxt_plants_model.data["dissolved_nitrate"] * rate_scale
     expected_phosphorus = (
-        10 * fxt_plants_model.data["dissolved_phosphorus"] * 1.8015e-11 * 1000
+        10 * fxt_plants_model.data["dissolved_phosphorus"] * rate_scale
     )
 
-    # Check the uptake values in the data variable
+    # Check the soil-facing rates written to the data object.
     assert np.allclose(
         fxt_plants_model.data["plant_ammonium_uptake"], expected_ammonium
     )
@@ -867,14 +873,23 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model, tricky_plant_co
         fxt_plants_model.data["plant_phosphorus_uptake"], expected_phosphorus
     )
 
-    # Check the values in the stoichiometry surplus
+    # Check the per-stem N/P masses added to the biomass surplus (kg per update).
+    expected_ammonium_per_stem = (
+        10 * fxt_plants_model.data["dissolved_ammonium"][0].item() * 1e-3
+    )
+    expected_nitrate_per_stem = (
+        10 * fxt_plants_model.data["dissolved_nitrate"][0].item() * 1e-3
+    )
+    expected_phosphorus_per_stem = (
+        10 * fxt_plants_model.data["dissolved_phosphorus"][0].item() * 1e-3
+    )
     assert np.allclose(
         fxt_plants_model.biomasses[0].element_surpluses[:, 1],
-        expected_ammonium[0].item() + expected_nitrate[0].item(),
+        expected_ammonium_per_stem + expected_nitrate_per_stem,
     )
     assert np.allclose(
         fxt_plants_model.biomasses[0].element_surpluses[:, 2],
-        expected_phosphorus[0].item(),
+        expected_phosphorus_per_stem,
     )
 
 
