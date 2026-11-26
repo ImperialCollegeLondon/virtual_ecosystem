@@ -2463,8 +2463,8 @@ class TestAnimalModel:
         Metabolic excreta currently go through the normal excrement split, so the
         scavengeable and decomposed fractions are summed.
 
-        The cohort must not metabolise to zero mass, otherwise the zero-mass removal
-        would also send mass to the carcass pools. That case is tested separately.
+        The cohort must not metabolise to zero mass, so that a vacuous pass is ruled
+        out.
 
         Args:
             animal_model_instance: Animal model fixture.

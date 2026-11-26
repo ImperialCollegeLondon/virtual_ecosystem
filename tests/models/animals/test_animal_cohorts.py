@@ -1448,6 +1448,67 @@ class TestAnimalCohort:
                 (initial_body + initial_repro) * proportion, rel=1e-12, abs=0.0
             )
 
+    @pytest.mark.parametrize(
+        "reproductive_type, initial_wet, expected_body_wet, expected_repro_wet,"
+        "expect_mature",
+        [
+            pytest.param("iteroparous", 56.0, 56.0, 0.0, False, id="below_ceiling"),
+            pytest.param("iteroparous", 80.0, 80.0, 0.0, False, id="at_ceiling"),
+            pytest.param("iteroparous", 88.0, 80.0, 8.0, True, id="above_ceiling"),
+            pytest.param("iteroparous", 104.0, 80.0, 24.0, True, id="far_above"),
+            pytest.param(
+                "nonreproductive", 88.0, 88.0, 0.0, False, id="nonreproductive"
+            ),
+        ],
+    )
+    def test_allocate_to_reproduction_in_wet_mass(
+        self,
+        wet_cohort_factory,
+        reproductive_type: str,
+        initial_wet: float,
+        expected_body_wet: float,
+        expected_repro_wet: float,
+        expect_mature: bool,
+    ) -> None:
+        """Test that wet mass above the ceiling moves to reproduction as CNP.
+
+        The ceiling is 80 kg wet and wet_per_cnp is 8. A body at 88 kg wet has 8 kg
+        wet above the ceiling, which is 1 kg of CNP: the body falls to 80 kg wet and
+        reproductive mass rises to 8 kg wet-equivalent. Moving the wet excess as if
+        it were CNP would remove 8 kg of CNP and leave the body at 24 kg wet. Body
+        plus reproductive CNP must be unchanged, and reproductive mass must be stored
+        at body stoichiometry.
+        """
+        cohort = wet_cohort_factory(
+            mass=initial_wet, reproductive_type=reproductive_type
+        )
+        assert (
+            cohort.constants.flow_to_reproductive_mass_threshold
+            * cohort.functional_group.adult_mass
+        ) == pytest.approx(80.0)
+
+        total_cnp_before = cohort.mass_cnp.total
+
+        cohort.allocate_to_reproduction()
+
+        assert cohort.mass_current == pytest.approx(expected_body_wet, rel=1e-12)
+        assert cohort.reproductive_mass == pytest.approx(
+            expected_repro_wet, rel=1e-12, abs=1e-12
+        )
+        assert cohort.is_mature is expect_mature
+
+        # CNP is moved, not created or lost
+        assert cohort.mass_cnp.total + cohort.reproductive_mass_cnp.total == (
+            pytest.approx(total_cnp_before, rel=1e-12)
+        )
+
+        # Reproductive mass is stored at body stoichiometry
+        repro_cnp = expected_repro_wet / cohort.wet_per_cnp
+        for element, proportion in cohort.cnp_proportions.items():
+            assert cohort.reproductive_mass_cnp[element] == pytest.approx(
+                repro_cnp * proportion, rel=1e-12, abs=1e-12
+            )
+
     def test_flag_maturity_records_first_maturity_only(self, herbivore_cohort_instance):
         """Test that maturity is recorded once, at the age it is first reached."""
         cohort = herbivore_cohort_instance
@@ -5319,6 +5380,46 @@ class TestAnimalCohort:
                 intake[element], abs=1e-12 * start_mass * individuals
             )
 
+    def test_reproductive_allocation_is_net_of_metabolism_in_wet_mass(
+        self, mocker, wet_cohort_factory
+    ) -> None:
+        """Test the foraging, metabolism, allocation sequence in wet mass.
+
+        Start at 72 kg wet (9 kg CNP), two individuals. Growth of 3 kg CNP each takes
+        the body to 96 kg wet. Metabolism is charged at the start-of-step mass of
+        72 kg: the mocked rate is 8 kg wet for one day, which is 1 kg of CNP, so the
+        body falls to 88 kg wet. Allocation then moves the 8 kg wet above the 80 kg
+        ceiling (1 kg CNP) to reproduction. Allocating before metabolism would have
+        moved 16 kg wet.
+        """
+        individuals = 2
+        cohort = wet_cohort_factory(mass=72.0, individuals=individuals)
+        cohort.start_of_step_mass = cohort.mass_current
+
+        intake = {e: 3.0 * individuals * p for e, p in cohort.cnp_proportions.items()}
+        cohort.grow(intake)
+        assert cohort.mass_current == pytest.approx(96.0, rel=1e-12)
+
+        mock_rate = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=8.0,
+        )
+        waste = cohort.metabolize(
+            25.0, timedelta64(1, "D"), rate_mass=cohort.start_of_step_mass
+        )
+
+        # Rate set by start-of-step wet mass, not the post-foraging mass
+        assert mock_rate.call_args.kwargs["mass"] == pytest.approx(72.0, rel=1e-12)
+        assert cohort.mass_current == pytest.approx(88.0, rel=1e-12)
+        assert sum(waste.values()) == pytest.approx(1.0 * individuals, rel=1e-12)
+
+        cohort.allocate_to_reproduction()
+
+        assert cohort.mass_current == pytest.approx(80.0, rel=1e-12)
+        assert cohort.reproductive_mass == pytest.approx(8.0, rel=1e-12)
+        assert cohort.reproductive_mass_cnp.total == pytest.approx(1.0, rel=1e-12)
+        assert cohort.is_mature is True
+
 
 class TestWetBodyMass:
     """Tests for wet body mass under a non-trivial body composition."""
@@ -5361,20 +5462,13 @@ class TestWetBodyMass:
         assert cohort.reproductive_mass == pytest.approx(12.0)
 
     @pytest.mark.parametrize(
-        "reproductive_type, initial_wet, growth_cnp, expected_body_wet,"
-        "expected_repro_wet, expect_mature",
+        "reproductive_type, initial_wet, growth_cnp, expected_body_wet",
         [
-            pytest.param(
-                "iteroparous", 32.0, 3.0, 56.0, 0.0, False, id="below_ceiling"
-            ),
-            pytest.param(
-                "iteroparous", 64.0, 3.0, 80.0, 8.0, True, id="straddles_ceiling"
-            ),
-            pytest.param("iteroparous", 80.0, 3.0, 80.0, 24.0, True, id="at_ceiling"),
-            pytest.param(
-                "nonreproductive", 64.0, 3.0, 88.0, 0.0, False, id="nonreproductive"
-            ),
-            pytest.param("iteroparous", 64.0, 0.0, 64.0, 0.0, False, id="no_growth"),
+            pytest.param("iteroparous", 32.0, 3.0, 56.0, id="below_ceiling"),
+            pytest.param("iteroparous", 64.0, 3.0, 88.0, id="crosses_ceiling"),
+            pytest.param("iteroparous", 80.0, 3.0, 104.0, id="from_ceiling"),
+            pytest.param("nonreproductive", 64.0, 3.0, 88.0, id="nonreproductive"),
+            pytest.param("iteroparous", 64.0, 0.0, 64.0, id="no_growth"),
         ],
     )
     def test_grow_in_wet_mass(
@@ -5384,17 +5478,15 @@ class TestWetBodyMass:
         initial_wet: float,
         growth_cnp: float,
         expected_body_wet: float,
-        expected_repro_wet: float,
-        expect_mature: bool,
     ) -> None:
-        """Test that CNP growth raises wet mass by growth x 8, split at the ceiling.
+        """Test that CNP growth raises wet body mass by growth x 8, all to the body.
 
-        3 kg CNP per individual is 24 kg wet. In the straddling case the headroom
-        is 80 - 64 = 16 kg wet, so 2 kg CNP go to the body and 1 kg CNP (8 kg wet)
-        to reproduction. Without the wet conversion the headroom would be compared
-        with 3 kg of CNP and the body would overshoot to 88 kg. Intake is supplied in
-        body proportions, so there is no stoichiometric waste, and CNP must be
-        conserved exactly.
+        3 kg CNP per individual is 24 kg wet. ``grow`` no longer applies the
+        allocation ceiling, so the body passes 80 kg wet in the crossing cases and no
+        mass goes to reproduction, whatever the reproductive type. Allocation is
+        tested separately in ``test_allocate_to_reproduction_in_wet_mass``. Intake is
+        supplied in body proportions, so there is no stoichiometric waste, and CNP
+        must be conserved exactly.
         """
         individuals = 2
         cohort = wet_cohort_factory(
@@ -5410,18 +5502,14 @@ class TestWetBodyMass:
 
         waste = cohort.grow(intake)
 
-        assert cohort.mass_current == pytest.approx(expected_body_wet)
-        assert cohort.reproductive_mass == pytest.approx(expected_repro_wet)
-        assert cohort.is_mature is expect_mature
+        assert cohort.mass_current == pytest.approx(expected_body_wet, rel=1e-12)
+        assert cohort.reproductive_mass_cnp.total == 0.0
+        assert cohort.is_mature is False
 
-        # CNP is conserved: body gain + reproductive gain + waste = intake
+        # CNP is conserved: body gain + waste = intake
         for element in ("C", "N", "P"):
-            gained = (
-                cohort.mass_cnp[element]
-                - initial_cnp[element]
-                + cohort.reproductive_mass_cnp[element]
-            ) * individuals
-            assert gained + waste[element] == pytest.approx(intake[element])
+            gained = (cohort.mass_cnp[element] - initial_cnp[element]) * individuals
+            assert gained + waste[element] == pytest.approx(intake[element], rel=1e-12)
 
     def test_metabolize_removes_cnp_share_of_wet_loss(
         self, mocker, wet_cohort_factory
