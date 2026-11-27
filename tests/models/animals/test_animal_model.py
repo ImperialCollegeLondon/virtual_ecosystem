@@ -237,17 +237,17 @@ class TestAnimalModel:
         """Test that update runs the community methods in the expected order.
 
         The expected order reflects the timestep-coherence design: all in-territory
-        processes (foraging, birth, metamorphosis, metabolism, mortality) run before
-        intra-grid migration, so a cohort experiences a whole timestep in one
-        territory and only then relocates for the next. External migration runs last,
-        as it is a departure from the system rather than a response to local
-        conditions.
+        processes run before intra-grid migration, so a cohort experiences a whole
+        timestep in one territory and only then relocates. Metabolism runs straight
+        after foraging so that reproductive allocation is net of metabolic cost
+        before birth and metamorphosis are checked. External migration runs last, as
+        it is a departure from the system rather than a response to local conditions.
         """
         expected_order = [
             "forage_community",
+            "metabolize_community",
             "birth_community",
             "metamorphose_community",
-            "metabolize_community",
             "inflict_non_predation_mortality_community",
             "migrate_community",
             "migrate_external_community",
@@ -2273,6 +2273,42 @@ class TestAnimalModel:
             dt=dt,
         )
 
+    def test_forage_community_records_start_of_step_mass(
+        self, mocker, animal_model_instance
+    ) -> None:
+        """Test that start_of_step_mass is recorded before the cohort eats.
+
+        Foraging is mocked to add 1 kg per individual to the body. The recorded mass
+        must be the pre-foraging mass, not the grown mass, since it sets the
+        metabolic rate.
+
+        Args:
+            mocker: pytest-mock fixture.
+            animal_model_instance: Animal model fixture.
+        """
+        import numpy as np
+
+        model = animal_model_instance
+        cohort = next(iter(model.active_cohorts.values()))
+        model.active_cohorts = {cohort.id: cohort}
+        mass_before = cohort.mass_current
+
+        def grow_one_kg(**kwargs) -> None:
+            cohort.mass_cnp.update(
+                **{e: 1.0 * p for e, p in cohort.cnp_proportions.items()}
+            )
+
+        mocker.patch.object(cohort, "forage_cohort", side_effect=grow_one_kg)
+
+        model.forage_community(np.timedelta64(1, "D"))
+
+        assert cohort.start_of_step_mass == pytest.approx(
+            mass_before, rel=1e-12, abs=0.0
+        )
+        assert cohort.mass_current == pytest.approx(
+            mass_before + 1.0, rel=1e-12, abs=0.0
+        )
+
     @pytest.mark.parametrize(
         "cohort_specs, expected_resp",
         [
@@ -2370,7 +2406,9 @@ class TestAnimalModel:
         for cohort in cohorts:
             # Exactly one metabolism call, at the cohort's territory-mean temperature,
             # however many communities the cohort is registered in.
-            cohort.metabolize.assert_called_once_with(cohort.current_temperature, dt)
+            cohort.metabolize.assert_called_once_with(
+                cohort.current_temperature, dt, rate_mass=cohort.start_of_step_mass
+            )
 
             # The waste from that single call is partitioned exactly once.
             waste = cohort.metabolize.return_value
@@ -2388,6 +2426,9 @@ class TestAnimalModel:
             cohort.excrete.assert_called_once_with(
                 excreta, cohort.get_destination_excrement_pools.return_value
             )
+            # Allocation runs once, after metabolism
+            cohort.allocate_to_reproduction.assert_called_once_with()
+
             assert cohort.excrete.call_args.args[0] is not waste
 
         resp = model.data["total_animal_respiration"]
@@ -2422,8 +2463,8 @@ class TestAnimalModel:
         Metabolic excreta currently go through the normal excrement split, so the
         scavengeable and decomposed fractions are summed.
 
-        The cohort must not metabolise to zero mass, otherwise the zero-mass removal
-        would also send mass to the carcass pools. That case is tested separately.
+        The cohort must not metabolise to zero mass, so that a vacuous pass is ruled
+        out.
 
         Args:
             animal_model_instance: Animal model fixture.
@@ -2449,13 +2490,19 @@ class TestAnimalModel:
                 for pool in pools
             )
 
-        body_before = {e: cohort.mass_cnp[e] * cohort.individuals for e in elements}
+        body_before = {
+            e: (cohort.mass_cnp[e] + cohort.reproductive_mass_cnp[e])
+            * cohort.individuals
+            for e in elements
+        }
         excrement_before = {e: excrement_total(e) for e in elements}
 
         model.metabolize_community(dt)
 
         body_lost = {
-            e: body_before[e] - cohort.mass_cnp[e] * cohort.individuals
+            e: body_before[e]
+            - (cohort.mass_cnp[e] + cohort.reproductive_mass_cnp[e])
+            * cohort.individuals
             for e in elements
         }
         respired = model.data["total_animal_respiration"].values.sum()

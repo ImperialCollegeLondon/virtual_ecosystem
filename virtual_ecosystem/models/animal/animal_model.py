@@ -547,6 +547,12 @@ class AnimalModel(
         events would be simultaneous. The ordering within the method is less a question
         of the science and more a question of computational logic and stability.
 
+        Metabolism runs immediately after foraging so that reproductive allocation,
+        made at the end of :meth:`metabolize_community`, is net of both assimilation
+        and metabolic cost. Birth and metamorphosis therefore see post-metabolism
+        mass, and cohorts created by them are not charged metabolism in the timestep
+        they appear.
+
         Args:
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
@@ -568,9 +574,9 @@ class AnimalModel(
         self.reset_trophic_records()
         self.update_activity_windows_community()
         self.forage_community(self.update_interval_timedelta)
+        self.metabolize_community(self.update_interval_timedelta)
         self.birth_community()
         self.metamorphose_community()
-        self.metabolize_community(self.update_interval_timedelta)
         self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
         self.migrate_community(self.update_interval_timedelta)
         self.migrate_external_community()
@@ -1536,6 +1542,11 @@ class AnimalModel(
         """
 
         for cohort in list(self.active_cohorts.values()):
+            # Record the start-of-step mass for the metabolic rate before this cohort
+            # eats. Cohorts earlier in the loop eating this one remove individuals, not
+            # per-individual mass, so this is still the start-of-step value.
+            cohort.start_of_step_mass = cohort.mass_current
+
             # Safety check territory must be defined
             if cohort.territory is None:
                 raise ValueError("The cohort's territory hasn't been defined.")
@@ -1630,6 +1641,13 @@ class AnimalModel(
         the temperature in the metabolic rate equation matches the one used to derive
         ``sigma_f_t``.
 
+        Metabolism runs immediately after foraging. The metabolic rate is calculated
+        from each cohort's start-of-step mass, recorded in :meth:`forage_community`,
+        as in Madingley. Once the cost is removed, any body mass above the allocation
+        ceiling is moved to reproductive mass, so that reproductive allocation is net
+        of metabolism. Birth and metamorphosis, which run afterwards, therefore see
+        post-metabolism mass.
+
         A cohort is registered in the community of every cell in its territory, so
         iterating over communities would charge a multi-cell cohort once per cell.
         Iteration is therefore over :attr:`active_cohorts`. The resulting wastes are
@@ -1644,7 +1662,9 @@ class AnimalModel(
         respiration = zeros(self.grid.n_cells)
 
         for cohort in self.active_cohorts.values():
-            metabolic_waste_mass = cohort.metabolize(cohort.current_temperature, dt)
+            metabolic_waste_mass = cohort.metabolize(
+                cohort.current_temperature, dt, rate_mass=cohort.start_of_step_mass
+            )
             respired, excreta = cohort.partition_metabolic_waste(metabolic_waste_mass)
 
             share = respired / len(cohort.territory)
@@ -1654,6 +1674,10 @@ class AnimalModel(
             cohort.excrete(
                 excreta, cohort.get_destination_excrement_pools(self.excrement_pools)
             )
+
+            # With growth and metabolism both applied, body mass above the ceiling is
+            # the net surplus, which is allocated to reproduction.
+            cohort.allocate_to_reproduction()
 
         self.data["total_animal_respiration"].values[:] += respiration
 
